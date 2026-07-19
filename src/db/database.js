@@ -62,6 +62,9 @@ export async function initDB() {
       waterReadingDay: 10,
       gasReadingDay: 12,
       electricityReadingDay: 15,
+      waterPaymentCode: '',
+      gasPaymentCode: '',
+      electricityPaymentCode: '',
       createdAt: new Date().toISOString(),
     }));
     await db.apartments.bulkAdd(apts);

@@ -431,9 +431,12 @@ export default function ApartmentDetail() {
               <div><span className="text-gray-500">Área:</span> <strong>{apt.area || '-'} m²</strong></div>
               <div><span className="text-gray-500">Piso:</span> <strong>{apt.floor || '-'}</strong></div>
               <div className="col-span-2"><span className="text-gray-500">NIC / Código de pago:</span> <strong>{apt.nic || '-'}</strong></div>
-              <div><span className="text-gray-500">Lectura Agua:</span> <strong>Día {apt.waterReadingDay || 10}</strong></div>
-              <div><span className="text-gray-500">Lectura Gas:</span> <strong>Día {apt.gasReadingDay || 12}</strong></div>
-              <div className="col-span-2"><span className="text-gray-500">Lectura Electricidad:</span> <strong>Día {apt.electricityReadingDay || 15}</strong></div>
+            <div><span className="text-gray-500 dark:text-gray-400">Lectura Agua:</span> <strong className="text-gray-900 dark:text-white">Día {apt.waterReadingDay || 10}</strong></div>
+            <div><span className="text-gray-500 dark:text-gray-400">Código Agua:</span> <strong className="text-gray-900 dark:text-white">{apt.waterPaymentCode || apt.nic || '-'}</strong></div>
+            <div><span className="text-gray-500 dark:text-gray-400">Lectura Gas:</span> <strong className="text-gray-900 dark:text-white">Día {apt.gasReadingDay || 12}</strong></div>
+            <div><span className="text-gray-500 dark:text-gray-400">Código Gas:</span> <strong className="text-gray-900 dark:text-white">{apt.gasPaymentCode || apt.nic || '-'}</strong></div>
+            <div className="col-span-2"><span className="text-gray-500 dark:text-gray-400">Lectura Electricidad:</span> <strong className="text-gray-900 dark:text-white">Día {apt.electricityReadingDay || 15}</strong></div>
+            <div className="col-span-2"><span className="text-gray-500 dark:text-gray-400">Código Electricidad:</span> <strong className="text-gray-900 dark:text-white">{apt.electricityPaymentCode || apt.nic || '-'}</strong></div>
             </div>
           </div>
         </div>
@@ -486,16 +489,28 @@ export default function ApartmentDetail() {
               <input type="text" value={form.nic || ''} onChange={e => setForm({...form, nic: e.target.value})} placeholder="Ej: 1234567890" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lectura Agua (día)</label>
-              <input type="number" min="1" max="31" value={form.waterReadingDay || 10} onChange={e => setForm({...form, waterReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Agua (día)</label>
+              <input type="number" min="1" max="31" value={form.waterReadingDay || 10} onChange={e => setForm({...form, waterReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lectura Gas (día)</label>
-              <input type="number" min="1" max="31" value={form.gasReadingDay || 12} onChange={e => setForm({...form, gasReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código Agua (Triple A)</label>
+              <input type="text" value={form.waterPaymentCode || ''} onChange={e => setForm({...form, waterPaymentCode: e.target.value})} placeholder="Ej: 1234567890" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lectura Electricidad (día)</label>
-              <input type="number" min="1" max="31" value={form.electricityReadingDay || 15} onChange={e => setForm({...form, electricityReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Gas (día)</label>
+              <input type="number" min="1" max="31" value={form.gasReadingDay || 12} onChange={e => setForm({...form, gasReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código Gas (Gases del Caribe)</label>
+              <input type="text" value={form.gasPaymentCode || ''} onChange={e => setForm({...form, gasPaymentCode: e.target.value})} placeholder="Ej: 9876543210" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Electricidad (día)</label>
+              <input type="number" min="1" max="31" value={form.electricityReadingDay || 15} onChange={e => setForm({...form, electricityReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código Electricidad (Air-e)</label>
+              <input type="text" value={form.electricityPaymentCode || ''} onChange={e => setForm({...form, electricityPaymentCode: e.target.value})} placeholder="Ej: 5678901234" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
           </div>
           <div>

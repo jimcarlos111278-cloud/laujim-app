@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Zap, Droplets, Flame, Plus, Search, ExternalLink, CheckCircle, XCircle, ChevronLeft, ChevronRight, Save, AlertTriangle } from 'lucide-react';
+import { Zap, Droplets, Flame, Plus, Search, ExternalLink, CheckCircle, XCircle, ChevronLeft, ChevronRight, Save, AlertTriangle, List, Grid3X3, DollarSign, Hash } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { formatCurrency, formatShortDate, getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, isOverdueByReadingDate } from '../utils/helpers';
@@ -7,6 +7,9 @@ import { formatCurrency, formatShortDate, getCurrentPeriod, getPeriodLabel, next
 const serviceIcons = { water: Droplets, gas: Flame, electricity: Zap };
 const serviceNames = { water: 'Agua', gas: 'Gas', electricity: 'Electricidad' };
 const serviceColors = { water: 'text-blue-600 bg-blue-50', gas: 'text-amber-600 bg-amber-50', electricity: 'text-yellow-600 bg-yellow-50' };
+const serviceBgColors = { water: 'bg-blue-50', gas: 'bg-amber-50', electricity: 'bg-yellow-50' };
+const serviceBorderColors = { water: 'border-blue-200', gas: 'border-amber-200', electricity: 'border-yellow-200' };
+const serviceDarkBg = { water: 'dark:bg-blue-900/20', gas: 'dark:bg-amber-900/20', electricity: 'dark:bg-yellow-900/20' };
 
 const utilityWebsites = {
   water: { name: 'Triple A', url: 'https://portal.aaa.com.co/pagos' },
@@ -20,9 +23,11 @@ export default function Utilities() {
   const [search, setSearch] = useState('');
   const [filterService, setFilterService] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
-  const [showGrid, setShowGrid] = useState(false);
+  const [showTable, setShowTable] = useState(false);
   const [gridPeriod, setGridPeriod] = useState(getCurrentPeriod());
   const [gridData, setGridData] = useState({});
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ apartmentId: '', service: 'water', paymentCode: '', period: getCurrentPeriod(), amount: '', dueDate: '', readingDate: '', paid: false, notes: '' });
 
   useEffect(() => { load(); }, []);
@@ -30,68 +35,41 @@ export default function Utilities() {
   async function load() {
     const [r, a] = await Promise.all([api.utilityPayments.toArray(), api.apartments.toArray()]);
     setRecords(r); setApartments(a);
+    buildGridData(gridPeriod, r, a);
   }
 
   function getApartment(id) { return apartments.find(a => a.id === id); }
 
-  const filtered = records.filter(r => {
-    const apt = getApartment(r.apartmentId);
-    const s = search.toLowerCase();
-    return (!search || apt?.name.toLowerCase().includes(s) || r.paymentCode?.includes(s)) &&
-      (filterService === 'all' || r.service === filterService);
-  });
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    await api.utilityPayments.add({
-      apartmentId: Number(form.apartmentId),
-      service: form.service,
-      paymentCode: form.paymentCode,
-      period: form.period,
-      amount: Number(form.amount),
-      dueDate: form.dueDate,
-      readingDate: form.readingDate || null,
-      paid: form.paid,
-      paidDate: form.paid ? new Date().toISOString() : null,
-      notes: form.notes,
-      createdAt: new Date().toISOString(),
-    });
-    setShowAdd(false);
-    setForm({ apartmentId: '', service: 'water', paymentCode: '', period: getCurrentPeriod(), amount: '', dueDate: '', readingDate: '', paid: false, notes: '' });
-    load();
+  function getServicePaymentCode(apt, service) {
+    if (!apt) return '';
+    if (service === 'water') return apt.waterPaymentCode || apt.nic || '';
+    if (service === 'gas') return apt.gasPaymentCode || apt.nic || '';
+    if (service === 'electricity') return apt.electricityPaymentCode || apt.nic || '';
+    return apt.nic || '';
   }
 
-  async function togglePaid(record) {
-    await api.utilityPayments.update(record.id, {
-      paid: !record.paid,
-      paidDate: !record.paid ? new Date().toISOString() : null,
-    });
-    load();
-  }
-
-  function openGrid() {
-    setGridPeriod(getCurrentPeriod());
-    buildGridData(getCurrentPeriod());
-    setShowGrid(true);
-  }
-
-  function buildGridData(period) {
+  function buildGridData(period, recs, apts) {
+    const r = recs || records;
+    const a = apts || apartments;
     const data = {};
-    for (const apt of apartments) {
+    for (const apt of a) {
       data[apt.id] = {};
       for (const svc of ['water', 'gas', 'electricity']) {
-        const existing = records.find(r => r.apartmentId === apt.id && r.service === svc && r.period === period);
+        const existing = r.find(r => r.apartmentId === apt.id && r.service === svc && r.period === period);
+        const code = getServicePaymentCode(apt, svc);
         data[apt.id][svc] = {
           paid: existing ? existing.paid : false,
           recordId: existing ? existing.id : null,
-          paymentCode: existing ? existing.paymentCode : '',
+          paymentCode: existing ? (existing.paymentCode || code) : code,
           amount: existing ? existing.amount : 0,
+          amountChanged: false,
           readingDate: existing ? existing.readingDate : '',
           dueDate: existing ? existing.dueDate : '',
         };
       }
     }
     setGridData(data);
+    setDirty(false);
   }
 
   function handleGridPeriodChange(dir) {
@@ -108,9 +86,23 @@ export default function Utilities() {
         [service]: { ...prev[aptId][service], paid },
       },
     }));
+    setDirty(true);
+  }
+
+  function handleAmountChange(aptId, service, amount) {
+    setGridData(prev => ({
+      ...prev,
+      [aptId]: {
+        ...prev[aptId],
+        [service]: { ...prev[aptId][service], amount: Number(amount), amountChanged: true },
+      },
+    }));
+    setDirty(true);
   }
 
   async function saveGrid() {
+    setSaving(true);
+    let created = 0, updated = 0;
     for (const aptId of Object.keys(gridData)) {
       for (const svc of ['water', 'gas', 'electricity']) {
         const cell = gridData[aptId][svc];
@@ -119,8 +111,11 @@ export default function Utilities() {
           await api.utilityPayments.update(cell.recordId, {
             paid: cell.paid,
             paidDate: cell.paid ? new Date().toISOString() : null,
+            amount: cell.amountChanged ? cell.amount : existing.amount,
+            paymentCode: cell.paymentCode || existing.paymentCode,
           });
-        } else if (!existing) {
+          updated++;
+        } else {
           const apt = getApartment(Number(aptId));
           const readingDay = svc === 'water' ? (apt?.waterReadingDay || 10)
             : svc === 'gas' ? (apt?.gasReadingDay || 12) : (apt?.electricityReadingDay || 15);
@@ -137,26 +132,47 @@ export default function Utilities() {
             paidDate: cell.paid ? new Date().toISOString() : null,
             createdAt: new Date().toISOString(),
           });
+          created++;
         }
       }
     }
     await load();
-    buildGridData(gridPeriod);
-    alert('Guardado correctamente');
+    setDirty(false);
+    setSaving(false);
+    alert(`Guardado: ${created} creado(s), ${updated} actualizado(s)`);
   }
 
+  const filtered = records.filter(r => {
+    const apt = getApartment(r.apartmentId);
+    const s = search.toLowerCase();
+    return (!search || apt?.name.toLowerCase().includes(s) || r.paymentCode?.includes(s)) &&
+      (filterService === 'all' || r.service === filterService);
+  });
+
   const pendingCount = records.filter(r => !r.paid).length;
+  const overdueCount = records.filter(r => {
+    if (r.paid) return false;
+    const apt = getApartment(r.apartmentId);
+    const day = r.service === 'water' ? (apt?.waterReadingDay || 10)
+      : r.service === 'gas' ? (apt?.gasReadingDay || 12) : (apt?.electricityReadingDay || 15);
+    return isOverdueByReadingDate(r.period, day);
+  }).length;
+  const totalPending = records.filter(r => !r.paid).reduce((s, r) => s + (r.amount || 0), 0);
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Servicios Públicos</h1>
-          <p className="text-gray-500 mt-1">{pendingCount} pendientes de pago</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
+            {pendingCount} pendientes · {overdueCount} vencidos · {formatCurrency(totalPending)} por pagar
+          </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={openGrid} className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
-            <CheckCircle className="w-4 h-4" /> Pagar Recibos
+          <button onClick={() => setShowTable(!showTable)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium border ${showTable ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
+            {showTable ? <Grid3X3 className="w-4 h-4" /> : <List className="w-4 h-4" />}
+            {showTable ? 'Matriz' : 'Lista'}
           </button>
           <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
             <Plus className="w-4 h-4" /> Agregar
@@ -164,190 +180,203 @@ export default function Utilities() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* Period Navigation + Search */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5">
+          <button onClick={() => handleGridPeriodChange('prev')} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <span className="font-semibold text-gray-900 dark:text-white min-w-[140px] text-center">{getPeriodLabel(gridPeriod)}</span>
+          <button onClick={() => handleGridPeriodChange('next')} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+          <button onClick={() => { setGridPeriod(getCurrentPeriod()); buildGridData(getCurrentPeriod()); }} className="ml-1 text-xs text-blue-600 hover:underline px-2">Hoy</button>
+        </div>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="text" placeholder="Buscar por apto o código..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          <input type="text" placeholder="Buscar apto o código..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
         </div>
-        <select value={filterService} onChange={e => setFilterService(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-          <option value="all">Todos los servicios</option>
+        <select value={filterService} onChange={e => setFilterService(e.target.value)} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
+          <option value="all">Todos</option>
           <option value="water">Agua</option>
           <option value="gas">Gas</option>
           <option value="electricity">Electricidad</option>
         </select>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Servicio</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Apartamento</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Período</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Lectura</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Código</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Valor</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Vence</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Pagado</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.toReversed().map(r => {
-                const apt = getApartment(r.apartmentId);
-                const Icon = serviceIcons[r.service];
-                const website = utilityWebsites[r.service];
-                const overdue = !r.paid && r.readingDate && isOverdueByReadingDate(r.period,
-                  r.service === 'water' ? (apt?.waterReadingDay || 10) : r.service === 'gas' ? (apt?.gasReadingDay || 12) : (apt?.electricityReadingDay || 15));
-                return (
-                  <tr key={r.id} className={`hover:bg-gray-50 ${overdue ? 'bg-red-50' : ''}`}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded-lg ${serviceColors[r.service]}`}>
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <span className="font-medium">{serviceNames[r.service]}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">{apt?.name || '-'}</td>
-                    <td className="px-4 py-3 text-gray-500">{r.period}</td>
-                    <td className="px-4 py-3 text-gray-500">{r.readingDate ? formatShortDate(r.readingDate) : '-'}</td>
-                    <td className="px-4 py-3">
-                      <code className="px-2 py-0.5 bg-gray-100 rounded text-xs font-mono">{r.paymentCode || '-'}</code>
-                    </td>
-                    <td className="px-4 py-3 font-medium">{r.amount ? formatCurrency(r.amount) : '-'}</td>
-                    <td className="px-4 py-3 text-gray-500">{r.dueDate ? formatShortDate(r.dueDate) : '-'}</td>
-                    <td className="px-4 py-3">
-                      {r.paid
-                        ? <span className="flex items-center gap-1 text-emerald-600"><CheckCircle className="w-4 h-4" /> Sí</span>
-                        : <span className="flex items-center gap-1 text-amber-600">
-                            {overdue ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <XCircle className="w-4 h-4" />}
-                            {overdue ? 'Vencido' : 'No'}
-                          </span>
-                      }
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {r.paymentCode && (
-                          <a href={website.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors" title={`Pagar en ${website.name}`}>
-                            <ExternalLink className="w-3 h-3" /> Pagar
-                          </a>
-                        )}
-                        <button onClick={() => togglePaid(r)} className={`px-2 py-1 text-xs rounded transition-colors ${r.paid ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}>
-                          {r.paid ? 'No Pagado' : 'Pagado'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length === 0 && <p className="text-center text-gray-400 py-8">No hay registros de servicios públicos</p>}
-      </div>
-
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Nuevo Registro de Servicio" size="lg">
-        <form onSubmit={handleAdd} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Apartamento *</label>
-              <select value={form.apartmentId} onChange={e => setForm({...form, apartmentId: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required>
-                <option value="">Seleccionar...</option>
-                {apartments.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Servicio *</label>
-              <select value={form.service} onChange={e => setForm({...form, service: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="water">Agua</option>
-                <option value="gas">Gas</option>
-                <option value="electricity">Electricidad</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Período</label>
-              <input type="month" value={form.period} onChange={e => setForm({...form, period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Código de Pago</label>
-              <input type="text" value={form.paymentCode} onChange={e => setForm({...form, paymentCode: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej: 1234567890" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor</label>
-              <input type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Lectura</label>
-              <input type="date" value={form.readingDate} onChange={e => setForm({...form, readingDate: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Vencimiento</label>
-              <input type="date" value={form.dueDate} onChange={e => setForm({...form, dueDate: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" id="paid" checked={form.paid} onChange={e => setForm({...form, paid: e.target.checked})} className="rounded border-gray-300" />
-            <label htmlFor="paid" className="text-sm text-gray-700">Ya está pagado</label>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
-            <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Guardar</button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal open={showGrid} onClose={() => setShowGrid(false)} title={`Pagar Recibos - ${getPeriodLabel(gridPeriod)}`} size="xl">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <button onClick={() => handleGridPeriodChange('prev')} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
-            <span className="font-semibold text-lg">{getPeriodLabel(gridPeriod)}</span>
-            <button onClick={() => handleGridPeriodChange('next')} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
-          </div>
-
+      {/* Grid View */}
+      {!showTable ? (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left px-3 py-2 font-medium text-gray-600 border border-gray-200">Apto</th>
-                  <th className="text-center px-3 py-2 font-medium text-blue-600 border border-gray-200 bg-blue-50">Agua</th>
-                  <th className="text-center px-3 py-2 font-medium text-amber-600 border border-gray-200 bg-amber-50">Gas</th>
-                  <th className="text-center px-3 py-2 font-medium text-yellow-600 border border-gray-200 bg-yellow-50">Electricidad</th>
+                <tr>
+                  <th className="sticky left-0 bg-white dark:bg-gray-800 z-10 text-left px-3 py-3 font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-200 dark:border-gray-700 min-w-[90px]">Apartamento</th>
+                  {['water', 'gas', 'electricity'].map(svc => {
+                    const Icon = serviceIcons[svc];
+                    return (
+                      <th key={svc} className={`text-center px-2 py-3 font-semibold border-b-2 border-gray-200 dark:border-gray-700 ${serviceColors[svc]} ${serviceDarkBg[svc]}`}>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Icon className="w-4 h-4" />
+                          <span>{serviceNames[svc]}</span>
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
-              <tbody>
-                {apartments.map(apt => {
-                  const w = gridData[apt.id]?.water || {};
-                  const g = gridData[apt.id]?.gas || {};
-                  const e = gridData[apt.id]?.electricity || {};
-                  const wOverdue = !w.paid && isOverdueByReadingDate(gridPeriod, apt.waterReadingDay || 10);
-                  const gOverdue = !g.paid && isOverdueByReadingDate(gridPeriod, apt.gasReadingDay || 12);
-                  const eOverdue = !e.paid && isOverdueByReadingDate(gridPeriod, apt.electricityReadingDay || 15);
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {apartments
+                  .filter(a => !search || a.name.toLowerCase().includes(search.toLowerCase()) || Object.values(gridData[a.id] || {}).some(c => (c.paymentCode || '').includes(search)))
+                  .map(apt => {
+                    const services = ['water', 'gas', 'electricity'];
+                    return (
+                      <tr key={apt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td className="sticky left-0 bg-white dark:bg-gray-800 z-10 px-3 py-3 font-medium text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700">
+                          {apt.name}
+                        </td>
+                        {services.map(svc => {
+                          const cell = gridData[apt.id]?.[svc] || {};
+                          const readingDay = svc === 'water' ? (apt.waterReadingDay || 10)
+                            : svc === 'gas' ? (apt.gasReadingDay || 12) : (apt.electricityReadingDay || 15);
+                          const overdue = !cell.paid && isOverdueByReadingDate(gridPeriod, readingDay);
+                          const paid = cell.paid;
+                          const code = cell.paymentCode || getServicePaymentCode(apt, svc);
+                          const Icon = serviceIcons[svc];
+
+                          let cellBg = 'bg-white dark:bg-gray-800';
+                          if (paid) cellBg = 'bg-emerald-50 dark:bg-emerald-900/20';
+                          else if (overdue) cellBg = 'bg-red-50 dark:bg-red-900/20';
+
+                          return (
+                            <td key={svc} className={`px-2 py-2 ${cellBg} border-r border-gray-100 dark:border-gray-700 last:border-r-0`}>
+                              <div className="flex flex-col items-center gap-1 min-w-[130px]">
+                                {/* Status + Checkbox row */}
+                                <div className="flex items-center justify-center gap-1.5 w-full">
+                                  {paid ? (
+                                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                                      <CheckCircle className="w-3.5 h-3.5" /> Pagado
+                                    </span>
+                                  ) : overdue ? (
+                                    <span className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-medium">
+                                      <AlertTriangle className="w-3.5 h-3.5" /> Vencido
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs font-medium">
+                                      <XCircle className="w-3.5 h-3.5" /> Pendiente
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Amount row */}
+                                <div className="flex items-center gap-1">
+                                  <DollarSign className="w-3 h-3 text-gray-400" />
+                                  <input
+                                    type="number"
+                                    value={cell.amount || ''}
+                                    onChange={e => handleAmountChange(apt.id, svc, e.target.value)}
+                                    placeholder="0"
+                                    className="w-20 text-center text-xs font-medium text-gray-700 dark:text-gray-200 bg-transparent border-b border-dashed border-gray-300 dark:border-gray-600 focus:border-blue-500 outline-none"
+                                  />
+                                </div>
+                                {/* Payment Code row */}
+                                <div className="flex items-center gap-1">
+                                  <Hash className="w-3 h-3 text-gray-400" />
+                                  <code className="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[90px]" title={code}>
+                                    {code || '—'}
+                                  </code>
+                                </div>
+                                {/* Checkbox + Pay link row */}
+                                <div className="flex items-center justify-center gap-2 w-full mt-0.5">
+                                  <label className="flex items-center gap-1 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={cell.paid}
+                                      onChange={e => handleGridPaidChange(apt.id, svc, e.target.checked)}
+                                      className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-[10px] text-gray-500 dark:text-gray-400">Pagado</span>
+                                  </label>
+                                  {code && (
+                                    <a href={utilityWebsites[svc].url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:underline" title={`Pagar en ${utilityWebsites[svc].name}`}>
+                                      <ExternalLink className="w-2.5 h-2.5" /> Pagar
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+          {apartments.length === 0 && <p className="text-center text-gray-400 dark:text-gray-500 py-8">No hay apartamentos registrados</p>}
+        </div>
+      ) : (
+        /* Table View */
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Servicio</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Apartamento</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Período</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Lectura</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Código</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Valor</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Vence</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pagado</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {filtered.toReversed().map(r => {
+                  const apt = getApartment(r.apartmentId);
+                  const Icon = serviceIcons[r.service];
+                  const website = utilityWebsites[r.service];
+                  const overdue = !r.paid && r.readingDate && isOverdueByReadingDate(r.period,
+                    r.service === 'water' ? (apt?.waterReadingDay || 10) : r.service === 'gas' ? (apt?.gasReadingDay || 12) : (apt?.electricityReadingDay || 15));
                   return (
-                    <tr key={apt.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 font-medium border border-gray-200">{apt.name}</td>
-                      <td className={`text-center border border-gray-200 ${wOverdue ? 'bg-red-50' : ''}`}>
-                        <label className="flex items-center justify-center gap-1.5 p-2 cursor-pointer">
-                          <input type="checkbox" checked={w.paid} onChange={e => handleGridPaidChange(apt.id, 'water', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-blue-600" />
-                          {wOverdue && <AlertTriangle className="w-3.5 h-3.5 text-red-500" title="Vencido" />}
-                        </label>
+                    <tr key={r.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${overdue ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`p-1.5 rounded-lg ${serviceColors[r.service]}`}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <span className="font-medium text-gray-900 dark:text-white">{serviceNames[r.service]}</span>
+                        </div>
                       </td>
-                      <td className={`text-center border border-gray-200 ${gOverdue ? 'bg-red-50' : ''}`}>
-                        <label className="flex items-center justify-center gap-1.5 p-2 cursor-pointer">
-                          <input type="checkbox" checked={g.paid} onChange={e => handleGridPaidChange(apt.id, 'gas', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-amber-600" />
-                          {gOverdue && <AlertTriangle className="w-3.5 h-3.5 text-red-500" title="Vencido" />}
-                        </label>
+                      <td className="px-4 py-3 text-gray-900 dark:text-white">{apt?.name || '-'}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.period}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.readingDate ? formatShortDate(r.readingDate) : '-'}</td>
+                      <td className="px-4 py-3">
+                        <code className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-800 dark:text-gray-200">{r.paymentCode || '-'}</code>
                       </td>
-                      <td className={`text-center border border-gray-200 ${eOverdue ? 'bg-red-50' : ''}`}>
-                        <label className="flex items-center justify-center gap-1.5 p-2 cursor-pointer">
-                          <input type="checkbox" checked={e.paid} onChange={e => handleGridPaidChange(apt.id, 'electricity', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-yellow-600" />
-                          {eOverdue && <AlertTriangle className="w-3.5 h-3.5 text-red-500" title="Vencido" />}
-                        </label>
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{r.amount ? formatCurrency(r.amount) : '-'}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.dueDate ? formatShortDate(r.dueDate) : '-'}</td>
+                      <td className="px-4 py-3">
+                        {r.paid
+                          ? <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><CheckCircle className="w-4 h-4" /> Sí</span>
+                          : <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                              {overdue ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <XCircle className="w-4 h-4" />}
+                              {overdue ? 'Vencido' : 'No'}
+                            </span>
+                        }
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {r.paymentCode && (
+                            <a href={website.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors" title={`Pagar en ${website.name}`}>
+                              <ExternalLink className="w-3 h-3" /> Pagar
+                            </a>
+                          )}
+                          <button onClick={async () => { await api.utilityPayments.update(r.id, { paid: !r.paid, paidDate: !r.paid ? new Date().toISOString() : null }); load(); }} className={`px-2 py-1 text-xs rounded transition-colors ${r.paid ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30' : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`}>
+                            {r.paid ? 'No Pagado' : 'Pagado'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -355,14 +384,96 @@ export default function Utilities() {
               </tbody>
             </table>
           </div>
+          {filtered.length === 0 && <p className="text-center text-gray-400 dark:text-gray-500 py-8">No hay registros de servicios públicos</p>}
+        </div>
+      )}
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => { setShowGrid(false); load(); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cerrar</button>
-            <button onClick={saveGrid} className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              <Save className="w-4 h-4" /> Guardar
+      {/* Save Bar */}
+      {dirty && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Tienes cambios sin guardar</p>
+            <button onClick={saveGrid} disabled={saving} className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium">
+              <Save className="w-4 h-4" /> {saving ? 'Guardando...' : 'Guardar Cambios'}
             </button>
           </div>
         </div>
+      )}
+
+      {/* Add Modal */}
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Nuevo Registro de Servicio" size="lg">
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          await api.utilityPayments.add({
+            apartmentId: Number(form.apartmentId),
+            service: form.service,
+            paymentCode: form.paymentCode,
+            period: form.period,
+            amount: Number(form.amount),
+            dueDate: form.dueDate,
+            readingDate: form.readingDate || null,
+            paid: form.paid,
+            paidDate: form.paid ? new Date().toISOString() : null,
+            notes: form.notes,
+            createdAt: new Date().toISOString(),
+          });
+          setShowAdd(false);
+          setForm({ apartmentId: '', service: 'water', paymentCode: '', period: getCurrentPeriod(), amount: '', dueDate: '', readingDate: '', paid: false, notes: '' });
+          load();
+        }} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apartamento *</label>
+              <select value={form.apartmentId} onChange={e => {
+                const apt = getApartment(Number(e.target.value));
+                setForm({...form, apartmentId: e.target.value, paymentCode: getServicePaymentCode(apt, form.service)});
+              }} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" required>
+                <option value="">Seleccionar...</option>
+                {apartments.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Servicio *</label>
+              <select value={form.service} onChange={e => setForm({...form, service: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                <option value="water">Agua</option>
+                <option value="gas">Gas</option>
+                <option value="electricity">Electricidad</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Período</label>
+              <input type="month" value={form.period} onChange={e => setForm({...form, period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de Pago</label>
+              <input type="text" value={form.paymentCode} onChange={e => setForm({...form, paymentCode: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="Auto-completado del apto" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor</label>
+              <input type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de Lectura</label>
+              <input type="date" value={form.readingDate} onChange={e => setForm({...form, readingDate: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de Vencimiento</label>
+              <input type="date" value={form.dueDate} onChange={e => setForm({...form, dueDate: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="paid" checked={form.paid} onChange={e => setForm({...form, paid: e.target.checked})} className="rounded border-gray-300" />
+            <label htmlFor="paid" className="text-sm text-gray-700 dark:text-gray-300">Ya está pagado</label>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notas</label>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">Cancelar</button>
+            <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Guardar</button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
