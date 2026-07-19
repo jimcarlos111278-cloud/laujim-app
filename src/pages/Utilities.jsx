@@ -212,7 +212,7 @@ export default function Utilities() {
               <thead>
                 <tr>
                   <th className="sticky left-0 bg-white dark:bg-gray-800 z-10 text-left px-3 py-3 font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-gray-200 dark:border-gray-700 min-w-[90px]">Apartamento</th>
-                  {['water', 'gas', 'electricity'].map(svc => {
+                  {(filterService === 'all' ? ['water', 'gas', 'electricity'] : [filterService]).map(svc => {
                     const Icon = serviceIcons[svc];
                     return (
                       <th key={svc} className={`text-center px-2 py-3 font-semibold border-b-2 border-gray-200 dark:border-gray-700 ${serviceColors[svc]} ${serviceDarkBg[svc]}`}>
@@ -229,7 +229,7 @@ export default function Utilities() {
                 {apartments
                   .filter(a => !search || a.name.toLowerCase().includes(search.toLowerCase()) || Object.values(gridData[a.id] || {}).some(c => (c.paymentCode || '').includes(search)))
                   .map(apt => {
-                    const services = ['water', 'gas', 'electricity'];
+                    const services = filterService === 'all' ? ['water', 'gas', 'electricity'] : [filterService];
                     return (
                       <tr key={apt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                         <td className="sticky left-0 bg-white dark:bg-gray-800 z-10 px-3 py-3 font-medium text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700">
@@ -297,9 +297,9 @@ export default function Utilities() {
                                     <span className="text-[10px] text-gray-500 dark:text-gray-400">Pagado</span>
                                   </label>
                                   {code && (
-                                    <a href={utilityWebsites[svc].url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:underline" title={`Pagar en ${utilityWebsites[svc].name}`}>
+                                    <button onClick={() => { navigator.clipboard.writeText(code).catch(() => {}); window.open(utilityWebsites[svc].url, '_blank'); }} className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:underline cursor-pointer bg-transparent border-0" title={`Copiar código y abrir ${utilityWebsites[svc].name}`}>
                                       <ExternalLink className="w-2.5 h-2.5" /> Pagar
-                                    </a>
+                                    </button>
                                   )}
                                 </div>
                               </div>
@@ -369,9 +369,9 @@ export default function Utilities() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {r.paymentCode && (
-                            <a href={website.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors" title={`Pagar en ${website.name}`}>
+                            <button onClick={() => { navigator.clipboard.writeText(r.paymentCode).catch(() => {}); window.open(website.url, '_blank'); }} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors cursor-pointer bg-transparent border-0" title={`Copiar código y abrir ${website.name}`}>
                               <ExternalLink className="w-3 h-3" /> Pagar
-                            </a>
+                            </button>
                           )}
                           <button onClick={async () => { await api.utilityPayments.update(r.id, { paid: !r.paid, paidDate: !r.paid ? new Date().toISOString() : null }); load(); }} className={`px-2 py-1 text-xs rounded transition-colors ${r.paid ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30' : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`}>
                             {r.paid ? 'No Pagado' : 'Pagado'}
