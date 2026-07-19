@@ -1,0 +1,16 @@
+{
+  "appId": "com.laujim.aptmanager",
+  "appName": "GestionApartamentos",
+  "webDir": "dist",
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "http",
+    "allowNavigation": [
+      "192.168.1.*",
+      "192.168.0.*",
+      "10.0.2.*",
+      "localhost",
+      "127.0.0.1"
+    ]
+  }
+}

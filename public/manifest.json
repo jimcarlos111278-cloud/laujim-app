@@ -1,0 +1,26 @@
+{
+  "name": "Gestión de Apartamentos",
+  "short_name": "Gestión Aptos",
+  "description": "Administración de apartamentos - Laujim",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "categories": ["productivity", "utilities"],
+  "screenshots": [],
+  "icons": [
+    {
+      "src": "/icons.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
