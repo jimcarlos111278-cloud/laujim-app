@@ -263,8 +263,8 @@
       "paymentCode": "",
       "amount": 0,
       "readingDate": "2026-07-10",
-      "paid": false,
-      "paidDate": null,
+      "paid": true,
+      "paidDate": "2026-07-19T05:43:49.819Z",
       "createdAt": "2026-07-18T09:09:50.208Z",
       "id": 1
     },

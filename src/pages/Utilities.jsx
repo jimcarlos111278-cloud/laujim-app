@@ -104,6 +104,8 @@ export default function Utilities() {
     setSaving(true);
     let created = 0, updated = 0;
     for (const aptId of Object.keys(gridData)) {
+      const apt = getApartment(Number(aptId));
+      const aptUpdate = {};
       for (const svc of ['water', 'gas', 'electricity']) {
         const cell = gridData[aptId][svc];
         const existing = records.find(r => r.apartmentId === Number(aptId) && r.service === svc && r.period === gridPeriod);
@@ -116,7 +118,6 @@ export default function Utilities() {
           });
           updated++;
         } else {
-          const apt = getApartment(Number(aptId));
           const readingDay = svc === 'water' ? (apt?.waterReadingDay || 10)
             : svc === 'gas' ? (apt?.gasReadingDay || 12) : (apt?.electricityReadingDay || 15);
           const d = new Date();
@@ -134,6 +135,17 @@ export default function Utilities() {
           });
           created++;
         }
+        // Save payment code to apartment if changed
+        const existingAptCode = svc === 'water' ? apt?.waterPaymentCode
+          : svc === 'gas' ? apt?.gasPaymentCode : apt?.electricityPaymentCode;
+        if (cell.paymentCode && cell.paymentCode !== existingAptCode) {
+          const field = svc === 'water' ? 'waterPaymentCode'
+            : svc === 'gas' ? 'gasPaymentCode' : 'electricityPaymentCode';
+          aptUpdate[field] = cell.paymentCode;
+        }
+      }
+      if (Object.keys(aptUpdate).length > 0 && apt) {
+        await api.apartments.update(apt.id, aptUpdate);
       }
     }
     await load();
@@ -280,10 +292,24 @@ export default function Utilities() {
                                 </div>
                                 {/* Payment Code row */}
                                 <div className="flex items-center gap-1">
-                                  <Hash className="w-3 h-3 text-gray-400" />
-                                  <code className="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[90px]" title={code}>
-                                    {code || '—'}
-                                  </code>
+                                  <Hash className="w-3 h-3 text-gray-400 shrink-0" />
+                                  <input
+                                    type="text"
+                                    value={cell.paymentCode || ''}
+                                    onChange={e => {
+                                      setGridData(prev => ({
+                                        ...prev,
+                                        [apt.id]: {
+                                          ...prev[apt.id],
+                                          [svc]: { ...prev[apt.id][svc], paymentCode: e.target.value },
+                                        },
+                                      }));
+                                      setDirty(true);
+                                    }}
+                                    placeholder="Código"
+                                    className="w-full min-w-[70px] text-[10px] text-gray-700 dark:text-gray-200 bg-transparent border-b border-dashed border-gray-300 dark:border-gray-600 focus:border-blue-500 outline-none text-center"
+                                    title={code}
+                                  />
                                 </div>
                                 {/* Checkbox + Pay link row */}
                                 <div className="flex items-center justify-center gap-2 w-full mt-0.5">
