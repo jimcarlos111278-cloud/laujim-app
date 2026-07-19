@@ -30,7 +30,11 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.339Z"
+      "createdAt": "2026-07-18T06:30:26.339Z",
+      "waterPaymentCode": "123456963",
+      "waterReadingDay": 10,
+      "gasReadingDay": 12,
+      "electricityReadingDay": 15
     },
     {
       "id": 2,
