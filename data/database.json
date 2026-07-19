@@ -20,7 +20,7 @@
       "id": 1,
       "name": "101 Casa.",
       "description": "",
-      "monthlyRent": 2500000,
+      "monthlyRent": 250000022,
       "depositAmount": 0,
       "paymentDueDay": 5,
       "status": "vacant",
@@ -31,10 +31,11 @@
       "notes": "",
       "nic": "",
       "createdAt": "2026-07-18T06:30:26.339Z",
-      "waterPaymentCode": "123456963",
+      "waterPaymentCode": "11156",
       "waterReadingDay": 10,
       "gasReadingDay": 12,
-      "electricityReadingDay": 15
+      "electricityReadingDay": 15,
+      "gasPaymentCode": "1036207"
     },
     {
       "id": 2,
@@ -50,7 +51,9 @@
       "bathrooms": 1,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "40135611",
+      "gasPaymentCode": "1036207"
     },
     {
       "id": 3,
@@ -66,7 +69,9 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "975250",
+      "gasPaymentCode": "66499522"
     },
     {
       "id": 4,
@@ -82,7 +87,9 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "975249",
+      "gasPaymentCode": "66499584"
     },
     {
       "id": 5,
@@ -98,7 +105,10 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "975247",
+      "electricityPaymentCode": "7809672",
+      "gasPaymentCode": "66499518"
     },
     {
       "id": 6,
@@ -114,7 +124,10 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "975245",
+      "electricityPaymentCode": "7889031",
+      "gasPaymentCode": "66499585"
     },
     {
       "id": 7,
@@ -130,7 +143,10 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "975244",
+      "electricityPaymentCode": "7889033",
+      "gasPaymentCode": "66499526"
     },
     {
       "id": 8,
@@ -146,7 +162,10 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "974325",
+      "electricityPaymentCode": "7889034",
+      "gasPaymentCode": "66499577"
     },
     {
       "id": 9,
@@ -162,7 +181,10 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "937381",
+      "electricityPaymentCode": "7889036",
+      "gasPaymentCode": "66499532"
     },
     {
       "id": 10,
@@ -178,7 +200,10 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "800804",
+      "electricityPaymentCode": "7889037",
+      "gasPaymentCode": "66499573"
     },
     {
       "id": 11,
@@ -194,7 +219,10 @@
       "bathrooms": 2,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "937380",
+      "electricityPaymentCode": "7889039",
+      "gasPaymentCode": "66499604"
     },
     {
       "id": 12,
@@ -210,7 +238,9 @@
       "bathrooms": 1,
       "notes": "",
       "nic": "",
-      "createdAt": "2026-07-18T06:30:26.340Z"
+      "createdAt": "2026-07-18T06:30:26.340Z",
+      "waterPaymentCode": "935937",
+      "gasPaymentCode": "67426719"
     }
   ],
   "tenants": [
@@ -268,7 +298,7 @@
       "amount": 0,
       "readingDate": "2026-07-10",
       "paid": true,
-      "paidDate": "2026-07-19T05:43:49.819Z",
+      "paidDate": "2026-07-19T07:03:22.938Z",
       "createdAt": "2026-07-18T09:09:50.208Z",
       "id": 1
     },
@@ -279,8 +309,8 @@
       "paymentCode": "",
       "amount": 0,
       "readingDate": "2026-07-12",
-      "paid": false,
-      "paidDate": null,
+      "paid": true,
+      "paidDate": "2026-07-19T07:03:22.945Z",
       "createdAt": "2026-07-18T09:09:50.215Z",
       "id": 2
     },
@@ -291,8 +321,8 @@
       "paymentCode": "",
       "amount": 0,
       "readingDate": "2026-07-15",
-      "paid": false,
-      "paidDate": null,
+      "paid": true,
+      "paidDate": "2026-07-19T07:03:22.946Z",
       "createdAt": "2026-07-18T09:09:50.216Z",
       "id": 3
     },
@@ -1210,6 +1240,32 @@
       "url": "/uploads/photos/1784368776692-tpi0os3ymj.jpg",
       "uploadedAt": "2026-07-18T09:59:36.702Z",
       "createdAt": "2026-07-18T09:59:37.487Z"
+    },
+    {
+      "id": 8,
+      "apartmentId": 1,
+      "filename": "1784441610515-qkciemiybhr.jpg",
+      "originalName": "33947.jpg",
+      "url": "/uploads/photos/1784441610515-qkciemiybhr.jpg",
+      "uploadedAt": "2026-07-19T06:13:30.527Z"
+    },
+    {
+      "id": 9,
+      "apartmentId": 1,
+      "filename": "1784441610515-qkciemiybhr.jpg",
+      "originalName": "33947.jpg",
+      "url": "/uploads/photos/1784441610515-qkciemiybhr.jpg",
+      "uploadedAt": "2026-07-19T06:13:30.527Z",
+      "createdAt": "2026-07-19T07:04:37.303Z"
+    },
+    {
+      "id": 10,
+      "apartmentId": 1,
+      "filename": "1784441610515-qkciemiybhr.jpg",
+      "originalName": "33947.jpg",
+      "url": "/uploads/photos/1784441610515-qkciemiybhr.jpg",
+      "uploadedAt": "2026-07-19T06:13:30.527Z",
+      "createdAt": "2026-07-19T07:04:37.306Z"
     }
   ]
 }
