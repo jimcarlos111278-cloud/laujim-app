@@ -22,3 +22,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Android build artifacts
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+android/local.properties
+
+# APK files
+app-debug.apk
+public/app-debug.apk
+
+# Photos / uploads
+uploads/photos/*
+
+# Session state
+AGENTS.md
+.session*
