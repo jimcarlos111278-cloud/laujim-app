@@ -218,7 +218,7 @@ app.post('/api/presence/heartbeat', (req, res) => {
   const idx = db.presence.findIndex(p => p.userId === userId);
   const record = { userId, status: status || 'online', lastSeen: new Date().toISOString() };
   if (idx >= 0) { db.presence[idx] = { ...db.presence[idx], ...record }; }
-  else { record.id = (nextId.presence || (nextId.presence = 1))++; db.presence.push(record); }
+  else { nextId.presence = (nextId.presence || 0) + 1; record.id = nextId.presence; db.presence.push(record); }
   saveData();
   res.json({ ok: true });
 });
