@@ -4,29 +4,23 @@ import { Link } from 'react-router-dom';
 import StatsCard from '../components/StatsCard';
 import Modal from '../components/Modal';
 import { api } from '../api';
-import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod } from '../utils/helpers';
+import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, nextPeriod, formatRelativeDueDate } from '../utils/helpers';
 import { addCalendarReminder } from '../utils/calendar';
 import { notifyPaymentReminder } from '../utils/notifications';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ totalApts: 0, occupied: 0, vacant: 0, totalTenants: 0, monthlyIncome: 0, expectedIncome: 0, collectedIncome: 0, pendingPayments: 0, vacantApts: [], overdue: [], thisMonthMissing: [], nextMonthMissing: [] });
-  const [monthReport, setMonthReport] = useState({ current: null, previous: null, delays: [] });
   const [showPay, setShowPay] = useState(null);
-  const [payType, setPayType] = useState(null);
+  const [payStep, setPayStep] = useState('period');
+  const [payPeriod, setPayPeriod] = useState(getCurrentPeriod());
+  const [payForm, setPayForm] = useState({ amount: '', date: '' });
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [showExpense, setShowExpense] = useState(null);
-  const [payForm, setPayForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0] });
   const [expenseForm, setExpenseForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: false });
 
   const expenseCategories = ['Mantenimiento', 'Reparación', 'Limpieza', 'Impuesto', 'Seguro', 'Adecuación', 'Otro'];
 
   useEffect(() => { loadStats(); }, []);
-
-  function getDelayDays(paymentDate, dueDay) {
-    if (!paymentDate) return 0;
-    const d = new Date(paymentDate);
-    return Math.max(0, d.getDate() - dueDay);
-  }
 
   async function loadStats() {
     const [apartments, tenants, contracts, payments, expenses] = await Promise.all([
@@ -43,8 +37,6 @@ export default function Dashboard() {
     const now = new Date();
     const currentDay = now.getDate();
     const thisMonth = now.toISOString().substring(0, 7);
-    const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const nextMonth = nextMonthDate.toISOString().substring(0, 7);
 
     const paidThisMonth = payments.filter(p => p.date && p.date.startsWith(thisMonth) && p.type === 'rent');
     const collectedIncome = paidThisMonth.reduce((s, p) => s + (p.amount || 0), 0);
@@ -78,64 +70,45 @@ export default function Dashboard() {
     }).sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
 
     setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, collectedIncome, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing });
-
-    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevMonth = prevDate.toISOString().substring(0, 7);
-
-    const currPayments = payments.filter(p => p.date && p.date.startsWith(thisMonth) && p.type === 'rent');
-    const prevPayments = payments.filter(p => p.date && p.date.startsWith(prevMonth) && p.type === 'rent');
-    const currExpenses = expenses.filter(e => e.date && e.date.startsWith(thisMonth));
-    const prevExpenses = expenses.filter(e => e.date && e.date.startsWith(prevMonth));
-
-    const delays = enriched.map(a => {
-      const delayDays = a.lastPayment ? getDelayDays(a.lastPayment.date, a.paymentDueDay) : null;
-      return { ...a, delayDays, lastPaymentDate: a.lastPayment?.date || null };
-    });
-
-    setMonthReport({
-      current: {
-        label: now.toLocaleString('es-CO', { month: 'long', year: 'numeric' }),
-        payments: currPayments.reduce((s, p) => s + (p.amount || 0), 0),
-        expense: currExpenses.reduce((s, e) => s + (e.amount || 0), 0),
-        unexpected: currExpenses.filter(e => e.isUnexpected).reduce((s, e) => s + (e.amount || 0), 0),
-        count: currPayments.length,
-      },
-      previous: {
-        label: prevDate.toLocaleString('es-CO', { month: 'long', year: 'numeric' }),
-        payments: prevPayments.reduce((s, p) => s + (p.amount || 0), 0),
-        expense: prevExpenses.reduce((s, e) => s + (e.amount || 0), 0),
-        unexpected: prevExpenses.filter(e => e.isUnexpected).reduce((s, e) => s + (e.amount || 0), 0),
-        count: prevPayments.length,
-      },
-      delays,
-    });
   }
 
-  function openPayModal(apt, type) {
+  function openPayModal(apt) {
     setShowPay(apt);
-    setPayType(type);
-    if (type === 'overdue') {
-      setPayForm({ amount: String(apt.rent), date: new Date().toISOString().split('T')[0] });
-    } else {
-      setPayForm({ amount: String(apt.rent), date: '' });
-    }
+    setPayStep('period');
+    setPayPeriod(getCurrentPeriod());
+    setPayForm({ amount: String(apt.rent), date: '' });
+  }
+
+  function handlePeriodSelect(period) {
+    setPayPeriod(period);
+    setPayStep('type');
   }
 
   function handlePayOnTime() {
-    if (!showPay) return;
-    const targetDate = new Date(showPay.paymentDueDay);
-    while (targetDate.getDate() !== showPay.paymentDueDay) {
-      targetDate.setDate(targetDate.getDate() - 1);
-    }
+    const apt = showPay;
+    if (!apt) return;
+    const targetDate = new Date();
+    targetDate.setDate(apt.paymentDueDay);
     if (targetDate > new Date()) targetDate.setMonth(targetDate.getMonth() - 1);
     setPayForm({ ...payForm, date: targetDate.toISOString().split('T')[0] });
+    setPayStep('confirm');
   }
 
-  function handlePayLate() {
+  function handlePayToday() {
     setPayForm({ ...payForm, date: new Date().toISOString().split('T')[0] });
+    setPayStep('confirm');
   }
 
-  async function handleQuickPay(e) {
+  function handlePayManual() {
+    setPayStep('manualDate');
+  }
+
+  function handleManualDateSubmit() {
+    if (!payForm.date) return;
+    setPayStep('confirm');
+  }
+
+  async function handleConfirmPay(e) {
     e.preventDefault();
     if (!showPay) return;
     await api.payments.add({
@@ -143,14 +116,15 @@ export default function Dashboard() {
       contractId: null,
       amount: Number(payForm.amount),
       date: payForm.date,
+      period: payPeriod,
       type: 'rent',
       paymentMode: 'full',
-      description: `Pago de arriendo - ${showPay.name}`,
+      description: `Pago de arriendo - ${showPay.name} (${getPeriodLabel(payPeriod)})`,
       createdAt: new Date().toISOString(),
     });
     setShowPay(null);
-    setPayType(null);
-    setPayForm({ amount: '', date: new Date().toISOString().split('T')[0] });
+    setPayStep('period');
+    setPayForm({ amount: '', date: '' });
     loadStats();
   }
 
@@ -177,19 +151,14 @@ export default function Dashboard() {
     loadStats();
   }
 
-  function formatTargetDate(date) {
-    return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
-  }
-
   const overdueCount = stats.overdue.filter(a => !a.paidThisPeriod).length;
   const collectionRate = stats.expectedIncome > 0 ? Math.round((stats.collectedIncome / stats.expectedIncome) * 100) : 0;
   const occupancyRate = stats.totalApts > 0 ? Math.round((stats.occupied / stats.totalApts) * 100) : 0;
 
   const now = new Date();
   const currentMonthLabel = now.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
-  const nextMonthLabel = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleString('es-CO', { month: 'long', year: 'numeric' });
-
-
+  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nextMonthLabel = nextMonthDate.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
 
   return (
     <div className="space-y-6">
@@ -296,14 +265,14 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Vence día {a.paymentDueDay} · {formatCurrency(a.rent)}</span>
+                    <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)} · {formatCurrency(a.rent)}</span>
                     {isPaid && payment && (
                       <button onClick={() => setConfirmDelete(payment)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar pago">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
                     {!isPaid && (
-                      <button onClick={() => openPayModal(a, 'overdue')} className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                      <button onClick={() => openPayModal(a)} className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
                         Pagar
                       </button>
                     )}
@@ -332,11 +301,9 @@ export default function Dashboard() {
                   <button onClick={() => addCalendarReminder(a.name, a.paymentDueDay)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Recordatorio">
                     <Bell className="w-3.5 h-3.5" />
                   </button>
-                  <span className={`font-bold ${a.daysLeft <= 1 ? 'text-red-700' : a.daysLeft <= 5 ? 'text-amber-700' : 'text-gray-600'}`}>
-                    {a.daysLeft === 0 ? '¡Hoy!' : a.daysLeft === 1 ? 'Mañana' : `${a.daysLeft} días`}
-                  </span>
-                  <span className="text-xs text-gray-400">({formatTargetDate(a.targetDate)})</span>
-                  <button onClick={() => openPayModal(a, 'onTime')} className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                  <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)}</span>
+                  <span className="font-medium text-gray-700">{formatCurrency(a.rent)}</span>
+                  <button onClick={() => openPayModal(a)} className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
                     Pagar
                   </button>
                   <button onClick={() => { setShowExpense(a); }} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors" title="Agregar gasto">
@@ -362,6 +329,9 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400">Vence día {a.paymentDueDay}</span>
                   <span className="font-medium text-gray-700">{formatCurrency(a.rent)}</span>
+                  <button onClick={() => openPayModal(a)} className="px-2.5 py-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" title="Pagar por adelantado">
+                    Pagar
+                  </button>
                 </div>
               </div>
             ))}
@@ -369,38 +339,82 @@ export default function Dashboard() {
         </div>
       )}
 
-      {showPay && payType === 'overdue' && (
-        <Modal open={true} onClose={() => { setShowPay(null); setPayType(null); }} title={`Pago atrasado — ${showPay.name}`}>
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">Este apartamento está atrasado (vence día {showPay.paymentDueDay}). ¿Cómo quieres registrar el pago?</p>
-            <div className="flex gap-3">
-              <button onClick={() => { handlePayOnTime(); }} className="flex-1 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700 font-medium hover:bg-blue-100 transition-colors text-center">
-                <CheckCircle2 className="w-5 h-5 mx-auto mb-1" />
-                Se pagó puntual
-                <p className="text-xs text-blue-500 font-normal mt-0.5">Registrar el día de vencimiento</p>
-              </button>
-              <button onClick={() => { handlePayLate(); }} className="flex-1 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 font-medium hover:bg-amber-100 transition-colors text-center">
-                <Clock className="w-5 h-5 mx-auto mb-1" />
-                Se pagó con retraso
-                <p className="text-xs text-amber-500 font-normal mt-0.5">Registrar hoy</p>
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {/* Step 1: Select period */}
+      <Modal open={!!showPay && payStep === 'period'} onClose={() => { setShowPay(null); setPayStep('period'); }} title={`Pago — ${showPay?.name || ''}`}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">¿A qué período corresponde este pago?</p>
+          <button onClick={() => handlePeriodSelect(getCurrentPeriod())} className="w-full p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700 font-medium hover:bg-blue-100 transition-colors text-left">
+            <CalendarCheck className="w-5 h-5 mb-1" />
+            Mes actual: {currentMonthLabel}
+            <p className="text-xs text-blue-500 font-normal mt-0.5">Vence día {showPay?.paymentDueDay} — {formatCurrency(showPay?.rent || 0)}</p>
+          </button>
+          <button onClick={() => handlePeriodSelect(nextPeriod(getCurrentPeriod()))} className="w-full p-4 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-700 font-medium hover:bg-purple-100 transition-colors text-left">
+            <CalendarCheck className="w-5 h-5 mb-1" />
+            Próximo mes: {nextMonthLabel}
+            <p className="text-xs text-purple-500 font-normal mt-0.5">Vence día {showPay?.paymentDueDay} — {formatCurrency(showPay?.rent || 0)}</p>
+          </button>
+        </div>
+      </Modal>
 
-      <Modal open={!!showPay && payForm.date} onClose={() => { setShowPay(null); setPayType(null); setPayForm({ amount: '', date: '' }); }} title={`Registrar Pago - ${showPay?.name || ''}`}>
-        <form onSubmit={handleQuickPay} className="space-y-4">
+      {/* Step 2: Payment type */}
+      <Modal open={!!showPay && payStep === 'type'} onClose={() => { setShowPay(null); setPayStep('period'); }} title={`Pago — ${showPay?.name || ''} (${getPeriodLabel(payPeriod)})`}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">¿Cómo quieres registrar este pago?</p>
+          <button onClick={handlePayOnTime} className="w-full p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700 font-medium hover:bg-blue-100 transition-colors text-left">
+            <CheckCircle2 className="w-5 h-5 mb-1" />
+            Pagó puntual
+            <p className="text-xs text-blue-500 font-normal mt-0.5">Ya había pagado en la fecha de vencimiento y olvidé registrar</p>
+          </button>
+          <button onClick={handlePayToday} className="w-full p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-medium hover:bg-emerald-100 transition-colors text-left">
+            <Clock className="w-5 h-5 mb-1" />
+            Pagó hoy
+            <p className="text-xs text-emerald-500 font-normal mt-0.5">Está pagando hoy, registrar fecha actual</p>
+          </button>
+          <button onClick={handlePayManual} className="w-full p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 font-medium hover:bg-amber-100 transition-colors text-left">
+            <CalendarCheck className="w-5 h-5 mb-1" />
+            Otra fecha
+            <p className="text-xs text-amber-500 font-normal mt-0.5">Elegir una fecha manualmente</p>
+          </button>
+        </div>
+      </Modal>
+
+      {/* Step 2b: Manual date */}
+      <Modal open={!!showPay && payStep === 'manualDate'} onClose={() => setPayStep('type')} title={`Fecha manual — ${showPay?.name || ''}`}>
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
-            <input type="number" value={payForm.amount} onChange={e => setPayForm({...payForm, amount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
+            <input type="number" value={payForm.amount} onChange={e => setPayForm({...payForm, amount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Pago *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de pago *</label>
             <input type="date" value={payForm.date} onChange={e => setPayForm({...payForm, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => { setShowPay(null); setPayType(null); setPayForm({ amount: '', date: '' }); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+            <button onClick={() => setPayStep('type')} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Atrás</button>
+            <button onClick={handleManualDateSubmit} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors" disabled={!payForm.date}>Continuar</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Step 3: Confirm */}
+      <Modal open={!!showPay && payStep === 'confirm'} onClose={() => { setShowPay(null); setPayStep('period'); }} title="Confirmar Pago">
+        <form onSubmit={handleConfirmPay} className="space-y-4">
+          <div className="p-3 bg-gray-50 rounded-lg space-y-1 text-sm">
+            <div className="flex justify-between"><span className="text-gray-500">Apartamento:</span><strong>{showPay?.name}</strong></div>
+            <div className="flex justify-between"><span className="text-gray-500">Período:</span><strong>{getPeriodLabel(payPeriod)}</strong></div>
+            <div className="flex justify-between"><span className="text-gray-500">Fecha:</span><strong>{formatShortDate(payForm.date)}</strong></div>
+            <div className="flex justify-between"><span className="text-gray-500">Monto:</span><strong>{formatCurrency(Number(payForm.amount))}</strong></div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
+            <input type="number" value={payForm.amount} onChange={e => setPayForm({...payForm, amount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+            <input type="date" value={payForm.date} onChange={e => setPayForm({...payForm, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setPayStep('type')} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Atrás</button>
             <button type="submit" className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">Confirmar Pago</button>
           </div>
         </form>

@@ -87,3 +87,32 @@ export function isOverdueByReadingDate(period, readingDay) {
   twoWeeksAfter.setDate(twoWeeksAfter.getDate() + 14);
   return new Date() > twoWeeksAfter;
 }
+
+export function formatRelativeDueDate(paymentDay) {
+  const now = new Date();
+  const currentDay = now.getDate();
+  const target = new Date(now.getFullYear(), now.getMonth(), paymentDay);
+  const diffDays = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+
+  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+  if (diffDays === 0) {
+    return `Vence hoy ${target.getDate()} de ${target.toLocaleString('es-CO', { month: 'long' })}`;
+  }
+  if (diffDays === -1) {
+    return `Venció ayer ${target.getDate()} de ${target.toLocaleString('es-CO', { month: 'long' })}`;
+  }
+  if (diffDays === 1) {
+    return `Vencerá mañana ${target.getDate()} de ${target.toLocaleString('es-CO', { month: 'long' })}`;
+  }
+  if (diffDays < 0 && diffDays >= -7) {
+    return `Venció hace ${Math.abs(diffDays)} días (${target.getDate()} ${target.toLocaleString('es-CO', { month: 'short' })})`;
+  }
+  if (diffDays > 0 && diffDays <= 7) {
+    return `Vence en ${diffDays} días (${target.getDate()} ${target.toLocaleString('es-CO', { month: 'short' })})`;
+  }
+  if (diffDays < 0) {
+    return `Venció el ${target.toLocaleString('es-CO', { day: 'numeric', month: 'long' })}`;
+  }
+  return `Vence el ${target.toLocaleString('es-CO', { day: 'numeric', month: 'long' })}`;
+}
