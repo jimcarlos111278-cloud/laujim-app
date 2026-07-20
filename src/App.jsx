@@ -15,6 +15,7 @@ import Reports from './pages/Reports';
 import ShareApartments from './pages/ShareApartments';
 import ContractGenerator from './pages/ContractGenerator';
 import Settings from './pages/Settings';
+import PublicApartments from './pages/PublicApartments';
 import { requestNotificationPermission } from './utils/notifications';
 import { startAutoSync } from './utils/sync';
 import { syncAndGenerateReminders } from './utils/calendar';
@@ -46,24 +47,29 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/apartments" element={<Apartments />} />
-          <Route path="/apartments/:id" element={<ApartmentDetail />} />
-          <Route path="/tenants" element={<Tenants />} />
-          <Route path="/contracts" element={<Contracts />} />
-          <Route path="/payments" element={<Payments />} />
-          <Route path="/utilities" element={<Utilities />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/share" element={<ShareApartments />} />
-          <Route path="/generate-contract" element={<ContractGenerator />} />
-          <Route path="/generate-contract/:id" element={<ContractGenerator />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-        <VersionBanner />
-      </Layout>
+      <Routes>
+        <Route path="/publico" element={<PublicApartments />} />
+        <Route path="*" element={
+          <Layout>
+            <Routes>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/apartments" element={<Apartments />} />
+              <Route path="/apartments/:id" element={<ApartmentDetail />} />
+              <Route path="/tenants" element={<Tenants />} />
+              <Route path="/contracts" element={<Contracts />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/utilities" element={<Utilities />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/share" element={<ShareApartments />} />
+              <Route path="/generate-contract" element={<ContractGenerator />} />
+              <Route path="/generate-contract/:id" element={<ContractGenerator />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+            <VersionBanner />
+          </Layout>
+        } />
+      </Routes>
     </BrowserRouter>
   );
 }

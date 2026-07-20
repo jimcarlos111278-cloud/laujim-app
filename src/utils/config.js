@@ -1,5 +1,5 @@
 export const AUTH_TOKEN = 'laujim laujim';
-const DEFAULT_SERVER = 'http://192.168.1.21:1011';
+const DEFAULT_SERVER = 'https://laujim-app.onrender.com';
 
 export function isCapacitor() {
   return typeof window !== 'undefined' && (window.Capacitor !== undefined);
@@ -17,8 +17,10 @@ export function getRawBase() {
   return getBase().replace('/api', '') || DEFAULT_SERVER;
 }
 
-export function photoUrl(url) {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return getRawBase() + url;
+export function photoUrl(photo) {
+  if (!photo) return '';
+  if (photo.data) return photo.data;
+  if (!photo.url) return '';
+  if (photo.url.startsWith('http')) return photo.url;
+  return getRawBase() + photo.url;
 }

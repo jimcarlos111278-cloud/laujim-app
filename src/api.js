@@ -59,13 +59,27 @@ async function fetchFirst(collection, field, value) {
 export const api = {
   getServerVersion,
   async uploadPhoto(file, apartmentId) {
-    const photo = await uploadFile('/api/upload/photo', file, { apartmentId });
-    if (photo && photo.id) {
-      await localDb('photos').delete(photo.id).catch(() => {});
-      await localDb('photos').add(photo);
-      queueOp('POST', 'photos', photo, photo.id);
-    }
-    return photo;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const dataUrl = reader.result;
+          const existingPhotos = await localDb('photos').where('apartmentId').equals(apartmentId).toArray();
+          for (const p of existingPhotos) {
+            await localDb('photos').delete(p.id);
+            tryServer('DELETE', 'photos', p.id);
+          }
+          const photoData = { apartmentId, data: dataUrl, filename: file.name, originalName: file.name, uploadedAt: new Date().toISOString() };
+          const id = await localDb('photos').add(photoData);
+          const saved = { ...photoData, id };
+          const srv = await tryServer('POST', 'photos', null, saved);
+          if (!srv) queueOp('POST', 'photos', saved);
+          resolve(saved);
+        } catch (e) { reject(e); }
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
   },
   async deletePhoto(id) {
     await localDb('photos').delete(Number(id));
@@ -78,8 +92,8 @@ export const api = {
     async toArray() { return localDb('photos').toArray(); },
     async add(data) {
       const id = await localDb('photos').add(data);
-      queueOp('POST', 'photos', { ...data, id });
-      tryServer('POST', 'photos', null, { ...data, id });
+      const srv = await tryServer('POST', 'photos', null, { ...data, id });
+      if (!srv) queueOp('POST', 'photos', { ...data, id });
       return { ...data, id };
     },
     async delete(id) {
@@ -92,8 +106,8 @@ export const api = {
     async toArray() { return localDb('users').toArray(); },
     async add(data) {
       const id = await localDb('users').add(data);
-      queueOp('POST', 'users', { ...data, id });
-      tryServer('POST', 'users', null, { ...data, id });
+      const srv = await tryServer('POST', 'users', null, { ...data, id });
+      if (!srv) queueOp('POST', 'users', { ...data, id });
       return { ...data, id };
     },
     async delete(id) {
@@ -107,8 +121,8 @@ export const api = {
     async get(id) { return localDb('apartments').get(Number(id)); },
     async add(data) {
       const id = await localDb('apartments').add(data);
-      queueOp('POST', 'apartments', { ...data, id });
-      tryServer('POST', 'apartments', null, { ...data, id });
+      const srv = await tryServer('POST', 'apartments', null, { ...data, id });
+      if (!srv) queueOp('POST', 'apartments', { ...data, id });
       return { ...data, id };
     },
     async update(id, data) {
@@ -127,8 +141,8 @@ export const api = {
     async get(id) { return localDb('tenants').get(Number(id)); },
     async add(data) {
       const id = await localDb('tenants').add(data);
-      queueOp('POST', 'tenants', { ...data, id });
-      tryServer('POST', 'tenants', null, { ...data, id });
+      const srv = await tryServer('POST', 'tenants', null, { ...data, id });
+      if (!srv) queueOp('POST', 'tenants', { ...data, id });
       return { ...data, id };
     },
     async delete(id) {
@@ -142,8 +156,8 @@ export const api = {
     async get(id) { return localDb('contracts').get(Number(id)); },
     async add(data) {
       const id = await localDb('contracts').add(data);
-      queueOp('POST', 'contracts', { ...data, id });
-      tryServer('POST', 'contracts', null, { ...data, id });
+      const srv = await tryServer('POST', 'contracts', null, { ...data, id });
+      if (!srv) queueOp('POST', 'contracts', { ...data, id });
       return { ...data, id };
     },
     async update(id, data) {
@@ -164,26 +178,36 @@ export const api = {
     async toArray() { return localDb('payments').toArray(); },
     async add(data) {
       const id = await localDb('payments').add(data);
-      queueOp('POST', 'payments', { ...data, id });
-      tryServer('POST', 'payments', null, { ...data, id });
+      const srv = await tryServer('POST', 'payments', null, { ...data, id });
+      if (!srv) queueOp('POST', 'payments', { ...data, id });
       return { ...data, id };
+    },
+    async delete(id) {
+      await localDb('payments').delete(Number(id));
+      queueOp('DELETE', 'payments', { id });
+      tryServer('DELETE', 'payments', id);
     },
   },
   expenses: {
     async toArray() { return localDb('expenses').toArray(); },
     async add(data) {
       const id = await localDb('expenses').add(data);
-      queueOp('POST', 'expenses', { ...data, id });
-      tryServer('POST', 'expenses', null, { ...data, id });
+      const srv = await tryServer('POST', 'expenses', null, { ...data, id });
+      if (!srv) queueOp('POST', 'expenses', { ...data, id });
       return { ...data, id };
+    },
+    async delete(id) {
+      await localDb('expenses').delete(Number(id));
+      queueOp('DELETE', 'expenses', { id });
+      tryServer('DELETE', 'expenses', id);
     },
   },
   utilityPayments: {
     async toArray() { return localDb('utilityPayments').toArray(); },
     async add(data) {
       const id = await localDb('utilityPayments').add(data);
-      queueOp('POST', 'utilityPayments', { ...data, id });
-      tryServer('POST', 'utilityPayments', null, { ...data, id });
+      const srv = await tryServer('POST', 'utilityPayments', null, { ...data, id });
+      if (!srv) queueOp('POST', 'utilityPayments', { ...data, id });
       return { ...data, id };
     },
     async update(id, data) {
@@ -196,8 +220,8 @@ export const api = {
     async toArray() { return localDb('vacancies').toArray(); },
     async add(data) {
       const id = await localDb('vacancies').add(data);
-      queueOp('POST', 'vacancies', { ...data, id });
-      tryServer('POST', 'vacancies', null, { ...data, id });
+      const srv = await tryServer('POST', 'vacancies', null, { ...data, id });
+      if (!srv) queueOp('POST', 'vacancies', { ...data, id });
       return { ...data, id };
     },
     async update(id, data) {
@@ -210,8 +234,8 @@ export const api = {
     async toArray() { return localDb('familyMembers').toArray(); },
     async add(data) {
       const id = await localDb('familyMembers').add(data);
-      queueOp('POST', 'familyMembers', { ...data, id });
-      tryServer('POST', 'familyMembers', null, { ...data, id });
+      const srv = await tryServer('POST', 'familyMembers', null, { ...data, id });
+      if (!srv) queueOp('POST', 'familyMembers', { ...data, id });
       return { ...data, id };
     },
     async delete(id) {

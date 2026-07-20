@@ -21,13 +21,12 @@ export async function buildApartmentsHTML({ apartments, photosByAptId, campusNam
     const photoImgs = [];
 
     for (const p of aptPhotos) {
-      let src = p.url;
-      if (src && !src.startsWith('data:')) {
-        const absUrl = src.startsWith('http') ? src : (window.location.origin + src);
-        const b64 = await fetchAsBase64(absUrl);
-        if (b64) src = b64;
+      let src = p.data || null;
+      if (!src && p.url) {
+        const absUrl = p.url.startsWith('http') ? p.url : (window.location.origin + p.url);
+        src = await fetchAsBase64(absUrl);
       }
-      if (src && src.startsWith('data:')) {
+      if (src) {
         photoImgs.push(`<img src="${src}" alt="${a.name}" loading="lazy" onerror="this.style.display='none'">`);
       }
     }

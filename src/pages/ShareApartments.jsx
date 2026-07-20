@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Share2, Download, MessageCircle, Mail, Eye, EyeOff, RefreshCw, Home } from 'lucide-react';
+import { Share2, Download, Eye, EyeOff, RefreshCw, Home } from 'lucide-react';
 import { api } from '../api';
-import { photoUrl } from '../utils/config';
+import { isCapacitor, photoUrl } from '../utils/config';
 import { buildApartmentsHTML } from '../utils/generate-apartments-html';
 
 export default function ShareApartments() {
@@ -79,19 +79,70 @@ export default function ShareApartments() {
     URL.revokeObjectURL(url);
   }
 
-  function shareWhatsApp() {
-    if (!html) return;
-    const text = encodeURIComponent(`Apartamentos disponibles en ${campusName}
-Mira la lista aquí: ${window.location.origin}/apartamentos-disponibles.html
-O descarga el archivo desde la app.`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  }
+  async function shareToWhatsApp() {
+    if (apartments.length === 0) return;
+    const photosByAptId = groupPhotosByAptId();
+    const lines = [`Apartamentos disponibles en ${campusName}`];
+    for (const a of apartments) {
+      lines.push(`\n${a.name} - $${(a.monthlyRent || 0).toLocaleString()}${a.status === 'vacant' ? ' ✅ DISPONIBLE' : ''}`);
+      if (a.description) lines.push(a.description);
+      if (a.rooms || a.bathrooms) lines.push(`${a.rooms || '?'} hab / ${a.bathrooms || '?'} baños`);
+      if (a.notes) lines.push(a.notes);
+    }
+    const text = lines.join('\n');
+      const allUrls = apartments.flatMap(a => (photosByAptId[a.id] || []).map(p => photoUrl(p)).filter(Boolean));
 
-  function shareGmail() {
-    if (!html) return;
-    const subject = encodeURIComponent(`Apartamentos disponibles - ${campusName}`);
-    const body = encodeURIComponent(`Hola,\n\nTe comparto los apartamentos disponibles en ${campusName}.\n\nPuedes ver la lista completa aquí:\n${window.location.origin}/apartamentos-disponibles.html\n\nSaludos.`);
-    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`, '_blank');
+    try {
+      if (isCapacitor()) {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const files = [];
+        for (let i = 0; i < allUrls.length; i++) {
+          try {
+            const res = await fetch(allUrls[i]);
+            const blob = await res.blob();
+            const b64 = await new Promise(r => { const f = new FileReader(); f.onloadend = () => r(f.result); f.readAsDataURL(blob); });
+            const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+            const r = await Filesystem.writeFile({ path: `apto_${i + 1}.${ext}`, data: b64.split(',')[1], directory: Directory.Cache });
+            files.push(r.uri);
+          } catch (e) { console.warn('[Share] Photo fetch failed:', allUrls[i], e); }
+        }
+        if (files.length > 0) {
+          await Share.share({ text, files, dialogTitle: 'Compartir Apartamentos' });
+          return;
+        }
+      }
+
+      if (allUrls.length > 0) {
+        try {
+          const files = [];
+          for (const url of allUrls) {
+            try {
+              const res = await fetch(url);
+              const blob = await res.blob();
+              const mime = blob.type || 'image/jpeg';
+              const ext = (mime.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+              files.push(new File([blob], `foto.${ext}`, { type: mime }));
+            } catch (e) { console.warn('[Share] Photo fetch failed:', url, e); }
+          }
+          if (files.length > 0 && navigator.share && navigator.canShare && navigator.canShare({ files })) {
+            await navigator.share({ files, text });
+            return;
+          }
+        } catch (e) { if (e.name !== 'AbortError') console.warn('[Share] Web Share files failed:', e); }
+      }
+
+      if (navigator.share) {
+        try { await navigator.share({ text }); return; } catch (e) { if (e.name === 'AbortError') return; }
+      }
+
+      const waText = allUrls.length > 0 ? text + '\n\n' + '📸 Fotos:\n' + allUrls.join('\n') : text;
+      window.open(`https://wa.me/?text=${encodeURIComponent(waText)}`, '_blank');
+    } catch (e) {
+      console.error('Share error:', e);
+      const waText = allUrls.length > 0 ? text + '\n\n' + '📸 Fotos:\n' + allUrls.join('\n') : text;
+      window.open(`https://wa.me/?text=${encodeURIComponent(waText)}`, '_blank');
+    }
   }
 
   async function handlePrintPDF() {
@@ -165,13 +216,9 @@ O descarga el archivo desde la app.`);
                 <Download className="w-4 h-4" />
                 Guardar como PDF
               </button>
-              <button onClick={shareWhatsApp} className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
-                <MessageCircle className="w-4 h-4" />
-                WhatsApp
-              </button>
-              <button onClick={shareGmail} className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
-                <Mail className="w-4 h-4" />
-                Gmail
+              <button onClick={shareToWhatsApp} className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                <Share2 className="w-4 h-4" />
+                Compartir por WhatsApp
               </button>
               <button onClick={generate} disabled={loading} className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-50 transition-colors">
                 <RefreshCw className="w-4 h-4" />

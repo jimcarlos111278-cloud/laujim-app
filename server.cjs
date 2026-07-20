@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const { spawn } = require('child_process');
+const { exec } = require('child_process');
 
 const app = express();
 const PORT = 1011;
@@ -13,7 +14,7 @@ app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type'
 app.use(express.json({ limit: '50mb' }));
 
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version') {
+  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && !req.path.startsWith('/api/public/')) {
     const token = req.headers['x-auth-token'];
     if (token !== AUTH_TOKEN) {
       return res.status(401).json({ error: 'No autorizado' });
@@ -159,6 +160,15 @@ app.post('/api/login', (req, res) => {
   }
 });
 
+app.get('/api/public/vacants', (req, res) => {
+  const vacants = (db.apartments || []).filter(a => a.status === 'vacant').map(a => ({
+    id: a.id, name: a.name, description: a.description || '', monthlyRent: a.monthlyRent,
+    rooms: a.rooms, bathrooms: a.bathrooms, area: a.area, floor: a.floor, paymentDueDay: a.paymentDueDay, notes: a.notes || '',
+  }));
+  const photos = (db.photos || []).filter(p => vacants.some(a => a.id === Number(p.apartmentId)));
+  res.json({ apartments: vacants, photos });
+});
+
 app.post('/api/:collection', (req, res) => {
   const col = req.params.collection;
   if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
@@ -262,6 +272,65 @@ app.post('/api/generate-contract', (req, res) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+const PROJECT_DIR = path.resolve(__dirname);
+const EDITOR_AUTH = { username: 'admin', password: 'admin123' };
+
+function editorAuth(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Basic ')) return res.status(401).set('WWW-Authenticate', 'Basic realm="Editor"').end('Auth required');
+  const buf = Buffer.from(auth.slice(6), 'base64').toString();
+  const [u, p] = buf.split(':');
+  if (u !== EDITOR_AUTH.username || p !== EDITOR_AUTH.password) return res.status(403).end('Bad auth');
+  next();
+}
+
+function safePath(p) {
+  const resolved = path.resolve(PROJECT_DIR, p || '');
+  if (!resolved.startsWith(PROJECT_DIR)) return null;
+  return resolved;
+}
+
+app.get('/editor/api/list', editorAuth, (req, res) => {
+  const dir = safePath(req.query.dir || '');
+  if (!dir) return res.status(400).json({ error: 'Invalid path' });
+  try {
+    const items = fs.readdirSync(dir, { withFileTypes: true }).map(d => ({
+      name: d.name,
+      dir: d.isDirectory(),
+      size: d.isFile() ? fs.statSync(path.join(dir, d.name)).size : 0,
+    })).sort((a, b) => b.dir - a.dir || a.name.localeCompare(b.name));
+    res.json({ dir: req.query.dir || '', items });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/editor/api/read', editorAuth, (req, res) => {
+  const file = safePath(req.query.file);
+  if (!file) return res.status(400).json({ error: 'Invalid path' });
+  try {
+    const content = fs.readFileSync(file, 'utf-8');
+    res.json({ content });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/editor/api/write', editorAuth, (req, res) => {
+  const file = safePath(req.body.file);
+  if (!file) return res.status(400).json({ error: 'Invalid path' });
+  try {
+    fs.writeFileSync(file, req.body.content, 'utf-8');
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/editor/api/exec', editorAuth, (req, res) => {
+  const cmd = req.body.cmd;
+  if (!cmd || cmd.length > 500) return res.status(400).json({ error: 'Invalid command' });
+  exec(cmd, { cwd: PROJECT_DIR, timeout: 30000 }, (err, stdout, stderr) => {
+    res.json({ stdout: stdout || '', stderr: stderr || '', code: err ? err.code : 0 });
+  });
+});
+
+app.use('/editor', editorAuth, express.static(path.join(__dirname, 'editor')));
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
