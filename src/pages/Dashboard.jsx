@@ -52,7 +52,7 @@ export default function Dashboard() {
     const expectedPayments = activeContracts.length;
     const pendingPayments = Math.max(0, expectedPayments - paidThisMonth.length);
 
-    const apartmentsWithDays = apartments.filter(a => a.status === 'occupied').map(a => ({ ...a, daysLeft: daysUntil(a.paymentDueDay) })).sort((a, b) => a.daysLeft - b.daysLeft);
+    const apartmentsWithDays = apartments.filter(a => a.status === 'occupied').map(a => ({ ...a, ...daysUntil(a.paymentDueDay) })).sort((a, b) => a.daysLeft - b.daysLeft);
 
     setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome, pendingPayments, vacantApts, apartmentsWithDays });
 

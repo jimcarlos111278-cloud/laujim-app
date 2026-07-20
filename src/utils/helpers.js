@@ -46,9 +46,10 @@ export function generateId() {
 export function daysUntil(paymentDay) {
   const now = new Date();
   const currentDay = now.getDate();
-  let target = new Date(now.getFullYear(), now.getMonth(), paymentDay);
-  if (currentDay > paymentDay) target = new Date(now.getFullYear(), now.getMonth() + 1, paymentDay);
-  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+  const target = new Date(now.getFullYear(), now.getMonth(), paymentDay);
+  if (currentDay > paymentDay) target.setMonth(target.getMonth() + 1);
+  const daysLeft = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+  return { daysLeft, targetDate: target };
 }
 
 export function periodToDate(period) {
