@@ -808,6 +808,38 @@ Configurado en `.oxlintrc.json`:
 
 ---
 
+## Próximos Pasos / Tareas Pendientes (Next Move)
+
+> ⚠️ **CRÍTICO para guardar datos del usuario entre deploys en Render.com**
+
+### Antes de cada deploy en producción
+1. **Verificar que Guardar Todo funcione** — en Settings → Base de Datos → "Guardar Todo" debe responder OK (sin `{"error":"Collection not found"}`)
+2. **Verificar que Backup funcione** — en Settings → Base de Datos → "Descargar Backup (JSON)" debe descargar el JSON sin errores de auth
+3. **Verificar que Link Público funcione** — en Settings → Link Público debe mostrar los aptos vacantes
+
+### Ciclo de persistencia de datos (cuando el usuario hace cambios)
+1. Usuario hace cambios en la app (pagos, edita aptos, inquilinos, etc.)
+2. **Automático**: cada mutación se guarda en IndexedDB + se encola para sincronización
+3. **Automático**: auto-sync intenta enviar los cambios al servidor cada 1.5 segundos (debounced)
+4. **Barra flotante**: si hay cambios sin guardar, aparece una barra ámbar abajo con botón "Guardar"
+5. **Manual**: desde cualquier página, si ves la barra ámbar, haz clic en "Guardar"
+6. Para persistencia permanente (entre deploys), ejecutar localmente:
+
+```bash
+npm run sync-seed   # Descarga datos vivos del servidor a data/database.json, db.cjs, src/db/database.js
+```
+
+7. **⚠️ Post sync-seed**: restaurar manualmente el esquema v5 de Dexie y SEED_PASSWORDS en `src/db/database.js` (sync-seed regenera el archivo sin la tabla `passwords`)
+
+### Estado actual
+- **✅ Guardar Todo**: corregido (rutas del servidor reordenadas, auth header agregado)
+- **✅ Backup**: corregido (header `x-auth-token` agregado a la fetch)
+- **✅ Link Público**: corregido (ruta `/api/public/vacants` movida antes de `/:collection`)
+- **✅ Auto-save**: implementado (debounced push 1.5s después de cada mutación)
+- **✅ Save bar**: implementada (barra flotante con conteo de ops pendientes + botón Guardar)
+- **❌ APK en GitHub Releases**: no hay releases creados. Descarga directa desde servidor (`/app-debug.apk`) funciona.
+- **❌ sync-seed regenera database.js sin v5/passwords**: requiere fix manual post-ejecución.
+
 ## Historial de Cambios
 
 ### 2026-07-20 — v2.0.0 — Login inquilinos, persistencia de datos, mejoras UX, limpieza general
@@ -829,6 +861,15 @@ Configurado en `.oxlintrc.json`:
 -   **Fix**: Esquema Dexie actualizado a v5 para incluir la tabla `passwords`.
 -   **Fix**: El script `scripts/add-passwords.js` fue mejorado para generar contraseñas aleatorias.
 -   **Chore**: Actualizado `src/utils/sync.js` para exportar `COLLECTIONS` y soportar la limpieza de operaciones pendientes.
+
+### 2026-07-20 — v2.0.1 — Auto-save + barra flotante de guardado
+-   **New**: Barra flotante de guardado en todas las páginas del admin (Layout): muestra conteo de operaciones pendientes y botón "Guardar". Desaparece automáticamente cuando no hay cambios pendientes.
+-   **New**: Auto-save debounced: 1.5 segundos después de cada mutación (pago, edición de apto, inquilino, etc.), se dispara `syncPush()` automáticamente.
+-   **New**: `triggerAutoSave()` en `src/utils/sync.js` — función exportada con debounce configurable.
+-   **Update**: `queueOp()` en `src/api.js` ahora llama a `triggerAutoSave(1500)` después de encolar cada operación.
+-   **Update**: `Layout.jsx` ahora importa y usa `getSyncStatus` y `syncAll` del motor de sincronización.
+-   **Doc**: Agregada sección "Próximos Pasos / Tareas Pendientes (Next Move)" con checklist pre-deploy, ciclo de persistencia y estado actual de features.
+-   **Chore**: Importaciones actualizadas en `api.js` para incluir `triggerAutoSave`.
 
 ### 2026-07-18 — v1.0.3 — Generador de contratos + pagos de servicios + fechas de lectura
 -   **New**: Generador de contratos de arrendamiento integrado en la web app (`/generate-contract`). Replica toda la lógica del generador Python en JS usando jsPDF: 18 cláusulas legales, conversión de números a letras, firmas. Se accede desde el menú lateral o desde cada detalle de apto. Los datos del apto e inquilino se precargan automáticamente.
