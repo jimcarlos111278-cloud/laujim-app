@@ -15,11 +15,9 @@ export default defineConfig({
     },
   },
   build: {
+    cssMinify: true,
     rollupOptions: {
       output: {
-        format: 'iife',
-        name: 'app',
-        inlineDynamicImports: true,
         entryFileNames: 'assets/app.[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash][extname]',
