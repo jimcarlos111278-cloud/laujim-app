@@ -7,7 +7,7 @@ const { spawn } = require('child_process');
 const { exec } = require('child_process');
 
 const app = express();
-const PORT = 1011;
+const PORT = process.env.PORT || 1011;
 const AUTH_TOKEN = 'laujim laujim';
 
 app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type', 'x-auth-token'] }));

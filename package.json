@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "start": "node server.cjs",
     "dev": "vite",
     "build": "vite build && node scripts/generate-version.js && node scripts/fix-html.js",
     "build-apk": "npm run build && npx cap copy android && cd android && gradlew.bat assembleDebug && cd .. && node scripts/copy-apk.js",
