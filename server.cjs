@@ -215,7 +215,7 @@ app.post('/api/generate-contract', (req, res) => {
 app.get('/api/messages/updates/:since', (req, res) => {
   const since = req.params.since;
   const messages = db.messages || [];
-  const filtered = messages.filter(m => m.createdAt > since);
+  const filtered = messages.filter(m => m.createdAt >= since);
   res.json(filtered);
 });
 

@@ -1,7 +1,7 @@
 import db from '../db/database';
 import { getBase, AUTH_TOKEN } from './config';
 
-let lastCheck = localStorage.getItem('apt_chat_lastcheck') || new Date(0).toISOString();
+let lastCheck = new Date(0).toISOString();
 let pollTimer = null;
 let pollCallback = null;
 
@@ -39,8 +39,8 @@ export async function pollNewMessages() {
       const existing = await db.messages.where({ roomId: msg.roomId, from: msg.from, createdAt: msg.createdAt }).first();
       if (!existing) await db.messages.add(msg);
     }
-    lastCheck = messages[messages.length - 1].createdAt;
-    localStorage.setItem('apt_chat_lastcheck', lastCheck);
+    const last = messages[messages.length - 1];
+    lastCheck = new Date(new Date(last.createdAt).getTime() + 1).toISOString();
     if (pollCallback) pollCallback(messages);
   } catch {}
 }
