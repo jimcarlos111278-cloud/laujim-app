@@ -73,6 +73,9 @@ function saveData() {
 
 loadData();
 
+// ─── RUTAS ESPECÍFICAS (SIN PARÁMETROS DE COLECCIÓN) ───
+// Deben ir ANTES de las rutas genéricas /:collection o Express las capturará como nombre de colección
+
 app.get('/api/version', (req, res) => {
   try {
     const ver = JSON.parse(fs.readFileSync(path.join(__dirname, 'dist', 'version.json'), 'utf-8'));
@@ -84,47 +87,6 @@ app.get('/api/version', (req, res) => {
 
 app.get('/api/data/all', (req, res) => {
   res.json(JSON.parse(JSON.stringify(db)));
-});
-
-app.get('/api/:collection', (req, res) => {
-  const col = req.params.collection;
-  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
-  res.json(db[col]);
-});
-
-app.get('/api/:collection/count', (req, res) => {
-  const col = req.params.collection;
-  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
-  res.json({ count: db[col].length });
-});
-
-app.get('/api/:collection/where/:field/:value', (req, res) => {
-  const { collection, field, value } = req.params;
-  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
-  const results = db[collection].filter(item => String(item[field]) === String(value));
-  res.json(results);
-});
-
-app.get('/api/:collection/first/:field/:value', (req, res) => {
-  const { collection, field, value } = req.params;
-  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
-  const item = db[collection].find(item => String(item[field]) === String(value));
-  res.json(item || null);
-});
-
-app.get('/api/:collection/filter/:field/:value', (req, res) => {
-  const { collection, field, value } = req.params;
-  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
-  const results = db[collection].filter(item => String(item[field]) === String(value));
-  res.json(results);
-});
-
-app.get('/api/:collection/:id', (req, res) => {
-  const { collection, id } = req.params;
-  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
-  const item = db[collection].find(i => i.id === Number(id));
-  if (!item) return res.status(404).json({ error: 'Not found' });
-  res.json(item);
 });
 
 app.post('/api/login', (req, res) => {
@@ -156,37 +118,6 @@ app.get('/api/public/vacants', (req, res) => {
   }));
   const photos = (db.photos || []).filter(p => vacants.some(a => a.id === Number(p.apartmentId)));
   res.json({ apartments: vacants, photos });
-});
-
-app.post('/api/:collection', (req, res) => {
-  const col = req.params.collection;
-  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
-  const newItem = { ...req.body, id: nextId[col] || 1 };
-  if (!newItem.createdAt) newItem.createdAt = new Date().toISOString();
-  db[col].push(newItem);
-  nextId[col] = (nextId[col] || 1) + 1;
-  saveData();
-  res.status(201).json(newItem);
-});
-
-app.put('/api/:collection/:id', (req, res) => {
-  const { collection, id } = req.params;
-  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
-  const index = db[collection].findIndex(i => i.id === Number(id));
-  if (index === -1) return res.status(404).json({ error: 'Not found' });
-  db[collection][index] = { ...db[collection][index], ...req.body };
-  saveData();
-  res.json(db[collection][index]);
-});
-
-app.delete('/api/:collection/:id', (req, res) => {
-  const { collection, id } = req.params;
-  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
-  const index = db[collection].findIndex(i => i.id === Number(id));
-  if (index === -1) return res.status(404).json({ error: 'Not found' });
-  db[collection].splice(index, 1);
-  saveData();
-  res.json({ success: true });
 });
 
 app.post('/api/save', (req, res) => {
@@ -276,6 +207,81 @@ app.post('/api/generate-contract', (req, res) => {
   const proc = spawn('pythonw', [pythonScript, '--batch', tempFile], { detached: true, stdio: 'ignore' });
   proc.unref();
   res.json({ ok: true, message: 'Generador iniciado en el PC. Revisa la carpeta C:\\Contratos\\salida' });
+});
+
+// ─── RUTAS GENÉRICAS (CON PARÁMETROS :collection) ───
+// Van después de todas las rutas específicas para evitar colisiones
+
+app.get('/api/:collection', (req, res) => {
+  const col = req.params.collection;
+  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
+  res.json(db[col]);
+});
+
+app.get('/api/:collection/count', (req, res) => {
+  const col = req.params.collection;
+  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
+  res.json({ count: db[col].length });
+});
+
+app.get('/api/:collection/where/:field/:value', (req, res) => {
+  const { collection, field, value } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const results = db[collection].filter(item => String(item[field]) === String(value));
+  res.json(results);
+});
+
+app.get('/api/:collection/first/:field/:value', (req, res) => {
+  const { collection, field, value } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const item = db[collection].find(item => String(item[field]) === String(value));
+  res.json(item || null);
+});
+
+app.get('/api/:collection/filter/:field/:value', (req, res) => {
+  const { collection, field, value } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const results = db[collection].filter(item => String(item[field]) === String(value));
+  res.json(results);
+});
+
+app.get('/api/:collection/:id', (req, res) => {
+  const { collection, id } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const item = db[collection].find(i => i.id === Number(id));
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  res.json(item);
+});
+
+app.post('/api/:collection', (req, res) => {
+  const col = req.params.collection;
+  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
+  const newItem = { ...req.body, id: nextId[col] || 1 };
+  if (!newItem.createdAt) newItem.createdAt = new Date().toISOString();
+  db[col].push(newItem);
+  nextId[col] = (nextId[col] || 1) + 1;
+  saveData();
+  res.status(201).json(newItem);
+});
+
+app.put('/api/:collection/:id', (req, res) => {
+  const { collection, id } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const index = db[collection].findIndex(i => i.id === Number(id));
+  if (index === -1) return res.status(404).json({ error: 'Not found' });
+  db[collection][index] = { ...db[collection][index], ...req.body };
+  saveData();
+  res.json(db[collection][index]);
+});
+
+app.delete('/api/:collection/:id', (req, res) => {
+  const { collection, id } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const index = db[collection].findIndex(i => i.id === Number(id));
+  if (index === -1) return res.status(404).json({ error: 'Not found' });
+  db[collection].splice(index, 1);
+  saveData();
+  res.json({ success: true });
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

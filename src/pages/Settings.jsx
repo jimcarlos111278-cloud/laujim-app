@@ -319,11 +319,11 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Smartphone className="w-4 h-4" /> App Móvil (APK)</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga la app Android desde GitHub Releases.</p>
-          <a href="https://github.com/jimcarlos111278-cloud/laujim-app/releases" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-            <Download className="w-4 h-4" /> Descargar APK desde GitHub
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga la app Android.</p>
+          <a href="/app-debug.apk" download className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-2">
+            <Download className="w-4 h-4" /> Descargar APK (directo)
           </a>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">La APK se genera manualmente y se sube a GitHub Releases.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Build incluido en el servidor. También disponible en GitHub Releases.</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
