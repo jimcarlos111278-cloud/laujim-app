@@ -648,5 +648,16 @@
       "id": 276
     }
   ],
-  "messages": []
+  "messages": [
+    {
+      "roomId": "admin-2",
+      "from": "admin",
+      "to": "101",
+      "content": "test",
+      "createdAt": "2026-07-20T03:05:00.000Z",
+      "read": false,
+      "type": "text",
+      "id": 1
+    }
+  ]
 }

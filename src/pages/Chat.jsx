@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Send, Users, ChevronLeft } from 'lucide-react';
-import { getAuth, isAdmin } from '../utils/auth';
-import { getAllRooms, getRoomMessages, sendMessage, startChatPoll, stopChatPoll } from '../utils/chat';
+import { getAuth } from '../utils/auth';
+import { getAllRooms, getRoomMessages, sendMessage, sendHeartbeat, startChatPoll, stopChatPoll, startHeartbeat, startPresencePoll, stopPresencePoll, getStatusLabel } from '../utils/chat';
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -12,17 +12,29 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
+  const [presence, setPresence] = useState([]);
   const bottomRef = useRef(null);
+  const userId = auth?.role === 'admin' ? 'admin' : (auth?.username || 'apt-' + auth?.apartmentId);
 
   useEffect(() => {
     if (!auth) { navigate('/login', { replace: true }); return; }
     getAllRooms(auth).then(r => { setRooms(r); if (r.length > 0) selectRoom(r[0]); });
     startChatPoll(newMsgs => {
       if (activeRoom && newMsgs.some(m => m.roomId === activeRoom.id)) {
-        loadMessages(activeRoom);
+        getRoomMessages(activeRoom.id).then(setMessages);
       }
     }, 3000);
-    return () => stopChatPoll();
+    startHeartbeat(userId, 10000);
+    startPresencePoll(data => setPresence(data || []), 5000);
+    const onHide = () => sendHeartbeat(userId, 'offline');
+    const onVis = () => sendHeartbeat(userId, document.hidden ? 'away' : 'online');
+    window.addEventListener('beforeunload', onHide);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      stopChatPoll(); stopHeartbeat(); stopPresencePoll();
+      window.removeEventListener('beforeunload', onHide);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, []);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -30,10 +42,6 @@ export default function Chat() {
   function selectRoom(room) {
     setActiveRoom(room);
     setShowSidebar(false);
-    loadMessages(room);
-  }
-
-  function loadMessages(room) {
     getRoomMessages(room.id).then(setMessages);
   }
 
@@ -42,10 +50,25 @@ export default function Chat() {
     const text = input.trim();
     if (!text || !activeRoom) return;
     setInput('');
-    const from = auth.role === 'admin' ? 'admin' : (auth.username || 'apt-' + auth.apartmentId);
     const to = activeRoom.type === 'group' ? 'todos' : (activeRoom.id.includes('admin') ? 'admin' : '');
-    await sendMessage(activeRoom.id, from, to, text);
-    loadMessages(activeRoom);
+    await sendMessage(activeRoom.id, userId, to, text);
+    getRoomMessages(activeRoom.id).then(setMessages);
+  }
+
+  function getRoomStatus(room) {
+    if (room.type === 'group') return null;
+    const id = room.id.startsWith('admin-') ? room.id.slice(6) : null;
+    if (!id) return null;
+    const target = userId === 'admin' ? id : 'admin';
+    if (target === id && userId !== 'admin') return null;
+    return getStatusLabel(presence, target === 'admin' ? 'admin' : id);
+  }
+
+  function getOnlineCount() {
+    return presence.filter(p => {
+      const elapsed = Date.now() - new Date(p.lastSeen).getTime();
+      return p.status === 'online' && elapsed < 15000;
+    }).length;
   }
 
   if (!auth) return null;
@@ -57,15 +80,23 @@ export default function Chat() {
         <div className="p-3 border-b border-gray-200 dark:border-gray-700">
           <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <MessageCircle className="w-4 h-4" /> Chat
+            <span className="text-xs font-normal text-gray-400">({getOnlineCount()} en línea)</span>
           </h2>
         </div>
         <div className="overflow-y-auto h-[calc(100%-3rem)]">
-          {rooms.map(room => (
-            <button key={room.id} onClick={() => selectRoom(room)} className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 ${activeRoom?.id === room.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
-              {room.type === 'group' ? <Users className="w-4 h-4 flex-shrink-0" /> : <MessageCircle className="w-4 h-4 flex-shrink-0" />}
-              <span className="truncate">{room.label}</span>
-            </button>
-          ))}
+          {rooms.map(room => {
+            const status = getRoomStatus(room);
+            return (
+              <button key={room.id} onClick={() => selectRoom(room)} className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${activeRoom?.id === room.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                <div className="flex items-center gap-2">
+                  {room.type === 'group' ? <Users className="w-4 h-4 flex-shrink-0" /> : <MessageCircle className="w-4 h-4 flex-shrink-0" />}
+                  <span className="truncate flex-1">{room.label}</span>
+                  {status && <span className={`w-2 h-2 rounded-full ${status.dot} flex-shrink-0`} title={status.label} />}
+                </div>
+                {status && <div className="text-[10px] text-gray-400 pl-6">{status.label}</div>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -80,6 +111,7 @@ export default function Chat() {
               </button>
               <span className="font-medium text-gray-900 dark:text-white">{activeRoom.label}</span>
               <span className="text-xs text-gray-400">{activeRoom.type === 'group' ? 'Grupal' : 'Privado'}</span>
+              {(() => { const s = getRoomStatus(activeRoom); return s ? <span className={`w-2 h-2 rounded-full ${s.dot}`} title={s.label} /> : null; })()}
             </div>
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -87,7 +119,7 @@ export default function Chat() {
                 <div className="text-center text-gray-400 text-sm mt-8">No hay mensajes aún. ¡Escribe algo!</div>
               )}
               {messages.map(msg => {
-                const isMine = msg.from === 'admin' ? auth.role === 'admin' : msg.from === (auth.username || 'apt-' + auth.apartmentId);
+                const isMine = msg.from === userId;
                 return (
                   <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${isMine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm'}`}>

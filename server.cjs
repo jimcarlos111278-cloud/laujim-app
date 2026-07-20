@@ -210,6 +210,19 @@ app.post('/api/generate-contract', (req, res) => {
   res.json({ ok: true, message: 'Generador iniciado en el PC. Revisa la carpeta C:\\Contratos\\salida' });
 });
 
+// ─── PRESENCIA (CHAT ONLINE STATUS) ───
+app.post('/api/presence/heartbeat', (req, res) => {
+  const { userId, status } = req.body || {};
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+  if (!db.presence) db.presence = [];
+  const idx = db.presence.findIndex(p => p.userId === userId);
+  const record = { userId, status: status || 'online', lastSeen: new Date().toISOString() };
+  if (idx >= 0) { db.presence[idx] = { ...db.presence[idx], ...record }; }
+  else { record.id = (nextId.presence || (nextId.presence = 1))++; db.presence.push(record); }
+  saveData();
+  res.json({ ok: true });
+});
+
 // ─── MENSAJES (CHAT) ───
 // Ruta específica para polling incremental de mensajes nuevos
 app.get('/api/messages/updates/:since', (req, res) => {

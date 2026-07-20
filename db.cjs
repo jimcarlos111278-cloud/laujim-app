@@ -648,7 +648,8 @@ const INITIAL_DATA = {
       "id": 276
     }
   ],
-  "messages": []
+  "messages": [],
+  "presence": []
 };
 
 module.exports = { INITIAL_DATA };
