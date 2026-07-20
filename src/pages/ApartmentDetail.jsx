@@ -526,9 +526,9 @@ export default function ApartmentDetail() {
                 <div key={p.id} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer" onClick={() => openGallery(i)}>
                   <img src={photoUrl(p)} alt={p.originalName || 'Foto'} className="w-full h-full object-cover" loading="lazy" onError={e => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }} />
                   <div className="absolute inset-0 bg-gray-200 items-center justify-center hidden"><Image className="w-6 h-6 text-gray-400" /></div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
-                    <button onClick={() => downloadPhoto(photoUrl(p), p.originalName || 'foto')} className="p-1.5 bg-white rounded-full text-gray-700 hover:text-blue-600" title="Descargar"><Download className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => deletePhoto(p.id)} className="p-1.5 bg-white rounded-full text-gray-700 hover:text-red-600" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                    <button onClick={e => { e.stopPropagation(); downloadPhoto(photoUrl(p), p.originalName || 'foto'); }} className="p-1.5 bg-white rounded-full text-gray-700 hover:text-blue-600" title="Descargar"><Download className="w-3.5 h-3.5" /></button>
+                    <button onClick={e => { e.stopPropagation(); deletePhoto(p.id); }} className="p-1.5 bg-white rounded-full text-gray-700 hover:text-red-600" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
               ))}

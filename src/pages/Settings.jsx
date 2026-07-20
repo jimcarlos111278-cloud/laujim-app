@@ -290,20 +290,14 @@ export default function Settings() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Wifi className="w-4 h-4" /> Conexión al Servidor</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Configura la IP del PC donde corre el servidor para sincronizar datos desde el APK.</p>
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Globe className="w-4 h-4" /> Link Público para Inquilinos</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Comparte este enlace con posibles inquilinos para que vean los apartamentos disponibles.</p>
           <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">URL del servidor</label>
-              <div className="flex gap-2">
-                <input type="text" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="http://192.168.1.21:1011" className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
-                <button onClick={saveServerUrl} className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors shrink-0">Guardar</button>
-              </div>
+            <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <input type="text" readOnly value={window.location.origin + '/publico'} className="flex-1 text-sm text-gray-700 dark:text-gray-200 bg-transparent outline-none" onClick={e => e.target.select()} />
+              <button onClick={() => { navigator.clipboard.writeText(window.location.origin + '/publico'); }} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shrink-0">Copiar</button>
             </div>
-            {connStatus === 'probando' && <p className="text-xs text-gray-500">Probando conexión...</p>}
-            {connStatus === 'ok' && <p className="text-xs text-green-600 flex items-center gap-1"><Wifi className="w-3 h-3" /> Conexión exitosa</p>}
-            {connStatus === 'error' && <p className="text-xs text-red-600 flex items-center gap-1"><WifiOff className="w-3 h-3" /> No se pudo conectar</p>}
-            {!connStatus && <p className="text-xs text-gray-400 dark:text-gray-500">Ingresa la URL y presiona Guardar</p>}
+            <p className="text-xs text-gray-400 dark:text-gray-500">Muestra solo apartamentos desocupados con fotos, precios y datos de contacto.</p>
           </div>
         </div>
 
@@ -331,7 +325,7 @@ export default function Settings() {
           <div className="space-y-2 text-sm">
             <p><span className="text-gray-500 dark:text-gray-400">App:</span> <span className="text-gray-900 dark:text-white">Gestión de Apartamentos</span></p>
             <p><span className="text-gray-500 dark:text-gray-400" id="about-version">Versión:</span> <span className="text-gray-900 dark:text-white">1.0.0</span></p>
-            <p><span className="text-gray-500 dark:text-gray-400">Servidor:</span> <strong className="text-gray-900 dark:text-white">http://192.168.1.21:1011</strong></p>
+            <p><span className="text-gray-500 dark:text-gray-400">Servidor:</span> <strong className="text-gray-900 dark:text-white">{window.location.origin}</strong></p>
             <p><span className="text-gray-500 dark:text-gray-400">Datos:</span> <span className="text-gray-900 dark:text-white">Servidor central + respaldo local</span></p>
           </div>
         </div>
