@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, FileText, Eye, Mail, Download, Wifi, WifiOff, Smartphone, Bell, RefreshCw, Cloud, CloudOff, Share2, AlertTriangle, CheckCircle, Moon, Sun } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, FileText, Eye, Mail, Download, Smartphone, Bell, RefreshCw, Cloud, CloudOff, Share2, Moon, Sun, User, KeyRound, Copy } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { getBase } from '../utils/config';
@@ -30,6 +30,9 @@ export default function Settings() {
   const autoSyncIntervalRef = useRef(null);
   const [dark, setDark] = useState(isDarkMode());
   const [notifConfig, setNotifConfig] = useState(getNotifConfig());
+  const [localPasswords, setLocalPasswords] = useState([]);
+  const [allTenants, setAllTenants] = useState([]);
+  const [contracts, setContracts] = useState([]);
 
   async function handleToggleDark() {
     const next = toggleDarkMode();
@@ -155,8 +158,36 @@ export default function Settings() {
   }
 
   async function load() {
-    const a = await api.apartments.toArray();
+    const [a, p, t, c] = await Promise.all([
+      api.apartments.toArray(), api.passwords.toArray(), api.tenants.toArray(), api.contracts.toArray(),
+    ]);
     setApartments(a);
+    setLocalPasswords(p);
+    setAllTenants(t);
+    setContracts(c);
+  }
+
+  async function generatePassword(apartmentId) {
+    const apt = apartments.find(a => a.id === apartmentId);
+    if (!apt) return;
+    const existing = localPasswords.map(p => p.password);
+    let month = new Date().getMonth() + 1;
+    const contract = contracts.find(c => c.apartmentId === apartmentId);
+    if (contract) month = new Date(contract.startDate).getMonth() + 1;
+    let pwd = String(month).padStart(4, '0').slice(-4);
+    let tries = 0;
+    while (existing.includes(pwd) && tries < 100) {
+      pwd = String((Number(pwd) + 1) % 10000).padStart(4, '0');
+      tries++;
+    }
+    const record = localPasswords.find(p => p.apartmentId === apartmentId);
+    if (record) {
+      await api.passwords.update(record.id, { ...record, password: pwd });
+    } else {
+      await api.passwords.add({ apartmentId, password: pwd });
+    }
+    const updated = await api.passwords.toArray();
+    setLocalPasswords(updated);
   }
 
   async function handleNotificationRequest() {
@@ -287,6 +318,33 @@ export default function Settings() {
               <Mail className="w-5 h-5" /> Enviar por Correo (Gmail)
             </button>
           </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Acceso de Inquilinos</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Cada inquilino ingresa con el nombre del apto y su código de 4 dígitos en <strong>/mi-apto</strong>.</p>
+          {apartments.filter(a => a.status === 'occupied').map(a => {
+            const pwd = localPasswords.find(p => p.apartmentId === a.id);
+            const tenant = allTenants.find(t => contracts.find(c => c.apartmentId === a.id && (!c.endDate || new Date(c.endDate) > new Date()))?.tenantId === t.id);
+            return (
+              <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0 text-sm">
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">{a.name}</span>
+                  {tenant && <span className="text-gray-400 ml-2 text-xs">({tenant.name})</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  {pwd ? (
+                    <>
+                      <code className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-800 dark:text-gray-200">{pwd.password}</code>
+                      <button onClick={() => { navigator.clipboard.writeText(pwd.password); }} className="p-1 text-gray-400 hover:text-blue-600" title="Copiar"><Copy className="w-3 h-3" /></button>
+                    </>
+                  ) : (
+                    <button onClick={() => generatePassword(a.id)} className="px-2 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">Generar</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">

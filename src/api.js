@@ -244,4 +244,23 @@ export const api = {
       tryServer('DELETE', 'familyMembers', id);
     },
   },
+  passwords: {
+    async toArray() { return localDb('passwords').toArray(); },
+    async add(data) {
+      const id = await localDb('passwords').add(data);
+      const srv = await tryServer('POST', 'passwords', null, { ...data, id });
+      if (!srv) queueOp('POST', 'passwords', { ...data, id });
+      return { ...data, id };
+    },
+    async update(id, data) {
+      await localDb('passwords').update(Number(id), data);
+      queueOp('PUT', 'passwords', data, Number(id));
+      tryServer('PUT', 'passwords', id, data);
+    },
+    async delete(id) {
+      await localDb('passwords').delete(Number(id));
+      queueOp('DELETE', 'passwords', { id });
+      tryServer('DELETE', 'passwords', id);
+    },
+  },
 };

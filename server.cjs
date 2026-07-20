@@ -124,12 +124,25 @@ app.get('/api/:collection/:id', (req, res) => {
 });
 
 app.post('/api/login', (req, res) => {
-  const { token } = req.body;
-  if (token === AUTH_TOKEN) {
-    res.json({ authenticated: true, role: 'owner', name: 'Propietario' });
-  } else {
-    res.status(401).json({ error: 'Token inválido' });
+  const { token, username, password } = req.body;
+  if (token) {
+    if (token === AUTH_TOKEN) {
+      return res.json({ authenticated: true, role: 'admin', name: 'Administrador' });
+    }
+    return res.status(401).json({ error: 'Token inválido' });
   }
+  if (username === 'admin' && password === 'laujim123') {
+    return res.json({ authenticated: true, role: 'admin', name: 'Administrador' });
+  }
+  const pwdRecord = (db.passwords || []).find(p => {
+    const apt = (db.apartments || []).find(a => a.id === p.apartmentId && a.name === username);
+    return apt && p.password === password;
+  });
+  if (pwdRecord) {
+    const apt = (db.apartments || []).find(a => a.id === pwdRecord.apartmentId);
+    return res.json({ authenticated: true, role: 'tenant', apartmentId: pwdRecord.apartmentId, name: apt?.name });
+  }
+  res.status(401).json({ error: 'Credenciales inválidas' });
 });
 
 app.get('/api/public/vacants', (req, res) => {

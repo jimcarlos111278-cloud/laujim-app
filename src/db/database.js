@@ -30,6 +30,21 @@ db.version(4).stores({
   familyMembers: '++id, apartmentId, name',
 });
 
+db.version(5).stores({
+  users: '++id, username, role',
+  apartments: '++id, name, status, createdAt',
+  tenants: '++id, name, email, documentId',
+  contracts: '++id, apartmentId, tenantId, startDate, endDate',
+  payments: '++id, apartmentId, contractId, date, type, period',
+  utilityPayments: '++id, apartmentId, service, period, paid',
+  expenses: '++id, apartmentId, date, category',
+  vacancies: '++id, apartmentId, startDate',
+  settings: '++id, key',
+  photos: '++id, apartmentId',
+  familyMembers: '++id, apartmentId, name',
+  passwords: '++id, apartmentId, type',
+});
+
 const SEED_APARTMENTS = [
   { id: 1, name: '101 Casa', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 1, area: 0, rooms: 2, bathrooms: 2, waterPaymentCode: '11156', waterReadingDay: 7, gasPaymentCode: '1036207', gasReadingDay: 7, electricityPaymentCode: '', electricityReadingDay: 21 },
   { id: 2, name: '102 Aparta Estudio', monthlyRent: 750000, depositAmount: 600000, paymentDueDay: 5, status: 'occupied', floor: 1, area: 56, rooms: 2, bathrooms: 1, waterPaymentCode: '40135611', waterReadingDay: 7, gasPaymentCode: '1036207', gasReadingDay: 7, electricityPaymentCode: '', electricityReadingDay: 21 },
@@ -73,6 +88,21 @@ const SEED_CONTRACTS = [
   { id: 11, apartmentId: 12, tenantId: 11, startDate: '2026-07-18T00:00:00.000Z', endDate: null, monthlyRent: 1550000, depositPaid: true },
 ];
 
+const SEED_PASSWORDS = [
+  { id: 1, type: 'admin', password: 'laujim123' },
+  { id: 2, apartmentId: 2, password: '0007' },
+  { id: 3, apartmentId: 3, password: '0008' },
+  { id: 4, apartmentId: 4, password: '0009' },
+  { id: 5, apartmentId: 5, password: '0010' },
+  { id: 6, apartmentId: 6, password: '0011' },
+  { id: 7, apartmentId: 7, password: '0012' },
+  { id: 8, apartmentId: 8, password: '0013' },
+  { id: 9, apartmentId: 9, password: '0014' },
+  { id: 10, apartmentId: 10, password: '0015' },
+  { id: 11, apartmentId: 11, password: '0016' },
+  { id: 12, apartmentId: 12, password: '0017' },
+];
+
 export async function initDB() {
   const count = await db.users.count();
   if (count === 0) {
@@ -92,6 +122,10 @@ export async function initDB() {
   const conCount = await db.contracts.count();
   if (conCount === 0) {
     await db.contracts.bulkAdd(SEED_CONTRACTS.map(c => ({ ...c, createdAt: new Date().toISOString() })));
+  }
+  const pwdCount = await db.passwords.count();
+  if (pwdCount === 0) {
+    await db.passwords.bulkAdd(SEED_PASSWORDS);
   }
 }
 
