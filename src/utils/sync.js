@@ -41,7 +41,7 @@ export async function isServerAvailable() {
   }
 }
 
-const COLLECTIONS = ['users', 'apartments', 'tenants', 'contracts', 'payments', 'expenses', 'utilityPayments', 'vacancies', 'familyMembers', 'settings', 'photos'];
+export const COLLECTIONS = ['users', 'apartments', 'tenants', 'contracts', 'payments', 'expenses', 'utilityPayments', 'vacancies', 'familyMembers', 'settings', 'photos', 'passwords'];
 
 async function serverReq(method, collection, id, body) {
   const base = getBase();
