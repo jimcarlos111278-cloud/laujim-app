@@ -39,7 +39,8 @@ export default function Dashboard() {
     const thisMonth = now.toISOString().substring(0, 7);
 
     const paidThisMonth = payments.filter(p => p.date && p.date.startsWith(thisMonth) && p.type === 'rent');
-    const collectedIncome = paidThisMonth.reduce((s, p) => s + (p.amount || 0), 0);
+    const collectedThisMonth = paidThisMonth.reduce((s, p) => s + (p.amount || 0), 0);
+    const collectedTotal = payments.filter(p => p.type === 'rent').reduce((s, p) => s + (p.amount || 0), 0);
     const pendingPayments = Math.max(0, activeContracts.length - paidThisMonth.length);
 
     const occupiedApts = apartments.filter(a => a.status === 'occupied');
@@ -69,7 +70,7 @@ export default function Dashboard() {
       return { ...a, rent: contract?.monthlyRent || a.monthlyRent };
     }).sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
 
-    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, collectedIncome, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing });
+    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing });
   }
 
   function openPayModal(apt) {
@@ -152,7 +153,7 @@ export default function Dashboard() {
   }
 
   const overdueCount = stats.overdue.filter(a => !a.paidThisPeriod).length;
-  const collectionRate = stats.expectedIncome > 0 ? Math.round((stats.collectedIncome / stats.expectedIncome) * 100) : 0;
+  const monthlyCollectionRate = stats.expectedIncome > 0 ? Math.round((stats.collectedThisMonth / stats.expectedIncome) * 100) : 0;
   const occupancyRate = stats.totalApts > 0 ? Math.round((stats.occupied / stats.totalApts) * 100) : 0;
 
   const now = new Date();
@@ -171,7 +172,7 @@ export default function Dashboard() {
         <StatsCard title="Apartamentos" value={`${stats.occupied}/${stats.totalApts}`} subtitle={`${stats.vacant} disponibles`} icon={Building2} color="blue" />
         <StatsCard title="Inquilinos" value={stats.totalTenants} subtitle="Activos" icon={Users} color="green" />
         <StatsCard title="Ingreso Máximo Esperado" value={formatCurrency(stats.expectedIncome)} subtitle="Canones activos" icon={DollarSign} color="purple" />
-        <StatsCard title="Recolectado vs Esperado" value={`${collectionRate}%`} subtitle={`${formatCurrency(stats.collectedIncome)} / ${formatCurrency(stats.expectedIncome)}`} icon={TrendingUp} color={collectionRate >= 80 ? 'green' : collectionRate >= 50 ? 'amber' : 'red'} />
+        <StatsCard title="Recolectado Total" value={formatCurrency(stats.collectedIncome)} subtitle={`${formatCurrency(stats.collectedThisMonth)} este mes / ${formatCurrency(stats.expectedIncome)} esperado`} icon={TrendingUp} color="green" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -196,11 +197,11 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-gray-600 dark:text-gray-400">Recolectado: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.collectedIncome)}</strong></span>
+                <span className="text-gray-600 dark:text-gray-400">Total recaudado: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.collectedIncome)}</strong></span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
-                <span className="text-gray-600 dark:text-gray-400">Esperado: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.expectedIncome)}</strong></span>
+                <span className="text-gray-600 dark:text-gray-400">Este mes: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.collectedThisMonth)}</strong> / {formatCurrency(stats.expectedIncome)}</span>
               </div>
             </div>
           </div>

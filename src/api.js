@@ -64,11 +64,6 @@ export const api = {
       reader.onload = async () => {
         try {
           const dataUrl = reader.result;
-          const existingPhotos = await localDb('photos').where('apartmentId').equals(apartmentId).toArray();
-          for (const p of existingPhotos) {
-            await localDb('photos').delete(p.id);
-            tryServer('DELETE', 'photos', p.id);
-          }
           const photoData = { apartmentId, data: dataUrl, filename: file.name, originalName: file.name, uploadedAt: new Date().toISOString() };
           const id = await localDb('photos').add(photoData);
           const saved = { ...photoData, id };

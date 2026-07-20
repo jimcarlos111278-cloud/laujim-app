@@ -36,7 +36,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 2,
@@ -58,7 +58,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 3,
@@ -80,7 +80,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 4,
@@ -102,7 +102,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 5,
@@ -124,7 +124,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "7809672",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 6,
@@ -146,7 +146,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "7889031",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 7,
@@ -168,7 +168,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "7889033",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 8,
@@ -190,7 +190,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "7889034",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 9,
@@ -212,7 +212,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "7889036",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 10,
@@ -234,7 +234,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "7889037",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 11,
@@ -256,7 +256,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "7889039",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 12,
@@ -278,7 +278,7 @@ const INITIAL_DATA = {
       "gasReadingDay": 7,
       "electricityPaymentCode": "",
       "electricityReadingDay": 21,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     }
   ],
   "tenants": [
@@ -289,7 +289,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 2,
@@ -298,7 +298,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 3,
@@ -307,7 +307,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 4,
@@ -316,7 +316,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 5,
@@ -325,7 +325,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 6,
@@ -334,7 +334,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 7,
@@ -343,7 +343,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 8,
@@ -352,7 +352,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 9,
@@ -361,7 +361,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 10,
@@ -370,7 +370,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 11,
@@ -379,7 +379,7 @@ const INITIAL_DATA = {
       "phone": "",
       "documentId": "",
       "notes": "",
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     }
   ],
   "contracts": [
@@ -391,7 +391,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 750000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 2,
@@ -401,7 +401,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 1000000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 3,
@@ -411,7 +411,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 1000000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 4,
@@ -421,7 +421,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 1000000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 5,
@@ -431,7 +431,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 1100000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 6,
@@ -441,7 +441,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 1000000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 7,
@@ -451,7 +451,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 1000000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 8,
@@ -461,7 +461,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 1300000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 9,
@@ -471,7 +471,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 950000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 10,
@@ -481,7 +481,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 1000000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 11,
@@ -491,7 +491,7 @@ const INITIAL_DATA = {
       "endDate": null,
       "monthlyRent": 1550000,
       "depositPaid": true,
-      "createdAt": "2026-07-20T05:54:38.036Z"
+      "createdAt": "2026-07-20T06:47:58.630Z"
     }
   ],
   "payments": [],
@@ -500,7 +500,57 @@ const INITIAL_DATA = {
   "vacancies": [],
   "familyMembers": [],
   "settings": [],
-  "photos": []
+  "photos": [],
+  "passwords": [
+    {
+      "type": "admin",
+      "password": "laujim123"
+    },
+    {
+      "apartmentId": 2,
+      "password": "0731"
+    },
+    {
+      "apartmentId": 3,
+      "password": "0734"
+    },
+    {
+      "apartmentId": 4,
+      "password": "0724"
+    },
+    {
+      "apartmentId": 5,
+      "password": "7479"
+    },
+    {
+      "apartmentId": 6,
+      "password": "0736"
+    },
+    {
+      "apartmentId": 7,
+      "password": "0765"
+    },
+    {
+      "apartmentId": 8,
+      "password": "0752"
+    },
+    {
+      "apartmentId": 9,
+      "password": "0740"
+    },
+    {
+      "apartmentId": 10,
+      "password": "0716"
+    },
+    {
+      "apartmentId": 11,
+      "password": "7545"
+    },
+    {
+      "apartmentId": 12,
+      "password": "0711"
+    }
+  ]
 };
 
 module.exports = { INITIAL_DATA };
