@@ -17,13 +17,14 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const BASE = process.env.SYNC_URL || 'http://localhost:1011';
+const BASE = (process.env.SYNC_URL || 'http://localhost:1011').replace(/\/+$/, '');
 const AUTH = 'laujim laujim';
+const API = BASE + (BASE.includes('/api') ? '' : '/api');
 
 async function main() {
-  console.log(`Conectando a ${BASE}/api/data/all ...`);
+  console.log(`Conectando a ${API}/data/all ...`);
 
-  const res = await fetch(`${BASE}/api/data/all`, {
+  const res = await fetch(`${API}/data/all`, {
     headers: { 'x-auth-token': AUTH },
   });
 

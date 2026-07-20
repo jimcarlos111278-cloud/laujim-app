@@ -82,6 +82,10 @@ app.get('/api/version', (req, res) => {
   }
 });
 
+app.get('/api/data/all', (req, res) => {
+  res.json(JSON.parse(JSON.stringify(db)));
+});
+
 app.get('/api/:collection', (req, res) => {
   const col = req.params.collection;
   if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
@@ -185,8 +189,22 @@ app.delete('/api/:collection/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/data/all', (req, res) => {
-  res.json(JSON.parse(JSON.stringify(db)));
+app.post('/api/save', (req, res) => {
+  const incoming = req.body;
+  if (!incoming || typeof incoming !== 'object') return res.status(400).json({ error: 'Invalid data' });
+  let count = 0;
+  Object.keys(incoming).forEach(col => {
+    if (Array.isArray(incoming[col])) {
+      db[col] = incoming[col].map(item => {
+        if (!item.id) item.id = nextId[col] || 1;
+        if (item.id >= (nextId[col] || 1)) nextId[col] = item.id + 1;
+        return item;
+      });
+      count += db[col].length;
+    }
+  });
+  saveData();
+  res.json({ ok: true, saved: count });
 });
 
 app.post('/api/bulk-add/:collection', (req, res) => {
