@@ -15,6 +15,7 @@ import Reports from './pages/Reports';
 import ShareApartments from './pages/ShareApartments';
 import ContractGenerator from './pages/ContractGenerator';
 import Settings from './pages/Settings';
+import Chat from './pages/Chat';
 import PublicApartments from './pages/PublicApartments';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
@@ -75,6 +76,7 @@ export default function App() {
                   <Route path="/utilities" element={<Utilities />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/share" element={<ShareApartments />} />
+                  <Route path="/chat" element={<Chat />} />
                   <Route path="/generate-contract" element={<ContractGenerator />} />
                   <Route path="/generate-contract/:id" element={<ContractGenerator />} />
                   <Route path="/settings" element={<Settings />} />

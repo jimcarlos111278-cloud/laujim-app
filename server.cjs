@@ -209,6 +209,15 @@ app.post('/api/generate-contract', (req, res) => {
   res.json({ ok: true, message: 'Generador iniciado en el PC. Revisa la carpeta C:\\Contratos\\salida' });
 });
 
+// ─── MENSAJES (CHAT) ───
+// Ruta específica para polling incremental de mensajes nuevos
+app.get('/api/messages/updates/:since', auth, (req, res) => {
+  const since = req.params.since;
+  const messages = db.messages || [];
+  const filtered = messages.filter(m => m.createdAt > since);
+  res.json(filtered);
+});
+
 // ─── RUTAS GENÉRICAS (CON PARÁMETROS :collection) ───
 // Van después de todas las rutas específicas para evitar colisiones
 

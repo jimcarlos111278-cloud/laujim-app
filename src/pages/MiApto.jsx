@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Calendar, DollarSign, FileText, Droplets, Flame, Zap, LogOut, Download, Hash, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+import { Building2, Calendar, DollarSign, FileText, Droplets, Flame, Zap, LogOut, Download, Hash, Phone, MapPin, CheckCircle2, MessageCircle, Send, ChevronDown } from 'lucide-react';
 import { getAuth, clearAuth, isTenant } from '../utils/auth';
 import { api } from '../api';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod } from '../utils/helpers';
+import { sendMessage, getRoomMessages, startChatPoll, stopChatPoll } from '../utils/chat';
 
 export default function MiApto() {
   const navigate = useNavigate();
@@ -12,11 +13,28 @@ export default function MiApto() {
   const [contract, setContract] = useState(null);
   const [payments, setPayments] = useState([]);
   const [auth, setAuth] = useState(getAuth());
+  const [chatMsgs, setChatMsgs] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const chatBottomRef = useRef(null);
+  const [chatError, setChatError] = useState('');
 
   useEffect(() => {
     if (!isTenant()) { navigate('/login', { replace: true }); return; }
     loadData();
+    const a = getAuth();
+    if (a && a.apartmentId) {
+      const roomId = 'admin-' + a.apartmentId;
+      getRoomMessages(roomId).then(setChatMsgs);
+      startChatPoll(newMsgs => {
+        if (newMsgs.some(m => m.roomId === roomId)) {
+          getRoomMessages(roomId).then(setChatMsgs);
+        }
+      }, 3000);
+    }
+    return () => stopChatPoll();
   }, []);
+
+  useEffect(() => { chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMsgs]);
 
   async function loadData() {
     const a = getAuth();
@@ -37,6 +55,17 @@ export default function MiApto() {
   function handleLogout() {
     clearAuth();
     navigate('/login', { replace: true });
+  }
+
+  async function handleChatSend(e) {
+    e.preventDefault();
+    const text = chatInput.trim();
+    if (!text || !auth.apartmentId) return;
+    setChatInput('');
+    const roomId = 'admin-' + auth.apartmentId;
+    const from = auth.username || 'apt-' + auth.apartmentId;
+    try { await sendMessage(roomId, from, 'admin', text); } catch { setChatError('Error al enviar'); setTimeout(() => setChatError(''), 3000); }
+    getRoomMessages(roomId).then(setChatMsgs);
   }
 
   if (!apt) return (
@@ -173,6 +202,37 @@ export default function MiApto() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Chat con Administrador */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Chat con Administrador</h3>
+          </div>
+          <div className="h-48 overflow-y-auto p-3 space-y-2 bg-gray-50 dark:bg-gray-900/50">
+            {chatMsgs.length === 0 && <p className="text-xs text-gray-400 text-center mt-6">Sin mensajes aún</p>}
+            {chatMsgs.map(msg => {
+              const isMine = msg.from !== 'admin';
+              return (
+                <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] px-3 py-1.5 rounded-lg text-sm ${isMine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm border border-gray-200 dark:border-gray-600'}`}>
+                    <div>{msg.content}</div>
+                    <div className={`text-[10px] mt-0.5 ${isMine ? 'text-blue-200' : 'text-gray-400'}`}>
+                      {new Date(msg.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={chatBottomRef} />
+          </div>
+          <form onSubmit={handleChatSend} className="p-3 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+            <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Escribe un mensaje..." className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+            <button type="submit" disabled={!chatInput.trim()} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+          {chatError && <p className="text-xs text-red-500 px-3 pb-2">{chatError}</p>}
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">

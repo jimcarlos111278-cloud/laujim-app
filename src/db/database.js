@@ -45,6 +45,22 @@ db.version(5).stores({
   passwords: '++id, apartmentId, type',
 });
 
+db.version(6).stores({
+  users: '++id, username, role',
+  apartments: '++id, name, status, createdAt',
+  tenants: '++id, name, email, documentId',
+  contracts: '++id, apartmentId, tenantId, startDate, endDate',
+  payments: '++id, apartmentId, contractId, date, type, period',
+  utilityPayments: '++id, apartmentId, service, period, paid',
+  expenses: '++id, apartmentId, date, category',
+  vacancies: '++id, apartmentId, startDate',
+  settings: '++id, key',
+  photos: '++id, apartmentId',
+  familyMembers: '++id, apartmentId, name',
+  passwords: '++id, apartmentId, type',
+  messages: '++id, roomId, from, createdAt, read',
+});
+
 const SEED_APARTMENTS = [
   {
     "id": 1,

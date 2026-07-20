@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, RefreshCw, CheckCircle2
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, RefreshCw, CheckCircle2, MessageCircle
 } from 'lucide-react';
 import { getSyncStatus, syncAll } from '../utils/sync';
 
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/contracts', label: 'Contratos', icon: FileText },
   { to: '/generate-contract', label: 'Generar Contrato', icon: ScrollText },
   { to: '/payments', label: 'Pagos', icon: DollarSign },
+  { to: '/chat', label: 'Chat', icon: MessageCircle },
   { to: '/utilities', label: 'Servicios Públicos', icon: Zap },
   { to: '/share', label: 'Compartir', icon: Share2 },
   { to: '/reports', label: 'Reportes', icon: BarChart3 },
