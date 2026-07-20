@@ -647,7 +647,8 @@ const INITIAL_DATA = {
       "password": "6494",
       "id": 276
     }
-  ]
+  ],
+  "messages": []
 };
 
 module.exports = { INITIAL_DATA };

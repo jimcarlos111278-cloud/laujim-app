@@ -7,16 +7,23 @@ let pollCallback = null;
 
 export async function sendMessage(roomId, from, to, content) {
   const msg = { roomId, from, to, content, createdAt: new Date().toISOString(), read: false, type: 'text' };
-  const id = await db.messages.add(msg);
-  const saved = { ...msg, id };
+  const localId = await db.messages.add(msg);
+  const saved = { ...msg, id: localId };
   try {
     const base = getBase();
-    await fetch(base + '/messages', {
+    const res = await fetch(base + '/messages', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
       body: JSON.stringify(saved),
     });
+    if (res.ok) {
+      const serverMsg = await res.json();
+      if (serverMsg.id !== localId) {
+        await db.messages.delete(localId);
+        await db.messages.add(serverMsg);
+      }
+    }
   } catch {}
-  return saved;
+  return msg;
 }
 
 export async function pollNewMessages() {
@@ -29,7 +36,7 @@ export async function pollNewMessages() {
     const messages = await res.json();
     if (messages.length === 0) return;
     for (const msg of messages) {
-      const existing = await db.messages.get(msg.id);
+      const existing = await db.messages.where({ roomId: msg.roomId, from: msg.from, createdAt: msg.createdAt }).first();
       if (!existing) await db.messages.add(msg);
     }
     lastCheck = messages[messages.length - 1].createdAt;

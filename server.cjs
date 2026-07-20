@@ -57,6 +57,7 @@ function loadData() {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
+  ['messages', 'payments', 'expenses'].forEach(k => { if (!db[k]) db[k] = []; });
   Object.keys(db).forEach(key => {
     const arr = db[key];
     if (Array.isArray(arr) && arr.length > 0) {
