@@ -1,5 +1,5 @@
 import db from './db/database';
-import { addPendingOp } from './utils/sync';
+import { addPendingOp, triggerAutoSave } from './utils/sync';
 import { AUTH_TOKEN, getBase, getRawBase } from './utils/config';
 
 export function refreshBase() {}
@@ -27,6 +27,7 @@ async function tryServer(method, collection, id, body) {
 
 function queueOp(method, collection, data, localId) {
   addPendingOp({ method, collection, data, id: data?.id || localId, localId });
+  triggerAutoSave(1500);
 }
 
 async function getServerVersion() {

@@ -132,6 +132,18 @@ export async function syncAllWithChanges() {
 
 let syncInterval = null;
 
+let autoSaveTimer = null;
+export function triggerAutoSave(delayMs = 2000) {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(async () => {
+    autoSaveTimer = null;
+    const result = await syncPush();
+    if (result.ok && result.pushed > 0) {
+      console.log(`Auto-save: ${result.pushed} operacion(es) enviada(s)`);
+    }
+  }, delayMs);
+}
+
 export function startAutoSync(intervalMs = 30000, onChange) {
   stopAutoSync();
   const tick = async () => {

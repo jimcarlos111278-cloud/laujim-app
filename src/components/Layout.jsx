@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, RefreshCw, CheckCircle2
 } from 'lucide-react';
+import { getSyncStatus, syncAll } from '../utils/sync';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -19,6 +20,34 @@ const navItems = [
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [syncInfo, setSyncInfo] = useState({ pendingCount: 0, hasPending: false });
+  const [syncing, setSyncing] = useState(false);
+  const [lastSave, setLastSave] = useState(null);
+
+  useEffect(() => {
+    const check = () => {
+      const s = getSyncStatus();
+      setSyncInfo(s);
+    };
+    check();
+    const iv = setInterval(check, 5000);
+    window.addEventListener('focus', check);
+    return () => { clearInterval(iv); window.removeEventListener('focus', check); };
+  }, []);
+
+  async function handleSave() {
+    setSyncing(true);
+    const result = await syncAll();
+    setSyncing(false);
+    if (result.ok) {
+      setLastSave('ok');
+      setTimeout(() => setLastSave(null), 3000);
+      setSyncInfo(getSyncStatus());
+    } else {
+      setLastSave('error');
+      setTimeout(() => setLastSave(null), 3000);
+    }
+  }
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
@@ -64,9 +93,33 @@ export default function Layout({ children }) {
             <span className="font-semibold text-gray-900 dark:text-white">Gestión Aptos</span>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6 pb-16">
           {children}
         </main>
+        {syncInfo.hasPending && (
+          <div className="fixed bottom-0 left-0 right-0 lg:left-64 z-40 bg-amber-50 dark:bg-amber-900/80 border-t border-amber-200 dark:border-amber-700 px-4 py-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <CloudOff className="w-4 h-4 text-amber-600 dark:text-amber-300" />
+              <span className="text-amber-800 dark:text-amber-200">
+                <strong>{syncInfo.pendingCount}</strong> cambio(s) sin guardar
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {lastSave === 'ok' && (
+                <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-300">
+                  <CheckCircle2 className="w-3 h-3" /> Guardado
+                </span>
+              )}
+              {lastSave === 'error' && (
+                <span className="text-xs text-red-600 dark:text-red-300">Error al guardar</span>
+              )}
+              <button onClick={handleSave} disabled={syncing} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors">
+                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
