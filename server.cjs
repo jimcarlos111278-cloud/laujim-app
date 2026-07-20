@@ -43,35 +43,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
 
-const INITIAL_DATA = {
-  users: [
-    { id: 1, username: 'admin', password: 'admin123', role: 'owner', name: 'Administrador' },
-    { id: 2, username: 'invitado', password: 'invitado123', role: 'guest', name: 'Invitado' },
-  ],
-  apartments: [
-    { id: 1, name: '101 Casa', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 1, area: 0, rooms: 2, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 2, name: '102 Aparta Estudio', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 1, area: 0, rooms: 1, bathrooms: 1, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 3, name: '201', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 2, area: 0, rooms: 2, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 4, name: '202', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 2, area: 0, rooms: 2, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 5, name: '203', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 2, area: 0, rooms: 3, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 6, name: '301', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 3, area: 0, rooms: 2, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 7, name: '302', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 3, area: 0, rooms: 2, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 8, name: '303', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 3, area: 0, rooms: 3, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 9, name: '401', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 4, area: 0, rooms: 2, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 10, name: '402', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 4, area: 0, rooms: 2, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 11, name: '403', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 4, area: 0, rooms: 3, bathrooms: 2, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-    { id: 12, name: '404', description: '', monthlyRent: 0, depositAmount: 0, paymentDueDay: 5, status: 'vacant', floor: 4, area: 0, rooms: 2, bathrooms: 1, notes: '', nic: '', waterReadingDay: 10, gasReadingDay: 12, electricityReadingDay: 15, createdAt: new Date().toISOString() },
-  ],
-  tenants: [],
-  contracts: [],
-  payments: [],
-  expenses: [],
-  utilityPayments: [],
-  vacancies: [],
-  familyMembers: [],
-  settings: [],
-  photos: [],
-};
+const { INITIAL_DATA } = require('./db.cjs');
 
 let db = { ...INITIAL_DATA };
 let nextId = {};
@@ -198,6 +170,10 @@ app.delete('/api/:collection/:id', (req, res) => {
   db[collection].splice(index, 1);
   saveData();
   res.json({ success: true });
+});
+
+app.get('/api/data/all', (req, res) => {
+  res.json(JSON.parse(JSON.stringify(db)));
 });
 
 app.post('/api/bulk-add/:collection', (req, res) => {
