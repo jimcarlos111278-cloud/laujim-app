@@ -95,7 +95,7 @@ export function stopHeartbeat() {
 export function startPresencePoll(callback, intervalMs = 5000) {
   stopPresencePoll();
   presenceCallback = callback;
-  callback(fetchPresence);
+  fetchPresence().then(callback);
   presenceFetchTimer = setInterval(async () => {
     const data = await fetchPresence();
     if (presenceCallback) presenceCallback(data);
