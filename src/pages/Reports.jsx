@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, CalendarDays, Download } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { TrendingUp, CalendarDays, DollarSign, Clock, AlertCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { api } from '../api';
-import { formatCurrency, getMonthName } from '../utils/helpers';
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+import { formatCurrency, getMonthName, getCurrentPeriod } from '../utils/helpers';
 
 export default function Reports() {
   const [apartments, setApartments] = useState([]);
@@ -30,34 +28,63 @@ export default function Reports() {
   const monthlyIncome = Array.from({length: 12}, (_, i) => {
     const m = String(i + 1).padStart(2, '0');
     const total = paymentsThisYear.filter(p => p.date?.substring(5, 7) === m && p.type === 'rent').reduce((s, p) => s + (p.amount || 0), 0);
-    return { month: getMonthName(i + 1), income: total };
+    const count = paymentsThisYear.filter(p => p.date?.substring(5, 7) === m && p.type === 'rent').length;
+    return { month: getMonthName(i + 1), income: total, count };
   });
 
   const monthlyExpenses = Array.from({length: 12}, (_, i) => {
     const m = String(i + 1).padStart(2, '0');
     const total = expensesThisYear.filter(e => e.date?.substring(5, 7) === m).reduce((s, e) => s + (e.amount || 0), 0);
-    return { month: getMonthName(i + 1), expenses: total };
+    const count = expensesThisYear.filter(e => e.date?.substring(5, 7) === m).length;
+    return { month: getMonthName(i + 1), expenses: total, count };
   });
 
-  const monthlyData = monthlyIncome.map((mi, i) => ({
+  const monthlyNeto = monthlyIncome.map((mi, i) => ({
     month: mi.month.substring(0, 3),
     Ingresos: mi.income,
     Gastos: monthlyExpenses[i].expenses,
     Neto: mi.income - monthlyExpenses[i].expenses,
   }));
 
+  const monthlyDelay = Array.from({length: 12}, (_, i) => {
+    const m = String(i + 1).padStart(2, '0');
+    const monthPayments = paymentsThisYear.filter(p => p.date?.substring(5, 7) === m && p.type === 'rent');
+    const tempDate = new Date(year, i, 1);
+    const monthName = tempDate.toLocaleString('es-CO', { month: 'short' });
+
+    let totalDelayDays = 0;
+    let paymentCount = 0;
+    monthPayments.forEach(p => {
+      const apt = apartments.find(a => a.id === p.apartmentId);
+      if (apt && apt.paymentDueDay) {
+        const payDate = new Date(p.date);
+        const delay = Math.max(0, payDate.getDate() - apt.paymentDueDay);
+        totalDelayDays += delay;
+        paymentCount++;
+      }
+    });
+
+    return {
+      month: monthName,
+      avgDelay: paymentCount > 0 ? Math.round(totalDelayDays / paymentCount) : 0,
+      totalDelay: totalDelayDays,
+      payments: paymentCount,
+    };
+  });
+
   const totalIncome = paymentsThisYear.reduce((s, p) => s + (p.amount || 0), 0);
   const totalExpenses = expensesThisYear.reduce((s, e) => s + (e.amount || 0), 0);
   const netProfit = totalIncome - totalExpenses;
 
-  const expenseByCategory = expensesThisYear.reduce((acc, e) => {
-    const cat = e.category || 'Otro';
-    if (!acc[cat]) acc[cat] = 0;
-    acc[cat] += e.amount || 0;
-    return acc;
-  }, {});
+  const occupied = apartments.filter(a => a.status === 'occupied').length;
+  const occupancyRate = apartments.length > 0 ? (occupied / apartments.length * 100) : 0;
 
-  const expensePieData = Object.entries(expenseByCategory).map(([name, value]) => ({ name, value }));
+  const currentPeriod = getCurrentPeriod();
+  const expectedMonthlyIncome = contracts
+    .filter(c => !c.endDate || new Date(c.endDate) > new Date())
+    .reduce((sum, c) => sum + (c.monthlyRent || 0), 0);
+
+  const totalPotentialYear = expectedMonthlyIncome * 12;
 
   const vacantDays = vacancies.reduce((total, v) => {
     const start = new Date(v.startDate);
@@ -65,10 +92,8 @@ export default function Reports() {
     return total + Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
   }, 0);
 
-  const occupied = apartments.filter(a => a.status === 'occupied').length;
-  const vacancyRate = apartments.length > 0 ? ((apartments.length - occupied) / apartments.length * 100) : 0;
-
-  const totalPotentialIncome = occupied * (payments.length > 0 ? payments.reduce((s, p) => s + (p.amount || 0), 0) / payments.length : 0);
+  const expectedPayments = occupied * 12;
+  const actualPayments = paymentsThisYear.filter(p => p.type === 'rent').length;
 
   return (
     <div className="space-y-6">
@@ -84,7 +109,7 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 font-medium uppercase">Ingresos Totales</p>
           <p className="text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(totalIncome)}</p>
@@ -99,8 +124,51 @@ export default function Reports() {
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 font-medium uppercase">Tasa de Ocupación</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">{vacancyRate.toFixed(0)}%</p>
+          <p className="text-2xl font-bold text-blue-600 mt-1">{occupancyRate.toFixed(0)}%</p>
           <p className="text-xs text-gray-400">{occupied}/{apartments.length} aptos ocupados</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-xs text-gray-500 font-medium uppercase">Potencial Anual</p>
+          <p className="text-2xl font-bold text-purple-600 mt-1">{formatCurrency(totalPotentialYear)}</p>
+          <p className="text-xs text-gray-400">{actualPayments}/{expectedPayments} pagos recibidos</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Ingresos por Mes</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={monthlyIncome}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `$${(v / 1000000).toFixed(1)}M`} />
+              <Tooltip formatter={v => formatCurrency(v)} />
+              <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} name="Ingresos" />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs text-gray-500">
+            {monthlyIncome.filter(m => m.income > 0).slice(0, 4).map(m => (
+              <div key={m.month} className="p-2 bg-emerald-50 rounded"><strong className="text-emerald-700 block">{formatCurrency(m.income)}</strong>{m.month}</div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Gastos por Mes</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={monthlyExpenses}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `$${(v / 1000000).toFixed(1)}M`} />
+              <Tooltip formatter={v => formatCurrency(v)} />
+              <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} name="Gastos" />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs text-gray-500">
+            {monthlyExpenses.filter(m => m.expenses > 0).slice(0, 4).map(m => (
+              <div key={m.month} className="p-2 bg-red-50 rounded"><strong className="text-red-700 block">{formatCurrency(m.expenses)}</strong>{m.month}</div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -108,7 +176,7 @@ export default function Reports() {
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Ingresos vs Gastos Mensuales</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyData}>
+            <BarChart data={monthlyNeto}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `$${(v / 1000000).toFixed(1)}M`} />
@@ -120,48 +188,108 @@ export default function Reports() {
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Gastos por Categoría</h3>
-          {expensePieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie data={expensePieData} cx="50%" cy="50%" outerRadius={100} innerRadius={50} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {expensePieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={v => formatCurrency(v)} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : <p className="text-gray-400 text-center py-12">No hay gastos registrados este año</p>}
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Clock className="w-4 h-4" /> Días de Retraso Promedio por Mes</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={monthlyDelay}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(v, name) => name === 'avgDelay' ? [`${v} días`, 'Promedio'] : [v, name === 'totalDelay' ? 'Total días' : 'Cantidad']} />
+              <Line type="monotone" dataKey="avgDelay" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} name="avgDelay" />
+            </LineChart>
+          </ResponsiveContainer>
+          <div className="mt-3 grid grid-cols-6 gap-2 text-center text-xs text-gray-500">
+            {monthlyDelay.filter(m => m.payments > 0).map(m => (
+              <div key={m.month} className="p-2 bg-amber-50 rounded">
+                <strong className="text-amber-700 block">{m.avgDelay} días</strong>
+                {m.month}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Vacancias</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-500">Días totales desocupados:</span><strong>{vacantDays} días</strong></div>
-            <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-500">Apartamentos vacantes ahora:</span><strong>{apartments.length - occupied}</strong></div>
-            <div className="flex justify-between py-1.5"><span className="text-gray-500">Ingreso perdido estimado:</span><strong className="text-red-600">{formatCurrency(vacantDays > 0 && apartments.length > 0 ? (totalIncome / Math.max(1, occupied)) / 30 * vacantDays : 0)}</strong></div>
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><AlertCircle className="w-4 h-4" /> Detalle de Retrasos por Apartamento</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Apto</th>
+                  <th className="text-center px-3 py-2 font-medium text-gray-600">Pagos</th>
+                  <th className="text-center px-3 py-2 font-medium text-gray-600">Retraso Prom.</th>
+                  <th className="text-center px-3 py-2 font-medium text-gray-600">Retraso Total</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-600">Recaudado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {apartments.filter(a => a.status === 'occupied').map(apt => {
+                  const aptPayments = paymentsThisYear.filter(p => p.apartmentId === apt.id && p.type === 'rent');
+                  const totalDelay = aptPayments.reduce((s, p) => {
+                    const delay = Math.max(0, new Date(p.date).getDate() - (apt.paymentDueDay || 15));
+                    return s + delay;
+                  }, 0);
+                  const avgDelay = aptPayments.length > 0 ? Math.round(totalDelay / aptPayments.length) : 0;
+                  const income = aptPayments.reduce((s, p) => s + (p.amount || 0), 0);
+                  return (
+                    <tr key={apt.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 text-gray-900 font-medium">{apt.name}</td>
+                      <td className="px-3 py-2 text-center text-gray-600">{aptPayments.length}</td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${avgDelay === 0 ? 'bg-emerald-100 text-emerald-700' : avgDelay <= 3 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                          {avgDelay} días
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center text-gray-600">{totalDelay} días</td>
+                      <td className="px-3 py-2 text-right font-medium text-emerald-600">{formatCurrency(income)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Rentabilidad por Apartamento</h3>
-          {apartments.map(apt => {
-            const aptPayments = payments.filter(p => p.apartmentId === apt.id && p.date?.startsWith(String(year)) && p.type === 'rent');
-            const aptExpenses = expenses.filter(e => e.apartmentId === apt.id && e.date?.startsWith(String(year)));
-            const income = aptPayments.reduce((s, p) => s + (p.amount || 0), 0);
-            const exp = aptExpenses.reduce((s, e) => s + (e.amount || 0), 0);
-            return (
-              <div key={apt.id} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 text-sm">
-                <span className="text-gray-700">{apt.name}</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-emerald-600">+{formatCurrency(income)}</span>
-                  <span className="text-red-600">-{formatCurrency(exp)}</span>
-                  <span className="font-medium w-24 text-right">{formatCurrency(income - exp)}</span>
-                </div>
-              </div>
-            );
-          })}
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Resumen de Vacancias</h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-500">Días totales desocupados:</span>
+              <strong>{vacantDays} días</strong>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-500">Apartamentos vacantes ahora:</span>
+              <strong>{apartments.length - occupied}</strong>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-500">Ingreso perdido estimado:</span>
+              <strong className="text-red-600">
+                {formatCurrency(vacantDays > 0 && occupied > 0 ? (totalIncome / Math.max(1, occupied)) / 30 * vacantDays : 0)}
+              </strong>
+            </div>
+            <div className="flex justify-between py-2">
+              <span className="text-gray-500 font-medium">Eficiencia de Recaudo:</span>
+              <strong className={totalPotentialYear > 0 ? (totalIncome / totalPotentialYear * 100) >= 80 ? 'text-emerald-600' : 'text-amber-600' : 'text-gray-600'}>
+                {totalPotentialYear > 0 ? `${Math.round(totalIncome / totalPotentialYear * 100)}%` : 'N/A'}
+              </strong>
+            </div>
+          </div>
+          {vacancies.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {vacancies.map(v => {
+                const apt = apartments.find(a => a.id === v.apartmentId);
+                return (
+                  <div key={v.id} className="p-2 bg-gray-50 rounded text-xs">
+                    <span className="font-medium">{apt?.name || `Apto #${v.apartmentId}`}</span>
+                    <span className="text-gray-400 ml-2">
+                      {new Date(v.startDate).toLocaleDateString()} → {v.endDate ? new Date(v.endDate).toLocaleDateString() : 'Actualidad'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
