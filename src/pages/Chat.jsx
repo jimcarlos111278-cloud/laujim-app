@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Send, Users, ChevronLeft } from 'lucide-react';
 import { getAuth } from '../utils/auth';
-import { getAllRooms, getRoomMessages, sendMessage, sendHeartbeat, startChatPoll, stopChatPoll, startHeartbeat, startPresencePoll, stopPresencePoll, getStatusLabel } from '../utils/chat';
+import { getAllRooms, getRoomMessages, sendMessage, sendHeartbeat, startChatPoll, stopChatPoll, startHeartbeat, stopHeartbeat, startPresencePoll, stopPresencePoll, getStatusLabel } from '../utils/chat';
 
 export default function Chat() {
   const navigate = useNavigate();
