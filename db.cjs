@@ -1,4 +1,4 @@
-{
+const INITIAL_DATA = {
   "users": [
     {
       "id": 1,
@@ -501,4 +501,6 @@
   "familyMembers": [],
   "settings": [],
   "photos": []
-}
+};
+
+module.exports = { INITIAL_DATA };
