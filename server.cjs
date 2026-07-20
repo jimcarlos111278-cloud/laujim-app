@@ -211,7 +211,7 @@ app.post('/api/generate-contract', (req, res) => {
 
 // ─── MENSAJES (CHAT) ───
 // Ruta específica para polling incremental de mensajes nuevos
-app.get('/api/messages/updates/:since', auth, (req, res) => {
+app.get('/api/messages/updates/:since', (req, res) => {
   const since = req.params.since;
   const messages = db.messages || [];
   const filtered = messages.filter(m => m.createdAt > since);
