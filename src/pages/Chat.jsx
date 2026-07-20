@@ -14,14 +14,16 @@ export default function Chat() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [presence, setPresence] = useState([]);
   const bottomRef = useRef(null);
+  const activeRoomRef = useRef(null);
   const userId = auth?.role === 'admin' ? 'admin' : (auth?.username || 'apt-' + auth?.apartmentId);
 
   useEffect(() => {
     if (!auth) { navigate('/login', { replace: true }); return; }
     getAllRooms(auth).then(r => { setRooms(r); if (r.length > 0) selectRoom(r[0]); });
     startChatPoll(newMsgs => {
-      if (activeRoom && newMsgs.some(m => m.roomId === activeRoom.id)) {
-        getRoomMessages(activeRoom.id).then(setMessages);
+      const current = activeRoomRef.current;
+      if (current && newMsgs.some(m => m.roomId === current.id)) {
+        getRoomMessages(current.id).then(setMessages);
       }
     }, 3000);
     startHeartbeat(userId, 10000);
@@ -40,6 +42,7 @@ export default function Chat() {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   function selectRoom(room) {
+    activeRoomRef.current = room;
     setActiveRoom(room);
     setShowSidebar(false);
     getRoomMessages(room.id).then(setMessages);
