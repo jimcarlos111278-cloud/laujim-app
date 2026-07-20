@@ -63,8 +63,12 @@ export async function syncPull() {
   for (const col of COLLECTIONS) {
     try {
       const data = await serverReq('GET', col);
+      // Skip if server has no data — don't wipe local Dexie with empty server
+      if (!data || data.length === 0) continue;
+      // For apartments: skip if all rents are $0 (server was reset to INITIAL_DATA)
+      if (col === 'apartments' && data.length > 0 && data.every(a => !a.monthlyRent)) continue;
       await db[col].clear();
-      if (data.length > 0) await db[col].bulkAdd(data);
+      await db[col].bulkAdd(data);
     } catch (e) {
       return { ok: false, reason: `Error en Pull de ${col}: ${e.message}` };
     }
