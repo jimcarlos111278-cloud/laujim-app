@@ -18,15 +18,15 @@
   "apartments": [
     {
       "id": 1,
-      "name": "101 Casa",
+      "name": "101",
       "description": "",
       "monthlyRent": 0,
       "depositAmount": 0,
       "paymentDueDay": 5,
-      "status": "vacant",
+      "status": "occupied",
       "floor": 1,
-      "area": 0,
-      "rooms": 2,
+      "area": 149,
+      "rooms": 4,
       "bathrooms": 2,
       "notes": "",
       "nic": "",
@@ -40,7 +40,7 @@
     },
     {
       "id": 2,
-      "name": "102 Aparta Estudio",
+      "name": "102",
       "description": "",
       "monthlyRent": 750000,
       "depositAmount": 600000,
@@ -494,7 +494,92 @@
       "createdAt": "2026-07-20T06:47:58.630Z"
     }
   ],
-  "payments": [],
+  "payments": [
+    {
+      "apartmentId": 10,
+      "contractId": null,
+      "amount": 950000,
+      "date": "2026-07-05",
+      "period": "2026-07",
+      "type": "rent",
+      "paymentMode": "full",
+      "description": "Pago de arriendo - 402 (Julio 2026)",
+      "createdAt": "2026-07-20T06:40:10.571Z",
+      "id": 1
+    },
+    {
+      "apartmentId": 1,
+      "contractId": null,
+      "amount": 0,
+      "date": "2026-07-05",
+      "period": "2026-07",
+      "type": "rent",
+      "paymentMode": "full",
+      "description": "Pago de arriendo - 101 (Julio 2026)",
+      "createdAt": "2026-07-20T07:22:13.345Z",
+      "id": 2
+    },
+    {
+      "apartmentId": 9,
+      "contractId": null,
+      "amount": 1300000,
+      "date": "2026-07-15",
+      "period": "2026-07",
+      "type": "rent",
+      "paymentMode": "full",
+      "description": "Pago de arriendo - 401 (Julio 2026)",
+      "createdAt": "2026-07-20T07:22:26.416Z",
+      "id": 3
+    },
+    {
+      "apartmentId": 7,
+      "contractId": null,
+      "amount": 1000000,
+      "date": "2026-07-12",
+      "period": "2026-07",
+      "type": "rent",
+      "paymentMode": "full",
+      "description": "Pago de arriendo - 302 (Julio 2026)",
+      "createdAt": "2026-07-20T07:22:32.448Z",
+      "id": 4
+    },
+    {
+      "apartmentId": 12,
+      "contractId": null,
+      "amount": 1550000,
+      "date": "2026-07-10",
+      "period": "2026-07",
+      "type": "rent",
+      "paymentMode": "full",
+      "description": "Pago de arriendo - 501 (Julio 2026)",
+      "createdAt": "2026-07-20T07:22:37.762Z",
+      "id": 5
+    },
+    {
+      "apartmentId": 4,
+      "contractId": null,
+      "amount": 1000000,
+      "date": "2026-07-09",
+      "period": "2026-07",
+      "type": "rent",
+      "paymentMode": "full",
+      "description": "Pago de arriendo - 202 (Julio 2026)",
+      "createdAt": "2026-07-20T07:22:42.889Z",
+      "id": 6
+    },
+    {
+      "apartmentId": 2,
+      "contractId": null,
+      "amount": 750000,
+      "date": "2026-07-05",
+      "period": "2026-07",
+      "type": "rent",
+      "paymentMode": "full",
+      "description": "Pago de arriendo - 102 (Julio 2026)",
+      "createdAt": "2026-07-20T07:22:48.320Z",
+      "id": 7
+    }
+  ],
   "expenses": [],
   "utilityPayments": [],
   "vacancies": [],
@@ -504,51 +589,63 @@
   "passwords": [
     {
       "type": "admin",
-      "password": "laujim123"
+      "password": "laujim123",
+      "id": 265
     },
     {
       "apartmentId": 2,
-      "password": "2779"
+      "password": "2779",
+      "id": 266
     },
     {
       "apartmentId": 3,
-      "password": "6364"
+      "password": "6364",
+      "id": 267
     },
     {
       "apartmentId": 4,
-      "password": "8808"
+      "password": "8808",
+      "id": 268
     },
     {
       "apartmentId": 5,
-      "password": "2113"
+      "password": "2113",
+      "id": 269
     },
     {
       "apartmentId": 6,
-      "password": "5082"
+      "password": "5082",
+      "id": 270
     },
     {
       "apartmentId": 7,
-      "password": "8183"
+      "password": "8183",
+      "id": 271
     },
     {
       "apartmentId": 8,
-      "password": "6493"
+      "password": "6493",
+      "id": 272
     },
     {
       "apartmentId": 9,
-      "password": "3213"
+      "password": "3213",
+      "id": 273
     },
     {
       "apartmentId": 10,
-      "password": "2365"
+      "password": "2365",
+      "id": 274
     },
     {
       "apartmentId": 11,
-      "password": "5326"
+      "password": "5326",
+      "id": 275
     },
     {
       "apartmentId": 12,
-      "password": "6494"
+      "password": "6494",
+      "id": 276
     }
   ]
 }

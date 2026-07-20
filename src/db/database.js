@@ -48,14 +48,14 @@ db.version(5).stores({
 const SEED_APARTMENTS = [
   {
     "id": 1,
-    "name": "101 Casa",
+    "name": "101",
     "monthlyRent": 0,
     "depositAmount": 0,
     "paymentDueDay": 5,
-    "status": "vacant",
+    "status": "occupied",
     "floor": 1,
-    "area": 0,
-    "rooms": 2,
+    "area": 149,
+    "rooms": 4,
     "bathrooms": 2,
     "waterPaymentCode": "11156",
     "waterReadingDay": 7,
@@ -66,7 +66,7 @@ const SEED_APARTMENTS = [
   },
   {
     "id": 2,
-    "name": "102 Aparta Estudio",
+    "name": "102",
     "monthlyRent": 750000,
     "depositAmount": 600000,
     "paymentDueDay": 5,
