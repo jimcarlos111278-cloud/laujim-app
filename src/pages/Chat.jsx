@@ -64,11 +64,13 @@ export default function Chat() {
     if (!id) return null;
     const target = userId === 'admin' ? id : 'admin';
     if (target === id && userId !== 'admin') return null;
-    return getStatusLabel(presence, target === 'admin' ? 'admin' : id);
+    const arr = Array.isArray(presence) ? presence : [];
+    return getStatusLabel(arr, target === 'admin' ? 'admin' : id);
   }
 
   function getOnlineCount() {
-    return presence.filter(p => {
+    const arr = Array.isArray(presence) ? presence : [];
+    return arr.filter(p => {
       const elapsed = Date.now() - new Date(p.lastSeen).getTime();
       return p.status === 'online' && elapsed < 15000;
     }).length;
