@@ -58,9 +58,10 @@ export default function Dashboard() {
       const lastPayment = payments
         .filter(p => p.apartmentId === a.id && p.type === 'rent')
         .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-      const paidThisPeriod = !!payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.date && p.date.startsWith(currentPeriod));
+      const periodPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.date && p.date.startsWith(currentPeriod));
+      const paidThisPeriod = !!periodPayment;
       const contract = activeContracts.find(c => c.apartmentId === a.id);
-      return { ...a, daysLeft, targetDate, lastPayment, paidThisPeriod, rent: contract?.monthlyRent || a.monthlyRent };
+      return { ...a, daysLeft, targetDate, lastPayment, periodPayment, paidThisPeriod, rent: contract?.monthlyRent || a.monthlyRent };
     });
 
     const overdue = enriched
@@ -188,7 +189,7 @@ export default function Dashboard() {
   const currentMonthLabel = now.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
   const nextMonthLabel = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleString('es-CO', { month: 'long', year: 'numeric' });
 
-  const overdueWithPayments = payments.filter(p => p.type === 'rent' && p.date && p.date.startsWith(getCurrentPeriod()) && stats.overdue.some(a => a.id === p.apartmentId));
+
 
   return (
     <div className="space-y-6">
@@ -279,7 +280,7 @@ export default function Dashboard() {
           <div className="space-y-2">
             {stats.overdue.map(a => {
               const isPaid = a.paidThisPeriod;
-              const payment = overdueWithPayments.find(p => p.apartmentId === a.id);
+              const payment = a.periodPayment;
               return (
                 <div key={a.id} className={`flex items-center justify-between p-3 rounded-lg text-sm transition-colors ${isPaid ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
                   <div className="flex items-center gap-3 flex-1">
