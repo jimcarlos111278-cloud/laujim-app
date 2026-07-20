@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { getBase } from '../utils/config';
 import { requestNotificationPermission } from '../utils/notifications';
-import { syncAll, syncPush, syncPull, hasPendingOps, getSyncStatus, isServerAvailable } from '../utils/sync';
+import { syncAll, syncPush, syncPull, hasPendingOps, getSyncStatus, isServerAvailable, clearPendingOps } from '../utils/sync';
 import { isDarkMode, toggleDarkMode } from '../utils/darkMode';
 import { getNotifConfig, saveNotifConfig, schedulePaymentReminders, cancelAllNotifications } from '../utils/localNotifications';
+import { clearAuth, getAuth } from '../utils/auth';
 
 export default function Settings() {
   const navigate = useNavigate();
+  const auth = getAuth();
   const [apartments, setApartments] = useState([]);
   const [notifStatus, setNotifStatus] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
   const [syncStatus, setSyncStatus] = useState({
@@ -22,13 +24,18 @@ export default function Settings() {
     pushed: 0,
     failed: 0,
   });
+  const autoSyncIntervalRef = useRef(null);
   const [dark, setDark] = useState(isDarkMode());
   const [notifConfig, setNotifConfig] = useState(getNotifConfig());
   const [localPasswords, setLocalPasswords] = useState([]);
   const [allTenants, setAllTenants] = useState([]);
   const [contracts, setContracts] = useState([]);
-  const [confirmMsg, setConfirmMsg] = useState(null);
   const [backupInfo, setBackupInfo] = useState(null);
+
+  function handleLogout() {
+    clearAuth();
+    navigate('/login', { replace: true });
+  }
 
   async function handleToggleDark() {
     const next = toggleDarkMode();
@@ -91,9 +98,16 @@ export default function Settings() {
     checkServerAvailability();
   }
 
+  function handleClearPending() {
+    if (confirm('¿Eliminar todas las operaciones pendientes? Los datos locales se conservan.')) {
+      clearPendingOps();
+      setSyncStatus(s => ({ ...s, pendingCount: 0 }));
+    }
+  }
+
   async function handleBackup() {
     try {
-      const res = await fetch(getBase() + '/api/data/all');
+      const res = await fetch(getBase() + '/data/all');
       const data = await res.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -120,9 +134,7 @@ export default function Settings() {
   function generateRandomPwd(existing) {
     const used = new Set(existing);
     let pwd;
-    do {
-      pwd = String(Math.floor(1000 + Math.random() * 9000));
-    } while (used.has(pwd));
+    do { pwd = String(Math.floor(1000 + Math.random() * 9000)); } while (used.has(pwd));
     return pwd;
   }
 
@@ -148,9 +160,14 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
-        <p className="text-gray-500 mt-1">Administra la app, accesos y datos</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
+          <p className="text-gray-500 mt-1">Administra la app, accesos y datos</p>
+        </div>
+        <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors text-sm font-medium border border-red-200">
+          <LogOut className="w-4 h-4" /> Cerrar Sesión
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -214,10 +231,11 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Database className="w-4 h-4" /> Base de Datos</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Sincroniza o respalda tus datos en el servidor.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Sincroniza los datos locales con el servidor central.</p>
           <div className="space-y-2 text-sm mb-3">
             <div className="flex justify-between py-1.5"><span className="text-gray-500 dark:text-gray-400">Cambios pendientes:</span><strong>{syncStatus.pendingCount > 0 ? <span className="text-amber-600">{(syncStatus.pendingCount)} op(s)</span> : <span className="text-emerald-600">0</span>}</strong></div>
             <div className="flex justify-between py-1.5"><span className="text-gray-500 dark:text-gray-400">Última sincronización:</span><strong className="text-gray-700 dark:text-gray-200">{syncStatus.lastSync || 'Nunca'}</strong></div>
+            {syncStatus.error && <p className="text-xs text-red-500">{syncStatus.error}</p>}
           </div>
           <div className="flex gap-2 mb-3">
             <button onClick={handleSync} disabled={syncStatus.syncing} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm">
@@ -226,6 +244,11 @@ export default function Settings() {
             <button onClick={handleSyncPull} disabled={syncStatus.syncing} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors" title="Traer datos del servidor">
               <Download className="w-4 h-4" />
             </button>
+            {syncStatus.pendingCount > 0 && (
+              <button onClick={handleClearPending} className="px-4 py-2 border border-red-300 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors" title="Eliminar ops pendientes">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <button onClick={handleBackup} className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors text-sm">
             <Download className="w-4 h-4" /> Descargar Backup (JSON)
@@ -274,9 +297,9 @@ export default function Settings() {
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Smartphone className="w-4 h-4" /> App Móvil (APK)</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga la app Android desde GitHub Releases.</p>
           <a href="https://github.com/jimcarlos111278-cloud/laujim-app/releases" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-            <Download className="w-4 h-4" /> Descargar APK
+            <Download className="w-4 h-4" /> Descargar APK desde GitHub
           </a>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Descarga el APK desde GitHub Releases e instálalo en tu Android.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">La APK se genera manualmente y se sube a GitHub Releases.</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">

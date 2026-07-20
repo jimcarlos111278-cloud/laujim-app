@@ -90,17 +90,17 @@ const SEED_CONTRACTS = [
 
 const SEED_PASSWORDS = [
   { id: 1, type: 'admin', password: 'laujim123' },
-  { id: 2, apartmentId: 2, password: '0731' },
-  { id: 3, apartmentId: 3, password: '0734' },
-  { id: 4, apartmentId: 4, password: '0724' },
-  { id: 5, apartmentId: 5, password: '7479' },
-  { id: 6, apartmentId: 6, password: '0736' },
-  { id: 7, apartmentId: 7, password: '0765' },
-  { id: 8, apartmentId: 8, password: '0752' },
-  { id: 9, apartmentId: 9, password: '0740' },
-  { id: 10, apartmentId: 10, password: '0716' },
-  { id: 11, apartmentId: 11, password: '7545' },
-  { id: 12, apartmentId: 12, password: '0711' },
+  { id: 2, apartmentId: 2, password: '2779' },
+  { id: 3, apartmentId: 3, password: '6364' },
+  { id: 4, apartmentId: 4, password: '8808' },
+  { id: 5, apartmentId: 5, password: '2113' },
+  { id: 6, apartmentId: 6, password: '5082' },
+  { id: 7, apartmentId: 7, password: '8183' },
+  { id: 8, apartmentId: 8, password: '6493' },
+  { id: 9, apartmentId: 9, password: '3213' },
+  { id: 10, apartmentId: 10, password: '2365' },
+  { id: 11, apartmentId: 11, password: '5326' },
+  { id: 12, apartmentId: 12, password: '6494' },
 ];
 
 export async function initDB() {

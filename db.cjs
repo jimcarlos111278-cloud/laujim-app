@@ -508,47 +508,47 @@ const INITIAL_DATA = {
     },
     {
       "apartmentId": 2,
-      "password": "0731"
+      "password": "2779"
     },
     {
       "apartmentId": 3,
-      "password": "0734"
+      "password": "6364"
     },
     {
       "apartmentId": 4,
-      "password": "0724"
+      "password": "8808"
     },
     {
       "apartmentId": 5,
-      "password": "7479"
+      "password": "2113"
     },
     {
       "apartmentId": 6,
-      "password": "0736"
+      "password": "5082"
     },
     {
       "apartmentId": 7,
-      "password": "0765"
+      "password": "8183"
     },
     {
       "apartmentId": 8,
-      "password": "0752"
+      "password": "6493"
     },
     {
       "apartmentId": 9,
-      "password": "0740"
+      "password": "3213"
     },
     {
       "apartmentId": 10,
-      "password": "0716"
+      "password": "2365"
     },
     {
       "apartmentId": 11,
-      "password": "7545"
+      "password": "5326"
     },
     {
       "apartmentId": 12,
-      "password": "0711"
+      "password": "6494"
     }
   ]
 };
