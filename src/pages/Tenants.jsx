@@ -10,7 +10,7 @@ export default function Tenants() {
   const [apartments, setApartments] = useState([]);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', documentId: '', notes: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '' });
 
   useEffect(() => { load(); }, []);
 
@@ -38,7 +38,7 @@ export default function Tenants() {
     e.preventDefault();
     await api.tenants.add({ ...form, createdAt: new Date().toISOString() });
     setShowAdd(false);
-    setForm({ name: '', email: '', phone: '', documentId: '', notes: '' });
+    setForm({ name: '', email: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '' });
     load();
   }
 
@@ -74,6 +74,8 @@ export default function Tenants() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Nombre</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Documento</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Contacto</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Tel. Trabajo</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Dir. Trabajo</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Apartamento</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Contratos</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Acción</th>
@@ -93,12 +95,14 @@ export default function Tenants() {
                         {t.phone && (
                           <>
                             <a href={`tel:${t.phone}`} className="p-1 hover:text-green-600" title="Llamar"><Phone className="w-3.5 h-3.5" /></a>
-                            <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 hover:text-emerald-600" title="WhatsApp"><MessageCircle className="w-3.5 h-3.5" /></a>
+                            <a href={`https://wa.me/${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 hover:text-emerald-600" title="WhatsApp"><MessageCircle className="w-3.5 h-3.5" /></a>
                           </>
                         )}
                         <span className="text-xs">{t.email || ''}</span>
                       </div>
                     </td>
+                    <td className="px-4 py-3 text-gray-500">{t.workPhone || '-'}</td>
+                    <td className="px-4 py-3 text-gray-500 max-w-[120px] truncate" title={t.workAddress || ''}>{t.workAddress || '-'}</td>
                     <td className="px-4 py-3">{apt ? <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{apt.name}</span> : <span className="text-gray-400">-</span>}</td>
                     <td className="px-4 py-3 text-gray-500">{cs.length}</td>
                     <td className="px-4 py-3 text-right">
@@ -132,6 +136,16 @@ export default function Tenants() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Documento (Cédula)</label>
             <input type="text" value={form.documentId} onChange={e => setForm({...form, documentId: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono de Trabajo</label>
+              <input type="text" value={form.workPhone} onChange={e => setForm({...form, workPhone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de Trabajo</label>
+              <input type="text" value={form.workAddress} onChange={e => setForm({...form, workAddress: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>

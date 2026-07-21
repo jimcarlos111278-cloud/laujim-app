@@ -28,6 +28,8 @@ export default function ContractGenerator() {
   const [generated, setGenerated] = useState(null);
   const [pdfResult, setPdfResult] = useState(null);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -87,7 +89,7 @@ export default function ContractGenerator() {
     setError('');
   }
 
-  function handleGenerate() {
+  async function handleGenerate() {
     try {
       if (!form.arrendatario_nombre || !form.arrendatario_cedula || !form.apto) {
         setError('Faltan nombre, cedula del arrendatario o apartamento.');
@@ -116,6 +118,49 @@ export default function ContractGenerator() {
         setGenerated('saved');
       }
       setError('');
+
+      setSaving(true);
+      try {
+        const startDate = `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+        let endDate = null;
+        if (form.meses) {
+          const end = new Date(yyyy, mm + Number(form.meses) - 1, dd);
+          endDate = end.toISOString().split('T')[0];
+        }
+        let tenantId = tenant?.id || null;
+        if (!tenantId && form.arrendatario_nombre) {
+          const allT = await api.tenants.toArray();
+          const match = allT.find(t => t.documentId === form.arrendatario_cedula || t.name.toLowerCase() === form.arrendatario_nombre.toLowerCase());
+          if (match) {
+            tenantId = match.id;
+          } else {
+            const newT = await api.tenants.add({
+              name: form.arrendatario_nombre,
+              documentId: form.arrendatario_cedula,
+              createdAt: new Date().toISOString(),
+            });
+            tenantId = newT.id;
+          }
+        }
+        const newContract = await api.contracts.add({
+          apartmentId: apt?.id || null,
+          tenantId,
+          startDate,
+          endDate,
+          monthlyRent: Number(form.canon.replace(/\./g, '')),
+          depositAmount: Number(form.deposito.replace(/\./g, '')) || 0,
+          depositPaid: false,
+          createdAt: new Date().toISOString(),
+        });
+        const pdfFile = new File([result.blob], result.filename, { type: 'application/pdf' });
+        const uploadResult = await api.uploadContract(pdfFile, newContract.id);
+        await api.contracts.update(newContract.id, { contractFile: uploadResult.url });
+        if (apt) await api.apartments.update(apt.id, { status: 'occupied' });
+        setSaved(true);
+      } catch (saveErr) {
+        console.warn('Auto-save contract failed:', saveErr);
+      }
+      setSaving(false);
     } catch (e) {
       setError(e.message);
     }
@@ -257,9 +302,10 @@ export default function ContractGenerator() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button onClick={handleGenerate} className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-          <Download className="w-4 h-4" /> Generar PDF
-        </button>
+          <button onClick={handleGenerate} disabled={saving} className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50">
+            <Download className="w-4 h-4" /> {saving ? 'Guardando...' : 'Generar PDF'}
+          </button>
+          {saved && <span className="text-sm text-emerald-600 self-center">Contrato guardado ✓</span>}
         {generated === 'ready' && (
           <button onClick={sharePDF} className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
             <Share2 className="w-4 h-4" /> Compartir o Guardar PDF

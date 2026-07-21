@@ -4,6 +4,12 @@
 > 1. **Cada cambio que se haga en el código debe actualizar este README** — si agregas, modificas o eliminas funcionalidad, configuración, dependencias, rutas, endpoints, schemas o scripts, debes reflejarlo aquí.
 > 2. **Cada cambio debe registrarse en la sección [Historial de Cambios](#historial-de-cambios)** al final del README, con fecha, versión, y descripción técnica.
 > 3. Este README es la fuente de verdad del proyecto. Si algo no está documentado aquí, no existe oficialmente.
+>
+> 🚨 **WORKFLOW ACTUAL — SOLO RENDER, SIN LOCAL**
+> - **NO** usar servidor local (`npm run dev`, `node server.cjs`). Todo se despliega en Render.com vía `git push`.
+> - **Antes de cada push**: ir a Configuración → Base de Datos → "Guardar Todo" para asegurar que los datos están en el servidor.
+> - **Commit + Push a main** → Render auto-buildea y despliega. Así se actualiza la app.
+> - No hay dev local, no hay sync-seed, no hay copias locales de la BD.
 
 ---
 
@@ -861,6 +867,14 @@ npm run sync-seed   # Descarga datos vivos del servidor a data/database.json, db
 -   **Fix**: Esquema Dexie actualizado a v5 para incluir la tabla `passwords`.
 -   **Fix**: El script `scripts/add-passwords.js` fue mejorado para generar contraseñas aleatorias.
 -   **Chore**: Actualizado `src/utils/sync.js` para exportar `COLLECTIONS` y soportar la limpieza de operaciones pendientes.
+
+### 2026-07-21 — v2.1.0 — Chat presence fix, Dashboard imprevistos, auto-guardado de contratos, campos de trabajo en inquilinos
+-   **Fix**: Chat presence — corregidos 3 bugs: sintaxis `++` en expresión, import faltante de `stopHeartbeat`, y `callback(fetchPresence)` pasando función en lugar de su resultado. Ahora el estado de conexión se muestra correctamente por sala.
+-   **New**: Dashboard — iconos WhatsApp y teléfono por inquilino en secciones de pagos vencidos y pendientes.
+-   **New**: Botón rojo "Imprevistos" en Dashboard reemplaza el `+` de gastos; modal de gasto ahora pre-marca como imprevisto.
+-   **New**: ContractGenerator ahora guarda automáticamente el contrato en la BD al generar PDF: crea inquilino si no existe, sube el PDF al servidor, y asocia al apartamento (status → "ocupado").
+-   **New**: Campos "Teléfono de Trabajo" y "Dirección de Trabajo" en formulario y tabla de Inquilinos.
+-   **Doc**: README actualizado con workflow exclusivo Render (sin local). Advertencia de "Guardar Todo" antes de push.
 
 ### 2026-07-20 — v2.0.1 — Auto-save + barra flotante de guardado
 -   **New**: Barra flotante de guardado en todas las páginas del admin (Layout): muestra conteo de operaciones pendientes y botón "Guardar". Desaparece automáticamente cuando no hay cambios pendientes.

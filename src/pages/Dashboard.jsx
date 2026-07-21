@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2 } from 'lucide-react';
+import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, Phone, MessageCircle, AlertOctagon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsCard from '../components/StatsCard';
 import Modal from '../components/Modal';
@@ -16,7 +16,7 @@ export default function Dashboard() {
   const [payForm, setPayForm] = useState({ amount: '', date: '' });
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [showExpense, setShowExpense] = useState(null);
-  const [expenseForm, setExpenseForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: false });
+  const [expenseForm, setExpenseForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: true });
 
   const expenseCategories = ['Mantenimiento', 'Reparación', 'Limpieza', 'Impuesto', 'Seguro', 'Adecuación', 'Otro'];
 
@@ -54,7 +54,8 @@ export default function Dashboard() {
       const periodPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.date && p.date.startsWith(currentPeriod));
       const paidThisPeriod = !!periodPayment;
       const contract = activeContracts.find(c => c.apartmentId === a.id);
-      return { ...a, daysLeft, targetDate, lastPayment, periodPayment, paidThisPeriod, rent: contract?.monthlyRent || a.monthlyRent };
+      const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
+      return { ...a, daysLeft, targetDate, lastPayment, periodPayment, paidThisPeriod, rent: contract?.monthlyRent || a.monthlyRent, tenant, contract };
     });
 
     const overdue = enriched
@@ -148,7 +149,7 @@ export default function Dashboard() {
       createdAt: new Date().toISOString(),
     });
     setShowExpense(null);
-    setExpenseForm({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: false });
+    setExpenseForm({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: true });
     loadStats();
   }
 
@@ -267,6 +268,16 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)} · {formatCurrency(a.rent)}</span>
+                    {a.tenant?.phone && (
+                      <>
+                        <a href={`https://wa.me/${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="WhatsApp">
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </a>
+                        <a href={`tel:${a.tenant.phone}`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Llamar">
+                          <Phone className="w-3.5 h-3.5" />
+                        </a>
+                      </>
+                    )}
                     {isPaid && payment && (
                       <button onClick={() => setConfirmDelete(payment)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar pago">
                         <Trash2 className="w-3.5 h-3.5" />
@@ -277,8 +288,8 @@ export default function Dashboard() {
                         Pagar
                       </button>
                     )}
-                    <button onClick={() => { setShowExpense(a); }} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors" title="Agregar gasto">
-                      <Plus className="w-3.5 h-3.5" />
+                    <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
+                      <AlertOctagon className="w-3 h-3" /> Imprevistos
                     </button>
                   </div>
                 </div>
@@ -302,13 +313,23 @@ export default function Dashboard() {
                   <button onClick={() => addCalendarReminder(a.name, a.paymentDueDay)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Recordatorio">
                     <Bell className="w-3.5 h-3.5" />
                   </button>
+                  {a.tenant?.phone && (
+                    <>
+                      <a href={`https://wa.me/${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="WhatsApp">
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </a>
+                      <a href={`tel:${a.tenant.phone}`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Llamar">
+                        <Phone className="w-3.5 h-3.5" />
+                      </a>
+                    </>
+                  )}
                   <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)}</span>
                   <span className="font-medium text-gray-700">{formatCurrency(a.rent)}</span>
                   <button onClick={() => openPayModal(a)} className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
                     Pagar
                   </button>
-                  <button onClick={() => { setShowExpense(a); }} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors" title="Agregar gasto">
-                    <Plus className="w-3.5 h-3.5" />
+                  <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
+                    <AlertOctagon className="w-3 h-3" /> Imprevistos
                   </button>
                 </div>
               </div>
@@ -429,7 +450,7 @@ export default function Dashboard() {
         </div>
       </Modal>
 
-      <Modal open={!!showExpense} onClose={() => { setShowExpense(null); setExpenseForm({ amount: '', date: '', description: '', category: 'Mantenimiento', isUnexpected: false }); }} title={`Agregar Gasto - ${showExpense?.name || ''}`}>
+      <Modal open={!!showExpense} onClose={() => { setShowExpense(null); setExpenseForm({ amount: '', date: '', description: '', category: 'Mantenimiento', isUnexpected: false }); }} title={`Imprevisto - ${showExpense?.name || ''}`}>
         <form onSubmit={handleAddExpense} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
@@ -453,11 +474,11 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-2">
             <input type="checkbox" id="isUnexpected" checked={expenseForm.isUnexpected} onChange={e => setExpenseForm({...expenseForm, isUnexpected: e.target.checked})} className="rounded border-gray-300" />
-            <label htmlFor="isUnexpected" className="text-sm text-gray-700">Gasto imprevisto</label>
+            <label htmlFor="isUnexpected" className="text-sm text-gray-700">Es imprevisto</label>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => { setShowExpense(null); setExpenseForm({ amount: '', date: '', description: '', category: 'Mantenimiento', isUnexpected: false }); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
-            <button type="submit" className="px-4 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors">Registrar Gasto</button>
+            <button type="button" onClick={() => { setShowExpense(null); setExpenseForm({ amount: '', date: '', description: '', category: 'Mantenimiento', isUnexpected: true }); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+            <button type="submit" className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Registrar Imprevisto</button>
           </div>
         </form>
       </Modal>
