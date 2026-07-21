@@ -56,6 +56,10 @@ function loadData() {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, 'utf-8');
       db = JSON.parse(raw);
+    } else if (fs.existsSync(BACKUP_FILE)) {
+      const raw = fs.readFileSync(BACKUP_FILE, 'utf-8');
+      db = JSON.parse(raw);
+      console.log('Restored from backup: ' + BACKUP_FILE);
     } else {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
