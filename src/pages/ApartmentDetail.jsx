@@ -193,44 +193,65 @@ export default function ApartmentDetail() {
 
   // ─── QR Scanner ───
 
+  const SCAN_MAX_W = 640;
+  const scanTimerRef = useRef(null);
+  const [scanStatus, setScanStatus] = useState('');
+
   async function startScanner() {
+    setScanStatus('Iniciando cámara...');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        scanLoop();
+        await videoRef.current.play();
+        setScanStatus('Enfoca el QR en el recuadro');
+        scheduleScan();
       }
-    } catch {
-      // Fallback: if camera fails, trigger file upload
+    } catch (e) {
+      console.error('Camera error:', e);
+      setScanStatus('Cámara no disponible, usa subir foto');
       if (scannerRef.current) scannerRef.current.click();
     }
   }
 
   function stopScanner() {
+    setScanStatus('');
+    if (scanTimerRef.current) { clearTimeout(scanTimerRef.current); scanTimerRef.current = null; }
     if (videoRef.current && videoRef.current.srcObject) {
       videoRef.current.srcObject.getTracks().forEach(t => t.stop());
       videoRef.current.srcObject = null;
     }
   }
 
-  function scanLoop() {
+  function scheduleScan() {
+    if (scanService === null) return;
+    scanTimerRef.current = setTimeout(doScan, 400);
+  }
+
+  function doScan() {
     if (!videoRef.current || scanService === null) return;
     const video = videoRef.current;
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    if (video.readyState < video.HAVE_CURRENT_DATA) { scheduleScan(); return; }
+    const scale = Math.min(SCAN_MAX_W / (video.videoWidth || 640), 1);
+    const w = Math.floor((video.videoWidth || 640) * scale);
+    const h = Math.floor((video.videoHeight || 480) * scale);
+    try {
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, w, h);
+      const imageData = ctx.getImageData(0, 0, w, h);
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       if (code && code.data) {
+        setScanStatus('¡QR detectado!');
         handleScanResult(code.data);
         return;
       }
+    } catch (e) {
+      console.error('Scan error:', e);
     }
-    requestAnimationFrame(scanLoop);
+    scheduleScan();
   }
 
   async function handleScanResult(data) {
@@ -238,39 +259,47 @@ export default function ApartmentDetail() {
     const url = data.startsWith('http') ? data : 'https://' + data;
     const svc = scanService;
     setScanService(null);
-    const updated = { ...apt };
-    if (svc === 'water') updated.waterPaymentUrl = url;
-    else if (svc === 'gas') updated.gasPaymentUrl = url;
-    else updated.electricityPaymentUrl = url;
-    await api.apartments.update(Number(id), { [svc === 'water' ? 'waterPaymentUrl' : svc === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl']: url });
+    const field = svc === 'water' ? 'waterPaymentUrl' : svc === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl';
+    await api.apartments.update(Number(id), { [field]: url });
+    const updated = { ...apt, [field]: url };
     setApt(updated);
     setForm(updated);
     generateQr(svc, url);
+  }
+
+  async function scanImageFile(file) {
+    try {
+      const img = new Image();
+      const blobUrl = URL.createObjectURL(file);
+      img.src = blobUrl;
+      await img.decode();
+      const scale = Math.min(SCAN_MAX_W / (img.naturalWidth || 640), 1);
+      const w = Math.floor((img.naturalWidth || 640) * scale);
+      const h = Math.floor((img.naturalHeight || 480) * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      URL.revokeObjectURL(blobUrl);
+      return code ? code.data : null;
+    } catch (e) {
+      console.error('Image scan error:', e);
+      return null;
+    }
   }
 
   async function handleScanFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    try {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      await img.decode();
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-      URL.revokeObjectURL(img.src);
-      if (code && code.data) {
-        handleScanResult(code.data);
-      } else {
-        alert('No se encontró un código QR en la imagen');
-      }
-    } catch {
-      alert('Error al procesar la imagen');
+    const url = await scanImageFile(file);
+    if (url) {
+      handleScanResult(url);
+    } else {
+      alert('No se encontró un código QR en la imagen. Asegúrate de que el QR esté visible y bien iluminado.');
     }
   }
 
@@ -681,8 +710,12 @@ export default function ApartmentDetail() {
                     <div className="w-48 h-48 border-2 border-emerald-400 rounded-xl opacity-70" />
                   </div>
                 )}
+                {scanStatus && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                    <p className="text-white text-xs text-center">{scanStatus}</p>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-gray-500 text-center mb-3">Apunta la cámara al código QR del recibo</p>
               <div className="flex gap-2">
                 <button onClick={() => scannerRef.current?.click()} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                   <Image className="w-4 h-4" /> Subir foto
