@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Send, Users, ChevronLeft } from 'lucide-react';
 import { getAuth } from '../utils/auth';
-import { getAllRooms, getRoomMessages, sendMessage, sendHeartbeat, startChatPoll, stopChatPoll, startHeartbeat, stopHeartbeat, startPresencePoll, stopPresencePoll, getStatusLabel } from '../utils/chat';
+import { getAllRooms, getRoomMessages, sendMessage, startChatPoll, stopChatPoll } from '../utils/chat';
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -12,7 +12,6 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
-  const [presence, setPresence] = useState([]);
   const bottomRef = useRef(null);
   const activeRoomRef = useRef(null);
   const userId = auth?.role === 'admin' ? 'admin' : (auth?.username || 'apt-' + auth?.apartmentId);
@@ -21,22 +20,12 @@ export default function Chat() {
     if (!auth) { navigate('/login', { replace: true }); return; }
     getAllRooms(auth).then(r => { setRooms(r); if (r.length > 0) selectRoom(r[0]); });
     startChatPoll(newMsgs => {
-      const current = activeRoomRef.current;
-      if (current && newMsgs.some(m => m.roomId === current.id)) {
-        getRoomMessages(current.id).then(setMessages);
+      const cur = activeRoomRef.current;
+      if (cur && newMsgs.some(m => m.roomId === cur.id)) {
+        getRoomMessages(cur.id).then(setMessages);
       }
     }, 3000);
-    startHeartbeat(userId, 10000);
-    startPresencePoll(data => setPresence(data || []), 5000);
-    const onHide = () => sendHeartbeat(userId, 'offline');
-    const onVis = () => sendHeartbeat(userId, document.hidden ? 'away' : 'online');
-    window.addEventListener('beforeunload', onHide);
-    document.addEventListener('visibilitychange', onVis);
-    return () => {
-      stopChatPoll(); stopHeartbeat(); stopPresencePoll();
-      window.removeEventListener('beforeunload', onHide);
-      document.removeEventListener('visibilitychange', onVis);
-    };
+    return () => stopChatPoll();
   }, []);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -58,24 +47,6 @@ export default function Chat() {
     getRoomMessages(activeRoom.id).then(setMessages);
   }
 
-  function getRoomStatus(room) {
-    if (room.type === 'group') return null;
-    const id = room.id.startsWith('admin-') ? room.id.slice(6) : null;
-    if (!id) return null;
-    const target = userId === 'admin' ? id : 'admin';
-    if (target === id && userId !== 'admin') return null;
-    const arr = Array.isArray(presence) ? presence : [];
-    return getStatusLabel(arr, target === 'admin' ? 'admin' : id);
-  }
-
-  function getOnlineCount() {
-    const arr = Array.isArray(presence) ? presence : [];
-    return arr.filter(p => {
-      const elapsed = Date.now() - new Date(p.lastSeen).getTime();
-      return p.status === 'online' && elapsed < 15000;
-    }).length;
-  }
-
   if (!auth) return null;
 
   return (
@@ -85,23 +56,15 @@ export default function Chat() {
         <div className="p-3 border-b border-gray-200 dark:border-gray-700">
           <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <MessageCircle className="w-4 h-4" /> Chat
-            <span className="text-xs font-normal text-gray-400">({getOnlineCount()} en línea)</span>
           </h2>
         </div>
         <div className="overflow-y-auto h-[calc(100%-3rem)]">
-          {rooms.map(room => {
-            const status = getRoomStatus(room);
-            return (
-              <button key={room.id} onClick={() => selectRoom(room)} className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${activeRoom?.id === room.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                <div className="flex items-center gap-2">
-                  {room.type === 'group' ? <Users className="w-4 h-4 flex-shrink-0" /> : <MessageCircle className="w-4 h-4 flex-shrink-0" />}
-                  <span className="truncate flex-1">{room.label}</span>
-                  {status && <span className={`w-2 h-2 rounded-full ${status.dot} flex-shrink-0`} title={status.label} />}
-                </div>
-                {status && <div className="text-[10px] text-gray-400 pl-6">{status.label}</div>}
-              </button>
-            );
-          })}
+          {rooms.map(room => (
+            <button key={room.id} onClick={() => selectRoom(room)} className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 ${activeRoom?.id === room.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
+              {room.type === 'group' ? <Users className="w-4 h-4 flex-shrink-0" /> : <MessageCircle className="w-4 h-4 flex-shrink-0" />}
+              <span className="truncate">{room.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -116,7 +79,6 @@ export default function Chat() {
               </button>
               <span className="font-medium text-gray-900 dark:text-white">{activeRoom.label}</span>
               <span className="text-xs text-gray-400">{activeRoom.type === 'group' ? 'Grupal' : 'Privado'}</span>
-              {(() => { const s = getRoomStatus(activeRoom); return s ? <span className={`w-2 h-2 rounded-full ${s.dot}`} title={s.label} /> : null; })()}
             </div>
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
