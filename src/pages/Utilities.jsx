@@ -40,6 +40,27 @@ export default function Utilities() {
 
   function getApartment(id) { return apartments.find(a => a.id === id); }
 
+  async function handleElectricityPay(apt) {
+    if (!apt) return;
+    if (apt.electricityPaymentUrl) {
+      window.open(apt.electricityPaymentUrl, '_blank');
+      return;
+    }
+    const nic = window.prompt('Ingresa el NIC de Air-e (' + apt.name + '):', '');
+    if (!nic || !nic.trim()) return;
+    const digits = nic.trim().replace(/\D/g, '');
+    if (digits.length < 4) { alert('El NIC debe tener al menos 4 dígitos'); return; }
+    const url = `https://portal.air-e.com/Pagar#/User/${digits}/NUMEROCONTRATO`;
+    await api.apartments.update(apt.id, { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
+    const idx = apartments.findIndex(a => a.id === apt.id);
+    if (idx !== -1) {
+      const updated = [...apartments];
+      updated[idx] = { ...updated[idx], nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url };
+      setApartments(updated);
+    }
+    window.open(url, '_blank');
+  }
+
   function getServicePaymentCode(apt, service) {
     if (!apt) return '';
     if (service === 'water') return apt.waterPaymentCode || apt.nic || '';
@@ -322,7 +343,11 @@ export default function Utilities() {
                                     />
                                     <span className="text-[10px] text-gray-500 dark:text-gray-400">Pagado</span>
                                   </label>
-                                  {code && (
+                                  {svc === 'electricity' ? (
+                                    <button onClick={() => handleElectricityPay(apt)} className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:underline cursor-pointer bg-transparent border-0" title="Pagar Air-e con NIC">
+                                      <ExternalLink className="w-2.5 h-2.5" /> Pagar
+                                    </button>
+                                  ) : code && (
                                     <button onClick={() => { navigator.clipboard.writeText(code).catch(() => {}); window.open(utilityWebsites[svc].url, '_blank'); }} className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:underline cursor-pointer bg-transparent border-0" title={`Copiar código y abrir ${utilityWebsites[svc].name}`}>
                                       <ExternalLink className="w-2.5 h-2.5" /> Pagar
                                     </button>
@@ -394,7 +419,11 @@ export default function Utilities() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {r.paymentCode && (
+                          {r.service === 'electricity' ? (
+                            <button onClick={() => handleElectricityPay(apt)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors cursor-pointer bg-transparent border-0" title="Pagar Air-e con NIC">
+                              <ExternalLink className="w-3 h-3" /> Pagar
+                            </button>
+                          ) : r.paymentCode && (
                             <button onClick={() => { navigator.clipboard.writeText(r.paymentCode).catch(() => {}); window.open(website.url, '_blank'); }} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors cursor-pointer bg-transparent border-0" title={`Copiar código y abrir ${website.name}`}>
                               <ExternalLink className="w-3 h-3" /> Pagar
                             </button>
