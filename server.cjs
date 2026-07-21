@@ -99,6 +99,10 @@ function loadData() {
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
   ['messages', 'payments', 'expenses'].forEach(k => { if (!db[k]) db[k] = []; });
+  recalcNextId();
+}
+
+function recalcNextId() {
   Object.keys(db).forEach(key => {
     const arr = db[key];
     if (Array.isArray(arr) && arr.length > 0) {
@@ -130,6 +134,7 @@ async function startServer() {
       const pgData = await loadFromPostgres();
       if (pgData) {
         db = pgData;
+        recalcNextId();
         console.log('Data loaded from PostgreSQL');
         loaded = true;
       }
@@ -229,10 +234,7 @@ app.post('/api/reset-db', (req, res) => {
       }
     });
     db = JSON.parse(JSON.stringify(INITIAL_DATA));
-    Object.keys(db).forEach(key => {
-      const arr = db[key];
-      nextId[key] = Array.isArray(arr) && arr.length > 0 ? Math.max(...arr.map(i => i.id || 0)) + 1 : 1;
-    });
+    recalcNextId();
     saveData();
     res.json({ ok: true, message: 'Base de datos restablecida a valores iniciales' });
   } catch (e) {
