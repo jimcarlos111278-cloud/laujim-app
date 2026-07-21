@@ -198,6 +198,40 @@ export default function ApartmentDetail() {
   // ─── QR Scanner ───
 
   const SCAN_MAX_W = 640;
+  const scanDetectorRef = useRef(null);
+
+  async function getDetector() {
+    if (scanDetectorRef.current) return scanDetectorRef.current;
+    if (window.BarcodeDetector) {
+      try {
+        scanDetectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] });
+        return scanDetectorRef.current;
+      } catch {}
+    }
+    return null;
+  }
+
+  async function detectInSource(source) {
+    const detector = await getDetector();
+    if (detector) {
+      const barcodes = await detector.detect(source);
+      if (barcodes.length > 0) return barcodes[0].rawValue;
+    }
+    // fallback jsQR
+    const w = source.videoWidth || source.naturalWidth || source.width || SCAN_MAX_W;
+    const h = source.videoHeight || source.naturalHeight || source.height || 480;
+    const scale = Math.min(SCAN_MAX_W / (w || 640), 1);
+    const cw = Math.floor((w || 640) * scale);
+    const ch = Math.floor((h || 480) * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(source, 0, 0, cw, ch);
+    const imageData = ctx.getImageData(0, 0, cw, ch);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    return code ? code.data : null;
+  }
 
   async function saveScanResult(data, svc) {
     const url = data.startsWith('http') ? data : 'https://' + data;
@@ -228,21 +262,19 @@ export default function ApartmentDetail() {
 
   function webScannerStart() {
     setScanStatus('Iniciando cámara...');
-    try {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } }).then(stream => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().then(() => {
-            setScanStatus('Enfoca el QR en el recuadro');
-            scanTimerRef.current = setTimeout(webDoScan, 500);
-          });
-        }
-      }).catch(e => {
-        console.error('Camera error:', e);
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } })
+      .then(stream => {
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadeddata = () => {
+          setScanStatus('Enfoca el QR en el recuadro');
+          scanTimerRef.current = setTimeout(webDoScan, 500);
+        };
+      })
+      .catch(() => {
         setScanStatus('Cámara no disponible, usa subir foto');
         if (scannerRef.current) scannerRef.current.click();
       });
-    } catch {}
   }
 
   function webStopScanner() {
@@ -254,7 +286,7 @@ export default function ApartmentDetail() {
     }
   }
 
-  function webDoScan() {
+  async function webDoScan() {
     const svc = scanServiceRef.current;
     if (!svc || !videoRef.current) return;
     const video = videoRef.current;
@@ -262,19 +294,11 @@ export default function ApartmentDetail() {
       scanTimerRef.current = setTimeout(webDoScan, 500);
       return;
     }
-    const w = Math.min(video.videoWidth || 640, SCAN_MAX_W);
-    const h = Math.min(video.videoHeight || 480, Math.round(w * ((video.videoHeight || 480) / (video.videoWidth || 640))));
     try {
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(video, 0, 0, w, h);
-      const imageData = ctx.getImageData(0, 0, w, h);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-      if (code && code.data) {
+      const val = await detectInSource(video);
+      if (val) {
         setScanStatus('¡QR detectado!');
-        saveScanResult(code.data, svc);
+        await saveScanResult(val, svc);
         webStopScanner();
         scanServiceRef.current = null;
         setScanService(null);
@@ -286,44 +310,30 @@ export default function ApartmentDetail() {
     scanTimerRef.current = setTimeout(webDoScan, 500);
   }
 
-  async function scanImageFile(file) {
+  async function handleScanFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
     try {
       const img = new Image();
       const blobUrl = URL.createObjectURL(file);
       img.src = blobUrl;
       await img.decode();
-      const scale = Math.min(SCAN_MAX_W / (img.naturalWidth || 640), 1);
-      const w = Math.floor((img.naturalWidth || 640) * scale);
-      const h = Math.floor((img.naturalHeight || 480) * scale);
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      const imageData = ctx.getImageData(0, 0, w, h);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      const val = await detectInSource(img);
       URL.revokeObjectURL(blobUrl);
-      return code ? code.data : null;
+      const svc = scanServiceRef.current;
+      if (val && svc) {
+        await saveScanResult(val, svc);
+        scanServiceRef.current = null;
+        setScanService(null);
+      } else if (val && !svc) {
+        await saveScanResult(val, showQrModal);
+      } else {
+        alert('No se encontró un código QR en la imagen');
+      }
     } catch (e) {
-      console.error('Image scan error:', e);
-      return null;
-    }
-  }
-
-  async function handleScanFile(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-    const url = await scanImageFile(file);
-    const svc = scanServiceRef.current;
-    if (url && svc) {
-      await saveScanResult(url, svc);
-      scanServiceRef.current = null;
-      setScanService(null);
-    } else if (url && !svc) {
-      await saveScanResult(url, showQrModal);
-    } else {
-      alert('No se encontró un código QR en la imagen');
+      console.error('File scan error:', e);
+      alert('Error al procesar la imagen');
     }
   }
 
