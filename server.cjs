@@ -113,6 +113,8 @@ function recalcNextId() {
   });
 }
 
+let dataVersion = Date.now();
+
 function saveData() {
   dataVersion = Date.now();
   const json = JSON.stringify(db, null, 2);
@@ -153,8 +155,6 @@ async function startServer() {
 
 // ─── RUTAS ESPECÍFICAS (SIN PARÁMETROS DE COLECCIÓN) ───
 // Deben ir ANTES de las rutas genéricas /:collection o Express las capturará como nombre de colección
-
-let dataVersion = Date.now();
 
 app.get('/api/data-version', (req, res) => {
   res.json({ version: dataVersion });
