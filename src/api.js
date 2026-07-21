@@ -71,7 +71,14 @@ export function startDataVersionPolling(ms = 3000) {
     try {
       const res = await getDataVersion();
       if (res && res.version && lastDataVersion > 0 && res.version !== lastDataVersion) {
-        window.location.reload();
+        // Don't reload on chat pages — they have their own real-time polling
+        const path = window.location.pathname;
+        if (path !== '/chat' && path !== '/mi-apto') {
+          window.location.reload();
+        } else {
+          // Still update the version so we don't reload on leaving chat
+          lastDataVersion = res.version;
+        }
       }
       if (res) lastDataVersion = res.version;
     } catch {}
