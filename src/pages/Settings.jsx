@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut, Upload } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { getBase } from '../utils/config';
@@ -97,6 +97,33 @@ export default function Settings() {
       setBackupInfo('Error al descargar backup');
       setTimeout(() => setBackupInfo(null), 3000);
     }
+  }
+
+  const fileInputRef = useRef(null);
+  const [restoring, setRestoring] = useState(false);
+
+  async function handleRestore(file) {
+    if (!file) return;
+    if (!confirm('¿Restaurar este backup? Se reemplazarán TODOS los datos del servidor. Los datos actuales se perderán.')) return;
+    setRestoring(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const res = await fetch(getBase() + '/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const result = await res.json();
+      setBackupInfo(`Backup restaurado: ${result.saved} registros`);
+      await refreshAllFromServer();
+      await load();
+    } catch (e) {
+      setBackupInfo('Error al restaurar: ' + e.message);
+    }
+    setRestoring(false);
+    setTimeout(() => setBackupInfo(null), 5000);
   }
 
   async function load() {
@@ -222,6 +249,10 @@ export default function Settings() {
           <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Los cambios se sincronizan automáticamente cada 15 segundos entre todos tus dispositivos.</p>
           <button onClick={handleBackup} className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors text-sm">
             <Download className="w-4 h-4" /> Descargar Backup (JSON)
+          </button>
+          <input ref={fileInputRef} type="file" accept=".json" onChange={e => { handleRestore(e.target.files[0]); e.target.value = ''; }} className="hidden" />
+          <button onClick={() => fileInputRef.current?.click()} disabled={restoring} className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors text-sm mt-2">
+            <Upload className="w-4 h-4" /> {restoring ? 'Restaurando...' : 'Restaurar Backup (JSON)'}
           </button>
           {backupInfo && <p className="text-xs text-emerald-600 mt-1">{backupInfo}</p>}
         </div>
