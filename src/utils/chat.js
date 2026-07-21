@@ -108,17 +108,19 @@ export function stopPresencePoll() {
 }
 
 export function getStatusLabel(presence, userId) {
-  if (!presence || !userId) return { dot: 'bg-gray-400', label: 'Desconocido' };
+  if (!presence || !userId) return { dot: 'bg-red-500', label: 'Nunca conectado' };
   const p = presence.find(x => x.userId === userId);
-  if (!p) return { dot: 'bg-gray-400', label: 'Desconocido' };
+  if (!p) return { dot: 'bg-red-500', label: 'Nunca conectado' };
   const elapsed = Date.now() - new Date(p.lastSeen).getTime();
   const secs = Math.floor(elapsed / 1000);
   if (p.status === 'online' && secs < 15) return { dot: 'bg-green-500', label: 'En línea' };
   if (p.status === 'away' || (p.status === 'online' && secs < 60)) return { dot: 'bg-amber-400', label: 'Ausente' };
-  if (secs < 120) return { dot: 'bg-gray-400', label: 'Visto hace ' + secs + 's' };
-  if (secs < 3600) return { dot: 'bg-gray-400', label: 'Visto hace ' + Math.floor(secs / 60) + 'min' };
-  const d = new Date(p.lastSeen);
-  return { dot: 'bg-gray-400', label: 'Visto ' + d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) };
+  if (secs < 120) return { dot: 'bg-red-500', label: 'Última conexión hace ' + secs + 's' };
+  if (secs < 3600) return { dot: 'bg-red-500', label: 'Última conexión hace ' + Math.floor(secs / 60) + 'min' };
+  if (secs < 86400) return { dot: 'bg-red-500', label: 'Última conexión hace ' + Math.floor(secs / 3600) + 'h' };
+  if (secs < 2592000) return { dot: 'bg-red-500', label: 'Última conexión hace ' + Math.floor(secs / 86400) + 'd' };
+  const months = Math.floor(secs / 2592000);
+  return { dot: 'bg-red-500', label: 'Última conexión hace ' + months + (months === 1 ? ' mes' : ' meses') };
 }
 
 export async function getRoomMessages(roomId) {

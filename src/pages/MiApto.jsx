@@ -4,7 +4,7 @@ import { Building2, Calendar, DollarSign, FileText, Droplets, Flame, Zap, LogOut
 import { getAuth, clearAuth, isTenant } from '../utils/auth';
 import { api } from '../api';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod } from '../utils/helpers';
-import { sendMessage, getRoomMessages, startChatPoll, stopChatPoll } from '../utils/chat';
+import { sendMessage, getRoomMessages, startChatPoll, stopChatPoll, fetchPresence, startHeartbeat, stopHeartbeat, startPresencePoll, stopPresencePoll, getStatusLabel, sendHeartbeat } from '../utils/chat';
 
 export default function MiApto() {
   const navigate = useNavigate();
@@ -17,21 +17,34 @@ export default function MiApto() {
   const [chatInput, setChatInput] = useState('');
   const chatBottomRef = useRef(null);
   const [chatError, setChatError] = useState('');
+  const [presence, setPresence] = useState([]);
 
   useEffect(() => {
     if (!isTenant()) { navigate('/login', { replace: true }); return; }
     loadData();
     const a = getAuth();
+    let onHide, onVis;
     if (a && a.apartmentId) {
       const roomId = 'admin-' + a.apartmentId;
+      const userId = a.username || 'apt-' + a.apartmentId;
       getRoomMessages(roomId).then(setChatMsgs);
       startChatPoll(newMsgs => {
         if (newMsgs.some(m => m.roomId === roomId)) {
           getRoomMessages(roomId).then(setChatMsgs);
         }
       }, 3000);
+      startHeartbeat(userId, 10000);
+      startPresencePoll(data => setPresence(data || []), 5000);
+      onHide = () => sendHeartbeat(userId, 'offline');
+      onVis = () => sendHeartbeat(userId, document.hidden ? 'away' : 'online');
+      window.addEventListener('beforeunload', onHide);
+      document.addEventListener('visibilitychange', onVis);
     }
-    return () => stopChatPoll();
+    return () => {
+      stopChatPoll(); stopHeartbeat(); stopPresencePoll();
+      if (onHide) window.removeEventListener('beforeunload', onHide);
+      if (onVis) document.removeEventListener('visibilitychange', onVis);
+    };
   }, []);
 
   useEffect(() => { chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMsgs]);
@@ -67,6 +80,8 @@ export default function MiApto() {
     try { await sendMessage(roomId, from, 'admin', text); } catch { setChatError('Error al enviar'); setTimeout(() => setChatError(''), 3000); }
     getRoomMessages(roomId).then(setChatMsgs);
   }
+
+  const adminStatus = getStatusLabel(presence, 'admin');
 
   if (!apt) return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -207,7 +222,11 @@ export default function MiApto() {
         {/* Chat con Administrador */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Chat con Administrador</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" /> Chat con Administrador
+              <span className={`w-2 h-2 rounded-full ${adminStatus.dot} inline-block shrink-0`} title={adminStatus.label} />
+            </h3>
+            <div className="text-[10px] text-gray-400">{adminStatus.label}</div>
           </div>
           <div className="h-48 overflow-y-auto p-3 space-y-2 bg-gray-50 dark:bg-gray-900/50">
             {chatMsgs.length === 0 && <p className="text-xs text-gray-400 text-center mt-6">Sin mensajes aún</p>}
