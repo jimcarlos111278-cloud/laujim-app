@@ -140,6 +140,29 @@ app.post('/api/save', (req, res) => {
   res.json({ ok: true, saved: count });
 });
 
+app.post('/api/reset-db', (req, res) => {
+  try {
+    const dataFile = DATA_FILE;
+    if (fs.existsSync(dataFile)) fs.unlinkSync(dataFile);
+    // Also clear uploads
+    [PHOTOS_DIR, CONTRACTS_DIR].forEach(d => {
+      if (fs.existsSync(d)) {
+        const files = fs.readdirSync(d);
+        files.forEach(f => { try { fs.unlinkSync(path.join(d, f)); } catch {} });
+      }
+    });
+    db = JSON.parse(JSON.stringify(INITIAL_DATA));
+    Object.keys(db).forEach(key => {
+      const arr = db[key];
+      nextId[key] = Array.isArray(arr) && arr.length > 0 ? Math.max(...arr.map(i => i.id || 0)) + 1 : 1;
+    });
+    saveData();
+    res.json({ ok: true, message: 'Base de datos restablecida a valores iniciales' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/bulk-add/:collection', (req, res) => {
   const col = req.params.collection;
   if (!db[col]) return res.status(404).json({ error: 'Collection not found' });

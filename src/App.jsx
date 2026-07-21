@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { initDB } from './db/database';
 import Layout from './components/Layout';
@@ -37,6 +37,8 @@ function AdminRoute({ children }) {
 }
 
 export default function App() {
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     try { initDB(); } catch (e) { console.error('DB init error:', e); }
     requestNotificationPermission();
@@ -45,15 +47,27 @@ export default function App() {
       for (let i = 0; i < 3; i++) {
         try {
           const ok = await refreshAllFromServer();
-          if (ok) { console.log('Cloud startup OK'); break; }
+          if (ok) { break; }
         } catch (e) { console.warn('Cloud startup attempt ' + (i+1) + ' failed'); }
         if (i < 2) await new Promise(r => setTimeout(r, 5000));
       }
+      setLoading(false);
       // Start polling for changes from other PCs
       startCloudPolling(15000);
     })();
     try { initDarkMode(); } catch (e) { console.error('Dark mode init error:', e); }
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+          <p className="text-gray-500">Cargando datos del servidor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>

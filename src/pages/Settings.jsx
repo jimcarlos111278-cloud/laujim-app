@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut, Upload } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut, Upload, AlertTriangle } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { getBase } from '../utils/config';
@@ -28,6 +28,27 @@ export default function Settings() {
   const [allTenants, setAllTenants] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [backupInfo, setBackupInfo] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  async function handleResetDb() {
+    setResetting(true);
+    try {
+      const base = getBase().replace('/api', '');
+      const res = await fetch(base + '/api/reset-db', {
+        method: 'POST', headers: { 'x-auth-token': 'laujim laujim' },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await refreshAllFromServer();
+      setConfirmReset(false);
+      setBackupInfo('Base de datos restablecida. Recargando...');
+      setTimeout(() => { setBackupInfo(null); window.location.reload(); }, 2000);
+    } catch (e) {
+      setBackupInfo('Error al restablecer: ' + e.message);
+      setTimeout(() => setBackupInfo(null), 5000);
+    }
+    setResetting(false);
+  }
 
   function handleLogout() {
     clearAuth();
@@ -255,7 +276,29 @@ export default function Settings() {
             <Upload className="w-4 h-4" /> {restoring ? 'Restaurando...' : 'Restaurar Backup (JSON)'}
           </button>
           {backupInfo && <p className="text-xs text-emerald-600 mt-1">{backupInfo}</p>}
+          <hr className="my-3 border-gray-200 dark:border-gray-600" />
+          <button onClick={() => setConfirmReset(true)} disabled={resetting} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm">
+            <AlertTriangle className="w-4 h-4" /> {resetting ? 'Restableciendo...' : 'Restablecer DB a valores iniciales'}
+          </button>
         </div>
+
+        <Modal open={confirmReset} onClose={() => !resetting && setConfirmReset(false)}>
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">¿Restablecer base de datos?</h3>
+                <p className="text-sm text-gray-500">Esta acción borrará TODOS los datos del servidor y los reemplazará con los valores iniciales. Los datos locales se recargarán automáticamente.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmReset(false)} disabled={resetting} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Cancelar</button>
+              <button onClick={handleResetDb} disabled={resetting} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-50">{resetting ? 'Restableciendo...' : 'Sí, restablecer'}</button>
+            </div>
+          </div>
+        </Modal>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Acceso de Inquilinos</h3>
