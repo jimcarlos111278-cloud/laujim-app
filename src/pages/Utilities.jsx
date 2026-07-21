@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Zap, Droplets, Flame, Plus, Search, ExternalLink, CheckCircle, XCircle, ChevronLeft, ChevronRight, Save, AlertTriangle, List, Grid3X3, DollarSign, Hash } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Zap, Droplets, Flame, Plus, Search, ExternalLink, CheckCircle, XCircle, ChevronLeft, ChevronRight, Save, AlertTriangle, List, Grid3X3, DollarSign, Hash, QrCode, Scan, Image } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { formatCurrency, formatShortDate, getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, isOverdueByReadingDate } from '../utils/helpers';
+import { isCapacitor } from '../utils/config';
+import QRCode from 'qrcode';
+import jsQR from 'jsqr';
 
 const serviceIcons = { water: Droplets, gas: Flame, electricity: Zap };
 const serviceNames = { water: 'Agua', gas: 'Gas', electricity: 'Electricidad' };
@@ -29,6 +32,14 @@ export default function Utilities() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ apartmentId: '', service: 'water', paymentCode: '', period: getCurrentPeriod(), amount: '', dueDate: '', readingDate: '', paid: false, notes: '' });
+  const [scanAptId, setScanAptId] = useState(null);
+  const [scanService, setScanService] = useState(null);
+  const [scanStatus, setScanStatus] = useState('');
+  const [qrUrls, setQrUrls] = useState({});
+  const [showQrModal, setShowQrModal] = useState(null);
+  const videoRef = useRef(null);
+  const scannerRef = useRef(null);
+  const scanTimerRef = useRef(null);
 
   useEffect(() => { load(); }, []);
 
@@ -60,6 +71,144 @@ export default function Utilities() {
     }
     window.open(url, '_blank');
   }
+
+  function getAptPaymentUrl(apt, svc) {
+    if (!apt) return '';
+    if (svc === 'water') return apt.waterPaymentUrl || '';
+    if (svc === 'gas') return apt.gasPaymentUrl || '';
+    return apt.electricityPaymentUrl || '';
+  }
+
+  async function generateQr(aptId, svc, url) {
+    try {
+      const dataUrl = await QRCode.toDataURL(url, { width: 160, margin: 1, color: { dark: '#1f2937', light: '#ffffff' } });
+      setQrUrls(prev => ({ ...prev, [aptId + '-' + svc]: dataUrl }));
+    } catch {}
+  }
+
+  async function handleScanQR(aptId, svc) {
+    setScanAptId(aptId);
+    setScanService(svc);
+    setScanStatus('Iniciando cámara...');
+    setTimeout(startScan, 100);
+  }
+
+  function startScan() {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } })
+      .then(stream => {
+        if (!videoRef.current) return;
+        const v = videoRef.current;
+        v.srcObject = stream;
+        v.onloadedmetadata = () => {
+          v.play().then(() => {
+            setScanStatus('Enfoca el QR en el recuadro');
+            scanTimerRef.current = setTimeout(doScan, 500);
+          }).catch(e => console.error('play:', e));
+        };
+      })
+      .catch(() => {
+        setScanStatus('Cámara no disponible, usa subir foto');
+        setTimeout(() => scannerRef.current?.click(), 300);
+      });
+  }
+
+  function stopScan() {
+    setScanStatus('');
+    if (scanTimerRef.current) { clearTimeout(scanTimerRef.current); scanTimerRef.current = null; }
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      videoRef.current.srcObject = null;
+    }
+  }
+
+  async function doScan() {
+    const v = videoRef.current;
+    if (!v || scanAptId === null) return;
+    if (v.readyState < v.HAVE_CURRENT_DATA) { scanTimerRef.current = setTimeout(doScan, 500); return; }
+    let val = null;
+    if (window.BarcodeDetector) {
+      try { const d = new window.BarcodeDetector({ formats: ['qr_code'] }); const b = await d.detect(v); if (b.length > 0) val = b[0].rawValue; } catch {}
+    }
+    if (!val) {
+      const w = Math.min(v.videoWidth || 640, 640);
+      const h = Math.min(v.videoHeight || 480, Math.round(w * ((v.videoHeight || 480) / (v.videoWidth || 640))));
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(v, 0, 0, w, h);
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code && code.data) val = code.data;
+      } catch {}
+    }
+    if (val) {
+      setScanStatus('¡QR detectado!');
+      const url = val.startsWith('http') ? val : 'https://' + val;
+      const apt = getApartment(scanAptId);
+      const svc = scanService;
+      const field = svc === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl';
+      await api.apartments.update(scanAptId, { [field]: url });
+      const idx = apartments.findIndex(a => a.id === scanAptId);
+      if (idx !== -1) {
+        const updated = [...apartments];
+        updated[idx] = { ...updated[idx], [field]: url };
+        setApartments(updated);
+      }
+      generateQr(scanAptId, svc, url);
+      stopScan();
+      setScanAptId(null);
+      setScanService(null);
+      return;
+    }
+    scanTimerRef.current = setTimeout(doScan, 500);
+  }
+
+  async function handleScanFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      const bitmap = await createImageBitmap(file, { resizeWidth: 640, resizeQuality: 'high' });
+      let val = null;
+      if (window.BarcodeDetector) {
+        try { const d = new window.BarcodeDetector({ formats: ['qr_code'] }); const b = await d.detect(bitmap); if (b.length > 0) val = b[0].rawValue; } catch {}
+      }
+      if (!val) {
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width; canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imgData.data, imgData.width, imgData.height);
+        if (code && code.data) val = code.data;
+      } else { bitmap.close(); }
+      if (val) {
+        const url = val.startsWith('http') ? val : 'https://' + val;
+        const apt = getApartment(scanAptId);
+        const svc = scanService;
+        const field = svc === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl';
+        await api.apartments.update(scanAptId, { [field]: url });
+        const idx = apartments.findIndex(a => a.id === scanAptId);
+        if (idx !== -1) {
+          const updated = [...apartments];
+          updated[idx] = { ...updated[idx], [field]: url };
+          setApartments(updated);
+        }
+        generateQr(scanAptId, svc, url);
+        stopScan();
+        setScanAptId(null);
+        setScanService(null);
+      } else {
+        alert('No se encontró un código QR en la imagen');
+      }
+    } catch (e) { console.error('Scan file:', e); alert('Error al procesar la imagen'); }
+  }
+
+  useEffect(() => {
+    return () => { if (scanTimerRef.current) clearTimeout(scanTimerRef.current); if (videoRef.current?.srcObject) { videoRef.current.srcObject.getTracks().forEach(t => t.stop()); } };
+  }, []);
 
   function getServicePaymentCode(apt, service) {
     if (!apt) return '';
@@ -332,25 +481,29 @@ export default function Utilities() {
                                     title={code}
                                   />
                                 </div>
-                                {/* Checkbox + Pay link row */}
-                                <div className="flex items-center justify-center gap-2 w-full mt-0.5">
-                                  <label className="flex items-center gap-1 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={cell.paid}
-                                      onChange={e => handleGridPaidChange(apt.id, svc, e.target.checked)}
-                                      className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <span className="text-[10px] text-gray-500 dark:text-gray-400">Pagado</span>
-                                  </label>
+                                {/* Action row: QR / Escanear / Pagar */}
+                                <div className="flex items-center justify-center gap-1 w-full mt-0.5 flex-wrap">
                                   {svc === 'electricity' ? (
-                                    <button onClick={() => handleElectricityPay(apt)} className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:underline cursor-pointer bg-transparent border-0" title="Pagar Air-e con NIC">
+                                    <button onClick={() => handleElectricityPay(apt)} className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:underline cursor-pointer bg-transparent border-0" title="Pagar Air-e">
                                       <ExternalLink className="w-2.5 h-2.5" /> Pagar
                                     </button>
-                                  ) : code && (
-                                    <button onClick={() => { navigator.clipboard.writeText(code).catch(() => {}); window.open(utilityWebsites[svc].url, '_blank'); }} className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:underline cursor-pointer bg-transparent border-0" title={`Copiar código y abrir ${utilityWebsites[svc].name}`}>
-                                      <ExternalLink className="w-2.5 h-2.5" /> Pagar
-                                    </button>
+                                  ) : (
+                                    <>
+                                      {getAptPaymentUrl(apt, svc) ? (
+                                        <>
+                                          <button onClick={() => { const k = apt.id + '-' + svc; if (!qrUrls[k]) generateQr(apt.id, svc, getAptPaymentUrl(apt, svc)); setShowQrModal(k); }} className="inline-flex items-center gap-0.5 text-[10px] text-indigo-600 hover:underline cursor-pointer bg-transparent border-0" title="Ver QR">
+                                            <QrCode className="w-2.5 h-2.5" /> QR
+                                          </button>
+                                          <button onClick={() => window.open(getAptPaymentUrl(apt, svc), '_blank')} className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 hover:underline cursor-pointer bg-transparent border-0" title="Pagar">
+                                            <ExternalLink className="w-2.5 h-2.5" /> Pagar
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <button onClick={() => handleScanQR(apt.id, svc)} className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 hover:underline cursor-pointer bg-transparent border-0" title="Escanear QR de recibo">
+                                          <Scan className="w-2.5 h-2.5" /> Escanear
+                                        </button>
+                                      )}
+                                    </>
                                   )}
                                 </div>
                               </div>
@@ -420,13 +573,26 @@ export default function Utilities() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {r.service === 'electricity' ? (
-                            <button onClick={() => handleElectricityPay(apt)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors cursor-pointer bg-transparent border-0" title="Pagar Air-e con NIC">
+                            <button onClick={() => handleElectricityPay(apt)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors cursor-pointer bg-transparent border-0" title="Pagar Air-e">
                               <ExternalLink className="w-3 h-3" /> Pagar
                             </button>
-                          ) : r.paymentCode && (
-                            <button onClick={() => { navigator.clipboard.writeText(r.paymentCode).catch(() => {}); window.open(website.url, '_blank'); }} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors cursor-pointer bg-transparent border-0" title={`Copiar código y abrir ${website.name}`}>
-                              <ExternalLink className="w-3 h-3" /> Pagar
-                            </button>
+                          ) : (
+                            <>
+                              {getAptPaymentUrl(apt, r.service) ? (
+                                <>
+                                  <button onClick={() => { const k = apt.id + '-' + r.service; if (!qrUrls[k]) generateQr(apt.id, r.service, getAptPaymentUrl(apt, r.service)); setShowQrModal(k); }} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors cursor-pointer bg-transparent border-0" title="Ver QR">
+                                    <QrCode className="w-3 h-3" /> QR
+                                  </button>
+                                  <button onClick={() => window.open(getAptPaymentUrl(apt, r.service), '_blank')} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded transition-colors cursor-pointer bg-transparent border-0" title="Pagar">
+                                    <ExternalLink className="w-3 h-3" /> Pagar
+                                  </button>
+                                </>
+                              ) : (
+                                <button onClick={() => handleScanQR(apt.id, r.service)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-colors cursor-pointer bg-transparent border-0" title="Escanear QR">
+                                  <Scan className="w-3 h-3" /> Escanear
+                                </button>
+                              )}
+                            </>
                           )}
                           <button onClick={async () => { await api.utilityPayments.update(r.id, { paid: !r.paid, paidDate: !r.paid ? new Date().toISOString() : null }); load(); }} className={`px-2 py-1 text-xs rounded transition-colors ${r.paid ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30' : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`}>
                             {r.paid ? 'No Pagado' : 'Pagado'}
@@ -529,6 +695,44 @@ export default function Utilities() {
             <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Guardar</button>
           </div>
         </form>
+      </Modal>
+
+      {/* QR Scanner modal */}
+      <input ref={scannerRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} className="hidden" />
+      <Modal open={scanService !== null} onClose={() => { stopScan(); setScanAptId(null); setScanService(null); }} title={scanService ? `Escaneando QR - ${serviceNames[scanService]}` : ''}>
+        <div className="p-4">
+          <div className="relative bg-black rounded-xl overflow-hidden mb-3" style={{ minHeight: 280 }}>
+            <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+            {scanService !== null && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-48 h-48 border-2 border-emerald-400 rounded-xl opacity-70" />
+              </div>
+            )}
+            {scanStatus && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                <p className="text-white text-xs text-center">{scanStatus}</p>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => scannerRef.current?.click()} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+              <Image className="w-4 h-4" /> Subir foto
+            </button>
+            <button onClick={() => { stopScan(); setScanAptId(null); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* QR view modal */}
+      <Modal open={showQrModal !== null} onClose={() => setShowQrModal(null)} size="sm">
+        {showQrModal && qrUrls[showQrModal] && (
+          <div className="p-4 text-center">
+            <img src={qrUrls[showQrModal]} alt="QR de pago" className="mx-auto w-56 h-56 rounded-xl shadow-sm" />
+            <p className="text-xs text-gray-400 mt-2">Código QR de pago</p>
+          </div>
+        )}
       </Modal>
     </div>
   );
