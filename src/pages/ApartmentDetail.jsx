@@ -98,6 +98,8 @@ export default function ApartmentDetail() {
 
   async function handleSave(e) {
     e.preventDefault();
+    const nic = form.nic || '';
+    const autoUrl = nic ? `https://portal.air-e.com/Pagar#/User/${nic}/NUMEROCONTRATO` : '';
     await api.apartments.update(Number(id), {
       ...form,
       monthlyRent: Number(form.monthlyRent),
@@ -108,7 +110,7 @@ export default function ApartmentDetail() {
       electricityReadingDay: Number(form.electricityReadingDay || 15),
       waterPaymentUrl: form.waterPaymentUrl || '',
       gasPaymentUrl: form.gasPaymentUrl || '',
-      electricityPaymentUrl: form.electricityPaymentUrl || '',
+      electricityPaymentUrl: autoUrl || form.electricityPaymentUrl || '',
     });
     setEditing(false);
     load();
@@ -700,9 +702,11 @@ export default function ApartmentDetail() {
                             </button>
                           </>
                         )}
-                        <button onClick={() => handleScanButton(svc)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Escanear QR de recibo">
-                          <Scan className="w-3 h-3" /> Escanear
-                        </button>
+                        {svc !== 'electricity' && (
+                          <button onClick={() => handleScanButton(svc)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Escanear QR de recibo">
+                            <Scan className="w-3 h-3" /> Escanear
+                          </button>
+                        )}
                         <input ref={scannerRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} className="hidden" />
                       </div>
                       {rec ? (
@@ -735,9 +739,11 @@ export default function ApartmentDetail() {
                 <button onClick={() => openPaymentUrl(apt[showQrModal === 'water' ? 'waterPaymentUrl' : showQrModal === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl'])} className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium">
                   <ExternalLink className="w-4 h-4" /> Pagar ahora
                 </button>
-                <button onClick={() => { const svc = showQrModal; setShowQrModal(null); handleScanButton(svc); }} className="mt-2 w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors text-sm">
-                  <Scan className="w-4 h-4" /> Escanear otro QR
-                </button>
+                {showQrModal !== 'electricity' && (
+                  <button onClick={() => { const svc = showQrModal; setShowQrModal(null); handleScanButton(svc); }} className="mt-2 w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                    <Scan className="w-4 h-4" /> Escanear otro QR
+                  </button>
+                )}
               </div>
             )}
           </Modal>
