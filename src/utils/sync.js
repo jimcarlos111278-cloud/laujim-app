@@ -29,7 +29,7 @@ export async function isServerAvailable() {
   try {
     const base = getBase();
     const res = await fetch(base + '/apartments/count', {
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(10000),
       headers: { 'x-auth-token': AUTH_TOKEN },
     });
     const ct = res.headers.get('content-type') || '';
@@ -82,6 +82,7 @@ export async function syncPull() {
       return { ok: false, reason: `Error en Pull de ${col}: ${e.message}` };
     }
   }
+  lastSyncTime = new Date().toISOString();
   return { ok: true };
 }
 
@@ -229,7 +230,5 @@ export function stopAutoSync() {
   }
 }
 
-export function getSyncStatus() {
-  const pending = getPendingOps();
-  return { pendingCount: pending.length, hasPending: pending.length > 0 };
-}
+let lastSyncTime = null;
+export function getLastSyncTime() { return lastSyncTime; }

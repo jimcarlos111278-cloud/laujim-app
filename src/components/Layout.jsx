@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, RefreshCw, CheckCircle2, MessageCircle
 } from 'lucide-react';
-import { getSyncStatus, syncAll } from '../utils/sync';
+import { getSyncStatus, getLastSyncTime, syncAll } from '../utils/sync';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -114,6 +114,11 @@ export default function Layout({ children }) {
               <>
                 <Cloud className="w-4 h-4 text-gray-400" />
                 <span className="text-gray-500">Datos al día</span>
+                {getLastSyncTime() && (
+                  <span className="text-xs text-gray-400 ml-1">
+                    ({new Date(getLastSyncTime()).toLocaleTimeString()})
+                  </span>
+                )}
               </>
             )}
           </div>

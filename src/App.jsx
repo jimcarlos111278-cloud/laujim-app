@@ -20,7 +20,7 @@ import PublicApartments from './pages/PublicApartments';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
 import { requestNotificationPermission } from './utils/notifications';
-import { startAutoSync, restoreAllFromBackup } from './utils/sync';
+import { startAutoSync, restoreAllFromBackup, syncPull } from './utils/sync';
 import { syncAndGenerateReminders } from './utils/calendar';
 import { initDarkMode } from './utils/darkMode';
 import { getAuth } from './utils/auth';
@@ -43,6 +43,17 @@ export default function App() {
     try { initDB(); } catch (e) { console.error('DB init error:', e); }
     try { restoreAllFromBackup(); } catch (e) { console.error('Backup restore error:', e); }
     try { requestNotificationPermission(); } catch (e) { console.error('Notification error:', e); }
+    // Sync from server on startup with retries
+    (async function startupSync() {
+      for (let i = 0; i < 3; i++) {
+        try {
+          const r = await syncPull();
+          if (r.ok) { console.log('Startup sync OK'); break; }
+          console.warn('Startup sync attempt ' + (i+1) + ' failed:', r.reason);
+        } catch (e) { console.warn('Startup sync attempt ' + (i+1) + ' error:', e); }
+        if (i < 2) await new Promise(r => setTimeout(r, 5000));
+      }
+    })();
     try {
       startAutoSync(30000, async () => {
         const ok = window.confirm('Se detectaron cambios en los pagos.\n¿Desea generar recordatorios de calendario para todos los apartamentos?');
