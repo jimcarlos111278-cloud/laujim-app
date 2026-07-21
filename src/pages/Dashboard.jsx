@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, Phone, MessageCircle, AlertOctagon } from 'lucide-react';
+import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsCard from '../components/StatsCard';
 import Modal from '../components/Modal';
@@ -270,11 +270,11 @@ export default function Dashboard() {
                     <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)} · {formatCurrency(a.rent)}</span>
                     {a.tenant?.phone && (
                       <>
-                        <a href={`https://wa.me/${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="WhatsApp">
-                          <MessageCircle className="w-3.5 h-3.5" />
+                        <a href={`https://wa.me/${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                          WhatsApp
                         </a>
-                        <a href={`tel:${a.tenant.phone}`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Llamar">
-                          <Phone className="w-3.5 h-3.5" />
+                        <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                          Llamar
                         </a>
                       </>
                     )}
@@ -315,11 +315,11 @@ export default function Dashboard() {
                   </button>
                   {a.tenant?.phone && (
                     <>
-                      <a href={`https://wa.me/${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="WhatsApp">
-                        <MessageCircle className="w-3.5 h-3.5" />
+                      <a href={`https://wa.me/${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                        WhatsApp
                       </a>
-                      <a href={`tel:${a.tenant.phone}`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Llamar">
-                        <Phone className="w-3.5 h-3.5" />
+                      <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                        Llamar
                       </a>
                     </>
                   )}
