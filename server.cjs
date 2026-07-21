@@ -5,6 +5,7 @@ const path = require('path');
 const multer = require('multer');
 const { spawn } = require('child_process');
 const { exec } = require('child_process');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 1011;
@@ -51,6 +52,39 @@ const { INITIAL_DATA } = require('./db.cjs');
 let db = { ...INITIAL_DATA };
 let nextId = {};
 
+// ─── PostgreSQL persistence (when DATABASE_URL is set) ───
+let pgPool = null;
+
+async function initPostgres() {
+  if (!process.env.DATABASE_URL) return false;
+  pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS store (
+      key TEXT PRIMARY KEY,
+      value JSONB NOT NULL
+    )
+  `);
+  console.log('PostgreSQL connected');
+  return true;
+}
+
+async function loadFromPostgres() {
+  if (!pgPool) return null;
+  const result = await pgPool.query('SELECT value FROM store WHERE key = $1', ['database']);
+  if (result.rows.length > 0) {
+    return result.rows[0].value;
+  }
+  return null;
+}
+
+async function saveToPostgres() {
+  if (!pgPool) return;
+  await pgPool.query(
+    'INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+    ['database', JSON.stringify(db)]
+  );
+}
+
 function loadData() {
   try {
     if (fs.existsSync(DATA_FILE)) {
@@ -77,11 +111,40 @@ function loadData() {
 
 function saveData() {
   dataVersion = Date.now();
-  fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf-8');
-  fs.writeFileSync(BACKUP_FILE, JSON.stringify(db, null, 2), 'utf-8');
+  const json = JSON.stringify(db, null, 2);
+  fs.writeFileSync(DATA_FILE, json, 'utf-8');
+  fs.writeFileSync(BACKUP_FILE, json, 'utf-8');
+  // Fire-and-forget PostgreSQL save
+  if (pgPool) {
+    saveToPostgres().catch(e => console.error('PG save error:', e.message));
+  }
 }
 
-loadData();
+// ─── Async startup ───
+
+async function startServer() {
+  let loaded = false;
+  // Try PostgreSQL first
+  try {
+    if (await initPostgres()) {
+      const pgData = await loadFromPostgres();
+      if (pgData) {
+        db = pgData;
+        console.log('Data loaded from PostgreSQL');
+        loaded = true;
+      }
+    }
+  } catch (e) {
+    console.error('PostgreSQL init failed, using JSON file:', e.message);
+  }
+  // Fallback to JSON file (or initial data)
+  if (!loaded) {
+    loadData();
+    // If PostgreSQL is available but was empty, write initial data to it
+    if (pgPool) {
+      saveToPostgres().catch(e => console.error('PG initial save error:', e.message));
+    }
+  }
 
 // ─── RUTAS ESPECÍFICAS (SIN PARÁMETROS DE COLECCIÓN) ───
 // Deben ir ANTES de las rutas genéricas /:collection o Express las capturará como nombre de colección
@@ -412,26 +475,30 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('============================================');
-  console.log('  GESTION DE APARTAMENTOS - SERVIDOR');
-  console.log('============================================');
-  console.log('');
-  console.log('  En este PC:    http://localhost:' + PORT);
-  console.log('  Contraseña:    laujim laujim');
-  console.log('');
-  const { networkInterfaces } = require('os');
-  const nets = networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      if (net.family === 'IPv4' && !net.internal) {
-        console.log('  En tu red:     http://' + net.address + ':' + PORT);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('============================================');
+    console.log('  GESTION DE APARTAMENTOS - SERVIDOR');
+    console.log('============================================');
+    console.log('');
+    console.log('  En este PC:    http://localhost:' + PORT);
+    console.log('  Contraseña:    laujim laujim');
+    if (pgPool) console.log('  Base de datos: PostgreSQL (permanente)');
+    console.log('');
+    const { networkInterfaces } = require('os');
+    const nets = networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        if (net.family === 'IPv4' && !net.internal) {
+          console.log('  En tu red:     http://' + net.address + ':' + PORT);
+        }
       }
     }
-  }
-  console.log('');
-  console.log('  Abre cualquiera de esas URLs en el navegador');
-  console.log('  de cualquier dispositivo en el mismo WiFi.');
-  console.log('  Los datos se guardan en este PC.');
-  console.log('============================================');
-});
+    console.log('');
+    console.log('  Abre cualquiera de esas URLs en el navegador');
+    console.log('  de cualquier dispositivo en el mismo WiFi.');
+    if (!pgPool) console.log('  Los datos se guardan en este PC.');
+    console.log('============================================');
+  });
+}
+
+startServer();
