@@ -60,12 +60,15 @@ export default function Chat() {
 
   function getRoomStatus(room) {
     if (room.type === 'group') return null;
-    const id = room.id.startsWith('admin-') ? room.id.slice(6) : null;
-    if (!id) return null;
-    const target = userId === 'admin' ? id : 'admin';
-    if (target === id && userId !== 'admin') return null;
+    const aptId = room.id.startsWith('admin-') ? room.id.slice(6) : null;
+    if (!aptId) return null;
     const arr = Array.isArray(presence) ? presence : [];
-    return getStatusLabel(arr, target === 'admin' ? 'admin' : id);
+    if (userId === 'admin') {
+      // Admin sees each tenant's status by their 'apt-{id}' userId
+      return getStatusLabel(arr, 'apt-' + aptId);
+    }
+    // Tenant sees the admin's status
+    return getStatusLabel(arr, 'admin');
   }
 
   function getOnlineCount() {
