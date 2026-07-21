@@ -1,3 +1,5 @@
+import { AUTH_TOKEN, getBase } from './config';
+
 const STORAGE_KEY = 'apt_auth';
 
 export function getAuth() {
@@ -44,16 +46,25 @@ export async function loginAdmin(username, password) {
   return { ok: false, error: 'Credenciales inválidas' };
 }
 
+async function serverReq(method, url) {
+  const res = await fetch(getBase() + url, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function loginTenant(aptName, password) {
-  const { default: db } = await import('../db/database');
-  const apartments = await db.apartments.toArray();
+  const apartments = await serverReq('GET', '/apartments');
   const apt = apartments.find(a => a.name === aptName || String(a.id) === aptName);
   if (!apt) return { ok: false, error: 'Apartamento no encontrado' };
-  const passwords = await db.passwords.toArray();
+  const passwords = await serverReq('GET', '/passwords');
   const record = passwords.find(p => p.apartmentId === apt.id);
   if (!record || record.password !== password) return { ok: false, error: 'Contraseña incorrecta' };
-  const tenants = await db.tenants.toArray();
-  const contracts = await db.contracts.toArray();
+  const tenants = await serverReq('GET', '/tenants');
+  const contracts = await serverReq('GET', '/contracts');
   const contract = contracts.find(c => c.apartmentId === apt.id && (!c.endDate || new Date(c.endDate) > new Date()));
   const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
   setAuth({ role: 'tenant', apartmentId: apt.id, name: tenant?.name || apt.name, username: apt.name });

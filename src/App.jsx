@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { initDB } from './db/database';
-import db from './db/database';
 import Layout from './components/Layout';
 import VersionBanner from './components/VersionBanner';
 import Dashboard from './pages/Dashboard';
@@ -20,8 +19,7 @@ import PublicApartments from './pages/PublicApartments';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
 import { requestNotificationPermission } from './utils/notifications';
-import { startAutoSync, restoreAllFromBackup, syncPull } from './utils/sync';
-import { syncAndGenerateReminders } from './utils/calendar';
+import { refreshAllFromServer, startCloudPolling } from './api';
 import { initDarkMode } from './utils/darkMode';
 import { getAuth } from './utils/auth';
 
@@ -41,30 +39,19 @@ function AdminRoute({ children }) {
 export default function App() {
   useEffect(() => {
     try { initDB(); } catch (e) { console.error('DB init error:', e); }
-    try { restoreAllFromBackup(); } catch (e) { console.error('Backup restore error:', e); }
-    try { requestNotificationPermission(); } catch (e) { console.error('Notification error:', e); }
-    // Sync from server on startup with retries
-    (async function startupSync() {
+    requestNotificationPermission();
+    // Fetch ALL data from server on startup (cloud-first)
+    (async function startup() {
       for (let i = 0; i < 3; i++) {
         try {
-          const r = await syncPull();
-          if (r.ok) { console.log('Startup sync OK'); break; }
-          console.warn('Startup sync attempt ' + (i+1) + ' failed:', r.reason);
-        } catch (e) { console.warn('Startup sync attempt ' + (i+1) + ' error:', e); }
+          const ok = await refreshAllFromServer();
+          if (ok) { console.log('Cloud startup OK'); break; }
+        } catch (e) { console.warn('Cloud startup attempt ' + (i+1) + ' failed'); }
         if (i < 2) await new Promise(r => setTimeout(r, 5000));
       }
+      // Start polling for changes from other PCs
+      startCloudPolling(15000);
     })();
-    try {
-      startAutoSync(30000, async () => {
-        const ok = window.confirm('Se detectaron cambios en los pagos.\n¿Desea generar recordatorios de calendario para todos los apartamentos?');
-        if (ok) {
-          try {
-            const apartments = await db.apartments.toArray();
-            syncAndGenerateReminders(apartments);
-          } catch (e) { console.error('Error generating reminders:', e); }
-        }
-      });
-    } catch (e) { console.error('Sync error:', e); }
     try { initDarkMode(); } catch (e) { console.error('Dark mode init error:', e); }
   }, []);
 

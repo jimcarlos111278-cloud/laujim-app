@@ -5,7 +5,8 @@ import Modal from '../components/Modal';
 import { api } from '../api';
 import { getBase } from '../utils/config';
 import { requestNotificationPermission } from '../utils/notifications';
-import { syncAll, syncPush, syncPull, hasPendingOps, getSyncStatus, isServerAvailable, clearPendingOps, COLLECTIONS } from '../utils/sync';
+import { isServerAvailable } from '../utils/sync';
+import { refreshAllFromServer } from '../api';
 import { isDarkMode, toggleDarkMode } from '../utils/darkMode';
 import { getNotifConfig, saveNotifConfig, schedulePaymentReminders, cancelAllNotifications } from '../utils/localNotifications';
 import { clearAuth, getAuth } from '../utils/auth';
@@ -17,12 +18,8 @@ export default function Settings() {
   const [notifStatus, setNotifStatus] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
   const [syncStatus, setSyncStatus] = useState({
     syncing: false,
-    pendingCount: getSyncStatus().pendingCount,
-    lastSync: localStorage.getItem('apt_last_sync') || null,
     error: null,
     serverAvailable: null,
-    pushed: 0,
-    failed: 0,
   });
   const autoSyncIntervalRef = useRef(null);
   const [dark, setDark] = useState(isDarkMode());
@@ -73,59 +70,12 @@ export default function Settings() {
     return status.ok;
   }
 
-  async function handleSync() {
+  async function handleRefreshFromServer() {
     setSyncStatus(s => ({ ...s, syncing: true, error: null }));
-    const result = await syncAll();
-    setSyncStatus(s => ({
-      ...s, syncing: false,
-      pendingCount: getSyncStatus().pendingCount,
-      lastSync: result.ok ? new Date().toLocaleString('es-CO') : s.lastSync,
-      error: result.ok ? null : result.reason,
-      pushed: result.pushed || 0, failed: result.failed || 0,
-    }));
+    const ok = await refreshAllFromServer();
+    setSyncStatus(s => ({ ...s, syncing: false, error: ok ? null : 'Error al conectar con el servidor' }));
+    await load();
     checkServerAvailability();
-  }
-
-  async function handleSyncPull() {
-    setSyncStatus(s => ({ ...s, syncing: true, error: null }));
-    const result = await syncPull();
-    setSyncStatus(s => ({
-      ...s, syncing: false,
-      pendingCount: getSyncStatus().pendingCount,
-      lastSync: result.ok ? new Date().toLocaleString('es-CO') : s.lastSync,
-      error: result.ok ? null : result.reason,
-    }));
-    checkServerAvailability();
-  }
-
-  function handleClearPending() {
-    if (confirm('¿Eliminar todas las operaciones pendientes? Los datos locales se conservan.')) {
-      clearPendingOps();
-      setSyncStatus(s => ({ ...s, pendingCount: 0 }));
-    }
-  }
-
-  const SAVE_COLLECTIONS = ['apartments', 'tenants', 'contracts', 'payments', 'expenses', 'utilityPayments', 'vacancies', 'familyMembers', 'photos', 'passwords'];
-
-  async function handleSaveFull() {
-    setSyncStatus(s => ({ ...s, syncing: true, error: null }));
-    try {
-      const allData = {};
-      for (const col of SAVE_COLLECTIONS) {
-        try { allData[col] = await api[col].toArray(); } catch { allData[col] = []; }
-      }
-      const res = await fetch(getBase() + '/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' },
-        body: JSON.stringify(allData),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const result = await res.json();
-      setSyncStatus(s => ({ ...s, syncing: false, pendingCount: 0, lastSync: new Date().toLocaleString('es-CO'), pushed: result.saved, failed: 0 }));
-      clearPendingOps();
-    } catch (e) {
-      setSyncStatus(s => ({ ...s, syncing: false, error: e.message }));
-    }
   }
 
   async function handleBackup() {
@@ -256,26 +206,20 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Database className="w-4 h-4" /> Base de Datos</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Sincroniza los datos locales con el servidor central.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Todos los datos se guardan automáticamente en la nube en tiempo real. No necesitas hacer nada manual.</p>
           <div className="space-y-2 text-sm mb-3">
-            <div className="flex justify-between py-1.5"><span className="text-gray-500 dark:text-gray-400">Cambios pendientes:</span><strong>{syncStatus.pendingCount > 0 ? <span className="text-amber-600">{(syncStatus.pendingCount)} op(s)</span> : <span className="text-emerald-600">0</span>}</strong></div>
-            <div className="flex justify-between py-1.5"><span className="text-gray-500 dark:text-gray-400">Última sincronización:</span><strong className="text-gray-700 dark:text-gray-200">{syncStatus.lastSync || 'Nunca'}</strong></div>
+            <div className="flex justify-between py-1.5">
+              <span className="text-gray-500 dark:text-gray-400">Servidor:</span>
+              <strong>{syncStatus.serverAvailable === true ? <span className="text-emerald-600">Conectado</span> : syncStatus.serverAvailable === false ? <span className="text-red-500">Desconectado</span> : <span className="text-gray-400">Verificando...</span>}</strong>
+            </div>
             {syncStatus.error && <p className="text-xs text-red-500">{syncStatus.error}</p>}
           </div>
           <div className="flex gap-2 mb-2">
-            <button onClick={handleSaveFull} disabled={syncStatus.syncing} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium">
-              <Save className="w-4 h-4" /> {syncStatus.syncing ? 'Guardando...' : 'Guardar Todo'}
+            <button onClick={handleRefreshFromServer} disabled={syncStatus.syncing} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium">
+              <RefreshCw className={`w-4 h-4 ${syncStatus.syncing ? 'animate-spin' : ''}`} /> {syncStatus.syncing ? 'Refrescando...' : 'Refrescar datos del servidor'}
             </button>
-            <button onClick={handleSyncPull} disabled={syncStatus.syncing} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors" title="Traer datos del servidor">
-              <Download className="w-4 h-4" />
-            </button>
-            {syncStatus.pendingCount > 0 && (
-              <button onClick={handleClearPending} className="px-4 py-2 border border-red-300 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors" title="Eliminar ops pendientes">
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            )}
           </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">"Guardar Todo" envía TODOS los datos al servidor. Haz esto antes de cada deploy.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Los cambios se sincronizan automáticamente cada 15 segundos entre todos tus dispositivos.</p>
           <button onClick={handleBackup} className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors text-sm">
             <Download className="w-4 h-4" /> Descargar Backup (JSON)
           </button>
