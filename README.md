@@ -528,7 +528,7 @@ Gráfico de barras (Recharts) que muestra historial de pagos de los últimos 12 
 | **Inquilinos** | CRUD con nombre, email, teléfono, **teléfono de trabajo**, **dirección de trabajo**, documento de identidad, notas; enlace a WhatsApp y correo; historial de contratos por inquilino |
 | **Contratos** | Creación con selección de apto + inquilino, fechas inicio/fin, canon, depósito, términos; subida de archivo PDF del contrato; al crear cambia el apto a "ocupado" automáticamente |
 | **Pagos** | Registro de pagos de arriendo (completo o parcial) y gastos (con categorías: Mantenimiento, Reparación, Limpieza, Impuesto, Seguro, Adecuación, Otro); filtro por tipo y búsqueda |
-| **Servicios Públicos** | Control de agua, gas y electricidad por apartamento: código de pago, período, valor, fecha de vencimiento, **fecha de lectura**, estado de pago; enlaces directos a Triple A, Gases del Caribe, Air-e; **modal de pago masivo** con grid 12 aptos × 3 servicios |
+| **Servicios Públicos** | Control de agua, gas y electricidad por apartamento: código de pago, período, valor, fecha de vencimiento, **fecha de lectura**, estado de pago; enlaces directos a Triple A, Gases del Caribe, Air-e; **modal de pago masivo** con grid 12 aptos × 3 servicios; **QR de pago**: escanea el QR del recibo con la cámara, se guarda la URL por servicio, muestra QR generado + botón Pagar (abre en nueva pestaña en web, en navegador externo en APK) |
 | **Reportes** | Gráficos anuales: barras de ingresos vs gastos vs neto por mes, gráfico circular de gastos por categoría, métricas de rentabilidad y rotación de vacancias, **PaymentHistoryChart** |
 | **Compartir** | Página `/share` con previsualización de HTML público de aptos disponibles, descarga, PDF, compartir por WhatsApp y Gmail |
 | **Generar Contrato** | Formulario completo de contrato de arrendamiento con 18 cláusulas legales, precarga datos del apto e inquilino, genera PDF con jsPDF, **guarda automáticamente el contrato en la BD** (crea inquilino si no existe, cambia apto a ocupado) |
@@ -960,10 +960,25 @@ Configurado en `.oxlintrc.json`:
 
 ## Historial de Cambios
 
-### 2026-07-20 — v2.1.1 — Fix: carga de datos cloud-first + seed data de respaldo
-- **Fix [CRÍTICO]**: `src/db/database.js` — `createTable(name)` capturaba `const table = data[name]` en una closure. `setCollectionData()` e `initDB()` hacían `data[name] = nuevoArray`, reemplazando la referencia, pero la closure seguía apuntando al array vacío original. Cambiado a mutación in-place: `data[name].length = 0; data[name].push(...items)`. Sin esto, `db.apartments.toArray()` siempre devolvía `[]`.
-- **Fix**: `App.jsx` — agregado `useState` faltante en el import de React. Sin esto, la app se caía al iniciar.
-- **Fix**: `src/db/database.js` — agregado `SEED_DATA` con seed data de respaldo (12 aptos, 11 inquilinos, contratos, pagos, usuarios, passwords) para que la app funcione sin servidor.
+### 2026-07-20 — v2.2.0 — QR de pago por servicio + escáner integrado
+- **New**: `src/pages/ApartmentDetail.jsx` — sistema de QR de pago para servicios públicos:
+  - **Escáner QR**: botón "Escanear" por servicio (agua/gas/luz) que abre la cámara del dispositivo en tiempo real. Decodifica usando `jsQR` con stream de video. Si la cámara no está disponible, fallback a subir foto del QR.
+  - **Generación de QR**: muestra el QR generado con `qrcode` a partir de la URL guardada. Al tocar el QR o el botón "Pagar ahora", abre la URL de pago.
+  - **En web**: abre en nueva pestaña (`window.open` con `_blank`).
+  - **En APK (Capacitor)**: abre en el navegador del sistema (`window.open` con `_system`).
+  - **Persistencia**: las URLs de pago se guardan por apartamento y por servicio en los campos `waterPaymentUrl`, `gasPaymentUrl`, `electricityPaymentUrl` directamente en el objeto del apartamento.
+  - **Edición manual**: en el formulario de edición del apto hay campos de texto para ingresar URLs manualmente.
+  - **Modal QR**: al hacer clic en el QR se abre un modal con el QR en grande + botón "Pagar ahora" + opción "Escanear otro QR".
+- **New**: Dependencias instaladas: `qrcode` (generación de QR en canvas) y `jsqr` (decodificador de QR puro JS).
+- **New**: README actualizado con documentación del sistema de QR.
+
+### 2026-07-20 — v2.1.1 — Fix crítico: carga de datos cloud-first
+- **Fix [CRÍTICO]**: `src/db/database.js` — `createTable(name)` capturaba la referencia al array `data[name]` en una closure. `setCollectionData()` e `initDB()` hacían `data[name] = nuevoArray` (reemplazo de referencia), pero la closure seguía apuntando al array original. Cambiado a **mutación in-place**: `data[name].length = 0; data[name].push(...items)`. Sin esto, `db.apartments.toArray()` siempre devolvía `[]`.
+- **Fix**: `setCollectionData()` ahora protege los datos locales: si el servidor devuelve array vacío pero ya hay datos locales, no sobrescribe (`if (items.length === 0 && data[name].length > 0) return`). Evita que un servidor recién desplegado sin datos borre la info.
+- **Fix**: `App.jsx` — agregado `useState` faltante en el import de React. Sin esto, la app se caía al instante.
+- **New**: `server.cjs` — nuevo endpoint `POST /api/reset-db` que borra `database.json`, limpia uploads, y recarga desde `db.cjs`.
+- **New**: `Settings.jsx` — botón "Restablecer DB a valores iniciales" en la sección Base de Datos, con confirmación modal. Útil cuando Render se despliega y la DB queda inconsistente.
+- **Fix**: `src/db/database.js` — agregado `SEED_DATA` embebido (12 aptos, 11 inquilinos, 11 contratos, 7 pagos, 2 usuarios, 12 passwords) como respaldo local. `initDB()` carga estos datos si las colecciones están vacías (servidor inaccesible).
 - **Fix**: `package.json` — versión actualizada de `1.0.0` a `2.1.0`.
 
 ### 2026-07-20 — v2.1.0 — Chat, dark mode, cloud-first, editor embebido, refactor mayor

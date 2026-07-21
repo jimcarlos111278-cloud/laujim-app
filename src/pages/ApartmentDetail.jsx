@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, DollarSign, Calendar, Edit2, Trash2, User, FileText, Camera, Phone, Plus, X, Download, Image, MessageCircle, Hash, Clock, Droplets, Flame, Zap, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, Edit2, Trash2, User, FileText, Camera, Phone, Plus, X, Download, Image, MessageCircle, Hash, Clock, Droplets, Flame, Zap, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight, QrCode, Scan } from 'lucide-react';
 import Modal from '../components/Modal';
 import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
@@ -8,6 +8,8 @@ import { photoUrl, isCapacitor } from '../utils/config';
 import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate } from '../utils/helpers';
 import { generateApartmentPDF } from '../utils/pdf';
 import { addCalendarReminder } from '../utils/calendar';
+import QRCode from 'qrcode';
+import jsQR from 'jsqr';
 
 const serviceNames = { water: 'Agua', gas: 'Gas', electricity: 'Electricidad' };
 const serviceIcons = { water: Droplets, gas: Flame, electricity: Zap };
@@ -49,6 +51,11 @@ export default function ApartmentDetail() {
   const [shareFailed, setShareFailed] = useState(null);
   const [galleryIdx, setGalleryIdx] = useState(null);
   const fileRef = useRef(null);
+  const [scanService, setScanService] = useState(null);
+  const [qrUrls, setQrUrls] = useState({});
+  const [showQrModal, setShowQrModal] = useState(null);
+  const scannerRef = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => { if (id) load(); }, [id]);
 
@@ -76,6 +83,14 @@ export default function ApartmentDetail() {
     setPhotos(allPhotos.filter(p => p.apartmentId === a.id));
     setUtilityRecords(allU.filter(u => u.apartmentId === a.id));
     setUtilityPeriod(getCurrentPeriod());
+    // Generate QR codes for existing payment URLs
+    const urls = {};
+    for (const [svc, field] of [['water', 'waterPaymentUrl'], ['gas', 'gasPaymentUrl'], ['electricity', 'electricityPaymentUrl']]) {
+      if (a[field]) {
+        try { urls[svc] = await QRCode.toDataURL(a[field], { width: 240, margin: 2, color: { dark: '#1f2937', light: '#ffffff' } }); } catch {}
+      }
+    }
+    if (Object.keys(urls).length > 0) setQrUrls(urls);
   }
 
   async function handleSave(e) {
@@ -88,6 +103,9 @@ export default function ApartmentDetail() {
       waterReadingDay: Number(form.waterReadingDay || 10),
       gasReadingDay: Number(form.gasReadingDay || 12),
       electricityReadingDay: Number(form.electricityReadingDay || 15),
+      waterPaymentUrl: form.waterPaymentUrl || '',
+      gasPaymentUrl: form.gasPaymentUrl || '',
+      electricityPaymentUrl: form.electricityPaymentUrl || '',
     });
     setEditing(false);
     load();
@@ -172,6 +190,108 @@ export default function ApartmentDetail() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [galleryIdx, photos.length]);
+
+  // ─── QR Scanner ───
+
+  async function startScanner() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        scanLoop();
+      }
+    } catch {
+      // Fallback: if camera fails, trigger file upload
+      if (scannerRef.current) scannerRef.current.click();
+    }
+  }
+
+  function stopScanner() {
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      videoRef.current.srcObject = null;
+    }
+  }
+
+  function scanLoop() {
+    if (!videoRef.current || scanService === null) return;
+    const video = videoRef.current;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code && code.data) {
+        handleScanResult(code.data);
+        return;
+      }
+    }
+    requestAnimationFrame(scanLoop);
+  }
+
+  async function handleScanResult(data) {
+    stopScanner();
+    const url = data.startsWith('http') ? data : 'https://' + data;
+    const svc = scanService;
+    setScanService(null);
+    const updated = { ...apt };
+    if (svc === 'water') updated.waterPaymentUrl = url;
+    else if (svc === 'gas') updated.gasPaymentUrl = url;
+    else updated.electricityPaymentUrl = url;
+    await api.apartments.update(Number(id), { [svc === 'water' ? 'waterPaymentUrl' : svc === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl']: url });
+    setApt(updated);
+    setForm(updated);
+    generateQr(svc, url);
+  }
+
+  async function handleScanFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      await img.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      URL.revokeObjectURL(img.src);
+      if (code && code.data) {
+        handleScanResult(code.data);
+      } else {
+        alert('No se encontró un código QR en la imagen');
+      }
+    } catch {
+      alert('Error al procesar la imagen');
+    }
+  }
+
+  async function generateQr(svc, url) {
+    try {
+      const dataUrl = await QRCode.toDataURL(url, { width: 240, margin: 2, color: { dark: '#1f2937', light: '#ffffff' } });
+      setQrUrls(prev => ({ ...prev, [svc]: dataUrl }));
+    } catch {}
+  }
+
+  function openPaymentUrl(url) {
+    if (isCapacitor()) {
+      window.open(url, '_system');
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  useEffect(() => {
+    return () => stopScanner();
+  }, []);
 
   function callNumber(phone) {
     window.location.href = 'tel:' + phone;
@@ -496,9 +616,23 @@ export default function ApartmentDetail() {
                       <div className="flex gap-1">
                         {rec?.paymentCode && (
                           <a href={utilityWebsites[svc].url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100 rounded transition-colors">
-                            <ExternalLink className="w-3 h-3" /> Pagar
+                            <ExternalLink className="w-3 h-3" /> Pagar web
                           </a>
                         )}
+                        {apt[svc === 'water' ? 'waterPaymentUrl' : svc === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl'] && (
+                          <>
+                            <button onClick={() => setShowQrModal(svc)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-100 rounded transition-colors">
+                              <QrCode className="w-3 h-3" /> QR
+                            </button>
+                            <button onClick={() => openPaymentUrl(apt[svc === 'water' ? 'waterPaymentUrl' : svc === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl'])} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-100 rounded transition-colors font-medium">
+                              <ExternalLink className="w-3 h-3" /> Pagar
+                            </button>
+                          </>
+                        )}
+                        <button onClick={() => { setScanService(svc); setTimeout(startScanner, 100); }} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Escanear QR de recibo">
+                          <Scan className="w-3 h-3" /> Escanear
+                        </button>
+                        <input ref={scannerRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} className="hidden" />
                       </div>
                       {rec ? (
                         <button onClick={() => toggleUtilityPaid(rec)} className={`px-2 py-1 text-xs rounded transition-colors ${rec.paid ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}>
@@ -518,6 +652,47 @@ export default function ApartmentDetail() {
               })}
             </div>
           </div>
+
+          {/* QR payment modal */}
+          <Modal open={showQrModal !== null} onClose={() => setShowQrModal(null)} size="sm">
+            {showQrModal && qrUrls[showQrModal] && (
+              <div className="p-4 text-center">
+                <h3 className="font-semibold text-gray-900 mb-1">Pago {serviceNames[showQrModal]}</h3>
+                <p className="text-xs text-gray-500 mb-4">{apt.name}</p>
+                <img src={qrUrls[showQrModal]} alt="QR de pago" className="mx-auto w-56 h-56 rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => openPaymentUrl(apt[showQrModal === 'water' ? 'waterPaymentUrl' : showQrModal === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl'])} />
+                <p className="text-xs text-gray-400 mt-2">Toca el QR o el botón para pagar</p>
+                <button onClick={() => openPaymentUrl(apt[showQrModal === 'water' ? 'waterPaymentUrl' : showQrModal === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl'])} className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium">
+                  <ExternalLink className="w-4 h-4" /> Pagar ahora
+                </button>
+                <button onClick={() => { setScanService(showQrModal); setShowQrModal(null); setTimeout(startScanner, 100); }} className="mt-2 w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                  <Scan className="w-4 h-4" /> Escanear otro QR
+                </button>
+              </div>
+            )}
+          </Modal>
+
+          {/* Scanner modal */}
+          <Modal open={scanService !== null} onClose={() => { stopScanner(); setScanService(null); }} title={scanService ? `Escaneando QR - ${serviceNames[scanService]}` : ''}>
+            <div className="p-4">
+              <div className="relative bg-black rounded-xl overflow-hidden mb-3" style={{ minHeight: 280 }}>
+                <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+                {scanService !== null && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-48 h-48 border-2 border-emerald-400 rounded-xl opacity-70" />
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 text-center mb-3">Apunta la cámara al código QR del recibo</p>
+              <div className="flex gap-2">
+                <button onClick={() => scannerRef.current?.click()} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                  <Image className="w-4 h-4" /> Subir foto
+                </button>
+                <button onClick={() => { stopScanner(); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </Modal>
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Image className="w-4 h-4" /> Fotos del Apartamento</h3>
@@ -666,6 +841,10 @@ export default function ApartmentDetail() {
               <input type="text" value={form.waterPaymentCode || ''} onChange={e => setForm({...form, waterPaymentCode: e.target.value})} placeholder="Ej: 1234567890" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><QrCode className="w-3 h-3" /> URL Pago Agua (QR)</label>
+              <input type="url" value={form.waterPaymentUrl || ''} onChange={e => setForm({...form, waterPaymentUrl: e.target.value})} placeholder="URL del pago (opcional)" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Gas (día)</label>
               <input type="number" min="1" max="31" value={form.gasReadingDay || 7} onChange={e => setForm({...form, gasReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
@@ -674,12 +853,20 @@ export default function ApartmentDetail() {
               <input type="text" value={form.gasPaymentCode || ''} onChange={e => setForm({...form, gasPaymentCode: e.target.value})} placeholder="Ej: 9876543210" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><QrCode className="w-3 h-3" /> URL Pago Gas (QR)</label>
+              <input type="url" value={form.gasPaymentUrl || ''} onChange={e => setForm({...form, gasPaymentUrl: e.target.value})} placeholder="URL del pago (opcional)" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Electricidad (día)</label>
               <input type="number" min="1" max="31" value={form.electricityReadingDay || 21} onChange={e => setForm({...form, electricityReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° NIC (Air-e)</label>
               <input type="text" value={form.electricityPaymentCode || ''} onChange={e => setForm({...form, electricityPaymentCode: e.target.value})} placeholder="Ej: 5678901234" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><QrCode className="w-3 h-3" /> URL Pago Electricidad (QR)</label>
+              <input type="url" value={form.electricityPaymentUrl || ''} onChange={e => setForm({...form, electricityPaymentUrl: e.target.value})} placeholder="URL del pago (opcional)" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
           </div>
           <div>
