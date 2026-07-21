@@ -10,7 +10,6 @@ import { generateApartmentPDF } from '../utils/pdf';
 import { addCalendarReminder } from '../utils/calendar';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
-import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 
 const serviceNames = { water: 'Agua', gas: 'Gas', electricity: 'Electricidad' };
 const serviceIcons = { water: Droplets, gas: Flame, electricity: Zap };
@@ -246,6 +245,7 @@ export default function ApartmentDetail() {
   async function handleScanButton(svc) {
     if (isCapacitor()) {
       try {
+        const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
         const result = await BarcodeScanner.scan();
         const val = result.barcodes?.[0]?.rawValue;
         if (val) await saveScanResult(val, svc);
