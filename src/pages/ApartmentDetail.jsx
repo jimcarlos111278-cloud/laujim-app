@@ -196,14 +196,12 @@ export default function ApartmentDetail() {
     return () => window.removeEventListener('keydown', handleKey);
   }, [galleryIdx, photos.length]);
 
-  // ─── Scanner (QR + Barcode NIC) ───
+  // ─── QR Scanner ───
 
   const SCAN_MAX_W = 640;
   const scanDetectorRef = useRef(null);
-  const barcodeDetectorRef = useRef(null);
-  const readNICRef = useRef(false);
 
-  async function getQrDetector() {
+  async function getDetector() {
     if (scanDetectorRef.current) return scanDetectorRef.current;
     if (window.BarcodeDetector) {
       try { scanDetectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] }); return scanDetectorRef.current; } catch {}
@@ -211,72 +209,41 @@ export default function ApartmentDetail() {
     return null;
   }
 
-  async function getBarcodeDetector() {
-    if (barcodeDetectorRef.current) return barcodeDetectorRef.current;
-    if (window.BarcodeDetector) {
-      try { barcodeDetectorRef.current = new window.BarcodeDetector({ formats: ['code_128', 'ean_13', 'ean_8', 'code_39', 'itf', 'codabar'] }); return barcodeDetectorRef.current; } catch (e) { console.error('Barcode detector:', e); }
-    }
-    return null;
-  }
-
-  function extractNIC(raw) {
-    const digits = (raw || '').replace(/\D/g, '');
-    return digits || null;
-  }
-
   async function detectVideo(video) {
     if (video.readyState < video.HAVE_CURRENT_DATA) return null;
-    const isNIC = readNICRef.current;
-    const detector = isNIC ? await getBarcodeDetector() : await getQrDetector();
+    const detector = await getDetector();
     if (detector) {
-      try {
-        const barcodes = await detector.detect(video);
-        if (barcodes.length > 0) {
-          const val = barcodes[0].rawValue;
-          return isNIC ? extractNIC(val) : val;
-        }
-      } catch {}
+      try { const b = await detector.detect(video); if (b.length > 0) return b[0].rawValue; } catch {}
     }
-    if (!isNIC) {
-      const w = Math.min(video.videoWidth || 640, SCAN_MAX_W);
-      const h = Math.min(video.videoHeight || 480, Math.round(w * ((video.videoHeight || 480) / (video.videoWidth || 640))));
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        ctx.drawImage(video, 0, 0, w, h);
-        const imageData = ctx.getImageData(0, 0, w, h);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-        if (code && code.data) return code.data;
-      } catch {}
-    }
+    const w = Math.min(video.videoWidth || 640, SCAN_MAX_W);
+    const h = Math.min(video.videoHeight || 480, Math.round(w * ((video.videoHeight || 480) / (video.videoWidth || 640))));
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, w, h);
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code && code.data) return code.data;
+    } catch {}
     return null;
   }
 
   async function detectFile(file) {
-    const isNIC = readNICRef.current;
     try {
       const bitmap = await createImageBitmap(file, { resizeWidth: SCAN_MAX_W, resizeQuality: 'high' });
-      const detector = isNIC ? await getBarcodeDetector() : await getQrDetector();
+      const detector = await getDetector();
       if (detector) {
-        try {
-          const barcodes = await detector.detect(bitmap);
-          if (barcodes.length > 0) { bitmap.close(); const val = barcodes[0].rawValue; return isNIC ? extractNIC(val) : val; }
-        } catch {}
+        try { const b = await detector.detect(bitmap); if (b.length > 0) { bitmap.close(); return b[0].rawValue; } } catch {}
       }
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width; canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(bitmap, 0, 0);
       bitmap.close();
-      if (!isNIC) {
-        const bmp2 = await createImageBitmap(file, { resizeWidth: SCAN_MAX_W, resizeQuality: 'high' });
-        const canvas = document.createElement('canvas');
-        canvas.width = bmp2.width; canvas.height = bmp2.height;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        ctx.drawImage(bmp2, 0, 0);
-        bmp2.close();
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-        return code ? code.data : null;
-      }
-      return null;
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      return code ? code.data : null;
     } catch { return null; }
   }
 
@@ -290,13 +257,27 @@ export default function ApartmentDetail() {
     generateQr(svc, url);
   }
 
-  async function saveNICResult(nic) {
-    const url = `https://portal.air-e.com/Pagar#/User/${nic}/NUMEROCONTRATO`;
-    await api.apartments.update(Number(id), { nic, electricityPaymentCode: nic, electricityPaymentUrl: url });
-    const updated = { ...apt, nic, electricityPaymentCode: nic, electricityPaymentUrl: url };
+  async function askAndSaveNIC() {
+    const nic = window.prompt('Ingresa el NIC de Air-e (7 dígitos):', '');
+    if (!nic || !nic.trim()) return;
+    const digits = nic.trim().replace(/\D/g, '');
+    if (digits.length < 4) { alert('El NIC debe tener al menos 4 dígitos'); return; }
+    const url = `https://portal.air-e.com/Pagar#/User/${digits}/NUMEROCONTRATO`;
+    await api.apartments.update(Number(id), { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
+    const updated = { ...apt, nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url };
     setApt(updated);
     setForm(updated);
     generateQr('electricity', url);
+    openPaymentUrl(url);
+  }
+
+  function handlePayElectricity() {
+    const url = apt.electricityPaymentUrl;
+    if (url) {
+      openPaymentUrl(url);
+    } else {
+      askAndSaveNIC();
+    }
   }
 
   async function handleScanButton(svc) {
@@ -311,34 +292,14 @@ export default function ApartmentDetail() {
         alert('Error al escanear');
       }
     } else {
-      readNICRef.current = false;
       scanServiceRef.current = svc;
       setScanService(svc);
       setTimeout(startWebCam, 100);
     }
   }
 
-  async function handleReadNIC() {
-    if (isCapacitor()) {
-      try {
-        const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
-        const result = await BarcodeScanner.scan();
-        const nic = extractNIC(result.barcodes?.[0]?.rawValue);
-        if (nic) await saveNICResult(nic);
-      } catch (e) {
-        console.error('Native NIC scan error:', e);
-      }
-    } else {
-      readNICRef.current = true;
-      scanServiceRef.current = 'electricity';
-      setScanService('electricity');
-      setTimeout(startWebCam, 100);
-    }
-  }
-
   function startWebCam() {
-    const isNIC = readNICRef.current;
-    setScanStatus(isNIC ? 'Iniciando cámara...' : 'Iniciando cámara...');
+    setScanStatus('Iniciando cámara...');
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } })
       .then(stream => {
         if (!videoRef.current) return;
@@ -346,7 +307,7 @@ export default function ApartmentDetail() {
         v.srcObject = stream;
         v.onloadedmetadata = () => {
           v.play().then(() => {
-            setScanStatus(isNIC ? 'Enfoca el código de barras del recibo' : 'Enfoca el QR en el recuadro');
+            setScanStatus('Enfoca el QR en el recuadro');
             scanTimerRef.current = setTimeout(webDoScan, 500);
           }).catch(e => console.error('play:', e));
         };
@@ -371,15 +332,9 @@ export default function ApartmentDetail() {
     if (!svc || !videoRef.current) return;
     const val = await detectVideo(videoRef.current);
     if (val) {
-      const isNIC = readNICRef.current;
-      setScanStatus(isNIC ? '¡Código detectado!' : '¡QR detectado!');
-      if (isNIC) {
-        await saveNICResult(val);
-      } else {
-        await saveScanResult(val, svc);
-      }
+      setScanStatus('¡QR detectado!');
+      await saveScanResult(val, svc);
       stopWebCam();
-      readNICRef.current = false;
       scanServiceRef.current = null;
       setScanService(null);
       return;
@@ -393,20 +348,14 @@ export default function ApartmentDetail() {
     e.target.value = '';
     const val = await detectFile(file);
     const svc = scanServiceRef.current;
-    const isNIC = readNICRef.current;
-    if (val && isNIC) {
-      await saveNICResult(val);
-      readNICRef.current = false;
-      scanServiceRef.current = null;
-      setScanService(null);
-    } else if (val && svc) {
+    if (val && svc) {
       await saveScanResult(val, svc);
       scanServiceRef.current = null;
       setScanService(null);
     } else if (val && !svc) {
       await saveScanResult(val, showQrModal);
     } else {
-      alert(isNIC ? 'No se encontró un código de barras en la imagen' : 'No se encontró un código QR en la imagen');
+      alert('No se encontró un código QR en la imagen');
     }
   }
 
@@ -755,24 +704,26 @@ export default function ApartmentDetail() {
                             <ExternalLink className="w-3 h-3" /> Pagar web
                           </a>
                         )}
-                        {apt[svc === 'water' ? 'waterPaymentUrl' : svc === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl'] && (
-                          <>
-                            <button onClick={() => setShowQrModal(svc)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-100 rounded transition-colors">
-                              <QrCode className="w-3 h-3" /> QR
-                            </button>
-                            <button onClick={() => openPaymentUrl(apt[svc === 'water' ? 'waterPaymentUrl' : svc === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl'])} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-100 rounded transition-colors font-medium">
-                              <ExternalLink className="w-3 h-3" /> Pagar
-                            </button>
-                          </>
-                        )}
                         {svc === 'electricity' ? (
-                          <button onClick={handleReadNIC} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors" title="Leer código de barras del recibo Air-e">
-                            <Scan className="w-3 h-3" /> Leer NIC
+                          <button onClick={handlePayElectricity} className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${apt.electricityPaymentUrl ? 'text-emerald-600 hover:bg-emerald-100 font-medium' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}>
+                            <ExternalLink className="w-3 h-3" /> Pagar
                           </button>
                         ) : (
-                          <button onClick={() => handleScanButton(svc)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Escanear QR de recibo">
-                            <Scan className="w-3 h-3" /> Escanear
-                          </button>
+                          <>
+                            {apt[svc === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl'] && (
+                              <>
+                                <button onClick={() => setShowQrModal(svc)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-100 rounded transition-colors">
+                                  <QrCode className="w-3 h-3" /> QR
+                                </button>
+                                <button onClick={() => openPaymentUrl(apt[svc === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl'])} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-100 rounded transition-colors font-medium">
+                                  <ExternalLink className="w-3 h-3" /> Pagar
+                                </button>
+                              </>
+                            )}
+                            <button onClick={() => handleScanButton(svc)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Escanear QR de recibo">
+                              <Scan className="w-3 h-3" /> Escanear
+                            </button>
+                          </>
                         )}
                         <input ref={scannerRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} className="hidden" />
                       </div>
@@ -816,13 +767,13 @@ export default function ApartmentDetail() {
           </Modal>
 
           {/* Scanner modal */}
-          <Modal open={scanService !== null} onClose={() => { readNICRef.current = false; scanServiceRef.current = null; stopWebCam(); setScanService(null); }} title={scanService ? (readNICRef.current ? `Leer NIC - ${serviceNames[scanService]}` : `Escaneando QR - ${serviceNames[scanService]}`) : ''}>
+          <Modal open={scanService !== null} onClose={() => { scanServiceRef.current = null; stopWebCam(); setScanService(null); }} title={scanService ? `Escaneando QR - ${serviceNames[scanService]}` : ''}>
             <div className="p-4">
               <div className="relative bg-black rounded-xl overflow-hidden mb-3" style={{ minHeight: 280 }}>
                 <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
                 {scanService !== null && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className={`${readNICRef.current ? 'w-64 h-28' : 'w-48 h-48'} border-2 border-emerald-400 ${readNICRef.current ? 'rounded-lg' : 'rounded-xl'} opacity-70`} />
+                    <div className="w-48 h-48 border-2 border-emerald-400 rounded-xl opacity-70" />
                   </div>
                 )}
                 {scanStatus && (
@@ -835,7 +786,7 @@ export default function ApartmentDetail() {
                 <button onClick={() => scannerRef.current?.click()} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                   <Image className="w-4 h-4" /> Subir foto
                 </button>
-                <button onClick={() => { readNICRef.current = false; scanServiceRef.current = null; stopWebCam(); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                <button onClick={() => { scanServiceRef.current = null; stopWebCam(); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
                   Cancelar
                 </button>
               </div>
