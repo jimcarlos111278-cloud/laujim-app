@@ -47,6 +47,12 @@ export default function Apartments() {
   async function toggleStatus(apt) {
     const newStatus = apt.status === 'occupied' ? 'vacant' : 'occupied';
     await api.apartments.update(apt.id, { status: newStatus });
+    if (newStatus === 'vacant') {
+      const active = contracts.filter(c => c.apartmentId === apt.id && (!c.endDate || new Date(c.endDate) > new Date()));
+      for (const c of active) {
+        await api.contracts.update(c.id, { endDate: new Date().toISOString().split('T')[0] });
+      }
+    }
     load();
   }
 

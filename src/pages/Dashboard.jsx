@@ -32,7 +32,11 @@ export default function Dashboard() {
     const vacantApts = apartments.filter(a => a.status === 'vacant');
 
     const activeContracts = contracts.filter(c => !c.endDate || new Date(c.endDate) > new Date());
-    const expectedIncome = activeContracts.reduce((sum, c) => sum + (c.monthlyRent || 0), 0);
+    const occupiedAptIds = new Set(apartments.filter(a => a.status === 'occupied').map(a => a.id));
+    const expectedIncome = activeContracts
+      .filter(c => occupiedAptIds.has(c.apartmentId))
+      .reduce((sum, c) => sum + (c.monthlyRent || 0), 0);
+    const maxPotentialIncome = apartments.reduce((sum, a) => sum + (a.monthlyRent || 0), 0);
 
     const now = new Date();
     const currentDay = now.getDate();
@@ -71,7 +75,7 @@ export default function Dashboard() {
       return { ...a, rent: contract?.monthlyRent || a.monthlyRent };
     }).sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
 
-    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing });
+    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing });
   }
 
   function openPayModal(apt) {
@@ -172,7 +176,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Apartamentos" value={`${stats.occupied}/${stats.totalApts}`} subtitle={`${stats.vacant} disponibles`} icon={Building2} color="blue" />
         <StatsCard title="Inquilinos" value={stats.totalTenants} subtitle="Activos" icon={Users} color="green" />
-        <StatsCard title="Ingreso Máximo Esperado" value={formatCurrency(stats.expectedIncome)} subtitle="Canones activos" icon={DollarSign} color="purple" />
+        <StatsCard title="Ingreso Ocupados" value={formatCurrency(stats.expectedIncome)} subtitle="Canones activos" icon={DollarSign} color="purple" />
+        <StatsCard title="Potencial Total" value={formatCurrency(stats.maxPotentialIncome)} subtitle="Si todos ocupados" icon={Building2} color="blue" />
         <StatsCard title="Recolectado Total" value={formatCurrency(stats.collectedIncome)} subtitle={`${formatCurrency(stats.collectedThisMonth)} este mes / ${formatCurrency(stats.expectedIncome)} esperado`} icon={TrendingUp} color="green" />
       </div>
 

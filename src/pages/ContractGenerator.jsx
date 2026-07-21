@@ -197,7 +197,13 @@ export default function ContractGenerator() {
         const pdfFile = new File([result.blob], result.filename, { type: 'application/pdf' });
         const uploadResult = await api.uploadContract(pdfFile, newContract.id);
         await api.contracts.update(newContract.id, { contractFile: uploadResult.url });
-        if (apt) await api.apartments.update(apt.id, { status: 'occupied' });
+        if (apt) {
+          await api.apartments.update(apt.id, {
+            status: 'occupied',
+            monthlyRent: Number(form.canon.replace(/\./g, '')),
+            depositAmount: Number(form.deposito.replace(/\./g, '')) || 0,
+          });
+        }
         setSaved(true);
       } catch (saveErr) {
         console.warn('Auto-save contract failed:', saveErr);
