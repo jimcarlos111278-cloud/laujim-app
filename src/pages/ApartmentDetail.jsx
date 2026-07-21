@@ -205,31 +205,55 @@ export default function ApartmentDetail() {
       try {
         scanDetectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] });
         return scanDetectorRef.current;
-      } catch {}
+      } catch (e) { console.error('BarcodeDetector init:', e); }
     }
     return null;
   }
 
-  async function detectInSource(source) {
+  async function detectVideo(video) {
+    if (video.readyState < video.HAVE_CURRENT_DATA) return null;
     const detector = await getDetector();
     if (detector) {
-      const barcodes = await detector.detect(source);
-      if (barcodes.length > 0) return barcodes[0].rawValue;
+      try {
+        const barcodes = await detector.detect(video);
+        if (barcodes.length > 0) return barcodes[0].rawValue;
+      } catch (e) { console.error('BarcodeDetector detect:', e); }
     }
-    // fallback jsQR
-    const w = source.videoWidth || source.naturalWidth || source.width || SCAN_MAX_W;
-    const h = source.videoHeight || source.naturalHeight || source.height || 480;
-    const scale = Math.min(SCAN_MAX_W / (w || 640), 1);
-    const cw = Math.floor((w || 640) * scale);
-    const ch = Math.floor((h || 480) * scale);
-    const canvas = document.createElement('canvas');
-    canvas.width = cw;
-    canvas.height = ch;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(source, 0, 0, cw, ch);
-    const imageData = ctx.getImageData(0, 0, cw, ch);
-    const code = jsQR(imageData.data, imageData.width, imageData.height);
-    return code ? code.data : null;
+    const w = Math.min(video.videoWidth || 640, SCAN_MAX_W);
+    const h = Math.min(video.videoHeight || 480, Math.round(w * ((video.videoHeight || 480) / (video.videoWidth || 640))));
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, w, h);
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code && code.data) return code.data;
+    } catch (e) { console.error('jsQR video:', e); }
+    return null;
+  }
+
+  async function detectFile(file) {
+    try {
+      const bitmap = await createImageBitmap(file, { resizeWidth: SCAN_MAX_W, resizeQuality: 'high' });
+      const detector = await getDetector();
+      if (detector) {
+        try {
+          const barcodes = await detector.detect(bitmap);
+          if (barcodes.length > 0) { bitmap.close(); return barcodes[0].rawValue; }
+        } catch (e) { console.error('BarcodeDetector file:', e); }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      return code ? code.data : null;
+    } catch (e) { console.error('detectFile:', e); return null; }
   }
 
   async function saveScanResult(data, svc) {
@@ -256,28 +280,31 @@ export default function ApartmentDetail() {
     } else {
       scanServiceRef.current = svc;
       setScanService(svc);
-      setTimeout(webScannerStart, 100);
+      setTimeout(startWebCam, 100);
     }
   }
 
-  function webScannerStart() {
+  function startWebCam() {
     setScanStatus('Iniciando cámara...');
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } })
       .then(stream => {
         if (!videoRef.current) return;
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadeddata = () => {
-          setScanStatus('Enfoca el QR en el recuadro');
-          scanTimerRef.current = setTimeout(webDoScan, 500);
+        const v = videoRef.current;
+        v.srcObject = stream;
+        v.onloadedmetadata = () => {
+          v.play().then(() => {
+            setScanStatus('Enfoca el QR en el recuadro');
+            scanTimerRef.current = setTimeout(webDoScan, 500);
+          }).catch(e => console.error('play:', e));
         };
       })
       .catch(() => {
         setScanStatus('Cámara no disponible, usa subir foto');
-        if (scannerRef.current) scannerRef.current.click();
+        setTimeout(() => scannerRef.current?.click(), 300);
       });
   }
 
-  function webStopScanner() {
+  function stopWebCam() {
     setScanStatus('');
     if (scanTimerRef.current) { clearTimeout(scanTimerRef.current); scanTimerRef.current = null; }
     if (videoRef.current && videoRef.current.srcObject) {
@@ -289,23 +316,14 @@ export default function ApartmentDetail() {
   async function webDoScan() {
     const svc = scanServiceRef.current;
     if (!svc || !videoRef.current) return;
-    const video = videoRef.current;
-    if (video.readyState < video.HAVE_CURRENT_DATA) {
-      scanTimerRef.current = setTimeout(webDoScan, 500);
+    const val = await detectVideo(videoRef.current);
+    if (val) {
+      setScanStatus('¡QR detectado!');
+      await saveScanResult(val, svc);
+      stopWebCam();
+      scanServiceRef.current = null;
+      setScanService(null);
       return;
-    }
-    try {
-      const val = await detectInSource(video);
-      if (val) {
-        setScanStatus('¡QR detectado!');
-        await saveScanResult(val, svc);
-        webStopScanner();
-        scanServiceRef.current = null;
-        setScanService(null);
-        return;
-      }
-    } catch (e) {
-      console.error('Scan error:', e);
     }
     scanTimerRef.current = setTimeout(webDoScan, 500);
   }
@@ -314,26 +332,16 @@ export default function ApartmentDetail() {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    try {
-      const img = new Image();
-      const blobUrl = URL.createObjectURL(file);
-      img.src = blobUrl;
-      await img.decode();
-      const val = await detectInSource(img);
-      URL.revokeObjectURL(blobUrl);
-      const svc = scanServiceRef.current;
-      if (val && svc) {
-        await saveScanResult(val, svc);
-        scanServiceRef.current = null;
-        setScanService(null);
-      } else if (val && !svc) {
-        await saveScanResult(val, showQrModal);
-      } else {
-        alert('No se encontró un código QR en la imagen');
-      }
-    } catch (e) {
-      console.error('File scan error:', e);
-      alert('Error al procesar la imagen');
+    const val = await detectFile(file);
+    const svc = scanServiceRef.current;
+    if (val && svc) {
+      await saveScanResult(val, svc);
+      scanServiceRef.current = null;
+      setScanService(null);
+    } else if (val && !svc) {
+      await saveScanResult(val, showQrModal);
+    } else {
+      alert('No se encontró un código QR en la imagen');
     }
   }
 
@@ -353,13 +361,7 @@ export default function ApartmentDetail() {
   }
 
   useEffect(() => {
-    return () => {
-      if (scanTimerRef.current) { clearTimeout(scanTimerRef.current); }
-      if (videoRef.current && videoRef.current.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(t => t.stop());
-        videoRef.current.srcObject = null;
-      }
-    };
+    return () => stopWebCam();
   }, []);
 
   function callNumber(phone) {
@@ -741,7 +743,7 @@ export default function ApartmentDetail() {
           </Modal>
 
           {/* Scanner modal */}
-          <Modal open={scanService !== null} onClose={() => { scanServiceRef.current = null; webStopScanner(); setScanService(null); }} title={scanService ? `Escaneando QR - ${serviceNames[scanService]}` : ''}>
+          <Modal open={scanService !== null} onClose={() => { scanServiceRef.current = null; stopWebCam(); setScanService(null); }} title={scanService ? `Escaneando QR - ${serviceNames[scanService]}` : ''}>
             <div className="p-4">
               <div className="relative bg-black rounded-xl overflow-hidden mb-3" style={{ minHeight: 280 }}>
                 <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
@@ -760,7 +762,7 @@ export default function ApartmentDetail() {
                 <button onClick={() => scannerRef.current?.click()} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                   <Image className="w-4 h-4" /> Subir foto
                 </button>
-                <button onClick={() => { scanServiceRef.current = null; webStopScanner(); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                <button onClick={() => { scanServiceRef.current = null; stopWebCam(); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
                   Cancelar
                 </button>
               </div>
