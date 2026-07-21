@@ -1,5 +1,5 @@
 import db from './db/database';
-import { addPendingOp, triggerAutoSave, backupCollection } from './utils/sync';
+import { addPendingOp, triggerAutoSave, backupAllCollections } from './utils/sync';
 import { AUTH_TOKEN, getBase, getRawBase } from './utils/config';
 
 export function refreshBase() {}
@@ -28,6 +28,7 @@ async function tryServer(method, collection, id, body) {
 function queueOp(method, collection, data, localId) {
   addPendingOp({ method, collection, data, id: data?.id || localId, localId });
   triggerAutoSave(1500);
+  backupAllCollections();
 }
 
 async function getServerVersion() {
@@ -117,17 +118,20 @@ export const api = {
     async get(id) { return localDb('apartments').get(Number(id)); },
     async add(data) {
       const id = await localDb('apartments').add(data);
+      backupAllCollections();
       const srv = await tryServer('POST', 'apartments', null, { ...data, id });
       if (!srv) queueOp('POST', 'apartments', { ...data, id });
       return { ...data, id };
     },
     async update(id, data) {
       await localDb('apartments').update(Number(id), data);
+      backupAllCollections();
       queueOp('PUT', 'apartments', data, Number(id));
       tryServer('PUT', 'apartments', id, data);
     },
     async delete(id) {
       await localDb('apartments').delete(Number(id));
+      backupAllCollections();
       queueOp('DELETE', 'apartments', { id });
       tryServer('DELETE', 'apartments', id);
     },
@@ -137,12 +141,14 @@ export const api = {
     async get(id) { return localDb('tenants').get(Number(id)); },
     async add(data) {
       const id = await localDb('tenants').add(data);
+      backupAllCollections();
       const srv = await tryServer('POST', 'tenants', null, { ...data, id });
       if (!srv) queueOp('POST', 'tenants', { ...data, id });
       return { ...data, id };
     },
     async delete(id) {
       await localDb('tenants').delete(Number(id));
+      backupAllCollections();
       queueOp('DELETE', 'tenants', { id });
       tryServer('DELETE', 'tenants', id);
     },
@@ -152,17 +158,20 @@ export const api = {
     async get(id) { return localDb('contracts').get(Number(id)); },
     async add(data) {
       const id = await localDb('contracts').add(data);
+      backupAllCollections();
       const srv = await tryServer('POST', 'contracts', null, { ...data, id });
       if (!srv) queueOp('POST', 'contracts', { ...data, id });
       return { ...data, id };
     },
     async update(id, data) {
       await localDb('contracts').update(Number(id), data);
+      backupAllCollections();
       queueOp('PUT', 'contracts', data, Number(id));
       tryServer('PUT', 'contracts', id, data);
     },
     async delete(id) {
       await localDb('contracts').delete(Number(id));
+      backupAllCollections();
       queueOp('DELETE', 'contracts', { id });
       tryServer('DELETE', 'contracts', id);
     },
@@ -175,14 +184,14 @@ export const api = {
     async add(data) {
       const id = await localDb('payments').add(data);
       const saved = { ...data, id };
-      backupCollection('payments');
+      backupAllCollections();
       const srv = await tryServer('POST', 'payments', null, saved);
       if (!srv) queueOp('POST', 'payments', saved);
       return saved;
     },
     async delete(id) {
       await localDb('payments').delete(Number(id));
-      backupCollection('payments');
+      backupAllCollections();
       queueOp('DELETE', 'payments', { id });
       tryServer('DELETE', 'payments', id);
     },
@@ -191,12 +200,14 @@ export const api = {
     async toArray() { return localDb('expenses').toArray(); },
     async add(data) {
       const id = await localDb('expenses').add(data);
+      backupAllCollections();
       const srv = await tryServer('POST', 'expenses', null, { ...data, id });
       if (!srv) queueOp('POST', 'expenses', { ...data, id });
       return { ...data, id };
     },
     async delete(id) {
       await localDb('expenses').delete(Number(id));
+      backupAllCollections();
       queueOp('DELETE', 'expenses', { id });
       tryServer('DELETE', 'expenses', id);
     },
@@ -205,12 +216,14 @@ export const api = {
     async toArray() { return localDb('utilityPayments').toArray(); },
     async add(data) {
       const id = await localDb('utilityPayments').add(data);
+      backupAllCollections();
       const srv = await tryServer('POST', 'utilityPayments', null, { ...data, id });
       if (!srv) queueOp('POST', 'utilityPayments', { ...data, id });
       return { ...data, id };
     },
     async update(id, data) {
       await localDb('utilityPayments').update(Number(id), data);
+      backupAllCollections();
       queueOp('PUT', 'utilityPayments', data, Number(id));
       tryServer('PUT', 'utilityPayments', id, data);
     },
@@ -219,12 +232,14 @@ export const api = {
     async toArray() { return localDb('vacancies').toArray(); },
     async add(data) {
       const id = await localDb('vacancies').add(data);
+      backupAllCollections();
       const srv = await tryServer('POST', 'vacancies', null, { ...data, id });
       if (!srv) queueOp('POST', 'vacancies', { ...data, id });
       return { ...data, id };
     },
     async update(id, data) {
       await localDb('vacancies').update(Number(id), data);
+      backupAllCollections();
       queueOp('PUT', 'vacancies', data, Number(id));
       tryServer('PUT', 'vacancies', id, data);
     },
@@ -233,12 +248,14 @@ export const api = {
     async toArray() { return localDb('familyMembers').toArray(); },
     async add(data) {
       const id = await localDb('familyMembers').add(data);
+      backupAllCollections();
       const srv = await tryServer('POST', 'familyMembers', null, { ...data, id });
       if (!srv) queueOp('POST', 'familyMembers', { ...data, id });
       return { ...data, id };
     },
     async delete(id) {
       await localDb('familyMembers').delete(Number(id));
+      backupAllCollections();
       queueOp('DELETE', 'familyMembers', { id });
       tryServer('DELETE', 'familyMembers', id);
     },
@@ -247,17 +264,20 @@ export const api = {
     async toArray() { return localDb('passwords').toArray(); },
     async add(data) {
       const id = await localDb('passwords').add(data);
+      backupAllCollections();
       const srv = await tryServer('POST', 'passwords', null, { ...data, id });
       if (!srv) queueOp('POST', 'passwords', { ...data, id });
       return { ...data, id };
     },
     async update(id, data) {
       await localDb('passwords').update(Number(id), data);
+      backupAllCollections();
       queueOp('PUT', 'passwords', data, Number(id));
       tryServer('PUT', 'passwords', id, data);
     },
     async delete(id) {
       await localDb('passwords').delete(Number(id));
+      backupAllCollections();
       queueOp('DELETE', 'passwords', { id });
       tryServer('DELETE', 'passwords', id);
     },

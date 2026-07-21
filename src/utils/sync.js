@@ -60,6 +60,7 @@ async function serverReq(method, collection, id, body) {
 export async function syncPull() {
   const serverStatus = await isServerAvailable();
   if (!serverStatus.ok) return { ok: false, reason: serverStatus.reason || 'Servidor no disponible' };
+  await backupAllCollections();
   for (const col of COLLECTIONS) {
     try {
       const serverData = await serverReq('GET', col);
@@ -152,35 +153,61 @@ export function triggerAutoSave(delayMs = 2000) {
   }, delayMs);
 }
 
-// Backup critical collections to localStorage so data survives syncPull resets
-export async function backupCollection(name) {
-  try {
-    const dbMod = (await import('../db/database')).default;
-    const data = await dbMod[name].toArray();
-    localStorage.setItem('backup_' + name, JSON.stringify(data));
-  } catch (e) {
-    console.warn('Backup failed for', name, e);
-  }
+// Backup ALL collections to localStorage so data survives server resets / syncPull
+const BACKUP_COLLECTIONS = ['apartments', 'tenants', 'contracts', 'payments', 'expenses', 'utilityPayments', 'vacancies', 'familyMembers', 'settings', 'passwords'];
+
+let backupTimer = null;
+export async function backupAllCollections() {
+  if (backupTimer) clearTimeout(backupTimer);
+  backupTimer = setTimeout(async () => {
+    backupTimer = null;
+    try {
+      const dbMod = (await import('../db/database')).default;
+      for (const name of BACKUP_COLLECTIONS) {
+        try {
+          const data = await dbMod[name].toArray();
+          localStorage.setItem('bkp_' + name, JSON.stringify(data));
+        } catch (e) {
+          console.warn('Backup failed for', name, e);
+        }
+      }
+      localStorage.setItem('bkp_timestamp', new Date().toISOString());
+    } catch (e) {
+      console.warn('Full backup failed:', e);
+    }
+  }, 500);
 }
 
-// Restore items from localStorage backup that are missing from IndexedDB
-export async function restoreFromBackup(name) {
+// Restore ALL collections from localStorage backup that are missing from IndexedDB
+export async function restoreAllFromBackup() {
+  const ts = localStorage.getItem('bkp_timestamp');
+  if (!ts) return { restored: 0 };
+  console.log('Restoring from backup taken at', ts);
+  let total = 0;
   try {
-    const raw = localStorage.getItem('backup_' + name);
-    if (!raw) return;
-    const backupItems = JSON.parse(raw);
-    if (!Array.isArray(backupItems) || backupItems.length === 0) return;
     const dbMod = (await import('../db/database')).default;
-    const current = await dbMod[name].toArray();
-    const currentIds = new Set(current.map(c => c.id));
-    const missing = backupItems.filter(b => !currentIds.has(b.id));
-    if (missing.length > 0) {
-      await dbMod[name].bulkAdd(missing);
-      console.log(`Restored ${missing.length} items to ${name} from backup`);
+    for (const name of BACKUP_COLLECTIONS) {
+      try {
+        const raw = localStorage.getItem('bkp_' + name);
+        if (!raw) continue;
+        const backupItems = JSON.parse(raw);
+        if (!Array.isArray(backupItems) || backupItems.length === 0) continue;
+        const current = await dbMod[name].toArray();
+        const currentIds = new Set(current.map(c => c.id));
+        const missing = backupItems.filter(b => !currentIds.has(b.id));
+        if (missing.length > 0) {
+          await dbMod[name].bulkAdd(missing);
+          console.log(`Restored ${missing.length} items to ${name} from backup`);
+          total += missing.length;
+        }
+      } catch (e) {
+        console.warn('Restore backup failed for', name, e);
+      }
     }
   } catch (e) {
-    console.warn('Restore backup failed for', name, e);
+    console.warn('Restore all backup failed:', e);
   }
+  return { restored: total };
 }
 
 export function startAutoSync(intervalMs = 30000, onChange) {
