@@ -57,6 +57,16 @@ export default function Utilities() {
       window.open(apt.electricityPaymentUrl, '_blank');
       return;
     }
+    const existingNIC = apt.nic || apt.electricityPaymentCode || '';
+    if (existingNIC && existingNIC.replace(/\D/g, '').length >= 4) {
+      const digits = existingNIC.replace(/\D/g, '');
+      const url = `https://portal.air-e.com/Pagar#/User/${digits}/NUMEROCONTRATO`;
+      await api.apartments.update(apt.id, { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
+      const idx = apartments.findIndex(a => a.id === apt.id);
+      if (idx !== -1) { const u = [...apartments]; u[idx] = { ...u[idx], nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url }; setApartments(u); }
+      window.open(url, '_blank');
+      return;
+    }
     const nic = window.prompt('Ingresa el NIC de Air-e (' + apt.name + '):', '');
     if (!nic || !nic.trim()) return;
     const digits = nic.trim().replace(/\D/g, '');

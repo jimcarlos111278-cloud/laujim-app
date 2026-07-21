@@ -98,8 +98,8 @@ export default function ApartmentDetail() {
 
   async function handleSave(e) {
     e.preventDefault();
-    const nic = form.nic || '';
-    const autoUrl = nic ? `https://portal.air-e.com/Pagar#/User/${nic}/NUMEROCONTRATO` : '';
+    const nic = form.nic || form.electricityPaymentCode || '';
+    const autoUrl = nic ? `https://portal.air-e.com/Pagar#/User/${nic.replace(/\D/g, '')}/NUMEROCONTRATO` : '';
     await api.apartments.update(Number(id), {
       ...form,
       monthlyRent: Number(form.monthlyRent),
