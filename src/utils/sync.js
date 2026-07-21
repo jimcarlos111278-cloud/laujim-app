@@ -121,6 +121,7 @@ export async function syncAll() {
   const pushResult = await syncPush();
   if (!pushResult.ok) return pushResult;
   const pullResult = await syncPull();
+  if (pullResult.ok) lastSyncTime = new Date().toISOString();
   return { ...pullResult, pushed: pushResult.pushed, failed: pushResult.failed };
 }
 
@@ -228,6 +229,11 @@ export function stopAutoSync() {
     clearInterval(syncInterval);
     syncInterval = null;
   }
+}
+
+export function getSyncStatus() {
+  const pending = getPendingOps();
+  return { pendingCount: pending.length, hasPending: pending.length > 0 };
 }
 
 let lastSyncTime = null;
