@@ -52,6 +52,36 @@ export async function refreshAllFromServer() {
   return ok;
 }
 
+// ─── Data version polling: reload page when data changes on server ───
+
+let lastDataVersion = 0;
+let versionPollInterval = null;
+
+async function getDataVersion() {
+  try {
+    return await serverReq('GET', 'data-version');
+  } catch { return null; }
+}
+
+export function startDataVersionPolling(ms = 3000) {
+  stopDataVersionPolling();
+  // First call just stores the current version
+  getDataVersion().then(res => { if (res) lastDataVersion = res.version; });
+  versionPollInterval = setInterval(async () => {
+    try {
+      const res = await getDataVersion();
+      if (res && res.version && lastDataVersion > 0 && res.version !== lastDataVersion) {
+        window.location.reload();
+      }
+      if (res) lastDataVersion = res.version;
+    } catch {}
+  }, ms);
+}
+
+export function stopDataVersionPolling() {
+  if (versionPollInterval) { clearInterval(versionPollInterval); versionPollInterval = null; }
+}
+
 // ─── Polling for external changes (every 15s) ───
 
 let pollInterval = null;

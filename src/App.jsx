@@ -19,7 +19,7 @@ import PublicApartments from './pages/PublicApartments';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
 import { requestNotificationPermission } from './utils/notifications';
-import { refreshAllFromServer, startCloudPolling } from './api';
+import { refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
 import { initDarkMode } from './utils/darkMode';
 import { getAuth } from './utils/auth';
 
@@ -54,6 +54,8 @@ export default function App() {
       setLoading(false);
       // Start polling for changes from other PCs
       startCloudPolling(15000);
+      // Auto-reload cuando otro cliente hace cambios
+      startDataVersionPolling(3000);
     })();
     try { initDarkMode(); } catch (e) { console.error('Dark mode init error:', e); }
   }, []);

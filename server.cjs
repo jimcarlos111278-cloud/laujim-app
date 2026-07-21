@@ -14,7 +14,7 @@ app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type'
 app.use(express.json({ limit: '50mb' }));
 
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && !req.path.startsWith('/api/public/')) {
+  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && req.path !== '/api/data-version' && !req.path.startsWith('/api/public/')) {
     const token = req.headers['x-auth-token'];
     if (token !== AUTH_TOKEN) {
       return res.status(401).json({ error: 'No autorizado' });
@@ -26,11 +26,13 @@ app.use((req, res, next) => {
 const PERSISTENT_DIR = process.env.PERSISTENT_DIR || __dirname;
 const DATA_DIR = path.join(PERSISTENT_DIR, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'database.json');
+const BACKUP_DIR = path.join(PERSISTENT_DIR, 'backups');
+const BACKUP_FILE = path.join(BACKUP_DIR, 'auto-latest.json');
 const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
 const PHOTOS_DIR = path.join(UPLOADS_DIR, 'photos');
 const CONTRACTS_DIR = path.join(UPLOADS_DIR, 'contracts');
 
-[DATA_DIR, PHOTOS_DIR, CONTRACTS_DIR].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
+[DATA_DIR, BACKUP_DIR, PHOTOS_DIR, CONTRACTS_DIR].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -70,13 +72,21 @@ function loadData() {
 }
 
 function saveData() {
+  dataVersion = Date.now();
   fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf-8');
+  fs.writeFileSync(BACKUP_FILE, JSON.stringify(db, null, 2), 'utf-8');
 }
 
 loadData();
 
 // ─── RUTAS ESPECÍFICAS (SIN PARÁMETROS DE COLECCIÓN) ───
 // Deben ir ANTES de las rutas genéricas /:collection o Express las capturará como nombre de colección
+
+let dataVersion = Date.now();
+
+app.get('/api/data-version', (req, res) => {
+  res.json({ version: dataVersion });
+});
 
 app.get('/api/version', (req, res) => {
   try {
