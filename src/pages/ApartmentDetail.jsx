@@ -822,7 +822,7 @@ export default function ApartmentDetail() {
                 <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
                 {scanService !== null && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-48 h-48 border-2 border-emerald-400 rounded-xl opacity-70" />
+                    <div className={`${readNICRef.current ? 'w-64 h-28' : 'w-48 h-48'} border-2 border-emerald-400 ${readNICRef.current ? 'rounded-lg' : 'rounded-xl'} opacity-70`} />
                   </div>
                 )}
                 {scanStatus && (
