@@ -282,8 +282,6 @@ export function generateContractPDF(data) {
   doc.text(d.arrendatario_nombre, ML + indent, y);
   y += 6;
   doc.text(`C.C. ${d.arrendatario_cedula} expedida en ${d.arrendatario_expedida}`, ML + indent, y);
-  if (d.arrendatario_telefono) { y += 5; doc.text(`Tel: ${d.arrendatario_telefono}`, ML + indent, y); }
-  if (d.arrendatario_direccion_trabajo) { y += 5; doc.text(`Dir. referencia: ${d.arrendatario_direccion_trabajo}`, ML + indent, y); }
 
   for (const co of (data.co_arrendatarios || [])) {
     if (!co.nombre) continue;
@@ -297,8 +295,6 @@ export function generateContractPDF(data) {
     doc.text(co.nombre, ML + indent, y);
     y += 5;
     doc.text(`C.C. ${co.cedula || ''} expedida en ${co.expedida || 'Soledad'}`, ML + indent, y);
-    if (co.telefono) { y += 5; doc.text(`Tel: ${co.telefono}`, ML + indent, y); }
-    if (co.direccion_trabajo) { y += 5; doc.text(`Dir. referencia: ${co.direccion_trabajo}`, ML + indent, y); }
   }
 
   renderFooter();

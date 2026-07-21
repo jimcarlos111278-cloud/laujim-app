@@ -144,28 +144,45 @@ export default function ContractGenerator() {
           const end = new Date(yyyy, mm + Number(form.meses) - 1, dd);
           endDate = end.toISOString().split('T')[0];
         }
-        const allResponsibles = [{ nombre: form.arrendatario_nombre, cedula: form.arrendatario_cedula, telefono: form.arrendatario_telefono, direccion_trabajo: form.arrendatario_direccion_trabajo }, ...coArrendatarios];
+        const allT = await api.tenants.toArray();
         const tenantIds = [];
-        for (const resp of allResponsibles) {
-          if (!resp.nombre) continue;
-          const allT = await api.tenants.toArray();
-          const match = allT.find(t => t.documentId === resp.cedula || t.name.toLowerCase() === resp.nombre.toLowerCase());
+
+        // Primary: use existing tenant from contract if available, otherwise find/create
+        if (tenant?.id) {
+          tenantIds.push(tenant.id);
+          if (form.arrendatario_telefono && !tenant.phone) {
+            await api.tenants.update(tenant.id, { phone: form.arrendatario_telefono });
+          }
+          if (form.arrendatario_direccion_trabajo && !tenant.workAddress) {
+            await api.tenants.update(tenant.id, { workAddress: form.arrendatario_direccion_trabajo });
+          }
+        } else if (form.arrendatario_nombre) {
+          const match = allT.find(t => t.documentId === form.arrendatario_cedula || t.name.toLowerCase() === form.arrendatario_nombre.toLowerCase());
           if (match) {
-            if (resp.telefono && !match.phone) await api.tenants.update(match.id, { phone: resp.telefono });
-            if (resp.direccion_trabajo && !match.workAddress) await api.tenants.update(match.id, { workAddress: resp.direccion_trabajo });
             tenantIds.push(match.id);
+            if (form.arrendatario_telefono && !match.phone) await api.tenants.update(match.id, { phone: form.arrendatario_telefono });
+            if (form.arrendatario_direccion_trabajo && !match.workAddress) await api.tenants.update(match.id, { workAddress: form.arrendatario_direccion_trabajo });
           } else {
-            const newT = await api.tenants.add({
-              name: resp.nombre,
-              documentId: resp.cedula,
-              phone: resp.telefono || '',
-              workAddress: resp.direccion_trabajo || '',
-              createdAt: new Date().toISOString(),
-            });
+            const newT = await api.tenants.add({ name: form.arrendatario_nombre, documentId: form.arrendatario_cedula, phone: form.arrendatario_telefono || '', workAddress: form.arrendatario_direccion_trabajo || '', createdAt: new Date().toISOString() });
             tenantIds.push(newT.id);
           }
         }
-        const primaryTenantId = tenantIds[0] || tenant?.id || null;
+
+        // Co-arrendatarios: find or create each one
+        for (const co of coArrendatarios) {
+          if (!co.nombre) continue;
+          const match = allT.find(t => t.documentId === co.cedula || t.name.toLowerCase() === co.nombre.toLowerCase());
+          if (match) {
+            if (co.telefono && !match.phone) await api.tenants.update(match.id, { phone: co.telefono });
+            if (co.direccion_trabajo && !match.workAddress) await api.tenants.update(match.id, { workAddress: co.direccion_trabajo });
+            tenantIds.push(match.id);
+          } else {
+            const newT = await api.tenants.add({ name: co.nombre, documentId: co.cedula, phone: co.telefono || '', workAddress: co.direccion_trabajo || '', createdAt: new Date().toISOString() });
+            tenantIds.push(newT.id);
+          }
+        }
+
+        const primaryTenantId = tenantIds[0] || null;
         const newContract = await api.contracts.add({
           apartmentId: apt?.id || null,
           tenantId: primaryTenantId,

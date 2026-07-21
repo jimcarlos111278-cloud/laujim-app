@@ -97,30 +97,41 @@ export default function Layout({ children }) {
         <main className="flex-1 overflow-auto p-4 md:p-6 pb-16">
           {children}
         </main>
-        {syncInfo.hasPending && (
-          <div className="fixed bottom-0 left-0 right-0 lg:left-64 z-40 bg-amber-50 dark:bg-amber-900/80 border-t border-amber-200 dark:border-amber-700 px-4 py-2 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <CloudOff className="w-4 h-4 text-amber-600 dark:text-amber-300" />
-              <span className="text-amber-800 dark:text-amber-200">
-                <strong>{syncInfo.pendingCount}</strong> cambio(s) sin guardar
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {lastSave === 'ok' && (
-                <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-300">
-                  <CheckCircle2 className="w-3 h-3" /> Guardado
+        <div className={`fixed bottom-0 left-0 right-0 lg:left-64 z-40 px-4 py-2 flex items-center justify-between gap-3 transition-colors ${
+          syncInfo.hasPending
+            ? 'bg-amber-50 dark:bg-amber-900/80 border-t border-amber-200 dark:border-amber-700'
+            : 'bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700'
+        }`}>
+          <div className="flex items-center gap-2 text-sm">
+            {syncInfo.hasPending ? (
+              <>
+                <CloudOff className="w-4 h-4 text-amber-600 dark:text-amber-300" />
+                <span className="text-amber-800 dark:text-amber-200">
+                  <strong>{syncInfo.pendingCount}</strong> cambio(s) sin guardar
                 </span>
-              )}
-              {lastSave === 'error' && (
-                <span className="text-xs text-red-600 dark:text-red-300">Error al guardar</span>
-              )}
-              <button onClick={handleSave} disabled={syncing} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors">
-                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Guardando...' : 'Guardar'}
-              </button>
-            </div>
+              </>
+            ) : (
+              <>
+                <Cloud className="w-4 h-4 text-gray-400" />
+                <span className="text-gray-500">Datos al día</span>
+              </>
+            )}
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            {lastSave === 'ok' && (
+              <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-300">
+                <CheckCircle2 className="w-3 h-3" /> Guardado
+              </span>
+            )}
+            {lastSave === 'error' && (
+              <span className="text-xs text-red-600 dark:text-red-300">Error al guardar</span>
+            )}
+            <button onClick={handleSave} disabled={syncing} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Guardando...' : 'Guardar Todo'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
