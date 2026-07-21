@@ -52,6 +52,9 @@ export default function ApartmentDetail() {
   const [galleryIdx, setGalleryIdx] = useState(null);
   const fileRef = useRef(null);
   const [scanService, setScanService] = useState(null);
+  const scanServiceRef = useRef(null);
+  const scanTimerRef = useRef(null);
+  const [scanStatus, setScanStatus] = useState('');
   const [qrUrls, setQrUrls] = useState({});
   const [showQrModal, setShowQrModal] = useState(null);
   const scannerRef = useRef(null);
@@ -194,10 +197,11 @@ export default function ApartmentDetail() {
   // ─── QR Scanner ───
 
   const SCAN_MAX_W = 640;
-  const scanTimerRef = useRef(null);
-  const [scanStatus, setScanStatus] = useState('');
+
+  function syncScanRef() { scanServiceRef.current = scanService; }
 
   async function startScanner() {
+    syncScanRef();
     setScanStatus('Iniciando cámara...');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } });
@@ -205,7 +209,7 @@ export default function ApartmentDetail() {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
         setScanStatus('Enfoca el QR en el recuadro');
-        scheduleScan();
+        scanTimerRef.current = setTimeout(doScan, 500);
       }
     } catch (e) {
       console.error('Camera error:', e);
@@ -223,23 +227,21 @@ export default function ApartmentDetail() {
     }
   }
 
-  function scheduleScan() {
-    if (scanService === null) return;
-    scanTimerRef.current = setTimeout(doScan, 400);
-  }
-
   function doScan() {
-    if (!videoRef.current || scanService === null) return;
+    const svc = scanServiceRef.current;
+    if (!svc || !videoRef.current) { return; }
     const video = videoRef.current;
-    if (video.readyState < video.HAVE_CURRENT_DATA) { scheduleScan(); return; }
-    const scale = Math.min(SCAN_MAX_W / (video.videoWidth || 640), 1);
-    const w = Math.floor((video.videoWidth || 640) * scale);
-    const h = Math.floor((video.videoHeight || 480) * scale);
+    if (video.readyState < video.HAVE_CURRENT_DATA) {
+      scanTimerRef.current = setTimeout(doScan, 500);
+      return;
+    }
+    const w = Math.min(video.videoWidth || 640, SCAN_MAX_W);
+    const h = Math.min(video.videoHeight || 480, Math.round(w * ((video.videoHeight || 480) / (video.videoWidth || 640))));
     try {
       const canvas = document.createElement('canvas');
       canvas.width = w;
       canvas.height = h;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(video, 0, 0, w, h);
       const imageData = ctx.getImageData(0, 0, w, h);
       const code = jsQR(imageData.data, imageData.width, imageData.height);
@@ -251,13 +253,14 @@ export default function ApartmentDetail() {
     } catch (e) {
       console.error('Scan error:', e);
     }
-    scheduleScan();
+    scanTimerRef.current = setTimeout(doScan, 500);
   }
 
   async function handleScanResult(data) {
     stopScanner();
     const url = data.startsWith('http') ? data : 'https://' + data;
-    const svc = scanService;
+    const svc = scanServiceRef.current;
+    scanServiceRef.current = null;
     setScanService(null);
     const field = svc === 'water' ? 'waterPaymentUrl' : svc === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl';
     await api.apartments.update(Number(id), { [field]: url });
@@ -318,8 +321,15 @@ export default function ApartmentDetail() {
     }
   }
 
+  useEffect(() => { scanServiceRef.current = scanService; }, [scanService]);
+
   useEffect(() => {
-    return () => stopScanner();
+    return () => {
+      if (scanTimerRef.current) { clearTimeout(scanTimerRef.current); }
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      }
+    };
   }, []);
 
   function callNumber(phone) {
@@ -658,7 +668,7 @@ export default function ApartmentDetail() {
                             </button>
                           </>
                         )}
-                        <button onClick={() => { setScanService(svc); setTimeout(startScanner, 100); }} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Escanear QR de recibo">
+                        <button onClick={() => { scanServiceRef.current = svc; setScanService(svc); setTimeout(startScanner, 100); }} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Escanear QR de recibo">
                           <Scan className="w-3 h-3" /> Escanear
                         </button>
                         <input ref={scannerRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} className="hidden" />
@@ -701,7 +711,7 @@ export default function ApartmentDetail() {
           </Modal>
 
           {/* Scanner modal */}
-          <Modal open={scanService !== null} onClose={() => { stopScanner(); setScanService(null); }} title={scanService ? `Escaneando QR - ${serviceNames[scanService]}` : ''}>
+          <Modal open={scanService !== null} onClose={() => { scanServiceRef.current = null; stopScanner(); setScanService(null); }} title={scanService ? `Escaneando QR - ${serviceNames[scanService]}` : ''}>
             <div className="p-4">
               <div className="relative bg-black rounded-xl overflow-hidden mb-3" style={{ minHeight: 280 }}>
                 <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
@@ -720,7 +730,7 @@ export default function ApartmentDetail() {
                 <button onClick={() => scannerRef.current?.click()} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                   <Image className="w-4 h-4" /> Subir foto
                 </button>
-                <button onClick={() => { stopScanner(); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                <button onClick={() => { scanServiceRef.current = null; stopScanner(); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
                   Cancelar
                 </button>
               </div>
