@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <base href="/" />
+    <link rel="icon" type="image/svg+xml" href="/icons.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Gestión Aptos" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/icons.svg" />
+    <link rel="apple-touch-startup-image" href="/icons.svg" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Apartamentos</title>
+    <script>
+      (function(){
+        try {
+          if (localStorage.getItem('laujim-dark-mode') === 'true') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        try {
+          if (window.Capacitor || 'cordova' in window) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              regs.forEach(function(r) { r.unregister(); });
+            });
+            caches.keys().then(function(keys) {
+              keys.forEach(function(k) { caches.delete(k); });
+            });
+          } else {
+            navigator.serviceWorker.register('/sw.js').catch(function(){});
+          }
+        } catch(e) { console.error('SW error:', e); }
+      }
+    </script>
+    <script>
+      console.log('[Laujim] HTML loaded, platform:', navigator.platform, 'userAgent:', navigator.userAgent);
+    </script>
+    <script>
+(function(){
+  var _errors = [];
+  window.onerror = function(m,u,l,c,e){
+    _errors.push({t:'error',m:m,s:(e&&e.stack)||(u+':'+l+':'+c)});
+    return false;
+  };
+  window.addEventListener('unhandledrejection',function(e){
+    var r=e.reason||{};
+    _errors.push({t:'promise',m:r.message||String(r),s:r.stack||''});
+  });
+  setTimeout(function(){
+    var root=document.getElementById('root');
+    if(!root)return;
+    var html=root.innerHTML.trim();
+    if(html.indexOf('Cargando Gestión de Apartamentos')===-1)return;
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:#1a1a2e;color:#e0e0e0;padding:30px;font-family:monospace;font-size:14px;overflow:auto;z-index:9999;';
+    var c='<h2 style="color:#ff6b6b;">React no mont\u00f3</h2>';
+    c+='<p>UA: '+navigator.userAgent+'</p>';
+    c+='<p>readyState: '+document.readyState+' | scripts: '+document.scripts.length+'</p>';
+    if(_errors.length===0){
+      c+='<p>Sin errores JS capturados. Posible: bundle no carg\u00f3, WebView no ejecuta, o error en IIFE.</p>';
+    }else{
+      c+='<p>Errores ('+_errors.length+'):</p>';
+      for(var i=0;i<_errors.length;i++){
+        c+='<div style="background:#2d2d44;margin:8px 0;padding:12px;border-radius:4px;border-left:4px solid #ff6b6b;">';
+        c+='<strong>['+_errors[i].t+']</strong> '+_errors[i].m;
+        if(_errors[i].s)c+='<pre style="margin-top:8px;font-size:12px;color:#a0a0c0;overflow-x:auto;">'+_errors[i].s+'</pre>';
+        c+='</div>';
+      }
+    }
+    c+='<button onclick="location.reload()" style="padding:12px 24px;font-size:16px;margin-top:16px;background:#4a4a8a;color:white;border:none;border-radius:4px;cursor:pointer;">Recargar</button>';
+    d.innerHTML=c;
+    document.body.appendChild(d);
+  },8000);
+})();
+</script>
+    
+  </head>
+  <body>
+    <div id="root">
+      <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f3f4f6;color:#6b7280;font-size:18px;">
+        <div style="text-align:center;">
+          <div style="font-size:40px;margin-bottom:16px;">🏠</div>
+          <div>Cargando Gestión de Apartamentos...</div>
+        </div>
+      </div>
+    </div>
+  <script src="/assets/app.XNqs7e8c.js"></script></body>
+</html>
