@@ -57,8 +57,9 @@ export default function Utilities() {
       window.open(apt.electricityPaymentUrl, '_blank');
       return;
     }
-    const existingNIC = apt.nic || apt.electricityPaymentCode || '';
-    if (existingNIC && existingNIC.replace(/\D/g, '').length >= 4) {
+    const recordCode = records.filter(r => r.apartmentId === apt.id && r.service === 'electricity').sort((a, b) => b.id - a.id)[0]?.paymentCode || '';
+    const existingNIC = apt.nic || apt.electricityPaymentCode || recordCode || getServicePaymentCode(apt, 'electricity') || '';
+    if (existingNIC.replace(/\D/g, '').length >= 4) {
       const digits = existingNIC.replace(/\D/g, '');
       const url = `https://portal.air-e.com/Pagar#/User/${digits}/NUMEROCONTRATO`;
       await api.apartments.update(apt.id, { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
