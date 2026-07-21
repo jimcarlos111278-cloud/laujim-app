@@ -18,6 +18,8 @@ export default function ContractGenerator() {
     arrendatario_nombre: '',
     arrendatario_cedula: '',
     arrendatario_expedida: 'Soledad',
+    arrendatario_telefono: '',
+    arrendatario_direccion_trabajo: '',
     apto: '',
     direccion: 'Carrera 10C no. 45B-37',
     canon: '',
@@ -25,6 +27,7 @@ export default function ContractGenerator() {
     fecha_inicio: new Date().toLocaleDateString('es-CO').replace(/(\d{1,2})\/(\d{1,2})\/(\d{4})/, '$1/$2/$3'),
     meses: '12',
   });
+  const [coArrendatarios, setCoArrendatarios] = useState([]);
   const [generated, setGenerated] = useState(null);
   const [pdfResult, setPdfResult] = useState(null);
   const [error, setError] = useState('');
@@ -62,6 +65,8 @@ export default function ContractGenerator() {
         deposito: String(a.depositAmount || ''),
         arrendatario_nombre: t?.name || '',
         arrendatario_cedula: t?.documentId || '',
+        arrendatario_telefono: t?.phone || '',
+        arrendatario_direccion_trabajo: t?.workAddress || '',
       }));
     } else {
       setTenant(null);
@@ -74,7 +79,7 @@ export default function ContractGenerator() {
     if (!a) {
       setApt(null);
       setTenant(null);
-      setForm(prev => ({ ...prev, apto: '', direccion: '', canon: '', deposito: '', arrendatario_nombre: '', arrendatario_cedula: '' }));
+      setForm(prev => ({ ...prev, apto: '', direccion: '', canon: '', deposito: '', arrendatario_nombre: '', arrendatario_cedula: '', arrendatario_telefono: '', arrendatario_direccion_trabajo: '' }));
       return;
     }
     setApt(a);
@@ -87,6 +92,18 @@ export default function ContractGenerator() {
     setForm(prev => ({ ...prev, [key]: value }));
     setGenerated(null);
     setError('');
+  }
+
+  function addCoArrendatario() {
+    setCoArrendatarios(prev => [...prev, { nombre: '', cedula: '', expedida: 'Soledad', telefono: '', direccion_trabajo: '' }]);
+  }
+
+  function removeCoArrendatario(idx) {
+    setCoArrendatarios(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateCoArrendatario(idx, field, value) {
+    setCoArrendatarios(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
   }
 
   async function handleGenerate() {
@@ -109,7 +126,7 @@ export default function ContractGenerator() {
         setError('Fecha invalida. Use formato dd/mm/aaaa');
         return;
       }
-      const result = generateContractPDF(form);
+      const result = generateContractPDF({ ...form, co_arrendatarios: coArrendatarios });
       setPdfResult(result);
       if (isCapacitor()) {
         setGenerated('ready');
@@ -127,24 +144,32 @@ export default function ContractGenerator() {
           const end = new Date(yyyy, mm + Number(form.meses) - 1, dd);
           endDate = end.toISOString().split('T')[0];
         }
-        let tenantId = tenant?.id || null;
-        if (!tenantId && form.arrendatario_nombre) {
+        const allResponsibles = [{ nombre: form.arrendatario_nombre, cedula: form.arrendatario_cedula, telefono: form.arrendatario_telefono, direccion_trabajo: form.arrendatario_direccion_trabajo }, ...coArrendatarios];
+        const tenantIds = [];
+        for (const resp of allResponsibles) {
+          if (!resp.nombre) continue;
           const allT = await api.tenants.toArray();
-          const match = allT.find(t => t.documentId === form.arrendatario_cedula || t.name.toLowerCase() === form.arrendatario_nombre.toLowerCase());
+          const match = allT.find(t => t.documentId === resp.cedula || t.name.toLowerCase() === resp.nombre.toLowerCase());
           if (match) {
-            tenantId = match.id;
+            if (resp.telefono && !match.phone) await api.tenants.update(match.id, { phone: resp.telefono });
+            if (resp.direccion_trabajo && !match.workAddress) await api.tenants.update(match.id, { workAddress: resp.direccion_trabajo });
+            tenantIds.push(match.id);
           } else {
             const newT = await api.tenants.add({
-              name: form.arrendatario_nombre,
-              documentId: form.arrendatario_cedula,
+              name: resp.nombre,
+              documentId: resp.cedula,
+              phone: resp.telefono || '',
+              workAddress: resp.direccion_trabajo || '',
               createdAt: new Date().toISOString(),
             });
-            tenantId = newT.id;
+            tenantIds.push(newT.id);
           }
         }
+        const primaryTenantId = tenantIds[0] || tenant?.id || null;
         const newContract = await api.contracts.add({
           apartmentId: apt?.id || null,
-          tenantId,
+          tenantId: primaryTenantId,
+          coTenantIds: tenantIds.length > 1 ? tenantIds.slice(1) : [],
           startDate,
           endDate,
           monthlyRent: Number(form.canon.replace(/\./g, '')),
@@ -239,7 +264,7 @@ export default function ContractGenerator() {
         </div>
 
         <div className="border-t border-gray-200 pt-5">
-          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><FileText className="w-4 h-4" /> Arrendatario (Inquilino)</h3>
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><FileText className="w-4 h-4" /> Arrendatario Principal (Inquilino)</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
@@ -255,7 +280,60 @@ export default function ContractGenerator() {
                 <input type="text" value={form.arrendatario_expedida} onChange={e => handleChange('arrendatario_expedida', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+              <input type="text" value={form.arrendatario_telefono} onChange={e => handleChange('arrendatario_telefono', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de Referencia (Trabajo)</label>
+              <input type="text" value={form.arrendatario_direccion_trabajo} onChange={e => handleChange('arrendatario_direccion_trabajo', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+            </div>
           </div>
+        </div>
+
+        <div className="border-t border-gray-200 pt-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2"><FileText className="w-4 h-4" /> Co-arrendatarios (adicionales)</h3>
+            <button type="button" onClick={addCoArrendatario} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">+ Agregar</button>
+          </div>
+          {coArrendatarios.length === 0 ? (
+            <p className="text-sm text-gray-400">Sin co-arrendatarios adicionales</p>
+          ) : (
+            <div className="space-y-4">
+              {coArrendatarios.map((co, idx) => (
+                <div key={idx} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">#{idx + 1}</span>
+                    <button type="button" onClick={() => removeCoArrendatario(idx)} className="text-xs text-red-600 hover:underline">Eliminar</button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+                      <input type="text" value={co.nombre} onChange={e => updateCoArrendatario(idx, 'nombre', e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Cédula</label>
+                        <input type="text" value={co.cedula} onChange={e => updateCoArrendatario(idx, 'cedula', e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Expedida en</label>
+                        <input type="text" value={co.expedida} onChange={e => updateCoArrendatario(idx, 'expedida', e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono</label>
+                      <input type="text" value={co.telefono} onChange={e => updateCoArrendatario(idx, 'telefono', e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Dirección de Referencia (Trabajo)</label>
+                      <input type="text" value={co.direccion_trabajo} onChange={e => updateCoArrendatario(idx, 'direccion_trabajo', e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="border-t border-gray-200 pt-5">

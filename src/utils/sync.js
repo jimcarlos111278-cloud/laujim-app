@@ -62,13 +62,21 @@ export async function syncPull() {
   if (!serverStatus.ok) return { ok: false, reason: serverStatus.reason || 'Servidor no disponible' };
   for (const col of COLLECTIONS) {
     try {
-      const data = await serverReq('GET', col);
+      const serverData = await serverReq('GET', col);
       // Skip if server has no data — don't wipe local Dexie with empty server
-      if (!data || data.length === 0) continue;
+      if (!serverData || serverData.length === 0) continue;
       // For apartments: skip if all rents are $0 (server was reset to INITIAL_DATA)
-      if (col === 'apartments' && data.length > 0 && data.every(a => !a.monthlyRent)) continue;
+      if (col === 'apartments' && serverData.length > 0 && serverData.every(a => !a.monthlyRent)) continue;
+      // Save local items before clearing (merge strategy: keep local items server doesn't have)
+      const localItems = await db[col].toArray();
       await db[col].clear();
-      await db[col].bulkAdd(data);
+      await db[col].bulkAdd(serverData);
+      // Re-add local items that are NOT in server data (server may be outdated/behind)
+      const serverIds = new Set(serverData.map(s => s.id));
+      const itemsToRestore = localItems.filter(l => !serverIds.has(l.id));
+      if (itemsToRestore.length > 0) {
+        await db[col].bulkAdd(itemsToRestore);
+      }
     } catch (e) {
       return { ok: false, reason: `Error en Pull de ${col}: ${e.message}` };
     }
@@ -142,6 +150,37 @@ export function triggerAutoSave(delayMs = 2000) {
       console.log(`Auto-save: ${result.pushed} operacion(es) enviada(s)`);
     }
   }, delayMs);
+}
+
+// Backup critical collections to localStorage so data survives syncPull resets
+export async function backupCollection(name) {
+  try {
+    const dbMod = (await import('../db/database')).default;
+    const data = await dbMod[name].toArray();
+    localStorage.setItem('backup_' + name, JSON.stringify(data));
+  } catch (e) {
+    console.warn('Backup failed for', name, e);
+  }
+}
+
+// Restore items from localStorage backup that are missing from IndexedDB
+export async function restoreFromBackup(name) {
+  try {
+    const raw = localStorage.getItem('backup_' + name);
+    if (!raw) return;
+    const backupItems = JSON.parse(raw);
+    if (!Array.isArray(backupItems) || backupItems.length === 0) return;
+    const dbMod = (await import('../db/database')).default;
+    const current = await dbMod[name].toArray();
+    const currentIds = new Set(current.map(c => c.id));
+    const missing = backupItems.filter(b => !currentIds.has(b.id));
+    if (missing.length > 0) {
+      await dbMod[name].bulkAdd(missing);
+      console.log(`Restored ${missing.length} items to ${name} from backup`);
+    }
+  } catch (e) {
+    console.warn('Restore backup failed for', name, e);
+  }
 }
 
 export function startAutoSync(intervalMs = 30000, onChange) {

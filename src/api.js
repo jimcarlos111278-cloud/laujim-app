@@ -1,5 +1,5 @@
 import db from './db/database';
-import { addPendingOp, triggerAutoSave } from './utils/sync';
+import { addPendingOp, triggerAutoSave, backupCollection } from './utils/sync';
 import { AUTH_TOKEN, getBase, getRawBase } from './utils/config';
 
 export function refreshBase() {}
@@ -174,12 +174,15 @@ export const api = {
     async toArray() { return localDb('payments').toArray(); },
     async add(data) {
       const id = await localDb('payments').add(data);
-      const srv = await tryServer('POST', 'payments', null, { ...data, id });
-      if (!srv) queueOp('POST', 'payments', { ...data, id });
-      return { ...data, id };
+      const saved = { ...data, id };
+      backupCollection('payments');
+      const srv = await tryServer('POST', 'payments', null, saved);
+      if (!srv) queueOp('POST', 'payments', saved);
+      return saved;
     },
     async delete(id) {
       await localDb('payments').delete(Number(id));
+      backupCollection('payments');
       queueOp('DELETE', 'payments', { id });
       tryServer('DELETE', 'payments', id);
     },

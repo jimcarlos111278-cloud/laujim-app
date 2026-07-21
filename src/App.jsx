@@ -20,7 +20,7 @@ import PublicApartments from './pages/PublicApartments';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
 import { requestNotificationPermission } from './utils/notifications';
-import { startAutoSync } from './utils/sync';
+import { startAutoSync, restoreFromBackup } from './utils/sync';
 import { syncAndGenerateReminders } from './utils/calendar';
 import { initDarkMode } from './utils/darkMode';
 import { getAuth } from './utils/auth';
@@ -41,6 +41,7 @@ function AdminRoute({ children }) {
 export default function App() {
   useEffect(() => {
     try { initDB(); } catch (e) { console.error('DB init error:', e); }
+    try { restoreFromBackup('payments'); } catch (e) { console.error('Backup restore error:', e); }
     try { requestNotificationPermission(); } catch (e) { console.error('Notification error:', e); }
     try {
       startAutoSync(30000, async () => {

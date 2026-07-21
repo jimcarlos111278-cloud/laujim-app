@@ -78,7 +78,14 @@ function limpiarNumero(valor) {
 }
 
 const CLAUSULAS = [
-  (d) => `**${d.propietario_nombre}**, quien se identifica con la cedula de ciudadania numero **${d.propietario_cedula}** expedida en **${d.propietario_expedida}**, quien obra en nombre propio y que para efectos de este contrato se denominara el "Arrendador", por una parte, y por la otra, **${d.arrendatario_nombre}**, quien se identifica con la cedula de ciudadania numero **${d.arrendatario_cedula}** expedida en **${d.arrendatario_expedida}**, quien para efectos de este contrato obra en nombre propio y se denominara el "Arrendatario", manifestaron que han decidido celebrar un contrato de arrendamiento de bien inmueble destinado a vivienda, en adelante el "Contrato", el cual se rige por las siguientes clausulas.`,
+  (d) => {
+    let coPart = '';
+    if (d.co_arrendatarios && d.co_arrendatarios.length > 0) {
+      const coNames = d.co_arrendatarios.filter(c => c.nombre).map(c => `**${c.nombre}**, identificado con CC **${c.cedula || ''}** expedida en **${c.expedida || 'Soledad'}**`);
+      if (coNames.length > 0) coPart = ', y como co-arrendatarios ' + coNames.join(', ');
+    }
+    return `**${d.propietario_nombre}**, quien se identifica con la cedula de ciudadania numero **${d.propietario_cedula}** expedida en **${d.propietario_expedida}**, quien obra en nombre propio y que para efectos de este contrato se denominara el "Arrendador", por una parte, y por la otra, **${d.arrendatario_nombre}**, quien se identifica con la cedula de ciudadania numero **${d.arrendatario_cedula}** expedida en **${d.arrendatario_expedida}**, quien para efectos de este contrato obra en nombre propio y se denominara el "Arrendatario"${coPart}, manifestaron que han decidido celebrar un contrato de arrendamiento de bien inmueble destinado a vivienda, en adelante el "Contrato", el cual se regira por las siguientes clausulas.`;
+  },
   (d) => `Primera. - Objeto: Por medio del presente Contrato, el Arrendador entrega a titulo de arrendamiento al Arrendatario el siguiente bien inmueble: APTO # **${d.apto}** con todas sus anexidades y dependencias, ubicada en la **${d.direccion}**, jurisdiccion del distrito de Barranquilla, departamento del Atlantico, destinado para el uso de vivienda de la Arrendataria y la de su familia.`,
   (d) => `Segunda. - Canon de Arrendamiento: El canon de arrendamiento mensual es la suma de **${numeroALetras(d.canon)}** (**$${formatearPesos(d.canon)}**) MONEDA LEGAL COLOMBIANA. El Arrendatario tambien entregara un deposito de **${numeroALetras(d.deposito)}** (**$${formatearPesos(d.deposito)}**), destinado a cubrir restauraciones del inmueble por deterioro natural, tales como mantenimiento de pintura y demas reparaciones necesarias. Estas sumas seran pagadas por el Arrendatario anticipadamente al Arrendador o a su orden, al numero de cuenta de Ahorros Bancolombia **${d.cuenta}**, a nombre de **${d.propietario_nombre}**, identificado con cedula de ciudadania No. **${d.propietario_cedula}** expedida en **${d.propietario_expedida}**, en la fecha pactada para los pagos, correspondiente al dia de inicio del contrato **${fechaEnLetras(d.inicio)} (${fechaTexto(d.inicio)})**, con periodicidad mensual.`,
   () => 'Paragrafo 1: La tolerancia del Arrendador en recibir el pago del canon de arrendamiento con posterioridad al plazo indicado para ello en esta Clausula, no podra entenderse, en ningun caso, como animo del Arrendador de modificar el termino establecido en este Contrato para el pago del canon.',
@@ -248,7 +255,8 @@ export function generateContractPDF(data) {
   }
 
   // --- SIGNATURES (must stay together on one page) ---
-  const sigBlockH = 90;
+  const coCount = (data.co_arrendatarios || []).length;
+  const sigBlockH = 90 + coCount * 30;
   if (y + sigBlockH > PH - MB) {
     doc.addPage();
     y = MT;
@@ -274,9 +282,31 @@ export function generateContractPDF(data) {
   doc.text(d.arrendatario_nombre, ML + indent, y);
   y += 6;
   doc.text(`C.C. ${d.arrendatario_cedula} expedida en ${d.arrendatario_expedida}`, ML + indent, y);
+  if (d.arrendatario_telefono) { y += 5; doc.text(`Tel: ${d.arrendatario_telefono}`, ML + indent, y); }
+  if (d.arrendatario_direccion_trabajo) { y += 5; doc.text(`Dir. referencia: ${d.arrendatario_direccion_trabajo}`, ML + indent, y); }
+
+  for (const co of (data.co_arrendatarios || [])) {
+    if (!co.nombre) continue;
+    y += 12;
+    doc.setFont('Helvetica', 'bold');
+    doc.text('Co-arrendatario:', ML + indent, y);
+    y += 16;
+    doc.setFont('Helvetica', 'normal');
+    doc.line(ML + indent, y, ML + indent + 60, y);
+    y += 6;
+    doc.text(co.nombre, ML + indent, y);
+    y += 5;
+    doc.text(`C.C. ${co.cedula || ''} expedida en ${co.expedida || 'Soledad'}`, ML + indent, y);
+    if (co.telefono) { y += 5; doc.text(`Tel: ${co.telefono}`, ML + indent, y); }
+    if (co.direccion_trabajo) { y += 5; doc.text(`Dir. referencia: ${co.direccion_trabajo}`, ML + indent, y); }
+  }
 
   renderFooter();
 
-  const filename = `Contrato_apto_${data.apto.replace(/[^a-zA-Z0-9]/g, '_')}_${data.arrendatario_nombre.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+  const nameParts = [data.arrendatario_nombre.replace(/[^a-zA-Z0-9]/g, '_')];
+  for (const co of (data.co_arrendatarios || [])) {
+    if (co.nombre) nameParts.push(co.nombre.replace(/[^a-zA-Z0-9]/g, '_'));
+  }
+  const filename = `Contrato_apto_${data.apto.replace(/[^a-zA-Z0-9]/g, '_')}_${nameParts.join('_y_')}.pdf`;
   return { doc, filename, data: doc.output('datauristring'), blob: doc.output('blob') };
 }

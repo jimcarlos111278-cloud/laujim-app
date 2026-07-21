@@ -10,7 +10,7 @@ export default function Tenants() {
   const [apartments, setApartments] = useState([]);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
 
   useEffect(() => { load(); }, []);
 
@@ -36,9 +36,26 @@ export default function Tenants() {
 
   async function handleAdd(e) {
     e.preventDefault();
-    await api.tenants.add({ ...form, createdAt: new Date().toISOString() });
+    const newTenant = await api.tenants.add({ ...form, linkedAptId: undefined, createdAt: new Date().toISOString() });
+    if (form.linkedAptId) {
+      const apt = apartments.find(a => a.id === Number(form.linkedAptId));
+      const existingContracts = contracts.filter(c => c.apartmentId === Number(form.linkedAptId) && (!c.endDate || new Date(c.endDate) > new Date()));
+      if (existingContracts.length === 0) {
+        await api.contracts.add({
+          apartmentId: Number(form.linkedAptId),
+          tenantId: newTenant.id,
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: null,
+          monthlyRent: apt?.monthlyRent || 0,
+          depositAmount: apt?.depositAmount || 0,
+          depositPaid: false,
+          createdAt: new Date().toISOString(),
+        });
+        if (apt) await api.apartments.update(apt.id, { status: 'occupied' });
+      }
+    }
     setShowAdd(false);
-    setForm({ name: '', email: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '' });
+    setForm({ name: '', email: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
     load();
   }
 
@@ -136,6 +153,17 @@ export default function Tenants() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Documento (Cédula)</label>
             <input type="text" value={form.documentId} onChange={e => setForm({...form, documentId: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Asociar a Apartamento (opcional)</label>
+            <select value={form.linkedAptId} onChange={e => setForm({...form, linkedAptId: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="">-- Sin apartamento --</option>
+              {apartments.map(a => {
+                const hasActive = contracts.some(c => c.apartmentId === a.id && (!c.endDate || new Date(c.endDate) > new Date()));
+                return <option key={a.id} value={a.id}>{a.name} {hasActive ? '(OCUPADO)' : '(VACANTE)'}</option>;
+              })}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">Al seleccionar un apartamento vacante, se creará un contrato automáticamente.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
