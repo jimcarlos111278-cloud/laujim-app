@@ -23,9 +23,10 @@ app.use((req, res, next) => {
   next();
 });
 
-const DATA_DIR = path.join(__dirname, 'data');
+const PERSISTENT_DIR = process.env.PERSISTENT_DIR || __dirname;
+const DATA_DIR = path.join(PERSISTENT_DIR, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'database.json');
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
 const PHOTOS_DIR = path.join(UPLOADS_DIR, 'photos');
 const CONTRACTS_DIR = path.join(UPLOADS_DIR, 'contracts');
 
