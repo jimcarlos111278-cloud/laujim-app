@@ -61,7 +61,7 @@ export default function App() {
       try { await loadThemeFromServer(); } catch (e) { /* ignore */ }
     })();
     try { initTheme(); } catch (e) { console.error('Theme init error:', e); }
-    if (isCapacitor()) document.documentElement.classList.add('capacitor');
+    if (isCapacitor() || window.innerWidth < 900) document.documentElement.classList.add('force-desktop');
   }, []);
 
   if (loading) {

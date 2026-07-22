@@ -23,7 +23,7 @@ const navItems = [
 
 export default function Layout({ children }) {
   const [connected, setConnected] = useState(null);
-  const appMode = isCapacitor();
+  const appMode = isCapacitor() || window.innerWidth < 900;
   const [sidebarOpen, setSidebarOpen] = useState(appMode);
 
   useEffect(() => {

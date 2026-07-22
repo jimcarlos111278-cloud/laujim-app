@@ -17,6 +17,7 @@ td, th { word-break: break-word; }
 }
 
 /* ========== THEME SYSTEM ========== */
+/* 60-30-10 rule: 60% neutral bg, 30% white cards, 10% accent color */
 :root, .theme-claro {
   --c-50: #eff6ff;
   --c-100: #dbeafe;
@@ -27,7 +28,6 @@ td, th { word-break: break-word; }
   --c-50-900-30: rgba(30, 58, 138, 0.3);
 }
 
-/* Theme variables only for accent/primary colors in Claro & Oscuro */
 .theme-oscuro {
   --c-50: #eff6ff;
   --c-100: #dbeafe;
@@ -38,66 +38,39 @@ td, th { word-break: break-word; }
   --c-50-900-30: rgba(30, 58, 138, 0.3);
 }
 
-/* ===== PASTEL THEMES - full surface overrides ===== */
-:root.theme-rosa {
-  --c-50: #fdf2f8;
-  --c-100: #fce7f3;
-  --c-200: #fbcfe8;
-  --c-500: #ec4899;
-  --c-600: #db2777;
-  --c-700: #be185d;
-  --c-50-900-30: rgba(131, 24, 67, 0.3);
+/* Pastel themes: only accent colors + subtle page background tint */
+.theme-rosa {
+  --c-50: #fff1f2;
+  --c-100: #ffe4e6;
+  --c-200: #fecdd3;
+  --c-500: #e11d48;
+  --c-600: #be123c;
+  --c-700: #9f1239;
+  --c-50-900-30: rgba(136, 19, 55, 0.3);
 }
-:root.theme-rosa .bg-gray-100 { background-color: #fdf2f8; }
-:root.theme-rosa .bg-white { background-color: #fff5f9; }
-:root.theme-rosa .bg-gray-50 { background-color: #fce7f3; }
-:root.theme-rosa .text-gray-900 { color: #831843; }
-:root.theme-rosa .text-gray-500 { color: #9d174d; }
-:root.theme-rosa .text-gray-600 { color: #be185d; }
-:root.theme-rosa .text-gray-400 { color: #db2777; }
-:root.theme-rosa .border-gray-200 { border-color: #fbcfe8; }
-:root.theme-rosa .hover\:bg-gray-50:hover { background-color: #fce7f3; }
-:root.theme-rosa .hover\:text-gray-900:hover { color: #831843; }
+:root.theme-rosa .bg-gray-100 { background-color: #fff5f7; }
 
-:root.theme-verde {
-  --c-50: #ecfdf5;
-  --c-100: #d1fae5;
-  --c-200: #a7f3d0;
-  --c-500: #10b981;
-  --c-600: #059669;
-  --c-700: #047857;
-  --c-50-900-30: rgba(6, 78, 59, 0.3);
+.theme-verde {
+  --c-50: #f0fdf4;
+  --c-100: #dcfce7;
+  --c-200: #bbf7d0;
+  --c-500: #16a34a;
+  --c-600: #15803d;
+  --c-700: #166534;
+  --c-50-900-30: rgba(22, 101, 52, 0.3);
 }
-:root.theme-verde .bg-gray-100 { background-color: #ecfdf5; }
-:root.theme-verde .bg-white { background-color: #f0fdf6; }
-:root.theme-verde .bg-gray-50 { background-color: #d1fae5; }
-:root.theme-verde .text-gray-900 { color: #064e3b; }
-:root.theme-verde .text-gray-500 { color: #065f46; }
-:root.theme-verde .text-gray-600 { color: #047857; }
-:root.theme-verde .text-gray-400 { color: #059669; }
-:root.theme-verde .border-gray-200 { border-color: #a7f3d0; }
-:root.theme-verde .hover\:bg-gray-50:hover { background-color: #d1fae5; }
-:root.theme-verde .hover\:text-gray-900:hover { color: #064e3b; }
+:root.theme-verde .bg-gray-100 { background-color: #f0fdf6; }
 
-:root.theme-azul {
+.theme-azul {
   --c-50: #f0f9ff;
   --c-100: #e0f2fe;
   --c-200: #bae6fd;
-  --c-500: #0ea5e9;
-  --c-600: #0284c7;
-  --c-700: #0369a1;
+  --c-500: #0284c7;
+  --c-600: #0369a1;
+  --c-700: #075985;
   --c-50-900-30: rgba(12, 74, 110, 0.3);
 }
-:root.theme-azul .bg-gray-100 { background-color: #f0f9ff; }
-:root.theme-azul .bg-white { background-color: #f5fbff; }
-:root.theme-azul .bg-gray-50 { background-color: #e0f2fe; }
-:root.theme-azul .text-gray-900 { color: #0c4a6e; }
-:root.theme-azul .text-gray-500 { color: #075985; }
-:root.theme-azul .text-gray-600 { color: #0369a1; }
-:root.theme-azul .text-gray-400 { color: #0284c7; }
-:root.theme-azul .border-gray-200 { border-color: #bae6fd; }
-:root.theme-azul .hover\:bg-gray-50:hover { background-color: #e0f2fe; }
-:root.theme-azul .hover\:text-gray-900:hover { color: #0c4a6e; }
+:root.theme-azul .bg-gray-100 { background-color: #f0faff; }
 
 /* Utility classes */
 .bg-c-50 { background-color: var(--c-50); }
@@ -118,33 +91,29 @@ td, th { word-break: break-word; }
 .nav-active { background-color: var(--c-50); color: var(--c-700); }
 .dark .nav-active { background-color: var(--c-50-900-30); color: var(--c-200); }
 
-/* ========== CAPACITOR APK LAYOUT ========== */
-.capacitor {
+/* ========== FORCE DESKTOP LAYOUT (APK + mobile web) ========== */
+.force-desktop {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
-.capacitor .app-layout {
+.force-desktop .app-layout {
   font-size: 15px;
 }
 
-.capacitor .app-layout .p-3 {
+.force-desktop .app-layout .p-3 {
   padding: 0.6rem;
 }
 
-.capacitor .app-layout .gap-3 {
+.force-desktop .app-layout .gap-3 {
   gap: 0.6rem;
 }
 
-.capacitor .app-layout .text-2xl {
+.force-desktop .app-layout .text-2xl {
   font-size: 1.25rem;
   line-height: 1.6;
 }
 
-.capacitor .app-layout .text-xl {
-  font-size: 1.1rem;
-}
-
-.capacitor .app-layout .rounded-xl {
+.force-desktop .app-layout .rounded-xl {
   border-radius: 0.6rem;
 }
