@@ -182,6 +182,7 @@ export const api = {
     async toArray() { return db.tenants.toArray(); },
     async get(id) { return db.tenants.get(Number(id)); },
     async add(data) { return createItem('tenants', data); },
+    async update(id, data) { return updateItem('tenants', id, data); },
     async delete(id) { return deleteItem('tenants', id); },
   },
   contracts: {
