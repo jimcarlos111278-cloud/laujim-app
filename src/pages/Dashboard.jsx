@@ -44,7 +44,7 @@ export default function Dashboard() {
     const currentDay = now.getDate();
     const thisMonth = now.toISOString().substring(0, 7);
 
-    const paidThisMonth = payments.filter(p => p.date && p.date.startsWith(thisMonth) && p.type === 'rent');
+    const paidThisMonth = payments.filter(p => p.type === 'rent' && p.period === thisMonth);
     const collectedThisMonth = paidThisMonth.reduce((s, p) => s + (p.amount || 0), 0);
     const collectedTotal = payments.filter(p => p.type === 'rent').reduce((s, p) => s + (p.amount || 0), 0);
     const pendingPayments = Math.max(0, activeContracts.length - paidThisMonth.length);
@@ -57,7 +57,7 @@ export default function Dashboard() {
       const lastPayment = payments
         .filter(p => p.apartmentId === a.id && p.type === 'rent')
         .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-      const periodPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.date && p.date.startsWith(currentPeriod));
+      const periodPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === currentPeriod);
       const paidThisPeriod = !!periodPayment;
       const contract = activeContracts.find(c => c.apartmentId === a.id);
       const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
@@ -69,7 +69,7 @@ export default function Dashboard() {
       .sort((a, b) => Math.abs(a.daysLeft) - Math.abs(b.daysLeft));
 
     const thisMonthMissing = enriched
-      .filter(a => a.paymentDueDay > currentDay)
+      .filter(a => a.paymentDueDay > currentDay && !a.paidThisPeriod)
       .sort((a, b) => a.daysLeft - b.daysLeft);
 
     const nextMonthMissing = occupiedApts.map(a => {
@@ -77,7 +77,8 @@ export default function Dashboard() {
       return { ...a, rent: contract?.monthlyRent || a.monthlyRent };
     }).sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
 
-    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing });
+    const thisMonthPaid = enriched.filter(a => a.paymentDueDay > currentDay && a.paidThisPeriod);
+    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing, thisMonthPaid });
   }
 
   function openPayModal(apt) {
@@ -375,6 +376,39 @@ export default function Dashboard() {
                   <button onClick={() => openPayModal(a)} className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
                     Pagar
                   </button>
+                  <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
+                    <AlertOctagon className="w-3 h-3" /> Imprevistos
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {stats.thisMonthPaid && stats.thisMonthPaid.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            Pagados este mes — {currentMonthLabel}
+          </h3>
+          <SortHeader />
+          <div className="space-y-2">
+            {stats.thisMonthPaid.map(a => (
+              <div key={a.id} className="flex items-center justify-between p-3 rounded-lg text-sm bg-emerald-50 border border-emerald-200">
+                <div className="flex items-center gap-3 flex-1">
+                  <Link to={`/apartments/${a.id}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
+                    <CheckCircle2 className="w-3 h-3" /> Pagado {a.periodPayment ? formatShortDate(a.periodPayment.date) : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">{formatCurrency(a.rent)}</span>
+                  {a.periodPayment && (
+                    <button onClick={() => setConfirmDelete(a.periodPayment)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar pago">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
                     <AlertOctagon className="w-3 h-3" /> Imprevistos
                   </button>
