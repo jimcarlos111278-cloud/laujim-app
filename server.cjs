@@ -15,7 +15,7 @@ app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type'
 app.use(express.json({ limit: '50mb' }));
 
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && req.path !== '/api/data-version' && !req.path.startsWith('/api/public/')) {
+  if (req.path.startsWith('/api/') && !req.path.startsWith('/api/antecedentes/police') && req.path !== '/api/login' && req.path !== '/api/version' && req.path !== '/api/data-version' && !req.path.startsWith('/api/public/')) {
     const token = req.headers['x-auth-token'];
     if (token !== AUTH_TOKEN) {
       return res.status(401).json({ error: 'No autorizado' });
