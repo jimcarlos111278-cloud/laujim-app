@@ -435,19 +435,23 @@ app.post('/api/antecedentes/police-submit', async (req, res) => {
 
     // Parse result
     const clean = result.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
-    const captchaBlock = result.includes('g-recaptcha') || result.includes('recaptcha');
+    const hasRecords = /REGISTRA ANTECEDENTES|TIENE ANTECEDENTES|CON ANTECEDENTES|S\u00cd REGISTRA/i.test(result);
+    const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot/i.test(result);
     const errorMatch = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
 
     let status, detail;
-    if (captchaBlock && !clean) {
-      status = 'captcha';
-      detail = 'Captcha inválido o expirado.';
-    } else if (clean) {
+    if (clean) {
       status = 'clean';
       detail = '';
-    } else {
+    } else if (hasRecords) {
       status = 'flagged';
       detail = errorMatch ? errorMatch[1] : 'Tiene antecedentes judiciales';
+    } else if (captchaBlock) {
+      status = 'captcha';
+      detail = 'Captcha inválido o expirado.';
+    } else {
+      status = 'error';
+      detail = errorMatch ? errorMatch[1] : 'No se pudo determinar el resultado. Intenta manualmente.';
     }
 
     res.set('Content-Type', 'text/html; charset=utf-8');
@@ -455,7 +459,7 @@ app.post('/api/antecedentes/police-submit', async (req, res) => {
       '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
       '<script>window.parent.postMessage(' + JSON.stringify({ status, detail }) + ',"*");</script>' +
       '<p style="font-family:sans-serif;text-align:center;padding:20px;color:#666;">' +
-      (status === 'clean' ? 'Sin antecedentes' : status === 'flagged' ? 'Con antecedentes' : 'Captcha') +
+      (status === 'clean' ? 'Sin antecedentes' : status === 'flagged' ? 'Con antecedentes' : status === 'captcha' ? 'Captcha' : 'Error') +
       ' &mdash; Cerrando...</p></body></html>'
     );
   } catch (e) {
@@ -479,18 +483,26 @@ async function checkAntecedentes(document) {
   postBody.append('form:numdoc', document);
   postBody.append('form:tipoDoc', 'CC');
   postBody.append('javax.faces.ViewState', viewState);
+  postBody.append('g-recaptcha-response', '');
 
   const result = await proxyPost(hostname, port, actionUrl, postBody.toString(), cookies);
 
   // Step 3: Parse the result
   const clean = result.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
-  const captchaBlock = result.includes('g-recaptcha') || result.includes('recaptcha') || result.includes('No soy un robot');
+  const hasRecords = /REGISTRA ANTECEDENTES|TIENE ANTECEDENTES|CON ANTECEDENTES|S\u00cd REGISTRA/i.test(result);
+  const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot/i.test(result);
   const errorMsg = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
 
-  if (captchaBlock && !clean) {
+  if (clean) {
+    return { status: 'clean', clean: true, detail: '' };
+  }
+  if (hasRecords) {
+    return { status: 'flagged', clean: false, detail: errorMsg ? errorMsg[1] : '' };
+  }
+  if (captchaBlock) {
     return { status: 'captcha', message: 'El sitio requiere resolver un captcha.' };
   }
-  return { status: clean ? 'clean' : 'flagged', clean, detail: errorMsg ? errorMsg[1] : '' };
+  return { status: 'error', message: errorMsg ? errorMsg[1] : 'No se pudo determinar el resultado. Intenta manualmente.' };
 }
 
 app.post('/api/antecedentes/check', async (req, res) => {
