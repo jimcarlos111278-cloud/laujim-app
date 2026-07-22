@@ -1,8 +1,11 @@
 {
   "name": "apartment-manager",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.3.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "start": "node server.cjs",
     "dev": "vite",
