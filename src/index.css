@@ -1,2 +1,129 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+table { width: 100%; }
+td, th { word-break: break-word; }
+
+@media (max-width: 640px) {
+  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .btn-text-wrap { white-space: normal; word-break: break-word; }
+}
+
+/* ========== THEME SYSTEM ========== */
+:root, .theme-default {
+  --c-50: #eff6ff;
+  --c-100: #dbeafe;
+  --c-200: #bfdbfe;
+  --c-300: #93c5fd;
+  --c-400: #60a5fa;
+  --c-500: #3b82f6;
+  --c-600: #2563eb;
+  --c-700: #1d4ed8;
+  --c-800: #1e40af;
+  --c-900: #1e3a8a;
+  --c-50-900-30: rgba(30, 58, 138, 0.3);
+}
+
+.theme-rosado {
+  --c-50: #fdf2f8;
+  --c-100: #fce7f3;
+  --c-200: #fbcfe8;
+  --c-300: #f9a8d4;
+  --c-400: #f472b6;
+  --c-500: #ec4899;
+  --c-600: #db2777;
+  --c-700: #be185d;
+  --c-800: #9d174d;
+  --c-900: #831843;
+  --c-50-900-30: rgba(131, 24, 67, 0.3);
+}
+
+.theme-verde {
+  --c-50: #ecfdf5;
+  --c-100: #d1fae5;
+  --c-200: #a7f3d0;
+  --c-300: #6ee7b7;
+  --c-400: #34d399;
+  --c-500: #10b981;
+  --c-600: #059669;
+  --c-700: #047857;
+  --c-800: #065f46;
+  --c-900: #064e3b;
+  --c-50-900-30: rgba(6, 78, 59, 0.3);
+}
+
+.theme-azul {
+  --c-50: #f0f9ff;
+  --c-100: #e0f2fe;
+  --c-200: #bae6fd;
+  --c-300: #7dd3fc;
+  --c-400: #38bdf8;
+  --c-500: #0ea5e9;
+  --c-600: #0284c7;
+  --c-700: #0369a1;
+  --c-800: #075985;
+  --c-900: #0c4a6e;
+  --c-50-900-30: rgba(12, 74, 110, 0.3);
+}
+
+.theme-amarillo {
+  --c-50: #fffbeb;
+  --c-100: #fef3c7;
+  --c-200: #fde68a;
+  --c-300: #fcd34d;
+  --c-400: #fbbf24;
+  --c-500: #f59e0b;
+  --c-600: #d97706;
+  --c-700: #b45309;
+  --c-800: #92400e;
+  --c-900: #78350f;
+  --c-50-900-30: rgba(120, 53, 15, 0.3);
+}
+
+.theme-rojo {
+  --c-50: #fef2f2;
+  --c-100: #fee2e2;
+  --c-200: #fecaca;
+  --c-300: #fca5a5;
+  --c-400: #f87171;
+  --c-500: #ef4444;
+  --c-600: #dc2626;
+  --c-700: #b91c1c;
+  --c-800: #991b1b;
+  --c-900: #7f1d1d;
+  --c-50-900-30: rgba(127, 29, 29, 0.3);
+}
+
+/* Utility classes using theme CSS variables */
+.bg-c-50 { background-color: var(--c-50); }
+.bg-c-100 { background-color: var(--c-100); }
+.bg-c-200 { background-color: var(--c-200); }
+.bg-c-500 { background-color: var(--c-500); }
+.bg-c-600 { background-color: var(--c-600); }
+.text-c-500 { color: var(--c-500); }
+.text-c-600 { color: var(--c-600); }
+.text-c-700 { color: var(--c-700); }
+.border-c-500 { border-color: var(--c-500); }
+.ring-c-500 { --tw-ring-color: var(--c-500); }
+.hover\:bg-c-100:hover { background-color: var(--c-100); }
+
+.dark\:bg-c-900-30:where(.dark, .dark *) { background-color: var(--c-50-900-30); }
+.dark\:text-c-300:where(.dark, .dark *) { color: var(--c-300); }
+.dark\:text-c-400:where(.dark, .dark *) { color: var(--c-400); }
+.dark\:border-c-600:where(.dark, .dark *) { border-color: var(--c-600); }
+.dark\:hover\:bg-c-900-30:hover:where(.dark, .dark *) { background-color: var(--c-50-900-30); }
+
+/* Primary button */
+.btn-primary { background-color: var(--c-500); color: white; }
+.btn-primary:hover { background-color: var(--c-600); }
+
+/* Active nav link in sidebar */
+.nav-active { background-color: var(--c-50); color: var(--c-700); }
+.dark .nav-active { background-color: var(--c-50-900-30); color: var(--c-300); }

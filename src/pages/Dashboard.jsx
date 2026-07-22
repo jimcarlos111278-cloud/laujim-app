@@ -7,6 +7,7 @@ import { api } from '../api';
 import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, nextPeriod, formatRelativeDueDate } from '../utils/helpers';
 import { addCalendarReminder } from '../utils/calendar';
 import { notifyPaymentReminder } from '../utils/notifications';
+import ThemeSelector from '../components/ThemeSelector';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ totalApts: 0, occupied: 0, vacant: 0, totalTenants: 0, monthlyIncome: 0, expectedIncome: 0, collectedIncome: 0, pendingPayments: 0, vacantApts: [], overdue: [], thisMonthMissing: [], nextMonthMissing: [] });
@@ -168,9 +169,14 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Resumen general de tu conjunto residencial</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-500 mt-1">Resumen general de tu conjunto residencial</p>
+        </div>
+        <div className="hidden sm:block">
+          <ThemeSelector />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -275,7 +281,7 @@ export default function Dashboard() {
                     <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)} · {formatCurrency(a.rent)}</span>
                     {a.tenant?.phone && (
                       <>
-                        <a href={`https://wa.me/${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                        <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
                           WhatsApp
                         </a>
                         <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
@@ -320,7 +326,7 @@ export default function Dashboard() {
                   </button>
                   {a.tenant?.phone && (
                     <>
-                      <a href={`https://wa.me/${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                      <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
                         WhatsApp
                       </a>
                       <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">

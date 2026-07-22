@@ -21,6 +21,7 @@ import MiApto from './pages/MiApto';
 import { requestNotificationPermission } from './utils/notifications';
 import { refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
 import { initDarkMode } from './utils/darkMode';
+import { initTheme, loadThemeFromServer } from './utils/theme';
 import { getAuth } from './utils/auth';
 
 function ProtectedRoute({ children }) {
@@ -56,8 +57,11 @@ export default function App() {
       startCloudPolling(15000);
       // Auto-reload cuando otro cliente hace cambios
       startDataVersionPolling(3000);
+      // Load theme preference from server
+      try { await loadThemeFromServer(); } catch (e) { /* ignore */ }
     })();
     try { initDarkMode(); } catch (e) { console.error('Dark mode init error:', e); }
+    try { initTheme(); } catch (e) { console.error('Theme init error:', e); }
   }, []);
 
   if (loading) {

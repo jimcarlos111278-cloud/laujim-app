@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, MessageCircle
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
+import ThemeSelector from './ThemeSelector';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -54,7 +55,7 @@ export default function Layout({ children }) {
               to={item.to}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                  isActive ? 'nav-active' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                 }`
               }
               onClick={() => setSidebarOpen(false)}
@@ -64,7 +65,10 @@ export default function Layout({ children }) {
             </NavLink>
           ))}
         </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+          <div className="flex justify-center">
+            <ThemeSelector />
+          </div>
           <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
             {connected === null && <span className="text-xs text-gray-400">Verificando conexión...</span>}
             {connected === true && <><Cloud className="w-4 h-4 text-green-500" /><span className="text-xs text-green-600">En línea</span></>}

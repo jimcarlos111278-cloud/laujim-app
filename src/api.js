@@ -65,18 +65,23 @@ async function getDataVersion() {
 
 export function startDataVersionPolling(ms = 3000) {
   stopDataVersionPolling();
+  const startTime = Date.now();
   // First call just stores the current version
   getDataVersion().then(res => { if (res) lastDataVersion = res.version; });
   versionPollInterval = setInterval(async () => {
     try {
       const res = await getDataVersion();
       if (res && res.version && lastDataVersion > 0 && res.version !== lastDataVersion) {
+        // Skip reload within first 12 seconds (let initial sync settle)
+        if (Date.now() - startTime < 12000) {
+          lastDataVersion = res.version;
+          return;
+        }
         // Don't reload on chat pages — they have their own real-time polling
         const path = window.location.pathname;
         if (path !== '/chat' && path !== '/mi-apto') {
           window.location.reload();
         } else {
-          // Still update the version so we don't reload on leaving chat
           lastDataVersion = res.version;
         }
       }
