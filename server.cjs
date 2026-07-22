@@ -11,6 +11,13 @@ const app = express();
 const PORT = process.env.PORT || 1011;
 const AUTH_TOKEN = 'laujim laujim';
 
+// Global error handlers (critical for cloud deployments)
+process.on('uncaughtException', (err) => { console.error('UNCAUGHT:', err.message, err.stack); });
+process.on('unhandledRejection', (reason) => { console.error('UNHANDLED:', reason); });
+
+// Quick health check
+app.get('/health', (req, res) => res.send('ok'));
+
 app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type', 'x-auth-token'] }));
 app.use(express.json({ limit: '50mb' }));
 
@@ -680,23 +687,10 @@ app.use((req, res) => {
     console.log('  GESTION DE APARTAMENTOS - SERVIDOR');
     console.log('============================================');
     console.log('');
-    console.log('  En este PC:    http://localhost:' + PORT);
-    console.log('  Contraseña:    laujim laujim');
-    if (pgPool) console.log('  Base de datos: PostgreSQL (permanente)');
-    console.log('');
-    const { networkInterfaces } = require('os');
-    const nets = networkInterfaces();
-    for (const name of Object.keys(nets)) {
-      for (const net of nets[name]) {
-        if (net.family === 'IPv4' && !net.internal) {
-          console.log('  En tu red:     http://' + net.address + ':' + PORT);
-        }
-      }
-    }
-    console.log('');
-    console.log('  Abre cualquiera de esas URLs en el navegador');
-    console.log('  de cualquier dispositivo en el mismo WiFi.');
-    if (!pgPool) console.log('  Los datos se guardan en este PC.');
+    console.log('  Puerto:    ' + PORT);
+    console.log('  Node:      ' + process.version);
+    console.log('  Cwd:       ' + process.cwd());
+    if (pgPool) console.log('  Base de datos: PostgreSQL');
     console.log('============================================');
   });
 }
