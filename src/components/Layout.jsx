@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, MessageCircle
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, MessageCircle, Shield
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
 import { isCapacitor } from '../utils/config';
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/apartments', label: 'Apartamentos', icon: Building2 },
   { to: '/tenants', label: 'Inquilinos', icon: Users },
+  { to: '/background-check', label: 'Antecedentes', icon: Shield, sub: true },
   { to: '/contracts', label: 'Contratos', icon: FileText },
   { to: '/generate-contract', label: 'Generar Contrato', icon: ScrollText },
   { to: '/payments', label: 'Pagos', icon: DollarSign },
@@ -61,12 +62,12 @@ export default function Layout({ children }) {
               to={item.to}
               className={({ isActive }) =>
                 `flex items-center gap-2 rounded-lg font-medium transition-colors ${
-                  appMode ? 'px-2 py-1.5 text-xs' : 'px-3 py-2.5 text-sm'
+                  appMode ? 'px-2 py-1.5 text-xs' : `${item.sub ? 'pl-9 pr-3 py-2 text-xs' : 'px-3 py-2.5 text-sm'}`
                 } ${isActive ? 'nav-active' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'}`
               }
               onClick={() => { if (!appMode) setSidebarOpen(false); }}
             >
-              <item.icon className={`${appMode ? 'w-3.5 h-3.5' : 'w-5 h-5'}`} />
+              <item.icon className={`${appMode ? 'w-3.5 h-3.5' : item.sub ? 'w-4 h-4' : 'w-5 h-5'}`} />
               {item.label}
             </NavLink>
           ))}
