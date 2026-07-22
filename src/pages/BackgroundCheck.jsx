@@ -23,6 +23,11 @@ export default function BackgroundCheck() {
   }
 
   async function handleAutoCheck(tenant) {
+    if (!tenant.documentId || !tenant.documentId.trim()) {
+      setSelected(tenant);
+      setCheckResult({ status: 'error', message: 'El inquilino no tiene cédula registrada. Ve a Inquilinos para agregarla.' });
+      return;
+    }
     setSelected(tenant);
     setChecking(true);
     setCheckResult(null);
@@ -31,7 +36,7 @@ export default function BackgroundCheck() {
       const res = await fetch(base + '/antecedentes/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' },
-        body: JSON.stringify({ document: tenant.document }),
+        body: JSON.stringify({ document: tenant.documentId }),
       });
       const data = await res.json();
       setCheckResult(data);
@@ -81,7 +86,7 @@ export default function BackgroundCheck() {
   const filtered = tenants.filter(t => {
     if (!search) return true;
     const s = search.toLowerCase();
-    return t.name?.toLowerCase().includes(s) || t.document?.includes(s) || t.phone?.includes(s);
+    return t.name?.toLowerCase().includes(s) || t.documentId?.includes(s) || t.phone?.includes(s);
   });
 
   return (
@@ -123,7 +128,7 @@ export default function BackgroundCheck() {
                       <span className="font-medium text-gray-900 dark:text-white">{t.name}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-mono text-sm text-gray-700 dark:text-gray-300">{t.document || '—'}</td>
+                  <td className="px-4 py-3 font-mono text-sm text-gray-700 dark:text-gray-300">{t.documentId || <span className="text-red-400">Sin cédula</span>}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{getAptName(t)}</td>
                   <td className="px-4 py-3">{getStatusBadge(t)}</td>
                   <td className="px-4 py-3 text-right">
@@ -152,7 +157,7 @@ export default function BackgroundCheck() {
               </div>
               <div>
                 <p className="font-medium text-gray-900 dark:text-white">{selected.name}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Cédula: <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{selected.document || 'No registrada'}</span></p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Cédula: <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{selected.documentId || 'No registrada'}</span></p>
               </div>
             </div>
 
