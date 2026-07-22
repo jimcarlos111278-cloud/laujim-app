@@ -285,7 +285,7 @@ export default function BackgroundCheck() {
               El resultado se detectará automáticamente.
             </p>
           )}
-          <iframe src="/api/antecedentes/police-page"
+          <iframe src={"/api/antecedentes/police-page?doc=" + encodeURIComponent(selected?.documentId || '')}
             className="w-full border border-gray-300 dark:border-gray-600 rounded-lg"
             style={{ height: '80vh' }} />
         </div>

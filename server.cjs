@@ -409,6 +409,13 @@ app.get('/api/antecedentes/police-page', async (req, res) => {
     // Rewrite form action to our proxy
     html = html.replace(/action="[^"]*"/i, 'action="/api/antecedentes/police-submit?session=' + sessionId + '"');
 
+    // Auto-fill cédula input if doc query param is provided
+    const doc = req.query.doc || '';
+    if (doc) {
+      const script = '<script>setTimeout(function(){var e=document.getElementById("cedulaInput");if(e){e.value="' + doc.replace(/"/g, '\\"') + '";e.dispatchEvent(new Event("input"));}},500);<\/script>';
+      html = html.replace('</head>', script + '</head>');
+    }
+
     // Strip CSP if present
     res.removeHeader('Content-Security-Policy');
     res.cookie('police_session', sessionId, { httpOnly: true, sameSite: 'lax', maxAge: 300000 });
