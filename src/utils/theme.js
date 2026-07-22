@@ -6,6 +6,7 @@ export const THEMES = [
   { id: 'rosa',    label: 'Rosa',     color: '#ec4899',  bg: '#fdf2f8',    textColor: '#831843',  icon: 'Palette' },
   { id: 'verde',   label: 'Verde',    color: '#10b981',  bg: '#ecfdf5',    textColor: '#064e3b',  icon: 'Palette' },
   { id: 'azul',    label: 'Azul',     color: '#0ea5e9',  bg: '#f0f9ff',    textColor: '#0c4a6e',  icon: 'Palette' },
+  { id: 'amarillo', label: 'Amarillo', color: '#d97706',  bg: '#fffbeb',    textColor: '#78350f',  icon: 'Palette' },
 ];
 
 const themeMap = Object.fromEntries(THEMES.map(t => [t.id, t]));

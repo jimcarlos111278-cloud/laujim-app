@@ -72,6 +72,17 @@ td, th { word-break: break-word; }
 }
 :root.theme-azul .bg-gray-100 { background-color: #f0faff; }
 
+.theme-amarillo {
+  --c-50: #fffbeb;
+  --c-100: #fef3c7;
+  --c-200: #fde68a;
+  --c-500: #d97706;
+  --c-600: #b45309;
+  --c-700: #92400e;
+  --c-50-900-30: rgba(146, 64, 14, 0.3);
+}
+:root.theme-amarillo .bg-gray-100 { background-color: #fffcf0; }
+
 /* Utility classes */
 .bg-c-50 { background-color: var(--c-50); }
 .bg-c-100 { background-color: var(--c-100); }
