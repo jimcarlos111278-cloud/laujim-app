@@ -104,6 +104,7 @@ export default function ApartmentDetail() {
       ...form,
       monthlyRent: Number(form.monthlyRent),
       depositAmount: Number(form.depositAmount),
+      refCatastral: form.refCatastral || '',
       area: Number(form.area || 0),
       waterReadingDay: Number(form.waterReadingDay || 10),
       gasReadingDay: Number(form.gasReadingDay || 12),
@@ -873,6 +874,7 @@ export default function ApartmentDetail() {
               <div><span className="text-gray-500">Baños:</span> <strong>{apt.bathrooms || '-'}</strong></div>
               <div><span className="text-gray-500">Área:</span> <strong>{apt.area || '-'} m²</strong></div>
               <div><span className="text-gray-500">Piso:</span> <strong>{apt.floor || '-'}</strong></div>
+              <div className="col-span-2"><span className="text-gray-500">Ref. Catastral:</span> <strong>{apt.refCatastral || '-'}</strong></div>
               <div className="col-span-2"><span className="text-gray-500">NIC (Air-e):</span> <strong>{apt.nic || '-'}</strong></div>
             <div><span className="text-gray-500 dark:text-gray-400">Lectura Agua:</span> <strong className="text-gray-900 dark:text-white">Día {apt.waterReadingDay || 7}</strong></div>
             <div><span className="text-gray-500 dark:text-gray-400">N° Póliza (Triple A):</span> <strong className="text-gray-900 dark:text-white">{apt.waterPaymentCode || apt.nic || '-'}</strong></div>
@@ -930,6 +932,10 @@ export default function ApartmentDetail() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1"><Hash className="w-3 h-3" /> NIC (Air-e)</label>
               <input type="text" value={form.nic || ''} onChange={e => setForm({...form, nic: e.target.value})} placeholder="Ej: 1234567890" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ref. Catastral (Predial)</label>
+              <input type="text" value={form.refCatastral || ''} onChange={e => setForm({...form, refCatastral: e.target.value})} placeholder="Ej: 0105000004210006901010001" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Agua (día)</label>

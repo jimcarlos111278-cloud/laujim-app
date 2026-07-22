@@ -38,7 +38,7 @@ td, th { word-break: break-word; }
   --c-50-900-30: rgba(30, 58, 138, 0.3);
 }
 
-/* Pastel themes: only accent colors + subtle page background tint */
+/* Pastel themes: fill page with color (cards, sidebar, backgrounds) */
 .theme-rosa {
   --c-50: #fff1f2;
   --c-100: #ffe4e6;
@@ -48,7 +48,11 @@ td, th { word-break: break-word; }
   --c-700: #9f1239;
   --c-50-900-30: rgba(136, 19, 55, 0.3);
 }
-:root.theme-rosa .bg-gray-100 { background-color: #fff5f7; }
+:root.theme-rosa .bg-gray-100 { background-color: #fce4ec; }
+:root.theme-rosa .bg-white { background-color: #fff5f7; }
+:root.theme-rosa .bg-gray-50 { background-color: #fce8ef; }
+:root.theme-rosa .border-gray-200 { border-color: #f8d0db; }
+:root.theme-rosa .hover\:bg-gray-50:hover { background-color: #fce8ef; }
 
 .theme-verde {
   --c-50: #f0fdf4;
@@ -59,7 +63,11 @@ td, th { word-break: break-word; }
   --c-700: #166534;
   --c-50-900-30: rgba(22, 101, 52, 0.3);
 }
-:root.theme-verde .bg-gray-100 { background-color: #f0fdf6; }
+:root.theme-verde .bg-gray-100 { background-color: #e6f7ed; }
+:root.theme-verde .bg-white { background-color: #f2faf5; }
+:root.theme-verde .bg-gray-50 { background-color: #e0f5e8; }
+:root.theme-verde .border-gray-200 { border-color: #c8e8d4; }
+:root.theme-verde .hover\:bg-gray-50:hover { background-color: #e0f5e8; }
 
 .theme-azul {
   --c-50: #f0f9ff;
@@ -70,7 +78,11 @@ td, th { word-break: break-word; }
   --c-700: #075985;
   --c-50-900-30: rgba(12, 74, 110, 0.3);
 }
-:root.theme-azul .bg-gray-100 { background-color: #f0faff; }
+:root.theme-azul .bg-gray-100 { background-color: #e8f4fd; }
+:root.theme-azul .bg-white { background-color: #f0f8ff; }
+:root.theme-azul .bg-gray-50 { background-color: #e0f1fc; }
+:root.theme-azul .border-gray-200 { border-color: #c5e4f5; }
+:root.theme-azul .hover\:bg-gray-50:hover { background-color: #e0f1fc; }
 
 .theme-amarillo {
   --c-50: #fffbeb;
@@ -81,7 +93,11 @@ td, th { word-break: break-word; }
   --c-700: #92400e;
   --c-50-900-30: rgba(146, 64, 14, 0.3);
 }
-:root.theme-amarillo .bg-gray-100 { background-color: #fffcf0; }
+:root.theme-amarillo .bg-gray-100 { background-color: #fef7e0; }
+:root.theme-amarillo .bg-white { background-color: #fffaf0; }
+:root.theme-amarillo .bg-gray-50 { background-color: #fef3d0; }
+:root.theme-amarillo .border-gray-200 { border-color: #f5e4b8; }
+:root.theme-amarillo .hover\:bg-gray-50:hover { background-color: #fef3d0; }
 
 /* Utility classes */
 .bg-c-50 { background-color: var(--c-50); }

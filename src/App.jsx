@@ -13,6 +13,7 @@ import Contracts from './pages/Contracts';
 import Payments from './pages/Payments';
 import Utilities from './pages/Utilities';
 import Reports from './pages/Reports';
+import Predial from './pages/Predial';
 import ShareApartments from './pages/ShareApartments';
 import ContractGenerator from './pages/ContractGenerator';
 import Settings from './pages/Settings';
@@ -95,6 +96,7 @@ export default function App() {
                   <Route path="/contracts" element={<Contracts />} />
                   <Route path="/payments" element={<Payments />} />
                   <Route path="/utilities" element={<Utilities />} />
+                  <Route path="/predial" element={<Predial />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/share" element={<ShareApartments />} />
                   <Route path="/chat" element={<Chat />} />

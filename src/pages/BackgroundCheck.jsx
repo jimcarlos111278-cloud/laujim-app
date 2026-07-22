@@ -13,6 +13,26 @@ export default function BackgroundCheck() {
   const [selected, setSelected] = useState(null);
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState(null);
+  const [showPoliceFrame, setShowPoliceFrame] = useState(false);
+
+  // Listen for result from police frame
+  useEffect(() => {
+    function handler(e) {
+      if (e.data && e.data.status) {
+        setShowPoliceFrame(false);
+        setCheckResult(e.data);
+        if (e.data.status === 'clean' || e.data.status === 'flagged') {
+          const hasAntecedentes = e.data.status === 'flagged';
+          const field = { antecedentes: hasAntecedentes, antecedentesDate: new Date().toISOString().split('T')[0] };
+          api.tenants.update(selected.id, field).then(() => {
+            setTenants(prev => prev.map(t => t.id === selected.id ? { ...t, ...field } : t));
+          });
+        }
+      }
+    }
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [selected]);
 
   useEffect(() => { load(); }, []);
 
@@ -180,10 +200,16 @@ export default function BackgroundCheck() {
 
             {/* Auto result: flagged */}
             {!checking && checkResult?.status === 'flagged' && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                <XCircle className="w-10 h-10 text-red-500 mx-auto mb-2" />
-                <p className="font-medium text-red-800">Con antecedentes</p>
-                {checkResult.detail && <p className="text-sm text-red-600 mt-1">{checkResult.detail}</p>}
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="text-center mb-3">
+                  <XCircle className="w-10 h-10 text-red-500 mx-auto mb-2" />
+                  <p className="font-medium text-red-800">TIENE ANTECEDENTES</p>
+                  {checkResult.detail && <p className="text-sm text-red-600 mt-1">{checkResult.detail}</p>}
+                </div>
+                <a href={POLICE_URL} target="_blank" rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
+                  <ExternalLink className="w-4 h-4" /> Ver detalles en Policía
+                </a>
               </div>
             )}
 
@@ -193,15 +219,26 @@ export default function BackgroundCheck() {
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                    <p>El sitio web requiere resolver un captcha. Ábrelo manualmente y marca el resultado.</p>
+                    <div>
+                      <p className="font-medium">Se requiere captcha</p>
+                      <p className="mt-1 text-amber-700">Abre el sitio web de la Policía, resuelve el captcha y consulta con la cédula <strong>{selected.documentId}</strong>. Luego vuelve y haz clic en "Ya consulté".</p>
+                    </div>
                   </div>
                 </div>
-                <a href={POLICE_URL} target="_blank" rel="noopener noreferrer"
+                <button onClick={() => setShowPoliceFrame(true)}
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-c-500 text-white text-sm font-medium rounded-lg hover:bg-c-600 transition-colors">
-                  <ExternalLink className="w-4 h-4" /> Consultar en Policía
+                  <ExternalLink className="w-4 h-4" /> Consultar en sitio web
+                </button>
+                <a href={POLICE_URL} target="_blank" rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 transition-colors">
+                  <ExternalLink className="w-4 h-4" /> Abrir en nueva pestaña
                 </a>
+                <button onClick={() => handleAutoCheck(selected)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm font-medium rounded-lg border border-amber-300 transition-colors">
+                  <Loader2 className="w-4 h-4" /> Ya consulté — Reintentar
+                </button>
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Resultado de la consulta:</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">O marca manualmente el resultado:</p>
                   <div className="flex gap-3">
                     <button onClick={() => handleManualSave(selected.id, false)}
                       className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-sm rounded-lg border border-emerald-200 hover:border-emerald-300 transition-colors">
@@ -237,6 +274,21 @@ export default function BackgroundCheck() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Police page iframe (for captcha flow) */}
+      <Modal open={showPoliceFrame} onClose={() => setShowPoliceFrame(false)} title="Consultar en Policía Nacional" size="xl">
+        <div className="p-2">
+          {selected && (
+            <p className="text-xs text-gray-500 mb-2 px-2">
+              Resuelve el captcha, ingresa la cédula <strong>{selected.documentId}</strong> y presiona Consultar.
+              El resultado se detectará automáticamente.
+            </p>
+          )}
+          <iframe src="/api/antecedentes/police-page"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg"
+            style={{ height: '80vh' }} />
+        </div>
       </Modal>
     </div>
   );

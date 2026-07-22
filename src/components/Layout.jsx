@@ -10,6 +10,7 @@ import ThemeSelector from './ThemeSelector';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/apartments', label: 'Apartamentos', icon: Building2 },
+  { to: '/predial', label: 'Impuesto predial', icon: Building2, sub: true },
   { to: '/tenants', label: 'Inquilinos', icon: Users },
   { to: '/background-check', label: 'Antecedentes', icon: Shield, sub: true },
   { to: '/contracts', label: 'Contratos', icon: FileText },

@@ -340,39 +340,34 @@ app.get('/api/messages/updates/:since', (req, res) => {
 
 // Antecedentes - consulta automática a la Policía
 const https = require('https');
+const crypto = require('crypto');
 
-async function checkAntecedentes(document) {
-  const hostname = 'antecedentes.policia.gov.co';
-  const port = 7005;
-  const path = '/WebJudicial/antecedentes.xhtml';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-  // Step 1: GET the initial page to extract JSF view state
-  const { viewState, actionUrl } = await new Promise((resolve, reject) => {
-    const opts = { hostname, port, path, method: 'GET', rejectUnauthorized: false };
-    let data = '';
-    https.get(opts, (res) => {
+function proxyGet(hostname, port, path) {
+  return new Promise((resolve, reject) => {
+    const opts = { hostname, port, path, method: 'GET', rejectUnauthorized: false, headers: { 'User-Agent': UA } };
+    const req = https.request(opts, (res) => {
+      const cookies = (res.headers['set-cookie'] || []).join('; ');
+      let data = '';
       res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        const vs = data.match(/<input[^>]*name="javax\.faces\.ViewState"[^>]*value="([^"]*)"/);
-        const action = data.match(/<form[^>]*action="([^"]*antecedentes[^"]*)"/);
-        resolve({ viewState: vs ? vs[1] : '', actionUrl: action ? action[1] : path });
-      });
-    }).on('error', reject);
+      res.on('end', () => resolve({ body: data, cookies }));
+    });
+    req.on('error', reject);
+    req.end();
   });
+}
 
-  // Step 2: POST the form with the document
-  const postBody = new URLSearchParams();
-  postBody.append('form', 'form');
-  postBody.append('form:numdoc', document);
-  postBody.append('form:tipoDoc', 'CC');
-  postBody.append('javax.faces.ViewState', viewState);
-  // Try without captcha - if it's required, this will fail
-
-  const result = await new Promise((resolve, reject) => {
-    const postData = postBody.toString();
+function proxyPost(hostname, port, path, body, cookies) {
+  return new Promise((resolve, reject) => {
     const opts = {
-      hostname, port, path: actionUrl, method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(postData) },
+      hostname, port, path, method: 'POST',
+      headers: {
+        'User-Agent': UA,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(body),
+        'Cookie': cookies
+      },
       rejectUnauthorized: false
     };
     const req = https.request(opts, (res) => {
@@ -381,9 +376,111 @@ async function checkAntecedentes(document) {
       res.on('end', () => resolve(data));
     });
     req.on('error', reject);
-    req.write(postData);
+    req.write(body);
     req.end();
   });
+}
+
+const policeCookieStore = {};
+
+// Serve the police page via proxy (for captcha iframe flow)
+app.get('/api/antecedentes/police-page', async (req, res) => {
+  try {
+    const sessionId = crypto.randomUUID();
+    const host = 'antecedentes.policia.gov.co';
+    const port = 7005;
+    const p = '/WebJudicial/antecedentes.xhtml';
+    const result = await proxyGet(host, port, p);
+
+    // Extract form action from the page
+    const actionMatch = result.body.match(/<form[^>]*action="([^"]*)"/i);
+    const formAction = actionMatch ? actionMatch[1] : p;
+
+    policeCookieStore[sessionId] = {
+      cookies: result.cookies,
+      formAction,
+      host,
+      port,
+    };
+
+    let html = result.body;
+    // Add <base> tag so relative resources load from police
+    html = html.replace('<head>', '<head><base href="https://' + host + ':' + port + '/WebJudicial/" />');
+    // Rewrite form action to our proxy
+    html = html.replace(/action="[^"]*"/i, 'action="/api/antecedentes/police-submit?session=' + sessionId + '"');
+
+    // Strip CSP if present
+    res.removeHeader('Content-Security-Policy');
+    res.cookie('police_session', sessionId, { httpOnly: true, sameSite: 'lax', maxAge: 300000 });
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-store, max-age=0');
+    res.send(html);
+  } catch (e) {
+    res.status(500).send('Error al cargar la página de la Policía');
+  }
+});
+
+// Handle form submission from the proxied police page
+app.post('/api/antecedentes/police-submit', async (req, res) => {
+  const { session } = req.query;
+  const sd = policeCookieStore[session];
+  if (!sd) {
+    return res.send('<script>window.parent.postMessage({status:"error",detail:"Sesi\u00f3n expirada. Vuelve a intentar."},"*");</script>');
+  }
+
+  try {
+    const postData = new URLSearchParams(req.body).toString();
+    const result = await proxyPost(sd.host, sd.port, sd.formAction, postData, sd.cookies);
+    delete policeCookieStore[session];
+
+    // Parse result
+    const clean = result.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
+    const captchaBlock = result.includes('g-recaptcha') || result.includes('recaptcha');
+    const errorMatch = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
+
+    let status, detail;
+    if (captchaBlock && !clean) {
+      status = 'captcha';
+      detail = 'Captcha inválido o expirado.';
+    } else if (clean) {
+      status = 'clean';
+      detail = '';
+    } else {
+      status = 'flagged';
+      detail = errorMatch ? errorMatch[1] : 'Tiene antecedentes judiciales';
+    }
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(
+      '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
+      '<script>window.parent.postMessage(' + JSON.stringify({ status, detail }) + ',"*");</script>' +
+      '<p style="font-family:sans-serif;text-align:center;padding:20px;color:#666;">' +
+      (status === 'clean' ? 'Sin antecedentes' : status === 'flagged' ? 'Con antecedentes' : 'Captcha') +
+      ' &mdash; Cerrando...</p></body></html>'
+    );
+  } catch (e) {
+    res.send('<script>window.parent.postMessage({status:"error",detail:"' + e.message.replace(/"/g, '\\"') + '"},"*");</script>');
+  }
+});
+
+async function checkAntecedentes(document) {
+  const hostname = 'antecedentes.policia.gov.co';
+  const port = 7005;
+  const path = '/WebJudicial/antecedentes.xhtml';
+
+  // Step 1: GET the initial page to extract JSF view state
+  const { body, cookies } = await proxyGet(hostname, port, path);
+  const viewState = (body.match(/<input[^>]*name="javax\.faces\.ViewState"[^>]*value="([^"]*)"/) || [])[1] || '';
+  const actionUrl = (body.match(/<form[^>]*action="([^"]*antecedentes[^"]*)"/) || [])[1] || path;
+
+  // Step 2: POST the form with the document
+  const postBody = new URLSearchParams();
+  postBody.append('form', 'form');
+  postBody.append('form:numdoc', document);
+  postBody.append('form:tipoDoc', 'CC');
+  postBody.append('javax.faces.ViewState', viewState);
+
+  const result = await proxyPost(hostname, port, actionUrl, postBody.toString(), cookies);
 
   // Step 3: Parse the result
   const clean = result.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
@@ -391,7 +488,7 @@ async function checkAntecedentes(document) {
   const errorMsg = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
 
   if (captchaBlock && !clean) {
-    return { status: 'captcha', message: 'El sitio requiere resolver un captcha. Abre el enlace manualmente.' };
+    return { status: 'captcha', message: 'El sitio requiere resolver un captcha.' };
   }
   return { status: clean ? 'clean' : 'flagged', clean, detail: errorMsg ? errorMsg[1] : '' };
 }
