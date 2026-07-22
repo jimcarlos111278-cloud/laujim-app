@@ -443,7 +443,7 @@ app.post('/api/antecedentes/police-submit', async (req, res) => {
     // Parse result
     const clean = result.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
     const hasRecords = /REGISTRA ANTECEDENTES|TIENE ANTECEDENTES|CON ANTECEDENTES|S\u00cd REGISTRA/i.test(result);
-    const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot/i.test(result);
+  const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot|recaptcha-checkbox|reCAPTCHA|cuota gratuita|captcha/i.test(result);
     const errorMatch = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
 
     let status, detail;
@@ -498,8 +498,14 @@ async function checkAntecedentes(document) {
   // Step 3: Parse the result
   const clean = result.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
   const hasRecords = /REGISTRA ANTECEDENTES|TIENE ANTECEDENTES|CON ANTECEDENTES|S\u00cd REGISTRA/i.test(result);
-  const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot/i.test(result);
+    const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot|recaptcha-checkbox|reCAPTCHA|cuota gratuita|captcha/i.test(result);
   const errorMsg = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
+
+  // Debug: log response preview when result is unclear
+  if (!clean && !hasRecords && !captchaBlock) {
+    const preview = result.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 300);
+    console.log('[Antecedentes] Response preview for ' + document + ':', preview);
+  }
 
   if (clean) {
     return { status: 'clean', clean: true, detail: '' };
