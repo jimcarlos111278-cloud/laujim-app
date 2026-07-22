@@ -427,7 +427,7 @@ app.get('/api/antecedentes/police-page', async (req, res) => {
     const sessionId = crypto.randomUUID();
     const host = 'antecedentes.policia.gov.co';
     const port = 7005;
-    const p = '/WebJudicial/antecedentes.xhtml';
+    const p = '/WebJudicial/index.xhtml';
     const result = await proxyGet(host, port, p);
 
     // Extract form action from the page

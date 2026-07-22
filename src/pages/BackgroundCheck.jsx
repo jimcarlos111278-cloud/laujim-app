@@ -4,7 +4,7 @@ import { api } from '../api';
 import { getBase } from '../utils/config';
 import Modal from '../components/Modal';
 
-const POLICE_URL = 'https://antecedentes.policia.gov.co:7005/WebJudicial/antecedentes.xhtml';
+const POLICE_URL = 'https://antecedentes.policia.gov.co:7005/WebJudicial/index.xhtml';
 
 export default function BackgroundCheck() {
   const [tenants, setTenants] = useState([]);
