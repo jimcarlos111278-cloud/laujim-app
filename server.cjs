@@ -501,12 +501,6 @@ async function checkAntecedentes(document) {
     const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot|recaptcha-checkbox|reCAPTCHA|cuota gratuita|captcha/i.test(result);
   const errorMsg = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
 
-  // Debug: log response preview when result is unclear
-  if (!clean && !hasRecords && !captchaBlock) {
-    const preview = result.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 300);
-    console.log('[Antecedentes] Response preview for ' + document + ':', preview);
-  }
-
   if (clean) {
     return { status: 'clean', clean: true, detail: '' };
   }
@@ -516,7 +510,9 @@ async function checkAntecedentes(document) {
   if (captchaBlock) {
     return { status: 'captcha', message: 'El sitio requiere resolver un captcha.' };
   }
-  return { status: 'error', message: errorMsg ? errorMsg[1] : 'No se pudo determinar el resultado. Intenta manualmente.' };
+  const preview = result.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 400);
+  console.log('[Antecedentes] Response preview for ' + document + ':', preview);
+  return { status: 'error', message: errorMsg ? errorMsg[1] : 'Respuesta inesperada. Preview: ' + preview };
 }
 
 app.post('/api/antecedentes/check', async (req, res) => {
