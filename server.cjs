@@ -40,19 +40,22 @@ const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
 const PHOTOS_DIR = path.join(UPLOADS_DIR, 'photos');
 const CONTRACTS_DIR = path.join(UPLOADS_DIR, 'contracts');
 
-[DATA_DIR, BACKUP_DIR, PHOTOS_DIR, CONTRACTS_DIR].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
+try { [DATA_DIR, BACKUP_DIR, PHOTOS_DIR, CONTRACTS_DIR].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); }); } catch (e) { console.error('DIR SETUP FAILED:', e.message); }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = file.fieldname === 'contract' ? CONTRACTS_DIR : PHOTOS_DIR;
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + '-' + Math.random().toString(36).slice(2) + ext);
-  },
-});
-const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
+let upload;
+try {
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = file.fieldname === 'contract' ? CONTRACTS_DIR : PHOTOS_DIR;
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, Date.now() + '-' + Math.random().toString(36).slice(2) + ext);
+    },
+  });
+  upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
+} catch (e) { console.error('MULTER SETUP FAILED:', e.message); upload = null; }
 
 const { INITIAL_DATA } = require('./db.cjs');
 
@@ -137,8 +140,20 @@ function saveData() {
 // ─── Async startup ───
 
 async function startServer() {
+  // Start listening immediately so health checks always respond
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('============================================');
+    console.log('  GESTION DE APARTAMENTOS - SERVIDOR');
+    console.log('============================================');
+    console.log('');
+    console.log('  Puerto:    ' + PORT);
+    console.log('  Node:      ' + process.version);
+    console.log('  Cwd:       ' + process.cwd());
+    console.log('============================================');
+  });
+
+  // Initialize data (async, non-blocking)
   let loaded = false;
-  // Try PostgreSQL first
   try {
     if (await initPostgres()) {
       const pgData = await loadFromPostgres();
@@ -146,16 +161,15 @@ async function startServer() {
         db = pgData;
         recalcNextId();
         console.log('Data loaded from PostgreSQL');
+        if (pgPool) console.log('  Base de datos: PostgreSQL');
         loaded = true;
       }
     }
   } catch (e) {
     console.error('PostgreSQL init failed, using JSON file:', e.message);
   }
-  // Fallback to JSON file (or initial data)
   if (!loaded) {
     loadData();
-    // If PostgreSQL is available but was empty, write initial data to it
     if (pgPool) {
       saveToPostgres().catch(e => console.error('PG initial save error:', e.message));
     }
@@ -265,20 +279,23 @@ app.post('/api/bulk-add/:collection', (req, res) => {
   res.status(201).json(added);
 });
 
-app.post('/api/upload/photo', upload.single('photo'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const photo = {
-    id: nextId.photos || 1,
-    apartmentId: Number(req.body.apartmentId),
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    url: '/uploads/photos/' + req.file.filename,
-    uploadedAt: new Date().toISOString(),
-  };
-  nextId.photos = (nextId.photos || 1) + 1;
-  db.photos.push(photo);
-  saveData();
-  res.status(201).json(photo);
+app.post('/api/upload/photo', (req, res) => {
+  if (!upload) return res.status(500).json({ error: 'Upload not available' });
+  upload.single('photo')(req, res, () => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const photo = {
+      id: nextId.photos || 1,
+      apartmentId: Number(req.body.apartmentId),
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      url: '/uploads/photos/' + req.file.filename,
+      uploadedAt: new Date().toISOString(),
+    };
+    nextId.photos = (nextId.photos || 1) + 1;
+    db.photos.push(photo);
+    saveData();
+    res.status(201).json(photo);
+  });
 });
 
 app.delete('/api/photo/:id', (req, res) => {
@@ -292,17 +309,20 @@ app.delete('/api/photo/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/upload/contract', upload.single('contract'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const file = {
-    id: Date.now(),
-    contractId: Number(req.body.contractId),
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    url: '/uploads/contracts/' + req.file.filename,
-    uploadedAt: new Date().toISOString(),
-  };
-  res.status(201).json(file);
+app.post('/api/upload/contract', (req, res) => {
+  if (!upload) return res.status(500).json({ error: 'Upload not available' });
+  upload.single('contract')(req, res, () => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const file = {
+      id: Date.now(),
+      contractId: Number(req.body.contractId),
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      url: '/uploads/contracts/' + req.file.filename,
+      uploadedAt: new Date().toISOString(),
+    };
+    res.status(201).json(file);
+  });
 });
 
 app.post('/api/generate-contract', (req, res) => {
@@ -683,17 +703,6 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log('============================================');
-    console.log('  GESTION DE APARTAMENTOS - SERVIDOR');
-    console.log('============================================');
-    console.log('');
-    console.log('  Puerto:    ' + PORT);
-    console.log('  Node:      ' + process.version);
-    console.log('  Cwd:       ' + process.cwd());
-    if (pgPool) console.log('  Base de datos: PostgreSQL');
-    console.log('============================================');
-  });
 }
 
 startServer();
