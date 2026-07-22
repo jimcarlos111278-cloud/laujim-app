@@ -64,7 +64,8 @@ let pgPool = null;
 
 async function initPostgres() {
   if (!process.env.DATABASE_URL) return false;
-  pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const pgUrl = process.env.DATABASE_URL.replace(/sslmode=[^&]+&?/, '');
+  pgPool = new Pool({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
   await pgPool.query(`
     CREATE TABLE IF NOT EXISTS store (
       key TEXT PRIMARY KEY,
