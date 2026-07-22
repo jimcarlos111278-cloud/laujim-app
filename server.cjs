@@ -344,9 +344,11 @@ const crypto = require('crypto');
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-function proxyGet(hostname, port, path) {
+function proxyGet(hostname, port, path, cookies) {
   return new Promise((resolve, reject) => {
-    const opts = { hostname, port, path, method: 'GET', rejectUnauthorized: false, headers: { 'User-Agent': UA } };
+    const headers = { 'User-Agent': UA };
+    if (cookies) headers.Cookie = cookies;
+    const opts = { hostname, port, path, method: 'GET', rejectUnauthorized: false, headers };
     const req = https.request(opts, (res) => {
       const cookies = (res.headers['set-cookie'] || []).join('; ');
       let data = '';
@@ -358,7 +360,7 @@ function proxyGet(hostname, port, path) {
   });
 }
 
-function proxyPost(hostname, port, path, body, cookies) {
+function proxyPost(hostname, port, path, body, cookies, redirects = 3) {
   return new Promise((resolve, reject) => {
     const opts = {
       hostname, port, path, method: 'POST',
@@ -371,6 +373,14 @@ function proxyPost(hostname, port, path, body, cookies) {
       rejectUnauthorized: false
     };
     const req = https.request(opts, (res) => {
+      // Follow redirect (302/301)
+      if ((res.statusCode === 302 || res.statusCode === 301) && res.headers.location && redirects > 0) {
+        const loc = res.headers.location;
+        const url = new URL(loc, 'https://' + hostname + ':' + port);
+        // Change method to GET for redirect (standard behavior for 302)
+        proxyGet(url.hostname, url.port || 443, url.pathname + url.search, cookies).then(r => resolve(r.body)).catch(reject);
+        return;
+      }
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => resolve(data));
