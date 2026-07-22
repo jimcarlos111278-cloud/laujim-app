@@ -463,7 +463,7 @@ app.post('/api/antecedentes/police-submit', async (req, res) => {
     } else if (hasRecords) {
       status = 'flagged';
       detail = errorMatch ? errorMatch[1] : 'Tiene antecedentes judiciales';
-    } else if (captchaBlock) {
+    } else if (captchaBlock || /Términos de uso|Acepto que|Ley Ángel|Ley 2455|index\.xhtml/i.test(result)) {
       status = 'captcha';
       detail = 'Captcha inválido o expirado.';
     } else {
@@ -517,7 +517,7 @@ async function checkAntecedentes(document) {
   if (hasRecords) {
     return { status: 'flagged', clean: false, detail: errorMsg ? errorMsg[1] : '' };
   }
-  if (captchaBlock) {
+  if (captchaBlock || /Términos de uso|Acepto que|Ley Ángel|Ley 2455|index\.xhtml/i.test(result)) {
     return { status: 'captcha', message: 'El sitio requiere resolver un captcha.' };
   }
   const preview = result.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 2000);
