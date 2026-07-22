@@ -510,7 +510,7 @@ async function checkAntecedentes(document) {
   if (captchaBlock) {
     return { status: 'captcha', message: 'El sitio requiere resolver un captcha.' };
   }
-  const preview = result.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 400);
+  const preview = result.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 2000);
   console.log('[Antecedentes] Response preview for ' + document + ':', preview);
   return { status: 'error', message: errorMsg ? errorMsg[1] : 'Respuesta inesperada. Preview: ' + preview };
 }
