@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Search, Shield, ExternalLink, CheckCircle2, XCircle, AlertTriangle, Clock, User } from 'lucide-react';
+import { Search, Shield, ExternalLink, CheckCircle2, XCircle, AlertTriangle, Clock, User, Loader2 } from 'lucide-react';
 import { api } from '../api';
+import { getBase } from '../utils/config';
 import Modal from '../components/Modal';
 
 const POLICE_URL = 'https://antecedentes.policia.gov.co:7005/WebJudicial/antecedentes.xhtml';
@@ -10,6 +11,8 @@ export default function BackgroundCheck() {
   const [apartments, setApartments] = useState([]);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
+  const [checking, setChecking] = useState(false);
+  const [checkResult, setCheckResult] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -17,6 +20,40 @@ export default function BackgroundCheck() {
     const [t, a] = await Promise.all([api.tenants.toArray(), api.apartments.toArray()]);
     setTenants(t);
     setApartments(a);
+  }
+
+  async function handleAutoCheck(tenant) {
+    setSelected(tenant);
+    setChecking(true);
+    setCheckResult(null);
+    try {
+      const base = getBase();
+      const res = await fetch(base + '/antecedentes/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' },
+        body: JSON.stringify({ document: tenant.document }),
+      });
+      const data = await res.json();
+      setCheckResult(data);
+      if (data.status === 'clean' || data.status === 'flagged') {
+        const hasAntecedentes = data.status === 'flagged';
+        const field = { antecedentes: hasAntecedentes, antecedentesDate: new Date().toISOString().split('T')[0] };
+        await api.tenants.update(tenant.id, field);
+        setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, ...field } : t));
+      }
+    } catch (e) {
+      setCheckResult({ status: 'error', message: e.message });
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function handleManualSave(tenantId, hasAntecedentes) {
+    const field = hasAntecedentes !== null ? { antecedentes: hasAntecedentes, antecedentesDate: new Date().toISOString().split('T')[0] } : { antecedentes: null, antecedentesDate: null };
+    await api.tenants.update(tenantId, field);
+    setTenants(prev => prev.map(t => t.id === tenantId ? { ...t, ...field } : t));
+    setSelected(null);
+    setCheckResult(null);
   }
 
   function getAptName(tenant) {
@@ -90,9 +127,10 @@ export default function BackgroundCheck() {
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{getAptName(t)}</td>
                   <td className="px-4 py-3">{getStatusBadge(t)}</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => setSelected(t)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-c-600 bg-c-50 hover:bg-c-100 rounded-lg transition-colors">
-                      <Search className="w-3.5 h-3.5" /> Verificar
+                    <button onClick={() => handleAutoCheck(t)} disabled={checking && selected?.id === t.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-c-600 bg-c-50 hover:bg-c-100 rounded-lg transition-colors disabled:opacity-50">
+                      {checking && selected?.id === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                      Verificar
                     </button>
                   </td>
                 </tr>
@@ -105,7 +143,7 @@ export default function BackgroundCheck() {
         </div>
       </div>
 
-      <Modal open={selected !== null} onClose={() => setSelected(null)} title={selected ? `Antecedentes - ${selected.name}` : ''}>
+      <Modal open={selected !== null} onClose={() => { if (!checking) { setSelected(null); setCheckResult(null); } }} title={selected ? `Antecedentes - ${selected.name}` : ''}>
         {selected && (
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -118,45 +156,78 @@ export default function BackgroundCheck() {
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium">Pasos para verificar:</p>
-                  <ol className="list-decimal list-inside mt-1 text-amber-700 space-y-1">
-                    <li>Haz clic en "Consultar en Policía"</li>
-                    <li>Ingresa la cédula <strong>{selected.document}</strong> en el sitio web</li>
-                    <li>Completa el captcha "No soy un robot"</li>
-                    <li>Haz clic en "Consultar"</li>
-                    <li>Revisa el resultado y vuelve aquí para marcarlo</li>
-                  </ol>
+            {/* Checking state */}
+            {checking && (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <Loader2 className="w-8 h-8 text-c-500 animate-spin" />
+                <p className="text-sm text-gray-500">Consultando en Policía Nacional...</p>
+              </div>
+            )}
+
+            {/* Auto result: clean */}
+            {!checking && checkResult?.status === 'clean' && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-center">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                <p className="font-medium text-emerald-800">Sin antecedentes</p>
+                <p className="text-sm text-emerald-600 mt-1">NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES</p>
+              </div>
+            )}
+
+            {/* Auto result: flagged */}
+            {!checking && checkResult?.status === 'flagged' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <XCircle className="w-10 h-10 text-red-500 mx-auto mb-2" />
+                <p className="font-medium text-red-800">Con antecedentes</p>
+                {checkResult.detail && <p className="text-sm text-red-600 mt-1">{checkResult.detail}</p>}
+              </div>
+            )}
+
+            {/* Captcha bloqueó la consulta automática */}
+            {!checking && checkResult?.status === 'captcha' && (
+              <>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <p>El sitio web requiere resolver un captcha. Ábrelo manualmente y marca el resultado.</p>
+                  </div>
                 </div>
-              </div>
-            </div>
+                <a href={POLICE_URL} target="_blank" rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-c-500 text-white text-sm font-medium rounded-lg hover:bg-c-600 transition-colors">
+                  <ExternalLink className="w-4 h-4" /> Consultar en Policía
+                </a>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Resultado de la consulta:</p>
+                  <div className="flex gap-3">
+                    <button onClick={() => handleManualSave(selected.id, false)}
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-sm rounded-lg border border-emerald-200 hover:border-emerald-300 transition-colors">
+                      <CheckCircle2 className="w-5 h-5" /> Sin antecedentes
+                    </button>
+                    <button onClick={() => handleManualSave(selected.id, true)}
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 font-medium text-sm rounded-lg border border-red-200 hover:border-red-300 transition-colors">
+                      <XCircle className="w-5 h-5" /> Con antecedentes
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
 
-            <a href={POLICE_URL} target="_blank" rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-c-500 text-white text-sm font-medium rounded-lg hover:bg-c-600 transition-colors">
-              <ExternalLink className="w-4 h-4" /> Consultar en Policía
-            </a>
-
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Resultado de la consulta:</p>
-              <div className="flex gap-3">
-                <button onClick={() => handleSaveResult(selected.id, false)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-sm rounded-lg border border-emerald-200 hover:border-emerald-300 transition-colors">
-                  <CheckCircle2 className="w-5 h-5" /> Sin antecedentes
+            {/* Error */}
+            {!checking && checkResult?.status === 'error' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                <p className="font-medium">Error al consultar</p>
+                <p className="mt-1">{checkResult.message || 'Intenta de nuevo o usa el método manual.'}</p>
+                <button onClick={() => handleAutoCheck(selected)}
+                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors">
+                  Reintentar
                 </button>
-                <button onClick={() => handleSaveResult(selected.id, true)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 font-medium text-sm rounded-lg border border-red-200 hover:border-red-300 transition-colors">
-                  <XCircle className="w-5 h-5" /> Con antecedentes
-                </button>
               </div>
-            </div>
+            )}
 
-            {selected.antecedentes !== undefined && selected.antecedentes !== null && (
+            {/* Previous check info */}
+            {!checking && selected.antecedentes !== undefined && selected.antecedentes !== null && (
               <div className="flex items-center justify-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <Clock className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-500">Última verificación: {selected.antecedentesDate || 'desconocida'}</span>
+                <span className="text-sm text-gray-500">Verificado el {selected.antecedentesDate || 'fecha desconocida'}</span>
               </div>
             )}
           </div>

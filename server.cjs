@@ -338,6 +338,75 @@ app.get('/api/messages/updates/:since', (req, res) => {
 // ─── RUTAS GENÉRICAS (CON PARÁMETROS :collection) ───
 // Van después de todas las rutas específicas para evitar colisiones
 
+// Antecedentes - consulta automática a la Policía
+const https = require('https');
+
+async function checkAntecedentes(document) {
+  const hostname = 'antecedentes.policia.gov.co';
+  const port = 7005;
+  const path = '/WebJudicial/antecedentes.xhtml';
+
+  // Step 1: GET the initial page to extract JSF view state
+  const { viewState, actionUrl } = await new Promise((resolve, reject) => {
+    const opts = { hostname, port, path, method: 'GET', rejectUnauthorized: false };
+    let data = '';
+    https.get(opts, (res) => {
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        const vs = data.match(/<input[^>]*name="javax\.faces\.ViewState"[^>]*value="([^"]*)"/);
+        const action = data.match(/<form[^>]*action="([^"]*antecedentes[^"]*)"/);
+        resolve({ viewState: vs ? vs[1] : '', actionUrl: action ? action[1] : path });
+      });
+    }).on('error', reject);
+  });
+
+  // Step 2: POST the form with the document
+  const postBody = new URLSearchParams();
+  postBody.append('form', 'form');
+  postBody.append('form:numdoc', document);
+  postBody.append('form:tipoDoc', 'CC');
+  postBody.append('javax.faces.ViewState', viewState);
+  // Try without captcha - if it's required, this will fail
+
+  const result = await new Promise((resolve, reject) => {
+    const postData = postBody.toString();
+    const opts = {
+      hostname, port, path: actionUrl, method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(postData) },
+      rejectUnauthorized: false
+    };
+    const req = https.request(opts, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => resolve(data));
+    });
+    req.on('error', reject);
+    req.write(postData);
+    req.end();
+  });
+
+  // Step 3: Parse the result
+  const clean = result.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
+  const captchaBlock = result.includes('g-recaptcha') || result.includes('recaptcha') || result.includes('No soy un robot');
+  const errorMsg = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
+
+  if (captchaBlock && !clean) {
+    return { status: 'captcha', message: 'El sitio requiere resolver un captcha. Abre el enlace manualmente.' };
+  }
+  return { status: clean ? 'clean' : 'flagged', clean, detail: errorMsg ? errorMsg[1] : '' };
+}
+
+app.post('/api/antecedentes/check', async (req, res) => {
+  const { document } = req.body;
+  if (!document || !document.trim()) return res.status(400).json({ error: 'Cédula requerida' });
+  try {
+    const result = await checkAntecedentes(document.trim());
+    res.json(result);
+  } catch (e) {
+    res.json({ status: 'error', message: e.message });
+  }
+});
+
 app.get('/api/:collection', (req, res) => {
   const col = req.params.collection;
   if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
