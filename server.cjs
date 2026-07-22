@@ -445,7 +445,7 @@ app.get('/api/antecedentes/police-page', async (req, res) => {
     // Add <base> tag so relative resources load from police
     html = html.replace('<head>', '<head><base href="https://' + host + ':' + port + '/WebJudicial/" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />');
     // Rewrite all absolute paths to point to the police domain via our proxy
-    html = html.replace(/(src|href)="(\/WebJudicial\/[^"\)]*)"/g, (match, attr, url) => `${\attr}="https://${host}:${port}${url}"`)
+    html = html.replace(/(src|href)="(\/WebJudicial\/[^"\)]*)"/g, (match, attr, url) => `${attr}="https://${host}:${port}${url}"`)
     // Rewrite form action to our proxy
     html = html.replace(/action="[^"]*"/i, 'action="/api/antecedentes/police-submit?session=' + sessionId + '"');
 
