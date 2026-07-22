@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon, ArrowUpDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsCard from '../components/StatsCard';
 import Modal from '../components/Modal';
@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [showExpense, setShowExpense] = useState(null);
   const [expenseForm, setExpenseForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: true });
+  const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
 
   const expenseCategories = ['Mantenimiento', 'Reparación', 'Limpieza', 'Impuesto', 'Seguro', 'Adecuación', 'Otro'];
 
@@ -167,6 +168,39 @@ export default function Dashboard() {
   const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const nextMonthLabel = nextMonthDate.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
 
+  const sortedOverdue = useMemo(() => {
+    const list = [...stats.overdue];
+    if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return list.sort((a, b) => Math.abs(a.daysLeft || 0) - Math.abs(b.daysLeft || 0));
+  }, [stats.overdue, sortBy]);
+
+  const sortedThisMonth = useMemo(() => {
+    const list = [...stats.thisMonthMissing];
+    if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return list.sort((a, b) => (a.daysLeft || 0) - (b.daysLeft || 0));
+  }, [stats.thisMonthMissing, sortBy]);
+
+  const sortedNextMonth = useMemo(() => {
+    const list = [...stats.nextMonthMissing];
+    if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return list.sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
+  }, [stats.nextMonthMissing, sortBy]);
+
+  function SortHeader() {
+    return (
+      <div className="flex items-center gap-3 mb-2 px-1">
+        <button onClick={() => setSortBy('name')} className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded transition-colors ${sortBy === 'name' ? 'bg-c-50 text-c-700' : 'text-gray-400 hover:text-gray-600'}`}>
+          <ArrowUpDown className="w-3 h-3" />
+          Núm. Apartamento
+        </button>
+        <button onClick={() => setSortBy('due')} className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded transition-colors ${sortBy === 'due' ? 'bg-c-50 text-c-700' : 'text-gray-400 hover:text-gray-600'}`}>
+          <ArrowUpDown className="w-3 h-3" />
+          Próximo a vencer
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -259,8 +293,9 @@ export default function Dashboard() {
             Ya deberían estar pagos — {currentMonthLabel}
             <span className="text-sm font-normal text-gray-400">({overdueCount} pendiente(s))</span>
           </h3>
+          <SortHeader />
           <div className="space-y-2">
-            {stats.overdue.map(a => {
+            {sortedOverdue.map(a => {
               const isPaid = a.paidThisPeriod;
               const payment = a.periodPayment;
               return (
@@ -310,14 +345,15 @@ export default function Dashboard() {
         </div>
       )}
 
-      {stats.thisMonthMissing.length > 0 && (
+      {sortedThisMonth.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Clock className="w-4 h-4 text-blue-500" />
             Este mes faltan — {currentMonthLabel}
           </h3>
+          <SortHeader />
           <div className="space-y-2">
-            {stats.thisMonthMissing.map(a => (
+            {sortedThisMonth.map(a => (
               <div key={a.id} className={`flex items-center justify-between p-3 rounded-lg text-sm transition-colors ${a.daysLeft <= 1 ? 'bg-red-50' : a.daysLeft <= 5 ? 'bg-amber-50' : 'bg-gray-50'}`}>
                 <Link to={`/apartments/${a.id}`} className="flex-1 font-medium text-gray-900 hover:underline">{a.name}</Link>
                 <div className="flex items-center gap-2">
@@ -349,14 +385,15 @@ export default function Dashboard() {
         </div>
       )}
 
-      {stats.nextMonthMissing.length > 0 && (
+      {sortedNextMonth.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <CalendarCheck className="w-4 h-4 text-purple-500" />
             Para el próximo mes faltan — {nextMonthLabel}
           </h3>
+          <SortHeader />
           <div className="space-y-2">
-            {stats.nextMonthMissing.map(a => (
+            {sortedNextMonth.map(a => (
               <div key={a.id} className="flex items-center justify-between p-3 rounded-lg text-sm bg-gray-50">
                 <Link to={`/apartments/${a.id}`} className="flex-1 font-medium text-gray-900 hover:underline">{a.name}</Link>
                 <div className="flex items-center gap-2">

@@ -7,7 +7,6 @@ import { getBase } from '../utils/config';
 import { requestNotificationPermission } from '../utils/notifications';
 import { isServerAvailable } from '../utils/sync';
 import { refreshAllFromServer } from '../api';
-import { isDarkMode, toggleDarkMode } from '../utils/darkMode';
 import { getNotifConfig, saveNotifConfig, schedulePaymentReminders, cancelAllNotifications } from '../utils/localNotifications';
 import ThemeSelector from '../components/ThemeSelector';
 import { clearAuth, getAuth } from '../utils/auth';
@@ -23,7 +22,6 @@ export default function Settings() {
     serverAvailable: null,
   });
   const autoSyncIntervalRef = useRef(null);
-  const [dark, setDark] = useState(isDarkMode());
   const [notifConfig, setNotifConfig] = useState(getNotifConfig());
   const [localPasswords, setLocalPasswords] = useState([]);
   const [allTenants, setAllTenants] = useState([]);
@@ -54,11 +52,6 @@ export default function Settings() {
   function handleLogout() {
     clearAuth();
     navigate('/login', { replace: true });
-  }
-
-  async function handleToggleDark() {
-    const next = toggleDarkMode();
-    setDark(next);
   }
 
   async function handleNotifToggle() {
@@ -196,22 +189,11 @@ export default function Settings() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Palette className="w-4 h-4" /> Tema de Color</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Elige un color pastel para personalizar la interfaz.</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Palette className="w-4 h-4" /> Modo de visualización</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Elige el estilo visual completo de la aplicación.</p>
           <div className="flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <ThemeSelector variant="swatches" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">{dark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />} Modo Oscuro</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Alterna entre tema claro y oscuro.</p>
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <span className="text-sm font-medium text-gray-900 dark:text-white">Tema {dark ? 'oscuro' : 'claro'}</span>
-            <button onClick={handleToggleDark} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${dark ? 'bg-blue-600' : 'bg-gray-300'}`}>
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${dark ? 'translate-x-6' : 'translate-x-1'}`} />
-            </button>
           </div>
         </div>
 

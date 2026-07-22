@@ -11,7 +11,21 @@
     <link rel="apple-touch-icon" href="/icons.svg" />
     <link rel="apple-touch-startup-image" href="/icons.svg" />
     <meta name="theme-color" content="#2563eb" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        var w = window.innerWidth;
+        var isApp = typeof window.Capacitor !== 'undefined';
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        if (isApp) {
+          var scale = Math.max(0.3, (w / 1100)).toFixed(2);
+          meta.content = 'width=1100, initial-scale=' + scale + ', maximum-scale=3.0, user-scalable=yes';
+        } else {
+          meta.content = 'width=device-width, initial-scale=1.0';
+        }
+        document.head.appendChild(meta);
+      })();
+    </script>
     <title>Gestión de Apartamentos</title>
     <script>
       if ('serviceWorker' in navigator) {

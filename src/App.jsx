@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { initDB } from './db/database';
+import { isCapacitor } from './utils/config';
 import Layout from './components/Layout';
 import VersionBanner from './components/VersionBanner';
 import Dashboard from './pages/Dashboard';
@@ -20,7 +21,6 @@ import Login from './pages/Login';
 import MiApto from './pages/MiApto';
 import { requestNotificationPermission } from './utils/notifications';
 import { refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
-import { initDarkMode } from './utils/darkMode';
 import { initTheme, loadThemeFromServer } from './utils/theme';
 import { getAuth } from './utils/auth';
 
@@ -60,15 +60,15 @@ export default function App() {
       // Load theme preference from server
       try { await loadThemeFromServer(); } catch (e) { /* ignore */ }
     })();
-    try { initDarkMode(); } catch (e) { console.error('Dark mode init error:', e); }
     try { initTheme(); } catch (e) { console.error('Theme init error:', e); }
+    if (isCapacitor()) document.documentElement.classList.add('capacitor');
   }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-c-500 mx-auto mb-4" />
           <p className="text-gray-500">Cargando datos del servidor...</p>
         </div>
       </div>
