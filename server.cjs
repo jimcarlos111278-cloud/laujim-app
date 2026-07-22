@@ -482,13 +482,14 @@ async function checkAntecedentes(document) {
   // Step 1: GET the initial page to extract JSF view state
   const { body, cookies } = await proxyGet(hostname, port, path);
   const viewState = (body.match(/<input[^>]*name="javax\.faces\.ViewState"[^>]*value="([^"]*)"/) || [])[1] || '';
-  const actionUrl = (body.match(/<form[^>]*action="([^"]*antecedentes[^"]*)"/) || [])[1] || path;
+  const actionRaw = (body.match(/<form[^>]*action="([^"]*)"[^>]*method="[^"]*post/i) || body.match(/<form[^>]*action="([^"]*)"/) || [])[1] || path;
+  const dir = path.substring(0, path.lastIndexOf('/') + 1);
+  const actionUrl = actionRaw.startsWith('/') || actionRaw.startsWith('http') ? actionRaw : dir + actionRaw.replace(/^\.\//, '');
 
   // Step 2: POST the form with the document
   const postBody = new URLSearchParams();
   postBody.append('form', 'form');
-  postBody.append('form:numdoc', document);
-  postBody.append('form:tipoDoc', 'CC');
+  postBody.append('cedulaInput', document);
   postBody.append('javax.faces.ViewState', viewState);
   postBody.append('g-recaptcha-response', '');
 
