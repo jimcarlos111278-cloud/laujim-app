@@ -566,6 +566,36 @@ app.post('/api/antecedentes/check', async (req, res) => {
   }
 });
 
+// ─── Proxy for police static assets and other resources ───
+app.get('/WebJudicial/*', async (req, res) => {
+  try {
+    const host = 'antecedentes.policia.gov.co';
+    const port = 7005;
+    const path = req.originalUrl; // /WebJudicial/css/style.css
+
+    const headers = { 'User-Agent': UA };
+    // No cookies needed for static assets
+    const opts = { hostname: host, port: port, path: path, method: 'GET', rejectUnauthorized: false, headers };
+
+    const proxyReq = https.request(opts, (proxyRes) => {
+      // Copy all headers from original response
+      for (const header in proxyRes.headers) {
+        if (header.toLowerCase() !== 'content-security-policy') { // Strip CSP
+          res.setHeader(header, proxyRes.headers[header]);
+        }
+      }
+      proxyRes.pipe(res); // Pipe the response body directly
+    });
+
+    proxyReq.on('error', e => { console.error('PROXY ERROR:', e.message); res.status(500).send('Proxy error'); });
+    proxyReq.end();
+
+  } catch (e) {
+    console.error('STATIC PROXY FAILED:', e.message);
+    res.status(500).send('Error al cargar recurso estático de la Policía');
+  }
+});
+
 app.get('/api/:collection', (req, res) => {
   const col = req.params.collection;
   if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
