@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, DollarSign, Calendar, Edit2, Trash2, User, FileText, Camera, Phone, Plus, X, Download, Image, MessageCircle, Hash, Clock, Droplets, Flame, Zap, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight, QrCode, Scan } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, Edit2, Trash2, User, FileText, Camera, Phone, Plus, X, Download, Image, MessageCircle, Hash, Clock, Droplets, Flame, Zap, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight, QrCode, Scan, Share2, Globe, Copy, Check } from 'lucide-react';
 import Modal from '../components/Modal';
 import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
@@ -59,6 +59,8 @@ export default function ApartmentDetail() {
   const [showQrModal, setShowQrModal] = useState(null);
   const scannerRef = useRef(null);
   const videoRef = useRef(null);
+  const [marketplaceUrl, setMarketplaceUrl] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => { if (id) load(); }, [id]);
 
@@ -85,6 +87,7 @@ export default function ApartmentDetail() {
     setFamilyMembers(allF.filter(f => f.apartmentId === a.id));
     setPhotos(allPhotos.filter(p => p.apartmentId === a.id));
     setUtilityRecords(allU.filter(u => u.apartmentId === a.id));
+    setMarketplaceUrl(a.marketplaceUrl || '');
     setUtilityPeriod(getCurrentPeriod());
     // Generate QR codes for existing payment URLs
     const urls = {};
@@ -386,6 +389,46 @@ export default function ApartmentDetail() {
   function whatsappNumber(phone) {
     const num = phone.replace(/[^0-9]/g, '');
     window.open('https://wa.me/57' + num, '_blank');
+  }
+
+  async   function generateMarketplaceText() {
+    const title = `🏠 Arriendo Apartamento ${apt.name}`;
+    const specs = [`${apt.rooms || '?'} habs`, `${apt.bathrooms || '?'} baños`, `${apt.area || '?'} m²`].join(' · ');
+    const price = `💰 $${Number(apt.monthlyRent || 0).toLocaleString('es-CO')}/mes`;
+    const lines = [
+      title,
+      '',
+      `📍 Apartamento ${apt.name}`,
+      specs,
+      price,
+      '',
+      apt.description || '',
+      '',
+      '📞 Para más información, contáctame.',
+    ];
+    return lines.join('\n');
+  }
+
+  async function saveMarketplaceUrl() {
+    const url = prompt('Pega la URL de la publicación en Facebook Marketplace:', marketplaceUrl || '');
+    if (url === null) return;
+    await api.apartments.update(Number(id), { marketplaceUrl: url });
+    setMarketplaceUrl(url);
+  }
+
+  function copyAdText() {
+    navigator.clipboard.writeText(generateMarketplaceText()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => alert('No se pudo copiar. Selecciona el texto manualmente.'));
+  }
+
+  function openMarketplace() {
+    window.open('https://www.facebook.com/marketplace/you/selling', '_blank');
+  }
+
+  function openPublishedAd() {
+    if (marketplaceUrl) window.open(marketplaceUrl, '_blank');
   }
 
   async function shareToWhatsAppApt() {
@@ -831,6 +874,37 @@ export default function ApartmentDetail() {
               </div>
             </div>
           )}
+
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Share2 className="w-4 h-4" /> Facebook Marketplace</h3>
+            {apt.status === 'vacant' ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Texto del anuncio (previsualización):</p>
+                  <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans">{generateMarketplaceText()}</pre>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={copyAdText} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors border border-blue-300 text-blue-700 hover:bg-blue-50">
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied ? 'Copiado' : 'Copiar anuncio'}
+                  </button>
+                  <button onClick={openMarketplace} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-700">
+                    <Globe className="w-3.5 h-3.5" /> Abrir Marketplace
+                  </button>
+                  <button onClick={saveMarketplaceUrl} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors border border-gray-300 text-gray-600 hover:bg-gray-50">
+                    <Share2 className="w-3.5 h-3.5" /> {marketplaceUrl ? 'Actualizar URL' : 'Guardar URL'}
+                  </button>
+                </div>
+                {marketplaceUrl && (
+                  <button onClick={openPublishedAd} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
+                    <ExternalLink className="w-3.5 h-3.5" /> Abrir publicación guardada
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">Cambia el estado a <strong>Disponible</strong> para preparar el anuncio de Marketplace.</p>
+            )}
+          </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><FileText className="w-4 h-4" /> Contratos</h3>
