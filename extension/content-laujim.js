@@ -1,19 +1,41 @@
 (function () {
   'use strict';
 
-  let lastData = null;
+  function tryStoreFromDOM() {
+    var el = document.getElementById('__LAUJIM_EXT_DATA__');
+    if (!el) return false;
+    try {
+      var data = JSON.parse(el.textContent);
+      chrome.storage.local.set({
+        marketplaceData: data,
+        timestamp: Date.now()
+      }, function () {
+        el.remove();
+      });
+      return true;
+    } catch (e) {
+      el.remove();
+      return false;
+    }
+  }
 
   window.addEventListener('message', function (e) {
     if (e.data && e.data.type === 'LAUJIM_MARKETPLACE_DATA') {
-      lastData = e.data.data;
       chrome.storage.local.set({
         marketplaceData: e.data.data,
         timestamp: Date.now()
-      }, function () {
-        window.postMessage({ type: 'LAUJIM_MARKETPLACE_DATA_SAVED' }, '*');
       });
     }
   });
+
+  var observer = new MutationObserver(function () {
+    if (tryStoreFromDOM()) {
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  tryStoreFromDOM();
+  setTimeout(function () { observer.disconnect(); }, 10000);
 
   window.addEventListener('laujim-marketplace-save-url', function (e) {
     if (e.detail) {

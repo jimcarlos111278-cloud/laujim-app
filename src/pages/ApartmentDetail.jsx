@@ -439,6 +439,20 @@ export default function ApartmentDetail() {
 
       window.postMessage({ type: 'LAUJIM_MARKETPLACE_DATA', data: data }, '*');
 
+      var el = document.getElementById('__LAUJIM_EXT_DATA__');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = '__LAUJIM_EXT_DATA__';
+        el.style.display = 'none';
+        document.body.appendChild(el);
+      }
+      el.textContent = jsonString;
+
+      setTimeout(function () {
+        var e = document.getElementById('__LAUJIM_EXT_DATA__');
+        if (e) e.remove();
+      }, 5000);
+
       navigator.clipboard.writeText(jsonString).then(() => {
         const w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
         if (w) {
