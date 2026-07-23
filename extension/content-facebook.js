@@ -144,17 +144,47 @@
       return false;
     }
     setNativeValue(field, address);
+    field.focus();
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     field.dispatchEvent(new Event('blur', { bubbles: true }));
     await new Promise(function (resolve) { setTimeout(resolve, 600); });
     var options = document.querySelectorAll('[role="option"], [role="listbox"] li, [role="listbox"] [role="button"]');
     for (var i = 0; i < options.length; i++) {
       var text = (options[i].textContent || '').trim();
+      if (normalizeText(text).indexOf('ubicacion actual') >= 0) continue;
       if (text && !/ubicación actual|current location/i.test(text)) {
         options[i].click();
         log('Address suggestion selected: ' + text);
         return true;
       }
     }
+    log('No address suggestion available yet');
+    return false;
+  }
+
+  async function fillAndConfirmAddressReliable(address) {
+    if (!address) return true;
+    var field = findEditable(['direccion', 'address', 'ubicacion', 'location']);
+    if (!field) {
+      log('Could not find address field');
+      return false;
+    }
+    field.focus();
+    setNativeValue(field, address);
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    for (var attempt = 0; attempt < 8; attempt++) {
+      await new Promise(function (resolve) { setTimeout(resolve, 300); });
+      var options = document.querySelectorAll('[role="option"], [role="listbox"] li, [role="listbox"] [role="button"]');
+      for (var i = 0; i < options.length; i++) {
+        var optionText = normalizeText(options[i].textContent || '');
+        if (optionText && optionText.indexOf('ubicacion actual') < 0 && optionText.indexOf('current location') < 0) {
+          options[i].click();
+          log('Address suggestion selected: ' + (options[i].textContent || '').trim());
+          return true;
+        }
+      }
+    }
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     log('No address suggestion available yet');
     return false;
   }
@@ -171,19 +201,27 @@
       return true;
     }
     control.click();
-    await new Promise(function (resolve) { setTimeout(resolve, 250); });
-    var options = document.querySelectorAll('[role="option"], [role="menuitemradio"], li');
-    var wanted = String(value).trim().toLowerCase();
-    for (var i = 0; i < options.length; i++) {
-      var optionText = (options[i].textContent || '').trim().toLowerCase();
-      if (optionText === wanted || optionText.indexOf(wanted) >= 0) {
-        options[i].click();
-        log('Selected dropdown ' + name + ': ' + value);
-        return true;
+    var wanted = normalizeText(value);
+    for (var attempt = 0; attempt < 8; attempt++) {
+      await new Promise(function (resolve) { setTimeout(resolve, 250); });
+      var options = document.querySelectorAll('[role="option"], [role="menuitemradio"], [role="radio"], [role="listbox"] li');
+      for (var i = 0; i < options.length; i++) {
+        var optionText = normalizeText(options[i].textContent || '');
+        if (optionText === wanted || optionText.indexOf(wanted) >= 0 || wanted.indexOf(optionText) >= 0) {
+          options[i].click();
+          log('Selected dropdown ' + name + ': ' + value);
+          return true;
+        }
       }
     }
     log('Option not found for ' + name + ': ' + value);
     return false;
+  }
+
+  function normalizeText(value) {
+    return String(value || '').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
   function setToggle(name, keywords, wanted) {
@@ -265,18 +303,20 @@
       var url = photoUrls[i];
       if (!url || url.indexOf('data:') === 0) continue;
       try {
-        var res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+        var res = await fetch(url, { credentials: 'omit' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         var blob = await res.blob();
         var ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
-        var file = new File([blob], 'foto_' + (i + 1) + '.' + ext, { type: blob.type });
+        var file = new File([blob], 'foto_' + (i + 1) + '.' + ext, { type: blob.type || 'image/jpeg' });
         transfer.items.add(file);
       } catch (e) {
         log('Photo ' + (i + 1) + ' failed: ' + e.message);
       }
     }
     if (transfer.files.length === 0) return 0;
-    Object.defineProperty(input, 'files', { value: transfer.files, configurable: true });
+    var filesSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'files');
+    if (filesSetter && filesSetter.set) filesSetter.set.call(input, transfer.files);
+    else Object.defineProperty(input, 'files', { value: transfer.files, configurable: true });
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
     log('Uploaded ' + transfer.files.length + ' photos via file input');
@@ -310,7 +350,7 @@
     var filled = findAndSet(fields);
     log('Filled fields: ' + (filled.length ? filled.join(', ') : 'NONE'));
 
-    var addressConfirmed = await fillAndConfirmAddress(data.address);
+    var addressConfirmed = await fillAndConfirmAddressReliable(data.address);
     if (data.address && addressConfirmed) filled.push('address');
 
     // Facebook usa menús React para estos controles. Se seleccionan por el
