@@ -533,7 +533,7 @@ app.post('/api/antecedentes/check', async (req, res) => {
 });
 
 // ─── Proxy for police static assets and other resources ───
-app.get('/WebJudicial/*', async (req, res) => {
+app.get('/WebJudicial/{*path}', async (req, res) => {
   try {
     const host = 'antecedentes.policia.gov.co';
     const port = 7005;
