@@ -101,7 +101,7 @@ export default function Layout({ children }) {
             {connected === true && <><Cloud className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-green-500`} /><span className="text-green-600">En línea</span></>}
             {connected === false && <><CloudOff className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-red-500`} /><span className="text-red-500">Sin conexión</span></>}
           </div>
-        </div>}
+        </div>
       </aside>
       <div className="flex-1 flex flex-col min-w-0">
         {!appMode && <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3 lg:hidden">
