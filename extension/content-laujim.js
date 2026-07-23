@@ -10,7 +10,7 @@
         marketplaceData: e.data.data,
         timestamp: Date.now()
       }, function () {
-        console.log('[Laujim Ext] Datos de Marketplace guardados');
+        window.postMessage({ type: 'LAUJIM_MARKETPLACE_DATA_SAVED' }, '*');
       });
     }
   });
