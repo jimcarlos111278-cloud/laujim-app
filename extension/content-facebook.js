@@ -102,11 +102,61 @@
   }
 
   function findDropdown(keywords) {
-    var items = document.querySelectorAll('select, [role="combobox"], button[aria-haspopup="listbox"]');
+    var items = document.querySelectorAll('select, [role="combobox"], button[aria-haspopup="listbox"], [role="button"][aria-expanded], [role="button"][aria-haspopup]');
     for (var i = 0; i < items.length; i++) {
       if (matchKeywords(items[i], keywords)) return items[i];
     }
+    // Facebook suele dejar el texto de la etiqueta junto al botón, no dentro
+    // del combobox. Busca un control interactivo en su contenedor cercano.
+    var labels = document.querySelectorAll('label, span, div');
+    for (var l = 0; l < labels.length; l++) {
+      var labelText = (labels[l].textContent || '').trim().toLowerCase();
+      if (!labelText || labelText.length > 100) continue;
+      var matches = false;
+      for (var k = 0; k < keywords.length; k++) {
+        if (labelText.indexOf(keywords[k]) >= 0) { matches = true; break; }
+      }
+      if (!matches) continue;
+      var container = labels[l];
+      for (var level = 0; level < 3 && container; level++, container = container.parentElement) {
+        var nearby = container.querySelectorAll('select, [role="combobox"], button[aria-haspopup="listbox"], [role="button"][aria-expanded], [role="button"][aria-haspopup]');
+        for (var n = 0; n < nearby.length; n++) {
+          if (nearby[n] !== labels[l]) return nearby[n];
+        }
+      }
+    }
     return null;
+  }
+
+  function findEditable(keywords) {
+    var all = getAllEditable();
+    for (var i = 0; i < all.length; i++) {
+      if (matchKeywords(all[i], keywords)) return all[i];
+    }
+    return null;
+  }
+
+  async function fillAndConfirmAddress(address) {
+    if (!address) return true;
+    var field = findEditable(['dirección', 'direccion', 'address', 'ubicación', 'ubicacion', 'location']);
+    if (!field) {
+      log('Could not find address field');
+      return false;
+    }
+    setNativeValue(field, address);
+    field.dispatchEvent(new Event('blur', { bubbles: true }));
+    await new Promise(function (resolve) { setTimeout(resolve, 600); });
+    var options = document.querySelectorAll('[role="option"], [role="listbox"] li, [role="listbox"] [role="button"]');
+    for (var i = 0; i < options.length; i++) {
+      var text = (options[i].textContent || '').trim();
+      if (text && !/ubicación actual|current location/i.test(text)) {
+        options[i].click();
+        log('Address suggestion selected: ' + text);
+        return true;
+      }
+    }
+    log('No address suggestion available yet');
+    return false;
   }
 
   async function chooseDropdown(name, keywords, value) {
@@ -251,7 +301,6 @@
     log('Data: title="' + data.title + '" price="' + data.price + '" photos=' + (data.photoUrls ? data.photoUrls.length : 0));
 
     var fields = [
-      { name: 'address', kw: ['dirección', 'address', 'ubicación', 'location'], val: data.address },
       { name: 'price per month', kw: ['price per month', 'precio por mes', 'monthly price'], val: data.price },
       { name: 'rental description', kw: ['rental description', 'descripción del alquiler', 'descripción'], val: data.description },
       { name: 'property square feet', kw: ['property square feet', 'square feet', 'pies cuadrados', 'metros cuadrados'], val: data.propertySquareFeet || data.area },
@@ -260,6 +309,9 @@
 
     var filled = findAndSet(fields);
     log('Filled fields: ' + (filled.length ? filled.join(', ') : 'NONE'));
+
+    var addressConfirmed = await fillAndConfirmAddress(data.address);
+    if (data.address && addressConfirmed) filled.push('address');
 
     // Facebook usa menús React para estos controles. Se seleccionan por el
     // texto visible de cada opción, no intentando escribir dentro del menú.
@@ -290,6 +342,7 @@
       log('Uploaded photos: ' + photoCount);
     }
 
+    var photosHandled = !data.photoUrls || data.photoUrls.length === 0 || photoCount > 0;
     if (filled.length > 0 || photoCount > 0) {
       var parts = [];
       if (filled.length > 0) parts.push('Campos: ' + filled.length);
@@ -306,8 +359,10 @@
 
     // Conserva los datos si Facebook aún no terminó de cargar. Así se puede
     // pulsar “Auto-llenar ahora” desde el popup sin regresar a Laujim.
-    if (filled.length > 0 || photoCount > 0) {
+    if (filled.length > 0 && addressConfirmed && photosHandled) {
       chrome.runtime.sendMessage({ type: 'CLEAR_MARKETPLACE_DATA' });
+    } else {
+      log('Data retained: address or photos still need attention');
     }
   }
 
