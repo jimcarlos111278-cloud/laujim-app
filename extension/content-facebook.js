@@ -102,7 +102,7 @@
   }
 
   function findDropdown(keywords) {
-    var items = document.querySelectorAll('select, [role="combobox"], button[aria-haspopup="listbox"], [role="button"][aria-expanded], [role="button"][aria-haspopup]');
+    var items = document.querySelectorAll('select, input[aria-haspopup], [role="combobox"], button, [role="button"]');
     for (var i = 0; i < items.length; i++) {
       if (matchKeywords(items[i], keywords)) return items[i];
     }
@@ -119,13 +119,24 @@
       if (!matches) continue;
       var container = labels[l];
       for (var level = 0; level < 3 && container; level++, container = container.parentElement) {
-        var nearby = container.querySelectorAll('select, [role="combobox"], button[aria-haspopup="listbox"], [role="button"][aria-expanded], [role="button"][aria-haspopup]');
+        var nearby = container.querySelectorAll('select, input[aria-haspopup], [role="combobox"], button, [role="button"]');
         for (var n = 0; n < nearby.length; n++) {
           if (nearby[n] !== labels[l]) return nearby[n];
         }
       }
     }
     return null;
+  }
+
+  function activate(el) {
+    el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+
+  function isVisible(el) {
+    var style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && el.getClientRects().length > 0;
   }
 
   function findEditable(keywords) {
@@ -166,8 +177,17 @@
     if (!address) return true;
     var field = findEditable(['direccion', 'address', 'ubicacion', 'location']);
     if (!field) {
-      log('Could not find address field');
-      return false;
+      // Algunas variantes de Facebook muestran primero un botón “Ubicación”.
+      var addressButton = findDropdown(['direccion', 'address', 'ubicacion', 'location']);
+      if (addressButton) {
+        activate(addressButton);
+        await new Promise(function (resolve) { setTimeout(resolve, 300); });
+        field = findEditable(['direccion', 'address', 'ubicacion', 'location']);
+      }
+      if (!field) {
+        log('Could not find address field');
+        return false;
+      }
     }
     field.focus();
     setNativeValue(field, address);
@@ -176,9 +196,10 @@
       await new Promise(function (resolve) { setTimeout(resolve, 300); });
       var options = document.querySelectorAll('[role="option"], [role="listbox"] li, [role="listbox"] [role="button"]');
       for (var i = 0; i < options.length; i++) {
+        if (!isVisible(options[i])) continue;
         var optionText = normalizeText(options[i].textContent || '');
         if (optionText && optionText.indexOf('ubicacion actual') < 0 && optionText.indexOf('current location') < 0) {
-          options[i].click();
+          activate(options[i]);
           log('Address suggestion selected: ' + (options[i].textContent || '').trim());
           return true;
         }
@@ -200,15 +221,16 @@
       setNativeValue(control, value);
       return true;
     }
-    control.click();
+    activate(control);
     var wanted = normalizeText(value);
     for (var attempt = 0; attempt < 8; attempt++) {
       await new Promise(function (resolve) { setTimeout(resolve, 250); });
       var options = document.querySelectorAll('[role="option"], [role="menuitemradio"], [role="radio"], [role="listbox"] li');
       for (var i = 0; i < options.length; i++) {
+        if (!isVisible(options[i])) continue;
         var optionText = normalizeText(options[i].textContent || '');
         if (optionText === wanted || optionText.indexOf(wanted) >= 0 || wanted.indexOf(optionText) >= 0) {
-          options[i].click();
+          activate(options[i]);
           log('Selected dropdown ' + name + ': ' + value);
           return true;
         }
