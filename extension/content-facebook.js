@@ -112,6 +112,10 @@
 
   async function uploadOnePhoto(url, idx) {
     try {
+      if (!url || url === 'data:' || url.indexOf('data:image') === 0) {
+        console.log('[Laujim] Skipping data URI photo, too large for storage');
+        return false;
+      }
       var res = await fetch(url, { mode: 'cors', credentials: 'omit' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       var blob = await res.blob();

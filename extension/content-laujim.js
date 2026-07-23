@@ -8,18 +8,19 @@
     });
   }
 
-  function tryStoreFromDOM() {
+  function checkAndStore() {
     var el = document.getElementById('__LAUJIM_EXT_DATA__');
-    if (!el) return false;
+    if (!el) return;
     try {
       var data = JSON.parse(el.textContent);
       storeData(data);
       el.setAttribute('data-status', 'saved');
-      setTimeout(function () { el.remove(); }, 2000);
-      return true;
+      setTimeout(function () { 
+        var e = document.getElementById('__LAUJIM_EXT_DATA__');
+        if (e) e.remove();
+      }, 2000);
     } catch (e) {
       el.remove();
-      return false;
     }
   }
 
@@ -32,30 +33,13 @@
   });
 
   var observer = new MutationObserver(function () {
-    if (tryStoreFromDOM()) {
-      observer.disconnect();
-    }
+    checkAndStore();
   });
   observer.observe(document.body, { childList: true, subtree: true });
-  tryStoreFromDOM();
-  setTimeout(function () { observer.disconnect(); }, 10000);
 
-  window.addEventListener('laujim-marketplace-save-url', function (e) {
-    if (e.detail) {
-      chrome.runtime.sendMessage({
-        type: 'SAVE_URL',
-        aptId: e.detail.aptId,
-        aptName: e.detail.aptName,
-        url: e.detail.url
-      });
-    }
-  });
+  setInterval(checkAndStore, 1000);
 
-  window.addEventListener('laujim-marketplace-remove-url', function (e) {
-    if (e.detail && e.detail.aptId) {
-      chrome.runtime.sendMessage({ type: 'REMOVE_URL', aptId: e.detail.aptId });
-    }
-  });
+  checkAndStore();
 
   console.log('[Laujim Ext] Content script listo en Laujim');
 })();
