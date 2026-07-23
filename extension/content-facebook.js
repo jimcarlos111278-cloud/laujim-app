@@ -136,6 +136,21 @@
     return false;
   }
 
+  function setToggle(name, keywords, wanted) {
+    var controls = document.querySelectorAll('input[type="checkbox"], [role="checkbox"], [role="switch"]');
+    for (var i = 0; i < controls.length; i++) {
+      if (!matchKeywords(controls[i], keywords)) continue;
+      var checked = controls[i].tagName.toLowerCase() === 'input'
+        ? controls[i].checked
+        : controls[i].getAttribute('aria-checked') === 'true';
+      if (checked !== Boolean(wanted)) controls[i].click();
+      log('Set toggle ' + name + ': ' + Boolean(wanted));
+      return true;
+    }
+    log('Could not find toggle: ' + name);
+    return false;
+  }
+
   function matchKeywords(el, keywords) {
     var t = textNear(el);
     for (var k = 0; k < keywords.length; k++) {
@@ -260,6 +275,12 @@
       if (await chooseDropdown(dropdowns[d].name, dropdowns[d].kw, dropdowns[d].val)) {
         filled.push(dropdowns[d].name);
       }
+    }
+    if (setToggle('cat friendly', ['se aceptan gatos', 'cat friendly', 'gatos'], data.catFriendly)) {
+      filled.push('cat friendly');
+    }
+    if (setToggle('dog friendly', ['se aceptan perros', 'dog friendly', 'perros'], data.dogFriendly)) {
+      filled.push('dog friendly');
     }
 
     // Checkboxes para mascotas
