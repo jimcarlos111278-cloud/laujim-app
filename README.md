@@ -205,6 +205,14 @@ Proyecto Laujim APP/
 │   ├── photos/                   # Fotos de apartamentos (subidas como archivos)
 │   └── contracts/                # Contratos PDF subidos
 │
+├── extension/                     # Chrome Extension: auto-fill Facebook Marketplace
+│   ├── manifest.json              # MV3, permissions: storage+tabs, host: Render+FB
+│   ├── content-laujim.js          # Captura datos de Marketplace desde Laujim
+│   ├── content-facebook.js        # Detecta FB Marketplace y rellena campos + fotos
+│   ├── background.js              # Service worker: almacena datos, URLs guardadas
+│   ├── popup.html / popup.js      # Popup: estado, auto-llenar, anuncios guardados
+│   └── icons/icon128.png          # Icono de la extensión
+│
 ├── scripts/
 │   ├── generate-version.js       # Genera dist/version.json al build
 │   ├── copy-apk.js               # Copia APK de android/ a dist/ y public/
@@ -898,6 +906,7 @@ notifyPaymentReminder(aptName, daysLeft)
 | **Compartir** | HTML público de vacantes, descarga, PDF, WhatsApp, Gmail |
 | **Chat** | Mensajería admin ↔ inquilinos, salas por apto, presencia en línea/ausente/visto, polling 3s, heartbeat 10s |
 | **Generar Contrato** | 18 cláusulas legales, jsPDF, números a letras, auto-guardado en BD (crea inquilino si no existe, cambia apto a ocupado) |
+| **Facebook Marketplace** | Auto-llenado de anuncios con fotos desde la app mediante Chrome Extension. Botón "Auto-llenar" en detalle del apto: envía título, precio, descripción, specs y fotos a la extensión → se rellena solo en FB. Gestión de URLs guardadas con Abrir/Eliminar desde el popup de la extensión |
 | **Configuración** | 6 temas visuales, notificaciones (navegador + APK), passwords inquilinos, reset DB, logout |
 
 ---
@@ -1021,7 +1030,54 @@ npm run sync-seed
 
 ---
 
-## APK Android — Problemas Conocidos
+## Extensión de Chrome — Llenar Laujim
+
+Extensión que **auto-llena los anuncios de Facebook Marketplace** con los datos del apartamento desde Gestión Laujim. Incluye fotos, precio, descripción, número de habitaciones y baños.
+
+### Arquitectura
+
+La extensión se comunica con la app Laujim a través de un **elemento oculto en el DOM** (más fiable que `postMessage`):
+
+```
+[Laujim App] ──crea──► <div id="__LAUJIM_EXT_DATA__" /> ──lee──► [content-laujim.js]
+                                                                    │
+                                                              chrome.storage.local.set()
+                                                                    │
+[FB Marketplace] ◄──autoFill()──── [content-facebook.js] ◄──lee── chrome.storage.local.get()
+```
+
+### Instalación
+
+1. Abrir `chrome://extensions`
+2. Activar **Modo desarrollador** (esquina superior derecha)
+3. "Cargar descomprimida" → seleccionar la carpeta `extension/`
+4. Recargar la extensión después de cada actualización (🔄)
+
+### Uso
+
+1. En Laujim, ir al detalle de un apartamento **Disponible**
+2. Hacer clic en **"Auto-llenar"** (sección Facebook Marketplace)
+3. La app envía los datos a la extensión y espera confirmación
+4. Se abre `https://www.facebook.com/marketplace/create/housing`
+5. La extensión detecta la página, lee los datos y rellena automáticamente:
+   - **Campos**: título, precio, descripción, habitaciones, baños, área
+   - **Fotos**: las que tengan URL HTTP real (no data URI)
+6. Aparece notificación verde "✓ Laujim: Campos: X · Fotos: Y"
+7. Guardar la URL publicada desde Laujim (botón "Guardar URL")
+
+### Popup de la extensión
+
+- **Estado**: muestra si hay datos listos para auto-llenar
+- **Auto-llenar ahora**: fuerza el llenado en la pestaña activa de FB
+- **Anuncios guardados**: lista de URLs de publicaciones guardadas con botones Abrir/Eliminar
+
+### Gestión de anuncios
+
+- Guardar URL: en Laujim, botón "Guardar URL" → notifica a la extensión
+- Eliminar URL: botón "Eliminar URL" en Laujim o desde el popup de la extensión
+- Las URLs se almacenan en `chrome.storage.local`
+
+---
 
 ### Pantalla en blanco
 1. **`usesCleartextTraffic`**: Android 9+ bloquea HTTP. Ya agregado en `AndroidManifest.xml`.
@@ -1049,6 +1105,19 @@ npm run sync-seed
 ---
 
 ## Historial de Cambios
+
+### 2026-07-23 — v2.4.0 — Chrome Extension: auto-fill Facebook Marketplace con fotos
+- **New**: `extension/` — Chrome Extension Manifest V3 completa:
+  - `content-laujim.js`: captura datos desde Laujim via DOM bridge + postMessage
+  - `content-facebook.js`: detecta FB Marketplace, rellena campos + sube fotos automáticamente, polling con reintentos hasta 45s, detección de navegación SPA
+  - `background.js`: service worker, almacenamiento chrome.storage, gestión de URLs guardadas
+  - `popup.html/js`: estado de datos, botón auto-llenar, lista de anuncios guardados con Abrir/Eliminar
+- **New**: `src/pages/ApartmentDetail.jsx` — `autoFillMarketplace()` ahora espera confirmación de la extensión vía atributo `data-status` antes de abrir FB. Incluye URLs de fotos (excepto data URI) en los datos enviados. Botón "Eliminar URL" notifica a la extensión
+- **New**: `src/utils/marketplaceBookmarklet.js` — `generateMarketplaceJson()` ahora acepta `photoUrls[]`, devuelve objeto (no string). Nueva `generateMarketplaceJsonString()` helper
+- **New**: `src/pages/Settings.jsx` — sección de instalación de la extensión (emerald box), bookmarklet legacy colapsado en details
+- **Fix**: comunicación app↔extensión ahora usa DOM hidden element + MutationObserver persistente + setInterval 1s (sin timeout) para máxima fiabilidad
+- **Fix**: filtro de data URI en photoUrls para evitar exceder límite de chrome.storage
+- **Update**: `README.md` — sección completa de la extensión, estructura, instalación y uso
 
 ### 2026-07-22 — v2.3.0 — Temas pastel inmersivos, antecedentes policiales, predial, PostgreSQL, QR escáner
 - **New**: Sistema de 6 temas visuales (`src/utils/theme.js`): Claro, Oscuro, Rosa, Verde, Azul, Amarillo. Basado en regla 60-30-10 con CSS variables. Reemplaza `darkMode.js`.

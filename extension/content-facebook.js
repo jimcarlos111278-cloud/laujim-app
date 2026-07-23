@@ -1,8 +1,15 @@
 (function () {
   'use strict';
 
-  var RETRY_INTERVAL = 1200;
-  var MAX_WAIT_MS = 45000;
+  var ATTEMPTS = 0;
+  var MAX_ATTEMPTS = 60;
+  var POLL_MS = 1500;
+
+  function log(msg) {
+    console.log('[Laujim] ' + msg);
+  }
+
+  log('Content script loaded, path: ' + window.location.pathname);
 
   function setNativeValue(el, val) {
     var tag = el.tagName.toLowerCase();
@@ -17,9 +24,7 @@
       return;
     }
     var proto = Object.getOwnPropertyDescriptor(
-      tag === 'input' ? HTMLInputElement.prototype :
-      tag === 'textarea' ? HTMLTextAreaElement.prototype :
-      null, 'value'
+      tag === 'input' ? HTMLInputElement.prototype : HTMLTextAreaElement.prototype, 'value'
     );
     if (proto && proto.set) {
       proto.set.call(el, val);
@@ -30,164 +35,144 @@
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function findAllInputs() {
+  function getAllEditable() {
     return document.querySelectorAll(
       'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]), ' +
-      'textarea, select, div[contenteditable="true"]'
+      'textarea, select, div[contenteditable="true"], div[role="textbox"], ' +
+      'div[data-lexical-editor="true"], div[contenteditable="plaintext-only"]'
     );
   }
 
-  function matchesLabel(el, keywords) {
-    var aria = (el.getAttribute('aria-label') || '').toLowerCase();
-    var ph = (el.getAttribute('placeholder') || '').toLowerCase();
-    var name = (el.getAttribute('name') || '').toLowerCase();
-    var testId = (el.getAttribute('data-testid') || '').toLowerCase();
-    var label = '';
-    var lbl = el.closest('label');
-    if (lbl) label = lbl.textContent.toLowerCase();
-    var parentEl = el.parentElement;
-    if (parentEl) {
-      var grandParent = parentEl.parentElement;
-      if (grandParent) label += ' ' + grandParent.textContent.toLowerCase();
+  function textNear(el) {
+    var t = '';
+    var p = el.parentElement;
+    for (var i = 0; i < 5 && p; i++) {
+      t = (p.textContent || '') + ' ' + t;
+      p = p.parentElement;
     }
-    var allText = aria + ' ' + ph + ' ' + name + ' ' + testId + ' ' + label;
+    var prev = el.previousElementSibling;
+    if (prev) t = (prev.textContent || '') + ' ' + t;
+    var label = el.closest('label');
+    if (label) t = (label.textContent || '') + ' ' + t;
+    t += ' ' + (el.getAttribute('aria-label') || '');
+    t += ' ' + (el.getAttribute('placeholder') || '');
+    t += ' ' + (el.getAttribute('name') || '');
+    return t.toLowerCase();
+  }
+
+  function matchKeywords(el, keywords) {
+    var t = textNear(el);
     for (var k = 0; k < keywords.length; k++) {
-      if (allText.indexOf(keywords[k]) >= 0) return true;
+      if (t.indexOf(keywords[k]) >= 0) return true;
     }
     return false;
   }
 
-  function setFieldByLabel(keywords, val) {
-    if (val === undefined || val === null || val === '') return false;
-    var inputs = findAllInputs();
-    for (var i = 0; i < inputs.length; i++) {
-      if (matchesLabel(inputs[i], keywords) && !inputs[i].value) {
-        try {
-          setNativeValue(inputs[i], val);
-          return true;
-        } catch (e) {
-          console.warn('[Laujim] setField failed:', keywords[0], e);
-        }
-      }
-    }
-    for (var j = 0; j < inputs.length; j++) {
-      if (matchesLabel(inputs[j], keywords)) {
-        try {
-          setNativeValue(inputs[j], val);
-          return true;
-        } catch (e) {}
-      }
-    }
-    return false;
-  }
+  function findAndSet(fields) {
+    var result = [];
+    var all = getAllEditable();
+    log('Found ' + all.length + ' editable elements');
 
-  function findPhotoUploadTarget() {
-    var selectors = [
-      'input[type="file"]',
-      'form input[type="file"]',
-      'div[role="button"] input[type="file"]',
-    ];
-    for (var s = 0; s < selectors.length; s++) {
-      var el = document.querySelector(selectors[s]);
-      if (el) return el;
-    }
-    return null;
-  }
-
-  function clickPhotoButton() {
-    var labels = ['add photo', 'add photos', 'agregar foto', 'añadir foto', 'subir foto', 'upload'];
-    var all = document.querySelectorAll('div[role="button"], span[role="button"], button, a');
-    for (var i = 0; i < all.length; i++) {
-      var t = (all[i].textContent || '').toLowerCase();
-      var aria = (all[i].getAttribute('aria-label') || '').toLowerCase();
-      for (var l = 0; l < labels.length; l++) {
-        if (t.indexOf(labels[l]) >= 0 || aria.indexOf(labels[l]) >= 0) {
-          all[i].click();
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  async function uploadOnePhoto(url, idx) {
-    try {
-      if (!url || url === 'data:' || url.indexOf('data:image') === 0) {
-        console.log('[Laujim] Skipping data URI photo, too large for storage');
-        return false;
-      }
-      var res = await fetch(url, { mode: 'cors', credentials: 'omit' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      var blob = await res.blob();
-      var ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
-      var file = new File([blob], 'foto_' + idx + '.' + ext, { type: blob.type });
-
-      var input = findPhotoUploadTarget();
-      if (input) {
-        var dt = new DataTransfer();
-        dt.items.add(file);
-        Object.defineProperty(input, 'files', { value: dt.files, configurable: true, writable: false });
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        await new Promise(function (r) { setTimeout(r, 600); });
-        return true;
-      }
-
-      if (clickPhotoButton()) {
-        await new Promise(function (r) { setTimeout(r, 2000); });
-        var input2 = findPhotoUploadTarget();
-        if (input2) {
-          var dt2 = new DataTransfer();
-          dt2.items.add(file);
-          Object.defineProperty(input2, 'files', { value: dt2.files, configurable: true, writable: false });
-          input2.dispatchEvent(new Event('change', { bubbles: true }));
-          await new Promise(function (r) { setTimeout(r, 600); });
-          return true;
-        }
-      }
-
-      return false;
-    } catch (e) {
-      console.warn('[Laujim] Photo', idx, 'failed:', e.message);
-      return false;
-    }
-  }
-
-  async function fillForm(data) {
-    var fields = [
-      { kw: ['título', 'title', 'titulo'], val: data.title },
-      { kw: ['precio', 'price'], val: data.price },
-      { kw: ['descripción', 'description', 'descripcion'], val: data.description },
-      { kw: ['habitaciones', 'bedroom', 'cuartos', 'rooms'], val: data.bedrooms },
-      { kw: ['baños', 'bath', 'banos', 'bathroom'], val: data.bathrooms },
-      { kw: ['metros', 'square', 'área', 'area', 'tamaño', 'size', 'superficie', 'sq. ft'], val: data.area },
-    ];
-
-    var filled = [];
     for (var f = 0; f < fields.length; f++) {
-      for (var t = 0; t < 3; t++) {
-        if (setFieldByLabel(fields[f].kw, fields[f].val)) {
-          filled.push(fields[f].kw[0]);
-          break;
+      if (!fields[f].val && fields[f].val !== 0) continue;
+      var found = false;
+      for (var a = 0; a < all.length; a++) {
+        if (all[a].value && all[a].value.length > 0) continue;
+        if (matchKeywords(all[a], fields[f].kw)) {
+          try {
+            setNativeValue(all[a], fields[f].val);
+            result.push(fields[f].name);
+            found = true;
+            break;
+          } catch (e) {
+            log('Error setting ' + fields[f].name + ': ' + e.message);
+          }
         }
-        await new Promise(function (r) { setTimeout(r, 500); });
+      }
+      if (!found) {
+        for (var a2 = 0; a2 < all.length; a2++) {
+          if (matchKeywords(all[a2], fields[f].kw)) {
+            try {
+              setNativeValue(all[a2], fields[f].val);
+              result.push(fields[f].name + '(filled)');
+              found = true;
+              break;
+            } catch (e) {}
+          }
+        }
+      }
+      if (!found) log('Could not find field: ' + fields[f].name + ' (' + fields[f].kw.join(',') + ')');
+    }
+    return result;
+  }
+
+  async function uploadPhotos(photoUrls) {
+    if (!photoUrls || photoUrls.length === 0 || photoUrls[0] === '') return 0;
+    var uploaded = 0;
+    for (var i = 0; i < photoUrls.length; i++) {
+      var url = photoUrls[i];
+      if (!url || url.indexOf('data:') === 0) continue;
+      try {
+        var res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var blob = await res.blob();
+        var ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        var file = new File([blob], 'foto_' + (i + 1) + '.' + ext, { type: blob.type });
+
+        var inputs = document.querySelectorAll('input[type="file"]');
+        var input = null;
+        for (var ii = 0; ii < inputs.length; ii++) {
+          if ((inputs[ii].getAttribute('accept') || '').indexOf('image') >= 0) { input = inputs[ii]; break; }
+        }
+        if (!input) input = inputs[0];
+
+        if (input) {
+          var dt = new DataTransfer();
+          dt.items.add(file);
+          Object.defineProperty(input, 'files', { value: dt.files, configurable: true, writable: false });
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          uploaded++;
+          log('Photo ' + (i + 1) + ' uploaded via file input');
+          await new Promise(function (r) { setTimeout(r, 500); });
+        } else {
+          log('No file input found for photo ' + (i + 1));
+        }
+      } catch (e) {
+        log('Photo ' + (i + 1) + ' failed: ' + e.message);
       }
     }
-    return filled;
+    return uploaded;
   }
 
   async function autoFill() {
+    log('autoFill() called');
+
     var data = await new Promise(function (resolve) {
       chrome.runtime.sendMessage({ type: 'GET_MARKETPLACE_DATA' }, resolve);
     });
-    if (!data || !data.title) return;
+    log('Data from storage: ' + (data ? 'YES' : 'NO'));
+    if (!data || !data.title) {
+      log('No data available, stopping');
+      return;
+    }
+    log('Data: title="' + data.title + '" price="' + data.price + '" photos=' + (data.photoUrls ? data.photoUrls.length : 0));
 
-    var filled = await fillForm(data);
+    var fields = [
+      { name: 'title', kw: ['título', 'title', 'titulo', 'nombre del anuncio', 'listing title'], val: data.title },
+      { name: 'price', kw: ['precio', 'price', 'valor', 'amount'], val: data.price },
+      { name: 'description', kw: ['descripción', 'description', 'descripcion', 'detalles', 'details'], val: data.description },
+      { name: 'bedrooms', kw: ['habitaciones', 'bedroom', 'bedrooms', 'cuartos', 'dormitorios'], val: data.bedrooms },
+      { name: 'bathrooms', kw: ['baños', 'bath', 'bathrooms', 'banos', 'baño', 'bano'], val: data.bathrooms },
+      { name: 'area', kw: ['metros', 'square', 'área', 'area', 'tamaño', 'size', 'superficie', 'sq. ft', 'm²'], val: data.area },
+    ];
+
+    var filled = findAndSet(fields);
+    log('Filled fields: ' + (filled.length ? filled.join(', ') : 'NONE'));
 
     var photoCount = 0;
-    if (data.photoUrls && data.photoUrls.length > 0 && data.photoUrls[0]) {
-      for (var i = 0; i < data.photoUrls.length; i++) {
-        if (await uploadOnePhoto(data.photoUrls[i], i + 1)) photoCount++;
-      }
+    if (data.photoUrls && data.photoUrls.length > 0) {
+      photoCount = await uploadPhotos(data.photoUrls);
+      log('Uploaded photos: ' + photoCount);
     }
 
     if (filled.length > 0 || photoCount > 0) {
@@ -195,68 +180,76 @@
       if (filled.length > 0) parts.push('Campos: ' + filled.length);
       if (photoCount > 0) parts.push('Fotos: ' + photoCount);
       var msg = document.createElement('div');
-      msg.style.cssText = 'position:fixed;top:20px;right:20px;z-index:999999;background:#059669;color:white;padding:16px 20px;border-radius:12px;font-family:sans-serif;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);max-width:360px;line-height:1.5;z-index:2147483647';
+      msg.style.cssText = 'position:fixed;top:20px;right:20px;z-index:2147483647;background:#059669;color:white;padding:16px 20px;border-radius:12px;font-family:sans-serif;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);max-width:360px;line-height:1.5;';
       msg.textContent = '✓ Laujim: ' + parts.join(' · ');
       document.body.appendChild(msg);
       setTimeout(function () { msg.remove(); }, 6000);
+      log('Notification shown');
+    } else {
+      log('NOTHING was filled');
     }
 
     chrome.runtime.sendMessage({ type: 'CLEAR_MARKETPLACE_DATA' });
   }
 
-  var started = false;
-  var startTime = Date.now();
-
   function checkAndRun() {
-    if (started) return;
     var path = window.location.pathname.toLowerCase();
-    var isMarketplace = path.indexOf('/marketplace/') >= 0;
-    if (!isMarketplace) return;
+    var isMP = path.indexOf('/marketplace/') >= 0;
+    log('checkAndRun #' + ATTEMPTS + ' path=' + path + ' isMarketplace=' + isMP);
 
-    if (Date.now() - startTime > MAX_WAIT_MS) return;
+    if (!isMP) return;
 
-    var anyInput = document.querySelector('input:not([type="hidden"]), textarea, select');
-    if (!anyInput) {
-      setTimeout(checkAndRun, 800);
+    var inputs = document.querySelectorAll('input, textarea, select');
+    log('Inputs on page: ' + inputs.length);
+    if (inputs.length === 0) {
+      ATTEMPTS++;
+      if (ATTEMPTS < MAX_ATTEMPTS) setTimeout(checkAndRun, POLL_MS);
       return;
     }
 
     chrome.runtime.sendMessage({ type: 'GET_MARKETPLACE_DATA' }, function (data) {
+      log('Data check: ' + (data ? 'found' : 'null'));
       if (data && data.title) {
-        started = true;
-        setTimeout(function () { autoFill(); }, 500);
+        log('Data found! Starting auto-fill');
+        setTimeout(autoFill, 800);
       } else {
-        setTimeout(checkAndRun, RETRY_INTERVAL);
+        ATTEMPTS++;
+        if (ATTEMPTS < MAX_ATTEMPTS) setTimeout(checkAndRun, POLL_MS);
       }
     });
   }
 
-  startTime = Date.now();
-  setTimeout(checkAndRun, 1500);
+  var initialPath = window.location.pathname.toLowerCase();
+  if (initialPath.indexOf('/marketplace/') >= 0) {
+    log('On marketplace page, starting checks');
+    setTimeout(checkAndRun, 2000);
+  } else {
+    log('Not on marketplace page, waiting for navigation');
+  }
 
   var lastUrl = window.location.href;
   setInterval(function () {
     if (window.location.href !== lastUrl) {
       lastUrl = window.location.href;
+      log('URL changed to: ' + window.location.pathname);
       if (window.location.pathname.toLowerCase().indexOf('/marketplace/') >= 0) {
-        started = false;
-        startTime = Date.now();
-        setTimeout(checkAndRun, 1000);
+        ATTEMPTS = 0;
+        setTimeout(checkAndRun, 1500);
       }
     }
   }, 500);
 
   window.addEventListener('popstate', function () {
+    log('popstate: ' + window.location.pathname);
     if (window.location.pathname.toLowerCase().indexOf('/marketplace/') >= 0) {
-      started = false;
-      startTime = Date.now();
-      setTimeout(checkAndRun, 1000);
+      ATTEMPTS = 0;
+      setTimeout(checkAndRun, 1500);
     }
   });
 
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     if (msg.type === 'TRIGGER_AUTOFILL') {
-      started = false;
+      ATTEMPTS = 0;
       autoFill().then(function () { sendResponse({ ok: true }); });
       return true;
     }
@@ -266,5 +259,5 @@
     }
   });
 
-  console.log('[Laujim] Content script listo en Facebook');
+  log('Content script initialization complete');
 })();
