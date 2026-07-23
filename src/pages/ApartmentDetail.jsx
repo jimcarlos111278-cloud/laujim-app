@@ -391,7 +391,7 @@ export default function ApartmentDetail() {
     window.open('https://wa.me/57' + num, '_blank');
   }
 
-  async   function generateMarketplaceText() {
+  function generateMarketplaceText() {
     const title = `🏠 Arriendo Apartamento ${apt.name}`;
     const specs = [`${apt.rooms || '?'} habs`, `${apt.bathrooms || '?'} baños`, `${apt.area || '?'} m²`].join(' · ');
     const price = `💰 $${Number(apt.monthlyRent || 0).toLocaleString('es-CO')}/mes`;
