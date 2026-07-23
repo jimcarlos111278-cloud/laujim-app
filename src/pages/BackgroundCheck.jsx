@@ -4,7 +4,7 @@ import { api } from '../api';
 import { getBase } from '../utils/config';
 import Modal from '../components/Modal';
 
-const POLICE_URL = 'https://antecedentes.policia.gov.co:7005/WebJudicial/index.xhtml';
+const POLICE_URL = 'https://antecedentes.policia.gov.co:7005/WebJudicial/antecedentes.xhtml';
 
 export default function BackgroundCheck() {
   const [tenants, setTenants] = useState([]);
@@ -276,16 +276,18 @@ export default function BackgroundCheck() {
         )}
       </Modal>
 
-      {/* Police page iframe (for captcha flow) */}
+      {/* Police page iframe (direct URL — captcha works on correct domain) */}
       <Modal open={showPoliceFrame} onClose={() => setShowPoliceFrame(false)} title="Consultar en Policía Nacional" size="xl">
         <div className="p-2">
           {selected && (
-            <p className="text-xs text-gray-500 mb-2 px-2">
-              Resuelve el captcha, ingresa la cédula <strong>{selected.documentId}</strong> y presiona Consultar.
-              El resultado se detectará automáticamente.
-            </p>
+            <div className="text-xs text-gray-500 mb-3 px-2 space-y-1">
+              <p>1. Acepta los términos de uso en el sitio de la Policía.</p>
+              <p>2. Escribe la cédula <strong>{selected.documentId}</strong>, resuelve el captcha y presiona <strong>Consultar</strong>.</p>
+              <p>3. Ve el resultado y luego cierra esta ventana.</p>
+              <p>4. Marca manualmente <strong>Sin antecedentes</strong> o <strong>Con antecedentes</strong> abajo.</p>
+            </div>
           )}
-          <iframe src={"/api/antecedentes/police-page?doc=" + encodeURIComponent(selected?.documentId || '')}
+          <iframe src={POLICE_URL}
             className="w-full border border-gray-300 dark:border-gray-600 rounded-lg"
             style={{ height: '80vh' }} />
         </div>
