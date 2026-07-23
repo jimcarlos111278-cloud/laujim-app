@@ -14,8 +14,12 @@
     console.log('[Laujim] ' + msg);
   }
 
-  function isRentalCreationPage() {
-    return window.location.pathname.toLowerCase().indexOf('/marketplace/create/rental') >= 0;
+  function isSupportedCreationPage() {
+    var path = window.location.pathname.toLowerCase();
+    // Facebook cambia esta ruta según la cuenta, país y experimento activo.
+    // La app publicada antigua abre housing; la nueva abre rental.
+    return path.indexOf('/marketplace/create/rental') >= 0 ||
+      path.indexOf('/marketplace/create/housing') >= 0;
   }
 
   function reportError(context, error) {
@@ -217,8 +221,8 @@
   async function autoFill() {
     log('autoFill() called');
 
-    if (!isRentalCreationPage()) {
-      throw new Error('Facebook no abrió el formulario de alquiler. Inicia sesión y abre /marketplace/create/rental.');
+    if (!isSupportedCreationPage()) {
+      throw new Error('Facebook no abrió un formulario de vivienda. Inicia sesión y abre /marketplace/create/rental o /marketplace/create/housing.');
     }
 
     var data = await new Promise(function (resolve) {
@@ -280,10 +284,10 @@
 
   function checkAndRun() {
     var path = window.location.pathname.toLowerCase();
-    var isRental = isRentalCreationPage();
-    log('checkAndRun #' + ATTEMPTS + ' path=' + path + ' isRentalCreation=' + isRental);
+    var isCreationForm = isSupportedCreationPage();
+    log('checkAndRun #' + ATTEMPTS + ' path=' + path + ' isHousingCreation=' + isCreationForm);
 
-    if (!isRental) return;
+    if (!isCreationForm) return;
 
     var inputs = document.querySelectorAll('input, textarea, select');
     log('Inputs on page: ' + inputs.length);
@@ -306,8 +310,8 @@
   }
 
   var initialPath = window.location.pathname.toLowerCase();
-  if (isRentalCreationPage()) {
-    log('On rental creation page, starting checks');
+  if (isSupportedCreationPage()) {
+    log('On housing creation page, starting checks');
     setTimeout(checkAndRun, 2000);
   } else {
     log('Not on marketplace page, waiting for navigation');
@@ -318,7 +322,7 @@
     if (window.location.href !== lastUrl) {
       lastUrl = window.location.href;
       log('URL changed to: ' + window.location.pathname);
-      if (isRentalCreationPage()) {
+      if (isSupportedCreationPage()) {
         ATTEMPTS = 0;
         setTimeout(checkAndRun, 1500);
       }
@@ -327,7 +331,7 @@
 
   window.addEventListener('popstate', function () {
     log('popstate: ' + window.location.pathname);
-    if (isRentalCreationPage()) {
+    if (isSupportedCreationPage()) {
       ATTEMPTS = 0;
       setTimeout(checkAndRun, 1500);
     }
