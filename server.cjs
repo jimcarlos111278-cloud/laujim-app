@@ -695,6 +695,15 @@ app.post('/editor/api/exec', editorAuth, (req, res) => {
 
 app.use('/editor', editorAuth, express.static(path.join(__dirname, 'editor')));
 
+app.get('/', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'dist', 'index.html'), err => {
+    if (err) {
+      console.error('Error sending index.html:', err.message);
+      res.status(500).send('Error loading the app.');
+    }
+  });
+});
+
 app.use(express.static(path.resolve(__dirname, 'dist')));
 
 app.use((req, res) => {
