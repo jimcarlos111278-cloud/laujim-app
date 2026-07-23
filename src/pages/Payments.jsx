@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, DollarSign, Filter } from 'lucide-react';
+import { Plus, Search, DollarSign, Filter, Trash2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { formatCurrency, formatShortDate } from '../utils/helpers';
@@ -94,6 +94,16 @@ export default function Payments() {
     load();
   }
 
+  async function handleDelete(id, type) {
+    if (!confirm('¿Eliminar esta transacción?')) return;
+    if (type === 'Pago') {
+      await api.payments.delete(id);
+    } else {
+      await api.expenses.delete(id);
+    }
+    load();
+  }
+
   const totalPayments = payments.reduce((s, p) => s + (p.amount || 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
 
@@ -169,6 +179,7 @@ export default function Payments() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Apartamento</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Concepto</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Monto</th>
+                <th className="px-4 py-3 w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -181,6 +192,11 @@ export default function Payments() {
                     <td className="px-4 py-3">{apt?.name || 'General'}</td>
                     <td className="px-4 py-3 text-gray-600">{t.description || t.category || t.type}</td>
                     <td className="px-4 py-3 text-right font-medium">{formatCurrency(t.amount)}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => handleDelete(t.id, t._type)} className="p-1 text-gray-300 hover:text-red-500 transition-colors" title="Eliminar">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
