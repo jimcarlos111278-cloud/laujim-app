@@ -1112,6 +1112,76 @@ export default function ApartmentDetail() {
               <input type="url" value={form.electricityPaymentUrl || ''} onChange={e => setForm({...form, electricityPaymentUrl: e.target.value})} placeholder="URL del pago (opcional)" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
           </div>
+
+          <div className="border-t border-gray-200 pt-4">
+            <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2"><Globe className="w-4 h-4" /> Facebook Marketplace — Arriendo</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilidad</label>
+                <input type="date" value={form.marketplaceAvailability || ''} onChange={e => setForm({...form, marketplaceAvailability: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de lavadero</label>
+                <select value={form.marketplaceLaundryType || 'Ninguno'} onChange={e => setForm({...form, marketplaceLaundryType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="Ninguno">Ninguno</option>
+                  <option value="En el edificio">En el edificio</option>
+                  <option value="En la unidad">En la unidad</option>
+                  <option value="Con conexiones">Con conexiones</option>
+                  <option value="No disponible">No disponible</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de estacionamiento</label>
+                <select value={form.marketplaceParkingType || 'Ninguno'} onChange={e => setForm({...form, marketplaceParkingType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="Ninguno">Ninguno</option>
+                  <option value="Estacionamiento en la calle">Estacionamiento en la calle</option>
+                  <option value="Estacionamiento en garaje">Estacionamiento en garaje</option>
+                  <option value="Estacionamiento fuera de la calle">Estacionamiento fuera de la calle</option>
+                  <option value="Entrada para vehículos">Entrada para vehículos</option>
+                  <option value="Estacionamiento con valet">Estacionamiento con valet</option>
+                  <option value="Lote de estacionamiento">Lote de estacionamiento</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de aire acondicionado</label>
+                <select value={form.marketplaceAirConditioningType || 'Ninguno'} onChange={e => setForm({...form, marketplaceAirConditioningType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="Ninguno">Ninguno</option>
+                  <option value="Central">Central</option>
+                  <option value="Ventana">Ventana</option>
+                  <option value="Split">Split</option>
+                  <option value="Portátil">Portátil</option>
+                  <option value="Evaporativo">Evaporativo</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de calefacción</label>
+                <select value={form.marketplaceHeatingType || 'Ninguno'} onChange={e => setForm({...form, marketplaceHeatingType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="Ninguno">Ninguno</option>
+                  <option value="Central">Central</option>
+                  <option value="Eléctrica">Eléctrica</option>
+                  <option value="Gas">Gas</option>
+                  <option value="Radiador">Radiador</option>
+                  <option value="Bomba de calor">Bomba de calor</option>
+                  <option value="Aire forzado">Aire forzado</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pies cuadrados de la propiedad</label>
+                <input type="number" value={form.marketplaceSquareFeet || ''} onChange={e => setForm({...form, marketplaceSquareFeet: e.target.value})} placeholder="Opcional. Se calculará desde m² si se deja vacío" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div className="flex items-center gap-6 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.marketplaceCatFriendly === true} onChange={e => setForm({...form, marketplaceCatFriendly: e.target.checked})} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  <span className="text-sm text-gray-700">Se aceptan gatos</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.marketplaceDogFriendly === true} onChange={e => setForm({...form, marketplaceDogFriendly: e.target.checked})} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  <span className="text-sm text-gray-700">Se aceptan perros</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
             <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />

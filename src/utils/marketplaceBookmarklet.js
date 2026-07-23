@@ -55,13 +55,13 @@ export function generateMarketplaceJson(apt, photoUrls) {
     area: String(apt.area || ''),
     propertySquareFeet: String(propertySquareFeet),
     rentalType: 'Apartment/condo',
-    // Propiedades preparadas para el formulario de arriendo de Facebook.
-    // La app puede guardarlas con estos mismos nombres cuando se añadan al UI.
     availability: String(apt.marketplaceAvailability || apt.availableDate || apt.availability || ''),
-    laundryType: String(apt.marketplaceLaundryType || apt.laundryType || 'None'),
-    parkingType: String(apt.marketplaceParkingType || apt.parkingType || 'None'),
-    airConditioningType: String(apt.marketplaceAirConditioningType || apt.airConditioningType || 'None'),
-    heatingType: String(apt.marketplaceHeatingType || apt.heatingType || 'None'),
+    laundryType: String(apt.marketplaceLaundryType || apt.laundryType || 'Ninguno'),
+    parkingType: String(apt.marketplaceParkingType || apt.parkingType || 'Ninguno'),
+    airConditioningType: String(apt.marketplaceAirConditioningType || apt.airConditioningType || 'Ninguno'),
+    heatingType: String(apt.marketplaceHeatingType || apt.heatingType || 'Ninguno'),
+    catFriendly: apt.marketplaceCatFriendly === true || apt.catFriendly === true || false,
+    dogFriendly: apt.marketplaceDogFriendly === true || apt.dogFriendly === true || false,
     photoUrls: photoUrls || [],
   };
 }

@@ -262,6 +262,31 @@
       }
     }
 
+    // Checkboxes para mascotas
+    var checkboxes = [
+      { name: 'cat friendly', kw: ['gatos', 'cat', 'gato'], val: data.catFriendly === true },
+      { name: 'dog friendly', kw: ['perros', 'dog', 'perro'], val: data.dogFriendly === true }
+    ];
+    for (var cb = 0; cb < checkboxes.length; cb++) {
+      if (checkboxes[cb].val) {
+        try {
+          var allCb = document.querySelectorAll('input[type="checkbox"]');
+          for (var c = 0; c < allCb.length; c++) {
+            if (matchKeywords(allCb[c], checkboxes[cb].kw)) {
+              allCb[c].checked = true;
+              allCb[c].dispatchEvent(new Event('change', { bubbles: true }));
+              allCb[c].dispatchEvent(new Event('input', { bubbles: true }));
+              filled.push(checkboxes[cb].name);
+              log('Checked: ' + checkboxes[cb].name);
+              break;
+            }
+          }
+        } catch (e) {
+          log('Error setting ' + checkboxes[cb].name + ': ' + e.message);
+        }
+      }
+    }
+
     // Las fotos se dejan fuera de esta iteración: primero estabilizamos el
     // mapeo de los campos de arriendo solicitado.
     var photoCount = 0;
