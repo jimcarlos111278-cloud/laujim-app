@@ -338,16 +338,23 @@ const crypto = require('crypto');
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-function proxyGet(hostname, port, path, cookies) {
+function proxyGet(hostname, port, path, cookies, redirects = 3) {
   return new Promise((resolve, reject) => {
     const headers = { 'User-Agent': UA };
     if (cookies) headers.Cookie = cookies;
     const opts = { hostname, port, path, method: 'GET', rejectUnauthorized: false, headers };
     const req = https.request(opts, (res) => {
-      const cookies = (res.headers['set-cookie'] || []).join('; ');
+      const respCookies = (res.headers['set-cookie'] || []).join('; ');
+      // Follow redirect (302/301)
+      if ((res.statusCode === 302 || res.statusCode === 301) && res.headers.location && redirects > 0) {
+        const loc = res.headers.location;
+        const url = new URL(loc, 'https://' + hostname + ':' + port);
+        proxyGet(url.hostname, url.port || 443, url.pathname + url.search, respCookies || cookies, redirects - 1).then(r => resolve(r)).catch(reject);
+        return;
+      }
       let data = '';
       res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve({ body: data, cookies }));
+      res.on('end', () => resolve({ body: data, cookies: respCookies }));
     });
     req.on('error', reject);
     req.end();
@@ -367,17 +374,18 @@ function proxyPost(hostname, port, path, body, cookies, redirects = 3) {
       rejectUnauthorized: false
     };
     const req = https.request(opts, (res) => {
+      const respCookies = (res.headers['set-cookie'] || []).join('; ');
       // Follow redirect (302/301)
       if ((res.statusCode === 302 || res.statusCode === 301) && res.headers.location && redirects > 0) {
         const loc = res.headers.location;
         const url = new URL(loc, 'https://' + hostname + ':' + port);
         // Change method to GET for redirect (standard behavior for 302)
-        proxyGet(url.hostname, url.port || 443, url.pathname + url.search, cookies).then(r => resolve(r.body)).catch(reject);
+        proxyGet(url.hostname, url.port || 443, url.pathname + url.search, respCookies || cookies).then(r => resolve({ body: r.body, cookies: r.cookies })).catch(reject);
         return;
       }
       let data = '';
       res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve(data));
+      res.on('end', () => resolve({ body: data, cookies: respCookies }));
     });
     req.on('error', reject);
     req.write(body);
@@ -393,36 +401,52 @@ app.get('/api/antecedentes/police-page', async (req, res) => {
     const sessionId = crypto.randomUUID();
     const host = 'antecedentes.policia.gov.co';
     const port = 7005;
-    const p = '/WebJudicial/index.xhtml';
-    const result = await proxyGet(host, port, p);
+    const base = '/WebJudicial';
 
-    // Extract form action from the page
-    const actionMatch = result.body.match(/<form[^>]*action="([^"]*)"/i);
-    const formAction = actionMatch ? actionMatch[1] : p;
+    // Get initial page and accept terms if needed
+    let { body, cookies } = await proxyGet(host, port, base + '/antecedentes.xhtml');
+
+    if (/aceptaOption|continuarBtn|Acepto/i.test(body)) {
+      // Use the form action from the HTML — the police redirects to index.xhtml
+      const termsAction = (body.match(/<form[^>]*action="([^"]*)"/i) || [])[1] || base + '/index.xhtml';
+      const termsUrl = termsAction.startsWith('/') ? termsAction : base + '/' + termsAction.replace(/^\.\//, '');
+      const vs = (body.match(/<input[^>]*name="javax\.faces\.ViewState"[^>]*value="([^"]*)"/) || [])[1] || '';
+      const ab = new URLSearchParams();
+      ab.append('form', 'form');
+      ab.append('aceptaOption', 'true');
+      ab.append('javax.faces.ViewState', vs);
+      ab.append('javax.faces.source', 'continuarBtn');
+      ab.append('javax.faces.partial.ajax', 'true');
+      ab.append('continuarBtn', 'continuarBtn');
+      const ar = await proxyPost(host, port, termsUrl, ab.toString(), cookies);
+      cookies = ar.cookies || cookies;
+      const sp = await proxyGet(host, port, base + '/antecedentes.xhtml', cookies);
+      body = sp.body;
+      cookies = sp.cookies || cookies;
+    }
+
+    // Extract form action
+    const actionMatch = body.match(/<form[^>]*action="([^"]*)"/i);
+    const formAction = actionMatch ? actionMatch[1] : base + '/antecedentes.xhtml';
 
     policeCookieStore[sessionId] = {
-      cookies: result.cookies,
+      cookies,
       formAction,
       host,
       port,
     };
 
-    let html = result.body;
-    // Add <base> tag so relative resources load from police
+    let html = body;
     html = html.replace('<head>', '<head><base href="https://' + host + ':' + port + '/WebJudicial/" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />');
-    // Rewrite all absolute paths to point to the police domain via our proxy
     html = html.replace(/(src|href)="(\/WebJudicial\/[^"\)]*)"/g, (match, attr, url) => `${attr}="https://${host}:${port}${url}"`)
-    // Rewrite form action to our proxy
     html = html.replace(/action="[^"]*"/i, 'action="/api/antecedentes/police-submit?session=' + sessionId + '"');
 
-    // Auto-fill cédula input if doc query param is provided
     const doc = req.query.doc || '';
     if (doc) {
       const script = '<script>setTimeout(function(){var e=document.getElementById("cedulaInput");if(e){e.value="' + doc.replace(/"/g, '\\"') + '";e.dispatchEvent(new Event("input"));}},500);<\/script>';
       html = html.replace('</head>', script + '</head>');
     }
 
-    // Strip CSP if present
     res.removeHeader('Content-Security-Policy');
     res.cookie('police_session', sessionId, { httpOnly: true, sameSite: 'lax', maxAge: 300000 });
     res.set('Content-Type', 'text/html; charset=utf-8');
@@ -445,12 +469,13 @@ app.post('/api/antecedentes/police-submit', async (req, res) => {
     const postData = new URLSearchParams(req.body).toString();
     const result = await proxyPost(sd.host, sd.port, sd.formAction, postData, sd.cookies);
     delete policeCookieStore[session];
+    const rb = result.body;
 
     // Parse result
-    const clean = result.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
-    const hasRecords = /REGISTRA ANTECEDENTES|TIENE ANTECEDENTES|CON ANTECEDENTES|S\u00cd REGISTRA/i.test(result);
-  const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot|recaptcha-checkbox|reCAPTCHA|cuota gratuita|captcha/i.test(result);
-    const errorMatch = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
+    const clean = rb.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
+    const hasRecords = /REGISTRA ANTECEDENTES|TIENE ANTECEDENTES|CON ANTECEDENTES|S\u00cd REGISTRA/i.test(rb);
+  const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot|recaptcha-checkbox|reCAPTCHA|cuota gratuita|captcha/i.test(rb);
+    const errorMatch = rb.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
 
     let status, detail;
     if (clean) {
@@ -459,7 +484,7 @@ app.post('/api/antecedentes/police-submit', async (req, res) => {
     } else if (hasRecords) {
       status = 'flagged';
       detail = errorMatch ? errorMatch[1] : 'Tiene antecedentes judiciales';
-    } else if (captchaBlock || /Términos de uso|Acepto que|Ley Ángel|Ley 2455|index\.xhtml/i.test(result)) {
+    } else if (captchaBlock || /Términos de uso|Acepto que|Ley Ángel|Ley 2455|index\.xhtml/i.test(rb)) {
       status = 'captcha';
       detail = 'Captcha inválido o expirado.';
     } else {
@@ -483,29 +508,68 @@ app.post('/api/antecedentes/police-submit', async (req, res) => {
 async function checkAntecedentes(document) {
   const hostname = 'antecedentes.policia.gov.co';
   const port = 7005;
-  const path = '/WebJudicial/antecedentes.xhtml';
+  const base = '/WebJudicial';
 
-  // Step 1: GET the initial page to extract JSF view state
-  const { body, cookies } = await proxyGet(hostname, port, path);
+  // Step 1: GET the initial page (always antecedes.xhtml — it's the search form URL)
+  let { body, cookies } = await proxyGet(hostname, port, base + '/antecedentes.xhtml');
+
+  // Step 2: Accept terms if needed
+  if (/aceptaOption|continuarBtn|Acepto/i.test(body)) {
+    // Use the form action from the HTML — the police redirects to index.xhtml
+    const termsAction = (body.match(/<form[^>]*action="([^"]*)"/i) || [])[1] || base + '/index.xhtml';
+    const termsUrl = termsAction.startsWith('/') ? termsAction : base + '/' + termsAction.replace(/^\.\//, '');
+    const viewState = (body.match(/<input[^>]*name="javax\.faces\.ViewState"[^>]*value="([^"]*)"/) || [])[1] || '';
+    const acceptBody = new URLSearchParams();
+    acceptBody.append('form', 'form');
+    acceptBody.append('aceptaOption', 'true');
+    acceptBody.append('javax.faces.ViewState', viewState);
+    acceptBody.append('javax.faces.source', 'continuarBtn');
+    acceptBody.append('javax.faces.partial.ajax', 'true');
+    acceptBody.append('continuarBtn', 'continuarBtn');
+    const acceptResult = await proxyPost(hostname, port, termsUrl, acceptBody.toString(), cookies);
+    cookies = acceptResult.cookies || cookies;
+
+    // GET the search page (use original URL, will redirect if needed)
+    const sp = await proxyGet(hostname, port, base + '/antecedentes.xhtml', cookies);
+    body = sp.body;
+    cookies = sp.cookies || cookies;
+
+    // If still terms, give up
+    if (/aceptaOption|continuarBtn|Acepto/i.test(body)) {
+      return { status: 'captcha', message: 'No se pudo aceptar los términos automáticamente.' };
+    }
+  }
+
+  // Step 3: Extract ViewState and form action from search page
   const viewState = (body.match(/<input[^>]*name="javax\.faces\.ViewState"[^>]*value="([^"]*)"/) || [])[1] || '';
-  const actionRaw = (body.match(/<form[^>]*action="([^"]*)"[^>]*method="[^"]*post/i) || body.match(/<form[^>]*action="([^"]*)"/) || [])[1] || path;
-  const dir = path.substring(0, path.lastIndexOf('/') + 1);
+  const actionRaw = (body.match(/<form[^>]*action="([^"]*)"[^>]*method="[^"]*post/i) || body.match(/<form[^>]*action="([^"]*)"/) || [])[1] || base + '/antecedentes.xhtml';
+  const dir = base + '/';
   const actionUrl = actionRaw.startsWith('/') || actionRaw.startsWith('http') ? actionRaw : dir + actionRaw.replace(/^\.\//, '');
 
-  // Step 2: POST the form with the document
+  // Step 4: POST the document
+  const formName = (body.match(/<form[^>]*name="([^"]*)"/i) || [])[1] || 'formAntecedentes';
   const postBody = new URLSearchParams();
-  postBody.append('form', 'form');
+  postBody.append(formName, formName);
   postBody.append('cedulaInput', document);
   postBody.append('javax.faces.ViewState', viewState);
-  postBody.append('g-recaptcha-response', '');
+  if (body.includes('g-recaptcha') || body.includes('recaptcha')) {
+    postBody.append('g-recaptcha-response', '');
+  }
+
+  const btnMatch = body.match(/<button[^>]*id="([^"]*)"[^>]*>/);
+  if (btnMatch) {
+    postBody.append(btnMatch[1], btnMatch[1]);
+    postBody.append('javax.faces.source', btnMatch[1]);
+  }
 
   const result = await proxyPost(hostname, port, actionUrl, postBody.toString(), cookies);
+  const rb = result.body;
 
-  // Step 3: Parse the result
-  const clean = result.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
-  const hasRecords = /REGISTRA ANTECEDENTES|TIENE ANTECEDENTES|CON ANTECEDENTES|S\u00cd REGISTRA/i.test(result);
-    const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot|recaptcha-checkbox|reCAPTCHA|cuota gratuita|captcha/i.test(result);
-  const errorMsg = result.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
+  // Step 5: Parse the result
+  const clean = rb.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
+  const hasRecords = /REGISTRA ANTECEDENTES|TIENE ANTECEDENTES|CON ANTECEDENTES|S\u00cd REGISTRA/i.test(rb);
+  const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot|recaptcha-checkbox|reCAPTCHA|cuota gratuita|captcha/i.test(rb);
+  const errorMsg = rb.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
 
   if (clean) {
     return { status: 'clean', clean: true, detail: '' };
@@ -513,10 +577,10 @@ async function checkAntecedentes(document) {
   if (hasRecords) {
     return { status: 'flagged', clean: false, detail: errorMsg ? errorMsg[1] : '' };
   }
-  if (captchaBlock || /Términos de uso|Acepto que|Ley Ángel|Ley 2455|index\.xhtml/i.test(result)) {
+  if (captchaBlock || /Términos de uso|Acepto que|Ley Ángel|Ley 2455|index\.xhtml/i.test(rb)) {
     return { status: 'captcha', message: 'El sitio requiere resolver un captcha.' };
   }
-  const preview = result.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 2000);
+  const preview = rb.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 2000);
   console.log('[Antecedentes] Response preview for ' + document + ':', preview);
   return { status: 'error', message: errorMsg ? errorMsg[1] : 'Respuesta inesperada. Preview: ' + preview };
 }
