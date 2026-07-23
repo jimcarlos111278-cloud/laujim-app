@@ -236,30 +236,36 @@
     log('Data: title="' + data.title + '" price="' + data.price + '" photos=' + (data.photoUrls ? data.photoUrls.length : 0));
 
     var fields = [
-      { name: 'title', kw: ['título', 'title', 'titulo', 'nombre del anuncio', 'listing title'], val: data.title },
-      { name: 'price', kw: ['precio', 'price', 'valor', 'amount'], val: data.price },
-      { name: 'description', kw: ['descripción', 'description', 'descripcion', 'detalles', 'details'], val: data.description },
-      { name: 'bedrooms', kw: ['habitaciones', 'bedroom', 'bedrooms', 'cuartos', 'dormitorios'], val: data.bedrooms },
-      { name: 'bathrooms', kw: ['baños', 'bath', 'bathrooms', 'banos', 'baño', 'bano'], val: data.bathrooms },
-      { name: 'area', kw: ['metros', 'square', 'área', 'area', 'tamaño', 'size', 'superficie', 'sq. ft', 'm²'], val: data.area },
+      { name: 'price per month', kw: ['price per month', 'precio por mes', 'monthly price'], val: data.price },
+      { name: 'rental description', kw: ['rental description', 'descripción del alquiler', 'descripción'], val: data.description },
+      { name: 'property square feet', kw: ['property square feet', 'square feet', 'pies cuadrados', 'metros cuadrados'], val: data.propertySquareFeet || data.area },
+      { name: 'date available', kw: ['date available', 'availability', 'disponibilidad', 'fecha disponible'], val: data.availability },
     ];
 
     var filled = findAndSet(fields);
     log('Filled fields: ' + (filled.length ? filled.join(', ') : 'NONE'));
 
-    // El formulario de alquiler de Facebook usa un desplegable para el tipo
-    // de inmueble; React no acepta asignarlo como un input normal.
-    var rentalTypeSelected = await chooseDropdown(
-      'rental type', ['rental type', 'property type', 'tipo de alquiler'],
-      data.rentalType || 'Apartment/condo'
-    );
-    if (rentalTypeSelected) filled.push('rental type');
-
-    var photoCount = 0;
-    if (data.photoUrls && data.photoUrls.length > 0) {
-      photoCount = await uploadPhotos(data.photoUrls);
-      log('Uploaded photos: ' + photoCount);
+    // Facebook usa menús React para estos controles. Se seleccionan por el
+    // texto visible de cada opción, no intentando escribir dentro del menú.
+    var dropdowns = [
+      { name: 'rental type', kw: ['rental type', 'property type', 'tipo de alquiler'], val: data.rentalType || 'Apartment/condo' },
+      { name: 'number of bedrooms', kw: ['number of bedrooms', 'bedrooms', 'habitaciones'], val: data.bedrooms },
+      { name: 'number of bathrooms', kw: ['number of bathrooms', 'bathrooms', 'baños', 'banos'], val: data.bathrooms },
+      { name: 'laundry type', kw: ['laundry type', 'tipo de lavadero', 'lavadero'], val: data.laundryType },
+      { name: 'parking type', kw: ['parking type', 'tipo de estacionamiento', 'estacionamiento'], val: data.parkingType },
+      { name: 'air conditioning type', kw: ['air conditioning type', 'tipo de aire acondicionado', 'aire acondicionado'], val: data.airConditioningType },
+      { name: 'heating type', kw: ['heating type', 'tipo de calefacción', 'calefacción'], val: data.heatingType }
+    ];
+    for (var d = 0; d < dropdowns.length; d++) {
+      if (await chooseDropdown(dropdowns[d].name, dropdowns[d].kw, dropdowns[d].val)) {
+        filled.push(dropdowns[d].name);
+      }
     }
+
+    // Las fotos se dejan fuera de esta iteración: primero estabilizamos el
+    // mapeo de los campos de arriendo solicitado.
+    var photoCount = 0;
+    log('Photo upload disabled for rental form mapping');
 
     if (filled.length > 0 || photoCount > 0) {
       var parts = [];

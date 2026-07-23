@@ -37,6 +37,9 @@ export function generateBookmarkletCode() {
 }
 
 export function generateMarketplaceJson(apt, photoUrls) {
+  const areaSquareMeters = Number(apt.area || 0);
+  const propertySquareFeet = apt.marketplaceSquareFeet || apt.propertySquareFeet ||
+    (areaSquareMeters ? Math.round(areaSquareMeters * 10.7639) : '');
   return {
     title: 'Arriendo Apartamento ' + (apt.name || ''),
     price: String(apt.monthlyRent || 0),
@@ -50,7 +53,15 @@ export function generateMarketplaceJson(apt, photoUrls) {
     bedrooms: String(apt.rooms || ''),
     bathrooms: String(apt.bathrooms || ''),
     area: String(apt.area || ''),
+    propertySquareFeet: String(propertySquareFeet),
     rentalType: 'Apartment/condo',
+    // Propiedades preparadas para el formulario de arriendo de Facebook.
+    // La app puede guardarlas con estos mismos nombres cuando se añadan al UI.
+    availability: String(apt.marketplaceAvailability || apt.availableDate || apt.availability || ''),
+    laundryType: String(apt.marketplaceLaundryType || apt.laundryType || 'None'),
+    parkingType: String(apt.marketplaceParkingType || apt.parkingType || 'None'),
+    airConditioningType: String(apt.marketplaceAirConditioningType || apt.airConditioningType || 'None'),
+    heatingType: String(apt.marketplaceHeatingType || apt.heatingType || 'None'),
     photoUrls: photoUrls || [],
   };
 }
