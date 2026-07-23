@@ -466,10 +466,10 @@ export default function ApartmentDetail() {
           if (e) e.remove();
         }, 1000);
         navigator.clipboard.writeText(jsonString).then(function () {
-          var w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
+          var w = window.open('https://web.facebook.com/marketplace/create/rental', '_blank');
           if (w) setTimeout(function () { try { w.focus(); } catch {} }, 1000);
         }).catch(function () {
-          var w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
+          var w = window.open('https://web.facebook.com/marketplace/create/rental', '_blank');
           if (w) setTimeout(function () { try { w.focus(); } catch {} }, 1000);
         });
       });

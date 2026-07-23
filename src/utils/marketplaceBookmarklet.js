@@ -50,6 +50,7 @@ export function generateMarketplaceJson(apt, photoUrls) {
     bedrooms: String(apt.rooms || ''),
     bathrooms: String(apt.bathrooms || ''),
     area: String(apt.area || ''),
+    rentalType: 'Apartment/condo',
     photoUrls: photoUrls || [],
   };
 }

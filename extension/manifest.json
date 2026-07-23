@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Llenar Laujim",
-  "version": "1.0.0",
+  "version": "1.2.2",
   "description": "Auto-llena los anuncios de Facebook Marketplace desde Gestión Laujim. Incluye fotos, precio, descripción y más.",
   "permissions": [
     "storage",
     "tabs",
+    "scripting",
     "clipboardWrite"
   ],
   "host_permissions": [
@@ -13,8 +14,7 @@
     "*://laujim-app.onrender.com/*",
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "*://www.facebook.com/*",
-    "*://facebook.com/*"
+    "*://*.facebook.com/*"
   ],
   "content_scripts": [
     {
@@ -29,8 +29,7 @@
     },
     {
       "matches": [
-        "*://www.facebook.com/*",
-        "*://facebook.com/*"
+        "*://*.facebook.com/*"
       ],
       "js": ["content-facebook.js"],
       "run_at": "document_end"

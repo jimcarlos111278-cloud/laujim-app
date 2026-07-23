@@ -1053,12 +1053,16 @@ La extensión se comunica con la app Laujim a través de un **elemento oculto en
 3. "Cargar descomprimida" → seleccionar la carpeta `extension/`
 4. Recargar la extensión después de cada actualización (🔄)
 
+La versión 1.2.0 cubre también los subdominios a los que Facebook puede
+redirigir (`m.facebook.com`, `web.facebook.com`, etc.) e inyecta de nuevo el
+script al recargar la extensión aunque Marketplace ya estuviera abierto.
+
 ### Uso
 
 1. En Laujim, ir al detalle de un apartamento **Disponible**
 2. Hacer clic en **"Auto-llenar"** (sección Facebook Marketplace)
 3. La app envía los datos a la extensión y espera confirmación
-4. Se abre `https://www.facebook.com/marketplace/create/housing`
+4. Se abre `https://web.facebook.com/marketplace/create/rental`
 5. La extensión detecta la página, lee los datos y rellena automáticamente:
    - **Campos**: título, precio, descripción, habitaciones, baños, área
    - **Fotos**: las que tengan URL HTTP real (no data URI)

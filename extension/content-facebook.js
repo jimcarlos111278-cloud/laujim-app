@@ -1,12 +1,45 @@
 (function () {
   'use strict';
 
+  // Puede llegar desde el manifest y desde el respaldo del service worker.
+  // Esta marca evita ejecutar dos auto-llenados en la misma pestaña.
+  if (window.__LAUJIM_FACEBOOK_CONTENT_LOADED__) return;
+  window.__LAUJIM_FACEBOOK_CONTENT_LOADED__ = true;
+
   var ATTEMPTS = 0;
   var MAX_ATTEMPTS = 60;
   var POLL_MS = 1500;
 
   function log(msg) {
     console.log('[Laujim] ' + msg);
+  }
+
+  function isRentalCreationPage() {
+    return window.location.pathname.toLowerCase().indexOf('/marketplace/create/rental') >= 0;
+  }
+
+  function reportError(context, error) {
+    var detail = error && error.message ? error.message : String(error || 'Error desconocido');
+    console.error('[Laujim] ' + context + ': ' + detail, error);
+    try {
+      chrome.runtime.sendMessage({ type: 'REPORT_EXTENSION_ERROR', context: context, message: detail });
+    } catch (ignored) {}
+    var existing = document.getElementById('__LAUJIM_ERROR__');
+    if (existing) existing.remove();
+    var notice = document.createElement('div');
+    notice.id = '__LAUJIM_ERROR__';
+    notice.style.cssText = 'position:fixed;top:20px;right:20px;z-index:2147483647;background:#b91c1c;color:white;padding:14px 18px;border-radius:12px;font-family:sans-serif;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.35);max-width:420px;line-height:1.45;';
+    notice.textContent = 'Laujim no pudo auto-llenar: ' + detail;
+    (document.body || document.documentElement).appendChild(notice);
+  }
+
+  function safelyRunAutoFill(context, done) {
+    autoFill().then(function () {
+      if (done) done({ ok: true });
+    }).catch(function (error) {
+      reportError(context, error);
+      if (done) done({ ok: false, error: error && error.message ? error.message : String(error) });
+    });
   }
 
   log('Content script loaded, path: ' + window.location.pathname);
@@ -18,7 +51,7 @@
       el.dispatchEvent(new Event('change', { bubbles: true }));
       return;
     }
-    if (el.isContentEditable) {
+    if (el.isContentEditable || el.getAttribute('role') === 'textbox') {
       el.textContent = val;
       el.dispatchEvent(new Event('input', { bubbles: true }));
       return;
@@ -45,11 +78,15 @@
 
   function textNear(el) {
     var t = '';
-    var p = el.parentElement;
-    for (var i = 0; i < 5 && p; i++) {
-      t = (p.textContent || '') + ' ' + t;
-      p = p.parentElement;
+    var labelledBy = (el.getAttribute('aria-labelledby') || '').split(/\s+/);
+    for (var i = 0; i < labelledBy.length; i++) {
+      var labelEl = document.getElementById(labelledBy[i]);
+      if (labelEl) t += ' ' + (labelEl.textContent || '');
     }
+    var p = el.parentElement;
+    // Sólo el contenedor inmediato: subir hasta el formulario mezclaba las
+    // etiquetas de todos los campos y podía llenar el campo equivocado.
+    if (p) t += ' ' + (p.textContent || '');
     var prev = el.previousElementSibling;
     if (prev) t = (prev.textContent || '') + ' ' + t;
     var label = el.closest('label');
@@ -58,6 +95,41 @@
     t += ' ' + (el.getAttribute('placeholder') || '');
     t += ' ' + (el.getAttribute('name') || '');
     return t.toLowerCase();
+  }
+
+  function findDropdown(keywords) {
+    var items = document.querySelectorAll('select, [role="combobox"], button[aria-haspopup="listbox"]');
+    for (var i = 0; i < items.length; i++) {
+      if (matchKeywords(items[i], keywords)) return items[i];
+    }
+    return null;
+  }
+
+  async function chooseDropdown(name, keywords, value) {
+    if (!value) return false;
+    var control = findDropdown(keywords);
+    if (!control) {
+      log('Could not find dropdown: ' + name);
+      return false;
+    }
+    if (control.tagName.toLowerCase() === 'select') {
+      setNativeValue(control, value);
+      return true;
+    }
+    control.click();
+    await new Promise(function (resolve) { setTimeout(resolve, 250); });
+    var options = document.querySelectorAll('[role="option"], [role="menuitemradio"], li');
+    var wanted = String(value).trim().toLowerCase();
+    for (var i = 0; i < options.length; i++) {
+      var optionText = (options[i].textContent || '').trim().toLowerCase();
+      if (optionText === wanted || optionText.indexOf(wanted) >= 0) {
+        options[i].click();
+        log('Selected dropdown ' + name + ': ' + value);
+        return true;
+      }
+    }
+    log('Option not found for ' + name + ': ' + value);
+    return false;
   }
 
   function matchKeywords(el, keywords) {
@@ -108,7 +180,18 @@
 
   async function uploadPhotos(photoUrls) {
     if (!photoUrls || photoUrls.length === 0 || photoUrls[0] === '') return 0;
-    var uploaded = 0;
+    var input = null;
+    var inputs = document.querySelectorAll('input[type="file"]');
+    for (var ii = 0; ii < inputs.length; ii++) {
+      if ((inputs[ii].getAttribute('accept') || '').indexOf('image') >= 0) { input = inputs[ii]; break; }
+    }
+    if (!input) input = inputs[0];
+    if (!input) {
+      log('No file input found for photos');
+      return 0;
+    }
+
+    var transfer = new DataTransfer();
     for (var i = 0; i < photoUrls.length; i++) {
       var url = photoUrls[i];
       if (!url || url.indexOf('data:') === 0) continue;
@@ -118,34 +201,25 @@
         var blob = await res.blob();
         var ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
         var file = new File([blob], 'foto_' + (i + 1) + '.' + ext, { type: blob.type });
-
-        var inputs = document.querySelectorAll('input[type="file"]');
-        var input = null;
-        for (var ii = 0; ii < inputs.length; ii++) {
-          if ((inputs[ii].getAttribute('accept') || '').indexOf('image') >= 0) { input = inputs[ii]; break; }
-        }
-        if (!input) input = inputs[0];
-
-        if (input) {
-          var dt = new DataTransfer();
-          dt.items.add(file);
-          Object.defineProperty(input, 'files', { value: dt.files, configurable: true, writable: false });
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-          uploaded++;
-          log('Photo ' + (i + 1) + ' uploaded via file input');
-          await new Promise(function (r) { setTimeout(r, 500); });
-        } else {
-          log('No file input found for photo ' + (i + 1));
-        }
+        transfer.items.add(file);
       } catch (e) {
         log('Photo ' + (i + 1) + ' failed: ' + e.message);
       }
     }
-    return uploaded;
+    if (transfer.files.length === 0) return 0;
+    Object.defineProperty(input, 'files', { value: transfer.files, configurable: true });
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    log('Uploaded ' + transfer.files.length + ' photos via file input');
+    return transfer.files.length;
   }
 
   async function autoFill() {
     log('autoFill() called');
+
+    if (!isRentalCreationPage()) {
+      throw new Error('Facebook no abrió el formulario de alquiler. Inicia sesión y abre /marketplace/create/rental.');
+    }
 
     var data = await new Promise(function (resolve) {
       chrome.runtime.sendMessage({ type: 'GET_MARKETPLACE_DATA' }, resolve);
@@ -169,6 +243,14 @@
     var filled = findAndSet(fields);
     log('Filled fields: ' + (filled.length ? filled.join(', ') : 'NONE'));
 
+    // El formulario de alquiler de Facebook usa un desplegable para el tipo
+    // de inmueble; React no acepta asignarlo como un input normal.
+    var rentalTypeSelected = await chooseDropdown(
+      'rental type', ['rental type', 'property type', 'tipo de alquiler'],
+      data.rentalType || 'Apartment/condo'
+    );
+    if (rentalTypeSelected) filled.push('rental type');
+
     var photoCount = 0;
     if (data.photoUrls && data.photoUrls.length > 0) {
       photoCount = await uploadPhotos(data.photoUrls);
@@ -189,15 +271,19 @@
       log('NOTHING was filled');
     }
 
-    chrome.runtime.sendMessage({ type: 'CLEAR_MARKETPLACE_DATA' });
+    // Conserva los datos si Facebook aún no terminó de cargar. Así se puede
+    // pulsar “Auto-llenar ahora” desde el popup sin regresar a Laujim.
+    if (filled.length > 0 || photoCount > 0) {
+      chrome.runtime.sendMessage({ type: 'CLEAR_MARKETPLACE_DATA' });
+    }
   }
 
   function checkAndRun() {
     var path = window.location.pathname.toLowerCase();
-    var isMP = path.indexOf('/marketplace/') >= 0;
-    log('checkAndRun #' + ATTEMPTS + ' path=' + path + ' isMarketplace=' + isMP);
+    var isRental = isRentalCreationPage();
+    log('checkAndRun #' + ATTEMPTS + ' path=' + path + ' isRentalCreation=' + isRental);
 
-    if (!isMP) return;
+    if (!isRental) return;
 
     var inputs = document.querySelectorAll('input, textarea, select');
     log('Inputs on page: ' + inputs.length);
@@ -211,7 +297,7 @@
       log('Data check: ' + (data ? 'found' : 'null'));
       if (data && data.title) {
         log('Data found! Starting auto-fill');
-        setTimeout(autoFill, 800);
+        setTimeout(function () { safelyRunAutoFill('auto-fill automático'); }, 800);
       } else {
         ATTEMPTS++;
         if (ATTEMPTS < MAX_ATTEMPTS) setTimeout(checkAndRun, POLL_MS);
@@ -220,8 +306,8 @@
   }
 
   var initialPath = window.location.pathname.toLowerCase();
-  if (initialPath.indexOf('/marketplace/') >= 0) {
-    log('On marketplace page, starting checks');
+  if (isRentalCreationPage()) {
+    log('On rental creation page, starting checks');
     setTimeout(checkAndRun, 2000);
   } else {
     log('Not on marketplace page, waiting for navigation');
@@ -232,7 +318,7 @@
     if (window.location.href !== lastUrl) {
       lastUrl = window.location.href;
       log('URL changed to: ' + window.location.pathname);
-      if (window.location.pathname.toLowerCase().indexOf('/marketplace/') >= 0) {
+      if (isRentalCreationPage()) {
         ATTEMPTS = 0;
         setTimeout(checkAndRun, 1500);
       }
@@ -241,7 +327,7 @@
 
   window.addEventListener('popstate', function () {
     log('popstate: ' + window.location.pathname);
-    if (window.location.pathname.toLowerCase().indexOf('/marketplace/') >= 0) {
+    if (isRentalCreationPage()) {
       ATTEMPTS = 0;
       setTimeout(checkAndRun, 1500);
     }
@@ -250,7 +336,7 @@
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     if (msg.type === 'TRIGGER_AUTOFILL') {
       ATTEMPTS = 0;
-      autoFill().then(function () { sendResponse({ ok: true }); });
+      safelyRunAutoFill('auto-fill manual', sendResponse);
       return true;
     }
     if (msg.type === 'DELETE_LISTING') {

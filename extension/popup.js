@@ -106,7 +106,7 @@
   });
 
   btnOpenFB.addEventListener('click', function () {
-    chrome.tabs.create({ url: 'https://www.facebook.com/marketplace/you/selling' });
+    chrome.tabs.create({ url: 'https://web.facebook.com/marketplace/create/rental' });
   });
 
   btnOpenLaujim.addEventListener('click', function () {
