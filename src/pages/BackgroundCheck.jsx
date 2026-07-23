@@ -15,25 +15,6 @@ export default function BackgroundCheck() {
   const [checkResult, setCheckResult] = useState(null);
   const [showPoliceFrame, setShowPoliceFrame] = useState(false);
 
-  // Listen for result from police frame
-  useEffect(() => {
-    function handler(e) {
-      if (e.data && e.data.status) {
-        setShowPoliceFrame(false);
-        setCheckResult(e.data);
-        if (e.data.status === 'clean' || e.data.status === 'flagged') {
-          const hasAntecedentes = e.data.status === 'flagged';
-          const field = { antecedentes: hasAntecedentes, antecedentesDate: new Date().toISOString().split('T')[0] };
-          api.tenants.update(selected.id, field).then(() => {
-            setTenants(prev => prev.map(t => t.id === selected.id ? { ...t, ...field } : t));
-          });
-        }
-      }
-    }
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [selected]);
-
   useEffect(() => { load(); }, []);
 
   async function load() {
@@ -194,7 +175,14 @@ export default function BackgroundCheck() {
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-center">
                 <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
                 <p className="font-medium text-emerald-800">Sin antecedentes</p>
-                <p className="text-sm text-emerald-600 mt-1">NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES</p>
+                <p className="text-sm text-emerald-600 mt-1">{checkResult.detail || 'NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES'}</p>
+                {checkResult.nombre && (
+                  <div className="mt-2 text-xs text-emerald-700 space-y-0.5">
+                    <p><span className="font-medium">Nombre:</span> {checkResult.nombre}</p>
+                    {checkResult.documento && <p><span className="font-medium">Documento:</span> {checkResult.documento}</p>}
+                    {checkResult.fecha && <p><span className="font-medium">Consulta:</span> {checkResult.fecha}</p>}
+                  </div>
+                )}
               </div>
             )}
 
@@ -205,6 +193,13 @@ export default function BackgroundCheck() {
                   <XCircle className="w-10 h-10 text-red-500 mx-auto mb-2" />
                   <p className="font-medium text-red-800">TIENE ANTECEDENTES</p>
                   {checkResult.detail && <p className="text-sm text-red-600 mt-1">{checkResult.detail}</p>}
+                  {checkResult.nombre && (
+                    <div className="mt-2 text-xs text-red-700 space-y-0.5">
+                      <p><span className="font-medium">Nombre:</span> {checkResult.nombre}</p>
+                      {checkResult.documento && <p><span className="font-medium">Documento:</span> {checkResult.documento}</p>}
+                      {checkResult.fecha && <p><span className="font-medium">Consulta:</span> {checkResult.fecha}</p>}
+                    </div>
+                  )}
                 </div>
                 <a href={POLICE_URL} target="_blank" rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
@@ -221,24 +216,16 @@ export default function BackgroundCheck() {
                     <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                     <div>
                       <p className="font-medium">Se requiere captcha</p>
-                      <p className="mt-1 text-amber-700">Abre el sitio web de la Policía, resuelve el captcha y consulta con la cédula <strong>{selected.documentId}</strong>. Luego vuelve y haz clic en "Ya consulté".</p>
+                      <p className="mt-1 text-amber-700">Abre la Policía Nacional, acepta términos, resuelve el captcha con la cédula <strong>{selected.documentId}</strong> y ve el resultado. Luego marca aquí.</p>
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setShowPoliceFrame(true)}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-c-500 text-white text-sm font-medium rounded-lg hover:bg-c-600 transition-colors">
-                  <ExternalLink className="w-4 h-4" /> Consultar en sitio web
-                </button>
                 <a href={POLICE_URL} target="_blank" rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 transition-colors">
-                  <ExternalLink className="w-4 h-4" /> Abrir en nueva pestaña
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-c-500 text-white text-sm font-medium rounded-lg hover:bg-c-600 transition-colors">
+                  <ExternalLink className="w-4 h-4" /> Abrir Policía Nacional
                 </a>
-                <button onClick={() => handleAutoCheck(selected)}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm font-medium rounded-lg border border-amber-300 transition-colors">
-                  <Loader2 className="w-4 h-4" /> Ya consulté — Reintentar
-                </button>
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">O marca manualmente el resultado:</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Marca el resultado después de consultar:</p>
                   <div className="flex gap-3">
                     <button onClick={() => handleManualSave(selected.id, false)}
                       className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-sm rounded-lg border border-emerald-200 hover:border-emerald-300 transition-colors">
@@ -249,6 +236,10 @@ export default function BackgroundCheck() {
                       <XCircle className="w-5 h-5" /> Con antecedentes
                     </button>
                   </div>
+                  <button onClick={() => handleAutoCheck(selected)}
+                    className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 transition-colors">
+                    <Loader2 className="w-4 h-4" /> Reintentar consulta automática
+                  </button>
                 </div>
               </>
             )}
@@ -276,20 +267,45 @@ export default function BackgroundCheck() {
         )}
       </Modal>
 
-      {/* Police page iframe (direct URL — captcha works on correct domain) */}
-      <Modal open={showPoliceFrame} onClose={() => setShowPoliceFrame(false)} title="Consultar en Policía Nacional" size="xl">
-        <div className="p-2">
+      {/* Police site modal (popup opens police site directly) */}
+      <Modal open={showPoliceFrame} onClose={() => setShowPoliceFrame(false)} title="Consultar en Policía Nacional" size="md">
+        <div className="p-4 space-y-3">
           {selected && (
-            <div className="text-xs text-gray-500 mb-3 px-2 space-y-1">
-              <p>1. Acepta los términos de uso en el sitio de la Policía.</p>
-              <p>2. Escribe la cédula <strong>{selected.documentId}</strong>, resuelve el captcha y presiona <strong>Consultar</strong>.</p>
-              <p>3. Ve el resultado y luego cierra esta ventana.</p>
-              <p>4. Marca manualmente <strong>Sin antecedentes</strong> o <strong>Con antecedentes</strong> abajo.</p>
-            </div>
+            <>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">Pasos para consultar</p>
+                    <ol className="mt-1 list-decimal list-inside space-y-1 text-amber-700">
+                      <li>Haz clic en <strong>Abrir Policía Nacional</strong> (se abre nueva ventana)</li>
+                      <li>Selecciona <strong>Acepto</strong> y presiona <strong>Enviar</strong></li>
+                      <li>Escribe la cédula <strong>{selected.documentId}</strong></li>
+                      <li>Resuelve el captcha de Google y presiona <strong>Consultar</strong></li>
+                      <li>Ve el resultado, cierra la ventana y marca abajo</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => window.open(POLICE_URL, '_blank')}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-c-500 text-white text-sm font-medium rounded-lg hover:bg-c-600 transition-colors">
+                <ExternalLink className="w-4 h-4" /> Abrir Policía Nacional
+              </button>
+            </>
           )}
-          <iframe src={POLICE_URL}
-            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg"
-            style={{ height: '80vh' }} />
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">¿Ya consultaste? Marca el resultado:</p>
+            <div className="flex gap-3">
+              <button onClick={() => { handleManualSave(selected?.id, false); setShowPoliceFrame(false); }}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-sm rounded-lg border border-emerald-200 hover:border-emerald-300 transition-colors">
+                <CheckCircle2 className="w-5 h-5" /> Sin antecedentes
+              </button>
+              <button onClick={() => { handleManualSave(selected?.id, true); setShowPoliceFrame(false); }}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 font-medium text-sm rounded-lg border border-red-200 hover:border-red-300 transition-colors">
+                <XCircle className="w-5 h-5" /> Con antecedentes
+              </button>
+            </div>
+          </div>
         </div>
       </Modal>
     </div>

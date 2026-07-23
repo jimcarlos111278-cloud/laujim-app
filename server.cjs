@@ -334,7 +334,6 @@ app.get('/api/messages/updates/:since', (req, res) => {
 
 // Antecedentes - consulta automática a la Policía
 const https = require('https');
-const crypto = require('crypto');
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -393,117 +392,7 @@ function proxyPost(hostname, port, path, body, cookies, redirects = 3) {
   });
 }
 
-const policeCookieStore = {};
 
-// Serve the police page via proxy (for captcha iframe flow)
-app.get('/api/antecedentes/police-page', async (req, res) => {
-  try {
-    const sessionId = crypto.randomUUID();
-    const host = 'antecedentes.policia.gov.co';
-    const port = 7005;
-    const base = '/WebJudicial';
-
-    // Get initial page and accept terms if needed
-    let { body, cookies } = await proxyGet(host, port, base + '/antecedentes.xhtml');
-
-    if (/aceptaOption|continuarBtn|Acepto/i.test(body)) {
-      // Use the form action from the HTML — the police redirects to index.xhtml
-      const termsAction = (body.match(/<form[^>]*action="([^"]*)"/i) || [])[1] || base + '/index.xhtml';
-      const termsUrl = termsAction.startsWith('/') ? termsAction : base + '/' + termsAction.replace(/^\.\//, '');
-      const vs = (body.match(/<input[^>]*name="javax\.faces\.ViewState"[^>]*value="([^"]*)"/) || [])[1] || '';
-      const ab = new URLSearchParams();
-      ab.append('form', 'form');
-      ab.append('aceptaOption', 'true');
-      ab.append('javax.faces.ViewState', vs);
-      ab.append('javax.faces.source', 'continuarBtn');
-      ab.append('javax.faces.partial.ajax', 'true');
-      ab.append('continuarBtn', 'continuarBtn');
-      const ar = await proxyPost(host, port, termsUrl, ab.toString(), cookies);
-      cookies = ar.cookies || cookies;
-      const sp = await proxyGet(host, port, base + '/antecedentes.xhtml', cookies);
-      body = sp.body;
-      cookies = sp.cookies || cookies;
-    }
-
-    // Extract form action
-    const actionMatch = body.match(/<form[^>]*action="([^"]*)"/i);
-    const formAction = actionMatch ? actionMatch[1] : base + '/antecedentes.xhtml';
-
-    policeCookieStore[sessionId] = {
-      cookies,
-      formAction,
-      host,
-      port,
-    };
-
-    let html = body;
-    html = html.replace('<head>', '<head><base href="https://' + host + ':' + port + '/WebJudicial/" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />');
-    html = html.replace(/(src|href)="(\/WebJudicial\/[^"\)]*)"/g, (match, attr, url) => `${attr}="https://${host}:${port}${url}"`)
-    html = html.replace(/action="[^"]*"/i, 'action="/api/antecedentes/police-submit?session=' + sessionId + '"');
-
-    const doc = req.query.doc || '';
-    if (doc) {
-      const script = '<script>setTimeout(function(){var e=document.getElementById("cedulaInput");if(e){e.value="' + doc.replace(/"/g, '\\"') + '";e.dispatchEvent(new Event("input"));}},500);<\/script>';
-      html = html.replace('</head>', script + '</head>');
-    }
-
-    res.removeHeader('Content-Security-Policy');
-    res.cookie('police_session', sessionId, { httpOnly: true, sameSite: 'lax', maxAge: 300000 });
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.set('Cache-Control', 'no-store, max-age=0');
-    res.send(html);
-  } catch (e) {
-    res.status(500).send('Error al cargar la página de la Policía');
-  }
-});
-
-// Handle form submission from the proxied police page
-app.post('/api/antecedentes/police-submit', async (req, res) => {
-  const { session } = req.query;
-  const sd = policeCookieStore[session];
-  if (!sd) {
-    return res.send('<script>window.parent.postMessage({status:"error",detail:"Sesi\u00f3n expirada. Vuelve a intentar."},"*");</script>');
-  }
-
-  try {
-    const postData = new URLSearchParams(req.body).toString();
-    const result = await proxyPost(sd.host, sd.port, sd.formAction, postData, sd.cookies);
-    delete policeCookieStore[session];
-    const rb = result.body;
-
-    // Parse result
-    const clean = rb.includes('NO TIENE ASUNTOS PENDIENTES CON LAS AUTORIDADES JUDICIALES');
-    const hasRecords = /REGISTRA ANTECEDENTES|TIENE ANTECEDENTES|CON ANTECEDENTES|S\u00cd REGISTRA/i.test(rb);
-  const captchaBlock = /g-recaptcha|recaptcha|data-sitekey|No soy un robot|I'm not a robot|recaptcha-checkbox|reCAPTCHA|cuota gratuita|captcha/i.test(rb);
-    const errorMatch = rb.match(/<span[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)/i);
-
-    let status, detail;
-    if (clean) {
-      status = 'clean';
-      detail = '';
-    } else if (hasRecords) {
-      status = 'flagged';
-      detail = errorMatch ? errorMatch[1] : 'Tiene antecedentes judiciales';
-    } else if (captchaBlock || /Términos de uso|Acepto que|Ley Ángel|Ley 2455|index\.xhtml/i.test(rb)) {
-      status = 'captcha';
-      detail = 'Captcha inválido o expirado.';
-    } else {
-      status = 'error';
-      detail = errorMatch ? errorMatch[1] : 'No se pudo determinar el resultado. Intenta manualmente.';
-    }
-
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.send(
-      '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
-      '<script>window.parent.postMessage(' + JSON.stringify({ status, detail }) + ',"*");</script>' +
-      '<p style="font-family:sans-serif;text-align:center;padding:20px;color:#666;">' +
-      (status === 'clean' ? 'Sin antecedentes' : status === 'flagged' ? 'Con antecedentes' : status === 'captcha' ? 'Captcha' : 'Error') +
-      ' &mdash; Cerrando...</p></body></html>'
-    );
-  } catch (e) {
-    res.send('<script>window.parent.postMessage({status:"error",detail:"' + e.message.replace(/"/g, '\\"') + '"},"*");</script>');
-  }
-});
 
 async function checkAntecedentes(document) {
   const hostname = 'antecedentes.policia.gov.co';
@@ -585,44 +474,41 @@ async function checkAntecedentes(document) {
   return { status: 'error', message: errorMsg ? errorMsg[1] : 'Respuesta inesperada. Preview: ' + preview };
 }
 
+// CoreSoft API para Antecedentes Policía (cuando hay API key configurada)
+const CORESOFT_API_KEY = process.env.CORESOFT_API_KEY;
+async function checkAntecedentesCoreSoft(document) {
+  const url = `https://coresoft.solutions/api/antecedentes_policia?cedula=${encodeURIComponent(document)}&tipoDoc=CC`;
+  const res = await fetch(url, { headers: { 'X-API-Key': CORESOFT_API_KEY }, signal: AbortSignal.timeout(30000) });
+  if (!res.ok) {
+    const txt = await res.text();
+    return { status: 'error', message: 'CoreSoft: ' + (res.status === 401 ? 'API key inválida' : txt) };
+  }
+  const data = await res.json();
+  if (!data.success) {
+    return { status: 'error', message: data.mensaje || 'Error en consulta CoreSoft' };
+  }
+  const r = data.resultado;
+  if (r.tiene_antecedentes) {
+    return { status: 'flagged', clean: false, detail: r.mensaje || 'Tiene antecedentes judiciales', nombre: r.nombre, documento: r.documento, fecha: r.fecha_consulta };
+  }
+  return { status: 'clean', clean: true, detail: '', nombre: r.nombre, documento: r.documento, fecha: r.fecha_consulta };
+}
+
 app.post('/api/antecedentes/check', async (req, res) => {
   const { document } = req.body;
   if (!document || !document.trim()) return res.status(400).json({ error: 'Cédula requerida' });
   try {
+    // Try CoreSoft API first if configured
+    if (CORESOFT_API_KEY) {
+      const result = await checkAntecedentesCoreSoft(document.trim());
+      if (result && result.status !== 'error') return res.json(result);
+      // If CoreSoft returns error, log and fall through to scraping
+      console.log('[Antecedentes] CoreSoft falló, usando scraping:', result?.message);
+    }
     const result = await checkAntecedentes(document.trim());
     res.json(result);
   } catch (e) {
     res.json({ status: 'error', message: e.message });
-  }
-});
-
-// ─── Proxy for police static assets and other resources ───
-app.get('/WebJudicial/{*path}', async (req, res) => {
-  try {
-    const host = 'antecedentes.policia.gov.co';
-    const port = 7005;
-    const path = req.originalUrl; // /WebJudicial/css/style.css
-
-    const headers = { 'User-Agent': UA };
-    // No cookies needed for static assets
-    const opts = { hostname: host, port: port, path: path, method: 'GET', rejectUnauthorized: false, headers };
-
-    const proxyReq = https.request(opts, (proxyRes) => {
-      // Copy all headers from original response
-      for (const header in proxyRes.headers) {
-        if (header.toLowerCase() !== 'content-security-policy') { // Strip CSP
-          res.setHeader(header, proxyRes.headers[header]);
-        }
-      }
-      proxyRes.pipe(res); // Pipe the response body directly
-    });
-
-    proxyReq.on('error', e => { console.error('PROXY ERROR:', e.message); res.status(500).send('Proxy error'); });
-    proxyReq.end();
-
-  } catch (e) {
-    console.error('STATIC PROXY FAILED:', e.message);
-    res.status(500).send('Error al cargar recurso estático de la Policía');
   }
 });
 
