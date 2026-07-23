@@ -139,43 +139,9 @@ function saveData() {
 
 // ─── Async startup ───
 
-async function startServer() {
-  // Start listening immediately so health checks always respond
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log('============================================');
-    console.log('  GESTION DE APARTAMENTOS - SERVIDOR');
-    console.log('============================================');
-    console.log('');
-    console.log('  Puerto:    ' + PORT);
-    console.log('  Node:      ' + process.version);
-    console.log('  Cwd:       ' + process.cwd());
-    console.log('============================================');
-  });
-
-  // Initialize data (async, non-blocking)
-  let loaded = false;
-  try {
-    if (await initPostgres()) {
-      const pgData = await loadFromPostgres();
-      if (pgData) {
-        db = pgData;
-        recalcNextId();
-        console.log('Data loaded from PostgreSQL');
-        if (pgPool) console.log('  Base de datos: PostgreSQL');
-        loaded = true;
-      }
-    }
-  } catch (e) {
-    console.error('PostgreSQL init failed, using JSON file:', e.message);
-  }
-  if (!loaded) {
-    loadData();
-    if (pgPool) {
-      saveToPostgres().catch(e => console.error('PG initial save error:', e.message));
-    }
-  }
-
-// ─── RUTAS ESPECÍFICAS (SIN PARÁMETROS DE COLECCIÓN) ───
+function startServer() {
+  // Routes defined synchronously FIRST (no awaits here)
+  // ─── RUTAS ESPECÍFICAS (SIN PARÁMETROS DE COLECCIÓN) ───
 // Deben ir ANTES de las rutas genéricas /:collection o Express las capturará como nombre de colección
 
 app.get('/api/data-version', (req, res) => {
@@ -740,6 +706,42 @@ app.use((req, res) => {
   });
 });
 
+  // ─── Start listening AFTER all routes are registered ───
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('============================================');
+    console.log('  GESTION DE APARTAMENTOS - SERVIDOR');
+    console.log('============================================');
+    console.log('');
+    console.log('  Puerto:    ' + PORT);
+    console.log('  Node:      ' + process.version);
+    console.log('  Cwd:       ' + process.cwd());
+    console.log('============================================');
+  });
+
+  // ─── Async data init (runs after server is already listening) ───
+  (async () => {
+    let loaded = false;
+    try {
+      if (await initPostgres()) {
+        const pgData = await loadFromPostgres();
+        if (pgData) {
+          db = pgData;
+          recalcNextId();
+          console.log('Data loaded from PostgreSQL');
+          loaded = true;
+        }
+      }
+    } catch (e) {
+      console.error('PostgreSQL init failed, using JSON file:', e.message);
+    }
+    if (!loaded) {
+      loadData();
+      if (pgPool) {
+        try { await saveToPostgres(); } catch (e) { console.error('PG save error:', e.message); }
+      }
+    }
+    console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode'));
+  })();
 }
 
 startServer();
