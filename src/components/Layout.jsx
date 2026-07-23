@@ -55,10 +55,10 @@ export default function Layout({ children }) {
   return (
     <div className={`flex h-screen bg-gray-100 dark:bg-gray-900 ${appMode ? 'app-layout' : ''}`} style={{ overflow: appMode ? 'auto' : 'hidden' }}>
       {!appMode && <div className={`fixed inset-0 bg-black/50 z-20 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)} />}
-      <aside style={{ zoom: fontScale }} className={`${appMode ? 'w-44 shrink-0 static' : 'w-64 fixed'} top-0 left-0 z-30 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 ${
+      <aside style={{ zoom: fontScale }} className={`${appMode ? 'w-44 shrink-0 static' : 'w-64 fixed'} top-0 left-0 z-30 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 flex flex-col ${
         appMode ? 'translate-x-0' : `lg:translate-x-0 lg:static lg:z-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
       }`}>
-        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="flex items-center gap-2">
             <Home className={`${appMode ? 'w-4 h-4' : 'w-6 h-6'} text-blue-600`} />
             <span className={`font-bold ${appMode ? 'text-sm' : 'text-lg'} text-gray-900 dark:text-white`}>Gestión Aptos</span>
@@ -67,7 +67,7 @@ export default function Layout({ children }) {
             <X className="w-5 h-5" />
           </button>}
         </div>
-        <nav className={`${appMode ? 'p-1.5 space-y-0.5' : 'p-3 space-y-1'}`}>
+        <nav className={`${appMode ? 'p-1.5 space-y-0.5' : 'p-3 space-y-1'} flex-1 overflow-auto`}>
           {navItems.map(item => (
             <NavLink
               key={item.to}
@@ -84,22 +84,22 @@ export default function Layout({ children }) {
             </NavLink>
           ))}
         </nav>
-        <div className={`${appMode ? 'p-1.5' : 'absolute bottom-0 left-0 right-0 p-3 border-t border-gray-200 dark:border-gray-700'} space-y-1.5`}>
-          <div className={`flex items-center justify-center gap-1 ${appMode ? 'text-xs' : ''}`}>
-            <button onClick={() => changeFontSize(-0.1)} className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ${appMode ? '' : 'text-sm'}`} title="Reducir tamaño">
-              <Minus className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+        <div className="p-1.5 sm:p-3 border-t border-gray-200 dark:border-gray-700 space-y-1.5 shrink-0">
+          <div className="flex items-center justify-center gap-1 text-xs sm:text-sm">
+            <button onClick={() => changeFontSize(-0.1)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Reducir tamaño">
+              <Minus className="w-3.5 h-3.5" />
             </button>
-            <Type className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-gray-400`} />
-            <span className={`text-xs text-gray-400 ${appMode ? 'text-[10px]' : ''}`}>{Math.round(fontScale * 100)}%</span>
-            <button onClick={() => changeFontSize(0.1)} className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ${appMode ? '' : 'text-sm'}`} title="Aumentar tamaño">
-              <Plus className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+            <Type className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-xs text-gray-400">{Math.round(fontScale * 100)}%</span>
+            <button onClick={() => changeFontSize(0.1)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Aumentar tamaño">
+              <Plus className="w-3.5 h-3.5" />
             </button>
           </div>
           {!appMode && <div className="flex justify-center"><ThemeSelector /></div>}
-          <div className={`flex items-center justify-center gap-2 ${appMode ? 'text-[10px]' : 'text-xs'} text-gray-500 dark:text-gray-400`}>
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
             {connected === null && <span className="text-gray-400">Verificando...</span>}
-            {connected === true && <><Cloud className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-green-500`} /><span className="text-green-600">En línea</span></>}
-            {connected === false && <><CloudOff className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-red-500`} /><span className="text-red-500">Sin conexión</span></>}
+            {connected === true && <><Cloud className="w-3.5 h-3.5 text-green-500" /><span className="text-green-600">En línea</span></>}
+            {connected === false && <><CloudOff className="w-3.5 h-3.5 text-red-500" /><span className="text-red-500">Sin conexión</span></>}
           </div>
         </div>
       </aside>
