@@ -55,7 +55,7 @@ export default function Layout({ children }) {
   return (
     <div className={`flex h-screen bg-gray-100 dark:bg-gray-900 ${appMode ? 'app-layout' : ''}`}>
       {!appMode && <div className={`fixed inset-0 bg-black/50 z-20 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)} />}
-      <aside className={`${appMode ? 'w-44 shrink-0 static' : 'w-64 fixed'} top-0 left-0 z-30 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 ${
+      <aside style={{ zoom: fontScale }} className={`${appMode ? 'w-44 shrink-0 static' : 'w-64 fixed'} top-0 left-0 z-30 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 ${
         appMode ? 'translate-x-0' : `lg:translate-x-0 lg:static lg:z-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
       }`}>
         <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
