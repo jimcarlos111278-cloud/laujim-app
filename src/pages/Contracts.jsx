@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, FileText, Search, Trash2, Download, Upload } from 'lucide-react';
+import { Plus, Search, Trash2, Download, Upload, Monitor, Smartphone } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { formatCurrency, formatShortDate } from '../utils/helpers';
+import { getViewMode } from '../utils/viewMode';
 
 export default function Contracts() {
   const [contracts, setContracts] = useState([]);
@@ -11,6 +12,7 @@ export default function Contracts() {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [vm, setVm] = useState(getViewMode());
   const fileRef = useRef(null);
   const [uploadTarget, setUploadTarget] = useState(null);
   const [form, setForm] = useState({ apartmentId: '', tenantId: '', startDate: '', endDate: '', monthlyRent: '', depositAmount: '', depositPaid: false, terms: '' });
@@ -109,56 +111,93 @@ export default function Contracts() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Apartamento</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Inquilino</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Inicio</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Fin</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Canon</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Depósito</th>
-                <th className="text-center px-4 py-3 font-medium text-gray-600">Documento</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.toReversed().map(c => {
-                const apt = getApartment(c.apartmentId);
-                const ten = getTenant(c.tenantId);
-                const isActive = !c.endDate || new Date(c.endDate) > new Date();
-                return (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{apt?.name || '-'}</td>
-                    <td className="px-4 py-3">{ten?.name || '-'}</td>
-                    <td className="px-4 py-3 text-gray-500">{formatShortDate(c.startDate)}</td>
-                    <td className="px-4 py-3">{c.endDate ? formatShortDate(c.endDate) : <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">Vigente</span>}</td>
-                    <td className="px-4 py-3 font-medium">{formatCurrency(c.monthlyRent)}</td>
-                    <td className="px-4 py-3">{c.depositPaid ? <span className="text-emerald-600">✓</span> : <span className="text-amber-600">Pendiente</span>}</td>
-                    <td className="px-4 py-3 text-center">
+        {vm === 'horizontal' ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Apartamento</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Inquilino</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Inicio</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Fin</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Canon</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Depósito</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-600">Documento</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-600">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.toReversed().map(c => {
+                  const apt = getApartment(c.apartmentId);
+                  const ten = getTenant(c.tenantId);
+                  const isActive = !c.endDate || new Date(c.endDate) > new Date();
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{apt?.name || '-'}</td>
+                      <td className="px-4 py-3">{ten?.name || '-'}</td>
+                      <td className="px-4 py-3 text-gray-500">{formatShortDate(c.startDate)}</td>
+                      <td className="px-4 py-3">{c.endDate ? formatShortDate(c.endDate) : <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">Vigente</span>}</td>
+                      <td className="px-4 py-3 font-medium">{formatCurrency(c.monthlyRent)}</td>
+                      <td className="px-4 py-3">{c.depositPaid ? <span className="text-emerald-600">✓</span> : <span className="text-amber-600">Pendiente</span>}</td>
+                      <td className="px-4 py-3 text-center">
+                        {c.contractFile ? (
+                          <a href={c.contractFile} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline" title="Descargar PDF">
+                            <Download className="w-3.5 h-3.5" /> PDF
+                          </a>
+                        ) : (
+                          <button onClick={() => { setUploadTarget(c); fileRef.current?.click(); }} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600" title="Adjuntar PDF">
+                            <Upload className="w-3.5 h-3.5" /> Subir
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {isActive && <button onClick={() => handleTerminate(c)} className="px-2 py-1 text-xs text-amber-600 hover:bg-amber-50 rounded transition-colors">Finalizar</button>}
+                          <button onClick={() => handleDelete(c.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {filtered.toReversed().map(c => {
+              const apt = getApartment(c.apartmentId);
+              const ten = getTenant(c.tenantId);
+              const isActive = !c.endDate || new Date(c.endDate) > new Date();
+              return (
+                <div key={c.id} className="p-4 space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">{apt?.name || '-'}</p>
+                      <p className="text-xs text-gray-500">{ten?.name || '-'}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {isActive && <button onClick={() => handleTerminate(c)} className="px-2 py-1 text-xs text-amber-600 hover:bg-amber-50 rounded transition-colors">Finalizar</button>}
+                      <button onClick={() => handleDelete(c.id)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <span className="text-gray-500">Inicio:</span><span className="text-gray-700">{formatShortDate(c.startDate)}</span>
+                    <span className="text-gray-500">Fin:</span><span className="text-gray-700">{c.endDate ? formatShortDate(c.endDate) : <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">Vigente</span>}</span>
+                    <span className="text-gray-500">Canon:</span><span className="text-gray-700 font-medium">{formatCurrency(c.monthlyRent)}</span>
+                    <span className="text-gray-500">Depósito:</span><span className="text-gray-700">{c.depositPaid ? <span className="text-emerald-600">✓ Pagado</span> : <span className="text-amber-600">Pendiente</span>}</span>
+                    <span className="text-gray-500">Documento:</span><span className="text-gray-700">
                       {c.contractFile ? (
-                        <a href={c.contractFile} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline" title="Descargar PDF">
-                          <Download className="w-3.5 h-3.5" /> PDF
-                        </a>
+                        <a href={c.contractFile} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"><Download className="w-3.5 h-3.5" /> PDF</a>
                       ) : (
-                        <button onClick={() => { setUploadTarget(c); fileRef.current?.click(); }} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600" title="Adjuntar PDF">
-                          <Upload className="w-3.5 h-3.5" /> Subir
-                        </button>
+                        <button onClick={() => { setUploadTarget(c); fileRef.current?.click(); }} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600"><Upload className="w-3.5 h-3.5" /> Subir</button>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {isActive && <button onClick={() => handleTerminate(c)} className="px-2 py-1 text-xs text-amber-600 hover:bg-amber-50 rounded transition-colors">Finalizar</button>}
-                        <button onClick={() => handleDelete(c.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
         {filtered.length === 0 && <p className="text-center text-gray-400 py-8">No se encontraron contratos</p>}
       </div>
 

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Mail, Phone, MessageCircle, Trash2 } from 'lucide-react';
+import { Plus, Search, Phone, MessageCircle, Trash2, Monitor, Smartphone } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
-import { formatShortDate } from '../utils/helpers';
+import { getViewMode } from '../utils/viewMode';
 
 export default function Tenants() {
   const [tenants, setTenants] = useState([]);
@@ -10,6 +10,7 @@ export default function Tenants() {
   const [apartments, setApartments] = useState([]);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [vm, setVm] = useState(getViewMode());
   const [form, setForm] = useState({ name: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
 
   useEffect(() => { load(); }, []);
@@ -85,55 +86,85 @@ export default function Tenants() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Nombre</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Documento</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Contacto</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Tel. Trabajo</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Dir. Trabajo</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Apartamento</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Contratos</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.map(t => {
-                const apt = getCurrentApartment(t.id);
-                const cs = getTenantContracts(t.id);
-                return (
-                  <tr key={t.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{t.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{t.documentId || '-'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2 text-gray-500">
-
-
-                        {t.phone && (
-                          <>
-                            <a href={`tel:${t.phone}`} className="p-1 hover:text-green-600" title="Llamar"><Phone className="w-3.5 h-3.5" /></a>
-                            <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 hover:text-emerald-600" title="WhatsApp"><MessageCircle className="w-3.5 h-3.5" /></a>
-                          </>
-                        )}
-
-
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{t.workPhone || '-'}</td>
-                    <td className="px-4 py-3 text-gray-500 max-w-[120px] truncate" title={t.workAddress || ''}>{t.workAddress || '-'}</td>
-                    <td className="px-4 py-3">{apt ? <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{apt.name}</span> : <span className="text-gray-400">-</span>}</td>
-                    <td className="px-4 py-3 text-gray-500">{cs.length}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => handleDelete(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        {vm === 'horizontal' ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Nombre</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Documento</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Contacto</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Tel. Trabajo</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Dir. Trabajo</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Apartamento</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Contratos</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-600">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map(t => {
+                  const apt = getCurrentApartment(t.id);
+                  const cs = getTenantContracts(t.id);
+                  return (
+                    <tr key={t.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{t.name}</td>
+                      <td className="px-4 py-3 text-gray-500">{t.documentId || '-'}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2 text-gray-500">
+                          {t.phone && (
+                            <>
+                              <a href={`tel:${t.phone}`} className="p-1 hover:text-green-600" title="Llamar"><Phone className="w-3.5 h-3.5" /></a>
+                              <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 hover:text-emerald-600" title="WhatsApp"><MessageCircle className="w-3.5 h-3.5" /></a>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">{t.workPhone || '-'}</td>
+                      <td className="px-4 py-3 text-gray-500 max-w-[120px] truncate" title={t.workAddress || ''}>{t.workAddress || '-'}</td>
+                      <td className="px-4 py-3">{apt ? <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{apt.name}</span> : <span className="text-gray-400">-</span>}</td>
+                      <td className="px-4 py-3 text-gray-500">{cs.length}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button onClick={() => handleDelete(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {filtered.map(t => {
+              const apt = getCurrentApartment(t.id);
+              const cs = getTenantContracts(t.id);
+              return (
+                <div key={t.id} className="p-4 space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">{t.name}</p>
+                      <p className="text-xs text-gray-400">{t.documentId || '-'}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {t.phone && (
+                        <>
+                          <a href={`tel:${t.phone}`} className="p-1.5 text-gray-400 hover:text-green-600 transition-colors"><Phone className="w-4 h-4" /></a>
+                          <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-emerald-600 transition-colors"><MessageCircle className="w-4 h-4" /></a>
+                        </>
+                      )}
+                      <button onClick={() => handleDelete(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <span className="text-gray-500">Tel. Trabajo:</span><span className="text-gray-700">{t.workPhone || '-'}</span>
+                    <span className="text-gray-500">Dir. Trabajo:</span><span className="text-gray-700">{t.workAddress || '-'}</span>
+                    <span className="text-gray-500">Apartamento:</span><span className="text-gray-700">{apt ? <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{apt.name}</span> : '-'}</span>
+                    <span className="text-gray-500">Contratos:</span><span className="text-gray-700">{cs.length}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
         {filtered.length === 0 && <p className="text-center text-gray-400 py-8">No se encontraron inquilinos</p>}
       </div>
 

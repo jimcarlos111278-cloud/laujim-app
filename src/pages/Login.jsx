@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginAdmin, loginTenant, getAuth } from '../utils/auth';
-import { Building2, KeyRound, User, ShieldCheck } from 'lucide-react';
+import { getViewMode, setViewMode } from '../utils/viewMode';
+import { Building2, Monitor, Smartphone, KeyRound, User, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('admin');
+  const [vm, setVm] = useState(getViewMode());
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,6 +17,11 @@ export default function Login() {
   if (existing) {
     if (existing.role === 'admin') navigate('/dashboard', { replace: true });
     else navigate('/mi-apto', { replace: true });
+  }
+
+  function changeViewMode(mode) {
+    setViewMode(mode);
+    setVm(mode);
   }
 
   async function handleSubmit(e) {
@@ -45,6 +52,16 @@ export default function Login() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Apartamentos</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Inicia sesión para continuar</p>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 mb-6 animate-fadeIn">
+          <button onClick={() => changeViewMode('horizontal')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${vm === 'horizontal' ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-white dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}>
+            <Monitor className="w-4 h-4" /> PC
+          </button>
+          <span className="text-gray-300 dark:text-gray-600 text-xs">MODO</span>
+          <button onClick={() => changeViewMode('vertical')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${vm === 'vertical' ? 'bg-emerald-600 text-white shadow-lg scale-105' : 'bg-white dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-700 hover:border-emerald-300'}`}>
+            <Smartphone className="w-4 h-4" /> Móvil
+          </button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
