@@ -469,24 +469,42 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Zap className="w-4 h-4" /> Auto-llenar Facebook Marketplace</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Instala el <strong>bookmarklet</strong> en tu navegador. Cuando estés en la página de crear publicación en Facebook Marketplace, haz clic en el bookmarklet y rellenará automáticamente los campos con los datos del anuncio guardado desde Laujim.</p>
-          <div className="space-y-3">
-            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">1. Arrastra este botón a tu barra de marcadores:</p>
-              <a href={generateBookmarkletCode()} onClick={e => { e.preventDefault(); navigator.clipboard.writeText(generateBookmarkletCode()).then(() => { setBmCopied(true); setTimeout(() => setBmCopied(false), 2000); }); }} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
-                <Zap className="w-4 h-4" /> {bmCopied ? 'Copiado' : 'Copiar Bookmarklet'}
-              </a>
-              <p className="text-xs text-gray-400 mt-2">Si no puedes arrastrar, haz clic para copiar el código y crea un marcador manualmente.</p>
-            </div>
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-xs text-blue-700 dark:text-blue-300 space-y-1">
-              <p><strong>Cómo usarlo:</strong></p>
-              <p>1. En Laujim, ve al detalle del apto Disponible y haz clic en <strong>"Auto-llenar"</strong>.</p>
-              <p>2. Se abrirá Facebook Marketplace con el formulario de creación.</p>
-              <p>3. Haz clic en el bookmarklet <strong>"Llenar Laujim"</strong> en tu barra de marcadores.</p>
-              <p>4. Los campos se rellenarán automáticamente. Agrega las fotos manualmente y publica.</p>
-              <p>5. Vuelve a Laujim y pega la URL de la publicación en <strong>"Guardar URL"</strong>.</p>
-            </div>
+
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl mb-4">
+            <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300 mb-2">Extensión de Chrome (recomendado)</p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-3">Auto-llena todos los campos <strong>incluyendo fotos</strong> automáticamente. Sin pasos manuales.</p>
+            <ol className="text-xs text-emerald-700 dark:text-emerald-400 space-y-1 ml-4 list-decimal">
+              <li>Abre <strong>chrome://extensions</strong> en Chrome</li>
+              <li>Activa <strong>Modo desarrollador</strong> (esquina superior derecha)</li>
+              <li>Arrastra la carpeta <strong>extension/</strong> de Laujim a la ventana</li>
+              <li>Haz clic en <strong>"Auto-llenar"</strong> en el detalle del apto</li>
+              <li>Los datos + fotos se rellenan solos en Facebook Marketplace</li>
+            </ol>
           </div>
+
+          <details className="group">
+            <summary className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
+              Bookmarklet (alternativa, sin fotos automáticas)
+            </summary>
+            <div className="space-y-3 mt-3">
+              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Paso 1: Instala el bookmarklet (una sola vez):</p>
+                <a href={generateBookmarkletCode()} onClick={e => { e.preventDefault(); navigator.clipboard.writeText(generateBookmarkletCode()).then(() => { setBmCopied(true); setTimeout(() => setBmCopied(false), 2000); }); }} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
+                  <Zap className="w-4 h-4" /> {bmCopied ? 'Copiado' : 'Copiar Bookmarklet'}
+                </a>
+                <p className="text-xs text-gray-400 mt-2">Luego crea un marcador en Chrome con ese código (nombre: <strong>Llenar Laujim</strong>). En celular: Marcadores {'>'} Añadir página {'>'} pegar el código en URL.</p>
+              </div>
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                <p><strong>Cómo usarlo cada vez:</strong></p>
+                <p>1. En Laujim, ve al detalle del apto y haz clic en <strong>"Auto-llenar"</strong>.</p>
+                <p>2. Los datos se copian al portapapeles y se abre Facebook Marketplace.</p>
+                <p>3. En Facebook, haz clic en el marcador <strong>"Llenar Laujim"</strong>.</p>
+                <p>4. Te pedirá pegar el JSON — haz <strong>Ctrl+V</strong> y acepta.</p>
+                <p>5. Los campos se rellenan solos. Agrega las fotos manualmente y publica.</p>
+                <p>6. Vuelve a Laujim y pega la URL de la publicación en <strong>"Guardar URL"</strong>.</p>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">

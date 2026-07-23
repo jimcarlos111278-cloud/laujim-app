@@ -6,6 +6,7 @@ import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
 import { photoUrl, isCapacitor } from '../utils/config';
 import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate } from '../utils/helpers';
+import { generateMarketplaceJson } from '../utils/marketplaceBookmarklet';
 import { generateApartmentPDF } from '../utils/pdf';
 import { addCalendarReminder } from '../utils/calendar';
 import QRCode from 'qrcode';
@@ -414,6 +415,9 @@ export default function ApartmentDetail() {
     if (url === null) return;
     await api.apartments.update(Number(id), { marketplaceUrl: url });
     setMarketplaceUrl(url);
+    window.dispatchEvent(new CustomEvent('laujim-marketplace-save-url', {
+      detail: { aptId: Number(id), aptName: apt?.name || '', url: url }
+    }));
   }
 
   function copyAdText() {
@@ -428,25 +432,31 @@ export default function ApartmentDetail() {
   }
 
   function autoFillMarketplace() {
-    const data = {
-      title: `Arriendo Apartamento ${apt.name}`,
-      price: String(apt.monthlyRent || 0),
-      description: generateMarketplaceText(),
-      bedrooms: String(apt.rooms || ''),
-      bathrooms: String(apt.bathrooms || ''),
-      area: String(apt.area || ''),
-      apto: apt.name,
-    };
     try {
-      localStorage.setItem('laujim-marketplace', JSON.stringify(data));
-      const w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
-      if (w) {
-        setTimeout(() => {
-          try { w.focus(); } catch {}
-        }, 1000);
-      }
+      const photoUrls = photos.map(p => photoUrl(p)).filter(Boolean);
+      const data = generateMarketplaceJson(apt, photoUrls);
+      const jsonString = JSON.stringify(data);
+
+      window.postMessage({ type: 'LAUJIM_MARKETPLACE_DATA', data: data }, '*');
+
+      navigator.clipboard.writeText(jsonString).then(() => {
+        const w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
+        if (w) {
+          setTimeout(() => {
+            try { w.focus(); } catch {}
+          }, 1000);
+        }
+      }).catch(() => {
+        const w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
+        prompt('Copia este JSON (Ctrl+C) para usar con el bookmarklet:', jsonString);
+        if (w) {
+          setTimeout(() => {
+            try { w.focus(); } catch {}
+          }, 1000);
+        }
+      });
     } catch (e) {
-      alert('Error al guardar datos: ' + e.message);
+      alert('Error: ' + e.message);
     }
   }
 
@@ -922,9 +932,18 @@ export default function ApartmentDetail() {
                   </button>
                 </div>
                 {marketplaceUrl && (
-                  <button onClick={openPublishedAd} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
-                    <ExternalLink className="w-3.5 h-3.5" /> Abrir publicación guardada
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={openPublishedAd} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
+                      <ExternalLink className="w-3.5 h-3.5" /> Abrir publicación guardada
+                    </button>
+                    <button onClick={async () => {
+                      await api.apartments.update(Number(id), { marketplaceUrl: '' });
+                      setMarketplaceUrl('');
+                      window.dispatchEvent(new CustomEvent('laujim-marketplace-remove-url', { detail: { aptId: Number(id) } }));
+                    }} className="inline-flex items-center gap-1.5 text-xs text-red-500 hover:underline">
+                      <Trash2 className="w-3 h-3" /> Eliminar URL
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
