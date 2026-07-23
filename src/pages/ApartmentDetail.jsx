@@ -69,7 +69,12 @@ export default function ApartmentDetail() {
     const a = await api.apartments.get(Number(id));
     if (!a) { navigate('/apartments'); return; }
     setApt(a);
-    setForm({ ...a });
+    setForm({
+      ...a,
+      marketplaceBedrooms: a.marketplaceBedrooms !== undefined ? a.marketplaceBedrooms : a.rooms || '',
+      marketplaceBathrooms: a.marketplaceBathrooms !== undefined ? a.marketplaceBathrooms : a.bathrooms || '',
+      marketplaceRentalType: a.marketplaceRentalType || 'Apartamento/condominio',
+    });
 
     const [allC, allP, allE, allV, allF, allT, allPhotos, allU] = await Promise.all([
       api.contracts.toArray(), api.payments.toArray(), api.expenses.toArray(),
@@ -1116,6 +1121,28 @@ export default function ApartmentDetail() {
           <div className="border-t border-gray-200 pt-4">
             <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2"><Globe className="w-4 h-4" /> Facebook Marketplace — Arriendo</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección para Facebook Marketplace</label>
+                <input type="text" value={form.marketplaceAddress || ''} onChange={e => setForm({...form, marketplaceAddress: e.target.value})} placeholder="Ej: Cra 1 #23-45, Barranquilla, Atlántico" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de alquiler</label>
+                <select value={form.marketplaceRentalType || 'Apartamento/condominio'} onChange={e => setForm({...form, marketplaceRentalType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="Apartamento/condominio">Apartamento/condominio</option>
+                  <option value="Casa">Casa</option>
+                  <option value="Habitación">Habitación</option>
+                  <option value="Townhouse">Townhouse</option>
+                  <option value="Estudio">Estudio</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número de habitaciones</label>
+                <input type="number" min="0" max="20" value={form.marketplaceBedrooms ?? ''} onChange={e => setForm({...form, marketplaceBedrooms: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número de baños</label>
+                <input type="number" min="0" max="20" step="0.5" value={form.marketplaceBathrooms ?? ''} onChange={e => setForm({...form, marketplaceBathrooms: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilidad</label>
                 <input type="date" value={form.marketplaceAvailability || ''} onChange={e => setForm({...form, marketplaceAvailability: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />

@@ -251,6 +251,7 @@
     log('Data: title="' + data.title + '" price="' + data.price + '" photos=' + (data.photoUrls ? data.photoUrls.length : 0));
 
     var fields = [
+      { name: 'address', kw: ['dirección', 'address', 'ubicación', 'location'], val: data.address },
       { name: 'price per month', kw: ['price per month', 'precio por mes', 'monthly price'], val: data.price },
       { name: 'rental description', kw: ['rental description', 'descripción del alquiler', 'descripción'], val: data.description },
       { name: 'property square feet', kw: ['property square feet', 'square feet', 'pies cuadrados', 'metros cuadrados'], val: data.propertySquareFeet || data.area },
@@ -263,13 +264,13 @@
     // Facebook usa menús React para estos controles. Se seleccionan por el
     // texto visible de cada opción, no intentando escribir dentro del menú.
     var dropdowns = [
-      { name: 'rental type', kw: ['rental type', 'property type', 'tipo de alquiler'], val: data.rentalType || 'Apartment/condo' },
-      { name: 'number of bedrooms', kw: ['number of bedrooms', 'bedrooms', 'habitaciones'], val: data.bedrooms },
-      { name: 'number of bathrooms', kw: ['number of bathrooms', 'bathrooms', 'baños', 'banos'], val: data.bathrooms },
-      { name: 'laundry type', kw: ['laundry type', 'tipo de lavadero', 'lavadero'], val: data.laundryType },
-      { name: 'parking type', kw: ['parking type', 'tipo de estacionamiento', 'estacionamiento'], val: data.parkingType },
-      { name: 'air conditioning type', kw: ['air conditioning type', 'tipo de aire acondicionado', 'aire acondicionado'], val: data.airConditioningType },
-      { name: 'heating type', kw: ['heating type', 'tipo de calefacción', 'calefacción'], val: data.heatingType }
+      { name: 'rental type', kw: ['tipo de alquiler', 'rental type', 'property type'], val: data.rentalType || 'Apartamento/condominio' },
+      { name: 'number of bedrooms', kw: ['número de habitaciones', 'numero de habitaciones', 'habitaciones', 'bedrooms'], val: data.bedrooms },
+      { name: 'number of bathrooms', kw: ['número de baños', 'numero de banos', 'baños', 'banos', 'bathrooms'], val: data.bathrooms },
+      { name: 'laundry type', kw: ['tipo de lavadero', 'lavadero', 'laundry type'], val: data.laundryType },
+      { name: 'parking type', kw: ['tipo de estacionamiento', 'estacionamiento', 'parking type'], val: data.parkingType },
+      { name: 'air conditioning type', kw: ['tipo de aire acondicionado', 'aire acondicionado', 'air conditioning type'], val: data.airConditioningType },
+      { name: 'heating type', kw: ['tipo de calefacción', 'calefacción', 'heating type'], val: data.heatingType }
     ];
     for (var d = 0; d < dropdowns.length; d++) {
       if (await chooseDropdown(dropdowns[d].name, dropdowns[d].kw, dropdowns[d].val)) {
@@ -283,35 +284,11 @@
       filled.push('dog friendly');
     }
 
-    // Checkboxes para mascotas
-    var checkboxes = [
-      { name: 'cat friendly', kw: ['gatos', 'cat', 'gato'], val: data.catFriendly === true },
-      { name: 'dog friendly', kw: ['perros', 'dog', 'perro'], val: data.dogFriendly === true }
-    ];
-    for (var cb = 0; cb < checkboxes.length; cb++) {
-      if (checkboxes[cb].val) {
-        try {
-          var allCb = document.querySelectorAll('input[type="checkbox"]');
-          for (var c = 0; c < allCb.length; c++) {
-            if (matchKeywords(allCb[c], checkboxes[cb].kw)) {
-              allCb[c].checked = true;
-              allCb[c].dispatchEvent(new Event('change', { bubbles: true }));
-              allCb[c].dispatchEvent(new Event('input', { bubbles: true }));
-              filled.push(checkboxes[cb].name);
-              log('Checked: ' + checkboxes[cb].name);
-              break;
-            }
-          }
-        } catch (e) {
-          log('Error setting ' + checkboxes[cb].name + ': ' + e.message);
-        }
-      }
-    }
-
-    // Las fotos se dejan fuera de esta iteración: primero estabilizamos el
-    // mapeo de los campos de arriendo solicitado.
     var photoCount = 0;
-    log('Photo upload disabled for rental form mapping');
+    if (data.photoUrls && data.photoUrls.length > 0) {
+      photoCount = await uploadPhotos(data.photoUrls);
+      log('Uploaded photos: ' + photoCount);
+    }
 
     if (filled.length > 0 || photoCount > 0) {
       var parts = [];

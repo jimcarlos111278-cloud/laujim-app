@@ -41,6 +41,10 @@ export function generateMarketplaceJson(apt, photoUrls) {
   const propertySquareFeet = apt.marketplaceSquareFeet || apt.propertySquareFeet ||
     (areaSquareMeters ? Math.round(areaSquareMeters * 10.7639) : '');
   return {
+    address: String(apt.marketplaceAddress || apt.address || ''),
+    rentalType: String(apt.marketplaceRentalType || apt.rentalType || 'Apartamento/condominio'),
+    bedrooms: String(apt.marketplaceBedrooms || apt.rooms || ''),
+    bathrooms: String(apt.marketplaceBathrooms || apt.bathrooms || ''),
     title: 'Arriendo Apartamento ' + (apt.name || ''),
     price: String(apt.monthlyRent || 0),
     description: 'Apartamento ' + (apt.name || '') + ' en arriendo.\n' +
@@ -50,11 +54,8 @@ export function generateMarketplaceJson(apt, photoUrls) {
       'Canon: $' + Number(apt.monthlyRent || 0).toLocaleString('es-CO') + '/mes.\n' +
       (apt.description || '') + '\n\n' +
       'Para más información, contáctame.',
-    bedrooms: String(apt.rooms || ''),
-    bathrooms: String(apt.bathrooms || ''),
     area: String(apt.area || ''),
     propertySquareFeet: String(propertySquareFeet),
-    rentalType: 'Apartment/condo',
     availability: String(apt.marketplaceAvailability || apt.availableDate || apt.availability || ''),
     laundryType: String(apt.marketplaceLaundryType || apt.laundryType || 'Ninguno'),
     parkingType: String(apt.marketplaceParkingType || apt.parkingType || 'Ninguno'),
