@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Search, Shield, ExternalLink, CheckCircle2, XCircle, AlertTriangle, Clock, User, Loader2 } from 'lucide-react';
+import { Search, Shield, ExternalLink, CheckCircle2, XCircle, AlertTriangle, Clock, User, Loader2, Download } from 'lucide-react';
 import { api } from '../api';
 import { getBase } from '../utils/config';
 import Modal from '../components/Modal';
 
 const POLICE_URL = 'https://antecedentes.policia.gov.co:7005/WebJudicial/index.xhtml';
+const USERSCRIPT_URL = '/scripts/police-helper.user.js';
 
 export default function BackgroundCheck() {
   const [tenants, setTenants] = useState([]);
@@ -53,12 +54,29 @@ export default function BackgroundCheck() {
     setCheckResult(null);
     try {
       const base = getBase();
-      const res = await fetch(base + '/antecedentes/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' },
-        body: JSON.stringify({ document: tenant.documentId }),
-      });
-      const data = await res.json();
+      // Try puppeteer-check first (uses real browser, may bypass captcha)
+      let data;
+      try {
+        const puppeteerRes = await fetch(base + '/antecedentes/puppeteer-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' },
+          body: JSON.stringify({ document: tenant.documentId }),
+        });
+        data = await puppeteerRes.json();
+      } catch (puppeteerErr) {
+        // Fallback to HTTP check
+      }
+
+      // If puppeteer failed or got captcha, try HTTP check as fallback
+      if (!data || data.status === 'error' || data.status === 'captcha') {
+        const httpRes = await fetch(base + '/antecedentes/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' },
+          body: JSON.stringify({ document: tenant.documentId }),
+        });
+        data = await httpRes.json();
+      }
+
       setCheckResult(data);
       if (data.status === 'clean' || data.status === 'flagged') {
         const hasAntecedentes = data.status === 'flagged';
@@ -206,7 +224,7 @@ export default function BackgroundCheck() {
                   <p className="font-medium text-red-800">TIENE ANTECEDENTES</p>
                   {checkResult.detail && <p className="text-sm text-red-600 mt-1">{checkResult.detail}</p>}
                 </div>
-                <a href={POLICE_URL} target="_blank" rel="noopener noreferrer"
+                <a href={POLICE_URL + '#cedula=' + encodeURIComponent(selected.documentId)} target="_blank" rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
                   <ExternalLink className="w-4 h-4" /> Ver detalles en Policía
                 </a>
@@ -229,10 +247,26 @@ export default function BackgroundCheck() {
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-c-500 text-white text-sm font-medium rounded-lg hover:bg-c-600 transition-colors">
                   <ExternalLink className="w-4 h-4" /> Consultar en sitio web
                 </button>
-                <a href={POLICE_URL} target="_blank" rel="noopener noreferrer"
+                <a href={POLICE_URL + '#cedula=' + encodeURIComponent(selected.documentId)} target="_blank" rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 transition-colors">
                   <ExternalLink className="w-4 h-4" /> Abrir en nueva pestaña
                 </a>
+
+                {/* Asistente - UserScript install */}
+                <details className="text-sm">
+                  <summary className="cursor-pointer text-c-600 hover:text-c-700 font-medium flex items-center gap-1.5 px-1 py-1">
+                    <Download className="w-3.5 h-3.5" /> Instalar asistente automático
+                  </summary>
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 space-y-2">
+                    <p>El asistente auto-llena la cédula y detecta el resultado automáticamente al visitar la Policía.</p>
+                    <ol className="list-decimal list-inside space-y-1 text-blue-700">
+                      <li>Instala <a href="https://www.tampermonkey.net/" target="_blank" rel="noopener noreferrer" className="underline font-medium">Tampermonkey</a> en tu navegador (1 clic)</li>
+                      <li><a href={USERSCRIPT_URL} className="underline font-medium">Haz clic aquí</a> para instalar el asistente</li>
+                      <li>Al abrir la Policía, se auto-llenará la cédula y al consultar se enviará el resultado automáticamente</li>
+                    </ol>
+                  </div>
+                </details>
+
                 <button onClick={() => handleAutoCheck(selected)}
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm font-medium rounded-lg border border-amber-300 transition-colors">
                   <Loader2 className="w-4 h-4" /> Ya consulté — Reintentar

@@ -335,6 +335,7 @@ app.get('/api/messages/updates/:since', (req, res) => {
 // Antecedentes - consulta automática a la Policía
 const https = require('https');
 const crypto = require('crypto');
+const puppeteerCheck = require('./src/lib/puppeteerCheck.cjs');
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -593,6 +594,64 @@ app.post('/api/antecedentes/check', async (req, res) => {
     res.json(result);
   } catch (e) {
     res.json({ status: 'error', message: e.message });
+  }
+});
+
+// Puppeteer-based auto check (uses real browser to attempt captcha bypass)
+app.post('/api/antecedentes/puppeteer-check', async (req, res) => {
+  const { document } = req.body;
+  if (!document || !document.trim()) return res.status(400).json({ error: 'Cédula requerida' });
+  try {
+    const result = await puppeteerCheck.autoCheck(document.trim());
+    // If successful, also run the HTTP check to verify (optional)
+    res.json(result);
+  } catch (e) {
+    res.json({ status: 'error', message: e.message });
+  }
+});
+
+// Graceful shutdown for Puppeteer
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, closing Puppeteer browser...');
+  await puppeteerCheck.closeBrowser();
+  process.exit(0);
+});
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, closing Puppeteer browser...');
+  await puppeteerCheck.closeBrowser();
+  process.exit(0);
+});
+
+// ─── Serve the UserScript for automatic police assistance ───
+app.get('/scripts/police-helper.user.js', (req, res) => {
+  const scriptPath = path.join(__dirname, 'public', 'scripts', 'police-helper.user.js');
+  if (fs.existsSync(scriptPath)) {
+    res.set('Content-Type', 'application/javascript; charset=utf-8');
+    res.sendFile(scriptPath);
+  } else {
+    res.status(404).send('UserScript not found');
+  }
+});
+
+// ─── Receive result from UserScript ───
+app.post('/api/antecedentes/userscript-result', (req, res) => {
+  const { document: doc, status, detail } = req.body;
+  if (!doc || !status) return res.status(400).json({ error: 'document and status required' });
+  // Find tenant by documentId and update
+  try {
+    const tenant = (db.tenants || []).find(t => t.documentId === doc);
+    if (tenant) {
+      const hasAntecedentes = status === 'flagged';
+      tenant.antecedentes = hasAntecedentes;
+      tenant.antecedentesDate = new Date().toISOString().split('T')[0];
+      saveData();
+      res.json({ ok: true, tenantId: tenant.id });
+    } else {
+      // Store pending result for when tenant is created
+      res.json({ ok: true, note: 'Tenant not found, result ignored' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
