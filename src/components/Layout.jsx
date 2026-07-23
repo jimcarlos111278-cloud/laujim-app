@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, MessageCircle, Shield
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, MessageCircle
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
 import { isCapacitor } from '../utils/config';
@@ -12,7 +12,7 @@ const navItems = [
   { to: '/apartments', label: 'Apartamentos', icon: Building2 },
   { to: '/predial', label: 'Impuesto predial', icon: Building2, sub: true },
   { to: '/tenants', label: 'Inquilinos', icon: Users },
-  { to: '/background-check', label: 'Antecedentes', icon: Shield, sub: true },
+
   { to: '/contracts', label: 'Contratos', icon: FileText },
   { to: '/generate-contract', label: 'Generar Contrato', icon: ScrollText },
   { to: '/payments', label: 'Pagos', icon: DollarSign },

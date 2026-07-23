@@ -8,7 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Apartments from './pages/Apartments';
 import ApartmentDetail from './pages/ApartmentDetail';
 import Tenants from './pages/Tenants';
-import BackgroundCheck from './pages/BackgroundCheck';
+
 import Contracts from './pages/Contracts';
 import Payments from './pages/Payments';
 import Utilities from './pages/Utilities';
@@ -92,7 +92,7 @@ export default function App() {
                   <Route path="/apartments" element={<Apartments />} />
                   <Route path="/apartments/:id" element={<ApartmentDetail />} />
                   <Route path="/tenants" element={<Tenants />} />
-                  <Route path="/background-check" element={<BackgroundCheck />} />
+
                   <Route path="/contracts" element={<Contracts />} />
                   <Route path="/payments" element={<Payments />} />
                   <Route path="/utilities" element={<Utilities />} />
