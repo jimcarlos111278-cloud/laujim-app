@@ -448,26 +448,30 @@ export default function ApartmentDetail() {
       }
       el.textContent = jsonString;
 
-      setTimeout(function () {
-        var e = document.getElementById('__LAUJIM_EXT_DATA__');
-        if (e) e.remove();
-      }, 5000);
+      var wait = function (resolve) {
+        if (el.getAttribute('data-status') === 'saved') { resolve(); return; }
+        var observer = new MutationObserver(function () {
+          if (el.getAttribute('data-status') === 'saved') {
+            observer.disconnect();
+            resolve();
+          }
+        });
+        observer.observe(el, { attributes: true, attributeFilter: ['data-status'] });
+        setTimeout(function () { observer.disconnect(); resolve(); }, 2000);
+      };
 
-      navigator.clipboard.writeText(jsonString).then(() => {
-        const w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
-        if (w) {
-          setTimeout(() => {
-            try { w.focus(); } catch {}
-          }, 1000);
-        }
-      }).catch(() => {
-        const w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
-        prompt('Copia este JSON (Ctrl+C) para usar con el bookmarklet:', jsonString);
-        if (w) {
-          setTimeout(() => {
-            try { w.focus(); } catch {}
-          }, 1000);
-        }
+      new Promise(wait).then(function () {
+        setTimeout(function () {
+          var e = document.getElementById('__LAUJIM_EXT_DATA__');
+          if (e) e.remove();
+        }, 1000);
+        navigator.clipboard.writeText(jsonString).then(function () {
+          var w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
+          if (w) setTimeout(function () { try { w.focus(); } catch {} }, 1000);
+        }).catch(function () {
+          var w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
+          if (w) setTimeout(function () { try { w.focus(); } catch {} }, 1000);
+        });
       });
     } catch (e) {
       alert('Error: ' + e.message);

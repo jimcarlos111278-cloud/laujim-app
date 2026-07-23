@@ -1,17 +1,21 @@
 (function () {
   'use strict';
 
+  function storeData(data) {
+    chrome.storage.local.set({
+      marketplaceData: data,
+      timestamp: Date.now()
+    });
+  }
+
   function tryStoreFromDOM() {
     var el = document.getElementById('__LAUJIM_EXT_DATA__');
     if (!el) return false;
     try {
       var data = JSON.parse(el.textContent);
-      chrome.storage.local.set({
-        marketplaceData: data,
-        timestamp: Date.now()
-      }, function () {
-        el.remove();
-      });
+      storeData(data);
+      el.setAttribute('data-status', 'saved');
+      setTimeout(function () { el.remove(); }, 2000);
       return true;
     } catch (e) {
       el.remove();
@@ -21,10 +25,9 @@
 
   window.addEventListener('message', function (e) {
     if (e.data && e.data.type === 'LAUJIM_MARKETPLACE_DATA') {
-      chrome.storage.local.set({
-        marketplaceData: e.data.data,
-        timestamp: Date.now()
-      });
+      storeData(e.data.data);
+      var el = document.getElementById('__LAUJIM_EXT_DATA__');
+      if (el) el.setAttribute('data-status', 'saved');
     }
   });
 
