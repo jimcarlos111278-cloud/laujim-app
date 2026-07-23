@@ -10,7 +10,7 @@ export default function Tenants() {
   const [apartments, setApartments] = useState([]);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
+  const [form, setForm] = useState({ name: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
 
   useEffect(() => { load(); }, []);
 
@@ -30,7 +30,8 @@ export default function Tenants() {
 
   const filtered = tenants.filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.email?.toLowerCase().includes(search.toLowerCase()) ||
+
+
     t.documentId?.includes(search)
   );
 
@@ -55,7 +56,7 @@ export default function Tenants() {
       }
     }
     setShowAdd(false);
-    setForm({ name: '', email: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
+    setForm({ name: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
     load();
   }
 
@@ -108,14 +109,16 @@ export default function Tenants() {
                     <td className="px-4 py-3 text-gray-500">{t.documentId || '-'}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 text-gray-500">
-                        {t.email && <a href={`mailto:${t.email}`} className="p-1 hover:text-blue-600" title="Email"><Mail className="w-3.5 h-3.5" /></a>}
+
+
                         {t.phone && (
                           <>
                             <a href={`tel:${t.phone}`} className="p-1 hover:text-green-600" title="Llamar"><Phone className="w-3.5 h-3.5" /></a>
                             <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 hover:text-emerald-600" title="WhatsApp"><MessageCircle className="w-3.5 h-3.5" /></a>
                           </>
                         )}
-                        <span className="text-xs">{t.email || ''}</span>
+
+
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{t.workPhone || '-'}</td>
@@ -140,15 +143,9 @@ export default function Tenants() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo *</label>
             <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-              <input type="text" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+            <input type="text" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Documento (Cédula)</label>

@@ -29,17 +29,17 @@ const SEED_DATA = {
     { "id": 12, "name": "501", "description": "", "monthlyRent": 1550000, "depositAmount": 600000, "paymentDueDay": 10, "status": "occupied", "floor": 5, "area": 57, "rooms": 2, "bathrooms": 1, "notes": "", "nic": "", "waterPaymentCode": "935937", "waterReadingDay": 7, "gasPaymentCode": "67426719", "gasReadingDay": 7, "electricityPaymentCode": "", "electricityReadingDay": 21 }
   ],
   "tenants": [
-    { "id": 1, "name": "Luna", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 2, "name": "Samir", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 3, "name": "Cisney", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 4, "name": "Valery", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 5, "name": "Eukaris", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 6, "name": "Johovana", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 7, "name": "Edwin", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 8, "name": "Adela", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 9, "name": "Carlos", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 10, "name": "Yoeli", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
-    { "id": 11, "name": "Dayanna", "email": "", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" }
+    { "id": 1, "name": "Luna", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 2, "name": "Samir", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 3, "name": "Cisney", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 4, "name": "Valery", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 5, "name": "Eukaris", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 6, "name": "Johovana", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 7, "name": "Edwin", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 8, "name": "Adela", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 9, "name": "Carlos", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 10, "name": "Yoeli", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" },
+    { "id": 11, "name": "Dayanna", "phone": "", "documentId": "", "notes": "", "createdAt": "2026-07-20T06:47:58.630Z" }
   ],
   "contracts": [
     { "id": 1, "apartmentId": 2, "tenantId": 1, "startDate": "2026-07-18T00:00:00.000Z", "endDate": null, "monthlyRent": 750000, "depositPaid": true },

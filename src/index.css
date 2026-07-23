@@ -118,6 +118,9 @@ td, th { word-break: break-word; }
 .nav-active { background-color: var(--c-50); color: var(--c-700); }
 .dark .nav-active { background-color: var(--c-50-900-30); color: var(--c-200); }
 
+/* ========== FONT SCALE ========== */
+:root { --font-scale: 1; }
+
 /* ========== FORCE DESKTOP LAYOUT (APK + mobile web) ========== */
 .force-desktop {
   -webkit-text-size-adjust: 100%;
@@ -143,4 +146,20 @@ td, th { word-break: break-word; }
 
 .force-desktop .app-layout .rounded-xl {
   border-radius: 0.6rem;
+}
+
+/* ========== RESPONSIVE: table containers & flex overflow ========== */
+.table-container, .overflow-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap;
+}
+
+/* On very small screens, shrink buttons inside action bars */
+@media (max-width: 480px) {
+  .action-bar .btn-text { font-size: 0.65rem; padding: 0.25rem 0.5rem; }
+  .action-bar .gap-2 { gap: 0.3rem; }
 }

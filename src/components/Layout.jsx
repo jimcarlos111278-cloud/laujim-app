@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, MessageCircle
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, MessageCircle, Plus, Minus, Type
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
 import { isCapacitor } from '../utils/config';
@@ -41,6 +41,17 @@ export default function Layout({ children }) {
 
   const toggleSidebar = () => { if (!appMode) setSidebarOpen(prev => !prev); };
 
+  const [fontScale, setFontScale] = useState(() => Number(localStorage.getItem('font-scale') || 1));
+  function changeFontSize(delta) {
+    const next = Math.max(0.7, Math.min(1.5, fontScale + delta));
+    setFontScale(next);
+    localStorage.setItem('font-scale', String(next));
+    document.documentElement.style.setProperty('--font-scale', next);
+  }
+  useEffect(() => {
+    document.documentElement.style.setProperty('--font-scale', fontScale);
+  }, []);
+
   return (
     <div className={`flex h-screen bg-gray-100 dark:bg-gray-900 ${appMode ? 'app-layout' : ''}`}>
       {!appMode && <div className={`fixed inset-0 bg-black/50 z-20 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)} />}
@@ -73,12 +84,22 @@ export default function Layout({ children }) {
             </NavLink>
           ))}
         </nav>
-        {!appMode && <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-          <div className="flex justify-center"><ThemeSelector /></div>
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            {connected === null && <span className="text-xs text-gray-400">Verificando conexión...</span>}
-            {connected === true && <><Cloud className="w-4 h-4 text-green-500" /><span className="text-xs text-green-600">En línea</span></>}
-            {connected === false && <><CloudOff className="w-4 h-4 text-red-500" /><span className="text-xs text-red-500">Sin conexión</span></>}
+        <div className={`${appMode ? 'p-1.5' : 'absolute bottom-0 left-0 right-0 p-3 border-t border-gray-200 dark:border-gray-700'} space-y-1.5`}>
+          <div className={`flex items-center justify-center gap-1 ${appMode ? 'text-xs' : ''}`}>
+            <button onClick={() => changeFontSize(-0.1)} className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ${appMode ? '' : 'text-sm'}`} title="Reducir tamaño">
+              <Minus className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+            </button>
+            <Type className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-gray-400`} />
+            <span className={`text-xs text-gray-400 ${appMode ? 'text-[10px]' : ''}`}>{Math.round(fontScale * 100)}%</span>
+            <button onClick={() => changeFontSize(0.1)} className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ${appMode ? '' : 'text-sm'}`} title="Aumentar tamaño">
+              <Plus className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+            </button>
+          </div>
+          {!appMode && <div className="flex justify-center"><ThemeSelector /></div>}
+          <div className={`flex items-center justify-center gap-2 ${appMode ? 'text-[10px]' : 'text-xs'} text-gray-500 dark:text-gray-400`}>
+            {connected === null && <span className="text-gray-400">Verificando...</span>}
+            {connected === true && <><Cloud className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-green-500`} /><span className="text-green-600">En línea</span></>}
+            {connected === false && <><CloudOff className={`${appMode ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-red-500`} /><span className="text-red-500">Sin conexión</span></>}
           </div>
         </div>}
       </aside>
@@ -92,7 +113,7 @@ export default function Layout({ children }) {
             <span className="font-semibold text-gray-900 dark:text-white">Gestión Aptos</span>
           </div>
         </header>}
-        <main className="flex-1 overflow-auto p-3 md:p-6">
+        <main className="flex-1 overflow-auto p-3 md:p-6" style={{ zoom: fontScale }}>
           {children}
         </main>
       </div>

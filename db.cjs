@@ -285,7 +285,6 @@ const INITIAL_DATA = {
     {
       "id": 1,
       "name": "Luna",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -294,7 +293,6 @@ const INITIAL_DATA = {
     {
       "id": 2,
       "name": "Samir",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -303,7 +301,6 @@ const INITIAL_DATA = {
     {
       "id": 3,
       "name": "Cisney",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -312,7 +309,6 @@ const INITIAL_DATA = {
     {
       "id": 4,
       "name": "Valery",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -321,7 +317,6 @@ const INITIAL_DATA = {
     {
       "id": 5,
       "name": "Eukaris",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -330,7 +325,6 @@ const INITIAL_DATA = {
     {
       "id": 6,
       "name": "Johovana",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -339,7 +333,6 @@ const INITIAL_DATA = {
     {
       "id": 7,
       "name": "Edwin",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -348,7 +341,6 @@ const INITIAL_DATA = {
     {
       "id": 8,
       "name": "Adela",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -357,7 +349,6 @@ const INITIAL_DATA = {
     {
       "id": 9,
       "name": "Carlos",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -366,7 +357,6 @@ const INITIAL_DATA = {
     {
       "id": 10,
       "name": "Yoeli",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",
@@ -375,7 +365,6 @@ const INITIAL_DATA = {
     {
       "id": 11,
       "name": "Dayanna",
-      "email": "",
       "phone": "",
       "documentId": "",
       "notes": "",

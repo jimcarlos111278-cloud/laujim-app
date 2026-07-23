@@ -550,7 +550,8 @@ export default function ApartmentDetail() {
             {tenant ? (
               <div className="space-y-2 text-sm">
                 <p><span className="text-gray-500">Nombre:</span> <strong>{tenant.name}</strong></p>
-                <p><span className="text-gray-500">Email:</span> {tenant.email || '-'}</p>
+
+
                 <p><span className="text-gray-500">Teléfono:</span> {tenant.phone || '-'}</p>
                 {tenant.phone && (
                   <div className="flex gap-2 mt-2">

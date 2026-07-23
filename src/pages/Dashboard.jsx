@@ -10,7 +10,7 @@ import { notifyPaymentReminder } from '../utils/notifications';
 import ThemeSelector from '../components/ThemeSelector';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ totalApts: 0, occupied: 0, vacant: 0, totalTenants: 0, monthlyIncome: 0, expectedIncome: 0, collectedIncome: 0, pendingPayments: 0, vacantApts: [], overdue: [], thisMonthMissing: [], nextMonthMissing: [] });
+  const [stats, setStats] = useState({ totalApts: 0, occupied: 0, vacant: 0, totalTenants: 0, monthlyIncome: 0, expectedIncome: 0, collectedIncome: 0, pendingPayments: 0, vacantApts: [], overdue: [], thisMonthMissing: [], nextMonthMissing: [], nextMonthAlreadyPaid: [] });
   const [showPay, setShowPay] = useState(null);
   const [payStep, setPayStep] = useState('period');
   const [payPeriod, setPayPeriod] = useState(getCurrentPeriod());
@@ -72,19 +72,24 @@ export default function Dashboard() {
       .filter(a => a.paymentDueDay > currentDay && !a.paidThisPeriod)
       .sort((a, b) => a.daysLeft - b.daysLeft);
 
-    const nextMonthMissing = occupiedApts.map(a => {
+    const nextPeriodStr = nextPeriod(currentPeriod);
+    const nextMonthPaid = occupiedApts.map(a => {
       const contract = activeContracts.find(c => c.apartmentId === a.id);
-      return { ...a, rent: contract?.monthlyRent || a.monthlyRent };
+      const nextPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === nextPeriodStr);
+      const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
+      return { ...a, rent: contract?.monthlyRent || a.monthlyRent, nextPayment, paidNext: !!nextPayment, tenant, contract };
     }).sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
+    const nextMonthNotPaid = nextMonthPaid.filter(a => !a.paidNext);
+    const nextMonthAlreadyPaid = nextMonthPaid.filter(a => a.paidNext);
 
     const thisMonthPaid = enriched.filter(a => a.paymentDueDay > currentDay && a.paidThisPeriod);
-    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing, thisMonthPaid });
+    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing: nextMonthNotPaid, thisMonthPaid, nextMonthAlreadyPaid });
   }
 
-  function openPayModal(apt) {
+  function openPayModal(apt, period) {
     setShowPay(apt);
     setPayStep('period');
-    setPayPeriod(getCurrentPeriod());
+    setPayPeriod(period || getCurrentPeriod());
     setPayForm({ amount: String(apt.rent), date: '' });
   }
 
@@ -433,9 +438,39 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400">Vence día {a.paymentDueDay}</span>
                   <span className="font-medium text-gray-700">{formatCurrency(a.rent)}</span>
-                  <button onClick={() => openPayModal(a)} className="px-2.5 py-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" title="Pagar por adelantado">
+                  <button onClick={() => openPayModal(a, nextPeriod(getCurrentPeriod()))} className="px-2.5 py-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" title="Pagar por adelantado">
                     Pagar
                   </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {stats.nextMonthAlreadyPaid && stats.nextMonthAlreadyPaid.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-purple-500" />
+            Pagados próximo mes — {nextMonthLabel}
+          </h3>
+          <SortHeader />
+          <div className="space-y-2">
+            {stats.nextMonthAlreadyPaid.map(a => (
+              <div key={a.id} className="flex items-center justify-between p-3 rounded-lg text-sm bg-purple-50 border border-purple-200">
+                <div className="flex items-center gap-3 flex-1">
+                  <Link to={`/apartments/${a.id}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                    <CheckCircle2 className="w-3 h-3" /> Pagado adelantado
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">{formatCurrency(a.rent)}</span>
+                  {a.nextPayment && (
+                    <button onClick={() => setConfirmDelete(a.nextPayment)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar pago">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

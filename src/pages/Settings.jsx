@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut, Upload, AlertTriangle, Palette } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut, Upload, AlertTriangle, Palette, ClipboardList } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { getBase } from '../utils/config';
@@ -117,6 +117,10 @@ export default function Settings() {
   const fileInputRef = useRef(null);
   const [restoring, setRestoring] = useState(false);
 
+  const bulkInputRef = useRef(null);
+  const [bulkStatus, setBulkStatus] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   async function handleRestore(file) {
     if (!file) return;
     if (!confirm('¿Restaurar este backup? Se reemplazarán TODOS los datos del servidor. Los datos actuales se perderán.')) return;
@@ -139,6 +143,115 @@ export default function Settings() {
     }
     setRestoring(false);
     setTimeout(() => setBackupInfo(null), 5000);
+  }
+
+  async function handleDownloadTemplate() {
+    const [a, t, c] = await Promise.all([
+      api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(),
+    ]);
+    const activeContracts = c.filter(ct => !ct.endDate || new Date(ct.endDate) > new Date());
+    const template = a.map(apt => {
+      const contract = activeContracts.find(ct => ct.apartmentId === apt.id);
+      const tenant = contract ? t.find(ten => ten.id === contract.tenantId) : null;
+      return {
+        apto: apt.name,
+        estado: apt.status || 'vacant',
+        canon: apt.monthlyRent || 0,
+        deposito: apt.depositAmount || 0,
+        diaVencimiento: apt.paymentDueDay || 5,
+        inquilino: tenant ? tenant.name : '',
+        cedula: tenant ? tenant.documentId : '',
+        telefono: tenant ? tenant.phone : '',
+        fechaInicio: contract ? contract.startDate : '',
+        fechaFin: contract ? contract.endDate || '' : '',
+        lecturaAgua: apt.waterReadingDay || 7,
+        codigoAgua: apt.waterPaymentCode || '',
+        lecturaGas: apt.gasReadingDay || 7,
+        codigoGas: apt.gasPaymentCode || '',
+        lecturaLuz: apt.electricityReadingDay || 21,
+        observaciones: apt.notes || '',
+      };
+    });
+    const blob = new Blob([JSON.stringify({ version: '1.0', plantilla: template }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const aEl = document.createElement('a');
+    aEl.href = url;
+    aEl.download = `plantilla-bulk-${new Date().toISOString().split('T')[0]}.json`;
+    aEl.click();
+    URL.revokeObjectURL(url);
+    setBulkStatus('Plantilla descargada. Llénala y súbela.');
+    setTimeout(() => setBulkStatus(null), 5000);
+  }
+
+  async function handleUploadTemplate(file) {
+    if (!file) return;
+    setBulkLoading(true);
+    setBulkStatus(null);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.plantilla || !Array.isArray(data.plantilla)) throw new Error('Formato inválido: falta "plantilla"');
+      const { apartments: existingApts, tenants: existingTenants, contracts: existingContracts } = await fetch(getBase() + '/data/all', {
+        headers: { 'x-auth-token': 'laujim laujim' },
+      }).then(r => r.json());
+      const [localApts, localTenants, localContracts] = await Promise.all([
+        api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(),
+      ]);
+      let created = 0;
+      for (const row of data.plantilla) {
+        if (!row.apto) continue;
+        let apt = localApts.find(a => a.name === row.apto);
+        if (!apt) {
+          const maxId = Math.max(...localApts.map(a => a.id), 0);
+          apt = await api.apartments.add({
+            name: row.apto, status: row.estado || 'vacant', monthlyRent: Number(row.canon) || 0,
+            depositAmount: Number(row.deposito) || 0, paymentDueDay: Number(row.diaVencimiento) || 5,
+            waterReadingDay: Number(row.lecturaAgua) || 7, waterPaymentCode: row.codigoAgua || '',
+            gasReadingDay: Number(row.lecturaGas) || 7, gasPaymentCode: row.codigoGas || '',
+            electricityReadingDay: Number(row.lecturaLuz) || 21, notes: row.observaciones || '',
+            floor: 1, area: 0, rooms: 1, bathrooms: 1, description: '', nic: '', electricityPaymentCode: '',
+            createdAt: new Date().toISOString(),
+          });
+          localApts.push(apt);
+        } else {
+          await api.apartments.update(apt.id, {
+            status: row.estado || apt.status, monthlyRent: Number(row.canon) || apt.monthlyRent,
+            paymentDueDay: Number(row.diaVencimiento) || apt.paymentDueDay,
+            notes: row.observaciones || apt.notes,
+          });
+        }
+        if (row.inquilino && row.cedula) {
+          let tenant = localTenants.find(t => t.documentId === row.cedula);
+          if (!tenant) {
+            tenant = await api.tenants.add({
+              name: row.inquilino, documentId: row.cedula, phone: row.telefono || '',
+              notes: '', linkedAptId: apt.id, createdAt: new Date().toISOString(),
+            });
+            localTenants.push(tenant);
+          } else {
+            await api.tenants.update(tenant.id, { name: row.inquilino, phone: row.telefono || tenant.phone });
+          }
+          if (row.fechaInicio && apt.id) {
+            const existingContract = localContracts.find(ct => ct.apartmentId === apt.id && (!ct.endDate || new Date(ct.endDate) > new Date()));
+            if (!existingContract) {
+              await api.contracts.add({
+                apartmentId: apt.id, tenantId: tenant.id, monthlyRent: Number(row.canon) || 0,
+                startDate: row.fechaInicio, endDate: row.fechaFin || null,
+                createdAt: new Date().toISOString(),
+              });
+            }
+          }
+        }
+        created++;
+      }
+      await refreshAllFromServer();
+      await load();
+      setBulkStatus(`Plantilla procesada: ${created} aptos creados/actualizados`);
+    } catch (e) {
+      setBulkStatus('Error: ' + e.message);
+    }
+    setBulkLoading(false);
+    setTimeout(() => setBulkStatus(null), 8000);
   }
 
   async function load() {
@@ -290,6 +403,21 @@ export default function Settings() {
             </div>
           </div>
         </Modal>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Carga Masiva (BULK)</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga una plantilla con los datos actuales, completa la información faltante y súbela para crear/actualizar múltiples aptos, inquilinos y contratos a la vez.</p>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={handleDownloadTemplate} className="flex items-center justify-center gap-2 px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors text-sm">
+              <Download className="w-4 h-4" /> Descargar Plantilla
+            </button>
+            <input ref={bulkInputRef} type="file" accept=".json" onChange={e => { handleUploadTemplate(e.target.files[0]); e.target.value = ''; }} className="hidden" />
+            <button onClick={() => bulkInputRef.current?.click()} disabled={bulkLoading} className="flex items-center justify-center gap-2 px-4 py-2 border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors text-sm">
+              <Upload className="w-4 h-4" /> {bulkLoading ? 'Procesando...' : 'Subir Plantilla'}
+            </button>
+            {bulkStatus && <p className="w-full text-xs text-emerald-600">{bulkStatus}</p>}
+          </div>
+        </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Acceso de Inquilinos</h3>
