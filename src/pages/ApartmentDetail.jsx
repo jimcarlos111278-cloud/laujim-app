@@ -73,7 +73,7 @@ export default function ApartmentDetail() {
       ...a,
       marketplaceBedrooms: a.marketplaceBedrooms !== undefined ? a.marketplaceBedrooms : a.rooms || '',
       marketplaceBathrooms: a.marketplaceBathrooms !== undefined ? a.marketplaceBathrooms : a.bathrooms || '',
-      marketplaceRentalType: a.marketplaceRentalType || 'Apartamento/condominio',
+      marketplaceRentalType: a.marketplaceRentalType || 'Departamento/condominio',
     });
 
     const [allC, allP, allE, allV, allF, allT, allPhotos, allU] = await Promise.all([
@@ -1127,12 +1127,11 @@ export default function ApartmentDetail() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de alquiler</label>
-                <select value={form.marketplaceRentalType || 'Apartamento/condominio'} onChange={e => setForm({...form, marketplaceRentalType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                  <option value="Apartamento/condominio">Apartamento/condominio</option>
+                <select value={form.marketplaceRentalType || 'Departamento/condominio'} onChange={e => setForm({...form, marketplaceRentalType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="Departamento/condominio">Departamento/condominio</option>
                   <option value="Casa">Casa</option>
-                  <option value="Habitación">Habitación</option>
                   <option value="Townhouse">Townhouse</option>
-                  <option value="Estudio">Estudio</option>
+                  <option value="Solo habitación">Solo habitación</option>
                 </select>
               </div>
               <div>
@@ -1151,45 +1150,38 @@ export default function ApartmentDetail() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de lavadero</label>
                 <select value={form.marketplaceLaundryType || 'Ninguno'} onChange={e => setForm({...form, marketplaceLaundryType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                   <option value="Ninguno">Ninguno</option>
-                  <option value="En el edificio">En el edificio</option>
-                  <option value="En la unidad">En la unidad</option>
-                  <option value="Con conexiones">Con conexiones</option>
-                  <option value="No disponible">No disponible</option>
+                  <option value="Lavadero en la unidad">Lavadero en la unidad</option>
+                  <option value="Lavadero en el edificio">Lavadero en el edificio</option>
+                  <option value="Lavadero disponible">Lavadero disponible</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de estacionamiento</label>
                 <select value={form.marketplaceParkingType || 'Ninguno'} onChange={e => setForm({...form, marketplaceParkingType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                   <option value="Ninguno">Ninguno</option>
-                  <option value="Estacionamiento en la calle">Estacionamiento en la calle</option>
-                  <option value="Estacionamiento en garaje">Estacionamiento en garaje</option>
-                  <option value="Estacionamiento fuera de la calle">Estacionamiento fuera de la calle</option>
-                  <option value="Entrada para vehículos">Entrada para vehículos</option>
-                  <option value="Estacionamiento con valet">Estacionamiento con valet</option>
-                  <option value="Lote de estacionamiento">Lote de estacionamiento</option>
+                  <option value="Estacionamiento cubierto">Estacionamiento cubierto</option>
+                  <option value="Estacionamiento en la vía pública">Estacionamiento en la vía pública</option>
+                  <option value="Estacionamiento privado">Estacionamiento privado</option>
+                  <option value="Estacionamiento disponible">Estacionamiento disponible</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de aire acondicionado</label>
                 <select value={form.marketplaceAirConditioningType || 'Ninguno'} onChange={e => setForm({...form, marketplaceAirConditioningType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                   <option value="Ninguno">Ninguno</option>
-                  <option value="Central">Central</option>
-                  <option value="Ventana">Ventana</option>
-                  <option value="Split">Split</option>
-                  <option value="Portátil">Portátil</option>
-                  <option value="Evaporativo">Evaporativo</option>
+                  <option value="Aire acondicionado central">Aire acondicionado central</option>
+                  <option value="Aire acondicionado disponible">Aire acondicionado disponible</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de calefacción</label>
                 <select value={form.marketplaceHeatingType || 'Ninguno'} onChange={e => setForm({...form, marketplaceHeatingType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                   <option value="Ninguno">Ninguno</option>
-                  <option value="Central">Central</option>
-                  <option value="Eléctrica">Eléctrica</option>
-                  <option value="Gas">Gas</option>
-                  <option value="Radiador">Radiador</option>
-                  <option value="Bomba de calor">Bomba de calor</option>
-                  <option value="Aire forzado">Aire forzado</option>
+                  <option value="Calefacción central">Calefacción central</option>
+                  <option value="Calefacción eléctrica">Calefacción eléctrica</option>
+                  <option value="Calefacción de gas">Calefacción de gas</option>
+                  <option value="Calefacción por radiadores">Calefacción por radiadores</option>
+                  <option value="Calefacción disponible">Calefacción disponible</option>
                 </select>
               </div>
               <div>

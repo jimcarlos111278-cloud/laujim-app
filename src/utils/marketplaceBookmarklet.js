@@ -42,7 +42,7 @@ export function generateMarketplaceJson(apt, photoUrls) {
     (areaSquareMeters ? Math.round(areaSquareMeters * 10.7639) : '');
   return {
     address: String(apt.marketplaceAddress || apt.address || ''),
-    rentalType: String(apt.marketplaceRentalType || apt.rentalType || 'Apartamento/condominio'),
+    rentalType: String(apt.marketplaceRentalType || apt.rentalType || 'Departamento/condominio'),
     bedrooms: String(apt.marketplaceBedrooms || apt.rooms || ''),
     bathrooms: String(apt.marketplaceBathrooms || apt.bathrooms || ''),
     title: 'Arriendo Apartamento ' + (apt.name || ''),

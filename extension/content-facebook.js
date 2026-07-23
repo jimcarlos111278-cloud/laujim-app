@@ -316,7 +316,7 @@
     // Facebook usa menús React para estos controles. Se seleccionan por el
     // texto visible de cada opción, no intentando escribir dentro del menú.
     var dropdowns = [
-      { name: 'rental type', kw: ['tipo de alquiler', 'rental type', 'property type'], val: data.rentalType || 'Apartamento/condominio' },
+      { name: 'rental type', kw: ['tipo de alquiler', 'rental type', 'property type'], val: data.rentalType || 'Departamento/condominio' },
       { name: 'number of bedrooms', kw: ['número de habitaciones', 'numero de habitaciones', 'habitaciones', 'bedrooms'], val: data.bedrooms },
       { name: 'number of bathrooms', kw: ['número de baños', 'numero de banos', 'baños', 'banos', 'bathrooms'], val: data.bathrooms },
       { name: 'laundry type', kw: ['tipo de lavadero', 'lavadero', 'laundry type'], val: data.laundryType },
