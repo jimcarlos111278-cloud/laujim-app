@@ -427,6 +427,29 @@ export default function ApartmentDetail() {
     window.open('https://www.facebook.com/marketplace/you/selling', '_blank');
   }
 
+  function autoFillMarketplace() {
+    const data = {
+      title: `Arriendo Apartamento ${apt.name}`,
+      price: String(apt.monthlyRent || 0),
+      description: generateMarketplaceText(),
+      bedrooms: String(apt.rooms || ''),
+      bathrooms: String(apt.bathrooms || ''),
+      area: String(apt.area || ''),
+      apto: apt.name,
+    };
+    try {
+      localStorage.setItem('laujim-marketplace', JSON.stringify(data));
+      const w = window.open('https://www.facebook.com/marketplace/create/housing', '_blank');
+      if (w) {
+        setTimeout(() => {
+          try { w.focus(); } catch {}
+        }, 1000);
+      }
+    } catch (e) {
+      alert('Error al guardar datos: ' + e.message);
+    }
+  }
+
   function openPublishedAd() {
     if (marketplaceUrl) window.open(marketplaceUrl, '_blank');
   }
@@ -890,6 +913,9 @@ export default function ApartmentDetail() {
                   </button>
                   <button onClick={openMarketplace} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-700">
                     <Globe className="w-3.5 h-3.5" /> Abrir Marketplace
+                  </button>
+                  <button onClick={autoFillMarketplace} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700">
+                    <Zap className="w-3.5 h-3.5" /> Auto-llenar
                   </button>
                   <button onClick={saveMarketplaceUrl} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors border border-gray-300 text-gray-600 hover:bg-gray-50">
                     <Share2 className="w-3.5 h-3.5" /> {marketplaceUrl ? 'Actualizar URL' : 'Guardar URL'}

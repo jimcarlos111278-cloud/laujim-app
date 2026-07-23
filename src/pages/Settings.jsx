@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut, Upload, AlertTriangle, Palette, ClipboardList } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, ExternalLink } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
+import { generateBookmarkletCode } from '../utils/marketplaceBookmarklet';
 import { getBase } from '../utils/config';
 import { requestNotificationPermission } from '../utils/notifications';
 import { isServerAvailable } from '../utils/sync';
@@ -116,6 +117,7 @@ export default function Settings() {
 
   const fileInputRef = useRef(null);
   const [restoring, setRestoring] = useState(false);
+  const [bmCopied, setBmCopied] = useState(false);
 
   const bulkInputRef = useRef(null);
   const [bulkStatus, setBulkStatus] = useState(null);
@@ -463,6 +465,28 @@ export default function Settings() {
             <Download className="w-4 h-4" /> Descargar APK (directo)
           </a>
           <p className="text-xs text-gray-400 dark:text-gray-500">Build incluido en el servidor. También disponible en GitHub Releases.</p>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Zap className="w-4 h-4" /> Auto-llenar Facebook Marketplace</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Instala el <strong>bookmarklet</strong> en tu navegador. Cuando estés en la página de crear publicación en Facebook Marketplace, haz clic en el bookmarklet y rellenará automáticamente los campos con los datos del anuncio guardado desde Laujim.</p>
+          <div className="space-y-3">
+            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">1. Arrastra este botón a tu barra de marcadores:</p>
+              <a href={generateBookmarkletCode()} onClick={e => { e.preventDefault(); navigator.clipboard.writeText(generateBookmarkletCode()).then(() => { setBmCopied(true); setTimeout(() => setBmCopied(false), 2000); }); }} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
+                <Zap className="w-4 h-4" /> {bmCopied ? 'Copiado' : 'Copiar Bookmarklet'}
+              </a>
+              <p className="text-xs text-gray-400 mt-2">Si no puedes arrastrar, haz clic para copiar el código y crea un marcador manualmente.</p>
+            </div>
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              <p><strong>Cómo usarlo:</strong></p>
+              <p>1. En Laujim, ve al detalle del apto Disponible y haz clic en <strong>"Auto-llenar"</strong>.</p>
+              <p>2. Se abrirá Facebook Marketplace con el formulario de creación.</p>
+              <p>3. Haz clic en el bookmarklet <strong>"Llenar Laujim"</strong> en tu barra de marcadores.</p>
+              <p>4. Los campos se rellenarán automáticamente. Agrega las fotos manualmente y publica.</p>
+              <p>5. Vuelve a Laujim y pega la URL de la publicación en <strong>"Guardar URL"</strong>.</p>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
