@@ -114,6 +114,7 @@
   function findDropdown(keywords) {
     var items = document.querySelectorAll('select, input[aria-haspopup], [role="combobox"], button, [role="button"]');
     for (var i = 0; i < items.length; i++) {
+      if (items[i].getAttribute('aria-autocomplete') === 'list') continue;
       if (matchKeywords(items[i], keywords)) return items[i];
     }
     // Facebook suele dejar el texto de la etiqueta junto al botón, no dentro
@@ -131,7 +132,7 @@
       for (var level = 0; level < 3 && container; level++, container = container.parentElement) {
         var nearby = container.querySelectorAll('select, input[aria-haspopup], [role="combobox"], button, [role="button"]');
         for (var n = 0; n < nearby.length; n++) {
-          if (nearby[n] !== labels[l]) return nearby[n];
+          if (nearby[n] !== labels[l] && nearby[n].getAttribute('aria-autocomplete') !== 'list') return nearby[n];
         }
       }
     }
@@ -168,7 +169,7 @@
       for (var level = 0; level < 3 && container; level++, container = container.parentElement) {
         var controls = container.querySelectorAll('select, input[aria-haspopup], [role="combobox"], button, [role="button"]');
         for (var c = 0; c < controls.length; c++) {
-          if (!isVisible(controls[c])) continue;
+          if (!isVisible(controls[c]) || controls[c].getAttribute('aria-autocomplete') === 'list') continue;
           var rect = controls[c].getBoundingClientRect();
           var distance = Math.abs(rect.top - labelRect.bottom) + Math.abs(rect.left - labelRect.left) * 0.1;
           if (rect.top >= labelRect.top - 8 && distance < bestDistance) {
@@ -217,7 +218,7 @@
 
   async function fillAndConfirmAddressReliable(address) {
     if (!address) return true;
-    var field = findEditable(['direccion', 'address', 'ubicacion', 'location']);
+    var field = document.querySelector('input[aria-autocomplete="list"]') || findEditable(['direccion', 'address', 'ubicacion', 'location']);
     if (!field) {
       // Algunas variantes de Facebook muestran primero un botón “Ubicación”.
       var addressButton = findDropdown(['direccion', 'address', 'ubicacion', 'location']);

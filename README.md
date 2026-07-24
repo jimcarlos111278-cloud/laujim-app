@@ -1166,6 +1166,11 @@ var dropdowns = [
 
 ## Historial de Cambios
 
+### 2026-07-23 — v2.4.2 — Extension v1.4.3: fix address field detection, fix laundry dropdown false match
+- **Fix**: `content-facebook.js` — `fillAndConfirmAddressReliable` ahora busca `input[aria-autocomplete="list"]` como primer intento (el campo de dirección de Facebook no tiene texto para `textNear`, solo un ícono de ubicación)
+- **Fix**: `content-facebook.js` — `findDropdown` y `findDropdownByExactLabel` ahora excluyen elementos con `aria-autocomplete="list"` (address field) para que el keyword `'lavadero'` no matchee accidentalmente el campo de dirección y devuelva el control equivocado
+- **Update**: v1.4.2 → v1.4.3
+
 ### 2026-07-23 — v2.4.1 — Extension v1.4.1: fix dropdown menu close race condition + backup
 - **Fix**: `content-facebook.js` — agregado `await 400ms` tras seleccionar opción en `chooseDropdown()` para que React cierre el menú antes del siguiente dropdown. Soluciona fallo intermitente del primer dropdown dentro de "Detalles avanzados" (Tipo de lavadero) cuando el menú del dropdown anterior aún se está cerrando
 - **Fix**: `content-facebook.js` — `activate(control)` ahora espera 600ms antes de buscar opciones (era 0ms). Eliminado filtro `isVisible()` en opciones del menú para que funcione con overlays de React
