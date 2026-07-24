@@ -1095,7 +1095,17 @@ script al recargar la extensión aunque Marketplace ya estuviera abierto.
 | Invertir orden: `findDropdown` antes que `findDropdownByExactLabel` | v1.4.5 | `findDropdownByExactLabel` elegía "Tipo de estacionamiento" porque su contenedor capturaba ambos labels. `findDropdown` usa `textNear` que encuentra "lavadero" por `aria-labelledby` |
 | Address sin `form` + `type="text"` | v1.4.5 | El selector anterior `form input...` fallaba si FB no envuelve en `<form>`. Ahora busca `input[type="text"]` para excluir el buscador global (`type="search"`) |
 
-**Estado actual:** Parking, AC, heating → **OK** (3/3 dropdowns internos). Lavadero → **pendiente de test** (se invirtió orden de búsqueda: `findDropdown` antes que `findDropdownByExactLabel` para evitar que el selector exacto capture el contenedor de estacionamiento). Address → **pendiente de test** (selector sin `form`, con `type="text"` para excluir buscador global de Facebook).
+**Estado actual:** ✅ **Todos los campos funcionan.** Lavadero se arregló invirtiendo el orden de búsqueda: `findDropdown()` (usa `textNear` con `aria-labelledby`) va primero, `findDropdownByExactLabel()` es fallback. Address se arregló usando `input[type="text"]` sin depender de `<form>`.
+
+### Lecciones aprendidas (notas para futuro)
+
+1. **Orden de búsqueda importa.** `findDropdownByExactLabel` busca labels por texto normalizado y devuelve el control más cercano. Si dos dropdowns están cerca en el DOM, puede devolver el control equivocado. `findDropdown` (vía `textNear`) es más específico porque revisa `aria-labelledby`, `aria-label` y `previousElementSibling` directamente en el elemento, no en el contenedor.
+
+2. **Campos de dirección de Facebook no tienen texto visible.** No confiar en `textNear`/`findEditable` para el address. Usar selectores de atributo: `input[role="combobox"][aria-autocomplete="list"]`. Además, `type="text"` vs `type="search"` diferencia el address del buscador global.
+
+3. **React menus necesitan espera doble.** 600ms tras abrir el menú (para que React renderice las opciones) + 400ms tras seleccionar (para que React cierre el menú antes del siguiente dropdown).
+
+4. **`isVisible()` filtra elementos válidos.** Los menús de React usan overlays/portales que pueden tener `getClientRects().length === 0` aunque sean funcionales. No filtrar opciones por visibilidad.
 
 ### Configuración actual de dropdowns (v1.4.5)
 
@@ -1109,13 +1119,14 @@ var dropdowns = [
 ];
 ```
 
-### Flujo de `chooseDropdown` (v1.4.1)
+### Flujo de `chooseDropdown` (v1.4.5)
 
-1. Busca combobox por label exacto o fallback genérico
-2. `activate(control)`: mousedown → mouseup → click
-3. **Espera 600ms** a que React renderice el menú
-4. Busca opción en hasta 8 intentos (cada 250ms) entre `[role="option"]`
-5. Al seleccionar opción: click + **espera 400ms** a que el menú se cierre antes del siguiente dropdown
+1. Busca combobox con `findDropdown(keywords)` (usa `textNear` → `aria-labelledby`, `aria-label`, `previousElementSibling` ×3, `closest('label')`, `placeholder`, `name`). Excluye `[aria-autocomplete="list"]`
+2. Fallback: `findDropdownByExactLabel(keywords)` (label text normalizado + control más cercano). Excluye `[aria-autocomplete="list"]`
+3. `activate(control)`: mousedown → mouseup → click
+4. **Espera 600ms** a que React renderice el menú
+5. Busca opción en hasta 8 intentos (cada 250ms) entre `[role="option"]`
+6. Al seleccionar opción: click + **espera 400ms** a que el menú se cierre antes del siguiente dropdown
 
 ### Timers activos
 
@@ -1184,7 +1195,7 @@ var dropdowns = [
 
 ## Historial de Cambios
 
-### 2026-07-23 — v2.4.4 — Extension v1.4.5: invert dropdown search order, fix address selector
+### 2026-07-23 — v2.4.4 — Extension v1.4.5: ✅ TODOS LOS CAMPOS FUNCIONAN
 - **Fix**: `chooseDropdown()` ahora usa `findDropdown(keywords) || findDropdownByExactLabel(keywords)` en vez del orden inverso. `findDropdownByExactLabel` podía capturar el contenedor de "Tipo de estacionamiento" al buscar "Tipo de lavadero" porque ambos labels están cerca en el DOM. `findDropdown` (que usa `textNear`) encuentra el combobox correcto por `aria-labelledby`
 - **Fix**: `fillAndConfirmAddressReliable()` ya no depende de `<form>`. Usa `input[role="combobox"][aria-autocomplete="list"][type="text"]` con `type="text"` para excluir el buscador global de Facebook (`type="search"`)
 - **Update**: v1.4.4 → v1.4.5
