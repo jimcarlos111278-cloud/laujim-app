@@ -139,6 +139,38 @@
     return style.display !== 'none' && style.visibility !== 'hidden' && el.getClientRects().length > 0;
   }
 
+  function findDropdownByExactLabel(keywords) {
+    var labels = document.querySelectorAll('label, span, div');
+    var best = null;
+    var bestDistance = Infinity;
+    for (var i = 0; i < labels.length; i++) {
+      var label = labels[i];
+      var labelText = normalizeText(label.textContent || '');
+      if (!labelText || labelText.length > 80) continue;
+      var matches = false;
+      for (var k = 0; k < keywords.length; k++) {
+        var keyword = normalizeText(keywords[k]);
+        if (labelText === keyword || labelText.indexOf(keyword) === 0) { matches = true; break; }
+      }
+      if (!matches || !isVisible(label)) continue;
+      var labelRect = label.getBoundingClientRect();
+      var container = label.parentElement;
+      for (var level = 0; level < 3 && container; level++, container = container.parentElement) {
+        var controls = container.querySelectorAll('select, input[aria-haspopup], [role="combobox"], button, [role="button"]');
+        for (var c = 0; c < controls.length; c++) {
+          if (!isVisible(controls[c])) continue;
+          var rect = controls[c].getBoundingClientRect();
+          var distance = Math.abs(rect.top - labelRect.bottom) + Math.abs(rect.left - labelRect.left) * 0.1;
+          if (rect.top >= labelRect.top - 8 && distance < bestDistance) {
+            best = controls[c];
+            bestDistance = distance;
+          }
+        }
+      }
+    }
+    return best;
+  }
+
   function findEditable(keywords) {
     var all = getAllEditable();
     for (var i = 0; i < all.length; i++) {
@@ -212,7 +244,7 @@
 
   async function chooseDropdown(name, keywords, value) {
     if (!value) return false;
-    var control = findDropdown(keywords);
+    var control = findDropdownByExactLabel(keywords) || findDropdown(keywords);
     if (!control) {
       log('Could not find dropdown: ' + name);
       return false;
@@ -408,7 +440,7 @@
     if (filled.length > 0 || photoCount > 0) {
       var parts = [];
       if (filled.length > 0) parts.push('Campos: ' + filled.length);
-      if (photoCount > 0) parts.push('Fotos: ' + photoCount);
+      if (data.photoUrls && data.photoUrls.length > 0) parts.push('Fotos: ' + photoCount + '/' + data.photoUrls.length);
       var msg = document.createElement('div');
       msg.style.cssText = 'position:fixed;top:20px;right:20px;z-index:2147483647;background:#059669;color:white;padding:16px 20px;border-radius:12px;font-family:sans-serif;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);max-width:360px;line-height:1.5;';
       msg.textContent = '✓ Laujim: ' + parts.join(' · ');
