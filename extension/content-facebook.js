@@ -87,12 +87,22 @@
       var labelEl = document.getElementById(labelledBy[i]);
       if (labelEl) t += ' ' + (labelEl.textContent || '');
     }
-    var p = el.parentElement;
-    // Sólo el contenedor inmediato: subir hasta el formulario mezclaba las
-    // etiquetas de todos los campos y podía llenar el campo equivocado.
-    if (p) t += ' ' + (p.textContent || '');
-    var prev = el.previousElementSibling;
-    if (prev) t = (prev.textContent || '') + ' ' + t;
+    // Facebook estructura los campos como:
+    //   <contenedor>            ← level 2
+    //     <div>etiqueta</div>   ← prev de parent
+    //     <div>                 ← parent (level 1)
+    //       [role=combobox]     ← el (level 0)
+    //     </div>
+    //   </contenedor>
+    var cur = el;
+    for (var level = 0; level < 3 && cur; level++) {
+      var prev = cur.previousElementSibling;
+      if (prev) {
+        var prevText = (prev.textContent || '').trim();
+        if (prevText) t = prevText + ' ' + t;
+      }
+      cur = cur.parentElement;
+    }
     var label = el.closest('label');
     if (label) t = (label.textContent || '') + ' ' + t;
     t += ' ' + (el.getAttribute('aria-label') || '');
@@ -405,6 +415,8 @@
       { name: 'rental description', kw: ['rental description', 'descripción del alquiler', 'descripción'], val: data.description },
       { name: 'property square feet', kw: ['property square feet', 'square feet', 'pies cuadrados', 'metros cuadrados'], val: data.propertySquareFeet || data.area },
       { name: 'date available', kw: ['date available', 'availability', 'disponibilidad', 'fecha disponible'], val: data.availability },
+      { name: 'number of bedrooms', kw: ['número de habitaciones', 'numero de habitaciones', 'habitaciones', 'bedrooms'], val: data.bedrooms },
+      { name: 'number of bathrooms', kw: ['número de baños', 'numero de banos', 'baños', 'banos', 'bathrooms'], val: data.bathrooms },
     ];
 
     var filled = findAndSet(fields);
@@ -417,8 +429,6 @@
     // texto visible de cada opción, no intentando escribir dentro del menú.
     var dropdowns = [
       { name: 'rental type', kw: ['tipo de alquiler', 'rental type', 'property type'], val: data.rentalType || 'Departamento/condominio' },
-      { name: 'number of bedrooms', kw: ['número de habitaciones', 'numero de habitaciones', 'habitaciones', 'bedrooms'], val: data.bedrooms },
-      { name: 'number of bathrooms', kw: ['número de baños', 'numero de banos', 'baños', 'banos', 'bathrooms'], val: data.bathrooms },
       { name: 'laundry type', kw: ['tipo de lavadero', 'lavadero', 'laundry type'], val: data.laundryType },
       { name: 'parking type', kw: ['tipo de estacionamiento', 'estacionamiento', 'parking type'], val: data.parkingType },
       { name: 'air conditioning type', kw: ['tipo de aire acondicionado', 'aire acondicionado', 'air conditioning type'], val: data.airConditioningType },
