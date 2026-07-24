@@ -1149,10 +1149,10 @@ export default function ApartmentDetail() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de lavadero</label>
                 <select value={form.marketplaceLaundryType || 'Ninguno'} onChange={e => setForm({...form, marketplaceLaundryType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                  <option value="Ninguno">Ninguno</option>
                   <option value="Lavadero en la unidad">Lavadero en la unidad</option>
                   <option value="Lavadero en el edificio">Lavadero en el edificio</option>
                   <option value="Lavadero disponible">Lavadero disponible</option>
+                  <option value="Ninguno">Ninguno</option>
                 </select>
               </div>
               <div>

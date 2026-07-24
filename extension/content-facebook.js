@@ -218,7 +218,7 @@
 
   async function fillAndConfirmAddressReliable(address) {
     if (!address) return true;
-    var field = document.querySelector('input[aria-autocomplete="list"]') || findEditable(['direccion', 'address', 'ubicacion', 'location']);
+    var field = document.querySelector('form input[role="combobox"][aria-autocomplete="list"]') || findEditable(['direccion', 'address', 'ubicacion', 'location']);
     if (!field) {
       // Algunas variantes de Facebook muestran primero un botón “Ubicación”.
       var addressButton = findDropdown(['direccion', 'address', 'ubicacion', 'location']);
