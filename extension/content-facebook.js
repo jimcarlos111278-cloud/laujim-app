@@ -218,7 +218,14 @@
 
   async function fillAndConfirmAddressReliable(address) {
     if (!address) return true;
-    var field = document.querySelector('form input[role="combobox"][aria-autocomplete="list"]') || findEditable(['direccion', 'address', 'ubicacion', 'location']);
+    var field = document.querySelector(
+      'input[role="combobox"][aria-autocomplete="list"][type="text"]'
+    ) || findEditable([
+      'dirección', 'direccion',
+      'address',
+      'ubicación', 'ubicacion',
+      'location'
+    ]);
     if (!field) {
       // Algunas variantes de Facebook muestran primero un botón “Ubicación”.
       var addressButton = findDropdown(['direccion', 'address', 'ubicacion', 'location']);
@@ -255,7 +262,7 @@
 
   async function chooseDropdown(name, keywords, value) {
     if (!value) return false;
-    var control = findDropdownByExactLabel(keywords) || findDropdown(keywords);
+    var control = findDropdown(keywords) || findDropdownByExactLabel(keywords);
     if (!control) {
       log('Could not find dropdown: ' + name);
       return false;

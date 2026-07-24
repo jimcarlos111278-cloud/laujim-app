@@ -1083,7 +1083,21 @@ script al recargar la extensión aunque Marketplace ya estuviera abierto.
 
 ---
 
-### Configuración actual de dropdowns (v1.4.1)
+### Timeline de fixes — qué solucionó qué
+
+| Fix | Versión | Resultado |
+|---|---|---|
+| **600ms** tras `activate(control)` + remover `isVisible` en opciones del menú | v1.4.1 | Pasó de 0/12 a 12/12 ocasional, 9/12 típico. Dropdowns dejaron de fallar siempre, pero lavadero seguía fallando + address |
+| **400ms** tras seleccionar opción (esperar que React cierre el menú) | v1.4.2 | Los **3 dropdowns internos** (parking, AC, heating) empezaron a funcionar consistentemente. Lavadero seguía fallando por matching, no timing |
+| Excluir `[aria-autocomplete="list"]` en `findDropdown` (evitar que keyword `'lavadero'` matchee el address field) | v1.4.3 | Eliminó interferencia address ↔ dropdown, pero lavadero aún no matchea su propio combobox |
+| Address por `form input[role="combobox"][aria-autocomplete="list"]` | v1.4.3 | Añadió selector para address sin depender de `textNear` |
+| Scoped a `form` + reorder opciones lavadero en Render | v1.4.4 | Address scoped a `<form>` (sigue fallando si FB no usa `<form>`) |
+| Invertir orden: `findDropdown` antes que `findDropdownByExactLabel` | v1.4.5 | `findDropdownByExactLabel` elegía "Tipo de estacionamiento" porque su contenedor capturaba ambos labels. `findDropdown` usa `textNear` que encuentra "lavadero" por `aria-labelledby` |
+| Address sin `form` + `type="text"` | v1.4.5 | El selector anterior `form input...` fallaba si FB no envuelve en `<form>`. Ahora busca `input[type="text"]` para excluir el buscador global (`type="search"`) |
+
+**Estado actual:** Parking, AC, heating → **OK** (3/3 dropdowns internos). Lavadero → **pendiente de test** (se invirtió orden de búsqueda: `findDropdown` antes que `findDropdownByExactLabel` para evitar que el selector exacto capture el contenedor de estacionamiento). Address → **pendiente de test** (selector sin `form`, con `type="text"` para excluir buscador global de Facebook).
+
+### Configuración actual de dropdowns (v1.4.5)
 
 ```javascript
 var dropdowns = [
@@ -1118,7 +1132,7 @@ var dropdowns = [
 
 | Campo FB | Keyword | App |
 |---|---|---|
-| Dirección | `direccion, address, ubicacion, location` | `address` |
+| Dirección | `form input[role="combobox"][aria-autocomplete="list"]` (fallback: `direccion, address, ubicacion, location`) | `address` |
 | Tipo de alquiler | `tipo de alquiler, rental type, property type` | `rentalType` |
 | Precio por mes | `price per month, precio por mes, monthly price` | `price` |
 | Descripción | `rental description, descripción del alquiler, descripción` | `description` |
@@ -1132,6 +1146,10 @@ var dropdowns = [
 | Tipo de calefacción | `tipo de calefacción, calefacción, heating type` | `heatingType` |
 | Se aceptan gatos | `se aceptan gatos, cat friendly, gatos` | `catFriendly` |
 | Se aceptan perros | `se aceptan perros, dog friendly, perros` | `dogFriendly` |
+
+### Protección contra falsos positivos (v1.4.3+)
+
+`findDropdown` y `findDropdownByExactLabel` excluyen elementos con `aria-autocomplete="list"` para que los keywords cortos (ej: `'lavadero'`) no matcheen accidentalmente el campo de dirección (que comparte `role="combobox"` con los dropdowns de FB).
 
 ### Backup de referencia
 
@@ -1165,6 +1183,17 @@ var dropdowns = [
 ---
 
 ## Historial de Cambios
+
+### 2026-07-23 — v2.4.4 — Extension v1.4.5: invert dropdown search order, fix address selector
+- **Fix**: `chooseDropdown()` ahora usa `findDropdown(keywords) || findDropdownByExactLabel(keywords)` en vez del orden inverso. `findDropdownByExactLabel` podía capturar el contenedor de "Tipo de estacionamiento" al buscar "Tipo de lavadero" porque ambos labels están cerca en el DOM. `findDropdown` (que usa `textNear`) encuentra el combobox correcto por `aria-labelledby`
+- **Fix**: `fillAndConfirmAddressReliable()` ya no depende de `<form>`. Usa `input[role="combobox"][aria-autocomplete="list"][type="text"]` con `type="text"` para excluir el buscador global de Facebook (`type="search"`)
+- **Update**: v1.4.4 → v1.4.5
+
+### 2026-07-23 — v2.4.3 — Extension v1.4.4: scope address query to form, reorder laundry options, exclude address field from dropdown search
+- **Fix**: `content-facebook.js` — address field detection usa `form input[role="combobox"][aria-autocomplete="list"]` en vez de `querySelector` global para evitar matchear inputs de búsqueda fuera del formulario
+- **Fix**: `content-facebook.js` — `findDropdown` y `findDropdownByExactLabel` excluyen `[aria-autocomplete="list"]` para que el keyword `'lavadero'` no matchee el campo de dirección accidentalmente
+- **Fix**: `ApartmentDetail.jsx` — opciones de Tipo de lavadero reordenadas: Lavadero en la unidad, Lavadero en el edificio, Lavadero disponible, Ninguno (coincide con orden de FB)
+- **Update**: v1.4.3 → v1.4.4
 
 ### 2026-07-23 — v2.4.2 — Extension v1.4.3: fix address field detection, fix laundry dropdown false match
 - **Fix**: `content-facebook.js` — `fillAndConfirmAddressReliable` ahora busca `input[aria-autocomplete="list"]` como primer intento (el campo de dirección de Facebook no tiene texto para `textNear`, solo un ícono de ubicación)
