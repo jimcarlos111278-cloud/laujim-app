@@ -264,12 +264,12 @@
       return true;
     }
     activate(control);
+    await new Promise(function (resolve) { setTimeout(resolve, 600); });
     var wanted = normalizeText(value);
     for (var attempt = 0; attempt < 8; attempt++) {
       await new Promise(function (resolve) { setTimeout(resolve, 250); });
       var options = document.querySelectorAll('[role="option"], [role="menuitemradio"], [role="radio"], [role="listbox"] li');
       for (var i = 0; i < options.length; i++) {
-        if (!isVisible(options[i])) continue;
         var optionText = normalizeText(options[i].textContent || '');
         if (optionText === wanted || optionText.indexOf(wanted) >= 0 || wanted.indexOf(optionText) >= 0) {
           activate(options[i]);
