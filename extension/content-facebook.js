@@ -274,6 +274,7 @@
         if (optionText === wanted || optionText.indexOf(wanted) >= 0 || wanted.indexOf(optionText) >= 0) {
           activate(options[i]);
           log('Selected dropdown ' + name + ': ' + value);
+          await new Promise(function (resolve) { setTimeout(resolve, 400); });
           return true;
         }
       }

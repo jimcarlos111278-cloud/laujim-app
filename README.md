@@ -1083,6 +1083,62 @@ script al recargar la extensión aunque Marketplace ya estuviera abierto.
 
 ---
 
+### Configuración actual de dropdowns (v1.4.1)
+
+```javascript
+var dropdowns = [
+  { name: 'rental type', kw: ['tipo de alquiler', 'rental type', 'property type'], val: data.rentalType || 'Departamento/condominio' },
+  { name: 'laundry type', kw: ['tipo de lavadero', 'lavadero', 'laundry type'], val: data.laundryType },
+  { name: 'parking type', kw: ['tipo de estacionamiento', 'estacionamiento', 'parking type'], val: data.parkingType },
+  { name: 'air conditioning type', kw: ['tipo de aire acondicionado', 'aire acondicionado', 'air conditioning type'], val: data.airConditioningType },
+  { name: 'heating type', kw: ['tipo de calefacción', 'calefacción', 'heating type'], val: data.heatingType }
+];
+```
+
+### Flujo de `chooseDropdown` (v1.4.1)
+
+1. Busca combobox por label exacto o fallback genérico
+2. `activate(control)`: mousedown → mouseup → click
+3. **Espera 600ms** a que React renderice el menú
+4. Busca opción en hasta 8 intentos (cada 250ms) entre `[role="option"]`
+5. Al seleccionar opción: click + **espera 400ms** a que el menú se cierre antes del siguiente dropdown
+
+### Timers activos
+
+| Timer | Valor | Ubicación |
+|---|---|---|
+| Polling inicial | cada 1500ms | `checkAndRun()` |
+| Intentos máximos polling | 60 (90s total) | `MAX_ATTEMPTS` |
+| Espera tras abrir menú | **600ms** | `chooseDropdown` |
+| Espera entre intentos opción | 250ms × 8 = 2s | `chooseDropdown` |
+| Espera tras cerrar menú | **400ms** | `chooseDropdown` (tras `activate(option)`) |
+| Delay antes de autoFill | 800ms | `safelyRunAutoFill` |
+
+### Mapeo de campos FB ↔ Laujim
+
+| Campo FB | Keyword | App |
+|---|---|---|
+| Dirección | `direccion, address, ubicacion, location` | `address` |
+| Tipo de alquiler | `tipo de alquiler, rental type, property type` | `rentalType` |
+| Precio por mes | `price per month, precio por mes, monthly price` | `price` |
+| Descripción | `rental description, descripción del alquiler, descripción` | `description` |
+| Pies cuadrados | `property square feet, square feet, pies cuadrados, metros cuadrados` | `propertySquareFeet` |
+| Fecha disponible | `date available, availability, disponibilidad, fecha disponible` | `availability` |
+| Habitaciones | `número de habitaciones, numero de habitaciones, habitaciones, bedrooms` | `bedrooms` |
+| Baños | `número de baños, numero de baños, baños, banos, bathrooms` | `bathrooms` |
+| Tipo de lavadero | `tipo de lavadero, lavadero, laundry type` | `laundryType` |
+| Tipo de estacionamiento | `tipo de estacionamiento, estacionamiento, parking type` | `parkingType` |
+| Tipo de aire acondicionado | `tipo de aire acondicionado, aire acondicionado, air conditioning type` | `airConditioningType` |
+| Tipo de calefacción | `tipo de calefacción, calefacción, heating type` | `heatingType` |
+| Se aceptan gatos | `se aceptan gatos, cat friendly, gatos` | `catFriendly` |
+| Se aceptan perros | `se aceptan perros, dog friendly, perros` | `dogFriendly` |
+
+### Backup de referencia
+
+`C:\Users\jimca\OneDrive\Escritorio\laujim-backup-v1.4.1\` contiene copia de los archivos funcionales.
+
+---
+
 ### Pantalla en blanco
 1. **`usesCleartextTraffic`**: Android 9+ bloquea HTTP. Ya agregado en `AndroidManifest.xml`.
 2. **URL del servidor**: APK usa `DEFAULT_SERVER` (Render.com). Para servidor local, deben estar en misma red.
@@ -1109,6 +1165,12 @@ script al recargar la extensión aunque Marketplace ya estuviera abierto.
 ---
 
 ## Historial de Cambios
+
+### 2026-07-23 — v2.4.1 — Extension v1.4.1: fix dropdown menu close race condition + backup
+- **Fix**: `content-facebook.js` — agregado `await 400ms` tras seleccionar opción en `chooseDropdown()` para que React cierre el menú antes del siguiente dropdown. Soluciona fallo intermitente del primer dropdown dentro de "Detalles avanzados" (Tipo de lavadero) cuando el menú del dropdown anterior aún se está cerrando
+- **Fix**: `content-facebook.js` — `activate(control)` ahora espera 600ms antes de buscar opciones (era 0ms). Eliminado filtro `isVisible()` en opciones del menú para que funcione con overlays de React
+- **New**: Backup de referencia en `C:\Users\jimca\OneDrive\Escritorio\laujim-backup-v1.4.1\`
+- **Update**: `README.md` — sección detallada de configuración actual de dropdowns, timers y mapeo de campos
 
 ### 2026-07-23 — v2.4.0 — Chrome Extension: auto-fill Facebook Marketplace con fotos
 - **New**: `extension/` — Chrome Extension Manifest V3 completa:
