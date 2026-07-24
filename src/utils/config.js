@@ -1,5 +1,5 @@
 export const AUTH_TOKEN = 'laujim laujim';
-const DEFAULT_SERVER = 'https://laujim-app-2f53.onbelmo.uk';
+const DEFAULT_SERVER = 'https://laujim-app.onrender.com';
 
 export function isCapacitor() {
   return typeof window !== 'undefined' && (window.Capacitor !== undefined);
