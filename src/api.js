@@ -141,19 +141,23 @@ export const api = {
   getServerVersion,
   refreshBase,
   async uploadPhoto(file, apartmentId) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const dataUrl = reader.result;
-          const photoData = { apartmentId, data: dataUrl, filename: file.name, originalName: file.name, uploadedAt: new Date().toISOString() };
-          const item = await createItem('photos', photoData);
-          resolve(item);
-        } catch (e) { reject(e); }
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
+    try {
+      return await uploadFile('/api/upload/photo', file, { apartmentId });
+    } catch (e) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const dataUrl = reader.result;
+            const photoData = { apartmentId, data: dataUrl, filename: file.name, originalName: file.name, uploadedAt: new Date().toISOString() };
+            const item = await createItem('photos', photoData);
+            resolve(item);
+          } catch (e2) { reject(e2); }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+    }
   },
   async deletePhoto(id) {
     await deleteItem('photos', id);

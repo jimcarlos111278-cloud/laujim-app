@@ -2,8 +2,12 @@
   'use strict';
 
   function storeData(data) {
+    var toStore = JSON.parse(JSON.stringify(data));
+    if (toStore.photoUrls && Array.isArray(toStore.photoUrls)) {
+      toStore.photoUrls = toStore.photoUrls.filter(function (u) { return u && u.indexOf('data:') !== 0; });
+    }
     chrome.storage.local.set({
-      marketplaceData: data,
+      marketplaceData: toStore,
       timestamp: Date.now()
     });
   }

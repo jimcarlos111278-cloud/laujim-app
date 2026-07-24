@@ -438,7 +438,7 @@ export default function ApartmentDetail() {
 
   function autoFillMarketplace() {
     try {
-      const photoUrls = photos.map(p => photoUrl(p)).filter(u => u && !u.startsWith('data:'));
+      const photoUrls = photos.map(p => photoUrl(p)).filter(Boolean);
       const data = generateMarketplaceJson(apt, photoUrls);
       const jsonString = JSON.stringify(data);
 

@@ -355,11 +355,17 @@
     var transfer = new DataTransfer();
     for (var i = 0; i < photoUrls.length; i++) {
       var url = photoUrls[i];
-      if (!url || url.indexOf('data:') === 0) continue;
+      if (!url) continue;
       try {
-        var res = await fetch(url, { credentials: 'omit' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        var blob = await res.blob();
+        var blob;
+        if (url.indexOf('data:') === 0) {
+          var b64res = await fetch(url);
+          blob = await b64res.blob();
+        } else {
+          var res = await fetch(url, { credentials: 'omit' });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          blob = await res.blob();
+        }
         var ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
         var file = new File([blob], 'foto_' + (i + 1) + '.' + ext, { type: blob.type || 'image/jpeg' });
         transfer.items.add(file);
