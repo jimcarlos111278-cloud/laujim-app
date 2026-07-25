@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, User, Copy, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, ExternalLink, MessageCircle } from 'lucide-react';
+import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, User, Copy, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, ExternalLink, MessageCircle, Save } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { generateBookmarkletCode } from '../utils/marketplaceBookmarklet';
