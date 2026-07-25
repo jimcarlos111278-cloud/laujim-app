@@ -229,12 +229,9 @@ app.post('/api/login', (req, res) => {
   }
   const apt = (db.apartments || []).find(a => a.name === username || String(a.id) === username);
   if (apt) {
-    const contract = (db.contracts || []).find(c => c.apartmentId === apt.id && (!c.endDate || new Date(c.endDate) > new Date()));
-    if (contract) {
-      const tenant = (db.tenants || []).find(t => t.id === contract.tenantId);
-      if (tenant && tenant.documentId && tenant.documentId === password) {
-        return res.json({ authenticated: true, role: 'tenant', apartmentId: apt.id, name: apt.name });
-      }
+    const tenant = (db.tenants || []).find(t => t.documentId && t.documentId === password);
+    if (tenant) {
+      return res.json({ authenticated: true, role: 'tenant', apartmentId: apt.id, name: tenant.name });
     }
   }
   res.status(401).json({ error: 'Credenciales inválidas' });

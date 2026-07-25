@@ -282,207 +282,226 @@ const INITIAL_DATA = {
     }
   ],
   "tenants": [
-    {
-      "id": 1,
-      "name": "Luna",
-      "phone": "573001234561",
-      "documentId": "1002163701",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 2,
-      "name": "Samir",
-      "phone": "573001234562",
-      "documentId": "1002163702",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 3,
-      "name": "Cisney",
-      "phone": "573001234563",
-      "documentId": "1002163703",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 4,
-      "name": "Valery",
-      "phone": "573001234564",
-      "documentId": "1002163704",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 5,
-      "name": "Eukaris",
-      "phone": "573001234565",
-      "documentId": "1002163705",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 6,
-      "name": "Johovana",
-      "phone": "573001234566",
-      "documentId": "1002163706",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 7,
-      "name": "Edwin",
-      "phone": "573001234567",
-      "documentId": "1002163707",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 8,
-      "name": "Adela",
-      "phone": "573001234568",
-      "documentId": "1002163708",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 9,
-      "name": "Carlos",
-      "phone": "573001234569",
-      "documentId": "1002163709",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 10,
-      "name": "Yoeli",
-      "phone": "573001234570",
-      "documentId": "1002163710",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 11,
-      "name": "Dayanna",
-      "phone": "573001234571",
-      "documentId": "1002163711",
-      "notes": "",
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    }
-  ],
+      {
+        "id": 1,
+        "name": "Luna",
+        "phone": "573001234561",
+        "documentId": "1002163701",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 2,
+        "name": "Samir",
+        "phone": "573001234562",
+        "documentId": "1002163702",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 3,
+        "name": "Cisney",
+        "phone": "573001234563",
+        "documentId": "1002163703",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 4,
+        "name": "Valery",
+        "phone": "573001234564",
+        "documentId": "1002163704",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 5,
+        "name": "Eukaris",
+        "phone": "573001234565",
+        "documentId": "1002163705",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 6,
+        "name": "Johovana",
+        "phone": "573001234566",
+        "documentId": "1002163706",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 7,
+        "name": "Edwin",
+        "phone": "573001234567",
+        "documentId": "1002163707",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 8,
+        "name": "Adela",
+        "phone": "573001234568",
+        "documentId": "1002163708",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 9,
+        "name": "Carlos",
+        "phone": "573001234569",
+        "documentId": "1002163709",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 10,
+        "name": "Yoeli",
+        "phone": "573001234570",
+        "documentId": "1002163710",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 11,
+        "name": "Dayanna",
+        "phone": "573001234571",
+        "documentId": "1002163711",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 12,
+        "name": "Nuevo",
+        "documentId": "1002163712",
+        "phone": "573001234572",
+        "email": "",
+        "notes": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      }
+    ],
   "contracts": [
-    {
-      "id": 1,
-      "apartmentId": 2,
-      "tenantId": 1,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 750000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 2,
-      "apartmentId": 3,
-      "tenantId": 2,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 1000000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 3,
-      "apartmentId": 4,
-      "tenantId": 3,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 1000000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 4,
-      "apartmentId": 5,
-      "tenantId": 4,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 1000000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 5,
-      "apartmentId": 6,
-      "tenantId": 5,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 1100000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 6,
-      "apartmentId": 7,
-      "tenantId": 6,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 1000000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 7,
-      "apartmentId": 8,
-      "tenantId": 7,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 1000000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 8,
-      "apartmentId": 9,
-      "tenantId": 8,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 1300000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 9,
-      "apartmentId": 10,
-      "tenantId": 9,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 950000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 10,
-      "apartmentId": 11,
-      "tenantId": 10,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 1000000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    },
-    {
-      "id": 11,
-      "apartmentId": 12,
-      "tenantId": 11,
-      "startDate": "2026-07-18T00:00:00.000Z",
-      "endDate": null,
-      "monthlyRent": 1550000,
-      "depositPaid": true,
-      "createdAt": "2026-07-20T06:47:58.630Z"
-    }
-  ],
+      {
+        "id": 1,
+        "apartmentId": 1,
+        "tenantId": 1,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 500000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 2,
+        "apartmentId": 2,
+        "tenantId": 2,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 750000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 3,
+        "apartmentId": 3,
+        "tenantId": 3,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 1000000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 4,
+        "apartmentId": 4,
+        "tenantId": 4,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 1000000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 5,
+        "apartmentId": 5,
+        "tenantId": 5,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 1000000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 6,
+        "apartmentId": 6,
+        "tenantId": 6,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 1100000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 7,
+        "apartmentId": 7,
+        "tenantId": 7,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 1000000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 8,
+        "apartmentId": 8,
+        "tenantId": 8,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 1000000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 9,
+        "apartmentId": 9,
+        "tenantId": 9,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 1300000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 10,
+        "apartmentId": 10,
+        "tenantId": 10,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 950000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 11,
+        "apartmentId": 11,
+        "tenantId": 11,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 1000000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 12,
+        "apartmentId": 12,
+        "tenantId": 12,
+        "startDate": "2026-07-18T00:00:00.000Z",
+        "endDate": null,
+        "monthlyRent": 1550000,
+        "depositPaid": true,
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      }
+    ],
   "payments": [
     {
       "apartmentId": 10,
