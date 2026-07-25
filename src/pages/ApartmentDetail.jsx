@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, DollarSign, Calendar, Edit2, Trash2, User, FileText, Camera, Phone, Plus, X, Download, Image, MessageCircle, Hash, Clock, Droplets, Flame, Zap, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight, QrCode, Scan, Share2, Globe, Copy, Check } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, Edit2, Trash2, User, FileText, Camera, Phone, Plus, X, Download, Image, MessageCircle, Hash, Clock, Droplets, Flame, Zap, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight, QrCode, Scan, Share2, Globe, Copy, Check, Bell } from 'lucide-react';
 import Modal from '../components/Modal';
 import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
@@ -62,6 +62,7 @@ export default function ApartmentDetail() {
   const videoRef = useRef(null);
   const [marketplaceUrl, setMarketplaceUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showWaModal, setShowWaModal] = useState(false);
 
   useEffect(() => { if (id) load(); }, [id]);
 
@@ -665,14 +666,6 @@ export default function ApartmentDetail() {
             <button onClick={() => addCalendarReminder(apt.name, apt.paymentDueDay)} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline">
               <Calendar className="w-3 h-3" /> Recordatorio
             </button>
-            {tenant?.phone && <>
-              <button onClick={handleWhatsAppReminder} className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 hover:underline">
-                <MessageCircle className="w-3 h-3" /> Recordatorio
-              </button>
-              <button onClick={handleWhatsAppServices} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline">
-                <Globe className="w-3 h-3" /> Servicios
-              </button>
-            </>}
           </div>
         </div>
       </div>
@@ -690,7 +683,7 @@ export default function ApartmentDetail() {
                 {tenant.phone && (
                   <div className="flex gap-2 mt-2">
                     <button onClick={() => callNumber(tenant.phone)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs hover:bg-green-100 transition-colors"><Phone className="w-3 h-3" /> Llamar</button>
-                    <button onClick={() => whatsappNumber(tenant.phone)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs hover:bg-emerald-100 transition-colors"><MessageCircle className="w-3 h-3" /> WhatsApp</button>
+                    <button onClick={() => setShowWaModal(true)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs hover:bg-emerald-700 transition-colors"><MessageCircle className="w-3 h-3" /> WhatsApp</button>
                   </div>
                 )}
                 {contract && <p><span className="text-gray-500">Desde:</span> {formatShortDate(contract.startDate)}</p>}
@@ -1245,6 +1238,29 @@ export default function ApartmentDetail() {
             <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Guardar Cambios</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={showWaModal} onClose={() => setShowWaModal(false)} title="Enviar por WhatsApp" size="sm">
+        <div className="space-y-2 p-2">
+          <button onClick={() => { setShowWaModal(false); whatsappNumber(tenant?.phone); }} className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-left">
+            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center"><MessageCircle className="w-5 h-5 text-emerald-600" /></div>
+            <div><p className="text-sm font-medium text-gray-900">Enviar mensaje</p><p className="text-xs text-gray-400">Chat directo de WhatsApp</p></div>
+          </button>
+          {(() => {
+            const n1 = localStorage.getItem('wa_template_name1') || 'Servicios públicos';
+            const n2 = localStorage.getItem('wa_template_name2') || 'Recordatorio de pago';
+            return <>
+              <button onClick={() => { setShowWaModal(false); handleWhatsAppServices(); }} className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-left">
+                <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center"><Globe className="w-5 h-5 text-blue-600" /></div>
+                <div><p className="text-sm font-medium text-gray-900">{n1}</p><p className="text-xs text-gray-400">Enlaces de servicios públicos</p></div>
+              </button>
+              <button onClick={() => { setShowWaModal(false); handleWhatsAppReminder(); }} className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-left">
+                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center"><Bell className="w-5 h-5 text-amber-600" /></div>
+                <div><p className="text-sm font-medium text-gray-900">{n2}</p><p className="text-xs text-gray-400">Recordatorio de canon de arriendo</p></div>
+              </button>
+            </>;
+          })()}
+        </div>
       </Modal>
     </div>
   );

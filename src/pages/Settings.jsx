@@ -24,6 +24,7 @@ export default function Settings() {
   const [settingsList, setSettingsList] = useState([]);
   const [waConfig, setWaConfig] = useState({ apiToken: '', phoneNumberId: '', verifyToken: '' });
   const [waTemplates, setWaTemplates] = useState({ services: '', reminder: '' });
+  const [waTemplateNames, setWaTemplateNames] = useState({ name1: 'Servicios públicos', name2: 'Recordatorio de pago' });
   const [waSaving, setWaSaving] = useState(false);
   const [waSaved, setWaSaved] = useState(false);
 
@@ -168,6 +169,11 @@ export default function Settings() {
     setWaTemplates({ services: svc, reminder: rem });
     localStorage.setItem('wa_template_services', svc);
     localStorage.setItem('wa_template_reminder', rem);
+    const n1 = getVal('whatsapp_template_name1', 'Servicios públicos');
+    const n2 = getVal('whatsapp_template_name2', 'Recordatorio de pago');
+    setWaTemplateNames({ name1: n1, name2: n2 });
+    localStorage.setItem('wa_template_name1', n1);
+    localStorage.setItem('wa_template_name2', n2);
   }
 
   async function upsertSetting(key, value) {
@@ -196,8 +202,12 @@ export default function Settings() {
     try {
       await upsertSetting('whatsapp_template_services', waTemplates.services);
       await upsertSetting('whatsapp_template_reminder', waTemplates.reminder);
+      await upsertSetting('whatsapp_template_name1', waTemplateNames.name1);
+      await upsertSetting('whatsapp_template_name2', waTemplateNames.name2);
       localStorage.setItem('wa_template_services', waTemplates.services);
       localStorage.setItem('wa_template_reminder', waTemplates.reminder);
+      localStorage.setItem('wa_template_name1', waTemplateNames.name1);
+      localStorage.setItem('wa_template_name2', waTemplateNames.name2);
       setWaSaved(true); setTimeout(() => setWaSaved(false), 3000);
     } catch (e) { alert('Error al guardar: ' + e.message); }
     setWaSaving(false);
@@ -366,13 +376,17 @@ export default function Settings() {
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Plantillas WhatsApp</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza los mensajes que se envían desde los botones de WhatsApp.</p>
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje de servicios públicos</label>
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de la plantilla</label>
+              <input type="text" value={waTemplateNames.name1} onChange={e => setWaTemplateNames({...waTemplateNames, name1: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-3" placeholder="Ej: Servicios públicos" />
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje</label>
               <p className="text-xs text-gray-400 mb-1">Placeholders: {'{nombre}'}, {'{apto}'}, {'{link_aire}'}, {'{link_triplea}'}, {'{link_gases}'}</p>
               <textarea value={waTemplates.services} onChange={e => setWaTemplates({...waTemplates, services: e.target.value})} rows={5} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-xs" />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje de recordatorio de pago</label>
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de la plantilla</label>
+              <input type="text" value={waTemplateNames.name2} onChange={e => setWaTemplateNames({...waTemplateNames, name2: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-3" placeholder="Ej: Recordatorio de pago" />
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje</label>
               <p className="text-xs text-gray-400 mb-1">Placeholders: {'{nombre}'}, {'{apto}'}, {'{valor_canon}'}, {'{dia_vencimiento}'}</p>
               <textarea value={waTemplates.reminder} onChange={e => setWaTemplates({...waTemplates, reminder: e.target.value})} rows={5} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-xs" />
             </div>
