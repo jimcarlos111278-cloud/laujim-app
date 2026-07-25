@@ -1,0 +1,17 @@
+{
+  "name": "whatsapp-proxy-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "qr": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "node-fetch": "^2.7.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

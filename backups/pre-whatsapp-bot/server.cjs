@@ -62,31 +62,7 @@ let db = { ...INITIAL_DATA };
 let nextId = {};
 
 // ─── WhatsApp helper ───
-function isBotEnabled() {
-  const setting = (db.settings || []).find(s => s.key === 'whatsapp_bot_enabled');
-  return setting ? setting.value === 'true' : false;
-}
-
 function sendWhatsApp(to, text) {
-  const botUrl = process.env.WHATSAPP_BOT_URL;
-  if (botUrl && isBotEnabled()) {
-    const postData = JSON.stringify({ to, text });
-    const url = new URL('/send', botUrl);
-    const opts = {
-      hostname: url.hostname, port: url.port, path: url.pathname,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
-    };
-    const req = https.request(opts, (res) => {
-      let data = '';
-      res.on('data', (chunk) => data += chunk);
-      res.on('end', () => { if (res.statusCode !== 200) console.error('Bot send error:', data); });
-    });
-    req.on('error', (e) => console.error('Bot send error:', e.message));
-    req.write(postData);
-    req.end();
-    return;
-  }
   const token = (db.settings || []).find(s => s.key === 'whatsapp_api_token')?.value;
   const phoneNumberId = (db.settings || []).find(s => s.key === 'whatsapp_phone_number_id')?.value;
   if (!token || !phoneNumberId) return;
@@ -420,67 +396,6 @@ app.post('/api/whatsapp/send', (req, res) => {
   if (!to || !text) return res.status(400).json({ error: 'to and text required' });
   sendWhatsApp(to, text);
   res.json({ ok: true });
-});
-
-// ─── WHATSAPP BOT MANAGEMENT ───
-let botProcess = null;
-
-app.get('/api/whatsapp-bot/status', (req, res) => {
-  const running = botProcess !== null && !botProcess.killed;
-  res.json({
-    running,
-    pid: running ? botProcess.pid : null,
-    authenticated: false,
-    number: null,
-    qr: null,
-  });
-});
-
-app.post('/api/whatsapp-bot/start', (req, res) => {
-  if (botProcess && !botProcess.killed) {
-    return res.status(400).json({ error: 'El bot ya está en ejecución' });
-  }
-  const botDir = path.join(__dirname, 'whatsapp-bot');
-  if (!fs.existsSync(botDir)) {
-    return res.status(404).json({ error: 'Directorio whatsapp-bot no encontrado' });
-  }
-  try {
-    botProcess = spawn('node', ['index.js'], {
-      cwd: botDir,
-      stdio: 'pipe',
-      env: { ...process.env },
-    });
-    botProcess.stdout.on('data', (data) => {
-      console.log('[BOT]', data.toString().trim());
-    });
-    botProcess.stderr.on('data', (data) => {
-      console.error('[BOT]', data.toString().trim());
-    });
-    botProcess.on('close', (code) => {
-      console.log('[BOT] Process exited with code', code);
-      botProcess = null;
-    });
-    res.json({ ok: true, message: 'Bot iniciado', pid: botProcess.pid });
-  } catch (e) {
-    res.status(500).json({ error: 'Error al iniciar bot: ' + e.message });
-  }
-});
-
-app.post('/api/whatsapp-bot/stop', (req, res) => {
-  if (!botProcess || botProcess.killed) {
-    return res.status(400).json({ error: 'El bot no está en ejecución' });
-  }
-  try {
-    botProcess.kill('SIGTERM');
-    setTimeout(() => {
-      if (botProcess && !botProcess.killed) {
-        botProcess.kill('SIGKILL');
-      }
-    }, 5000);
-    res.json({ ok: true, message: 'Bot detenido' });
-  } catch (e) {
-    res.status(500).json({ error: 'Error al detener bot: ' + e.message });
-  }
 });
 
 // ─── CONTRATO + AUTO-PASSWORD ───

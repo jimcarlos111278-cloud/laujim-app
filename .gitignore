@@ -42,3 +42,8 @@ AGENTS.md
 .session*
 
 Proyecto Laujim APP - Render/
+
+# WhatsApp bot
+whatsapp-bot/node_modules/
+whatsapp-bot/sessions/
+whatsapp-bot/data/session-store.json

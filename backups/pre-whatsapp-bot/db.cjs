@@ -285,88 +285,88 @@ const INITIAL_DATA = {
     {
       "id": 1,
       "name": "Luna",
-      "phone": "573001234561",
-      "documentId": "1002163701",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 2,
       "name": "Samir",
-      "phone": "573001234562",
-      "documentId": "1002163702",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 3,
       "name": "Cisney",
-      "phone": "573001234563",
-      "documentId": "1002163703",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 4,
       "name": "Valery",
-      "phone": "573001234564",
-      "documentId": "1002163704",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 5,
       "name": "Eukaris",
-      "phone": "573001234565",
-      "documentId": "1002163705",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 6,
       "name": "Johovana",
-      "phone": "573001234566",
-      "documentId": "1002163706",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 7,
       "name": "Edwin",
-      "phone": "573001234567",
-      "documentId": "1002163707",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 8,
       "name": "Adela",
-      "phone": "573001234568",
-      "documentId": "1002163708",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 9,
       "name": "Carlos",
-      "phone": "573001234569",
-      "documentId": "1002163709",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 10,
       "name": "Yoeli",
-      "phone": "573001234570",
-      "documentId": "1002163710",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
     {
       "id": 11,
       "name": "Dayanna",
-      "phone": "573001234571",
-      "documentId": "1002163711",
+      "phone": "",
+      "documentId": "",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
     }

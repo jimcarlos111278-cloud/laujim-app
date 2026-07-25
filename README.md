@@ -1,4 +1,5 @@
 # Gestión de Apartamentos — Laujim APP
+> **Versión actual:** v2.5.0 — [Punto de restauración](##punto-de-restauración-pre-whatsapp-bot): `pre-whatsapp-bot`
 
 > **⚠️ REGLAS DEL REPOSITORIO**
 > 1. **Cada cambio que se haga en el código debe actualizar este README** — si agregas, modificas o eliminas funcionalidad, configuración, dependencias, rutas, endpoints, schemas o scripts, debes reflejarlo aquí.
@@ -234,7 +235,25 @@ Proyecto Laujim APP/
 ├── iniciar-servidor-sync.bat     # Build + servidor Express
 ├── iniciar-auto.bat              # Auto-start
 ├── iniciar-tunel.bat             # Tunnel (serveo/playit)
-└── start-forever.bat             # Keep-alive loop
+├── start-forever.bat             # Keep-alive loop
+├── iniciar-whatsapp-bot.bat      # Iniciar WhatsApp proxy bot
+│
+├── whatsapp-bot/                  # Servicio WhatsApp proxy (independiente)
+│   ├── package.json
+│   ├── .env
+│   ├── index.js                  # Punto de entrada
+│   ├── sessions/                 # Sesión WhatsApp (multi-device)
+│   ├── data/
+│   │   └── session-store.json    # Mapeo teléfono → apto
+│   └── src/
+│       ├── api-client.js         # Cliente HTTP para API REST
+│       ├── auth-flow.js          # Autenticación apto + cédula
+│       ├── message-relay.js      # Relevo bidireccional
+│       ├── admin-cmds.js         # Comandos !listar, !cortar, !bloquear, !mensajes
+│       ├── session-store.js      # Persistencia de sesiones
+│       ├── notify.js             # Endpoint HTTP para enviar desde UI
+│       └── heartbeat.js          # Presencia online
+└── (fin de estructura)
 ```
 
 ---
@@ -307,6 +326,7 @@ export default defineConfig({
 | `PORT` | `1011` | Puerto del servidor |
 | `DATABASE_URL` | — | Conexión PostgreSQL opcional (`postgres://user:pass@host:5432/db`) |
 | `PERSISTENT_DIR` | `__dirname` | Directorio para datos persistentes (útil en Render) |
+| `WHATSAPP_BOT_URL` | — | URL del bot WhatsApp proxy (`http://localhost:3002`). Si está configurada, `sendWhatsApp()` redirige al bot en vez de usar Cloud API |
 
 **Auth API:** Header `x-auth-token: laujim laujim` en todas las rutas `/api/*` excepto:
 - `POST /api/login`
@@ -675,21 +695,23 @@ pgPool = new Pool({
 
 Todos con `status: "occupied"`, `waterReadingDay: 7`, `electricityReadingDay: 21`.
 
-### Contraseñas de Inquilinos (4 dígitos)
+### Inquilinos de Prueba (WhatsApp Bot)
 
-| Apartamento | Password |
-|------------|----------|
-| 102 | 2779 |
-| 201 | 6364 |
-| 202 | 8808 |
-| 203 | 2113 |
-| 301 | 5082 |
-| 302 | 8183 |
-| 303 | 6493 |
-| 401 | 3213 |
-| 402 | 2365 |
-| 403 | 5326 |
-| 501 | 6494 |
+| Apartamento | Inquilino | Cédula (password) | Teléfono WhatsApp |
+|------------|-----------|-------------------|-------------------|
+| 102 | Luna | 1002163701 | 573001234561 |
+| 201 | Samir | 1002163702 | 573001234562 |
+| 202 | Cisney | 1002163703 | 573001234563 |
+| 203 | Valery | 1002163704 | 573001234564 |
+| 301 | Eukaris | 1002163705 | 573001234565 |
+| 302 | Johovana | 1002163706 | 573001234566 |
+| 303 | Edwin | 1002163707 | 573001234567 |
+| 401 | Adela | 1002163708 | 573001234568 |
+| 402 | Carlos | 1002163709 | 573001234569 |
+| 403 | Yoeli | 1002163710 | 573001234570 |
+| 501 | Dayanna | 1002163711 | 573001234571 |
+
+> Los inquilinos se autentican con **número de apartamento + cédula** (documentId).
 
 ---
 
@@ -1168,6 +1190,61 @@ var dropdowns = [
 
 ---
 
+## Punto de Restauración: `pre-whatsapp-bot`
+
+Antes de implementar el WhatsApp Proxy Bot se creó un punto de restauración completo.
+
+### Tag en Git
+
+```bash
+git tag -a pre-whatsapp-bot -m "Pre-WhatsApp Bot - v2.3.0 - Punto de restauracion"
+git push origin pre-whatsapp-bot
+```
+
+**Commit**: `31bb49c` — "feat: editable template names in Settings + unified WhatsApp modal in ApartmentDetail"
+
+### Restaurar este punto
+
+```bash
+# 1. Volver al commit exacto
+git checkout pre-whatsapp-bot
+
+# 2. Restaurar datos
+copy backups\pre-whatsapp-bot\database.json data\database.json
+copy backups\pre-whatsapp-bot\db.cjs db.cjs
+copy backups\pre-whatsapp-bot\server.cjs server.cjs
+
+# 3. Reinstalar dependencias (por si cambiaron)
+npm install
+
+# 4. Iniciar servidor
+node server.cjs
+```
+
+### Contenido del backup físico
+
+| Archivo | Ruta en backup |
+|---------|----------------|
+| `backups/pre-whatsapp-bot/database.json` | Datos completos de la aplicación |
+| `backups/pre-whatsapp-bot/db.cjs` | Seed data con 12 aptos, 11 inquilinos |
+| `backups/pre-whatsapp-bot/server.cjs` | Servidor Express v2.3.0 |
+| `backups/pre-whatsapp-bot/package.json` | Dependencias v2.3.0 |
+
+### Para volver atrás completamente (git)
+
+```bash
+# Descartar todos los cambios no commiteados
+git reset --hard pre-whatsapp-bot
+
+# Si ya hay commits nuevos, revertir hasta el tag
+git revert HEAD~N  # donde N es número de commits desde el tag
+# O más simple:
+git checkout -b restore-point pre-whatsapp-bot
+# Luego fusionar o reemplazar main con esta rama
+```
+
+---
+
 ### Pantalla en blanco
 1. **`usesCleartextTraffic`**: Android 9+ bloquea HTTP. Ya agregado en `AndroidManifest.xml`.
 2. **URL del servidor**: APK usa `DEFAULT_SERVER` (Render.com). Para servidor local, deben estar en misma red.
@@ -1182,7 +1259,92 @@ var dropdowns = [
 
 ---
 
-## Notas Regionales
+#---
+
+## WhatsApp Proxy Bot (v2.5.0+)
+
+> Servicio independiente que actúa como puente entre inquilinos y el administrador vía WhatsApp.
+
+### Arquitectura
+
+```
+[WhatsApp del inquilino] ←→ whatsapp-bot/ ←→ API REST (server.cjs:1011)
+                              (servicio        ↕
+                               separado)   [Chat web del admin]
+```
+
+- **Servicio separado**: `whatsapp-bot/` con su propio `package.json` y `node_modules`
+- Se comunica con la API REST existente (nunca escribe directamente en `database.json`)
+- Los mensajes de WhatsApp se integran con el chat web existente (colección `messages`)
+- El admin puede responder desde el chat web o desde WhatsApp
+
+### Componentes
+
+| Archivo | Función |
+|---------|---------|
+| `whatsapp-bot/index.js` | Punto de entrada: inicializa WhatsApp client + HTTP server |
+| `whatsapp-bot/src/auth-flow.js` | Autenticación: pregunta apto → cédula → valida contra API |
+| `whatsapp-bot/src/api-client.js` | Cliente HTTP para la API REST (`/api/login`, `/api/messages`, etc.) |
+| `whatsapp-bot/src/message-relay.js` | Relevo bidireccional WhatsApp ↔ web chat |
+| `whatsapp-bot/src/admin-cmds.js` | Comandos: `!listar`, `!cortar`, `!bloquear`, `!mensajes` |
+| `whatsapp-bot/src/session-store.js` | Persistencia de sesiones (mapeo teléfono → apto) |
+| `whatsapp-bot/src/notify.js` | Endpoint HTTP para enviar mensajes desde la UI |
+| `whatsapp-bot/src/heartbeat.js` | Presencia online para tenants vía WhatsApp |
+
+### Flujo de autenticación
+
+```
+WhatsApp entrante → ¿número tiene sesión activa?
+  ├─ Sí → reenvío directo (sin autenticar de nuevo)
+  └─ No → Bot pregunta:
+      1. "🏢 Escribe tu número de apartamento (ej. 203)"
+      2. Recibe apto
+      3. "🪪 Escribe tu cédula"
+      4. Recibe cédula
+      5. POST /api/login { username: "203", password: "1002163714" }
+      6. ¿OK? → Activa relay. ¿Error? → Reintentar
+```
+
+### Requisitos
+
+- **Número WhatsApp secundario** (SIM prepago) para el bot
+- Node.js 18+
+- El servidor principal (`server.cjs`) debe estar corriendo
+
+### Dependencias del bot (whatsapp-bot/package.json)
+
+| Paquete | Versión | Propósito |
+|---------|---------|-----------|
+| whatsapp-web.js | ^1.26.0 | Cliente WhatsApp multi-device |
+| qrcode-terminal | ^0.12.0 | Renderizar QR en consola |
+| node-fetch | ^2.7.0 | Llamadas a la API REST |
+| dotenv | ^16.4.7 | Variables de entorno |
+
+### Inicio rápido
+
+```bash
+# 1. Iniciar servidor principal (si no está corriendo)
+node server.cjs
+
+# 2. En otra terminal, iniciar el bot
+cd whatsapp-bot
+npm install
+node index.js
+
+# 3. Escanear QR con WhatsApp del número del bot
+```
+
+### Variables de entorno (`whatsapp-bot/.env`)
+
+| Variable | Default | Descripción |
+|----------|---------|-------------|
+| `API_BASE_URL` | `http://localhost:1011/api` | URL de la API REST |
+| `AUTH_TOKEN` | `laujim laujim` | Token de autenticación |
+| `ADMIN_WHATSAPP` | — | Número WhatsApp del admin (para comandos y notificaciones) |
+| `BOT_PORT` | `3002` | Puerto HTTP para recibir órdenes de envío |
+| `POLL_INTERVAL` | `3000` | Intervalo de polling de mensajes (ms) |
+
+---
 
 - **Moneda**: COP (Peso Colombiano, formato `es-CO` con `Intl.NumberFormat`)
 - **Idioma**: Español
@@ -1194,6 +1356,20 @@ var dropdowns = [
 ---
 
 ## Historial de Cambios
+
+### 2026-07-25 — v2.5.0 — WhatsApp Proxy Bot + Punto de restauración
+- **New**: `whatsapp-bot/` — Servicio independiente de proxy WhatsApp con `whatsapp-web.js`:
+  - `auth-flow.js`: autenticación de inquilinos vía apto + cédula contra API REST
+  - `message-relay.js`: reenvío bidireccional WhatsApp ↔ chat web
+  - `admin-cmds.js`: comandos `!listar`, `!cortar`, `!bloquear`, `!mensajes`
+  - `notify.js`: endpoint HTTP para que la UI envíe mensajes por el bot
+  - `heartbeat.js`: presencia online para tenants conectados por WhatsApp
+  - `session-store.js`: persistencia de sesiones activas
+- **New**: Punto de restauración `pre-whatsapp-bot` — tag git + backup físico completo
+- **New**: `README.md` — secciones de Punto de Restauración y WhatsApp Proxy Bot
+- **Update**: `db.cjs` — agregados `documentId` (cédulas) y `phone` a los 11 inquilinos para pruebas
+- **Update**: `server.cjs` — `sendWhatsApp()` detecta `WHATSAPP_BOT_URL` y redirige al bot
+- **Update**: v2.3.0 → v2.5.0
 
 ### 2026-07-23 — v2.4.4 — Extension v1.4.5: ✅ TODOS LOS CAMPOS FUNCIONAN
 - **Fix**: `chooseDropdown()` ahora usa `findDropdown(keywords) || findDropdownByExactLabel(keywords)` en vez del orden inverso. `findDropdownByExactLabel` podía capturar el contenedor de "Tipo de estacionamiento" al buscar "Tipo de lavadero" porque ambos labels están cerca en el DOM. `findDropdown` (que usa `textNear`) encuentra el combobox correcto por `aria-labelledby`

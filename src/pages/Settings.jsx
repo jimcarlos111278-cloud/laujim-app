@@ -27,6 +27,9 @@ export default function Settings() {
   const [waTemplateNames, setWaTemplateNames] = useState({ name1: 'Servicios públicos', name2: 'Recordatorio de pago' });
   const [waSaving, setWaSaving] = useState(false);
   const [waSaved, setWaSaved] = useState(false);
+  const [botConfig, setBotConfig] = useState({ enabled: false, phone: '' });
+  const [botSaving, setBotSaving] = useState(false);
+  const [botSaved, setBotSaved] = useState(false);
 
   async function handleResetDb() {
     setResetting(true);
@@ -174,6 +177,7 @@ export default function Settings() {
     setWaTemplateNames({ name1: n1, name2: n2 });
     localStorage.setItem('wa_template_name1', n1);
     localStorage.setItem('wa_template_name2', n2);
+    setBotConfig({ enabled: getVal('whatsapp_bot_enabled', 'false') === 'true', phone: getVal('whatsapp_bot_phone', '') });
   }
 
   async function upsertSetting(key, value) {
@@ -195,6 +199,16 @@ export default function Settings() {
       setWaSaved(true); setTimeout(() => setWaSaved(false), 3000);
     } catch (e) { alert('Error al guardar: ' + e.message); }
     setWaSaving(false);
+  }
+
+  async function handleSaveBotConfig() {
+    setBotSaving(true);
+    try {
+      await upsertSetting('whatsapp_bot_enabled', botConfig.enabled ? 'true' : 'false');
+      await upsertSetting('whatsapp_bot_phone', botConfig.phone);
+      setBotSaved(true); setTimeout(() => setBotSaved(false), 3000);
+    } catch (e) { alert('Error al guardar: ' + e.message); }
+    setBotSaving(false);
   }
 
   async function handleSaveTemplates() {
@@ -392,6 +406,34 @@ export default function Settings() {
             </div>
             <button onClick={handleSaveTemplates} disabled={waSaving} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium">
               <Save className="w-4 h-4" /> {waSaving ? 'Guardando...' : waSaved ? '✓ Guardado' : 'Guardar Plantillas'}
+            </button>
+          </div>
+        </div>
+
+        {/* WhatsApp Proxy Bot */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Bot WhatsApp Proxy</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Puente entre WhatsApp y el chat web. Los inquilinos escriben al bot y los mensajes llegan al chat del admin, y viceversa.</p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Activar bot</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{botConfig.enabled ? 'El bot reenviará mensajes entre WhatsApp y el chat web' : 'Los mensajes del chat web no se reenviarán a WhatsApp'}</p>
+              </div>
+              <button onClick={() => setBotConfig({...botConfig, enabled: !botConfig.enabled})} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${botConfig.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${botConfig.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Número del bot (WhatsApp)</label>
+              <input type="text" value={botConfig.phone} onChange={e => setBotConfig({...botConfig, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="573005185668" />
+            </div>
+            <div className="text-xs text-gray-400 space-y-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <p><strong>Para iniciar el bot:</strong> ejecuta <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">iniciar-whatsapp-bot.bat</code> en el servidor.</p>
+              <p><strong>Para cambiar de número:</strong> elimina la carpeta <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">whatsapp-bot/sessions/</code> y reinicia el bot para escanear un nuevo QR.</p>
+            </div>
+            <button onClick={handleSaveBotConfig} disabled={botSaving} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium">
+              <Save className="w-4 h-4" /> {botSaving ? 'Guardando...' : botSaved ? '✓ Guardado' : 'Guardar Configuración del Bot'}
             </button>
           </div>
         </div>
