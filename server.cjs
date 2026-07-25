@@ -476,6 +476,7 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
       return await new Promise((resolve, reject) => {
         const mod = require(url.protocol === 'https:' ? 'https' : 'http');
         mod.get(url.href, (resp) => {
+          if (resp.statusCode !== 200) { resp.resume(); resolve(null); return; }
           const chunks = [];
           resp.on('data', chunk => chunks.push(chunk));
           resp.on('end', () => resolve(Buffer.concat(chunks)));
