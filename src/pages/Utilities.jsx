@@ -79,7 +79,7 @@ export default function Utilities() {
     if (!tenant || !tenant.phone) { alert('El inquilino no tiene teléfono registrado'); return; }
     const num = tenant.phone.replace(/[^0-9]/g, '');
     const fullNum = num.startsWith('57') ? num : '57' + num;
-    const template = localStorage.getItem('wa_template_services') || '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Sabemos que es fácil perder la información de pago de los servicios, por eso te compartimos los enlaces directos:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\n📌 También puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar esta información y contactarnos por el chat directo.\n\n¡Gracias!';
+    const template = localStorage.getItem('wa_template_services') || '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Sabemos que es fácil perder la información de pago de los servicios, por eso te compartimos los enlaces directos:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\n📌 También puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar esta información y contactarnos por el chat directo.\n👉 https://laujim-app.onrender.com/login\n\n¡Gracias!';
     const msg = template
       .replace(/{nombre}/g, tenant.name || '')
       .replace(/{apto}/g, apt.name || '')
