@@ -1,25 +1,14 @@
 import { createServer } from 'http';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import path from 'path';
 
 let client = null;
 let currentQrBase64 = null;
-let currentQrString = null;
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function setClient(c) {
   client = c;
 }
 
-export function setQr(qrString) {
-  currentQrString = qrString;
-  try {
-    const qrPath = path.join(__dirname, '..', 'qr.png');
-    const data = readFileSync(qrPath);
-    currentQrBase64 = data.toString('base64');
-  } catch {}
+export function setQr(qrBase64) {
+  currentQrBase64 = qrBase64;
 }
 
 export function startNotifyServer(port) {

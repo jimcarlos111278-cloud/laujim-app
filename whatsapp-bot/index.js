@@ -46,7 +46,8 @@ const client = new Client({
       '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
       '--no-first-run', '--disable-gpu', '--disable-extensions',
       '--disable-sync', '--disable-translate', '--mute-audio',
-      '--no-zygote', '--single-process',
+      '--no-zygote', '--disable-accelerated-2d-canvas',
+      '--disable-software-rasterizer',
     ],
   },
 });
@@ -54,14 +55,13 @@ const client = new Client({
 client.on('qr', async (qr) => {
   console.log('Escanea este QR con WhatsApp:');
   qrcode.generate(qr, { small: true });
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const qrPath = path.join(__dirname, 'qr.png');
   try {
-    await QRCode.toFile(qrPath, qr, { width: 400, margin: 1, color: { dark: '#000', light: '#fff' } });
-    console.log('QR guardado como imagen:', qrPath);
-    notify.setQr(qr);
+    const dataUrl = await QRCode.toDataURL(qr, { width: 400, margin: 1, color: { dark: '#000', light: '#fff' } });
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+    notify.setQr(base64);
+    console.log('QR ready (base64, length: ' + base64.length + ')');
   } catch (e) {
-    console.error('Error generando QR imagen:', e.message);
+    console.error('Error generando QR:', e.message);
   }
 });
 
