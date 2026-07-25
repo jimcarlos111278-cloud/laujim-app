@@ -23,11 +23,25 @@ console.log('');
 sessionStore.load();
 scripts.load();
 
+function detectChrome() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  if (process.platform === 'win32') {
+    const p = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+    try { if (fs.existsSync(p)) return p; } catch {}
+  }
+  if (process.platform === 'linux') {
+    for (const p of ['/usr/bin/chromium-browser', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/snap/bin/chromium']) {
+      try { if (fs.existsSync(p)) return p; } catch {}
+    }
+  }
+  return undefined;
+}
+
 const client = new Client({
-  authStrategy: new LocalAuth({ clientId: 'whatsapp-proxy', dataPath: './sessions' }),
+  authStrategy: new LocalAuth({ clientId: 'whatsapp-proxy', dataPath: process.env.SESSION_PATH || './sessions' }),
   puppeteer: {
-    headless: 'new',
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    headless: process.env.PUPPETEER_HEADLESS || 'new',
+    executablePath: detectChrome(),
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--no-first-run', '--disable-gpu'],
   },
 });

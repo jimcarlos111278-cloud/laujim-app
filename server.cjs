@@ -775,6 +775,28 @@ app.use((req, res) => {
       }
     }
     console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode'));
+
+    if (process.env.AUTO_START_BOT !== 'false') {
+      const botDir = path.join(__dirname, 'whatsapp-bot');
+      if (fs.existsSync(botDir) && !botProcess) {
+        try {
+          botProcess = spawn('node', ['index.js'], {
+            cwd: botDir,
+            stdio: 'pipe',
+            env: { ...process.env },
+          });
+          botProcess.stdout.on('data', (data) => console.log('[BOT]', data.toString().trim()));
+          botProcess.stderr.on('data', (data) => console.error('[BOT]', data.toString().trim()));
+          botProcess.on('close', (code) => {
+            console.log('[BOT] Process exited with code', code);
+            botProcess = null;
+          });
+          console.log('[BOT] Auto-started (PID ' + botProcess.pid + ')');
+        } catch (e) {
+          console.error('[BOT] Auto-start failed:', e.message);
+        }
+      }
+    }
   })();
 }
 
