@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Phone, MessageCircle, Trash2, Monitor, Smartphone } from 'lucide-react';
+import { Plus, Search, Phone, MessageCircle, Trash2, Monitor, Smartphone, Pencil } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { getViewMode } from '../utils/viewMode';
@@ -10,6 +10,8 @@ export default function Tenants() {
   const [apartments, setApartments] = useState([]);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editingTenant, setEditingTenant] = useState(null);
   const [vm, setVm] = useState(getViewMode());
   const [form, setForm] = useState({ name: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
 
@@ -68,6 +70,22 @@ export default function Tenants() {
     }
   }
 
+  async function handleEdit(e) {
+    e.preventDefault();
+    await api.tenants.update(editingTenant.id, {
+      name: form.name,
+      phone: form.phone,
+      documentId: form.documentId,
+      workPhone: form.workPhone,
+      workAddress: form.workAddress,
+      notes: form.notes,
+    });
+    setShowEdit(false);
+    setEditingTenant(null);
+    setForm({ name: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
+    load();
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -124,6 +142,7 @@ export default function Tenants() {
                       <td className="px-4 py-3">{apt ? <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{apt.name}</span> : <span className="text-gray-400">-</span>}</td>
                       <td className="px-4 py-3 text-gray-500">{cs.length}</td>
                       <td className="px-4 py-3 text-right">
+                        <button onClick={() => { setEditingTenant(t); setForm({ name: t.name, phone: t.phone || '', documentId: t.documentId || '', workPhone: t.workPhone || '', workAddress: t.workAddress || '', notes: t.notes || '', linkedAptId: '' }); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-4 h-4" /></button>
                         <button onClick={() => handleDelete(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </tr>
@@ -151,6 +170,7 @@ export default function Tenants() {
                           <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-emerald-600 transition-colors"><MessageCircle className="w-4 h-4" /></a>
                         </>
                       )}
+                      <button onClick={() => { setEditingTenant(t); setForm({ name: t.name, phone: t.phone || '', documentId: t.documentId || '', workPhone: t.workPhone || '', workAddress: t.workAddress || '', notes: t.notes || '', linkedAptId: '' }); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-4 h-4" /></button>
                       <button onClick={() => handleDelete(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
@@ -210,6 +230,41 @@ export default function Tenants() {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
             <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Guardar</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={showEdit} onClose={() => { setShowEdit(false); setEditingTenant(null); }} title="Editar Inquilino">
+        <form onSubmit={handleEdit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo *</label>
+            <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+            <input type="text" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Documento (Cédula)</label>
+            <input type="text" value={form.documentId} onChange={e => setForm({...form, documentId: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono de Trabajo</label>
+              <input type="text" value={form.workPhone} onChange={e => setForm({...form, workPhone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de Trabajo</label>
+              <input type="text" value={form.workAddress} onChange={e => setForm({...form, workAddress: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => { setShowEdit(false); setEditingTenant(null); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+            <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Guardar Cambios</button>
           </div>
         </form>
       </Modal>
