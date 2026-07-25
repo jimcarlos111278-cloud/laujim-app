@@ -2,6 +2,9 @@ import { createServer } from 'http';
 
 let client = null;
 let currentQrBase64 = null;
+let pendingPairingPhone = null;
+let currentPairingCode = null;
+let qrTimestamp = 0;
 
 export function setClient(c) {
   client = c;
@@ -9,6 +12,35 @@ export function setClient(c) {
 
 export function setQr(qrBase64) {
   currentQrBase64 = qrBase64;
+  qrTimestamp = Date.now();
+}
+
+export function setPendingPairingPhone(phone) {
+  pendingPairingPhone = phone;
+}
+
+export function getPendingPairingPhone() {
+  return pendingPairingPhone;
+}
+
+export function clearPendingPairingPhone() {
+  pendingPairingPhone = null;
+}
+
+export function setPairingCode(code) {
+  currentPairingCode = code;
+}
+
+export function getPairingCode() {
+  return currentPairingCode;
+}
+
+export function clearPairingCode() {
+  currentPairingCode = null;
+}
+
+export function getQrTimestamp() {
+  return qrTimestamp;
 }
 
 export function startNotifyServer(port) {
@@ -23,7 +55,6 @@ export function startNotifyServer(port) {
       return;
     }
 
-    // GET endpoints
     if (req.method === 'GET') {
       if (req.url === '/status') {
         const number = client?.user?.id ? client.user.id.split(':')[0].replace('@s.whatsapp.net', '') : null;
@@ -32,6 +63,7 @@ export function startNotifyServer(port) {
           ready: !!client,
           authenticated: !!(client?.user),
           number,
+          qrTimestamp,
         }));
       } else if (req.url === '/qr') {
         if (currentQrBase64) {
@@ -41,6 +73,12 @@ export function startNotifyServer(port) {
           res.writeHead(404);
           res.end(JSON.stringify({ error: 'No QR available' }));
         }
+      } else if (req.url === '/pairing-code') {
+        res.writeHead(200);
+        res.end(JSON.stringify({
+          code: currentPairingCode,
+          phone: pendingPairingPhone,
+        }));
       } else {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'Not found' }));
@@ -48,7 +86,6 @@ export function startNotifyServer(port) {
       return;
     }
 
-    // POST endpoints
     if (req.method === 'POST') {
       let body = '';
       req.on('data', chunk => body += chunk);
@@ -78,7 +115,31 @@ export function startNotifyServer(port) {
               ready: !!client,
               authenticated: !!(client?.user),
               number,
+              qrTimestamp,
             }));
+          } else if (req.url === '/request-code') {
+            if (!client) {
+              res.writeHead(503);
+              res.end(JSON.stringify({ error: 'WhatsApp client not ready' }));
+              return;
+            }
+            const phone = data.phone?.replace(/[^0-9]/g, '');
+            if (!phone || phone.length < 10) {
+              res.writeHead(400);
+              res.end(JSON.stringify({ error: 'Número inválido' }));
+              return;
+            }
+            setPendingPairingPhone(phone);
+            try {
+              const code = await client.requestPairingCode(phone);
+              setPairingCode(code);
+              res.writeHead(200);
+              res.end(JSON.stringify({ ok: true, code }));
+            } catch (e) {
+              clearPendingPairingPhone();
+              res.writeHead(500);
+              res.end(JSON.stringify({ error: 'Error al solicitar código: ' + e.message }));
+            }
           } else {
             res.writeHead(404);
             res.end(JSON.stringify({ error: 'Not found' }));
@@ -98,8 +159,10 @@ export function startNotifyServer(port) {
   server.listen(port, () => {
     console.log('Notify HTTP server on port ' + port);
     console.log('  POST /send - Send a WhatsApp message');
+    console.log('  POST /request-code - Request pairing code');
     console.log('  GET  /status - Bot status');
     console.log('  GET  /qr - QR code image');
+    console.log('  GET  /pairing-code - Get pairing code');
   });
 
   return server;

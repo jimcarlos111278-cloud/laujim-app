@@ -485,6 +485,7 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
     } catch { return null; }
   }
 
+  let qrTimestamp = 0;
   const statusBuf = await fetchBotBuffer('/status');
   if (statusBuf) {
     try {
@@ -492,6 +493,7 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
       running = true;
       authenticated = data.authenticated || false;
       number = data.number || null;
+      qrTimestamp = data.qrTimestamp || 0;
     } catch {}
   }
 
@@ -502,7 +504,7 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
     }
   }
 
-  res.json({ running, pid, authenticated, number, qr });
+  res.json({ running, pid, authenticated, number, qr, qrTimestamp });
 });
 
 app.post('/api/whatsapp-bot/start', (req, res) => {
@@ -571,6 +573,59 @@ app.post('/api/whatsapp-bot/reset-session', (req, res) => {
     res.json({ ok: true, message: 'Sesión eliminada. El bot se está reiniciando — espera el QR en la página.' });
   } catch (e) {
     res.status(500).json({ error: 'Error al resetear sesión: ' + e.message });
+  }
+});
+
+app.post('/api/whatsapp-bot/request-code', async (req, res) => {
+  const { phone } = req.body || {};
+  if (!phone) return res.status(400).json({ error: 'Número de teléfono requerido' });
+  const botUrl = process.env.WHATSAPP_BOT_URL || 'http://localhost:3002';
+  try {
+    const url = new URL('/request-code', botUrl);
+    const postData = JSON.stringify({ phone });
+    const mod = require(url.protocol === 'https:' ? 'https' : 'http');
+    const result = await new Promise((resolve, reject) => {
+      const opts = {
+        hostname: url.hostname, port: url.port, path: url.pathname,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
+      };
+      const req2 = mod.request(opts, (resp) => {
+        let data = '';
+        resp.on('data', chunk => data += chunk);
+        resp.on('end', () => {
+          try { resolve(JSON.parse(data)); } catch { resolve({ error: data }); }
+        });
+      });
+      req2.on('error', reject);
+      req2.setTimeout(30000, () => { req2.destroy(); reject(new Error('timeout')); });
+      req2.write(postData);
+      req2.end();
+    });
+    if (result.error) return res.status(500).json(result);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: 'Error al conectar con el bot: ' + e.message });
+  }
+});
+
+app.get('/api/whatsapp-bot/pairing-code', async (req, res) => {
+  const botUrl = process.env.WHATSAPP_BOT_URL || 'http://localhost:3002';
+  try {
+    const url = new URL('/pairing-code', botUrl);
+    const mod = require(url.protocol === 'https:' ? 'https' : 'http');
+    const result = await new Promise((resolve, reject) => {
+      mod.get(url.href, (resp) => {
+        let data = '';
+        resp.on('data', chunk => data += chunk);
+        resp.on('end', () => {
+          try { resolve(JSON.parse(data)); } catch { resolve({ error: data }); }
+        });
+      }).on('error', reject).setTimeout(5000, () => reject(new Error('timeout')));
+    });
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: 'Error al conectar con el bot: ' + e.message });
   }
 });
 

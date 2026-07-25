@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, ToggleLeft, ToggleRight, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, ToggleLeft, ToggleRight, AlertCircle, CheckCircle, XCircle, Key } from 'lucide-react';
 import { getAuth } from '../utils/auth';
 import { getBase, AUTH_TOKEN } from '../utils/config';
 
@@ -70,7 +70,12 @@ export default function WhatsAppBot() {
   const [editingScript, setEditingScript] = useState(null);
   const [scriptPreview, setScriptPreview] = useState(false);
   const [qrImage, setQrImage] = useState(null);
+  const [qrAge, setQrAge] = useState('');
+  const [pairingPhone, setPairingPhone] = useState('');
+  const [pairingCode, setPairingCode] = useState(null);
+  const [pairingCodeLoading, setPairingCodeLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState(null);
+  const qrTimestampRef = useRef(0);
   const pollRef = useState(null);
 
   useEffect(() => {
@@ -78,7 +83,14 @@ export default function WhatsAppBot() {
     loadConfig();
     fetchStatus();
     const iv = setInterval(fetchStatus, 5000);
-    return () => clearInterval(iv);
+    const ageIv = setInterval(() => {
+      const ts = qrTimestampRef.current;
+      if (ts > 0) {
+        const secs = Math.floor((Date.now() - ts) / 1000);
+        setQrAge(secs < 60 ? secs + 's' : Math.floor(secs / 60) + 'min');
+      }
+    }, 1000);
+    return () => { clearInterval(iv); clearInterval(ageIv); };
   }, []);
 
   async function loadConfig() {
@@ -103,6 +115,11 @@ export default function WhatsAppBot() {
         const data = await res.json();
         setBotStatus(data);
         if (data.qr) setQrImage(data.qr);
+        if (data.qrTimestamp) {
+          qrTimestampRef.current = data.qrTimestamp;
+          const secs = Math.floor((Date.now() - data.qrTimestamp) / 1000);
+          setQrAge(secs < 60 ? secs + 's' : Math.floor(secs / 60) + 'min');
+        }
       }
     } catch {}
     setStatusLoading(false);
@@ -159,6 +176,50 @@ export default function WhatsAppBot() {
     setActionMsg({ msg, type });
     setTimeout(() => setActionMsg(null), 5000);
   }
+
+  async function handleRequestCode() {
+    const phone = pairingPhone.replace(/[^0-9]/g, '');
+    if (!phone || phone.length < 10) {
+      showAction('Ingresa un número válido con código de país (ej: 573001234567)', 'error');
+      return;
+    }
+    setPairingCodeLoading(true);
+    setPairingCode(null);
+    try {
+      const res = await fetch(getBase() + '/whatsapp-bot/request-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (res.ok && data.code) {
+        setPairingCode(data.code);
+        showAction('Código generado. Revísalo abajo.', 'success');
+      } else {
+        showAction(data.error || 'Error al solicitar código', 'error');
+      }
+    } catch (e) {
+      showAction('Error: ' + e.message, 'error');
+    }
+    setPairingCodeLoading(false);
+  }
+
+  useEffect(() => {
+    if (!pairingCode && pairingCodeLoading) {
+      const iv2 = setInterval(async () => {
+        try {
+          const res = await fetch(getBase() + '/whatsapp-bot/pairing-code', {
+            headers: { 'x-auth-token': AUTH_TOKEN },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.code) setPairingCode(data.code);
+          }
+        } catch {}
+      }, 2000);
+      return () => clearInterval(iv2);
+    }
+  }, [pairingCode, pairingCodeLoading]);
 
   async function resetScript(key) {
     setScripts(s => ({ ...s, [key]: DEFAULT_SCRIPTS[key] }));
@@ -225,6 +286,7 @@ export default function WhatsAppBot() {
                     <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
                       <img src={`data:image/png;base64,${botStatus.qr || qrImage}`} alt="QR Code" className="mx-auto w-48 h-48" />
                       <p className="text-xs text-gray-500 mt-2">Escanea con WhatsApp → Vincular dispositivo</p>
+                      {qrAge && <p className="text-xs text-gray-400 mt-1">QR generado hace {qrAge}</p>}
                     </div>
                   )}
                 </>
@@ -287,15 +349,41 @@ export default function WhatsAppBot() {
           </div>
         </div>
 
-        {/* Quick Actions Card */}
+        {/* Pairing Code Card */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Edit3 className="w-4 h-4" /> Acciones Rápidas</h3>
-          <div className="space-y-2">
-            <p className="text-xs text-gray-500 mb-2">Personaliza los mensajes que el bot envía a los inquilinos durante la autenticación y comunicación.</p>
-            <button onClick={resetAllScripts} className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors text-sm">
-              <RotateCcw className="w-4 h-4" /> Restaurar mensajes por defecto
-            </button>
-            <p className="text-xs text-gray-400 mt-2">Placeholders disponibles: {'{apto}'}, {'{nombre}'}, {'{cedula}'}, {'{content}'}</p>
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Key className="w-4 h-4" /> Vinculación por código</h3>
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">Alternativa al QR. Ingresa tu número y WhatsApp te dará un código para vincular.</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={pairingPhone}
+                onChange={e => setPairingPhone(e.target.value)}
+                placeholder="573001234567"
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                disabled={pairingCodeLoading}
+              />
+              <button
+                onClick={handleRequestCode}
+                disabled={pairingCodeLoading || !botStatus.running || botStatus.authenticated}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm whitespace-nowrap"
+              >
+                {pairingCodeLoading ? 'Solicitando...' : 'Solicitar código'}
+              </button>
+            </div>
+            {pairingCode && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg text-center">
+                <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">Código de vinculación</p>
+                <p className="text-2xl font-bold text-blue-800 dark:text-blue-200 tracking-widest">{pairingCode}</p>
+                <div className="mt-3 text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                  <p>1. Abre WhatsApp en tu teléfono</p>
+                  <p>2. Ve a <strong>Dispositivos vinculados</strong></p>
+                  <p>3. Toca <strong>Vincular un dispositivo</strong></p>
+                  <p>4. Selecciona <strong>Vincular con número de teléfono</strong></p>
+                  <p>5. Ingresa el código de arriba</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

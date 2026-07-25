@@ -41,7 +41,6 @@ async function startBot() {
     browser: ['Laujim APP', 'Chrome', '1.0'],
     markOnlineOnConnect: true,
     syncFullHistory: false,
-    generateHighQualityLink: true,
   });
 
   notify.setClient(sock);
@@ -51,11 +50,22 @@ async function startBot() {
 
     if (qr) {
       console.log('QR received from WhatsApp');
+      notify.clearPairingCode();
       try {
         const dataUrl = await QRCode.toDataURL(qr, { width: 400, margin: 1, color: { dark: '#000', light: '#fff' } });
         const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
         notify.setQr(base64);
         console.log('QR ready (base64, length: ' + base64.length + ')');
+        const pendingPhone = notify.getPendingPairingPhone();
+        if (pendingPhone) {
+          try {
+            const code = await sock.requestPairingCode(pendingPhone);
+            notify.setPairingCode(code);
+            console.log('Pairing code requested for ' + pendingPhone + ': ' + code);
+          } catch (e) {
+            console.error('Error requesting pairing code:', e.message);
+          }
+        }
       } catch (e) {
         console.error('Error generating QR:', e.message);
       }
