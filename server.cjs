@@ -374,6 +374,17 @@ app.post('/api/presence/heartbeat', (req, res) => {
 });
 
 // ─── MENSAJES ───
+app.post('/api/messages', (req, res) => {
+  const col = 'messages';
+  if (!db[col]) db[col] = [];
+  const newItem = { ...req.body, id: nextId[col] || 1 };
+  if (!newItem.createdAt) newItem.createdAt = new Date().toISOString();
+  db[col].push(newItem);
+  nextId[col] = (nextId[col] || 1) + 1;
+  saveData();
+  res.status(201).json(newItem);
+});
+
 app.get('/api/messages/updates/:since', (req, res) => {
   const since = req.params.since;
   const messages = db.messages || [];

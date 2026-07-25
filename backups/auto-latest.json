@@ -717,13 +717,23 @@
       "read": false,
       "type": "text",
       "id": 1
+    },
+    {
+      "roomId": "admin-1",
+      "from": "admin",
+      "to": "apt-1",
+      "content": "test message",
+      "createdAt": "2026-07-25T12:00:00.000Z",
+      "read": false,
+      "type": "text",
+      "id": 2
     }
   ],
   "presence": [
     {
       "userId": "whatsapp-bot",
       "status": "online",
-      "lastSeen": "2026-07-25T11:13:49.654Z",
+      "lastSeen": "2026-07-25T11:16:48.955Z",
       "id": 1
     }
   ]
