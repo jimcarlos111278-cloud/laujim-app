@@ -397,6 +397,19 @@ export default function ApartmentDetail() {
     window.open('https://wa.me/57' + num, '_blank');
   }
 
+  function handleWhatsAppReminder() {
+    if (!tenant || !tenant.phone) { alert('El inquilino no tiene teléfono registrado'); return; }
+    const num = tenant.phone.replace(/[^0-9]/g, '');
+    const fullNum = num.startsWith('57') ? num : '57' + num;
+    const template = localStorage.getItem('wa_template_reminder') || '🔔 Recordatorio {nombre}:\n\nTu canon de {valor_canon} vence el {dia_vencimiento}.\n\nApartamento {apto}';
+    const msg = template
+      .replace(/{nombre}/g, tenant.name || '')
+      .replace(/{apto}/g, apt?.name || '')
+      .replace(/{valor_canon}/g, (apt?.monthlyRent || 0).toLocaleString('es-CO'))
+      .replace(/{dia_vencimiento}/g, String(apt?.paymentDueDay || 5));
+    window.open(`https://wa.me/${fullNum}?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
   function generateMarketplaceText() {
     const title = `🏠 Arriendo Apartamento ${apt.name}`;
     const specs = [`${apt.rooms || '?'} habs`, `${apt.bathrooms || '?'} baños`, `${apt.area || '?'} m²`].join(' · ');
@@ -636,6 +649,11 @@ export default function ApartmentDetail() {
           <p className="text-xs text-gray-400 mt-1">{nextPayDate.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button onClick={() => addCalendarReminder(apt.name, apt.paymentDueDay)} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline">
+              <Calendar className="w-3 h-3" /> Recordatorio
+            </button>
+            {tenant?.phone && <button onClick={handleWhatsAppReminder} className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 hover:underline">
+              <MessageCircle className="w-3 h-3" /> WhatsApp
+            </button>}er:underline">
               <Calendar className="w-3 h-3" /> Recordatorio
             </button>
           </div>

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Zap, Droplets, Flame, Search, ExternalLink, QrCode, Scan, Image, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Zap, Droplets, Flame, Search, ExternalLink, QrCode, Scan, Image, ChevronLeft, ChevronRight, RefreshCw, MessageCircle } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod } from '../utils/helpers';
+import { getBase } from '../utils/config';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
 
@@ -42,6 +43,8 @@ function QrViewContent({ showQrModal, qrUrls, apartments, getUrl }) {
 
 export default function Utilities() {
   const [apartments, setApartments] = useState([]);
+  const [tenants, setTenants] = useState([]);
+  const [contracts, setContracts] = useState([]);
   const [search, setSearch] = useState('');
   const [period, setPeriod] = useState(getCurrentPeriod());
   const [qrUrls, setQrUrls] = useState({});
@@ -60,8 +63,30 @@ export default function Utilities() {
   }, []);
 
   async function load() {
-    const a = await api.apartments.toArray();
-    setApartments(a);
+    const [a, t, c] = await Promise.all([
+      api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(),
+    ]);
+    setApartments(a); setTenants(t); setContracts(c);
+  }
+
+  function getActiveTenant(aptId) {
+    const contract = contracts.find(c => c.apartmentId === aptId && (!c.endDate || new Date(c.endDate) > new Date()));
+    return contract ? tenants.find(t => t.id === contract.tenantId) : null;
+  }
+
+  async function handleWhatsAppServices(apt) {
+    const tenant = getActiveTenant(apt.id);
+    if (!tenant || !tenant.phone) { alert('El inquilino no tiene teléfono registrado'); return; }
+    const num = tenant.phone.replace(/[^0-9]/g, '');
+    const fullNum = num.startsWith('57') ? num : '57' + num;
+    const template = localStorage.getItem('wa_template_services') || 'Hola {nombre}, aquí están tus enlaces de servicios:\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\nApartamento {apto}';
+    const msg = template
+      .replace(/{nombre}/g, tenant.name || '')
+      .replace(/{apto}/g, apt.name || '')
+      .replace(/{link_aire}/g, apt.electricityPaymentUrl || 'https://portal.air-e.com/Pagar#/List')
+      .replace(/{link_triplea}/g, apt.waterPaymentUrl || 'https://portal.aaa.com.co/pagos')
+      .replace(/{link_gases}/g, apt.gasPaymentUrl || 'https://www.gascaribe.com/');
+    window.open(`https://wa.me/${fullNum}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
   function getCode(apt, svc) {
@@ -212,8 +237,9 @@ export default function Utilities() {
       <div className="grid gap-4">
         {filtered.map(apt => (
           <div key={apt.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-            <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+            <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h2 className="font-bold text-gray-900 dark:text-white text-base">Apartamento {apt.name}</h2>
+              {(() => { const t = getActiveTenant(apt.id); return t && t.phone ? <button onClick={() => handleWhatsAppServices(apt)} className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors" title="Enviar enlaces de servicios por WhatsApp"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</button> : null; })()}
             </div>
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
               {['water', 'gas', 'electricity'].map(svc => {

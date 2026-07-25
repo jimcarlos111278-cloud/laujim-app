@@ -5,24 +5,23 @@ const path = require('path');
 const multer = require('multer');
 const { spawn } = require('child_process');
 const { exec } = require('child_process');
+const https = require('https');
 const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 1011;
 const AUTH_TOKEN = 'laujim laujim';
 
-// Global error handlers (critical for cloud deployments)
 process.on('uncaughtException', (err) => { console.error('UNCAUGHT:', err.message, err.stack); });
 process.on('unhandledRejection', (reason) => { console.error('UNHANDLED:', reason); });
 
-// Quick health check
 app.get('/health', (req, res) => res.send('ok'));
 
 app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type', 'x-auth-token'] }));
 app.use(express.json({ limit: '50mb' }));
 
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && req.path !== '/api/data-version' && !req.path.startsWith('/api/public/')) {
+  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && req.path !== '/api/data-version' && !req.path.startsWith('/api/public/') && !req.path.startsWith('/api/whatsapp/')) {
     const token = req.headers['x-auth-token'];
     if (token !== AUTH_TOKEN) {
       return res.status(401).json({ error: 'No autorizado' });
@@ -62,7 +61,30 @@ const { INITIAL_DATA } = require('./db.cjs');
 let db = { ...INITIAL_DATA };
 let nextId = {};
 
-// ─── PostgreSQL persistence (when DATABASE_URL is set) ───
+// ─── WhatsApp helper ───
+function sendWhatsApp(to, text) {
+  const token = (db.settings || []).find(s => s.key === 'whatsapp_api_token')?.value;
+  const phoneNumberId = (db.settings || []).find(s => s.key === 'whatsapp_phone_number_id')?.value;
+  if (!token || !phoneNumberId) return;
+  const postData = JSON.stringify({
+    messaging_product: 'whatsapp', to, type: 'text', text: { body: text },
+  });
+  const opts = {
+    hostname: 'graph.facebook.com', path: `/v21.0/${phoneNumberId}/messages`,
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
+  };
+  const req = https.request(opts, (res) => {
+    let data = '';
+    res.on('data', (chunk) => data += chunk);
+    res.on('end', () => { if (res.statusCode !== 200 && res.statusCode !== 201) console.error('WhatsApp API error:', data); });
+  });
+  req.on('error', (e) => console.error('WhatsApp send error:', e.message));
+  req.write(postData);
+  req.end();
+}
+
+// ─── PostgreSQL persistence ───
 let pgPool = null;
 
 async function initPostgres() {
@@ -131,18 +153,27 @@ function saveData() {
   const json = JSON.stringify(db, null, 2);
   fs.writeFileSync(DATA_FILE, json, 'utf-8');
   fs.writeFileSync(BACKUP_FILE, json, 'utf-8');
-  // Fire-and-forget PostgreSQL save
   if (pgPool) {
     saveToPostgres().catch(e => console.error('PG save error:', e.message));
   }
 }
 
-// ─── Async startup ───
+function syncPasswordFromTenant(tenantId, apartmentId) {
+  const tenant = (db.tenants || []).find(t => t.id === tenantId);
+  if (!tenant || !tenant.documentId) return;
+  const existing = (db.passwords || []).find(p => p.apartmentId === apartmentId);
+  if (existing) {
+    existing.password = tenant.documentId;
+  } else {
+    if (!db.passwords) db.passwords = [];
+    db.passwords.push({ id: nextId.passwords || 1, apartmentId, password: tenant.documentId });
+    nextId.passwords = (nextId.passwords || 1) + 1;
+  }
+  saveData();
+}
 
 function startServer() {
-  // Routes defined synchronously FIRST (no awaits here)
-  // ─── RUTAS ESPECÍFICAS (SIN PARÁMETROS DE COLECCIÓN) ───
-// Deben ir ANTES de las rutas genéricas /:collection o Express las capturará como nombre de colección
+  // ─── RUTAS ESPECÍFICAS ───
 
 app.get('/api/data-version', (req, res) => {
   res.json({ version: dataVersion });
@@ -172,13 +203,15 @@ app.post('/api/login', (req, res) => {
   if (username === 'admin' && password === 'laujim123') {
     return res.json({ authenticated: true, role: 'admin', name: 'Administrador' });
   }
-  const pwdRecord = (db.passwords || []).find(p => {
-    const apt = (db.apartments || []).find(a => a.id === p.apartmentId && a.name === username);
-    return apt && p.password === password;
-  });
-  if (pwdRecord) {
-    const apt = (db.apartments || []).find(a => a.id === pwdRecord.apartmentId);
-    return res.json({ authenticated: true, role: 'tenant', apartmentId: pwdRecord.apartmentId, name: apt?.name });
+  const apt = (db.apartments || []).find(a => a.name === username || String(a.id) === username);
+  if (apt) {
+    const contract = (db.contracts || []).find(c => c.apartmentId === apt.id && (!c.endDate || new Date(c.endDate) > new Date()));
+    if (contract) {
+      const tenant = (db.tenants || []).find(t => t.id === contract.tenantId);
+      if (tenant && tenant.documentId && tenant.documentId === password) {
+        return res.json({ authenticated: true, role: 'tenant', apartmentId: apt.id, name: apt.name });
+      }
+    }
   }
   res.status(401).json({ error: 'Credenciales inválidas' });
 });
@@ -214,7 +247,6 @@ app.post('/api/reset-db', (req, res) => {
   try {
     const dataFile = DATA_FILE;
     if (fs.existsSync(dataFile)) fs.unlinkSync(dataFile);
-    // Also clear uploads
     [PHOTOS_DIR, CONTRACTS_DIR].forEach(d => {
       if (fs.existsSync(d)) {
         const files = fs.readdirSync(d);
@@ -307,7 +339,7 @@ app.post('/api/generate-contract', (req, res) => {
   res.json({ ok: true, message: 'Generador iniciado en el PC. Revisa la carpeta C:\\Contratos\\salida' });
 });
 
-// ─── PRESENCIA (CHAT ONLINE STATUS) ───
+// ─── PRESENCIA ───
 app.post('/api/presence/heartbeat', (req, res) => {
   const { userId, status } = req.body || {};
   if (!userId) return res.status(400).json({ error: 'userId required' });
@@ -320,8 +352,7 @@ app.post('/api/presence/heartbeat', (req, res) => {
   res.json({ ok: true });
 });
 
-// ─── MENSAJES (CHAT) ───
-// Ruta específica para polling incremental de mensajes nuevos
+// ─── MENSAJES ───
 app.get('/api/messages/updates/:since', (req, res) => {
   const since = req.params.since;
   const messages = db.messages || [];
@@ -329,10 +360,73 @@ app.get('/api/messages/updates/:since', (req, res) => {
   res.json(filtered);
 });
 
-// ─── RUTAS GENÉRICAS (CON PARÁMETROS :collection) ───
-// Van después de todas las rutas específicas para evitar colisiones
+// ─── WHATSAPP ───
+app.get('/api/whatsapp/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  const savedToken = (db.settings || []).find(s => s.key === 'whatsapp_verify_token')?.value || 'laujim_whatsapp_verify';
+  if (mode === 'subscribe' && token === savedToken) {
+    return res.status(200).send(challenge);
+  }
+  res.status(403).send('Forbidden');
+});
 
-// ─── Generic routes ───
+app.post('/api/whatsapp/webhook', (req, res) => {
+  const body = req.body;
+  if (body.object === 'whatsapp_business_account') {
+    for (const entry of body.entry || []) {
+      for (const change of entry.changes || []) {
+        if (change.field !== 'messages') continue;
+        for (const msg of change.value.messages || []) {
+          if (msg.type === 'text' || msg.text?.body) {
+            sendWhatsApp(msg.from, 'Este es un canal de notificaciones. No recibimos mensajes aquí.');
+          }
+        }
+      }
+    }
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(404);
+  }
+});
+
+app.post('/api/whatsapp/send', (req, res) => {
+  const { to, text } = req.body || {};
+  if (!to || !text) return res.status(400).json({ error: 'to and text required' });
+  sendWhatsApp(to, text);
+  res.json({ ok: true });
+});
+
+// ─── CONTRATO + AUTO-PASSWORD ───
+app.post('/api/contracts', (req, res) => {
+  const col = 'contracts';
+  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
+  const newItem = { ...req.body, id: nextId[col] || 1 };
+  if (!newItem.createdAt) newItem.createdAt = new Date().toISOString();
+  db[col].push(newItem);
+  nextId[col] = (nextId[col] || 1) + 1;
+  saveData();
+  syncPasswordFromTenant(newItem.tenantId, newItem.apartmentId);
+  res.status(201).json(newItem);
+});
+
+// ─── DELETE TENANT + CLEANUP ───
+app.delete('/api/tenants/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const index = (db.tenants || []).findIndex(t => t.id === id);
+  if (index === -1) return res.status(404).json({ error: 'Not found' });
+  db.tenants.splice(index, 1);
+  const linkedContracts = (db.contracts || []).filter(c => c.tenantId === id);
+  for (const contract of linkedContracts) {
+    const pwdIdx = (db.passwords || []).findIndex(p => p.apartmentId === contract.apartmentId);
+    if (pwdIdx !== -1) db.passwords.splice(pwdIdx, 1);
+  }
+  saveData();
+  res.json({ success: true });
+});
+
+// ─── RUTAS GENÉRICAS ───
 
 app.get('/api/:collection', (req, res) => {
   const col = req.params.collection;
@@ -487,7 +581,6 @@ app.use((req, res) => {
   });
 });
 
-  // ─── Start listening AFTER all routes are registered ───
   app.listen(PORT, '0.0.0.0', () => {
     console.log('============================================');
     console.log('  GESTION DE APARTAMENTOS - SERVIDOR');
@@ -499,7 +592,6 @@ app.use((req, res) => {
     console.log('============================================');
   });
 
-  // ─── Async data init (runs after server is already listening) ───
   (async () => {
     let loaded = false;
     try {

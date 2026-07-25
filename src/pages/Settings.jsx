@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Globe, FileText, Download, Smartphone, Bell, RefreshCw, Cloud, Share2, Moon, Sun, User, KeyRound, Copy, Save, Database, Shield, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, ExternalLink } from 'lucide-react';
+import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, User, Copy, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, ExternalLink, MessageCircle } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { generateBookmarkletCode } from '../utils/marketplaceBookmarklet';
@@ -17,12 +17,7 @@ export default function Settings() {
   const auth = getAuth();
   const [apartments, setApartments] = useState([]);
   const [notifStatus, setNotifStatus] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
-  const [syncStatus, setSyncStatus] = useState({
-    syncing: false,
-    error: null,
-    serverAvailable: null,
-  });
-  const autoSyncIntervalRef = useRef(null);
+  const [syncStatus, setSyncStatus] = useState({ syncing: false, error: null, serverAvailable: null });
   const [notifConfig, setNotifConfig] = useState(getNotifConfig());
   const [localPasswords, setLocalPasswords] = useState([]);
   const [allTenants, setAllTenants] = useState([]);
@@ -30,52 +25,39 @@ export default function Settings() {
   const [backupInfo, setBackupInfo] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [settingsList, setSettingsList] = useState([]);
+  const [waConfig, setWaConfig] = useState({ apiToken: '', phoneNumberId: '', verifyToken: '' });
+  const [waTemplates, setWaTemplates] = useState({ services: '', reminder: '' });
+  const [waSaving, setWaSaving] = useState(false);
+  const [waSaved, setWaSaved] = useState(false);
 
   async function handleResetDb() {
     setResetting(true);
     try {
       const base = getBase().replace('/api', '');
-      const res = await fetch(base + '/api/reset-db', {
-        method: 'POST', headers: { 'x-auth-token': 'laujim laujim' },
-      });
+      const res = await fetch(base + '/api/reset-db', { method: 'POST', headers: { 'x-auth-token': 'laujim laujim' } });
       if (!res.ok) throw new Error(await res.text());
       await refreshAllFromServer();
       setConfirmReset(false);
       setBackupInfo('Base de datos restablecida. Recargando...');
       setTimeout(() => { setBackupInfo(null); window.location.reload(); }, 2000);
-    } catch (e) {
-      setBackupInfo('Error al restablecer: ' + e.message);
-      setTimeout(() => setBackupInfo(null), 5000);
-    }
+    } catch (e) { setBackupInfo('Error al restablecer: ' + e.message); setTimeout(() => setBackupInfo(null), 5000); }
     setResetting(false);
   }
 
-  function handleLogout() {
-    clearAuth();
-    navigate('/login', { replace: true });
-  }
+  function handleLogout() { clearAuth(); navigate('/login', { replace: true }); }
 
   async function handleNotifToggle() {
     const next = { ...notifConfig, enabled: !notifConfig.enabled };
-    setNotifConfig(next);
-    saveNotifConfig(next);
-    if (next.enabled) {
-      const a = await api.apartments.toArray();
-      await schedulePaymentReminders(a);
-    } else {
-      await cancelAllNotifications();
-    }
+    setNotifConfig(next); saveNotifConfig(next);
+    if (next.enabled) { const a = await api.apartments.toArray(); await schedulePaymentReminders(a); }
+    else { await cancelAllNotifications(); }
   }
 
   async function handleDaysChange(days) {
     const next = { ...notifConfig, daysBefore: Number(days) };
-    setNotifConfig(next);
-    saveNotifConfig(next);
-    if (next.enabled) {
-      await cancelAllNotifications();
-      const a = await api.apartments.toArray();
-      await schedulePaymentReminders(a);
-    }
+    setNotifConfig(next); saveNotifConfig(next);
+    if (next.enabled) { await cancelAllNotifications(); const a = await api.apartments.toArray(); await schedulePaymentReminders(a); }
   }
 
   useEffect(() => { load(); checkServerAvailability(); }, []);
@@ -90,35 +72,24 @@ export default function Settings() {
     setSyncStatus(s => ({ ...s, syncing: true, error: null }));
     const ok = await refreshAllFromServer();
     setSyncStatus(s => ({ ...s, syncing: false, error: ok ? null : 'Error al conectar con el servidor' }));
-    await load();
-    checkServerAvailability();
+    await load(); checkServerAvailability();
   }
 
   async function handleBackup() {
     try {
-      const res = await fetch(getBase() + '/data/all', {
-        headers: { 'x-auth-token': 'laujim laujim' },
-      });
+      const res = await fetch(getBase() + '/data/all', { headers: { 'x-auth-token': 'laujim laujim' } });
       const data = await res.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
+      const a = document.createElement('a'); a.href = url; a.download = `backup-${new Date().toISOString().split('T')[0]}.json`; a.click();
       URL.revokeObjectURL(url);
-      setBackupInfo('Backup descargado correctamente');
-      setTimeout(() => setBackupInfo(null), 3000);
-    } catch {
-      setBackupInfo('Error al descargar backup');
-      setTimeout(() => setBackupInfo(null), 3000);
-    }
+      setBackupInfo('Backup descargado correctamente'); setTimeout(() => setBackupInfo(null), 3000);
+    } catch { setBackupInfo('Error al descargar backup'); setTimeout(() => setBackupInfo(null), 3000); }
   }
 
   const fileInputRef = useRef(null);
   const [restoring, setRestoring] = useState(false);
   const [bmCopied, setBmCopied] = useState(false);
-
   const bulkInputRef = useRef(null);
   const [bulkStatus, setBulkStatus] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -130,137 +101,111 @@ export default function Settings() {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      const res = await fetch(getBase() + '/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' },
-        body: JSON.stringify(data),
-      });
+      const res = await fetch(getBase() + '/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' }, body: JSON.stringify(data) });
       if (!res.ok) throw new Error(await res.text());
       const result = await res.json();
       setBackupInfo(`Backup restaurado: ${result.saved} registros`);
-      await refreshAllFromServer();
-      await load();
-    } catch (e) {
-      setBackupInfo('Error al restaurar: ' + e.message);
-    }
-    setRestoring(false);
-    setTimeout(() => setBackupInfo(null), 5000);
+      await refreshAllFromServer(); await load();
+    } catch (e) { setBackupInfo('Error al restaurar: ' + e.message); }
+    setRestoring(false); setTimeout(() => setBackupInfo(null), 5000);
   }
 
   async function handleDownloadTemplate() {
-    const [a, t, c] = await Promise.all([
-      api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(),
-    ]);
+    const [a, t, c] = await Promise.all([api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray()]);
     const activeContracts = c.filter(ct => !ct.endDate || new Date(ct.endDate) > new Date());
     const template = a.map(apt => {
       const contract = activeContracts.find(ct => ct.apartmentId === apt.id);
       const tenant = contract ? t.find(ten => ten.id === contract.tenantId) : null;
-      return {
-        apto: apt.name,
-        estado: apt.status || 'vacant',
-        canon: apt.monthlyRent || 0,
-        deposito: apt.depositAmount || 0,
-        diaVencimiento: apt.paymentDueDay || 5,
-        inquilino: tenant ? tenant.name : '',
-        cedula: tenant ? tenant.documentId : '',
-        telefono: tenant ? tenant.phone : '',
-        fechaInicio: contract ? contract.startDate : '',
-        fechaFin: contract ? contract.endDate || '' : '',
-        lecturaAgua: apt.waterReadingDay || 7,
-        codigoAgua: apt.waterPaymentCode || '',
-        lecturaGas: apt.gasReadingDay || 7,
-        codigoGas: apt.gasPaymentCode || '',
-        lecturaLuz: apt.electricityReadingDay || 21,
-        observaciones: apt.notes || '',
-      };
+      return { apto: apt.name, estado: apt.status || 'vacant', canon: apt.monthlyRent || 0, deposito: apt.depositAmount || 0, diaVencimiento: apt.paymentDueDay || 5, inquilino: tenant ? tenant.name : '', cedula: tenant ? tenant.documentId : '', telefono: tenant ? tenant.phone : '', fechaInicio: contract ? contract.startDate : '', fechaFin: contract ? contract.endDate || '' : '', lecturaAgua: apt.waterReadingDay || 7, codigoAgua: apt.waterPaymentCode || '', lecturaGas: apt.gasReadingDay || 7, codigoGas: apt.gasPaymentCode || '', lecturaLuz: apt.electricityReadingDay || 21, observaciones: apt.notes || '' };
     });
     const blob = new Blob([JSON.stringify({ version: '1.0', plantilla: template }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const aEl = document.createElement('a');
-    aEl.href = url;
-    aEl.download = `plantilla-bulk-${new Date().toISOString().split('T')[0]}.json`;
-    aEl.click();
+    const aEl = document.createElement('a'); aEl.href = url; aEl.download = `plantilla-bulk-${new Date().toISOString().split('T')[0]}.json`; aEl.click();
     URL.revokeObjectURL(url);
-    setBulkStatus('Plantilla descargada. Llénala y súbela.');
-    setTimeout(() => setBulkStatus(null), 5000);
+    setBulkStatus('Plantilla descargada. Llénala y súbela.'); setTimeout(() => setBulkStatus(null), 5000);
   }
 
   async function handleUploadTemplate(file) {
     if (!file) return;
-    setBulkLoading(true);
-    setBulkStatus(null);
+    setBulkLoading(true); setBulkStatus(null);
     try {
       const text = await file.text();
       const data = JSON.parse(text);
       if (!data.plantilla || !Array.isArray(data.plantilla)) throw new Error('Formato inválido: falta "plantilla"');
-      const { apartments: existingApts, tenants: existingTenants, contracts: existingContracts } = await fetch(getBase() + '/data/all', {
-        headers: { 'x-auth-token': 'laujim laujim' },
-      }).then(r => r.json());
-      const [localApts, localTenants, localContracts] = await Promise.all([
-        api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(),
-      ]);
+      const [localApts, localTenants, localContracts] = await Promise.all([api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray()]);
       let created = 0;
       for (const row of data.plantilla) {
         if (!row.apto) continue;
         let apt = localApts.find(a => a.name === row.apto);
         if (!apt) {
-          const maxId = Math.max(...localApts.map(a => a.id), 0);
-          apt = await api.apartments.add({
-            name: row.apto, status: row.estado || 'vacant', monthlyRent: Number(row.canon) || 0,
-            depositAmount: Number(row.deposito) || 0, paymentDueDay: Number(row.diaVencimiento) || 5,
-            waterReadingDay: Number(row.lecturaAgua) || 7, waterPaymentCode: row.codigoAgua || '',
-            gasReadingDay: Number(row.lecturaGas) || 7, gasPaymentCode: row.codigoGas || '',
-            electricityReadingDay: Number(row.lecturaLuz) || 21, notes: row.observaciones || '',
-            floor: 1, area: 0, rooms: 1, bathrooms: 1, description: '', nic: '', electricityPaymentCode: '',
-            createdAt: new Date().toISOString(),
-          });
+          apt = await api.apartments.add({ name: row.apto, status: row.estado || 'vacant', monthlyRent: Number(row.canon) || 0, depositAmount: Number(row.deposito) || 0, paymentDueDay: Number(row.diaVencimiento) || 5, waterReadingDay: Number(row.lecturaAgua) || 7, waterPaymentCode: row.codigoAgua || '', gasReadingDay: Number(row.lecturaGas) || 7, gasPaymentCode: row.codigoGas || '', electricityReadingDay: Number(row.lecturaLuz) || 21, notes: row.observaciones || '', floor: 1, area: 0, rooms: 1, bathrooms: 1, description: '', nic: '', electricityPaymentCode: '', createdAt: new Date().toISOString() });
           localApts.push(apt);
         } else {
-          await api.apartments.update(apt.id, {
-            status: row.estado || apt.status, monthlyRent: Number(row.canon) || apt.monthlyRent,
-            paymentDueDay: Number(row.diaVencimiento) || apt.paymentDueDay,
-            notes: row.observaciones || apt.notes,
-          });
+          await api.apartments.update(apt.id, { status: row.estado || apt.status, monthlyRent: Number(row.canon) || apt.monthlyRent, paymentDueDay: Number(row.diaVencimiento) || apt.paymentDueDay, notes: row.observaciones || apt.notes });
         }
         if (row.inquilino && row.cedula) {
           let tenant = localTenants.find(t => t.documentId === row.cedula);
           if (!tenant) {
-            tenant = await api.tenants.add({
-              name: row.inquilino, documentId: row.cedula, phone: row.telefono || '',
-              notes: '', linkedAptId: apt.id, createdAt: new Date().toISOString(),
-            });
+            tenant = await api.tenants.add({ name: row.inquilino, documentId: row.cedula, phone: row.telefono || '', notes: '', linkedAptId: apt.id, createdAt: new Date().toISOString() });
             localTenants.push(tenant);
-          } else {
-            await api.tenants.update(tenant.id, { name: row.inquilino, phone: row.telefono || tenant.phone });
-          }
+          } else { await api.tenants.update(tenant.id, { name: row.inquilino, phone: row.telefono || tenant.phone }); }
           if (row.fechaInicio && apt.id) {
             const existingContract = localContracts.find(ct => ct.apartmentId === apt.id && (!ct.endDate || new Date(ct.endDate) > new Date()));
-            if (!existingContract) {
-              await api.contracts.add({
-                apartmentId: apt.id, tenantId: tenant.id, monthlyRent: Number(row.canon) || 0,
-                startDate: row.fechaInicio, endDate: row.fechaFin || null,
-                createdAt: new Date().toISOString(),
-              });
-            }
+            if (!existingContract) { await api.contracts.add({ apartmentId: apt.id, tenantId: tenant.id, monthlyRent: Number(row.canon) || 0, startDate: row.fechaInicio, endDate: row.fechaFin || null, createdAt: new Date().toISOString() }); }
           }
         }
         created++;
       }
-      await refreshAllFromServer();
-      await load();
+      await refreshAllFromServer(); await load();
       setBulkStatus(`Plantilla procesada: ${created} aptos creados/actualizados`);
-    } catch (e) {
-      setBulkStatus('Error: ' + e.message);
-    }
-    setBulkLoading(false);
-    setTimeout(() => setBulkStatus(null), 8000);
+    } catch (e) { setBulkStatus('Error: ' + e.message); }
+    setBulkLoading(false); setTimeout(() => setBulkStatus(null), 8000);
   }
 
   async function load() {
-    const [a, p, t, c] = await Promise.all([
+    const [a, p, t, c, s] = await Promise.all([
       api.apartments.toArray(), api.passwords.toArray(), api.tenants.toArray(), api.contracts.toArray(),
+      fetch(getBase() + '/settings', { headers: { 'x-auth-token': 'laujim laujim' } }).then(r => r.json()).catch(() => []),
     ]);
     setApartments(a); setLocalPasswords(p); setAllTenants(t); setContracts(c);
+    setSettingsList(s);
+    const getVal = (k, def) => s.find(x => x.key === k)?.value || def;
+    setWaConfig({ apiToken: getVal('whatsapp_api_token', ''), phoneNumberId: getVal('whatsapp_phone_number_id', ''), verifyToken: getVal('whatsapp_verify_token', 'laujim_whatsapp_verify') });
+    setWaTemplates({
+      services: getVal('whatsapp_template_services', 'Hola {nombre}, aquí están tus enlaces de servicios:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\nApartamento {apto}'),
+      reminder: getVal('whatsapp_template_reminder', '🔔 Recordatorio {nombre}:\n\nTu canon de {valor_canon} vence el {dia_vencimiento}.\n\nApartamento {apto}'),
+    });
+  }
+
+  async function upsertSetting(key, value) {
+    const existing = settingsList.find(s => s.key === key);
+    const headers = { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' };
+    if (existing) {
+      await fetch(getBase() + '/settings/' + existing.id, { method: 'PUT', headers, body: JSON.stringify({ ...existing, value }) });
+    } else {
+      await fetch(getBase() + '/settings', { method: 'POST', headers, body: JSON.stringify({ key, value }) });
+    }
+  }
+
+  async function handleSaveWaConfig() {
+    setWaSaving(true);
+    try {
+      await upsertSetting('whatsapp_api_token', waConfig.apiToken);
+      await upsertSetting('whatsapp_phone_number_id', waConfig.phoneNumberId);
+      await upsertSetting('whatsapp_verify_token', waConfig.verifyToken);
+      setWaSaved(true); setTimeout(() => setWaSaved(false), 3000);
+    } catch (e) { alert('Error al guardar: ' + e.message); }
+    setWaSaving(false);
+  }
+
+  async function handleSaveTemplates() {
+    setWaSaving(true);
+    try {
+      await upsertSetting('whatsapp_template_services', waTemplates.services);
+      await upsertSetting('whatsapp_template_reminder', waTemplates.reminder);
+      setWaSaved(true); setTimeout(() => setWaSaved(false), 3000);
+    } catch (e) { alert('Error al guardar: ' + e.message); }
+    setWaSaving(false);
   }
 
   function generateRandomPwd(existing) {
@@ -276,11 +221,8 @@ export default function Settings() {
     const existing = (localPasswords || []).filter(p => p.apartmentId !== apartmentId).map(p => p.password);
     const pwd = generateRandomPwd(existing);
     const record = localPasswords.find(p => p.apartmentId === apartmentId);
-    if (record) {
-      await api.passwords.update(record.id, { ...record, password: pwd });
-    } else {
-      await api.passwords.add({ apartmentId, password: pwd });
-    }
+    if (record) { await api.passwords.update(record.id, { ...record, password: pwd }); }
+    else { await api.passwords.add({ apartmentId, password: pwd }); }
     const updated = await api.passwords.toArray();
     setLocalPasswords(updated);
   }
@@ -346,9 +288,7 @@ export default function Settings() {
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-white">Notificaciones</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {notifStatus === 'granted' ? 'Activadas' : notifStatus === 'denied' ? 'Bloqueadas' : 'Pendiente'}
-              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{notifStatus === 'granted' ? 'Activadas' : notifStatus === 'denied' ? 'Bloqueadas' : 'Pendiente'}</p>
             </div>
             {notifStatus !== 'granted' && (
               <button onClick={handleNotificationRequest} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -360,7 +300,7 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Database className="w-4 h-4" /> Base de Datos</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Todos los datos se guardan automáticamente en la nube en tiempo real. No necesitas hacer nada manual.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Todos los datos se guardan automáticamente en la nube en tiempo real.</p>
           <div className="space-y-2 text-sm mb-3">
             <div className="flex justify-between py-1.5">
               <span className="text-gray-500 dark:text-gray-400">Servidor:</span>
@@ -368,12 +308,9 @@ export default function Settings() {
             </div>
             {syncStatus.error && <p className="text-xs text-red-500">{syncStatus.error}</p>}
           </div>
-          <div className="flex gap-2 mb-2">
-            <button onClick={handleRefreshFromServer} disabled={syncStatus.syncing} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium">
-              <RefreshCw className={`w-4 h-4 ${syncStatus.syncing ? 'animate-spin' : ''}`} /> {syncStatus.syncing ? 'Refrescando...' : 'Refrescar datos del servidor'}
-            </button>
-          </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Los cambios se sincronizan automáticamente cada 15 segundos entre todos tus dispositivos.</p>
+          <button onClick={handleRefreshFromServer} disabled={syncStatus.syncing} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium mb-2">
+            <RefreshCw className={`w-4 h-4 ${syncStatus.syncing ? 'animate-spin' : ''}`} /> {syncStatus.syncing ? 'Refrescando...' : 'Refrescar datos del servidor'}
+          </button>
           <button onClick={handleBackup} className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors text-sm">
             <Download className="w-4 h-4" /> Descargar Backup (JSON)
           </button>
@@ -396,7 +333,7 @@ export default function Settings() {
               </div>
               <div>
                 <h3 className="font-bold text-gray-900">¿Restablecer base de datos?</h3>
-                <p className="text-sm text-gray-500">Esta acción borrará TODOS los datos del servidor y los reemplazará con los valores iniciales. Los datos locales se recargarán automáticamente.</p>
+                <p className="text-sm text-gray-500">Esta acción borrará TODOS los datos del servidor.</p>
               </div>
             </div>
             <div className="flex gap-3 justify-end">
@@ -408,7 +345,7 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Carga Masiva (BULK)</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga una plantilla con los datos actuales, completa la información faltante y súbela para crear/actualizar múltiples aptos, inquilinos y contratos a la vez.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga una plantilla, complétala y súbela para crear/actualizar múltiples aptos, inquilinos y contratos.</p>
           <div className="flex flex-wrap gap-3">
             <button onClick={handleDownloadTemplate} className="flex items-center justify-center gap-2 px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors text-sm">
               <Download className="w-4 h-4" /> Descargar Plantilla
@@ -423,7 +360,7 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Acceso de Inquilinos</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Cada inquilino ingresa con el apto + su código en <strong>/mi-apto</strong></p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Cada inquilino ingresa con el apto + su cédula en <strong>/mi-apto</strong></p>
           {apartments.filter(a => a.status === 'occupied').map(a => {
             const pwd = localPasswords.find(p => p.apartmentId === a.id);
             const tenant = allTenants.find(t => contracts.find(c => c.apartmentId === a.id && (!c.endDate || new Date(c.endDate) > new Date()))?.tenantId === t.id);
@@ -449,6 +386,54 @@ export default function Settings() {
           })}
         </div>
 
+        {/* WhatsApp API Config */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp API</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Configuración para el bot de auto-respuesta y envío de mensajes.</p>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Token de API (WhatsApp Cloud API)</label>
+              <input type="password" value={waConfig.apiToken} onChange={e => setWaConfig({...waConfig, apiToken: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="EAAx..." />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number ID</label>
+              <input type="text" value={waConfig.phoneNumberId} onChange={e => setWaConfig({...waConfig, phoneNumberId: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="123456789" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Verify Token (webhook)</label>
+              <input type="text" value={waConfig.verifyToken} onChange={e => setWaConfig({...waConfig, verifyToken: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="laujim_whatsapp_verify" />
+            </div>
+            <div className="text-xs text-gray-400 space-y-1">
+              <p>URL del webhook: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{window.location.origin}/api/whatsapp/webhook</code></p>
+              <p>Pega esta URL en la configuración de Meta WhatsApp Cloud API.</p>
+            </div>
+            <button onClick={handleSaveWaConfig} disabled={waSaving} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium">
+              <Save className="w-4 h-4" /> {waSaving ? 'Guardando...' : waSaved ? '✓ Guardado' : 'Guardar Configuración WhatsApp'}
+            </button>
+          </div>
+        </div>
+
+        {/* WhatsApp Templates */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Plantillas WhatsApp</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza los mensajes que se envían desde los botones de WhatsApp.</p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje de servicios públicos</label>
+              <p className="text-xs text-gray-400 mb-1">Placeholders: {'{nombre}'}, {'{apto}'}, {'{link_aire}'}, {'{link_triplea}'}, {'{link_gases}'}</p>
+              <textarea value={waTemplates.services} onChange={e => setWaTemplates({...waTemplates, services: e.target.value})} rows={5} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-xs" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje de recordatorio de pago</label>
+              <p className="text-xs text-gray-400 mb-1">Placeholders: {'{nombre}'}, {'{apto}'}, {'{valor_canon}'}, {'{dia_vencimiento}'}</p>
+              <textarea value={waTemplates.reminder} onChange={e => setWaTemplates({...waTemplates, reminder: e.target.value})} rows={5} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-xs" />
+            </div>
+            <button onClick={handleSaveTemplates} disabled={waSaving} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium">
+              <Save className="w-4 h-4" /> {waSaving ? 'Guardando...' : waSaved ? '✓ Guardado' : 'Guardar Plantillas'}
+            </button>
+          </div>
+        </div>
+
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Globe className="w-4 h-4" /> Link Público</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Comparte aptos disponibles con posibles inquilinos.</p>
@@ -462,26 +447,22 @@ export default function Settings() {
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Smartphone className="w-4 h-4" /> App Móvil (APK)</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga la app Android.</p>
           <a href="/app-debug.apk" download className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-2">
-            <Download className="w-4 h-4" /> Descargar APK (directo)
+            <Download className="w-4 h-4" /> Descargar APK
           </a>
-          <p className="text-xs text-gray-400 dark:text-gray-500">Build incluido en el servidor. También disponible en GitHub Releases.</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Zap className="w-4 h-4" /> Auto-llenar Facebook Marketplace</h3>
-
           <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl mb-4">
             <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300 mb-2">Extensión de Chrome (recomendado)</p>
-            <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-3">Auto-llena todos los campos <strong>incluyendo fotos</strong> automáticamente. Sin pasos manuales.</p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-3">Auto-llena todos los campos <strong>incluyendo fotos</strong> automáticamente.</p>
             <ol className="text-xs text-emerald-700 dark:text-emerald-400 space-y-1 ml-4 list-decimal">
               <li>Abre <strong>chrome://extensions</strong> en Chrome</li>
-              <li>Activa <strong>Modo desarrollador</strong> (esquina superior derecha)</li>
+              <li>Activa <strong>Modo desarrollador</strong></li>
               <li>Arrastra la carpeta <strong>extension/</strong> de Laujim a la ventana</li>
               <li>Haz clic en <strong>"Auto-llenar"</strong> en el detalle del apto</li>
-              <li>Los datos + fotos se rellenan solos en Facebook Marketplace</li>
             </ol>
           </div>
-
           <details className="group">
             <summary className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
               Bookmarklet (alternativa, sin fotos automáticas)
@@ -492,16 +473,6 @@ export default function Settings() {
                 <a href={generateBookmarkletCode()} onClick={e => { e.preventDefault(); navigator.clipboard.writeText(generateBookmarkletCode()).then(() => { setBmCopied(true); setTimeout(() => setBmCopied(false), 2000); }); }} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
                   <Zap className="w-4 h-4" /> {bmCopied ? 'Copiado' : 'Copiar Bookmarklet'}
                 </a>
-                <p className="text-xs text-gray-400 mt-2">Luego crea un marcador en Chrome con ese código (nombre: <strong>Llenar Laujim</strong>). En celular: Marcadores {'>'} Añadir página {'>'} pegar el código en URL.</p>
-              </div>
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                <p><strong>Cómo usarlo cada vez:</strong></p>
-                <p>1. En Laujim, ve al detalle del apto y haz clic en <strong>"Auto-llenar"</strong>.</p>
-                <p>2. Los datos se copian al portapapeles y se abre Facebook Marketplace.</p>
-                <p>3. En Facebook, haz clic en el marcador <strong>"Llenar Laujim"</strong>.</p>
-                <p>4. Te pedirá pegar el JSON — haz <strong>Ctrl+V</strong> y acepta.</p>
-                <p>5. Los campos se rellenan solos. Agrega las fotos manualmente y publica.</p>
-                <p>6. Vuelve a Laujim y pega la URL de la publicación en <strong>"Guardar URL"</strong>.</p>
               </div>
             </div>
           </details>

@@ -60,13 +60,13 @@ export async function loginTenant(aptName, password) {
   const apartments = await serverReq('GET', '/apartments');
   const apt = apartments.find(a => a.name === aptName || String(a.id) === aptName);
   if (!apt) return { ok: false, error: 'Apartamento no encontrado' };
-  const passwords = await serverReq('GET', '/passwords');
-  const record = passwords.find(p => p.apartmentId === apt.id);
-  if (!record || record.password !== password) return { ok: false, error: 'Contraseña incorrecta' };
   const tenants = await serverReq('GET', '/tenants');
   const contracts = await serverReq('GET', '/contracts');
   const contract = contracts.find(c => c.apartmentId === apt.id && (!c.endDate || new Date(c.endDate) > new Date()));
-  const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
+  if (!contract) return { ok: false, error: 'Sin contrato activo' };
+  const tenant = tenants.find(t => t.id === contract.tenantId);
+  if (!tenant) return { ok: false, error: 'Inquilino no encontrado' };
+  if (tenant.documentId !== password) return { ok: false, error: 'Contraseña incorrecta' };
   setAuth({ role: 'tenant', apartmentId: apt.id, name: tenant?.name || apt.name, username: apt.name });
   return { ok: true, role: 'tenant', apartmentId: apt.id };
 }
