@@ -2,15 +2,14 @@ import * as sessionStore from './session-store.js';
 import * as api from './api-client.js';
 import * as scripts from './scripts.js';
 
-const ADMIN_NUMBER = process.env.ADMIN_WHATSAPP || '';
-
 function normalizePhone(phone) {
   return phone.replace(/[^0-9]/g, '');
 }
 
 export function isAdminMessage(phone) {
-  if (!ADMIN_NUMBER) return false;
-  return normalizePhone(phone) === normalizePhone(ADMIN_NUMBER);
+  const numbers = scripts.getAdminNumbers();
+  if (numbers.length === 0) return false;
+  return numbers.some(n => normalizePhone(phone) === n);
 }
 
 export async function handleCommand(phone, text, client, sendReply) {

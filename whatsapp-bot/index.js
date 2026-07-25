@@ -40,8 +40,7 @@ client.on('qr', async (qr) => {
   try {
     await QRCode.toFile(qrPath, qr, { width: 400, margin: 1, color: { dark: '#000', light: '#fff' } });
     console.log('QR guardado como imagen:', qrPath);
-    const { exec } = await import('child_process');
-    exec(`start "" "${qrPath}"`);
+    notify.setQr(qr);
   } catch (e) {
     console.error('Error generando QR imagen:', e.message);
   }

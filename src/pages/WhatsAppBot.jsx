@@ -62,6 +62,7 @@ export default function WhatsAppBot() {
   const [botStatus, setBotStatus] = useState({ running: false, authenticated: false, number: null, pid: null });
   const [botEnabled, setBotEnabled] = useState(false);
   const [botPhone, setBotPhone] = useState('');
+  const [adminNumbers, setAdminNumbers] = useState('');
   const [scripts, setScripts] = useState({ ...DEFAULT_SCRIPTS });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -86,6 +87,7 @@ export default function WhatsAppBot() {
       const getVal = (k, def) => s.find(x => x.key === k)?.value || def;
       setBotEnabled(getVal('whatsapp_bot_enabled', 'false') === 'true');
       setBotPhone(getVal('whatsapp_bot_phone', ''));
+      setAdminNumbers(getVal('whatsapp_admin_numbers', ''));
       const loaded = {};
       for (const key of Object.keys(DEFAULT_SCRIPTS)) {
         loaded[key] = getVal('whatsapp_bot_msg_' + key, DEFAULT_SCRIPTS[key]);
@@ -122,6 +124,7 @@ export default function WhatsAppBot() {
     try {
       await upsertSetting('whatsapp_bot_enabled', botEnabled ? 'true' : 'false');
       await upsertSetting('whatsapp_bot_phone', botPhone);
+      await upsertSetting('whatsapp_admin_numbers', adminNumbers);
       for (const [key, value] of Object.entries(scripts)) {
         await upsertSetting('whatsapp_bot_msg_' + key, value);
       }
@@ -218,9 +221,9 @@ export default function WhatsAppBot() {
                     </div>
                   </div>
 
-                  {!botStatus.authenticated && qrImage && (
+                  {!botStatus.authenticated && (qrImage || botStatus.qr) && (
                     <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
-                      <img src={qrImage} alt="QR Code" className="mx-auto w-48 h-48" />
+                      <img src={`data:image/png;base64,${botStatus.qr || qrImage}`} alt="QR Code" className="mx-auto w-48 h-48" />
                       <p className="text-xs text-gray-500 mt-2">Escanea con WhatsApp → Vincular dispositivo</p>
                     </div>
                   )}
@@ -263,6 +266,12 @@ export default function WhatsAppBot() {
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Número del bot (WhatsApp)</label>
               <input type="text" value={botPhone} onChange={e => setBotPhone(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="573005185668" />
               <p className="text-xs text-gray-400 mt-1">Este es el número que los inquilinos ven para escribir al bot.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notificar a (números admin)</label>
+              <input type="text" value={adminNumbers} onChange={e => setAdminNumbers(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="573001234567, 573001234568" />
+              <p className="text-xs text-gray-400 mt-1">Separados por coma. A estos números llegarán notificaciones de nuevos mensajes de inquilinos. También pueden usar comandos como <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">!listar</code>.</p>
             </div>
 
             <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-xs text-gray-500 space-y-1">

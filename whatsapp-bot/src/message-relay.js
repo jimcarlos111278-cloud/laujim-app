@@ -15,14 +15,16 @@ export async function relayToChat(phone, session, content, client) {
   const roomId = 'admin-' + session.aptId;
   const msg = await api.sendMessage(roomId, 'apt-' + session.aptId, 'admin', content, 'whatsapp');
 
-  const adminNumber = process.env.ADMIN_WHATSAPP;
-  if (adminNumber && client) {
+  const adminNumbers = scripts.getAdminNumbers();
+  for (const num of adminNumbers) {
+    if (!client) break;
     const preview = content.length > 100 ? content.slice(0, 100) + '...' : content;
     const adminMsg = scripts.get('notif_admin_new', { apto: session.apto, nombre: session.tenantName, content: preview });
     try {
-      await client.sendMessage(adminNumber.replace(/[^0-9]/g, '') + '@c.us', adminMsg);
+      await client.sendMessage(num + '@c.us', adminMsg);
+      console.log('Notified admin', num);
     } catch (e) {
-      console.error('Error sending to admin:', e.message);
+      console.error('Error notifying admin', num, ':', e.message);
     }
   }
 

@@ -27,7 +27,7 @@ const DEFAULTS = {
 };
 
 let cache = { ...DEFAULTS };
-let lastFetch = 0;
+let adminNumbers = [];
 
 export async function load() {
   try {
@@ -36,8 +36,9 @@ export async function load() {
       const val = settings['whatsapp_bot_msg_' + key];
       if (val) cache[key] = val;
     }
+    const raw = settings['whatsapp_admin_numbers'] || '';
+    adminNumbers = raw.split(',').map(s => s.trim().replace(/[^0-9]/g, '')).filter(Boolean);
   } catch {}
-  lastFetch = Date.now();
 }
 
 export function get(key, placeholders) {
@@ -48,4 +49,10 @@ export function get(key, placeholders) {
     }
   }
   return text;
+}
+
+export function getAdminNumbers() {
+  if (adminNumbers.length > 0) return adminNumbers;
+  const env = process.env.ADMIN_WHATSAPP || '';
+  return env.split(',').map(s => s.trim().replace(/[^0-9]/g, '')).filter(Boolean);
 }
