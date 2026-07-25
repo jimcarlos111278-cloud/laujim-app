@@ -653,9 +653,7 @@ export default function ApartmentDetail() {
             </button>
             {tenant?.phone && <button onClick={handleWhatsAppReminder} className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 hover:underline">
               <MessageCircle className="w-3 h-3" /> WhatsApp
-            </button>}er:underline">
-              <Calendar className="w-3 h-3" /> Recordatorio
-            </button>
+            </button>}
           </div>
         </div>
       </div>
