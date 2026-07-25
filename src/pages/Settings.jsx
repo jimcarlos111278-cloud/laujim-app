@@ -163,8 +163,8 @@ export default function Settings() {
     setSettingsList(s);
     const getVal = (k, def) => s.find(x => x.key === k)?.value || def;
     setWaConfig({ apiToken: getVal('whatsapp_api_token', ''), phoneNumberId: getVal('whatsapp_phone_number_id', ''), verifyToken: getVal('whatsapp_verify_token', 'laujim_whatsapp_verify') });
-    const svc = getVal('whatsapp_template_services', 'Hola {nombre}, aquí están tus enlaces de servicios:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\nApartamento {apto}');
-    const rem = getVal('whatsapp_template_reminder', '🔔 Recordatorio {nombre}:\n\nTu canon de {valor_canon} vence el {dia_vencimiento}.\n\nApartamento {apto}');
+    const svc = getVal('whatsapp_template_services', '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Sabemos que es fácil perder la información de pago de los servicios, por eso te compartimos los enlaces directos:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\n📌 También puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar esta información y contactarnos por el chat directo.\n\n¡Gracias!');
+    const rem = getVal('whatsapp_template_reminder', '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Te recordamos que el canon de {valor_canon} vence el {dia_vencimiento}.\n\n📌 Sabemos que es fácil perder la información de pago. Puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar tus pagos y contactarnos por el chat directo.\n\n¡Gracias!');
     setWaTemplates({ services: svc, reminder: rem });
     localStorage.setItem('wa_template_services', svc);
     localStorage.setItem('wa_template_reminder', rem);
