@@ -274,13 +274,16 @@ export default function WhatsAppBot() {
               <p className="text-xs text-gray-400 mt-1">Separados por coma. A estos números llegarán notificaciones de nuevos mensajes de inquilinos. También pueden usar comandos como <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">!listar</code>.</p>
             </div>
 
-            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-xs text-gray-500 space-y-1">
-              <p><strong>Para cambiar de número:</strong></p>
-              <p>1. Detén el bot</p>
-              <p>2. Elimina la carpeta <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">whatsapp-bot/sessions/</code></p>
-              <p>3. Inicia el bot de nuevo y escanea el QR con el nuevo número</p>
-              <p>4. Actualiza el número aquí</p>
-            </div>
+            <button onClick={async () => {
+              if (!confirm('¿Cambiar el número del bot?\n\nSe eliminará la sesión actual y el bot se reiniciará. Tendrás que escanear el QR con el nuevo número.')) return;
+              showAction('Eliminando sesión y reiniciando...', 'success');
+              const res = await fetch(getBase() + '/whatsapp-bot/reset-session', { method: 'POST', headers: { 'x-auth-token': AUTH_TOKEN } });
+              const data = await res.json();
+              showAction(data.message || 'Ok', res.ok ? 'success' : 'error');
+              if (res.ok) { setTimeout(fetchStatus, 5000); }
+            }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 border-2 border-dashed border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors text-sm font-medium">
+              <RefreshCw className="w-4 h-4" /> Cambiar número del bot
+            </button>
           </div>
         </div>
 

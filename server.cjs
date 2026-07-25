@@ -518,6 +518,50 @@ app.post('/api/whatsapp-bot/stop', (req, res) => {
   }
 });
 
+app.post('/api/whatsapp-bot/reset-session', (req, res) => {
+  try {
+    if (botProcess && !botProcess.killed) {
+      botProcess.kill('SIGTERM');
+      botProcess = null;
+    }
+    const botDir = path.join(__dirname, 'whatsapp-bot');
+    const sessionsDir = path.join(botDir, 'sessions');
+    const dataDir = path.join(botDir, 'data');
+    const sessionFile = path.join(dataDir, 'session-store.json');
+    const wwebjsCache = path.join(botDir, '.wwebjs_cache');
+
+    if (fs.existsSync(sessionsDir)) {
+      fs.rmSync(sessionsDir, { recursive: true, force: true });
+    }
+    if (fs.existsSync(sessionFile)) {
+      fs.unlinkSync(sessionFile);
+    }
+    if (fs.existsSync(wwebjsCache)) {
+      fs.rmSync(wwebjsCache, { recursive: true, force: true });
+    }
+
+    setTimeout(() => {
+      try {
+        botProcess = spawn('node', ['index.js'], {
+          cwd: botDir,
+          stdio: 'pipe',
+          env: { ...process.env },
+        });
+        botProcess.stdout.on('data', (data) => console.log('[BOT]', data.toString().trim()));
+        botProcess.stderr.on('data', (data) => console.error('[BOT]', data.toString().trim()));
+        botProcess.on('close', (code) => { console.log('[BOT] Exited with code', code); botProcess = null; });
+        console.log('[BOT] Restarted with fresh session');
+      } catch (e) {
+        console.error('[BOT] Error restarting:', e.message);
+      }
+    }, 2000);
+
+    res.json({ ok: true, message: 'Sesión eliminada. El bot se está reiniciando — espera el QR en la página.' });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al resetear sesión: ' + e.message });
+  }
+});
+
 // ─── CONTRATO + AUTO-PASSWORD ───
 app.post('/api/contracts', (req, res) => {
   const col = 'contracts';
