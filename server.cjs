@@ -432,26 +432,24 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
 
   const botUrl = process.env.WHATSAPP_BOT_URL || 'http://localhost:3002';
 
-  async function fetchBot(path) {
+  async function fetchBotBuffer(path) {
     try {
       const url = new URL(path, botUrl);
       return await new Promise((resolve, reject) => {
         const mod = require(url.protocol === 'https:' ? 'https' : 'http');
-        const r = mod.get(url.href, (resp) => {
-          let body = '';
-          resp.on('data', chunk => body += chunk);
-          resp.on('end', () => resolve(body));
-        });
-        r.on('error', reject);
-        r.setTimeout(3000, () => { r.destroy(); reject(new Error('timeout')); });
+        mod.get(url.href, (resp) => {
+          const chunks = [];
+          resp.on('data', chunk => chunks.push(chunk));
+          resp.on('end', () => resolve(Buffer.concat(chunks)));
+        }).on('error', reject).setTimeout(3000, () => reject(new Error('timeout')));
       });
     } catch { return null; }
   }
 
-  const statusBody = await fetchBot('/status');
-  if (statusBody) {
+  const statusBuf = await fetchBotBuffer('/status');
+  if (statusBuf) {
     try {
-      const data = JSON.parse(statusBody);
+      const data = JSON.parse(statusBuf.toString());
       running = true;
       authenticated = data.authenticated || false;
       number = data.number || null;
@@ -459,9 +457,9 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
   }
 
   if (running && !authenticated) {
-    const qrBody = await fetchBot('/qr');
-    if (qrBody && qrBody.length > 0) {
-      qr = Buffer.from(qrBody, 'binary').toString('base64');
+    const qrBuf = await fetchBotBuffer('/qr');
+    if (qrBuf && qrBuf.length > 0) {
+      qr = qrBuf.toString('base64');
     }
   }
 

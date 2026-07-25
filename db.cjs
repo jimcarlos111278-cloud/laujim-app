@@ -378,6 +378,39 @@ const INITIAL_DATA = {
         "email": "",
         "notes": "",
         "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 13,
+        "name": "Jim Carlos Varela",
+        "documentId": "1002163714",
+        "phone": "3107203822",
+        "email": "",
+        "notes": "",
+        "workPhone": "",
+        "workAddress": "",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 14,
+        "name": "Mercedes Gomez",
+        "documentId": "44155705",
+        "phone": "3168779682",
+        "email": "",
+        "notes": "",
+        "workPhone": "",
+        "workAddress": "Sabanilla",
+        "createdAt": "2026-07-20T06:47:58.630Z"
+      },
+      {
+        "id": 15,
+        "name": "Jim Carlos Varela Gomez",
+        "documentId": "1002163714",
+        "phone": "3107203822",
+        "email": "",
+        "notes": "",
+        "workPhone": "",
+        "workAddress": "Sabanilla",
+        "createdAt": "2026-07-20T06:47:58.630Z"
       }
     ],
   "contracts": [

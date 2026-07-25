@@ -395,6 +395,39 @@
       "documentId": "1002163711",
       "notes": "",
       "createdAt": "2026-07-20T06:47:58.630Z"
+    },
+    {
+      "id": 12,
+      "name": "Jim Carlos Varela",
+      "documentId": "1002163714",
+      "phone": "3107203822",
+      "email": "",
+      "notes": "",
+      "workPhone": "",
+      "workAddress": "",
+      "createdAt": "2026-07-20T06:47:58.630Z"
+    },
+    {
+      "id": 13,
+      "name": "Mercedes Gomez",
+      "documentId": "44155705",
+      "phone": "3168779682",
+      "email": "",
+      "notes": "",
+      "workPhone": "",
+      "workAddress": "Sabanilla",
+      "createdAt": "2026-07-20T06:47:58.630Z"
+    },
+    {
+      "id": 14,
+      "name": "Jim Carlos Varela Gomez",
+      "documentId": "1002163714",
+      "phone": "3107203822",
+      "email": "",
+      "notes": "",
+      "workPhone": "",
+      "workAddress": "Sabanilla",
+      "createdAt": "2026-07-20T06:47:58.630Z"
     }
   ],
   "contracts": [
@@ -507,6 +540,17 @@
       "monthlyRent": 1550000,
       "depositPaid": true,
       "createdAt": "2026-07-20T06:47:58.630Z"
+    },
+    {
+      "id": 12,
+      "apartmentId": 1,
+      "tenantId": 12,
+      "startDate": "2025-01-01",
+      "endDate": null,
+      "monthlyRent": 500000,
+      "depositAmount": 500000,
+      "depositPaid": true,
+      "createdAt": "2026-07-25T11:12:38.959Z"
     }
   ],
   "payments": [
@@ -679,7 +723,7 @@
     {
       "userId": "whatsapp-bot",
       "status": "online",
-      "lastSeen": "2026-07-25T11:04:22.378Z",
+      "lastSeen": "2026-07-25T11:13:49.654Z",
       "id": 1
     }
   ]
