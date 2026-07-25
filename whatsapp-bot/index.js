@@ -1,7 +1,6 @@
 import 'dotenv/config';
-import pkg from 'whatsapp-web.js';
-const { Client, LocalAuth } = pkg;
-import qrcode from 'qrcode-terminal';
+import { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
+import pino from 'pino';
 import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -16,117 +15,125 @@ import * as scripts from './src/scripts.js';
 
 console.log('');
 console.log('============================================');
-console.log('  WHATSAPP PROXY BOT');
+console.log('  WHATSAPP PROXY BOT (Baileys)');
 console.log('============================================');
 console.log('');
 
 sessionStore.load();
 scripts.load();
 
-function detectChrome() {
-  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
-  if (process.platform === 'win32') {
-    const p = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-    try { if (fs.existsSync(p)) return p; } catch {}
-  }
-  if (process.platform === 'linux') {
-    for (const p of ['/usr/bin/chromium-browser', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/snap/bin/chromium']) {
-      try { if (fs.existsSync(p)) return p; } catch {}
-    }
-  }
-  return undefined;
-}
+const SESSION_DIR = process.env.SESSION_PATH || path.join(path.dirname(fileURLToPath(import.meta.url)), 'data', 'baileys-sessions');
+try { if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true }); } catch {}
 
-const client = new Client({
-  authStrategy: new LocalAuth({ clientId: 'whatsapp-proxy', dataPath: process.env.SESSION_PATH || './sessions' }),
-  puppeteer: {
-    headless: process.env.PUPPETEER_HEADLESS || 'new',
-    executablePath: detectChrome(),
-    args: [
-      '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
-      '--no-first-run', '--disable-gpu', '--disable-extensions',
-      '--disable-sync', '--disable-translate', '--mute-audio',
-      '--no-zygote', '--disable-accelerated-2d-canvas',
-      '--disable-software-rasterizer',
-    ],
-  },
-});
+let sock = null;
 
-client.on('qr', async (qr) => {
-  console.log('Escanea este QR con WhatsApp:');
-  qrcode.generate(qr, { small: true });
-  try {
-    const dataUrl = await QRCode.toDataURL(qr, { width: 400, margin: 1, color: { dark: '#000', light: '#fff' } });
-    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
-    notify.setQr(base64);
-    console.log('QR ready (base64, length: ' + base64.length + ')');
-  } catch (e) {
-    console.error('Error generando QR:', e.message);
-  }
-});
+async function startBot() {
+  const { version } = await fetchLatestBaileysVersion();
+  console.log('WA version: ' + version.join('.'));
 
-client.on('ready', () => {
-  console.log('✅ WhatsApp client ready');
-  console.log('   Número: ' + (client.info ? client.info.wid.user : 'desconocido'));
+  const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
-  heartbeat.startHeartbeat();
-  messageRelay.startPolling(client);
-
-  messageRelay.onAdminMessage((session, msg) => {
-    console.log('Admin reply for', session.apto, ':', msg.content.slice(0, 50));
+  sock = makeWASocket({
+    version,
+    auth: state,
+    printQRInTerminal: true,
+    logger: pino({ level: 'silent' }),
+    browser: ['Laujim APP', 'Chrome', '1.0'],
+    markOnlineOnConnect: true,
+    syncFullHistory: false,
+    generateHighQualityLink: true,
   });
-});
 
-client.on('authenticated', () => {
-  console.log('WhatsApp authenticated');
-});
+  notify.setClient(sock);
 
-client.on('auth_failure', (msg) => {
-  console.error('WhatsApp auth failure:', msg);
-});
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr } = update;
 
-client.on('disconnected', (reason) => {
-  console.log('WhatsApp disconnected:', reason);
-  heartbeat.stopHeartbeat();
-});
-
-client.on('message', async (msg) => {
-  if (msg.fromMe) return;
-  if (msg.isStatus) return;
-  if (msg.type !== 'chat' && msg.type !== 'text') return;
-
-  const phone = msg.from.replace('@c.us', '').replace('@s.whatsapp.net', '');
-  const text = msg.body.trim();
-  if (!text) return;
-
-  async function sendReply(content) {
-    try {
-      await client.sendMessage(msg.from, content);
-    } catch (e) {
-      console.error('Error sending reply:', e.message);
+    if (qr) {
+      console.log('QR received from WhatsApp');
+      try {
+        const dataUrl = await QRCode.toDataURL(qr, { width: 400, margin: 1, color: { dark: '#000', light: '#fff' } });
+        const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+        notify.setQr(base64);
+        console.log('QR ready (base64, length: ' + base64.length + ')');
+      } catch (e) {
+        console.error('Error generating QR:', e.message);
+      }
     }
-  }
 
-  if (adminCommands.isAdminMessage(phone)) {
-    const handled = await adminCommands.handleCommand(phone, text, client, sendReply);
-    if (handled) return;
-  }
+    if (connection === 'open') {
+      const number = sock?.user?.id ? sock.user.id.split(':')[0].replace('@s.whatsapp.net', '') : 'unknown';
+      console.log('Connected. Number: ' + number);
+      notify.setClient(sock);
+      heartbeat.startHeartbeat();
+      messageRelay.startPolling(sock);
+      messageRelay.onAdminMessage((session, msg) => {
+        console.log('Admin reply for', session.apto, ':', msg.content.slice(0, 50));
+      });
+    }
 
-  if (authFlow.isInAuth(phone)) {
-    await authFlow.handleMessage(phone, text, sendReply);
-    return;
-  }
+    if (connection === 'close') {
+      console.log('Disconnected:', lastDisconnect?.error?.message || 'unknown');
+      heartbeat.stopHeartbeat();
+      notify.setClient(null);
+      const code = lastDisconnect?.error?.output?.statusCode;
+      if (code === DisconnectReason.loggedOut) {
+        console.log('Session logged out. Restarting for new QR...');
+        notify.setQr(null);
+        setTimeout(startBot, 3000);
+      } else {
+        console.log('Reconnecting automatically...');
+      }
+    }
+  });
 
-  const session = sessionStore.getSession(phone);
-  if (session && session.status === 'activo') {
-    console.log('Relaying from', session.apto, ':', text.slice(0, 50));
-    await messageRelay.relayToChat(phone, session, text, client);
-    await sendReply(scripts.get('confirmation_sent'));
-    return;
-  }
+  sock.ev.on('creds.update', saveCreds);
 
-  await authFlow.handleMessage(phone, text, sendReply);
-});
+  sock.ev.on('messages.upsert', async ({ messages }) => {
+    for (const msg of messages) {
+      if (msg.key.fromMe) continue;
+      if (!msg.message) continue;
+
+      const remoteJid = msg.key.remoteJid;
+      if (!remoteJid || !remoteJid.endsWith('@s.whatsapp.net')) continue;
+
+      const phone = remoteJid.replace('@s.whatsapp.net', '');
+      const text = msg.message.conversation ||
+                   msg.message.extendedTextMessage?.text ||
+                   msg.message.imageMessage?.caption ||
+                   '';
+      if (!text.trim()) continue;
+
+      async function sendReply(content) {
+        try {
+          await sock.sendMessage(remoteJid, { text: content });
+        } catch (e) {
+          console.error('Error sending reply:', e.message);
+        }
+      }
+
+      if (adminCommands.isAdminMessage(phone)) {
+        const handled = await adminCommands.handleCommand(phone, text, sock, sendReply);
+        if (handled) continue;
+      }
+
+      if (authFlow.isInAuth(phone)) {
+        await authFlow.handleMessage(phone, text, sendReply);
+        continue;
+      }
+
+      const session = sessionStore.getSession(phone);
+      if (session && session.status === 'activo') {
+        console.log('Relaying from', session.apto, ':', text.slice(0, 50));
+        await messageRelay.relayToChat(phone, session, text, sock);
+        await sendReply(scripts.get('confirmation_sent'));
+        continue;
+      }
+
+      await authFlow.handleMessage(phone, text, sendReply);
+    }
+  });
+}
 
 process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT:', err.message, err.stack);
@@ -137,7 +144,6 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const BOT_PORT = parseInt(process.env.BOT_PORT || '3002', 10);
-notify.setClient(client);
 notify.startNotifyServer(BOT_PORT);
 
-client.initialize();
+startBot().catch(e => console.error('FATAL:', e.message, e.stack));

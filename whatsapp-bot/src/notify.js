@@ -26,11 +26,12 @@ export function startNotifyServer(port) {
     // GET endpoints
     if (req.method === 'GET') {
       if (req.url === '/status') {
+        const number = client?.user?.id ? client.user.id.split(':')[0].replace('@s.whatsapp.net', '') : null;
         res.writeHead(200);
         res.end(JSON.stringify({
           ready: !!client,
-          authenticated: client ? !!(client.info) : false,
-          number: client && client.info ? client.info.wid.user : null,
+          authenticated: !!(client?.user),
+          number,
         }));
       } else if (req.url === '/qr') {
         if (currentQrBase64) {
@@ -66,16 +67,17 @@ export function startNotifyServer(port) {
               res.end(JSON.stringify({ error: 'to and text required' }));
               return;
             }
-            const number = data.to.replace(/[^0-9]/g, '') + '@c.us';
-            await client.sendMessage(number, data.text);
+            const number = data.to.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+            await client.sendMessage(number, { text: data.text });
             res.writeHead(200);
             res.end(JSON.stringify({ ok: true }));
           } else if (req.url === '/status') {
+            const number = client?.user?.id ? client.user.id.split(':')[0].replace('@s.whatsapp.net', '') : null;
             res.writeHead(200);
             res.end(JSON.stringify({
               ready: !!client,
-              authenticated: client ? !!(client.info) : false,
-              number: client && client.info ? client.info.wid.user : null,
+              authenticated: !!(client?.user),
+              number,
             }));
           } else {
             res.writeHead(404);

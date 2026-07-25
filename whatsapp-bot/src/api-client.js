@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 const BASE_URL = process.env.API_BASE_URL || 'http://localhost:1011/api';
 const AUTH_TOKEN = process.env.AUTH_TOKEN || 'laujim laujim';
 

@@ -49,6 +49,7 @@ whatsapp-bot/sessions/
 whatsapp-bot/data/session-store.json
 whatsapp-bot/.wwebjs_cache/
 whatsapp-bot/qr.png
+whatsapp-bot/data/baileys-sessions/
 
 # Puppeteer / Chrome session data
 sessions/

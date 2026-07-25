@@ -21,7 +21,7 @@ export async function relayToChat(phone, session, content, client) {
     const preview = content.length > 100 ? content.slice(0, 100) + '...' : content;
     const adminMsg = scripts.get('notif_admin_new', { apto: session.apto, nombre: session.tenantName, content: preview });
     try {
-      await client.sendMessage(num + '@c.us', adminMsg);
+      await client.sendMessage(num + '@s.whatsapp.net', { text: adminMsg });
       console.log('Notified admin', num);
     } catch (e) {
       console.error('Error notifying admin', num, ':', e.message);
@@ -32,6 +32,7 @@ export async function relayToChat(phone, session, content, client) {
 }
 
 export async function startPolling(client) {
+  if (pollTimer) clearInterval(pollTimer);
   const interval = parseInt(process.env.POLL_INTERVAL || '3000', 10);
 
   const poll = async () => {
@@ -64,7 +65,7 @@ export async function startPolling(client) {
           const text = scripts.get('relay_admin_prefix', { content: msg.content });
 
           try {
-            await client.sendMessage(phone + '@c.us', text);
+            await client.sendMessage(phone + '@s.whatsapp.net', { text });
             console.log('Forwarded admin reply to', session.apto, '(', phone, ')');
           } catch (e) {
             console.error('Error forwarding to tenant', phone, ':', e.message);

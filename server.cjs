@@ -551,6 +551,7 @@ app.post('/api/whatsapp-bot/reset-session', (req, res) => {
     const dataDir = path.join(botDir, 'data');
     const sessionFile = path.join(dataDir, 'session-store.json');
     const wwebjsCache = path.join(botDir, '.wwebjs_cache');
+    const baileysSessions = path.join(dataDir, 'baileys-sessions');
 
     if (fs.existsSync(sessionsDir)) {
       fs.rmSync(sessionsDir, { recursive: true, force: true });
@@ -560,6 +561,9 @@ app.post('/api/whatsapp-bot/reset-session', (req, res) => {
     }
     if (fs.existsSync(wwebjsCache)) {
       fs.rmSync(wwebjsCache, { recursive: true, force: true });
+    }
+    if (fs.existsSync(baileysSessions)) {
+      fs.rmSync(baileysSessions, { recursive: true, force: true });
     }
 
     setTimeout(startBot, 2000);
