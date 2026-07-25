@@ -93,8 +93,8 @@ export default function Login() {
                   <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Ej: 102, 201, 301" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Código de 4 dígitos" maxLength={4} className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" required />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cédula</label>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Número de cédula" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" required />
                 </div>
               </>
             )}
@@ -112,7 +112,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
-          Los inquilinos pueden ingresar con el número de apartamento y su código de 4 dígitos
+          Los inquilinos ingresan con el número de apartamento y su número de cédula
         </p>
       </div>
     </div>

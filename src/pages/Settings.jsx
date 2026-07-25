@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, User, Copy, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, ExternalLink, MessageCircle, Save } from 'lucide-react';
+import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { generateBookmarkletCode } from '../utils/marketplaceBookmarklet';
@@ -15,13 +15,9 @@ import { clearAuth, getAuth } from '../utils/auth';
 export default function Settings() {
   const navigate = useNavigate();
   const auth = getAuth();
-  const [apartments, setApartments] = useState([]);
   const [notifStatus, setNotifStatus] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
   const [syncStatus, setSyncStatus] = useState({ syncing: false, error: null, serverAvailable: null });
   const [notifConfig, setNotifConfig] = useState(getNotifConfig());
-  const [localPasswords, setLocalPasswords] = useState([]);
-  const [allTenants, setAllTenants] = useState([]);
-  const [contracts, setContracts] = useState([]);
   const [backupInfo, setBackupInfo] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -163,18 +159,15 @@ export default function Settings() {
   }
 
   async function load() {
-    const [a, p, t, c, s] = await Promise.all([
-      api.apartments.toArray(), api.passwords.toArray(), api.tenants.toArray(), api.contracts.toArray(),
-      fetch(getBase() + '/settings', { headers: { 'x-auth-token': 'laujim laujim' } }).then(r => r.json()).catch(() => []),
-    ]);
-    setApartments(a); setLocalPasswords(p); setAllTenants(t); setContracts(c);
+    const s = await fetch(getBase() + '/settings', { headers: { 'x-auth-token': 'laujim laujim' } }).then(r => r.json()).catch(() => []);
     setSettingsList(s);
     const getVal = (k, def) => s.find(x => x.key === k)?.value || def;
     setWaConfig({ apiToken: getVal('whatsapp_api_token', ''), phoneNumberId: getVal('whatsapp_phone_number_id', ''), verifyToken: getVal('whatsapp_verify_token', 'laujim_whatsapp_verify') });
-    setWaTemplates({
-      services: getVal('whatsapp_template_services', 'Hola {nombre}, aquí están tus enlaces de servicios:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\nApartamento {apto}'),
-      reminder: getVal('whatsapp_template_reminder', '🔔 Recordatorio {nombre}:\n\nTu canon de {valor_canon} vence el {dia_vencimiento}.\n\nApartamento {apto}'),
-    });
+    const svc = getVal('whatsapp_template_services', 'Hola {nombre}, aquí están tus enlaces de servicios:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\nApartamento {apto}');
+    const rem = getVal('whatsapp_template_reminder', '🔔 Recordatorio {nombre}:\n\nTu canon de {valor_canon} vence el {dia_vencimiento}.\n\nApartamento {apto}');
+    setWaTemplates({ services: svc, reminder: rem });
+    localStorage.setItem('wa_template_services', svc);
+    localStorage.setItem('wa_template_reminder', rem);
   }
 
   async function upsertSetting(key, value) {
@@ -203,28 +196,11 @@ export default function Settings() {
     try {
       await upsertSetting('whatsapp_template_services', waTemplates.services);
       await upsertSetting('whatsapp_template_reminder', waTemplates.reminder);
+      localStorage.setItem('wa_template_services', waTemplates.services);
+      localStorage.setItem('wa_template_reminder', waTemplates.reminder);
       setWaSaved(true); setTimeout(() => setWaSaved(false), 3000);
     } catch (e) { alert('Error al guardar: ' + e.message); }
     setWaSaving(false);
-  }
-
-  function generateRandomPwd(existing) {
-    const used = new Set(existing);
-    let pwd;
-    do { pwd = String(Math.floor(1000 + Math.random() * 9000)); } while (used.has(pwd));
-    return pwd;
-  }
-
-  async function generatePassword(apartmentId) {
-    const apt = apartments.find(a => a.id === apartmentId);
-    if (!apt) return;
-    const existing = (localPasswords || []).filter(p => p.apartmentId !== apartmentId).map(p => p.password);
-    const pwd = generateRandomPwd(existing);
-    const record = localPasswords.find(p => p.apartmentId === apartmentId);
-    if (record) { await api.passwords.update(record.id, { ...record, password: pwd }); }
-    else { await api.passwords.add({ apartmentId, password: pwd }); }
-    const updated = await api.passwords.toArray();
-    setLocalPasswords(updated);
   }
 
   async function handleNotificationRequest() {
@@ -356,34 +332,6 @@ export default function Settings() {
             </button>
             {bulkStatus && <p className="w-full text-xs text-emerald-600">{bulkStatus}</p>}
           </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Acceso de Inquilinos</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Cada inquilino ingresa con el apto + su cédula en <strong>/mi-apto</strong></p>
-          {apartments.filter(a => a.status === 'occupied').map(a => {
-            const pwd = localPasswords.find(p => p.apartmentId === a.id);
-            const tenant = allTenants.find(t => contracts.find(c => c.apartmentId === a.id && (!c.endDate || new Date(c.endDate) > new Date()))?.tenantId === t.id);
-            return (
-              <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0 text-sm">
-                <div>
-                  <span className="font-medium text-gray-900 dark:text-white">{a.name}</span>
-                  {tenant && <span className="text-gray-400 ml-2 text-xs">({tenant.name})</span>}
-                </div>
-                <div className="flex items-center gap-2">
-                  {pwd ? (
-                    <>
-                      <code className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-800 dark:text-gray-200">{pwd.password}</code>
-                      <button onClick={() => { navigator.clipboard.writeText(pwd.password); }} className="p-1 text-gray-400 hover:text-blue-600" title="Copiar"><Copy className="w-3 h-3" /></button>
-                      <button onClick={() => generatePassword(a.id)} className="p-1 text-gray-400 hover:text-amber-600" title="Regenerar"><RefreshCw className="w-3 h-3" /></button>
-                    </>
-                  ) : (
-                    <button onClick={() => generatePassword(a.id)} className="px-2 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">Generar</button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
         </div>
 
         {/* WhatsApp API Config */}

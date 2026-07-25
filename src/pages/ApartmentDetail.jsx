@@ -410,6 +410,20 @@ export default function ApartmentDetail() {
     window.open(`https://wa.me/${fullNum}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
+  function handleWhatsAppServices() {
+    if (!tenant || !tenant.phone) { alert('El inquilino no tiene teléfono registrado'); return; }
+    const num = tenant.phone.replace(/[^0-9]/g, '');
+    const fullNum = num.startsWith('57') ? num : '57' + num;
+    const template = localStorage.getItem('wa_template_services') || 'Hola {nombre}, aquí están tus enlaces de servicios:\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\nApartamento {apto}';
+    const msg = template
+      .replace(/{nombre}/g, tenant.name || '')
+      .replace(/{apto}/g, apt?.name || '')
+      .replace(/{link_aire}/g, apt?.electricityPaymentUrl || 'https://portal.air-e.com/Pagar#/List')
+      .replace(/{link_triplea}/g, apt?.waterPaymentUrl || 'https://portal.aaa.com.co/pagos')
+      .replace(/{link_gases}/g, apt?.gasPaymentUrl || 'https://www.gascaribe.com/');
+    window.open(`https://wa.me/${fullNum}?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
   function generateMarketplaceText() {
     const title = `🏠 Arriendo Apartamento ${apt.name}`;
     const specs = [`${apt.rooms || '?'} habs`, `${apt.bathrooms || '?'} baños`, `${apt.area || '?'} m²`].join(' · ');
@@ -651,9 +665,14 @@ export default function ApartmentDetail() {
             <button onClick={() => addCalendarReminder(apt.name, apt.paymentDueDay)} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline">
               <Calendar className="w-3 h-3" /> Recordatorio
             </button>
-            {tenant?.phone && <button onClick={handleWhatsAppReminder} className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 hover:underline">
-              <MessageCircle className="w-3 h-3" /> WhatsApp
-            </button>}
+            {tenant?.phone && <>
+              <button onClick={handleWhatsAppReminder} className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 hover:underline">
+                <MessageCircle className="w-3 h-3" /> Recordatorio
+              </button>
+              <button onClick={handleWhatsAppServices} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline">
+                <Globe className="w-3 h-3" /> Servicios
+              </button>
+            </>}
           </div>
         </div>
       </div>
