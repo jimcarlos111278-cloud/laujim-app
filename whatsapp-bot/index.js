@@ -42,7 +42,12 @@ const client = new Client({
   puppeteer: {
     headless: process.env.PUPPETEER_HEADLESS || 'new',
     executablePath: detectChrome(),
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--no-first-run', '--disable-gpu'],
+    args: [
+      '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+      '--no-first-run', '--disable-gpu', '--disable-extensions',
+      '--disable-sync', '--disable-translate', '--mute-audio',
+      '--no-zygote', '--single-process',
+    ],
   },
 });
 

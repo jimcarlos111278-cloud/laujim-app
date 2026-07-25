@@ -727,14 +727,64 @@
       "read": false,
       "type": "text",
       "id": 2
+    },
+    {
+      "roomId": "admin-1",
+      "from": "apt-1",
+      "to": "admin",
+      "content": "Hola",
+      "createdAt": "2026-07-25T11:20:05.826Z",
+      "read": false,
+      "type": "text",
+      "source": "whatsapp",
+      "id": 3
+    },
+    {
+      "roomId": "admin-1",
+      "from": "apt-1",
+      "to": "admin",
+      "content": "101",
+      "createdAt": "2026-07-25T11:21:02.756Z",
+      "read": false,
+      "type": "text",
+      "source": "whatsapp",
+      "id": 4
+    },
+    {
+      "roomId": "admin-1",
+      "from": "apt-1",
+      "to": "admin",
+      "content": "101",
+      "createdAt": "2026-07-25T11:23:06.936Z",
+      "read": false,
+      "type": "text",
+      "source": "whatsapp",
+      "id": 5
+    },
+    {
+      "roomId": "admin-1",
+      "from": "apt-1",
+      "to": "admin",
+      "content": "G",
+      "createdAt": "2026-07-25T11:23:30.770Z",
+      "read": false,
+      "type": "text",
+      "source": "whatsapp",
+      "id": 6
     }
   ],
   "presence": [
     {
       "userId": "whatsapp-bot",
       "status": "online",
-      "lastSeen": "2026-07-25T11:16:48.955Z",
+      "lastSeen": "2026-07-25T16:27:13.099Z",
       "id": 1
+    },
+    {
+      "userId": "apt-1",
+      "status": "online",
+      "lastSeen": "2026-07-25T16:27:13.095Z",
+      "id": 3
     }
   ]
 }

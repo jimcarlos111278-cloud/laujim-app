@@ -432,6 +432,33 @@ app.post('/api/whatsapp/send', (req, res) => {
 
 // ─── WHATSAPP BOT MANAGEMENT ───
 let botProcess = null;
+let botRestartTimer = null;
+
+function startBot() {
+  const botDir = path.join(__dirname, 'whatsapp-bot');
+  if (!fs.existsSync(botDir) || botProcess) return;
+  try {
+    botProcess = spawn('node', ['index.js'], {
+      cwd: botDir,
+      stdio: 'pipe',
+      env: { ...process.env, NODE_OPTIONS: '--max_old_space_size=256' },
+    });
+    botProcess.stdout.on('data', (data) => console.log('[BOT]', data.toString().trim()));
+    botProcess.stderr.on('data', (data) => console.error('[BOT]', data.toString().trim()));
+    botProcess.on('close', (code) => {
+      console.log('[BOT] Process exited with code', code);
+      botProcess = null;
+      if (code !== 0 && code !== null) {
+        clearTimeout(botRestartTimer);
+        botRestartTimer = setTimeout(startBot, 10000);
+        console.log('[BOT] Will restart in 10s');
+      }
+    });
+    console.log('[BOT] Started (PID ' + botProcess.pid + ')');
+  } catch (e) {
+    console.error('[BOT] Start failed:', e.message);
+  }
+}
 
 app.get('/api/whatsapp-bot/status', async (req, res) => {
   const tracked = botProcess !== null && !botProcess.killed;
@@ -481,33 +508,20 @@ app.post('/api/whatsapp-bot/start', (req, res) => {
   if (botProcess && !botProcess.killed) {
     return res.status(400).json({ error: 'El bot ya está en ejecución' });
   }
-  const botDir = path.join(__dirname, 'whatsapp-bot');
-  if (!fs.existsSync(botDir)) {
-    return res.status(404).json({ error: 'Directorio whatsapp-bot no encontrado' });
-  }
   try {
-    botProcess = spawn('node', ['index.js'], {
-      cwd: botDir,
-      stdio: 'pipe',
-      env: { ...process.env },
-    });
-    botProcess.stdout.on('data', (data) => {
-      console.log('[BOT]', data.toString().trim());
-    });
-    botProcess.stderr.on('data', (data) => {
-      console.error('[BOT]', data.toString().trim());
-    });
-    botProcess.on('close', (code) => {
-      console.log('[BOT] Process exited with code', code);
-      botProcess = null;
-    });
-    res.json({ ok: true, message: 'Bot iniciado', pid: botProcess.pid });
+    startBot();
+    if (botProcess) {
+      res.json({ ok: true, message: 'Bot iniciado', pid: botProcess.pid });
+    } else {
+      res.status(500).json({ error: 'No se pudo iniciar el bot' });
+    }
   } catch (e) {
     res.status(500).json({ error: 'Error al iniciar bot: ' + e.message });
   }
 });
 
 app.post('/api/whatsapp-bot/stop', (req, res) => {
+  clearTimeout(botRestartTimer);
   if (!botProcess || botProcess.killed) {
     return res.status(400).json({ error: 'El bot no está en ejecución' });
   }
@@ -526,6 +540,7 @@ app.post('/api/whatsapp-bot/stop', (req, res) => {
 
 app.post('/api/whatsapp-bot/reset-session', (req, res) => {
   try {
+    clearTimeout(botRestartTimer);
     if (botProcess && !botProcess.killed) {
       botProcess.kill('SIGTERM');
       botProcess = null;
@@ -546,21 +561,7 @@ app.post('/api/whatsapp-bot/reset-session', (req, res) => {
       fs.rmSync(wwebjsCache, { recursive: true, force: true });
     }
 
-    setTimeout(() => {
-      try {
-        botProcess = spawn('node', ['index.js'], {
-          cwd: botDir,
-          stdio: 'pipe',
-          env: { ...process.env },
-        });
-        botProcess.stdout.on('data', (data) => console.log('[BOT]', data.toString().trim()));
-        botProcess.stderr.on('data', (data) => console.error('[BOT]', data.toString().trim()));
-        botProcess.on('close', (code) => { console.log('[BOT] Exited with code', code); botProcess = null; });
-        console.log('[BOT] Restarted with fresh session');
-      } catch (e) {
-        console.error('[BOT] Error restarting:', e.message);
-      }
-    }, 2000);
+    setTimeout(startBot, 2000);
 
     res.json({ ok: true, message: 'Sesión eliminada. El bot se está reiniciando — espera el QR en la página.' });
   } catch (e) {
@@ -786,25 +787,7 @@ app.use((req, res) => {
     console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode'));
 
     if (process.env.AUTO_START_BOT !== 'false') {
-      const botDir = path.join(__dirname, 'whatsapp-bot');
-      if (fs.existsSync(botDir) && !botProcess) {
-        try {
-          botProcess = spawn('node', ['index.js'], {
-            cwd: botDir,
-            stdio: 'pipe',
-            env: { ...process.env },
-          });
-          botProcess.stdout.on('data', (data) => console.log('[BOT]', data.toString().trim()));
-          botProcess.stderr.on('data', (data) => console.error('[BOT]', data.toString().trim()));
-          botProcess.on('close', (code) => {
-            console.log('[BOT] Process exited with code', code);
-            botProcess = null;
-          });
-          console.log('[BOT] Auto-started (PID ' + botProcess.pid + ')');
-        } catch (e) {
-          console.error('[BOT] Auto-start failed:', e.message);
-        }
-      }
+      startBot();
     }
   })();
 }
