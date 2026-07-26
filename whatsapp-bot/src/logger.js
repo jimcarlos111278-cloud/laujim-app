@@ -1,4 +1,4 @@
-const MAX_LOG = 300;
+const MAX_LOG = 500;
 const logs = [];
 
 export function log(...args) {

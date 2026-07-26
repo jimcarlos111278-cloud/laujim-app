@@ -1,5 +1,6 @@
 import * as api from './api-client.js';
 import * as scripts from './scripts.js';
+import { log } from './logger.js';
 
 const AUTH_TIMEOUT = 5 * 60 * 1000;
 
@@ -53,6 +54,7 @@ export async function handleMessage(callerJid, message, sendReply, aptoToGroupJi
     }
     const apt = await api.getApartmentByName(apto);
     if (!apt || !apt.id) {
+      log('AUTH: getApartmentByName(' + apto + ') returned: ' + JSON.stringify(apt));
       await sendReply(scripts.get('auth_apto_not_found', { apto }));
       return { action: 'auth_apto' };
     }
