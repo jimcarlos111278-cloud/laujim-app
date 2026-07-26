@@ -69,7 +69,7 @@ export function startNotifyServer(port) {
       return;
     }
 
-    if (!isAuthorized(req) && req.url !== '/status' && req.url !== '/log' && req.url !== '/qr' && req.url !== '/pairing-code' && req.url !== '/' && req.url !== '/info' && req.url !== '/groups' && req.url !== '/proxy-status') {
+    if (!isAuthorized(req) && req.url !== '/status' && req.url !== '/log' && req.url !== '/qr' && req.url !== '/pairing-code' && req.url !== '/' && req.url !== '/info' && req.url !== '/groups' && req.url !== '/proxy-status' && req.url !== '/logs') {
       sendJson(res, 401, { error: 'Unauthorized. Set BOT_ADMIN_TOKEN or provide Authorization header.' });
       return;
     }
