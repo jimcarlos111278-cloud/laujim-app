@@ -173,14 +173,27 @@ async function startBot() {
           log('LID_EXTRA: pushName=' + (msg.pushName || '') + ' participant=' + (msg.key.participant || ''));
         }
 
+        const replyTarget = isLid ? remoteJid.replace('@lid', '@s.whatsapp.net') : remoteJid;
+
         async function sendReply(content) {
           try {
             await Promise.race([
-              sock.sendMessage(remoteJid, { text: content }),
+              sock.sendMessage(replyTarget, { text: content }),
               getTimeoutPromise(15000),
             ]);
           } catch (e) {
-            log('Error sending reply to ' + remoteJid + ': ' + e.message);
+            log('Error sending reply to ' + replyTarget + ': ' + e.message);
+            if (replyTarget !== remoteJid) {
+              try {
+                log('Falling back to original @lid JID: ' + remoteJid);
+                await Promise.race([
+                  sock.sendMessage(remoteJid, { text: content }),
+                  getTimeoutPromise(15000),
+                ]);
+              } catch (e2) {
+                log('Fallback to @lid also failed: ' + e2.message);
+              }
+            }
           }
         }
 

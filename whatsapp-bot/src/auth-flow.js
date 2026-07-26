@@ -79,7 +79,8 @@ export async function handleMessage(phone, message, sendReply, jid) {
     const result = await api.login(authState.data.apto, cedula);
     if (result.authenticated && result.role === 'tenant') {
       const tenantName = result.name || authState.data.apto;
-      const sessionJid = jid || (phone.includes('@') ? phone : phone + '@s.whatsapp.net');
+      let sessionJid = jid || (phone.includes('@') ? phone : phone + '@s.whatsapp.net');
+      if (sessionJid.endsWith('@lid')) sessionJid = sessionJid.replace('@lid', '@s.whatsapp.net');
       sessionStore.setSession(phone, {
         apto: authState.data.apto,
         aptId: authState.data.aptId,
