@@ -1,4 +1,6 @@
 const DEFAULTS = {
+  auth_prompt_phone: '📱 Primero escribe tu *número de WhatsApp* (ej: 3207414596). Solo 10 dígitos, sin código de país.',
+  auth_invalid_phone: '❌ El número debe tener 10 dígitos y empezar con 3. Ejemplo: 3207414596.\n\nIntenta de nuevo:',
   auth_welcome: '🏢 *Bienvenido al sistema de mensajería*\n\nPara identificarte, escribe tu *número de apartamento* (ej: 203)',
   auth_invalid_apto: '❌ El número de apartamento debe ser de 3 dígitos.\n\nIntenta de nuevo:',
   auth_apto_not_found: '❌ No encontré el apartamento *{apto}*.\n\nVerifica el número e intenta de nuevo:',

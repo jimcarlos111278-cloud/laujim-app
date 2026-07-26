@@ -27,7 +27,7 @@ function clearState(callerJid) {
 
 export function isInAuth(callerJid) {
   const s = getState(callerJid);
-  return s && (s.state === 'awaiting_apto' || s.state === 'awaiting_cedula');
+  return s && (s.state === 'awaiting_phone' || s.state === 'awaiting_apto' || s.state === 'awaiting_cedula');
 }
 
 export function resetAuth(callerJid) {
@@ -41,26 +41,39 @@ export function cancelAuth(callerJid) {
 export async function handleMessage(callerJid, message, sendReply, aptoToGroupJid) {
   const authState = getState(callerJid);
   if (!authState) {
-    setState(callerJid, 'awaiting_apto', {});
-    await sendReply(scripts.get('auth_welcome'));
+    setState(callerJid, 'awaiting_phone', {});
+    await sendReply(callerJid, scripts.get('auth_prompt_phone'));
+    return { action: 'auth_phone' };
+  }
+
+  if (authState.state === 'awaiting_phone') {
+    const phone = message.trim().replace(/\D/g, '');
+    if (!/^3\d{9}$/.test(phone)) {
+      await sendReply(callerJid, scripts.get('auth_invalid_phone'));
+      return { action: 'auth_phone' };
+    }
+    const phoneJid = '57' + phone + '@s.whatsapp.net';
+    setState(callerJid, 'awaiting_apto', { phoneJid });
+    log('AUTH: phone received, real JID=' + phoneJid);
+    await sendReply(phoneJid, scripts.get('auth_welcome'));
     return { action: 'auth_apto' };
   }
 
   if (authState.state === 'awaiting_apto') {
     const apto = message.trim();
     if (!/^\d{3}$/.test(apto)) {
-      await sendReply(scripts.get('auth_invalid_apto'));
+      await sendReply(authState.data.phoneJid, scripts.get('auth_invalid_apto'));
       return { action: 'auth_apto' };
     }
     const apt = await api.getApartmentByName(apto);
     if (!apt || !apt.id) {
       log('AUTH: getApartmentByName(' + apto + ') returned: ' + JSON.stringify(apt));
-      await sendReply(scripts.get('auth_apto_not_found', { apto }));
+      await sendReply(authState.data.phoneJid, scripts.get('auth_apto_not_found', { apto }));
       return { action: 'auth_apto' };
     }
     const groupJid = aptoToGroupJid[apto];
     if (!groupJid) {
-      await sendReply('❌ No hay un grupo configurado para el apartamento *' + apto + '*.\n\nContacta al administrador.');
+      await sendReply(authState.data.phoneJid, '❌ No hay un grupo configurado para el apartamento *' + apto + '*.\n\nContacta al administrador.');
       clearState(callerJid);
       return { action: 'auth_failed' };
     }
@@ -68,21 +81,21 @@ export async function handleMessage(callerJid, message, sendReply, aptoToGroupJi
     authState.data.aptId = apt.id;
     authState.data.groupJid = groupJid;
     setState(callerJid, 'awaiting_cedula', authState.data);
-    await sendReply(scripts.get('auth_prompt_cedula'));
+    await sendReply(authState.data.phoneJid, scripts.get('auth_prompt_cedula'));
     return { action: 'auth_cedula' };
   }
 
   if (authState.state === 'awaiting_cedula') {
     const cedula = message.trim();
     if (cedula.length < 5) {
-      await sendReply(scripts.get('auth_invalid_cedula'));
+      await sendReply(authState.data.phoneJid, scripts.get('auth_invalid_cedula'));
       return { action: 'auth_cedula' };
     }
     const result = await api.login(authState.data.apto, cedula);
     if (result.authenticated && result.role === 'tenant') {
       const tenantName = result.name || authState.data.apto;
       const sessionData = {
-        callerJid,
+        callerJid: authState.data.phoneJid,
         apartment: authState.data.apto,
         groupJid: authState.data.groupJid,
         tenantName,
@@ -91,8 +104,8 @@ export async function handleMessage(callerJid, message, sendReply, aptoToGroupJi
       clearState(callerJid);
       return { action: 'authenticated', session: sessionData };
     } else {
-      await sendReply(scripts.get('auth_failed'));
-      setState(callerJid, 'awaiting_apto', {});
+      await sendReply(authState.data.phoneJid, scripts.get('auth_failed'));
+      setState(callerJid, 'awaiting_phone', {});
       return { action: 'auth_failed' };
     }
   }

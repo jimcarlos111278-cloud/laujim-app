@@ -385,13 +385,14 @@ async function startBot() {
           if (authFlow.isInAuth(callerJid)) {
             log('PRIVATE: continuing auth');
             const result = await authFlow.handleMessage(callerJid, text,
-              (content) => sendReply(callerJid, content),
+              sendReply,
               aptoToGroupJid);
             if (result.action === 'authenticated' && result.session) {
-              sessionStore.setSession(callerJid, result.session);
-              const session = sessionStore.getSession(callerJid);
-              log('PRIVATE AUTH OK: apto=' + session.apartment + ' group=' + session.groupJid);
-              await sendReply(callerJid, scripts.get('session_created', { apto: session.apartment }));
+              const realJid = result.session.callerJid;
+              sessionStore.setSession(realJid, result.session);
+              lidToJid.set(callerJid, realJid);
+              log('PRIVATE AUTH OK: apto=' + result.session.apartment + ' group=' + result.session.groupJid + ' jid=' + realJid);
+              await sendReply(realJid, scripts.get('session_created', { apto: result.session.apartment }));
             }
             log('PRIVATE AUTH: action=' + result.action);
             continue;
@@ -407,7 +408,7 @@ async function startBot() {
 
           log('PRIVATE: starting auth');
           const result = await authFlow.handleMessage(callerJid, text,
-            (content) => sendReply(callerJid, content),
+            sendReply,
             aptoToGroupJid);
           log('PRIVATE AUTH: action=' + result.action);
         }
