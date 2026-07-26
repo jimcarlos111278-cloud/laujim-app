@@ -169,6 +169,10 @@ async function startBot() {
         log('MSG from=' + phone + ' text="' + (text || '').slice(0, 50) + '"');
         if (!text.trim()) continue;
 
+        if (isLid) {
+          log('LID_EXTRA: pushName=' + (msg.pushName || '') + ' participant=' + (msg.key.participant || ''));
+        }
+
         async function sendReply(content) {
           try {
             await Promise.race([
