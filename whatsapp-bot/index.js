@@ -33,6 +33,9 @@ let reconnectTimer = null;
 
 function getProxyAgent() {
   const proxyUrl = process.env.BOT_PROXY || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+  log('BOT_PROXY env: ' + (process.env.BOT_PROXY ? 'SET (redacted)' : 'NOT SET'));
+  log('HTTPS_PROXY env: ' + (process.env.HTTPS_PROXY ? 'SET (redacted)' : 'NOT SET'));
+  log('HTTP_PROXY env: ' + (process.env.HTTP_PROXY ? 'SET (redacted)' : 'NOT SET'));
   if (!proxyUrl) return undefined;
   log('Using proxy: ' + proxyUrl.replace(/:([^:@]+)@/, ':***@'));
   try {
@@ -40,9 +43,6 @@ function getProxyAgent() {
       return new SocksProxyAgent(proxyUrl);
     }
     return new HttpsProxyAgent(proxyUrl);
-    log('BOT_PROXY env: ' + (process.env.BOT_PROXY ? 'SET (redacted)' : 'NOT SET'));
-    log('HTTPS_PROXY env: ' + (process.env.HTTPS_PROXY ? 'SET (redacted)' : 'NOT SET'));
-    log('HTTP_PROXY env: ' + (process.env.HTTP_PROXY ? 'SET (redacted)' : 'NOT SET'));
   } catch (e) {
     log('Proxy agent error: ' + e.message);
     return undefined;
@@ -66,7 +66,7 @@ async function startBot() {
     markOnlineOnConnect: true,
     syncFullHistory: false,
     connectTimeoutMs: 60000,
-    qrTimeout: 60,
+    qrTimeout: 0,
     keepAliveIntervalMs: 25000,
   };
 
@@ -94,17 +94,6 @@ async function startBot() {
         notify.setQr(base64);
         notify.setLastError(null);
         log('QR ready (base64, length: ' + base64.length + ')');
-        const pendingPhone = notify.getPendingPairingPhone();
-        if (pendingPhone) {
-          try {
-            const code = await sock.requestPairingCode(pendingPhone);
-            notify.setPairingCode(code);
-            log('Pairing code requested for ' + pendingPhone + ': ' + code);
-          } catch (e) {
-            log('Error requesting pairing code: ' + e.message);
-            notify.setLastError('Error pairing code: ' + e.message);
-          }
-        }
       } catch (e) {
         log('Error generating QR: ' + e.message);
       }
@@ -125,7 +114,7 @@ async function startBot() {
     if (connection === 'close') {
       const reason = lastDisconnect?.error?.message || 'unknown';
       const code = lastDisconnect?.error?.output?.statusCode;
-        log('Disconnected. Reason: ' + reason + ' Code: ' + code);
+      log('Disconnected. Reason: ' + reason + ' Code: ' + code);
       heartbeat.stopHeartbeat();
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
 
@@ -135,8 +124,8 @@ async function startBot() {
         notify.setClient(null);
         reconnectTimer = setTimeout(startBot, 3000);
       } else {
-        log('Will reconnect in 10s...');
-        reconnectTimer = setTimeout(startBot, 10000);
+        log('Reconnecting in 5s...');
+        reconnectTimer = setTimeout(startBot, 5000);
       }
     }
   });

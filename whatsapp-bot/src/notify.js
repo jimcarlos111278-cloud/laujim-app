@@ -161,6 +161,7 @@ export function startNotifyServer(port) {
             try {
               const code = await client.requestPairingCode(phone);
               setPairingCode(code);
+              clearPendingPairingPhone();
               res.writeHead(200);
               res.end(JSON.stringify({ ok: true, code }));
             } catch (e) {
