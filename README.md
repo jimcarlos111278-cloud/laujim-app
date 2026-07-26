@@ -32,8 +32,10 @@
 20. [Instalación y Uso](#instalación-y-uso)
 21. [Scripts Disponibles](#scripts-disponibles)
 22. [APK Android — Problemas Conocidos](#apk-android--problemas-conocidos)
-23. [Notas Regionales](#notas-regionales)
-24. [Historial de Cambios](#historial-de-cambios)
+23. [Proyecto Sabanilla — WhatsApp Bot](#proyecto-sabanilla--whatsapp-relay-bot-v280)
+24. [Backup del Bot](#backup-del-bot-1)
+25. [Notas Regionales](#notas-regionales)
+26. [Historial de Cambios](#historial-de-cambios)
 
 ---
 
@@ -256,6 +258,9 @@ Proyecto Laujim APP/
 │       ├── logger.js             # Buffer circular de logs (500 líneas)
 │       ├── notify.js             # Servidor HTTP: QR, pairing code, info, logs, GET /groups
 │       └── heartbeat.js          # Heartbeat básico de conexión
+├── whatsapp-bot-backup/             # Backup del bot (2026-07-26)
+│   ├── index.js, src/, data/, .env, package.json
+│   └── (excluye sessions/ — Playwright)
 └── (fin de estructura)
 ```
 
@@ -1264,103 +1269,140 @@ git checkout -b restore-point pre-whatsapp-bot
 
 #---
 
-## WhatsApp Relay Bot (v2.6.0+)
+## Proyecto Sabanilla — WhatsApp Relay Bot (v2.8.0+)
 
-> Servicio independiente que actúa como puente entre inquilinos y grupos de administración vía WhatsApp.
+> Proyecto Sabanilla — Servicio independiente que actúa como puente entre inquilinos y grupos de administración vía WhatsApp.
 > Basado en [`@whiskeysockets/baileys`](https://github.com/WhiskeySockets/Baileys) v6 (multi-device API).
+> Número actual del bot: `573247916660`
 
-### Arquitectura
-
-```
-[WhatsApp Inquilino] ←→ whatsapp-bot/ ←→ API REST (server.cjs:1011)
-                           ↕                    ↕
-                   [Grupos de WhatsApp]   [Dashboard Web / Admin]
-                     (1 por apto)         (Chat web en la app)
-```
-
-- **Servicio separado**: `whatsapp-bot/` con su propio `package.json` y `node_modules`
-- Usa **Baileys v6** (WebSocket directo, no Puppeteer) — corre en Render free tier
-- **Proxy HTTP/SOCKS requerido** (`BOT_PROXY`) — WhatsApp bloquea IPs de datacenter
-- Se comunica con la API REST existente para autenticación (login + getApartmentByName)
-- Descubrimiento automático de grupos por nombre: busca `\b(\d{3})\b` (3 dígitos) en el subject del grupo
-
-### Flujo completo
+### Arquitectura (dos servicios en Render)
 
 ```
-1. Inquilino envía cualquier mensaje al bot
-2. Bot responde: "Escribe tu número WhatsApp (ej: 3207414596)"
-3. Inquilino envía número → bot construye phoneJid (57XXXX@s.whatsapp.net)
-4. Bot pregunta: "Escribe tu número de apartamento (ej: 203)"
-5. Inquilino envía apto → GET /api/apartments/first/name/{apto} → busca grupo
-6. Bot pregunta: "Escribe tu cédula"
-7. Inquilino envía cédula → POST /api/login → sesión creada
+[WhatsApp Inquilino] ←→ whatsapp-bot (puerto 10000) ←proxy auth→ main app (puerto 10000)
+                           ↕                                     ↕
+                   [Grupos de WhatsApp]                  [Dashboard Web]
+                     (1 por apto)                    WhatsAppBot.jsx + API REST
+```
+
+| Servicio | Repo | Puerto | Persiste |
+|----------|------|--------|----------|
+| **laujim-app** | Main app (Express + React) | 10000 | DB principal + PostgreSQL |
+| **laujim-whatsapp-bot** | Bot Baileys v6 | 10000 | Solo sesiones + mapeo (en RAM + JSON) |
+
+El main app proxea `/api/whatsapp-bot/*` al bot via `WHATSAPP_BOT_URL` con header `Authorization: Bearer <BOT_ADMIN_TOKEN>`.
+
+### Flujo de autenticación (2 modos)
+
+**Modo 1 — Auto-auth** (si el número está registrado en DB como inquilino):
+```
+Usr→Bot "Hola" (senderPn=57310XXXXXXX)
+  → GET /api/tenants/where/phone/{número}
+  → Coincide con inquilino + apto tiene grupo WhatsApp
+  → Sesión creada automáticamente
+  → "✅ Bienvenido {nombre}, sesión con apto {apto} activa"
+  → Listo para relay
+```
+
+**Modo 2 — Auth manual** (número no registrado):
+```
+1. Bot→Usr "🏢 Bienvenido... escribe tu número de apartamento"
+2. Usr→Bot "101"
+3. GET /api/apartments/first/name/101 → verifica apto + busca grupo
+4. Bot→Usr "🪪 Ahora escribe tu cédula"
+5. Usr→Bot "1002163714"
+6. POST /api/login → autentica contra DB
+7. Bot→Usr "✅ Sesión iniciada"
+8. Listo para relay
+```
 
 ### Relay bidireccional
 
-Privado → Grupo:
-  relayToGroup() → envía al grupo con prefijo "📩 Inquilino Apto {apto}"
+| Dirección | Código | Entrega |
+|-----------|--------|---------|
+| Usr→Grupo | `relayToGroup()` → `📩 Inquilino Apto {apto}` | ✅ Confirmado |
+| Grupo→Usr | `sendToTenant()` → `👩‍💼 AdminName (Apto {apto})` | ✅ Confirmado (depende de reputación del número) |
 
-Grupo → Privado:
-  getSessionByGroup() → relayToUser() → envía al replyJid del inquilino
-```
-
-### Componentes
+### Componentes actuales
 
 | Archivo | Función |
 |---------|---------|
-| `whatsapp-bot/index.js` | Main: conexión WA, router messages.upsert, discoverGroups(), sendReply(), lidToJid map |
-| `whatsapp-bot/src/auth-flow.js` | Autenticación: número WhatsApp → apto → cédula → sesión con replyJid |
-| `whatsapp-bot/src/api-client.js` | Cliente HTTP: login(), getApartmentByName() con x-auth-token |
-| `whatsapp-bot/src/message-relay.js` | relayToGroup() y relayToUser() con replyJid routing |
+| `whatsapp-bot/index.js` | Main: conexión WA, router messages.upsert, discoverGroups, sendToTenant, ladder tracking |
+| `whatsapp-bot/src/auth-flow.js` | Autenticación: auto-auth por número + auth manual (apto → cédula) |
+| `whatsapp-bot/src/api-client.js` | Cliente HTTP: login, getApartmentByName, getTenantByPhone |
+| `whatsapp-bot/src/message-relay.js` | relayToGroup con soporte ladder |
 | `whatsapp-bot/src/admin-cmds.js` | Comandos de grupo (/session, /who, /close, /status, /ping) |
-| `whatsapp-bot/src/session-store.js` | Persistencia JSON: callerJid, replyJid, apto, groupJid, timeout 30min |
-| `whatsapp-bot/src/scripts.js` | Textos ESM para todos los mensajes del bot |
-| `whatsapp-bot/src/logger.js` | Buffer circular (500 líneas), log(), getLogs(), clearLogs() |
-| `whatsapp-bot/src/notify.js` | Servidor HTTP interno: QR, pairing code, /info, logs, GET /groups |
-| `whatsapp-bot/src/heartbeat.js` | Heartbeat básico de conexión |
+| `whatsapp-bot/src/session-store.js` | Persistencia JSON con timeout 30min |
+| `whatsapp-bot/src/scripts.js` | Textos ESM de todos los mensajes (adminName configurable) |
+| `whatsapp-bot/src/logger.js` | Buffer circular ilimitado |
+| `whatsapp-bot/src/notify.js` | Servidor HTTP: QR, pairing code, /info, logs, /groups, /ladder |
+| `whatsapp-bot/src/heartbeat.js` | Heartbeat de conexión |
+| `whatsapp-bot/src/ladder.js` | **NUEVO**: Trazabilidad de delivery (buffer circular 300 entradas) |
+| `whatsapp-bot/src/group-manager.js` | **FUTURO**: Auto-creación de grupos WhatsApp |
 
-### Manejo de LID (Privacy LIDs)
+### Sistema Ladder — Trazabilidad de delivery
 
-WhatsApp v6+ usa `@lid` JIDs para contactos no agregados. El bot:
+Cada ciclo UPSERT imprime un ladder con los últimos pasos:
 
-1. **Extrae `senderPn`**: Al recibir un mensaje desde `@lid`, WhatsApp provee `msg.key.senderPn` con el JID real (`57XXXX@s.whatsapp.net`). Se almacena como `replyJid` en la sesión.
-2. **`contacts.upsert`**: Evento de Baileys que mapea LID → JID real. Se guarda en `lidToJid` Map como respaldo.
-3. **Orden de envío**: `replyJid` (senderPn) → `phoneJid` (declarado por usuario) → `callerJid` (@lid fallback)
+```
+══════════════════════════════════════════════════════════
+  LADDER (últimos 6 pasos)
+══════════════════════════════════════════════════════════
+  1 18:10:09 Grp→Bot    "Trying"              GROUP_RELAY   apto=101
+  2 18:10:09 Bot→Usr    "📩 Grupo 101 Trying"  GROUP_RELAY  apto=101  [PENDING]
+  3 18:10:09 Bot→Usr    "📩 Grupo 101 Trying"  GROUP_RELAY  apto=101  [OK] id=3EB0A2
+  4 18:10:30 UPDATE     id=3EB0A2              SERVER_ACK
+  5 18:10:30 UPDATE     id=3EB0A2              DELIVERY_ACK  ✅
+══════════════════════════════════════════════════════════
+```
+
+Estados de delivery: `PENDING` → `OK` (enviado) → `SERVER_ACK` (WhatsApp recibió) → `DELIVERY_ACK` (teléfono recibió) → `READ`
+
+Endpoint público: `GET /ladder` (devuelve array JSON de las últimas 300 entradas).
 
 ### Descubrimiento de grupos
 
 ```js
-discoverGroups() en index.js:
+discoverGroups():
   groupFetchAllParticipating()
   Busca /\b(\d{3})\b/ en subject de cada grupo
-  Detecta grupos duplicados (mismo apto en 2+ grupos) → no mapea ninguno
+  Detecta duplicados → no mapea ninguno
   Guarda en data/grupos.json
-  Si auth encuentra apto pero no grupo, reintenta discoverGroups() automáticamente
+  Si auth encuentra apto sin grupo, reintenta automáticamente
 ```
 
-### Conexión y proxy
+### Configuración desde el dashboard
 
-El bot se conecta a WhatsApp mediante WebSocket. Sin proxy, las IPs de datacenter (Render, AWS, etc.) son bloqueadas.
+El bot se configura desde `src/pages/WhatsAppBot.jsx`:
 
-| Variable | Propósito |
-|----------|-----------|
-| `BOT_PROXY` | URL del proxy HTTP/HTTPS/SOCKS (ej: `http://user:pass@host:port`) |
-| `BOT_PORT` | Puerto interno para el servidor HTTP del bot (dashboard, QR, logs) |
+| Sección | Control |
+|---------|---------|
+| **Nombre del admin** | Input texto (ej: "Administradora de Apartamento") |
+| **Número del admin** | Input número WhatsApp del dueño de grupos |
+| **Feature toggles** | Switches: auto-auth, menú aptos, captura leads, auto-crear grupos |
+| **Editor de menú** | TextArea multilinea para templates (welcome, vacants, lead prompt) |
+| **Logs** | Visor en vivo (sin límite de líneas) |
+| **Ladder** | Trazabilidad de delivery (GET /ladder) |
 
-### Pairing code vs QR
+### Variables de entorno (`whatsapp-bot/.env`)
 
-- **QR**: Método por defecto. Se muestra en el dashboard como base64.
-- **Pairing code**: Alternativa cuando el QR no puede escanearse. Se envía desde el dashboard ingresando el número del teléfono. El bot llama a `requestPairingCode()` en el startup.
+| Variable | Valor actual | Descripción |
+|----------|-------------|-------------|
+| `BOT_ADMIN_TOKEN` | `inxyu8VE0eHdUjFSz7kapo94DCTmbJOq` | Token para auth entre servicios |
+| `PORT` | `10000` | Puerto del bot (coincide con main app) |
+| `BOT_PROXY` | `http://wdybipfu:***@31.59.20.176:6754` | Proxy HTTP (requerido en Render) |
+| `API_BASE_URL` | `https://laujim-app.onrender.com/api` | API REST del servidor principal |
+| `AUTH_TOKEN` | `laujim laujim` | Token x-auth-token para API |
+| `WHATSAPP_BOT_URL` | `https://laujim-whatsapp-bot.onrender.com` | URL del bot (para proxy desde main) |
+| `BOT_IS_EXTERNAL` | `true` | Desactiva child process, usa proxy |
+| `DATA_DIR` | (sin set, usa ./data) | Directorio de datos persistentes |
+| `SESSION_PATH` | (sin set, usa ./data/baileys-sessions) | Ruta de sesión Baileys |
 
-### Dashboard
+### Seguridad
 
-El dashboard web (en `src/pages/WhatsAppBot.jsx`) muestra:
-
-- **Bot Info**: Número auto-detectado, cantidad de grupos, sesiones activas
-- **Admin phone**: Campo editable (`whatsapp_admin_phone` en settings API)
-- **QR + Pairing**: Tarjeta unificada para escanear QR o solicitar pairing code
-- **Logs**: Visor en vivo del logger buffer (500 líneas)
-- **Reset**: Botón para reiniciar sesión (borra auth state, solicita nuevo QR)
+- Endpoints públicos: `/status`, `/qr`, `/pairing-code`, `/logs`, `/ladder`, `/`, `/info`, `/groups`, `/proxy-status`
+- Endpoints protegidos (requieren header `Authorization: Bearer <token>` o `x-bot-token`): POST `/request-code`, POST `/reset-session`
+- La comunicación main→bot usa `BOT_ADMIN_TOKEN` en header `Authorization`
+- Pregunta secreta (reset password): `Quessep Martelo` (apellidos de esposa, primera letra mayúscula)
 
 ### Dependencias del bot (`whatsapp-bot/package.json`)
 
@@ -1384,25 +1426,45 @@ cd whatsapp-bot
 npm install
 node index.js
 
-# 3. Escanear QR o usar pairing code desde el dashboard
-# 4. El bot crea los grupos automaticamente por nombre (ej: "Torre 1 - Apto 101")
+# 3. Escanear QR desde el dashboard en /whatsapp-bot
+# 4. Configurar nombre del admin y feature toggles
 ```
 
-### Variables de entorno (`whatsapp-bot/.env`)
+### Backup del bot
 
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `API_BASE_URL` | `http://localhost:1011/api` | URL de la API REST del servidor principal |
-| `AUTH_TOKEN` | `laujim laujim` | Token x-auth-token para autenticación API |
-| `BOT_PROXY` | — | URL del proxy HTTP/SOCKS (requerido en Render para evitar bloqueo de IP) |
-| `BOT_PORT` | `3002` | Puerto del servidor HTTP interno (QR, pairing, logs, info) |
-| `SESSION_PATH` | `./data/baileys-sessions` | Ruta para persistir la sesión multi-device de Baileys |
+```
+C:\Users\jimca\OneDrive\Escritorio\Proyecto Laujim APP fix\whatsapp-bot-backup\
+```
 
-### Issues conocidos (no resueltos)
+Creado el 2026-07-26. Contiene copia completa de `whatsapp-bot/` excluyendo la carpeta `sessions/` (Playwright, no del bot).
 
-1. **Mensajes del bot no llegan al celular del usuario** — `sendMessage()` retorna SEND OK pero WhatsApp no entrega al teléfono. Ni `@lid`, ni `phoneJid`, ni `senderPn` logran entregar. Probablemente el número del bot tiene baja reputación (recién creado) o la IP del datacenter está limitada.
-2. **Admin no puede responder grupo → privado** — Consecuencia directa del issue #1. `relayToUser()` se ejecuta pero el mensaje nunca se entrega.
-3. **Primer mensaje invisible** — El bot envía "escribe tu número" al `@lid`, pero como ningún mensaje del bot es visible, el usuario no sabe qué responder. Solo funciona porque el usuario conoce el flujo de memoria.
+**Archivos incluidos:**
+- `index.js` — Main del bot
+- `src/` — Todos los módulos (auth-flow, message-relay, scripts, ladder, notify, etc.)
+- `data/` — Sesiones activas + mapeo de grupos
+- `.env` — Configuración de variables de entorno
+- `package.json` — Dependencias
+
+**Para restaurar:**
+```bash
+Copy-Item -Path "whatsapp-bot-backup" -Destination "whatsapp-bot" -Recurse
+cd whatsapp-bot
+npm install
+node index.js
+```
+
+### Pendiente — Proyecto Sabanilla
+
+Funcionalidades planificadas (no implementadas):
+
+| Feature | Estatus |
+|---------|---------|
+| Relay de fotos, videos y PDFs | Pendiente |
+| Auto-creación de grupos WhatsApp | Pendiente |
+| Menú interactivo (aptos disponibles) | Pendiente |
+| Captura de leads con PDFs | Pendiente |
+| Configuración avanzada (cambio password) | Pendiente |
+| Dashboard con editor de menú | Pendiente |
 
 ---
 
@@ -1493,6 +1555,18 @@ node index.js
 - **Update**: `src/App.jsx` — init sequence: cloud-first (3 reintentos), polling 15s, version polling 3s, theme init, force-desktop class.
 - **Update**: `src/components/Layout.jsx` — 13 items nav (agregados Antecedentes, Predial), ThemeSelector en footer, indicador conexión.
 - **Update**: `server.cjs` — auth bypass para `/api/antecedentes/police*`, `POST /api/bulk-add/:collection`.
+
+### 2026-07-26 — v2.8.0 — Proyecto Sabanilla: ladder delivery trace, auto-auth, backup, doc
+
+- **New**: `whatsapp-bot/src/ladder.js` — Sistema de trazabilidad de delivery con buffer circular (300 entradas). `push()`, `updateByMsgId()`, `printSession()` con estados PENDING → OK → SERVER_ACK → DELIVERY_ACK → READ
+- **New**: `GET /ladder` endpoint público en notify.js — devuelve array JSON del ladder completo
+- **Fix**: `sendToTenant()` ahora es `async` con `await` real (antes fire-and-forget via `.then()`)
+- **Fix**: `sendToTenant()` en grupo ahora tiene `await` (línea 453 antes era fire-and-forget)
+- **Fix**: logs de `messages.update` traducen status numérico a nombre legible (SERVER_ACK, DELIVERY_ACK, etc.)
+- **New**: Estructura de auto-auth por número de teléfono (esqueleto listo en api-client.js + auth-flow.js)
+- **New**: Backup completo del bot en `whatsapp-bot-backup/`
+- **Update**: README.md — Sección Proyecto Sabanilla reescrita con configuración actual, ladder system, variables de entorno, backup
+- **Update**: v2.7.0 → v2.8.0
 
 ### 2026-07-26 — v2.7.0 — WhatsApp relay: senderPn/replyJid routing, phone-first auth, group dedup
 
