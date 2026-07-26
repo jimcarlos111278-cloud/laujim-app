@@ -81,6 +81,20 @@ async function startBot() {
 
   sock = makeWASocket(sockOpts);
 
+  const lidToJid = new Map();
+
+  sock.ev.on('contacts.upsert', (contacts) => {
+    for (const c of contacts) {
+      if (c.lid && c.jid && c.jid.endsWith('@s.whatsapp.net')) {
+        const lidJid = c.lid.endsWith('@lid') ? c.lid : c.lid + '@lid';
+        if (!lidToJid.has(lidJid)) {
+          lidToJid.set(lidJid, c.jid);
+          log('LID MAP: ' + lidJid + ' -> ' + c.jid + ' (' + (c.name || c.notify || '') + ')');
+        }
+      }
+    }
+  });
+
   notify.setClient(sock);
 
   sock.ev.on('connection.update', async (update) => {
@@ -173,7 +187,8 @@ async function startBot() {
           log('LID_EXTRA: pushName=' + (msg.pushName || '') + ' participant=' + (msg.key.participant || ''));
         }
 
-        const replyTarget = isLid ? remoteJid.replace('@lid', '@s.whatsapp.net') : remoteJid;
+        // Resolve @lid to phone JID via contact map, fallback to original
+        const replyTarget = (isLid && lidToJid.has(remoteJid)) ? lidToJid.get(remoteJid) : remoteJid;
 
         async function sendReply(content) {
           try {
@@ -185,7 +200,7 @@ async function startBot() {
             log('Error sending reply to ' + replyTarget + ': ' + e.message);
             if (replyTarget !== remoteJid) {
               try {
-                log('Falling back to original @lid JID: ' + remoteJid);
+                log('Fallback to original @lid JID: ' + remoteJid);
                 await Promise.race([
                   sock.sendMessage(remoteJid, { text: content }),
                   getTimeoutPromise(15000),

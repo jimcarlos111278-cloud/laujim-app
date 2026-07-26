@@ -66,8 +66,7 @@ export async function startPolling(client) {
           const text = scripts.get('relay_admin_prefix', { content: msg.content });
 
           try {
-            let jid = session.jid || phone + '@s.whatsapp.net';
-            if (jid.endsWith('@lid')) jid = jid.replace('@lid', '@s.whatsapp.net');
+            const jid = session.jid || phone + '@s.whatsapp.net';
             await client.sendMessage(jid, { text });
             log('Forwarded admin reply to ' + session.apto + ' (' + jid + ')');
           } catch (e) {
