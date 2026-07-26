@@ -442,7 +442,7 @@ function startBot() {
     botProcess = spawn('node', ['index.js'], {
       cwd: botDir,
       stdio: 'pipe',
-      env: { ...process.env, NODE_OPTIONS: '--max_old_space_size=256', API_BASE_URL: apiBaseUrl },
+      env: { ...process.env, PORT: '3002', NODE_OPTIONS: '--max_old_space_size=256', API_BASE_URL: apiBaseUrl },
     });
     botProcess.stdout.on('data', (data) => console.log('[BOT]', data.toString().trim()));
     botProcess.stderr.on('data', (data) => console.error('[BOT]', data.toString().trim()));
