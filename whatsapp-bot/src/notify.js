@@ -1,11 +1,12 @@
 import { createServer } from 'http';
-import { readFileSync } from 'fs';
+import { readFileSync, rmSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { log, getLogs, clearLogs } from './logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || join(__dirname, '..', 'data');
+const SESSION_DIR = process.env.SESSION_PATH || join(DATA_DIR, 'baileys-sessions');
 const BOT_ADMIN_TOKEN = process.env.BOT_ADMIN_TOKEN || '';
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
@@ -68,7 +69,7 @@ export function startNotifyServer(port) {
       return;
     }
 
-    if (!isAuthorized(req) && req.url !== '/status' && req.url !== '/log' && req.url !== '/qr' && req.url !== '/pairing-code') {
+    if (!isAuthorized(req) && req.url !== '/status' && req.url !== '/log' && req.url !== '/qr' && req.url !== '/pairing-code' && req.url !== '/' && req.url !== '/info' && req.url !== '/groups' && req.url !== '/proxy-status') {
       sendJson(res, 401, { error: 'Unauthorized. Set BOT_ADMIN_TOKEN or provide Authorization header.' });
       return;
     }
@@ -130,6 +131,24 @@ export function startNotifyServer(port) {
           qrTimestamp,
           lastError,
         });
+      } else if (req.url === '/') {
+        sendJson(res, 200, {
+          service: 'Laujim WhatsApp Bot',
+          ready: !!client,
+          authenticated: !!(client?.user),
+          qrTimestamp,
+          lastError,
+          endpoints: {
+            status: '/status',
+            qr: '/qr',
+            pairingCode: '/pairing-code',
+            logs: '/logs',
+            groups: '/groups',
+            proxyStatus: '/proxy-status',
+            info: '/info',
+          },
+          adminPage: 'https://laujim-app.onrender.com/whatsapp-bot',
+        });
       } else {
         sendJson(res, 404, { error: 'Not found' });
       }
@@ -159,6 +178,18 @@ export function startNotifyServer(port) {
           clearPendingPairingPhone();
           sendJson(res, 500, { error: 'Error al solicitar código: ' + e.message });
         }
+      } else if (req.url === '/reset-session') {
+        try {
+          if (existsSync(SESSION_DIR)) {
+            rmSync(SESSION_DIR, { recursive: true, force: true });
+          }
+          mkdirSync(SESSION_DIR, { recursive: true });
+          log('Session reset by API request');
+          sendJson(res, 200, { ok: true, message: 'Sesión eliminada. El bot se reiniciará.' });
+          setTimeout(() => process.exit(0), 1000);
+        } catch (e) {
+          sendJson(res, 500, { error: 'Error al resetear sesión: ' + e.message });
+        }
       } else {
         sendJson(res, 404, { error: 'Not found' });
       }
@@ -178,8 +209,10 @@ export function startNotifyServer(port) {
     log('  GET  /clear-logs - Clear logs');
     log('  GET  /groups - Group mapping');
     log('  GET  /proxy-status - Proxy config');
+    log('  GET  / - Service info');
     log('  POST /request-code - Pairing code');
-    log('Auth: BOT_ADMIN_TOKEN required on all routes except /status');
+    log('  POST /reset-session - Clear session & restart');
+    log('Auth: BOT_ADMIN_TOKEN required on POST routes and /logs /clear-logs');
   });
 
   return server;

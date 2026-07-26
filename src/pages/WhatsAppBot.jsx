@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, AlertCircle, CheckCircle, XCircle, Key, Terminal, Globe } from 'lucide-react';
+import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, AlertCircle, CheckCircle, XCircle, Key, Terminal, Globe, ExternalLink } from 'lucide-react';
 import { getAuth } from '../utils/auth';
 import { getBase, AUTH_TOKEN } from '../utils/config';
 
@@ -466,6 +466,22 @@ export default function WhatsAppBot() {
           ) : (
             <p className="text-sm text-gray-400">Consultando...</p>
           )}
+        </div>
+
+        {/* Advanced Link Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><ExternalLink className="w-4 h-4" /> Configuración Avanzada</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Panel dedicado del bot con monitoreo en tiempo real, gestión de grupos y funciones avanzadas.
+          </p>
+          <a
+            href="https://laujim-whatsapp-bot.onrender.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all text-sm font-medium"
+          >
+            <ExternalLink className="w-4 h-4" /> Ir al panel del Bot
+          </a>
         </div>
 
         {/* Logs Card */}

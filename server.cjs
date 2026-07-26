@@ -435,6 +435,7 @@ let botProcess = null;
 let botRestartTimer = null;
 
 function startBot() {
+  if (BOT_IS_EXTERNAL) { console.log('[BOT] External service, skipping local spawn'); return; }
   const botDir = path.join(__dirname, 'whatsapp-bot');
   if (!fs.existsSync(botDir) || botProcess) return;
   try {
@@ -462,6 +463,7 @@ function startBot() {
 }
 
 const BOT_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3002';
+const BOT_IS_EXTERNAL = !!process.env.WHATSAPP_BOT_URL;
 
 async function fetchBotBuffer(path) {
   try {
@@ -476,6 +478,36 @@ async function fetchBotBuffer(path) {
       }).on('error', reject).setTimeout(3000, () => reject(new Error('timeout')));
     });
   } catch { return null; }
+}
+
+async function proxyPostToBot(path, body) {
+  const url = new URL(path, BOT_URL);
+  const postData = JSON.stringify(body);
+  const mod = require(url.protocol === 'https:' ? 'https' : 'http');
+  return new Promise((resolve, reject) => {
+    const opts = {
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData),
+        'Authorization': 'Bearer ' + (process.env.BOT_ADMIN_TOKEN || ''),
+      },
+    };
+    const req2 = mod.request(opts, (resp) => {
+      let data = '';
+      resp.on('data', chunk => data += chunk);
+      resp.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { resolve({ error: data }); }
+      });
+    });
+    req2.on('error', reject);
+    req2.setTimeout(30000, () => { req2.destroy(); reject(new Error('timeout')); });
+    req2.write(postData);
+    req2.end();
+  });
 }
 
 app.get('/api/whatsapp-bot/status', async (req, res) => {
@@ -540,6 +572,9 @@ app.get('/api/whatsapp-bot/info', async (req, res) => {
 });
 
 app.post('/api/whatsapp-bot/start', (req, res) => {
+  if (BOT_IS_EXTERNAL) {
+    return res.json({ ok: true, message: 'El bot corre como servicio independiente en laujim-whatsapp-bot.onrender.com' });
+  }
   if (botProcess && !botProcess.killed) {
     return res.status(400).json({ error: 'El bot ya está en ejecución' });
   }
@@ -556,6 +591,9 @@ app.post('/api/whatsapp-bot/start', (req, res) => {
 });
 
 app.post('/api/whatsapp-bot/stop', (req, res) => {
+  if (BOT_IS_EXTERNAL) {
+    return res.json({ ok: true, message: 'El bot corre como servicio independiente en laujim-whatsapp-bot.onrender.com' });
+  }
   clearTimeout(botRestartTimer);
   if (!botProcess || botProcess.killed) {
     return res.status(400).json({ error: 'El bot no está en ejecución' });
@@ -573,7 +611,16 @@ app.post('/api/whatsapp-bot/stop', (req, res) => {
   }
 });
 
-app.post('/api/whatsapp-bot/reset-session', (req, res) => {
+app.post('/api/whatsapp-bot/reset-session', async (req, res) => {
+  if (BOT_IS_EXTERNAL) {
+    try {
+      const result = await proxyPostToBot('/reset-session', {});
+      if (result.error) return res.status(500).json(result);
+      return res.json(result);
+    } catch (e) {
+      return res.status(500).json({ error: 'Error al conectar con el bot: ' + e.message });
+    }
+  }
   try {
     clearTimeout(botRestartTimer);
     if (botProcess && !botProcess.killed) {
@@ -611,29 +658,8 @@ app.post('/api/whatsapp-bot/reset-session', (req, res) => {
 app.post('/api/whatsapp-bot/request-code', async (req, res) => {
   const { phone } = req.body || {};
   if (!phone) return res.status(400).json({ error: 'Número de teléfono requerido' });
-  const botUrl = process.env.WHATSAPP_BOT_URL || 'http://localhost:3002';
   try {
-    const url = new URL('/request-code', botUrl);
-    const postData = JSON.stringify({ phone });
-    const mod = require(url.protocol === 'https:' ? 'https' : 'http');
-    const result = await new Promise((resolve, reject) => {
-      const opts = {
-        hostname: url.hostname, port: url.port, path: url.pathname,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
-      };
-      const req2 = mod.request(opts, (resp) => {
-        let data = '';
-        resp.on('data', chunk => data += chunk);
-        resp.on('end', () => {
-          try { resolve(JSON.parse(data)); } catch { resolve({ error: data }); }
-        });
-      });
-      req2.on('error', reject);
-      req2.setTimeout(30000, () => { req2.destroy(); reject(new Error('timeout')); });
-      req2.write(postData);
-      req2.end();
-    });
+    const result = await proxyPostToBot('/request-code', { phone });
     if (result.error) return res.status(500).json(result);
     res.json(result);
   } catch (e) {
@@ -878,7 +904,7 @@ app.use((req, res) => {
     }
     console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode'));
 
-    if (process.env.AUTO_START_BOT !== 'false') {
+    if (process.env.AUTO_START_BOT !== 'false' && !BOT_IS_EXTERNAL) {
       startBot();
     }
   })();
