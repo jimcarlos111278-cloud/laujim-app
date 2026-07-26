@@ -36,6 +36,7 @@ let sessionTimeoutInterval = null;
 let aptoToGroupJid = {};
 let botNumber = null;
 let botName = null;
+let discoverAttempts = 0;
 
 function loadGroupMapping() {
   try {
