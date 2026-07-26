@@ -1,10 +1,13 @@
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const STORE_PATH = join(__dirname, '..', 'data', 'session-store.json');
+const DATA_DIR = process.env.DATA_DIR || join(__dirname, '..', 'data');
+const STORE_PATH = join(DATA_DIR, 'session-store.json');
 const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT || '1800000', 10);
+
+try { if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true }); } catch {}
 
 let sessions = {};
 
@@ -17,12 +20,16 @@ function isExpired(s) {
   return Date.now() - new Date(s.lastActivity).getTime() > SESSION_TIMEOUT;
 }
 
+function key(convJid) {
+  return convJid || '';
+}
+
 export function load() {
   try {
     if (existsSync(STORE_PATH)) {
       sessions = JSON.parse(readFileSync(STORE_PATH, 'utf-8'));
       let changed = false;
-      for (const [key, s] of Object.entries(sessions)) {
+      for (const s of Object.values(sessions)) {
         if (s.state === 'ACTIVE' && isExpired(s)) {
           s.state = 'EXPIRED';
           changed = true;
@@ -39,14 +46,16 @@ export function load() {
 
 function save() {
   try {
+    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
     writeFileSync(STORE_PATH, JSON.stringify(sessions, null, 2), 'utf-8');
   } catch (e) {
     console.error('Error saving session store:', e.message);
   }
 }
 
-export function getSession(callerJid) {
-  const s = sessions[callerJid] || null;
+export function getSession(convJid) {
+  const k = key(convJid);
+  const s = sessions[k] || null;
   if (s && s.state === 'ACTIVE' && isExpired(s)) {
     s.state = 'EXPIRED';
     save();
@@ -55,37 +64,47 @@ export function getSession(callerJid) {
   return s;
 }
 
-export function setSession(callerJid, data) {
-  sessions[callerJid] = { ...data, state: 'ACTIVE', createdAt: now(), lastActivity: now() };
+export function setSession(convJid, data) {
+  const k = key(convJid);
+  const nowStr = now();
+  const sessionData = {
+    conversationJid: convJid,
+    ...data,
+    state: 'ACTIVE',
+    createdAt: nowStr,
+    lastActivity: nowStr,
+  };
+  if (sessions[k]) {
+    delete sessions[k];
+  }
+  sessions[k] = sessionData;
   save();
 }
 
-export function updateSession(callerJid, updates) {
-  if (sessions[callerJid]) {
-    sessions[callerJid] = { ...sessions[callerJid], ...updates, lastActivity: now() };
-    if (sessions[callerJid].state === 'ACTIVE' && sessions[callerJid].state !== updates.state) {
-      save();
-    } else {
-      save();
-    }
+export function updateSession(convJid, updates) {
+  const k = key(convJid);
+  if (sessions[k]) {
+    sessions[k] = { ...sessions[k], ...updates, lastActivity: now() };
+    save();
   }
 }
 
-export function deleteSession(callerJid) {
-  delete sessions[callerJid];
+export function deleteSession(convJid) {
+  const k = key(convJid);
+  delete sessions[k];
   save();
 }
 
 export function getActiveSessions() {
   const result = [];
   let changed = false;
-  for (const [key, s] of Object.entries(sessions)) {
+  for (const [k, s] of Object.entries(sessions)) {
     if (s.state === 'ACTIVE' && isExpired(s)) {
       s.state = 'EXPIRED';
       changed = true;
     }
     if (s.state === 'ACTIVE') {
-      result.push({ callerJid: key, ...s });
+      result.push({ callerJid: k, ...s });
     }
   }
   if (changed) save();
@@ -93,14 +112,14 @@ export function getActiveSessions() {
 }
 
 export function getSessionByGroup(groupJid) {
-  for (const [key, s] of Object.entries(sessions)) {
+  for (const s of Object.values(sessions)) {
     if (s.groupJid === groupJid && s.state === 'ACTIVE') {
       if (isExpired(s)) {
         s.state = 'EXPIRED';
         save();
         return null;
       }
-      return { callerJid: key, ...s };
+      return s;
     }
   }
   return null;
@@ -123,15 +142,26 @@ export function getAll() {
 
 export function cleanupExpired() {
   let changed = false;
-  for (const [key, s] of Object.entries(sessions)) {
+  for (const [k, s] of Object.entries(sessions)) {
     if (s.state === 'ACTIVE' && isExpired(s)) {
       s.state = 'EXPIRED';
       changed = true;
     }
     if (s.state === 'EXPIRED') {
-      delete sessions[key];
+      delete sessions[k];
       changed = true;
     }
   }
   if (changed) save();
+}
+
+export function closeExistingSessionForGroup(groupJid) {
+  for (const [k, s] of Object.entries(sessions)) {
+    if (s.groupJid === groupJid && s.state === 'ACTIVE') {
+      delete sessions[k];
+      save();
+      return true;
+    }
+  }
+  return false;
 }

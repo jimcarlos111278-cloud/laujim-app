@@ -8,7 +8,7 @@ export function isAuthorized(msg, sock, groupMetadata) {
   return groupMetadata.participants.some(p => p.id === participant && (p.admin === 'admin' || p.admin === 'superadmin'));
 }
 
-export async function handleGroupCommand(command, args, session, sock, groupJid, callerJid) {
+export async function handleGroupCommand(command, args, session, sock, groupJid, sendToTenant) {
   switch (command) {
     case '/session': {
       if (!session) {
@@ -18,6 +18,7 @@ export async function handleGroupCommand(command, args, session, sock, groupJid,
       await sock.sendMessage(groupJid, {
         text: scripts.get('group_session_info', {
           name: session.tenantName,
+          apto: session.apto,
           createdAt: session.createdAt || 'desconocido',
           lastActivity: session.lastActivity || 'desconocido',
         }),
@@ -31,7 +32,7 @@ export async function handleGroupCommand(command, args, session, sock, groupJid,
         return true;
       }
       await sock.sendMessage(groupJid, {
-        text: scripts.get('group_who', { name: session.tenantName, caller: session.callerJid }),
+        text: scripts.get('group_who', { name: session.tenantName, apto: session.apto }),
       });
       return true;
     }
@@ -41,12 +42,13 @@ export async function handleGroupCommand(command, args, session, sock, groupJid,
         await sock.sendMessage(groupJid, { text: scripts.get('group_session_none') });
         return true;
       }
-      sessionStore.deleteSession(session.callerJid);
+      sessionStore.closeExistingSessionForGroup(session.groupJid);
       await sock.sendMessage(groupJid, { text: scripts.get('group_close_done') });
-      try {
-        const destination = session.replyJid || session.phoneJid || session.callerJid;
-        await sock.sendMessage(destination, { text: scripts.get('session_closed') });
-      } catch (e) { /* ignore */ }
+      if (typeof sendToTenant === 'function' && session.conversationJid) {
+        try {
+          await sendToTenant(session.conversationJid, scripts.get('session_closed'));
+        } catch (e) { /* ignore */ }
+      }
       return true;
     }
 
@@ -58,6 +60,7 @@ export async function handleGroupCommand(command, args, session, sock, groupJid,
       await sock.sendMessage(groupJid, {
         text: scripts.get('group_session_info', {
           name: session.tenantName,
+          apto: session.apto,
           createdAt: session.createdAt || 'desconocido',
           lastActivity: session.lastActivity || 'desconocido',
         }),
