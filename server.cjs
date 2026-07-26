@@ -155,7 +155,7 @@ function loadData() {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
-  ['messages', 'payments', 'expenses'].forEach(k => { if (!db[k]) db[k] = []; });
+  ['messages', 'payments', 'expenses', 'leads', 'settings'].forEach(k => { if (!db[k]) db[k] = []; });
   recalcNextId();
 }
 
@@ -685,6 +685,93 @@ app.get('/api/whatsapp-bot/pairing-code', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Error al conectar con el bot: ' + e.message });
   }
+});
+
+// ─── WHATSAPP BOT NEW ENDPOINTS (Proyecto Sabanilla) ───
+app.get('/api/whatsapp-bot/leads', (req, res) => {
+  res.json(db.leads || []);
+});
+
+app.get('/api/whatsapp-bot/sessions', async (req, res) => {
+  const buf = await fetchBotBuffer('/sessions');
+  if (!buf) return res.json({ count: 0, sessions: [] });
+  try { res.json(JSON.parse(buf.toString())); } catch { res.json({ count: 0, sessions: [] }); }
+});
+
+app.post('/api/whatsapp-bot/groups/create', async (req, res) => {
+  try {
+    const result = await proxyPostToBot('/groups/create', req.body);
+    if (result.error) return res.status(500).json(result);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: 'Error al conectar con el bot: ' + e.message });
+  }
+});
+
+app.get('/api/whatsapp-bot/ladder', async (req, res) => {
+  const buf = await fetchBotBuffer('/ladder');
+  if (!buf) return res.json([]);
+  try { res.json(JSON.parse(buf.toString())); } catch { res.json([]); }
+});
+
+app.post('/api/whatsapp-bot/discover', async (req, res) => {
+  try {
+    const result = await proxyPostToBot('/discover', {});
+    if (result.error) return res.status(500).json(result);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: 'Error al conectar con el bot: ' + e.message });
+  }
+});
+
+// ─── ADMIN PASSWORD & SECURITY ───
+app.post('/api/admin/verify-password', (req, res) => {
+  const { password } = req.body || {};
+  if (password === 'laujim123') {
+    return res.json({ ok: true, role: 'admin', name: 'Administrador' });
+  }
+  res.status(401).json({ error: 'Contraseña inválida' });
+});
+
+app.post('/api/admin/change-password', (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (currentPassword !== 'laujim123') {
+    return res.status(401).json({ error: 'Contraseña actual inválida' });
+  }
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+  }
+  const setting = (db.settings || []).find(s => s.key === 'admin_password');
+  if (setting) {
+    setting.value = newPassword;
+  } else {
+    db.settings.push({ id: nextId.settings || 1, key: 'admin_password', value: newPassword });
+    nextId.settings = (nextId.settings || 1) + 1;
+  }
+  saveData();
+  res.json({ ok: true, message: 'Contraseña actualizada' });
+});
+
+app.post('/api/admin/verify-security-question', (req, res) => {
+  const { answer } = req.body || {};
+  const expected = (db.settings || []).find(s => s.key === 'security_question_answer')?.value || 'quessep martelo';
+  if ((answer || '').toLowerCase().trim() === expected.toLowerCase().trim()) {
+    return res.json({ ok: true, message: 'Respuesta correcta' });
+  }
+  res.status(401).json({ error: 'Respuesta incorrecta' });
+});
+
+app.get('/api/leads', (req, res) => {
+  res.json(db.leads || []);
+});
+
+app.post('/api/leads', (req, res) => {
+  const newLead = { ...req.body, id: nextId.leads || 1 };
+  if (!newLead.createdAt) newLead.createdAt = new Date().toISOString();
+  db.leads.push(newLead);
+  nextId.leads = (nextId.leads || 1) + 1;
+  saveData();
+  res.status(201).json(newLead);
 });
 
 // ─── CONTRATO + AUTO-PASSWORD ───

@@ -14,12 +14,14 @@ import * as adminCommands from './src/admin-cmds.js';
 import * as scripts from './src/scripts.js';
 import * as notify from './src/notify.js';
 import * as heartbeat from './src/heartbeat.js';
+import * as api from './src/api-client.js';
 import { log } from './src/logger.js';
 import * as ladder from './src/ladder.js';
 
 log('');
 log('============================================');
 log('  WHATSAPP RELAY BOT (Baileys v6)');
+log('  Proyecto Sabanilla v2.8.0');
 log('============================================');
 log('');
 
@@ -40,6 +42,42 @@ let aptoToGroupJid = {};
 let botNumber = null;
 let botName = null;
 let discoverAttempts = 0;
+let cachedSettings = {};
+
+async function loadSettings() {
+  try {
+    const settings = await api.getSettings();
+    const map = {};
+    for (const s of settings) map[s.key] = s.value;
+    cachedSettings = map;
+    const enabled = map['whatsapp_bot_enabled'] === 'true';
+    if (!enabled && sock) {
+      log('SETTINGS: bot disabled by setting');
+    }
+    const msgPrefix = 'whatsapp_bot_msg_';
+    const scriptUpdates = {};
+    for (const [key, val] of Object.entries(map)) {
+      if (key.startsWith(msgPrefix)) {
+        scriptUpdates[key.slice(msgPrefix.length)] = val;
+      }
+    }
+    if (Object.keys(scriptUpdates).length > 0) {
+      scripts.setCache(scriptUpdates);
+      log('SETTINGS: loaded ' + Object.keys(scriptUpdates).length + ' script overrides');
+    }
+    log('SETTINGS: loaded ' + Object.keys(map).length + ' settings');
+  } catch (e) {
+    log('SETTINGS: load error: ' + e.message);
+  }
+}
+
+function getAdminName() {
+  return cachedSettings['whatsapp_bot_admin_name'] || 'Administrador';
+}
+
+function getAdminPhone() {
+  return cachedSettings['whatsapp_admin_phone'] || '';
+}
 
 function loadGroupMapping() {
   try {
@@ -126,6 +164,7 @@ async function startBot() {
   if (reconnectTimer) clearTimeout(reconnectTimer);
 
   loadGroupMapping();
+  await loadSettings();
 
   const { version } = await fetchLatestBaileysVersion();
   log('WA version: ' + version.join('.'));
@@ -201,6 +240,8 @@ async function startBot() {
         const after = sessionStore.getActiveSessions().length;
         if (before !== after) log('SESSION CLEANUP: ' + (before - after) + ' expired');
       }, 60000);
+
+      setInterval(loadSettings, 60000);
     }
 
     if (connection === 'close') {
@@ -259,7 +300,7 @@ async function startBot() {
     }
   });
 
-  const COMMANDS = ['/help', '/status', '/endsession', '/relogin', '/cancel'];
+  const COMMANDS = ['/help', '/status', '/endsession', '/relogin', '/cancel', '/menu'];
   const GROUP_COMMANDS = ['/session', '/close', '/who', '/status', '/ping'];
 
   function matchCommand(text) {
@@ -333,6 +374,12 @@ async function startBot() {
         await sendToTenant(convJid, scripts.get('cmd_cancel_done'));
         return true;
       }
+      case '/menu': {
+        authFlow.cancelAuth(convJid);
+        const retryDiscover = async () => { try { await discoverGroups(); } catch {} };
+        const result = await authFlow.handleMessage(convJid, '', sendToTenant, aptoToGroupJid, retryDiscover);
+        return true;
+      }
       default:
         return false;
     }
@@ -359,6 +406,8 @@ async function startBot() {
         const text = msg.message.conversation ||
                      msg.message.extendedTextMessage?.text ||
                      msg.message.imageMessage?.caption ||
+                     msg.message.videoMessage?.caption ||
+                     msg.message.documentMessage?.caption ||
                      '';
         log('MSG: text="' + (text || '').slice(0, 80) + '" textLength=' + (text?.length || 0));
 
@@ -370,10 +419,8 @@ async function startBot() {
           const senderPnRaw = msgKey.senderPn || '';
           const deliveryJid = senderPnRaw || convJid;
           log('PRIVATE: convJid=' + convJid + ' senderPnRaw="' + senderPnRaw + '" deliveryJid=' + deliveryJid + ' same=' + (convJid === deliveryJid));
-          log('PRIVATE: mask conv=' + maskJid(convJid) + ' delivery=' + maskJid(deliveryJid));
-          ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'MENSAJE', text, '', '', '', '');
 
-          if (command && ['/help', '/status', '/endsession', '/logout', '/relogin', '/cancel'].includes(command)) {
+          if (command && ['/help', '/status', '/endsession', '/logout', '/relogin', '/cancel', '/menu'].includes(command)) {
             log('PRIVATE COMMAND: ' + command);
             ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'CMD_' + command, text, '', '', '', '');
             await handlePrivateCommand(convJid, command);
@@ -384,8 +431,7 @@ async function startBot() {
             log('PRIVATE: continuing auth convJid=' + convJid + ' deliveryJid=' + deliveryJid);
             ladder.updateLatest('AUTH_CONTINUE', '');
             const retryDiscover = async () => { try { await discoverGroups(); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
-            const result = await authFlow.handleMessage(convJid, text,
-              sendToTenant, aptoToGroupJid, retryDiscover);
+            const result = await authFlow.handleMessage(convJid, text, sendToTenant, aptoToGroupJid, retryDiscover);
             log('PRIVATE: authFlow result action=' + result.action + ' session=' + (result.session ? JSON.stringify({ apto: result.session.apto, groupJid: result.session.groupJid, tenantName: result.session.tenantName }) : 'none'));
 
             if (result.action === 'authenticated' && result.session) {
@@ -405,21 +451,43 @@ async function startBot() {
           }
 
           const session = sessionStore.getSession(convJid);
-          log('PRIVATE: session lookup convJid=' + convJid + ' found=' + !!session + ' state=' + (session?.state || 'none') + ' apto=' + (session?.apto || 'none') + ' sessionDeliveryJid=' + (session?.deliveryJid || 'none'));
+          log('PRIVATE: session lookup convJid=' + convJid + ' found=' + !!session + ' state=' + (session?.state || 'none') + ' apto=' + (session?.apto || 'none'));
+
           if (session && session.state === 'ACTIVE') {
-            log('PRIVATE RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid + ' text="' + text.slice(0, 40) + '"');
-            ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_TO_GROUP', text, '', '', '', session.apto);
-            await messageRelay.relayToGroup(sock, session, text);
+            const hasMedia = !!(msg.message.imageMessage || msg.message.videoMessage || msg.message.documentMessage || msg.message.audioMessage);
+            if (hasMedia) {
+              log('PRIVATE MEDIA RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid);
+              ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_MEDIA', text, '', '', '', session.apto);
+              await messageRelay.relayToGroup(sock, session, msg);
+            } else if (text) {
+              log('PRIVATE RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid + ' text="' + text.slice(0, 40) + '"');
+              ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_TO_GROUP', text, '', '', '', session.apto);
+              await messageRelay.relayToGroup(sock, session, msg);
+            } else {
+              log('PRIVATE: no text and no media, skipping');
+            }
             sessionStore.updateSession(convJid, {});
             continue;
           }
 
-          log('PRIVATE: no active session, starting auth flow convJid=' + convJid);
-          ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'AUTH_START', text, '', '', '', '');
-          const retryDiscover = async () => { try { await discoverGroups(); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
-          const result = await authFlow.handleMessage(convJid, text,
-            sendToTenant, aptoToGroupJid, retryDiscover);
-          log('PRIVATE AUTH: action=' + result.action);
+          log('PRIVATE: no active session, trying auto-auth by phone');
+          const phone = convJid.split('@')[0];
+          const retryDiscover = async () => { try { await discoverGroups(); } catch {} };
+          const autoSession = await authFlow.autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJid, retryDiscover);
+
+          if (autoSession && autoSession.apto) {
+            const existing = sessionStore.closeExistingSessionForGroup(autoSession.groupJid);
+            sessionStore.setSession(convJid, { ...autoSession, conversationJid: convJid, deliveryJid });
+            log('AUTO_AUTH OK: convJid=' + convJid + ' phone=' + phone + ' apto=' + autoSession.apto + ' name=' + autoSession.tenantName);
+            ladder.push('Bot→Usr', 'Bot', maskJid(deliveryJid), 'AUTO_AUTH', '✅ Auto auth apto=' + autoSession.apto, '', '', '', autoSession.apto);
+            await sendToTenant(convJid, scripts.get('auto_auth_welcome', { name: autoSession.tenantName, apto: autoSession.apto }), 'AUTO_AUTH');
+            continue;
+          }
+
+          log('PRIVATE: auto-auth failed, starting menu flow convJid=' + convJid);
+          ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'MENU_START', text, '', '', '', '');
+          const result = await authFlow.handleMessage(convJid, text, sendToTenant, aptoToGroupJid, retryDiscover);
+          log('PRIVATE MENU: action=' + result.action);
         }
 
         if (isGroup) {

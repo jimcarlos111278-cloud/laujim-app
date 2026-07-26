@@ -1,13 +1,16 @@
 import { createServer } from 'http';
-import { readFileSync, rmSync, mkdirSync, existsSync } from 'fs';
+import { readFileSync, rmSync, mkdirSync, existsSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { log, getLogs, clearLogs } from './logger.js';
 import * as ladder from './ladder.js';
+import * as api from './api-client.js';
+import * as groupManager from './group-manager.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || join(__dirname, '..', 'data');
 const SESSION_DIR = process.env.SESSION_PATH || join(DATA_DIR, 'baileys-sessions');
+const GRUPOS_PATH = join(DATA_DIR, 'grupos.json');
 const BOT_ADMIN_TOKEN = process.env.BOT_ADMIN_TOKEN || '';
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
@@ -55,6 +58,25 @@ function parseBody(req) {
   });
 }
 
+function loadGroupMapping() {
+  try {
+    if (existsSync(GRUPOS_PATH)) {
+      return JSON.parse(readFileSync(GRUPOS_PATH, 'utf-8'));
+    }
+  } catch {}
+  return {};
+}
+
+function saveGroupMapping(mapping) {
+  try {
+    const dir = dirname(GRUPOS_PATH);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeFileSync(GRUPOS_PATH, JSON.stringify(mapping, null, 2), 'utf-8');
+  } catch (e) {
+    log('GROUPS save error: ' + e.message);
+  }
+}
+
 export function startNotifyServer(port) {
   const server = createServer(async (req, res) => {
     const origin = req.headers['origin'] || '';
@@ -70,7 +92,8 @@ export function startNotifyServer(port) {
       return;
     }
 
-    if (!isAuthorized(req) && req.url !== '/status' && req.url !== '/log' && req.url !== '/qr' && req.url !== '/pairing-code' && req.url !== '/' && req.url !== '/info' && req.url !== '/groups' && req.url !== '/proxy-status' && req.url !== '/logs' && req.url !== '/ladder') {
+    const publicPaths = ['/status', '/log', '/qr', '/pairing-code', '/', '/info', '/groups', '/proxy-status', '/logs', '/ladder', '/sessions', '/leads'];
+    if (!isAuthorized(req) && !publicPaths.includes(req.url)) {
       sendJson(res, 401, { error: 'Unauthorized. Set BOT_ADMIN_TOKEN or provide Authorization header.' });
       return;
     }
@@ -113,12 +136,26 @@ export function startNotifyServer(port) {
         sendJson(res, 200, ladder.getLadder());
       } else if (req.url === '/groups') {
         try {
-          const gruposPath = join(DATA_DIR, 'grupos.json');
-          const raw = readFileSync(gruposPath, 'utf-8');
+          const raw = readFileSync(GRUPOS_PATH, 'utf-8');
           const data = JSON.parse(raw);
           sendJson(res, 200, { groups: data, count: Object.keys(data).length });
         } catch {
           sendJson(res, 200, { groups: {}, count: 0 });
+        }
+      } else if (req.url === '/sessions') {
+        try {
+          const buf = await fetch('http://localhost:' + port + '/info').then(r => r.json()).catch(() => ({}));
+        } catch {}
+        import('./session-store.js').then(ss => {
+          const active = ss.getActiveSessions();
+          sendJson(res, 200, { count: active.length, sessions: active.map(s => ({ apto: s.apto, tenantName: s.tenantName, lastActivity: s.lastActivity })) });
+        }).catch(() => sendJson(res, 200, { count: 0, sessions: [] }));
+      } else if (req.url === '/leads') {
+        try {
+          const leads = await api.getLeads();
+          sendJson(res, 200, leads);
+        } catch (e) {
+          sendJson(res, 200, []);
         }
       } else if (req.url === '/info') {
         const number = client?.user?.id ? client.user.id.split(':')[0].replace('@s.whatsapp.net', '') : null;
@@ -147,8 +184,11 @@ export function startNotifyServer(port) {
             pairingCode: '/pairing-code',
             logs: '/logs',
             groups: '/groups',
+            sessions: '/sessions',
+            leads: '/leads',
             proxyStatus: '/proxy-status',
             info: '/info',
+            ladder: '/ladder',
           },
           adminPage: 'https://laujim-app.onrender.com/whatsapp-bot',
         });
@@ -193,6 +233,53 @@ export function startNotifyServer(port) {
         } catch (e) {
           sendJson(res, 500, { error: 'Error al resetear sesión: ' + e.message });
         }
+      } else if (req.url === '/groups/create') {
+        if (!client) {
+          sendJson(res, 503, { error: 'WhatsApp client not ready' });
+          return;
+        }
+        const { apto, adminPhone } = data || {};
+        if (!apto) {
+          sendJson(res, 400, { error: 'apto requerido' });
+          return;
+        }
+        try {
+          const jid = await groupManager.ensureGroupForApto(client, apto, adminPhone || '');
+          if (jid) {
+            const mapping = loadGroupMapping();
+            mapping[String(apto)] = jid;
+            saveGroupMapping(mapping);
+            sendJson(res, 200, { ok: true, jid, apto });
+          } else {
+            sendJson(res, 500, { error: 'No se pudo crear el grupo' });
+          }
+        } catch (e) {
+          sendJson(res, 500, { error: e.message });
+        }
+      } else if (req.url === '/discover') {
+        if (!client) {
+          sendJson(res, 503, { error: 'WhatsApp client not ready' });
+          return;
+        }
+        import('./session-store.js').then(ss => {
+          res.json({ ok: true, message: 'Discovery triggered' });
+        }).catch(() => sendJson(res, 200, { ok: true }));
+      } else if (req.url === '/send') {
+        if (!client) {
+          sendJson(res, 503, { error: 'WhatsApp client not ready' });
+          return;
+        }
+        const { to, text } = data || {};
+        if (!to || !text) {
+          sendJson(res, 400, { error: 'to and text required' });
+          return;
+        }
+        try {
+          await client.sendMessage(to, { text });
+          sendJson(res, 200, { ok: true });
+        } catch (e) {
+          sendJson(res, 500, { error: e.message });
+        }
       } else {
         sendJson(res, 404, { error: 'Not found' });
       }
@@ -211,12 +298,16 @@ export function startNotifyServer(port) {
     log('  GET  /logs - Recent logs');
     log('  GET  /clear-logs - Clear logs');
     log('  GET  /groups - Group mapping');
-    log('  GET  /proxy-status - Proxy config');
+    log('  GET  /sessions - Active sessions');
+    log('  GET  /leads - Lead list');
     log('  GET  /ladder - Delivery trace ladder');
+    log('  GET  /proxy-status - Proxy config');
     log('  GET  / - Service info');
     log('  POST /request-code - Pairing code');
     log('  POST /reset-session - Clear session & restart');
-    log('Auth: BOT_ADMIN_TOKEN required on POST routes and /logs /clear-logs');
+    log('  POST /groups/create - Auto-create WhatsApp group');
+    log('  POST /send - Send text message');
+    log('Auth: BOT_ADMIN_TOKEN required on POST routes');
   });
 
   return server;

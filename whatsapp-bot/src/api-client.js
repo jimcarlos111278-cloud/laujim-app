@@ -20,3 +20,54 @@ export async function getApartmentByName(name) {
   });
   return res.json();
 }
+
+export async function getTenantByPhone(phone) {
+  const res = await fetch(`${BASE_URL}/tenants/first/phone/${encodeURIComponent(String(phone))}`, {
+    headers: headers(),
+  });
+  return res.json();
+}
+
+export async function getSettings() {
+  const res = await fetch(`${BASE_URL}/settings`, { headers: headers() });
+  return res.json().catch(() => []);
+}
+
+export async function updateSetting(key, value) {
+  const all = await getSettings();
+  const existing = all.find(s => s.key === key);
+  if (existing) {
+    await fetch(`${BASE_URL}/settings/${existing.id}`, {
+      method: 'PUT', headers: headers(),
+      body: JSON.stringify({ ...existing, value }),
+    });
+  } else {
+    await fetch(`${BASE_URL}/settings`, {
+      method: 'POST', headers: headers(),
+      body: JSON.stringify({ key, value }),
+    });
+  }
+}
+
+export async function getVacants() {
+  const res = await fetch(`${BASE_URL}/public/vacants`, { headers: headers() });
+  return res.json();
+}
+
+export async function getAllApartments() {
+  const res = await fetch(`${BASE_URL}/apartments`, { headers: headers() });
+  return res.json().catch(() => []);
+}
+
+export async function submitLead(data) {
+  const res = await fetch(`${BASE_URL}/leads`, {
+    method: 'POST', headers: headers(),
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function getLeads() {
+  const res = await fetch(`${BASE_URL}/leads`, { headers: headers() });
+  return res.json().catch(() => []);
+}
