@@ -117,6 +117,7 @@ async function startBot() {
     if (connection === 'open') {
       const number = sock?.user?.id ? sock.user.id.split(':')[0].replace('@s.whatsapp.net', '') : 'unknown';
       log('Connected. Number: ' + number);
+      log('sock.user: id=' + (sock?.user?.id || '') + ' lid=' + (sock?.user?.lid || '') + ' verified=' + (!!sock?.user));
       notify.setClient(sock);
       notify.setLastError(null);
       heartbeat.startHeartbeat();
@@ -156,6 +157,18 @@ async function startBot() {
   });
 
   sock.ev.on('creds.update', saveCreds);
+
+  sock.ev.on('messages.update', updates => {
+    for (const u of updates) {
+      log('=== MSG UPDATE === id=' + (u.key?.id || '') + ' status=' + (u.status || '') + ' jid=' + (u.key?.remoteJid || ''));
+    }
+  });
+
+  sock.ev.on('message-receipt.update', updates => {
+    for (const u of updates) {
+      log('=== RECEIPT === id=' + (u.key?.id || '') + ' receipt=' + (u.receipt || '') + ' jid=' + (u.key?.remoteJid || ''));
+    }
+  });
 
   function getTimeoutPromise(ms) {
     return new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_' + ms + 'ms')), ms));

@@ -476,6 +476,20 @@ export default function WhatsAppBot() {
                 >
                   Clear logs
                 </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('¿Resetear sesión de WhatsApp? Se borrarán las credenciales y necesitarás escanear QR de nuevo.')) return;
+                    try {
+                      await fetch(getBase() + '/whatsapp-bot/reset-session', { method: 'POST', headers: { 'x-auth-token': AUTH_TOKEN } });
+                      setShowLogs(false);
+                      setBotLogs([]);
+                      setTimeout(fetchStatus, 3000);
+                    } catch (e) { console.error(e); }
+                  }}
+                  className="flex-1 px-3 py-1.5 border border-red-500 dark:border-red-600 text-red-700 dark:text-red-300 rounded-lg text-xs hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-semibold"
+                >
+                  <RefreshCw className="w-3 h-3 inline mr-1" /> Reset Session
+                </button>
               </div>
               <div className="max-h-60 overflow-y-auto bg-gray-900 text-green-400 text-xs font-mono p-3 rounded-lg">
                 {botLogs.length === 0 ? (
