@@ -44,7 +44,8 @@ export async function handleGroupCommand(command, args, session, sock, groupJid,
       sessionStore.deleteSession(session.callerJid);
       await sock.sendMessage(groupJid, { text: scripts.get('group_close_done') });
       try {
-        await sock.sendMessage(session.callerJid, { text: scripts.get('session_closed') });
+        const destination = session.replyJid || session.phoneJid || session.callerJid;
+        await sock.sendMessage(destination, { text: scripts.get('session_closed') });
       } catch (e) { /* ignore */ }
       return true;
     }

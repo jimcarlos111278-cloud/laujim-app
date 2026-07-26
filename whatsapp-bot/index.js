@@ -62,22 +62,32 @@ function saveGroupMapping() {
 async function discoverGroups() {
   try {
     const groups = await sock.groupFetchAllParticipating();
+    const discovered = {};
+    const ambiguousApartments = new Set();
     let count = 0;
     for (const [jid, g] of Object.entries(groups)) {
       const match = g.subject.match(/\b(\d{3})\b/);
       if (match) {
         const apto = match[1];
+        if (discovered[apto] && discovered[apto] !== jid) {
+          delete discovered[apto];
+          ambiguousApartments.add(apto);
+          log('GROUP DISCOVER ERROR: more than one participating group matches apto=' + apto);
+          continue;
+        }
+        if (ambiguousApartments.has(apto)) continue;
+        discovered[apto] = jid;
         if (aptoToGroupJid[apto] !== jid) {
-          aptoToGroupJid[apto] = jid;
           log('GROUP DISCOVER: apto=' + apto + ' jid=' + jid + ' name="' + g.subject + '"');
           count++;
         }
       }
     }
-    if (count > 0) {
-      saveGroupMapping();
-      discoverAttempts = 0;
-    }
+    // This response contains only groups in which the bot currently belongs;
+    // replacing the cache prevents authorizing a stale or removed group.
+    aptoToGroupJid = discovered;
+    saveGroupMapping();
+    if (count > 0) discoverAttempts = 0;
     log('Group discovery: ' + count + ' new, ' + Object.keys(aptoToGroupJid).length + ' total mapped');
     if (count === 0 && Object.keys(aptoToGroupJid).length === 0 && discoverAttempts < 3) {
       discoverAttempts++;
@@ -244,13 +254,13 @@ async function startBot() {
 
   sock.ev.on('messages.update', updates => {
     for (const { key, update } of updates) {
-      log('=== MSG UPDATE === id=' + (key?.id || '') + ' status=' + (update?.status ?? '') + ' jid=' + (key?.remoteJid || ''));
+      log('=== MSG UPDATE === ' + JSON.stringify({ key, update }));
     }
   });
 
   sock.ev.on('message-receipt.update', updates => {
     for (const { key, receipt } of updates) {
-      log('=== RECEIPT === id=' + (key?.id || '') + ' receipt=' + (receipt ?? '') + ' jid=' + (key?.remoteJid || ''));
+      log('=== RECEIPT === ' + JSON.stringify({ key, receipt }));
     }
   });
 
@@ -329,9 +339,11 @@ async function startBot() {
   }
 
   async function sendReply(targetJid, content) {
-    log('=== SEND to=' + targetJid + ' text="' + (content || '').slice(0, 50) + '" ===');
+    const activeSession = isLidUser(targetJid) ? sessionStore.getSession(targetJid) : null;
+    const destination = activeSession?.replyJid || lidToJid.get(targetJid) || targetJid;
+    log('=== SEND target=' + targetJid + ' route=' + destination + ' text="' + (content || '').slice(0, 50) + '" ===');
     try {
-      const result = await sock.sendMessage(targetJid, { text: content });
+      const result = await sock.sendMessage(destination, { text: content });
       log('=== SEND OK id=' + (result?.key?.id || '') + ' ===');
     } catch (e) {
       log('=== SEND ERROR: ' + e.message + ' ===');
@@ -363,6 +375,15 @@ async function startBot() {
 
         if (isPrivate) {
           const callerJid = remoteJid;
+          const senderPn = msg.key?.senderPn || null;
+          // senderPn is supplied by WhatsApp when remoteJid is a privacy LID.
+          // It is retained only as an internal delivery route.
+          const replyJid = isLidUser(callerJid)
+            ? (senderPn || lidToJid.get(callerJid) || callerJid)
+            : callerJid;
+          if (isLidUser(callerJid) && senderPn) lidToJid.set(callerJid, senderPn);
+          const route = { replyJid };
+          log('PRIVATE ROUTE: caller=' + callerJid + ' senderPn=' + (senderPn || '') + ' reply=' + replyJid);
           log('PRIVATE from=' + callerJid + ' text="' + text.slice(0, 50) + '"');
 
           if (command && ['/help', '/status', '/endsession', '/logout', '/relogin', '/cancel'].includes(command)) {
@@ -378,11 +399,12 @@ async function startBot() {
             const result = await authFlow.handleMessage(callerJid, text,
               sendReply,
               aptoToGroupJid,
-              retryDiscover);
+              retryDiscover,
+              route);
             if (result.action === 'authenticated' && result.session) {
               const lidJid = result.session.callerJid;
               sessionStore.setSession(lidJid, result.session);
-              lidToJid.set(lidJid, result.session.phoneJid);
+              if (result.session.replyJid) lidToJid.set(lidJid, result.session.replyJid);
               log('PRIVATE AUTH OK: apto=' + result.session.apartment + ' group=' + result.session.groupJid + ' lid=' + lidJid);
               await sendReply(lidJid, scripts.get('session_created', { apto: result.session.apartment }));
             }
@@ -403,7 +425,8 @@ async function startBot() {
           const result = await authFlow.handleMessage(callerJid, text,
             sendReply,
             aptoToGroupJid,
-            retryDiscover);
+            retryDiscover,
+            route);
           log('PRIVATE AUTH: action=' + result.action);
         }
 

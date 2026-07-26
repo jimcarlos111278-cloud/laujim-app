@@ -26,8 +26,11 @@ export async function relayToUser(sock, session, text, originalMsg) {
   });
   const fullText = prefix + '\n' + text;
   try {
-    const result = await sock.sendMessage(session.callerJid, { text: fullText });
-    log('RELAY_TO_USER: ' + session.apartment + ' id=' + (result?.key?.id || ''));
+    // Prefer the protocol route captured from the incoming private message.
+    // phoneJid remains only as a fallback for pre-existing sessions.
+    const destination = session.replyJid || session.phoneJid || session.callerJid;
+    const result = await sock.sendMessage(destination, { text: fullText });
+    log('RELAY_TO_USER: apto=' + session.apartment + ' route=' + destination + ' id=' + (result?.key?.id || ''));
   } catch (e) {
     log('RELAY_TO_USER ERROR: ' + e.message);
   }

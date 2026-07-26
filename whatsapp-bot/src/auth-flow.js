@@ -38,10 +38,17 @@ export function cancelAuth(callerJid) {
   clearState(callerJid);
 }
 
-export async function handleMessage(callerJid, message, sendReply, aptoToGroupJid, retryDiscover) {
-  const authState = getState(callerJid);
+export async function handleMessage(callerJid, message, sendReply, aptoToGroupJid, retryDiscover, route = {}) {
+  let authState = getState(callerJid);
+
+  // WhatsApp may use a privacy LID for the incoming chat. senderPn is the
+  // private delivery route and must never be rendered in relayed text.
+  if (authState && route.replyJid && authState.data.replyJid !== route.replyJid) {
+    setState(callerJid, authState.state, { ...authState.data, replyJid: route.replyJid });
+    authState = getState(callerJid);
+  }
   if (!authState) {
-    setState(callerJid, 'awaiting_phone', {});
+    setState(callerJid, 'awaiting_phone', { lidJid: callerJid, replyJid: route.replyJid || null });
     await sendReply(callerJid, scripts.get('auth_prompt_phone'));
     return { action: 'auth_phone' };
   }
@@ -52,9 +59,14 @@ export async function handleMessage(callerJid, message, sendReply, aptoToGroupJi
       await sendReply(callerJid, scripts.get('auth_invalid_phone'));
       return { action: 'auth_phone' };
     }
-    const phoneJid = '57' + phone + '@s.whatsapp.net';
-    setState(callerJid, 'awaiting_apto', { phoneJid, lidJid: callerJid });
-    log('AUTH: phone received, lid=' + callerJid + ' realJID=' + phoneJid);
+    const declaredPhoneJid = '57' + phone + '@s.whatsapp.net';
+    setState(callerJid, 'awaiting_apto', {
+      ...authState.data,
+      declaredPhoneJid,
+      lidJid: callerJid,
+      replyJid: route.replyJid || authState.data.replyJid || null,
+    });
+    log('AUTH: phone received for lid=' + callerJid + ' route=' + (route.replyJid || 'unavailable'));
     await sendReply(callerJid, scripts.get('auth_welcome'));
     return { action: 'auth_apto' };
   }
@@ -102,7 +114,7 @@ export async function handleMessage(callerJid, message, sendReply, aptoToGroupJi
       const tenantName = result.name || authState.data.apto;
       const sessionData = {
         callerJid: authState.data.lidJid,
-        phoneJid: authState.data.phoneJid,
+        replyJid: authState.data.replyJid || null,
         apartment: authState.data.apto,
         groupJid: authState.data.groupJid,
         tenantName,
