@@ -161,8 +161,44 @@ async function startBot() {
     return new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_' + ms + 'ms')), ms));
   }
 
+  // Wait for LID MAP with timeout
+  async function waitForLidMap(lidJid, timeoutMs) {
+    if (lidToJid.has(lidJid)) return lidToJid.get(lidJid);
+    if (timeoutMs <= 0) return null;
+    return new Promise(resolve => {
+      const check = setInterval(() => {
+        if (lidToJid.has(lidJid)) {
+          clearInterval(check);
+          clearTimeout(fallback);
+          resolve(lidToJid.get(lidJid));
+        }
+      }, 200);
+      const fallback = setTimeout(() => {
+        clearInterval(check);
+        resolve(null);
+      }, timeoutMs);
+    });
+  }
+
+  // Centralised send with full instrumentation
+  async function sendWithLog(targetJid, content, label) {
+    log('=== SEND START === ' + label + ' JID=' + targetJid);
+    log('sock.exists=' + !!sock + ' ws.readyState=' + (sock?.ws?.readyState));
+    try {
+      const result = await Promise.race([
+        sock.sendMessage(targetJid, { text: content }),
+        getTimeoutPromise(15000),
+      ]);
+      log('=== SEND OK === ' + label + ' id=' + (result?.key?.id || 'unknown'));
+      return result;
+    } catch (e) {
+      log('=== SEND ERROR === ' + label + ' JID=' + targetJid + ' err=' + e.message);
+      return null;
+    }
+  }
+
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    log('Messages event type=' + type + ' count=' + messages.length);
+    log('=== UPSERT START === type=' + type + ' count=' + messages.length);
     for (const msg of messages) {
       try {
         log('MSG key=' + msg.key?.remoteJid + ' fromMe=' + msg.key?.fromMe + ' hasMsg=' + !!msg.message);
@@ -174,6 +210,8 @@ async function startBot() {
         const isLid = isLidUser(remoteJid);
         const isNormal = remoteJid.endsWith('@s.whatsapp.net');
         if (!isLid && !isNormal) continue;
+
+        log('=== MESSAGE PARSED === remoteJid=' + remoteJid + ' isLid=' + isLid);
 
         const phone = isNormal ? remoteJid.replace('@s.whatsapp.net', '') : remoteJid;
         const text = msg.message.conversation ||
@@ -187,43 +225,38 @@ async function startBot() {
           log('LID_EXTRA: pushName=' + (msg.pushName || '') + ' participant=' + (msg.key.participant || ''));
         }
 
-        // Resolve @lid to phone JID via contact map, fallback to original
-        const replyTarget = (isLid && lidToJid.has(remoteJid)) ? lidToJid.get(remoteJid) : remoteJid;
+        // -- DIRECT TEST: send "TEST" before any auth logic --
+        log('=== TEST SEND === intentando enviar TEST a ' + remoteJid);
+        await sendWithLog(remoteJid, 'TEST', 'DIRECT_TEST');
+        log('=== TEST SEND === completado');
 
-        async function sendReply(content) {
-          try {
-            await Promise.race([
-              sock.sendMessage(replyTarget, { text: content }),
-              getTimeoutPromise(15000),
-            ]);
-          } catch (e) {
-            log('Error sending reply to ' + replyTarget + ': ' + e.message);
-            if (replyTarget !== remoteJid) {
-              try {
-                log('Fallback to original @lid JID: ' + remoteJid);
-                await Promise.race([
-                  sock.sendMessage(remoteJid, { text: content }),
-                  getTimeoutPromise(15000),
-                ]);
-              } catch (e2) {
-                log('Fallback to @lid also failed: ' + e2.message);
-              }
-            }
+        // Resolve @lid: wait up to 3s for LID MAP
+        let replyTarget = remoteJid;
+        if (isLid) {
+          const resolved = await waitForLidMap(remoteJid, 3000);
+          if (resolved) {
+            replyTarget = resolved;
+            log('LID RESOLVED: ' + remoteJid + ' -> ' + replyTarget);
+          } else {
+            log('LID UNRESOLVED: ' + remoteJid + ' usando @lid como fallback');
           }
         }
 
-        log('Handler branch: phone=' + phone + ' type=' + type);
+        log('=== AUTH START === phone=' + phone + ' type=' + type);
 
         if (adminCommands.isAdminMessage(phone)) {
           log('Branch: admin cmd');
-          const handled = await adminCommands.handleCommand(phone, text, sock, sendReply);
+          const handled = await adminCommands.handleCommand(phone, text, sock,
+            (content) => sendWithLog(replyTarget, content, 'ADMIN_REPLY'));
           if (handled) { log('Branch: admin cmd handled'); continue; }
         }
 
         if (authFlow.isInAuth(phone)) {
           log('Branch: inAuth');
-          const result = await authFlow.handleMessage(phone, text, sendReply, remoteJid);
-          log('Branch: inAuth result action=' + result.action);
+          const result = await authFlow.handleMessage(phone, text,
+            (content) => sendWithLog(replyTarget, content, 'AUTH_REPLY'),
+            remoteJid);
+          log('=== AUTH RESULT === action=' + result.action);
           continue;
         }
 
@@ -232,17 +265,20 @@ async function startBot() {
           log('Branch: relay session=' + session.apto + ' jid=' + (session.jid || 'none'));
           log('Relaying from ' + session.apto + ': ' + text.slice(0, 50));
           await messageRelay.relayToChat(phone, session, text, sock);
-          await sendReply(scripts.get('confirmation_sent'));
+          await sendWithLog(replyTarget, scripts.get('confirmation_sent'), 'CONFIRMATION');
           continue;
         }
 
         log('Branch: start auth (no session)');
-        const result = await authFlow.handleMessage(phone, text, sendReply, remoteJid);
-        log('Branch: start auth result action=' + result.action);
+        const result = await authFlow.handleMessage(phone, text,
+          (content) => sendWithLog(replyTarget, content, 'AUTH_START'),
+          remoteJid);
+        log('=== AUTH RESULT === action=' + result.action);
       } catch (e) {
-        log('MSG HANDLER ERROR: ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' '));
+        log('=== UPSERT ERROR === ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' '));
       }
     }
+    log('=== UPSERT END ===');
   });
 }
 
