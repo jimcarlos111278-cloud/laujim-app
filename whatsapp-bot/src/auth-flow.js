@@ -43,20 +43,20 @@ export async function handleMessage(convJid, message, sendToTenant, aptoToGroupJ
 
   if (!authState) {
     setState(convJid, 'awaiting_apto', {});
-    await sendToTenant(convJid, scripts.get('auth_welcome'));
+    await sendToTenant(convJid, scripts.get('auth_welcome'), 'AUTH_WELCOME');
     return { action: 'auth_apto' };
   }
 
   if (authState.state === 'awaiting_apto') {
     const apto = message.trim();
     if (!/^\d{3}$/.test(apto)) {
-      await sendToTenant(convJid, scripts.get('auth_invalid_apto'));
+      await sendToTenant(convJid, scripts.get('auth_invalid_apto'), 'AUTH_INVALID_APTO');
       return { action: 'auth_apto' };
     }
     const apt = await api.getApartmentByName(apto);
     if (!apt || !apt.id) {
       log('AUTH: getApartmentByName(' + apto + ') returned empty');
-      await sendToTenant(convJid, scripts.get('auth_apto_not_found', { apto }));
+      await sendToTenant(convJid, scripts.get('auth_apto_not_found', { apto }), 'AUTH_APTO_NOT_FOUND');
       return { action: 'auth_apto' };
     }
     let groupJid = aptoToGroupJid[apto];
@@ -66,20 +66,20 @@ export async function handleMessage(convJid, message, sendToTenant, aptoToGroupJ
         groupJid = aptoToGroupJid[apto];
       }
       if (!groupJid) {
-        await sendToTenant(convJid, '❌ No hay un grupo configurado para el apartamento *' + apto + '*.\n\nContacta al administrador.');
+        await sendToTenant(convJid, '❌ No hay un grupo configurado para el apartamento *' + apto + '*.\n\nContacta al administrador.', 'AUTH_NO_GROUP');
         clearState(convJid);
         return { action: 'auth_failed' };
       }
     }
     setState(convJid, 'awaiting_cedula', { apto, aptId: apt.id, groupJid });
-    await sendToTenant(convJid, scripts.get('auth_prompt_cedula'));
+    await sendToTenant(convJid, scripts.get('auth_prompt_cedula'), 'AUTH_PROMPT_CEDULA');
     return { action: 'auth_cedula' };
   }
 
   if (authState.state === 'awaiting_cedula') {
     const cedula = message.trim();
     if (cedula.length < 5) {
-      await sendToTenant(convJid, scripts.get('auth_invalid_cedula'));
+      await sendToTenant(convJid, scripts.get('auth_invalid_cedula'), 'AUTH_INVALID_CEDULA');
       return { action: 'auth_cedula' };
     }
     const result = await api.login(authState.data.apto, cedula);
@@ -96,7 +96,7 @@ export async function handleMessage(convJid, message, sendToTenant, aptoToGroupJ
         },
       };
     } else {
-      await sendToTenant(convJid, scripts.get('auth_failed'));
+      await sendToTenant(convJid, scripts.get('auth_failed'), 'AUTH_FAILED');
       setState(convJid, 'awaiting_apto', {});
       return { action: 'auth_failed' };
     }

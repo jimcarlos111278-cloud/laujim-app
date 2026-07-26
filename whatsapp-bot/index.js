@@ -267,19 +267,19 @@ async function startBot() {
     return null;
   }
 
-  function sendToTenant(convJid, content) {
-    if (!sock) return;
+  function sendToTenant(convJid, content, source) {
+    if (!sock) { log('SEND_TO_TENANT: no sock, skipping'); return; }
     const session = sessionStore.getSession(convJid);
     const deliveryJid = session?.deliveryJid || convJid;
     const masked = deliveryJid.split('@')[0].slice(0, 4) + '...@' + deliveryJid.split('@')[1];
-    log('=== SEND_TO_TENANT conv=' + convJid.split('@')[0].slice(0, 4) + '... route=' + masked + ' text="' + (content || '').slice(0, 50) + '" ===');
+    log('SEND_TO_TENANT source=' + (source || '?') + ' conv=' + convJid.split('@')[0].slice(0, 4) + '... route=' + masked + ' text="' + (content || '').slice(0, 50) + '"');
     try {
       const result = sock.sendMessage(deliveryJid, { text: content });
       if (result && result.then) {
-        result.then(r => log('=== SEND OK id=' + (r?.key?.id || '') + ' ===')).catch(e => log('=== SEND ERROR: ' + e.message + ' ==='));
+        result.then(r => log('SEND_TO_TENANT OK source=' + (source || '?') + ' id=' + (r?.key?.id || '') + ' route=' + masked)).catch(e => log('SEND_TO_TENANT ERROR source=' + (source || '?') + ' ' + e.message));
       }
     } catch (e) {
-      log('=== SEND ERROR: ' + e.message + ' ===');
+      log('SEND_TO_TENANT ERROR source=' + (source || '?') + ' ' + e.message);
     }
   }
 
@@ -402,7 +402,9 @@ async function startBot() {
           let groupMetadata = null;
           try {
             groupMetadata = await sock.groupMetadata(groupJid);
-          } catch (e) { /* ignore */ }
+          } catch (e) {
+            log('GROUP: metadata fetch failed: ' + e.message);
+          }
 
           if (command && ['/session', '/close', '/who', '/status', '/ping'].includes(command)) {
             if (!adminCommands.isAuthorized(msg, sock, groupMetadata)) {
@@ -416,23 +418,26 @@ async function startBot() {
           }
 
           const participant = msg.key.participant || '';
-          if (!adminCommands.isAuthorized(msg, sock, groupMetadata)) {
+          const authResult = adminCommands.isAuthorized(msg, sock, groupMetadata);
+          log('GROUP: participant=' + participant + ' isAuthorized=' + authResult);
+          if (!authResult) {
             log('GROUP: non-admin message ignored');
             continue;
           }
 
           const session = sessionStore.getSessionByGroup(groupJid);
           if (session && session.state === 'ACTIVE') {
-            log('GROUP RELAY: to tenant apto=' + session.apto);
+            log('GROUP RELAY: to tenant apto=' + session.apto + ' convJid=' + (session.conversationJid || 'none') + ' deliveryJid=' + (session.deliveryJid || 'none'));
             const displayText = text;
             const prefix = scripts.get('relay_from_group', { apto: session.apto });
             const fullText = prefix + '\n' + displayText;
-            sendToTenant(session.conversationJid, fullText);
+            sendToTenant(session.conversationJid, fullText, 'GROUP_RELAY');
             sessionStore.updateSession(session.conversationJid, {});
             continue;
           }
 
-          log('GROUP: no active session');
+          const apto = aptoToGroupJid ? Object.keys(aptoToGroupJid).find(k => aptoToGroupJid[k] === groupJid) : null;
+          log('GROUP: no active session for groupJid=' + groupJid + ' mappedApto=' + (apto || 'none'));
         }
       } catch (e) {
         log('=== UPSERT ERROR === ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' '));
