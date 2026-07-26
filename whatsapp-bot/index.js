@@ -134,8 +134,9 @@ async function startBot() {
       heartbeat.stopHeartbeat();
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
 
-      if (code === DisconnectReason.loggedOut || code === 401) {
-        log('Session logged out. Clearing session files...');
+      const shouldClear = code === DisconnectReason.loggedOut || code === 401 || code === 515;
+      if (shouldClear) {
+        log('Clearing session files (code=' + code + ')...');
         notify.setQr(null);
         notify.setClient(null);
         try {
@@ -147,7 +148,9 @@ async function startBot() {
         } catch (e) {
           log('Error clearing session: ' + e.message);
         }
-        reconnectTimer = setTimeout(startBot, 30000);
+        const delay = code === 515 ? 5000 : 30000;
+        log('Reconnecting in ' + (delay / 1000) + 's (new session)...');
+        reconnectTimer = setTimeout(startBot, delay);
       } else {
         log('Reconnecting in 5s...');
         reconnectTimer = setTimeout(startBot, 5000);
