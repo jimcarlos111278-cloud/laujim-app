@@ -5,6 +5,8 @@ import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import * as sessionStore from './src/session-store.js';
 import * as authFlow from './src/auth-flow.js';
 import * as adminCommands from './src/admin-cmds.js';
@@ -28,6 +30,21 @@ try { if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: tr
 let sock = null;
 let reconnectTimer = null;
 
+function getProxyAgent() {
+  const proxyUrl = process.env.BOT_PROXY || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+  if (!proxyUrl) return undefined;
+  console.log('Using proxy: ' + proxyUrl.replace(/:([^:@]+)@/, ':***@'));
+  try {
+    if (proxyUrl.startsWith('socks')) {
+      return new SocksProxyAgent(proxyUrl);
+    }
+    return new HttpsProxyAgent(proxyUrl);
+  } catch (e) {
+    console.error('Proxy agent error:', e.message);
+    return undefined;
+  }
+}
+
 async function startBot() {
   if (reconnectTimer) clearTimeout(reconnectTimer);
 
@@ -36,7 +53,7 @@ async function startBot() {
 
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
-  sock = makeWASocket({
+  const sockOpts = {
     version,
     auth: state,
     printQRInTerminal: true,
@@ -47,7 +64,12 @@ async function startBot() {
     connectTimeoutMs: 60000,
     qrTimeout: 60,
     keepAliveIntervalMs: 25000,
-  });
+  };
+
+  const agent = getProxyAgent();
+  if (agent) sockOpts.agent = agent;
+
+  sock = makeWASocket(sockOpts);
 
   notify.setClient(sock);
 
