@@ -172,26 +172,77 @@ export function startNotifyServer(port) {
           lastError,
         });
       } else if (req.url === '/') {
-        sendJson(res, 200, {
-          service: 'Laujim WhatsApp Bot',
-          ready: !!client,
-          authenticated: !!(client?.user),
-          qrTimestamp,
-          lastError,
-          endpoints: {
-            status: '/status',
-            qr: '/qr',
-            pairingCode: '/pairing-code',
-            logs: '/logs',
-            groups: '/groups',
-            sessions: '/sessions',
-            leads: '/leads',
-            proxyStatus: '/proxy-status',
-            info: '/info',
-            ladder: '/ladder',
-          },
-          adminPage: 'https://laujim-app.onrender.com/whatsapp-bot',
-        });
+        const number = client?.user?.id ? client.user.id.split(':')[0].replace('@s.whatsapp.net', '') : '—';
+        const groupsPath = join(DATA_DIR, 'grupos.json');
+        let groupsCount = 0;
+        let groupsList = '';
+        try {
+          const raw = readFileSync(groupsPath, 'utf-8');
+          const g = JSON.parse(raw);
+          groupsCount = Object.keys(g).length;
+          groupsList = Object.entries(g).map(([a, j]) => '<tr><td>' + a + '</td><td class="jid">' + j.split('@')[0].slice(0, 8) + '…</td></tr>').join('');
+        } catch {}
+        const ready = !!client;
+        const auth = !!(client?.user);
+        const html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Laujim WhatsApp Bot</title><style>' +
+          '*,body{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}' +
+          '.container{max-width:900px;margin:0 auto;padding:20px}' +
+          'h1{font-size:1.5rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px}' +
+          '.sub{color:#64748b;font-size:.85rem;margin-bottom:24px}' +
+          '.card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;margin-bottom:16px}' +
+          '.card h2{font-size:1rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}' +
+          '.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:.8rem;font-weight:600}' +
+          '.badge-green{background:#065f46;color:#6ee7b7}.badge-red{background:#7f1d1d;color:#fca5a5}.badge-amber{background:#78350f;color:#fcd34d}' +
+          '.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:12px}' +
+          '.stat{background:#0f172a;border-radius:8px;padding:12px;text-align:center}' +
+          '.stat .num{font-size:1.5rem;font-weight:700;color:#3b82f6}' +
+          '.stat .label{font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px}' +
+          'table{width:100%;border-collapse:collapse;font-size:.85rem}' +
+          'th{text-align:left;padding:6px 8px;color:#64748b;font-weight:500;border-bottom:1px solid #334155}' +
+          'td{padding:6px 8px;border-bottom:1px solid #1e293b}.jid{font-family:monospace;font-size:.75rem;color:#64748b}' +
+          '.qr-box{text-align:center;padding:16px}.qr-box img{width:200px;height:200px;border-radius:8px;margin-bottom:8px}' +
+          '.pairing{display:flex;gap:8px;margin-top:12px}' +
+          '.pairing input{flex:1;padding:8px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:.9rem}' +
+          '.pairing button{padding:8px 16px;border-radius:8px;border:none;background:#3b82f6;color:#fff;font-weight:600;cursor:pointer}' +
+          '.pairing button:hover{background:#2563eb}.pairing button:disabled{opacity:.5}' +
+          '.code-box{background:#0f172a;border:2px dashed #3b82f6;border-radius:12px;padding:16px;text-align:center;margin-top:12px}' +
+          '.code-box .code{font-size:2rem;font-weight:700;letter-spacing:8px;color:#60a5fa}' +
+          '.footer{text-align:center;padding:20px;color:#475569;font-size:.75rem}' +
+          '.footer a{color:#3b82f6;text-decoration:none}' +
+          '</style></head><body><div class="container">' +
+          '<h1><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Laujim WhatsApp Bot</h1>' +
+          '<p class="sub">' + (auth ? '✅ Conectado como <strong>' + number + '</strong>' : '⏳ Esperando vinculación') + '</p>' +
+          '<div class="card"><h2>🔌 Estado</h2>' +
+          '<span class="badge ' + (ready ? 'badge-green' : 'badge-red') + '">' + (ready ? '● En ejecución' : '○ Detenido') + '</span> ' +
+          '<span class="badge ' + (auth ? 'badge-green' : 'badge-amber') + '">' + (auth ? '✓ Autenticado' : '✗ No autenticado') + '</span>' +
+          (lastError ? '<div style="margin-top:8px;padding:8px 12px;background:#7f1d1d;border-radius:8px;font-size:.8rem">⚠️ ' + lastError + '</div>' : '') +
+          '<div class="stat-grid"><div class="stat"><div class="num">' + groupsCount + '</div><div class="label">Grupos</div></div>' +
+          '<div class="stat"><div class="num">0</div><div class="label">Sesiones</div></div>' +
+          '<div class="stat"><div class="num">' + (auth ? number : '—') + '</div><div class="label">Número</div></div></div></div>' +
+
+          (!auth && qrTimestamp > 0 ? '<div class="card"><h2>📱 Escanea el QR</h2><div class="qr-box"><img src="/qr" alt="QR"/><p style="font-size:.8rem;color:#64748b">WhatsApp → Vincular dispositivo</p></div>' +
+          '<div class="relative" style="text-align:center;margin:12px 0"><span style="color:#475569;font-size:.8rem">— o usa código de vinculación —</span></div>' +
+          '<div class="pairing"><input type="text" id="phone" placeholder="573001234567"/><button onclick="fetch(\'/request-code\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({phone:document.getElementById(\'phone\').value.replace(/[^0-9]/g,\'\')})}).then(r=>r.json()).then(d=>{if(d.code)document.getElementById(\'code\').innerText=d.code;else alert(d.error)}).catch(e=>alert(e))">Obtener código</button></div>' +
+          '<div id="code" class="code-box" style="display:none"></div></div>' : '') +
+
+          (groupsCount > 0 ? '<div class="card"><h2>👥 Grupos descubiertos</h2><table><thead><tr><th>Apto</th><th>JID</th></tr></thead><tbody>' + groupsList + '</tbody></table></div>' : '') +
+
+          '<div class="card"><h2>🔗 Enlaces</h2>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.85rem">' +
+          '<a href="https://laujim-app.onrender.com/whatsapp-bot" style="color:#3b82f6;text-decoration:none;padding:8px;background:#0f172a;border-radius:8px;text-align:center">📊 Panel administración</a>' +
+          '<a href="/ladder" style="color:#3b82f6;text-decoration:none;padding:8px;background:#0f172a;border-radius:8px;text-align:center">📋 Delivery Ladder</a>' +
+          '<a href="/logs" style="color:#3b82f6;text-decoration:none;padding:8px;background:#0f172a;border-radius:8px;text-align:center">📝 Logs</a>' +
+          '<a href="/groups" style="color:#3b82f6;text-decoration:none;padding:8px;background:#0f172a;border-radius:8px;text-align:center">👥 Groups JSON</a>' +
+          '<a href="/leads" style="color:#3b82f6;text-decoration:none;padding:8px;background:#0f172a;border-radius:8px;text-align:center">📥 Leads JSON</a>' +
+          '<a href="/sessions" style="color:#3b82f6;text-decoration:none;padding:8px;background:#0f172a;border-radius:8px;text-align:center">🔐 Sesiones JSON</a>' +
+          '</div></div>' +
+
+          '<div class="footer">Laujim WhatsApp Bot · Proyecto Sabanilla · <a href="https://github.com/anomalyco/opencode">opencode</a></div>' +
+          '</div>' +
+          '<script>fetch(\'/pairing-code\').then(r=>r.json()).then(d=>{if(d.code){document.getElementById(\'code\').innerText=d.code;document.getElementById(\'code\').style.display=\'block\'}})</script>' +
+          '</body></html>';
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(html);
       } else {
         sendJson(res, 404, { error: 'Not found' });
       }
