@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, ToggleLeft, ToggleRight, AlertCircle, CheckCircle, XCircle, Key } from 'lucide-react';
+import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, ToggleLeft, ToggleRight, AlertCircle, CheckCircle, XCircle, Key, Terminal, Globe } from 'lucide-react';
 import { getAuth } from '../utils/auth';
 import { getBase, AUTH_TOKEN } from '../utils/config';
 
@@ -75,13 +75,31 @@ export default function WhatsAppBot() {
   const [pairingCode, setPairingCode] = useState(null);
   const [pairingCodeLoading, setPairingCodeLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState(null);
+  const [proxyStatus, setProxyStatus] = useState(null);
+  const [botLogs, setBotLogs] = useState([]);
+  const [showLogs, setShowLogs] = useState(false);
   const qrTimestampRef = useRef(0);
   const pollRef = useState(null);
+
+  async function fetchProxyStatus() {
+    try {
+      const res = await fetch(getBase() + '/whatsapp-bot/proxy-status', { headers: { 'x-auth-token': AUTH_TOKEN } });
+      if (res.ok) setProxyStatus(await res.json());
+    } catch {}
+  }
+
+  async function fetchLogs() {
+    try {
+      const res = await fetch(getBase() + '/whatsapp-bot/logs', { headers: { 'x-auth-token': AUTH_TOKEN } });
+      if (res.ok) setBotLogs(await res.json());
+    } catch {}
+  }
 
   useEffect(() => {
     if (!auth || auth.role !== 'admin') { navigate('/login', { replace: true }); return; }
     loadConfig();
     fetchStatus();
+    fetchProxyStatus();
     const iv = setInterval(fetchStatus, 5000);
     const ageIv = setInterval(() => {
       const ts = qrTimestampRef.current;
@@ -392,6 +410,58 @@ export default function WhatsAppBot() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Proxy Status Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Globe className="w-4 h-4" /> Proxy</h3>
+          {proxyStatus ? (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <span className="text-gray-500">BOT_PROXY</span>
+                <span className={proxyStatus.botProxySet ? 'text-emerald-600 font-medium' : 'text-red-500'}>{proxyStatus.botProxySet ? '✓ Configurado' : '✗ No configurado'}</span>
+              </div>
+              {proxyStatus.activeProxyUrl && (
+                <div className="flex justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <span className="text-gray-500">Proxy activo</span>
+                  <span className="text-gray-900 dark:text-white font-mono text-xs">{proxyStatus.activeProxyUrl}</span>
+                </div>
+              )}
+              {proxyStatus.proxyType && (
+                <div className="flex justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <span className="text-gray-500">Tipo</span>
+                  <span className="text-gray-900 dark:text-white">{proxyStatus.proxyType === 'socks' ? 'SOCKS' : 'HTTP/HTTPS'}</span>
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-2">Si no ves "Configurado", agrega BOT_PROXY en las variables de entorno de Render.</p>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">Consultando...</p>
+          )}
+        </div>
+
+        {/* Logs Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Terminal className="w-4 h-4" /> Logs del Bot</h3>
+          <button
+            onClick={() => { setShowLogs(!showLogs); if (!showLogs) fetchLogs(); }}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-2"
+          >
+            {showLogs ? 'Ocultar logs' : 'Ver logs'}
+          </button>
+          {showLogs && (
+            <div className="max-h-60 overflow-y-auto bg-gray-900 text-green-400 text-xs font-mono p-3 rounded-lg">
+              {botLogs.length === 0 ? (
+                <p className="text-gray-500">No hay logs disponibles</p>
+              ) : (
+                botLogs.map((entry, i) => (
+                  <div key={i} className="py-0.5">
+                    <span className="text-gray-500">[{new Date(entry.ts).toLocaleTimeString()}]</span> {entry.msg}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
       </div>

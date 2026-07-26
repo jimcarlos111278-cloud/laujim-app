@@ -1,4 +1,5 @@
 import { createServer } from 'http';
+import { log, getLogs } from './logger.js';
 
 let client = null;
 let currentQrBase64 = null;
@@ -92,6 +93,19 @@ export function startNotifyServer(port) {
       } else if (req.url === '/log') {
         res.writeHead(200);
         res.end(JSON.stringify({ error: lastError }));
+      } else if (req.url === '/logs') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(getLogs()));
+      } else if (req.url === '/proxy-status') {
+        const proxyUrl = process.env.BOT_PROXY || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          botProxySet: !!process.env.BOT_PROXY,
+          httpsProxySet: !!process.env.HTTPS_PROXY,
+          httpProxySet: !!process.env.HTTP_PROXY,
+          activeProxyUrl: proxyUrl ? proxyUrl.replace(/:([^:@]+)@/, ':***@') : null,
+          proxyType: proxyUrl ? (proxyUrl.startsWith('socks') ? 'socks' : 'http') : null,
+        }));
       } else {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'Not found' }));
@@ -171,12 +185,14 @@ export function startNotifyServer(port) {
   });
 
   server.listen(port, () => {
-    console.log('Notify HTTP server on port ' + port);
-    console.log('  POST /send - Send a WhatsApp message');
-    console.log('  POST /request-code - Request pairing code');
-    console.log('  GET  /status - Bot status');
-    console.log('  GET  /qr - QR code image');
-    console.log('  GET  /pairing-code - Get pairing code');
+    log('Notify HTTP server on port ' + port);
+    log('  POST /send - Send a WhatsApp message');
+    log('  POST /request-code - Request pairing code');
+    log('  GET  /status - Bot status');
+    log('  GET  /qr - QR code image');
+    log('  GET  /pairing-code - Get pairing code');
+    log('  GET  /logs - Recent log entries');
+    log('  GET  /proxy-status - Proxy configuration');
   });
 
   return server;

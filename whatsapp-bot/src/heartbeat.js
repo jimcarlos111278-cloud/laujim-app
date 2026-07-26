@@ -1,5 +1,6 @@
 import * as api from './api-client.js';
 import * as sessionStore from './session-store.js';
+import { log } from './logger.js';
 
 let heartbeatTimer = null;
 
@@ -12,7 +13,7 @@ export function startHeartbeat() {
       try {
         await api.heartbeat('apt-' + session.aptId, 'online');
       } catch (e) {
-        console.error('Heartbeat error for', session.apto, ':', e.message);
+        log('Heartbeat error for ' + session.apto + ': ' + e.message);
       }
     }
     try {
@@ -22,7 +23,7 @@ export function startHeartbeat() {
 
   beat();
   heartbeatTimer = setInterval(beat, interval);
-  console.log('Heartbeat started (every ' + interval + 'ms)');
+  log('Heartbeat started (every ' + interval + 'ms)');
 }
 
 export function stopHeartbeat() {

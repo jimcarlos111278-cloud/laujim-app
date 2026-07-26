@@ -1,6 +1,7 @@
 import * as api from './api-client.js';
 import * as sessionStore from './session-store.js';
 import * as scripts from './scripts.js';
+import { log } from './logger.js';
 
 let lastCheck = new Date(0).toISOString();
 let pollTimer = null;
@@ -22,9 +23,9 @@ export async function relayToChat(phone, session, content, client) {
     const adminMsg = scripts.get('notif_admin_new', { apto: session.apto, nombre: session.tenantName, content: preview });
     try {
       await client.sendMessage(num + '@s.whatsapp.net', { text: adminMsg });
-      console.log('Notified admin', num);
+      log('Notified admin ' + num);
     } catch (e) {
-      console.error('Error notifying admin', num, ':', e.message);
+      log('Error notifying admin ' + num + ': ' + e.message);
     }
   }
 
@@ -66,18 +67,18 @@ export async function startPolling(client) {
 
           try {
             await client.sendMessage(phone + '@s.whatsapp.net', { text });
-            console.log('Forwarded admin reply to', session.apto, '(', phone, ')');
+            log('Forwarded admin reply to ' + session.apto + ' (' + phone + ')');
           } catch (e) {
-            console.error('Error forwarding to tenant', phone, ':', e.message);
+            log('Error forwarding to tenant ' + phone + ': ' + e.message);
           }
         }
       }
     } catch (e) {
-      console.error('Polling error:', e.message);
+      log('Polling error: ' + e.message);
     }
   };
 
   poll();
   pollTimer = setInterval(poll, interval);
-  console.log('Message polling started (every ' + interval + 'ms)');
+  log('Message polling started (every ' + interval + 'ms)');
 }
