@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+import { rm } from 'fs/promises';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import * as sessionStore from './src/session-store.js';
@@ -119,10 +120,19 @@ async function startBot() {
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
 
       if (code === DisconnectReason.loggedOut) {
-        log('Session logged out. Restarting for new QR...');
+        log('Session logged out. Clearing session files...');
         notify.setQr(null);
         notify.setClient(null);
-        reconnectTimer = setTimeout(startBot, 3000);
+        try {
+          if (fs.existsSync(SESSION_DIR)) {
+            const files = fs.readdirSync(SESSION_DIR);
+            for (const f of files) fs.rmSync(path.join(SESSION_DIR, f), { recursive: true, force: true });
+            log('Session directory cleared (' + files.length + ' files)');
+          }
+        } catch (e) {
+          log('Error clearing session: ' + e.message);
+        }
+        reconnectTimer = setTimeout(startBot, 30000);
       } else {
         log('Reconnecting in 5s...');
         reconnectTimer = setTimeout(startBot, 5000);
