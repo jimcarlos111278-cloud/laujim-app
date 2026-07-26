@@ -1,4 +1,3 @@
-import * as sessionStore from './session-store.js';
 import * as api from './api-client.js';
 import * as scripts from './scripts.js';
 
@@ -6,48 +5,42 @@ const AUTH_TIMEOUT = 5 * 60 * 1000;
 
 const states = new Map();
 
-function getState(phone) {
-  return states.get(phone) || null;
+function getState(callerJid) {
+  return states.get(callerJid) || null;
 }
 
-function setState(phone, state, data) {
-  states.set(phone, { state, data: data || {}, timer: null, expiresAt: Date.now() + AUTH_TIMEOUT });
+function setState(callerJid, state, data) {
+  const existing = states.get(callerJid);
+  if (existing && existing.timer) clearTimeout(existing.timer);
+  const timer = setTimeout(() => {
+    states.delete(callerJid);
+  }, AUTH_TIMEOUT);
+  states.set(callerJid, { state, data: data || {}, timer });
 }
 
-function clearState(phone) {
-  const s = states.get(phone);
+function clearState(callerJid) {
+  const s = states.get(callerJid);
   if (s && s.timer) clearTimeout(s.timer);
-  states.delete(phone);
+  states.delete(callerJid);
 }
 
-export function isAuthenticated(phone) {
-  const session = sessionStore.getSession(phone);
-  return session && session.status === 'activo';
-}
-
-export function isInAuth(phone) {
-  const s = getState(phone);
+export function isInAuth(callerJid) {
+  const s = getState(callerJid);
   return s && (s.state === 'awaiting_apto' || s.state === 'awaiting_cedula');
 }
 
-export function resetAuth(phone) {
-  clearState(phone);
+export function resetAuth(callerJid) {
+  clearState(callerJid);
 }
 
-export async function handleMessage(phone, message, sendReply, jid) {
-  const session = sessionStore.getSession(phone);
-  if (session && session.status === 'activo') {
-    return { action: 'relay', session };
-  }
+export function cancelAuth(callerJid) {
+  clearState(callerJid);
+}
 
-  if (session && session.status === 'bloqueado') {
-    await sendReply(scripts.get('auth_blocked'));
-    return { action: 'blocked' };
-  }
-
-  const authState = getState(phone);
+export async function handleMessage(callerJid, message, sendReply, aptoToGroupJid) {
+  const authState = getState(callerJid);
   if (!authState) {
-    setState(phone, 'awaiting_apto', {});
+    setState(callerJid, 'awaiting_apto', {});
     await sendReply(scripts.get('auth_welcome'));
     return { action: 'auth_apto' };
   }
@@ -63,9 +56,16 @@ export async function handleMessage(phone, message, sendReply, jid) {
       await sendReply(scripts.get('auth_apto_not_found', { apto }));
       return { action: 'auth_apto' };
     }
+    const groupJid = aptoToGroupJid[apto];
+    if (!groupJid) {
+      await sendReply('❌ No hay un grupo configurado para el apartamento *' + apto + '*.\n\nContacta al administrador.');
+      clearState(callerJid);
+      return { action: 'auth_failed' };
+    }
     authState.data.apto = apto;
     authState.data.aptId = apt.id;
-    setState(phone, 'awaiting_cedula', authState.data);
+    authState.data.groupJid = groupJid;
+    setState(callerJid, 'awaiting_cedula', authState.data);
     await sendReply(scripts.get('auth_prompt_cedula'));
     return { action: 'auth_cedula' };
   }
@@ -79,36 +79,21 @@ export async function handleMessage(phone, message, sendReply, jid) {
     const result = await api.login(authState.data.apto, cedula);
     if (result.authenticated && result.role === 'tenant') {
       const tenantName = result.name || authState.data.apto;
-      const sessionJid = jid || (phone.includes('@') ? phone : phone + '@s.whatsapp.net');
-      sessionStore.setSession(phone, {
-        apto: authState.data.apto,
-        aptId: authState.data.aptId,
+      const sessionData = {
+        callerJid,
+        apartment: authState.data.apto,
+        groupJid: authState.data.groupJid,
         tenantName,
-        jid: sessionJid,
-        status: 'activo',
-        createdAt: new Date().toISOString(),
-      });
-      clearState(phone);
-      await sendReply(scripts.get('auth_success'));
-      return { action: 'authenticated', session: sessionStore.getSession(phone) };
+        state: 'ACTIVE',
+      };
+      clearState(callerJid);
+      return { action: 'authenticated', session: sessionData };
     } else {
       await sendReply(scripts.get('auth_failed'));
-      setState(phone, 'awaiting_apto', {});
+      setState(callerJid, 'awaiting_apto', {});
       return { action: 'auth_failed' };
     }
   }
 
   return { action: 'unknown' };
-}
-
-export function startTimeoutChecker(phone, sendReply) {
-  const interval = setInterval(() => {
-    const authState = getState(phone);
-    if (authState && Date.now() > authState.expiresAt) {
-      clearState(phone);
-      sendReply(scripts.get('auth_timeout'));
-      clearInterval(interval);
-    }
-  }, 60000);
-  return interval;
 }

@@ -5,32 +5,78 @@ import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
-import { rm } from 'fs/promises';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import * as sessionStore from './src/session-store.js';
 import * as authFlow from './src/auth-flow.js';
-import * as adminCommands from './src/admin-cmds.js';
 import * as messageRelay from './src/message-relay.js';
+import * as adminCommands from './src/admin-cmds.js';
 import * as notify from './src/notify.js';
 import * as heartbeat from './src/heartbeat.js';
-import * as scripts from './src/scripts.js';
 import { log } from './src/logger.js';
 
 log('');
 log('============================================');
-log('  WHATSAPP PROXY BOT (Baileys)');
+log('  WHATSAPP RELAY BOT (Baileys)');
 log('============================================');
 log('');
 
 sessionStore.load();
-scripts.load().catch(e => log('Scripts load error: ' + e.message));
 
-const SESSION_DIR = process.env.SESSION_PATH || path.join(path.dirname(fileURLToPath(import.meta.url)), 'data', 'baileys-sessions');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SESSION_DIR = process.env.SESSION_PATH || path.join(__dirname, 'data', 'baileys-sessions');
 try { if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true }); } catch {}
+
+const GRUPOS_PATH = path.join(__dirname, 'data', 'grupos.json');
 
 let sock = null;
 let reconnectTimer = null;
+let sessionTimeoutInterval = null;
+let aptoToGroupJid = {};
+let botNumber = null;
+let botName = null;
+
+function loadGroupMapping() {
+  try {
+    if (fs.existsSync(GRUPOS_PATH)) {
+      aptoToGroupJid = JSON.parse(fs.readFileSync(GRUPOS_PATH, 'utf-8'));
+      log('Group mapping loaded: ' + Object.keys(aptoToGroupJid).length + ' groups');
+    }
+  } catch (e) {
+    log('Error loading group mapping: ' + e.message);
+    aptoToGroupJid = {};
+  }
+}
+
+function saveGroupMapping() {
+  try {
+    fs.writeFileSync(GRUPOS_PATH, JSON.stringify(aptoToGroupJid, null, 2), 'utf-8');
+  } catch (e) {
+    log('Error saving group mapping: ' + e.message);
+  }
+}
+
+async function discoverGroups() {
+  try {
+    const groups = await sock.groupFetchAllParticipating();
+    let count = 0;
+    for (const [jid, g] of Object.entries(groups)) {
+      const match = g.subject.match(/\b(\d{3})\b/);
+      if (match) {
+        const apto = match[1];
+        if (aptoToGroupJid[apto] !== jid) {
+          aptoToGroupJid[apto] = jid;
+          log('GROUP DISCOVER: apto=' + apto + ' jid=' + jid + ' name="' + g.subject + '"');
+          count++;
+        }
+      }
+    }
+    if (count > 0) saveGroupMapping();
+    log('Group discovery complete. Total mapped: ' + Object.keys(aptoToGroupJid).length);
+  } catch (e) {
+    log('Group discovery error: ' + e.message);
+  }
+}
 
 function getProxyAgent() {
   const proxyUrl = process.env.BOT_PROXY || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
@@ -40,9 +86,7 @@ function getProxyAgent() {
   if (!proxyUrl) return undefined;
   log('Using proxy: ' + proxyUrl.replace(/:([^:@]+)@/, ':***@'));
   try {
-    if (proxyUrl.startsWith('socks')) {
-      return new SocksProxyAgent(proxyUrl);
-    }
+    if (proxyUrl.startsWith('socks')) return new SocksProxyAgent(proxyUrl);
     return new HttpsProxyAgent(proxyUrl);
   } catch (e) {
     log('Proxy agent error: ' + e.message);
@@ -52,6 +96,8 @@ function getProxyAgent() {
 
 async function startBot() {
   if (reconnectTimer) clearTimeout(reconnectTimer);
+
+  loadGroupMapping();
 
   const { version } = await fetchLatestBaileysVersion();
   log('WA version: ' + version.join('.'));
@@ -80,21 +126,6 @@ async function startBot() {
   }
 
   sock = makeWASocket(sockOpts);
-
-  const lidToJid = new Map();
-
-  sock.ev.on('contacts.upsert', (contacts) => {
-    for (const c of contacts) {
-      if (c.lid && c.jid && c.jid.endsWith('@s.whatsapp.net')) {
-        const lidJid = c.lid.endsWith('@lid') ? c.lid : c.lid + '@lid';
-        if (!lidToJid.has(lidJid)) {
-          lidToJid.set(lidJid, c.jid);
-          log('LID MAP: ' + lidJid + ' -> ' + c.jid + ' (' + (c.name || c.notify || '') + ')');
-        }
-      }
-    }
-  });
-
   notify.setClient(sock);
 
   sock.ev.on('connection.update', async (update) => {
@@ -116,15 +147,23 @@ async function startBot() {
 
     if (connection === 'open') {
       const number = sock?.user?.id ? sock.user.id.split(':')[0].replace('@s.whatsapp.net', '') : 'unknown';
+      botNumber = number;
+      botName = sock?.user?.name || 'Relay Bot';
       log('Connected. Number: ' + number);
       log('sock.user: id=' + (sock?.user?.id || '') + ' lid=' + (sock?.user?.lid || '') + ' verified=' + (!!sock?.user));
       notify.setClient(sock);
       notify.setLastError(null);
       heartbeat.startHeartbeat();
-      messageRelay.startPolling(sock);
-      messageRelay.onAdminMessage((session, msg) => {
-        log('Admin reply for ' + session.apto + ': ' + msg.content.slice(0, 50));
-      });
+
+      discoverGroups();
+
+      if (sessionTimeoutInterval) clearInterval(sessionTimeoutInterval);
+      sessionTimeoutInterval = setInterval(() => {
+        const before = sessionStore.getActiveSessions().length;
+        sessionStore.cleanupExpired();
+        const after = sessionStore.getActiveSessions().length;
+        if (before !== after) log('SESSION CLEANUP: ' + (before - after) + ' expired sessions removed');
+      }, 60000);
     }
 
     if (connection === 'close') {
@@ -134,11 +173,13 @@ async function startBot() {
       log('Disconnected. Reason: ' + reason + ' Code: ' + code);
       heartbeat.stopHeartbeat();
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
+      if (sessionTimeoutInterval) clearInterval(sessionTimeoutInterval);
 
       if (code === DisconnectReason.loggedOut || code === 401) {
         log('Session logged out. Clearing session files...');
         notify.setQr(null);
         notify.setClient(null);
+        sessionStore.expireAll();
         try {
           if (fs.existsSync(SESSION_DIR)) {
             const files = fs.readdirSync(SESSION_DIR);
@@ -170,43 +211,68 @@ async function startBot() {
     }
   });
 
-  function getTimeoutPromise(ms) {
-    return new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_' + ms + 'ms')), ms));
+  const COMMANDS = ['/help', '/status', '/endsession', '/relogin', '/cancel'];
+  const GROUP_COMMANDS = ['/session', '/close', '/who', '/status', '/ping'];
+
+  function matchCommand(text) {
+    const trimmed = text.trim();
+    for (const cmd of COMMANDS) {
+      if (trimmed.toLowerCase() === cmd) return cmd;
+    }
+    for (const cmd of GROUP_COMMANDS) {
+      if (trimmed.toLowerCase() === cmd) return cmd;
+    }
+    return null;
   }
 
-  // Wait for LID MAP with timeout
-  async function waitForLidMap(lidJid, timeoutMs) {
-    if (lidToJid.has(lidJid)) return lidToJid.get(lidJid);
-    if (timeoutMs <= 0) return null;
-    return new Promise(resolve => {
-      const check = setInterval(() => {
-        if (lidToJid.has(lidJid)) {
-          clearInterval(check);
-          clearTimeout(fallback);
-          resolve(lidToJid.get(lidJid));
+  async function handlePrivateCommand(callerJid, command, sendReply) {
+    switch (command) {
+      case '/help': {
+        await sendReply(scripts.get('cmd_help'));
+        return true;
+      }
+      case '/status': {
+        const session = sessionStore.getSession(callerJid);
+        if (!session) {
+          await sendReply(scripts.get('cmd_status_none'));
+          return true;
         }
-      }, 200);
-      const fallback = setTimeout(() => {
-        clearInterval(check);
-        resolve(null);
-      }, timeoutMs);
-    });
+        const remaining = Math.max(0, 1800000 - (Date.now() - new Date(session.lastActivity).getTime()));
+        const min = Math.floor(remaining / 60000);
+        await sendReply(scripts.get('cmd_status_active', {
+          apto: session.apartment,
+          lastActivity: session.lastActivity || 'desconocido',
+          remaining: min + ' minutos',
+        }));
+        return true;
+      }
+      case '/endsession':
+      case '/logout': {
+        sessionStore.deleteSession(callerJid);
+        await sendReply(scripts.get('cmd_endsession_done'));
+        return true;
+      }
+      case '/relogin': {
+        sessionStore.deleteSession(callerJid);
+        authFlow.cancelAuth(callerJid);
+        await sendReply(scripts.get('cmd_relogin_prompt'));
+        return true;
+      }
+      case '/cancel': {
+        authFlow.cancelAuth(callerJid);
+        await sendReply(scripts.get('cmd_cancel_done'));
+        return true;
+      }
+      default:
+        return false;
+    }
   }
 
-  // Centralised send with full instrumentation
-  async function sendWithLog(targetJid, content, label) {
-    log('=== SEND START === ' + label + ' JID=' + targetJid);
-    log('sock.exists=' + !!sock + ' ws.readyState=' + (sock?.ws?.readyState));
+  async function sendReply(targetJid, content) {
     try {
-      const result = await Promise.race([
-        sock.sendMessage(targetJid, { text: content }),
-        getTimeoutPromise(15000),
-      ]);
-      log('=== SEND OK === ' + label + ' id=' + (result?.key?.id || 'unknown'));
-      return result;
+      await sock.sendMessage(targetJid, { text: content });
     } catch (e) {
-      log('=== SEND ERROR === ' + label + ' JID=' + targetJid + ' err=' + e.message);
-      return null;
+      log('SEND_REPLY ERROR: ' + e.message);
     }
   }
 
@@ -220,73 +286,94 @@ async function startBot() {
 
         const remoteJid = msg.key.remoteJid;
         if (!remoteJid) continue;
-        const isLid = isLidUser(remoteJid);
-        const isNormal = remoteJid.endsWith('@s.whatsapp.net');
-        if (!isLid && !isNormal) continue;
 
-        log('=== MESSAGE PARSED === remoteJid=' + remoteJid + ' isLid=' + isLid);
+        const isGroup = remoteJid.endsWith('@g.us');
+        const isPrivate = remoteJid.endsWith('@s.whatsapp.net') || isLidUser(remoteJid);
+        if (!isGroup && !isPrivate) continue;
 
-        const phone = isNormal ? remoteJid.replace('@s.whatsapp.net', '') : remoteJid;
         const text = msg.message.conversation ||
                      msg.message.extendedTextMessage?.text ||
                      msg.message.imageMessage?.caption ||
                      '';
-        log('MSG from=' + phone + ' text="' + (text || '').slice(0, 50) + '"');
         if (!text.trim()) continue;
 
-        if (isLid) {
-          log('LID_EXTRA: pushName=' + (msg.pushName || '') + ' participant=' + (msg.key.participant || ''));
-        }
+        const command = matchCommand(text);
 
-        // -- DIRECT TEST: send "TEST" before any auth logic --
-        log('=== TEST SEND === intentando enviar TEST a ' + remoteJid);
-        await sendWithLog(remoteJid, 'TEST', 'DIRECT_TEST');
-        log('=== TEST SEND === completado');
+        if (isPrivate) {
+          const callerJid = remoteJid;
+          log('PRIVATE from=' + callerJid + ' text="' + text.slice(0, 50) + '"');
 
-        // Resolve @lid: wait up to 3s for LID MAP
-        let replyTarget = remoteJid;
-        if (isLid) {
-          const resolved = await waitForLidMap(remoteJid, 3000);
-          if (resolved) {
-            replyTarget = resolved;
-            log('LID RESOLVED: ' + remoteJid + ' -> ' + replyTarget);
-          } else {
-            log('LID UNRESOLVED: ' + remoteJid + ' usando @lid como fallback');
+          if (command && ['/help', '/status', '/endsession', '/logout', '/relogin', '/cancel'].includes(command)) {
+            log('PRIVATE COMMAND: ' + command);
+            const replyFn = (content) => sendReply(callerJid, content);
+            await handlePrivateCommand(callerJid, command, replyFn);
+            continue;
           }
+
+          if (authFlow.isInAuth(callerJid)) {
+            log('PRIVATE: continuing auth');
+            const result = await authFlow.handleMessage(callerJid, text,
+              (content) => sendReply(callerJid, content),
+              aptoToGroupJid);
+            if (result.action === 'authenticated' && result.session) {
+              sessionStore.setSession(callerJid, result.session);
+              const session = sessionStore.getSession(callerJid);
+              log('PRIVATE AUTH OK: apto=' + session.apartment + ' group=' + session.groupJid);
+              await sendReply(callerJid, scripts.get('session_created', { apto: session.apartment }));
+            }
+            log('PRIVATE AUTH: action=' + result.action);
+            continue;
+          }
+
+          const session = sessionStore.getSession(callerJid);
+          if (session && session.state === 'ACTIVE') {
+            log('PRIVATE RELAY: apto=' + session.apartment + ' group=' + session.groupJid);
+            await messageRelay.relayToGroup(sock, session, text, msg);
+            sessionStore.updateSession(callerJid, {});
+            continue;
+          }
+
+          log('PRIVATE: starting auth');
+          const result = await authFlow.handleMessage(callerJid, text,
+            (content) => sendReply(callerJid, content),
+            aptoToGroupJid);
+          log('PRIVATE AUTH: action=' + result.action);
         }
 
-        log('=== AUTH START === phone=' + phone + ' type=' + type);
+        if (isGroup) {
+          log('GROUP from=' + remoteJid + ' participant=' + (msg.key.participant || '') + ' text="' + text.slice(0, 50) + '"');
 
-        if (adminCommands.isAdminMessage(phone)) {
-          log('Branch: admin cmd');
-          const handled = await adminCommands.handleCommand(phone, text, sock,
-            (content) => sendWithLog(replyTarget, content, 'ADMIN_REPLY'));
-          if (handled) { log('Branch: admin cmd handled'); continue; }
+          const groupJid = remoteJid;
+
+          if (command && ['/session', '/close', '/who', '/status', '/ping'].includes(command)) {
+            let groupMetadata = null;
+            try {
+              groupMetadata = await sock.groupMetadata(groupJid);
+            } catch (e) { /* ignore */ }
+            if (!adminCommands.isAuthorized(msg, sock, groupMetadata)) {
+              log('GROUP: unauthorized command attempt');
+              await sendReply(groupJid, scripts.get('group_not_authorized'));
+              continue;
+            }
+            const session = sessionStore.getSessionByGroup(groupJid);
+            log('GROUP COMMAND: ' + command + ' session=' + (session ? session.callerJid : 'none'));
+            await adminCommands.handleGroupCommand(command, [], session, sock, groupJid, null);
+            continue;
+          }
+
+          const session = sessionStore.getSessionByGroup(groupJid);
+          if (session && session.state === 'ACTIVE') {
+            log('GROUP RELAY: to user=' + session.callerJid);
+            const participant = msg.key.participant || groupJid;
+            const senderName = msg.pushName || 'Miembro del grupo';
+            const displayText = text;
+            await messageRelay.relayToUser(sock, session, displayText, msg);
+            sessionStore.updateSession(session.callerJid, {});
+            continue;
+          }
+
+          log('GROUP: no active session for this group, ignoring');
         }
-
-        if (authFlow.isInAuth(phone)) {
-          log('Branch: inAuth');
-          const result = await authFlow.handleMessage(phone, text,
-            (content) => sendWithLog(replyTarget, content, 'AUTH_REPLY'),
-            remoteJid);
-          log('=== AUTH RESULT === action=' + result.action);
-          continue;
-        }
-
-        const session = sessionStore.getSession(phone);
-        if (session && session.status === 'activo') {
-          log('Branch: relay session=' + session.apto + ' jid=' + (session.jid || 'none'));
-          log('Relaying from ' + session.apto + ': ' + text.slice(0, 50));
-          await messageRelay.relayToChat(phone, session, text, sock);
-          await sendWithLog(replyTarget, scripts.get('confirmation_sent'), 'CONFIRMATION');
-          continue;
-        }
-
-        log('Branch: start auth (no session)');
-        const result = await authFlow.handleMessage(phone, text,
-          (content) => sendWithLog(replyTarget, content, 'AUTH_START'),
-          remoteJid);
-        log('=== AUTH RESULT === action=' + result.action);
       } catch (e) {
         log('=== UPSERT ERROR === ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' '));
       }
