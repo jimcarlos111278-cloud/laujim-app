@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, ToggleLeft, ToggleRight, AlertCircle, CheckCircle, XCircle, Key, Terminal, Globe } from 'lucide-react';
+import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, AlertCircle, CheckCircle, XCircle, Key, Terminal, Globe } from 'lucide-react';
 import { getAuth } from '../utils/auth';
 import { getBase, AUTH_TOKEN } from '../utils/config';
 
@@ -10,24 +10,24 @@ const DEFAULT_SCRIPTS = {
   auth_apto_not_found: '❌ No encontré el apartamento *{apto}*.\n\nVerifica el número e intenta de nuevo:',
   auth_prompt_cedula: '🪪 Ahora escribe tu *cédula* (número de documento):',
   auth_invalid_cedula: '❌ La cédula debe tener al menos 5 dígitos.\n\nIntenta de nuevo:',
-  auth_success: '✅ *Autenticado correctamente*\n\nYa puedes enviar mensajes al administrador. Tus mensajes serán respondidos a la brevedad.',
   auth_failed: '❌ Los datos no coinciden con nuestros registros.\n\nEscribe tu *número de apartamento* para intentar de nuevo:',
   auth_timeout: '⏰ Tiempo de espera agotado. Escribe cualquier mensaje para iniciar de nuevo.',
-  auth_blocked: '❌ Tu acceso ha sido bloqueado. Contacta al administrador.',
-  relay_admin_prefix: '✉️ *Administrador*:\n{content}',
-  notif_admin_new: '📩 *[{apto} - {nombre}]*\n{content}',
-  confirmation_sent: '✅ Mensaje enviado al administrador.',
-  cmd_not_found: '❌ Comando no reconocido. Escribe !ayuda para ver los comandos disponibles.',
-  cmd_listar_empty: '📋 No hay sesiones activas.',
-  cmd_cortar_usage: '❌ Usa: !cortar <apto>\nEj: !cortar 203',
-  cmd_cortar_done: '✅ Sesión del apto {apto} cerrada.',
-  cmd_bloquear_usage: '❌ Usa: !bloquear <apto>\nEj: !bloquear 203',
-  cmd_bloquear_done: '✅ Apto {apto} bloqueado.',
-  cmd_mensajes_usage: '❌ Usa: !mensajes <apto>\nEj: !mensajes 203',
-  cmd_mensajes_empty: '📭 No hay mensajes para el apto {apto}',
-  session_closed: '🔒 Tu sesión ha sido cerrada por el administrador.',
-  session_blocked: '🚫 Has sido bloqueado. Contacta al administrador.',
-  cmd_help: '📚 *Comandos disponibles:*\n\n!listar — Muestra sesiones activas\n!cortar <apto> — Cierra sesión de un inquilino\n!bloquear <apto> — Bloquea permanentemente\n!mensajes <apto> — Últimos 5 mensajes\n!ayuda — Muestra esta ayuda',
+  session_created: '✅ *Sesión iniciada*\n\nTu conversación con el grupo *{apto}* ya está activa. Escribe lo que necesites.',
+  session_closed: '🔒 Tu sesión ha sido cerrada.',
+  relay_from_tenant: '📩 *Inquilino Apto {apto}*\n{content}',
+  relay_from_group: '📩 *Grupo {apto}*\n{content}',
+  cmd_help: '📚 *Comandos:*\n\n/help — Ayuda\n/status — Tu sesión\n/endsession — Cerrar sesión\n/relogin — Reiniciar autenticación\n/cancel — Cancelar autenticación',
+  cmd_status_active: '✅ *Sesión activa*\n\nApartamento: *{apto}*\nActividad: {lastActivity}\nTiempo restante: {remaining}',
+  cmd_status_none: '❌ No tienes una sesión activa.',
+  cmd_endsession_done: '🔒 Sesión finalizada.',
+  cmd_relogin_prompt: '🔒 Sesión finalizada. Escribe cualquier mensaje para iniciar autenticación.',
+  cmd_cancel_done: '❌ Autenticación cancelada.',
+  group_session_info: '*Sesión activa:*\nInquilino: {name}\nDesde: {createdAt}\nÚltima actividad: {lastActivity}',
+  group_session_none: 'No hay sesión activa para este apartamento.',
+  group_who: 'Inquilino: *{name}* ({caller})',
+  group_close_done: 'Sesión cerrada por administrador.',
+  group_ping: 'pong 🤖',
+  group_not_authorized: 'No tienes permiso para usar este comando.',
 };
 
 const SCRIPT_LABELS = {
@@ -36,33 +36,33 @@ const SCRIPT_LABELS = {
   auth_apto_not_found: 'Apto no encontrado',
   auth_prompt_cedula: 'Solicitar cédula',
   auth_invalid_cedula: 'Cédula inválida',
-  auth_success: 'Autenticación exitosa',
   auth_failed: 'Autenticación fallida',
   auth_timeout: 'Tiempo agotado',
-  auth_blocked: 'Usuario bloqueado',
-  relay_admin_prefix: 'Prefijo mensaje admin → inquilino',
-  notif_admin_new: 'Notificación al admin',
-  confirmation_sent: 'Confirmación de envío',
-  cmd_not_found: 'Comando no reconocido',
-  cmd_listar_empty: 'Listar: sin sesiones',
-  cmd_cortar_usage: 'Cortar: uso',
-  cmd_cortar_done: 'Cortar: confirmación',
-  cmd_bloquear_usage: 'Bloquear: uso',
-  cmd_bloquear_done: 'Bloquear: confirmación',
-  cmd_mensajes_usage: 'Mensajes: uso',
-  cmd_mensajes_empty: 'Mensajes: sin datos',
-  session_closed: 'Sesión cerrada (notif)',
-  session_blocked: 'Sesión bloqueada (notif)',
-  cmd_help: 'Comando !ayuda',
+  session_created: 'Sesión creada',
+  session_closed: 'Sesión cerrada',
+  relay_from_tenant: 'Prefijo inquilino → grupo',
+  relay_from_group: 'Prefijo grupo → inquilino',
+  cmd_help: 'Ayuda',
+  cmd_status_active: 'Estado activo',
+  cmd_status_none: 'Sin sesión',
+  cmd_endsession_done: 'Sesión finalizada',
+  cmd_relogin_prompt: 'Reinicio auth',
+  cmd_cancel_done: 'Auth cancelada',
+  group_session_info: 'Info sesión (grupo)',
+  group_session_none: 'Sin sesión (grupo)',
+  group_who: 'Quién es',
+  group_close_done: 'Cierre por admin',
+  group_ping: 'Ping',
+  group_not_authorized: 'No autorizado',
 };
 
 export default function WhatsAppBot() {
   const navigate = useNavigate();
   const auth = getAuth();
   const [botStatus, setBotStatus] = useState({ running: false, authenticated: false, number: null, pid: null });
+  const [botInfo, setBotInfo] = useState({ number: null, groups: [], activeSessions: 0 });
   const [botEnabled, setBotEnabled] = useState(false);
-  const [botPhone, setBotPhone] = useState('');
-  const [adminNumbers, setAdminNumbers] = useState('');
+  const [adminPhone, setAdminPhone] = useState('');
   const [scripts, setScripts] = useState({ ...DEFAULT_SCRIPTS });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -99,8 +99,10 @@ export default function WhatsAppBot() {
     if (!auth || auth.role !== 'admin') { navigate('/login', { replace: true }); return; }
     loadConfig();
     fetchStatus();
+    fetchBotInfo();
     fetchProxyStatus();
     const iv = setInterval(fetchStatus, 5000);
+    const infoIv = setInterval(fetchBotInfo, 15000);
     const ageIv = setInterval(() => {
       const ts = qrTimestampRef.current;
       if (ts > 0) {
@@ -108,7 +110,7 @@ export default function WhatsAppBot() {
         setQrAge(secs < 60 ? secs + 's' : Math.floor(secs / 60) + 'min');
       }
     }, 1000);
-    return () => { clearInterval(iv); clearInterval(ageIv); };
+    return () => { clearInterval(iv); clearInterval(infoIv); clearInterval(ageIv); };
   }, []);
 
   async function loadConfig() {
@@ -116,13 +118,25 @@ export default function WhatsAppBot() {
       const s = await fetch(getBase() + '/settings', { headers: { 'x-auth-token': AUTH_TOKEN } }).then(r => r.json()).catch(() => []);
       const getVal = (k, def) => s.find(x => x.key === k)?.value || def;
       setBotEnabled(getVal('whatsapp_bot_enabled', 'false') === 'true');
-      setBotPhone(getVal('whatsapp_bot_phone', ''));
-      setAdminNumbers(getVal('whatsapp_admin_numbers', ''));
+      setAdminPhone(getVal('whatsapp_admin_phone', '3107203822'));
       const loaded = {};
       for (const key of Object.keys(DEFAULT_SCRIPTS)) {
         loaded[key] = getVal('whatsapp_bot_msg_' + key, DEFAULT_SCRIPTS[key]);
       }
       setScripts(loaded);
+    } catch {}
+  }
+
+  async function fetchBotInfo() {
+    try {
+      const res = await fetch(getBase() + '/whatsapp-bot/info', { headers: { 'x-auth-token': AUTH_TOKEN } });
+      if (res.ok) {
+        const data = await res.json();
+        setBotInfo(data);
+        if (data.number && botStatus.number !== data.number) {
+          setBotStatus(s => ({ ...s, number: data.number }));
+        }
+      }
     } catch {}
   }
 
@@ -158,8 +172,7 @@ export default function WhatsAppBot() {
     setSaving(true);
     try {
       await upsertSetting('whatsapp_bot_enabled', botEnabled ? 'true' : 'false');
-      await upsertSetting('whatsapp_bot_phone', botPhone);
-      await upsertSetting('whatsapp_admin_numbers', adminNumbers);
+      await upsertSetting('whatsapp_admin_phone', adminPhone);
       for (const [key, value] of Object.entries(scripts)) {
         await upsertSetting('whatsapp_bot_msg_' + key, value);
       }
@@ -290,23 +303,30 @@ export default function WhatsAppBot() {
                 </div>
               </div>
 
+              {botStatus.authenticated && botInfo.number && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                    <Smartphone className="w-4 h-4" /> Bot activo: <strong>{botInfo.number}</strong>
+                  </p>
+                  <div className="mt-2 flex gap-4 text-xs text-blue-600 dark:text-blue-400">
+                    <span>Grupos: <strong>{botInfo.groups?.length || 0}</strong></span>
+                    <span>Sesiones: <strong>{botInfo.activeSessions || 0}</strong></span>
+                  </div>
+                  <div className="mt-2 text-xs text-blue-500 dark:text-blue-500">
+                    {botInfo.groups?.length > 0 && <span>Grupos: {botInfo.groups.join(', ')}</span>}
+                  </div>
+                </div>
+              )}
+
               {botStatus.running && (
                 <>
                   <div className={`p-3 rounded-lg flex items-center gap-3 ${botStatus.authenticated ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-amber-50 dark:bg-amber-900/30'}`}>
                     {botStatus.authenticated ? <CheckCircle className="w-5 h-5 text-emerald-600" /> : <AlertCircle className="w-5 h-5 text-amber-500" />}
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{botStatus.authenticated ? 'Autenticado' : 'Esperando QR'}</p>
-                      <p className="text-xs text-gray-500">{botStatus.authenticated ? 'Número: ' + botStatus.number : 'Escanea el QR con WhatsApp'}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{botStatus.authenticated ? 'Autenticado' : 'Esperando vinculación'}</p>
+                      <p className="text-xs text-gray-500">{botStatus.authenticated ? 'Número: ' + (botInfo.number || botStatus.number) : 'Usa QR o código de vinculación'}</p>
                     </div>
                   </div>
-
-                  {!botStatus.authenticated && (qrImage || botStatus.qr) && (
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
-                      <img src={`data:image/png;base64,${botStatus.qr || qrImage}`} alt="QR Code" className="mx-auto w-48 h-48" />
-                      <p className="text-xs text-gray-500 mt-2">Escanea con WhatsApp → Vincular dispositivo</p>
-                      {qrAge && <p className="text-xs text-gray-400 mt-1">QR generado hace {qrAge}</p>}
-                    </div>
-                  )}
 
                   {botStatus.lastError && (
                     <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
@@ -342,7 +362,7 @@ export default function WhatsAppBot() {
             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">Activar bot</p>
-                <p className="text-xs text-gray-500">Reenviar mensajes entre WhatsApp y el chat web</p>
+                <p className="text-xs text-gray-500">Reenvía mensajes entre inquilinos y grupos de WhatsApp</p>
               </div>
               <button onClick={() => setBotEnabled(!botEnabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${botEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${botEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -350,19 +370,13 @@ export default function WhatsAppBot() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Número del bot (WhatsApp)</label>
-              <input type="text" value={botPhone} onChange={e => setBotPhone(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="573005185668" />
-              <p className="text-xs text-gray-400 mt-1">Este es el número que los inquilinos ven para escribir al bot.</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notificar a (números admin)</label>
-              <input type="text" value={adminNumbers} onChange={e => setAdminNumbers(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="573001234567, 573001234568" />
-              <p className="text-xs text-gray-400 mt-1">Separados por coma. A estos números llegarán notificaciones de nuevos mensajes de inquilinos. También pueden usar comandos como <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">!listar</code>.</p>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Número del admin (dueño de los grupos)</label>
+              <input type="text" value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="3107203822" />
+              <p className="text-xs text-gray-400 mt-1">Este número crea los grupos. El bot reenvía mensajes del inquilino al grupo y viceversa.</p>
             </div>
 
             <button onClick={async () => {
-              if (!confirm('¿Cambiar el número del bot?\n\nSe eliminará la sesión actual y el bot se reiniciará. Tendrás que escanear el QR con el nuevo número.')) return;
+              if (!confirm('¿Resetear sesión?\n\nSe eliminará la sesión actual y el bot se reiniciará. Tendrás que vincularlo de nuevo.')) return;
               showAction('Eliminando sesión y reiniciando...', 'success');
               const res = await fetch(getBase() + '/whatsapp-bot/reset-session', { method: 'POST', headers: { 'x-auth-token': AUTH_TOKEN } });
               const data = await res.json();
@@ -374,42 +388,56 @@ export default function WhatsAppBot() {
           </div>
         </div>
 
-        {/* Pairing Code Card */}
+        {/* QR + Pairing Unified Card */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Key className="w-4 h-4" /> Vinculación por código</h3>
-          <div className="space-y-3">
-            <p className="text-xs text-gray-500">Alternativa al QR. Ingresa tu número y WhatsApp te dará un código para vincular.</p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={pairingPhone}
-                onChange={e => setPairingPhone(e.target.value)}
-                placeholder="573001234567"
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                disabled={pairingCodeLoading}
-              />
-              <button
-                onClick={handleRequestCode}
-                disabled={pairingCodeLoading || !botStatus.running || botStatus.authenticated}
-                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm whitespace-nowrap"
-              >
-                {pairingCodeLoading ? 'Solicitando...' : 'Solicitar código'}
-              </button>
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Key className="w-4 h-4" /> Vincular Bot</h3>
+          {botStatus.authenticated ? (
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-lg text-center">
+              <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Bot vinculado correctamente</p>
+              <p className="text-xs text-emerald-500 mt-1">{botInfo.number || botStatus.number}</p>
             </div>
-            {pairingCode && (
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg text-center">
-                <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">Código de vinculación</p>
-                <p className="text-2xl font-bold text-blue-800 dark:text-blue-200 tracking-widest">{pairingCode}</p>
-                <div className="mt-3 text-xs text-blue-600 dark:text-blue-400 space-y-1">
-                  <p>1. Abre WhatsApp en tu teléfono</p>
-                  <p>2. Ve a <strong>Dispositivos vinculados</strong></p>
-                  <p>3. Toca <strong>Vincular un dispositivo</strong></p>
-                  <p>4. Selecciona <strong>Vincular con número de teléfono</strong></p>
-                  <p>5. Ingresa el código de arriba</p>
+          ) : (
+            <div className="space-y-4">
+              {/* QR */}
+              {(qrImage || botStatus.qr) && (
+                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
+                  <img src={`data:image/png;base64,${botStatus.qr || qrImage}`} alt="QR" className="mx-auto w-40 h-40" />
+                  <p className="text-xs text-gray-500 mt-2">Escanea con WhatsApp → Vincular dispositivo</p>
+                  {qrAge && <p className="text-xs text-gray-400 mt-1">QR hace {qrAge}</p>}
                 </div>
+              )}
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300 dark:border-gray-600"></div></div>
+                <div className="relative flex justify-center text-xs"><span className="bg-white dark:bg-gray-800 px-2 text-gray-400">o usa código</span></div>
               </div>
-            )}
-          </div>
+
+              {/* Pairing code */}
+              <div className="flex gap-2">
+                <input type="text" value={pairingPhone} onChange={e => setPairingPhone(e.target.value)}
+                  placeholder="573001234567"
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  disabled={pairingCodeLoading || !botStatus.running} />
+                <button onClick={handleRequestCode}
+                  disabled={pairingCodeLoading || !botStatus.running}
+                  className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm whitespace-nowrap">
+                  {pairingCodeLoading ? '...' : 'Obtener código'}
+                </button>
+              </div>
+
+              {pairingCode && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg text-center">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Código de vinculación</p>
+                  <p className="text-2xl font-bold text-blue-800 dark:text-blue-200 tracking-widest">{pairingCode}</p>
+                  <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 space-y-0.5">
+                    <p>WhatsApp → Vincular dispositivo → Vincular con número</p>
+                    <p>Ingresa el código en tu teléfono</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Proxy Status Card */}

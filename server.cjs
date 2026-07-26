@@ -528,6 +528,17 @@ app.get('/api/whatsapp-bot/proxy-status', async (req, res) => {
   try { res.json(JSON.parse(buf.toString())); } catch { res.json({ error: 'Parse error' }); }
 });
 
+app.get('/api/whatsapp-bot/info', async (req, res) => {
+  const statusBuf = await fetchBotBuffer('/status');
+  const groupsBuf = await fetchBotBuffer('/groups');
+  let number = null;
+  let groups = [];
+  let activeSessions = 0;
+  if (statusBuf) { try { const d = JSON.parse(statusBuf.toString()); number = d.number; } catch {} }
+  if (groupsBuf) { try { const d = JSON.parse(groupsBuf.toString()); groups = Object.keys(d.groups || {}); activeSessions = d.count || 0; } catch {} }
+  res.json({ number, groups, activeSessions });
+});
+
 app.post('/api/whatsapp-bot/start', (req, res) => {
   if (botProcess && !botProcess.killed) {
     return res.status(400).json({ error: 'El bot ya está en ejecución' });

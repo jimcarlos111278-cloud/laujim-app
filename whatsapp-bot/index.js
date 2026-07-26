@@ -11,6 +11,7 @@ import * as sessionStore from './src/session-store.js';
 import * as authFlow from './src/auth-flow.js';
 import * as messageRelay from './src/message-relay.js';
 import * as adminCommands from './src/admin-cmds.js';
+import * as scripts from './src/scripts.js';
 import * as notify from './src/notify.js';
 import * as heartbeat from './src/heartbeat.js';
 import { log } from './src/logger.js';
@@ -71,10 +72,22 @@ async function discoverGroups() {
         }
       }
     }
-    if (count > 0) saveGroupMapping();
-    log('Group discovery complete. Total mapped: ' + Object.keys(aptoToGroupJid).length);
+    if (count > 0) {
+      saveGroupMapping();
+      discoverAttempts = 0;
+    }
+    log('Group discovery: ' + count + ' new, ' + Object.keys(aptoToGroupJid).length + ' total mapped');
+    if (count === 0 && Object.keys(aptoToGroupJid).length === 0 && discoverAttempts < 3) {
+      discoverAttempts++;
+      log('No groups found, retry ' + discoverAttempts + '/3 in 30s...');
+      setTimeout(discoverGroups, 30000);
+    }
   } catch (e) {
     log('Group discovery error: ' + e.message);
+    if (discoverAttempts < 3) {
+      discoverAttempts++;
+      setTimeout(discoverGroups, 30000);
+    }
   }
 }
 
@@ -127,6 +140,22 @@ async function startBot() {
 
   sock = makeWASocket(sockOpts);
   notify.setClient(sock);
+
+  const pendingPhone = notify.getPendingPairingPhone();
+  if (pendingPhone) {
+    setTimeout(async () => {
+      try {
+        log('Requesting pairing code for ' + pendingPhone + '...');
+        const code = await sock.requestPairingCode(pendingPhone);
+        notify.setPairingCode(code);
+        notify.clearPendingPairingPhone();
+        notify.setQr(null);
+        log('Pairing code for ' + pendingPhone + ': ' + code);
+      } catch (e) {
+        log('Pairing code error: ' + e.message);
+      }
+    }, 3000);
+  }
 
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
@@ -269,10 +298,12 @@ async function startBot() {
   }
 
   async function sendReply(targetJid, content) {
+    log('=== SEND to=' + targetJid + ' text="' + (content || '').slice(0, 50) + '" ===');
     try {
-      await sock.sendMessage(targetJid, { text: content });
+      const result = await sock.sendMessage(targetJid, { text: content });
+      log('=== SEND OK id=' + (result?.key?.id || '') + ' ===');
     } catch (e) {
-      log('SEND_REPLY ERROR: ' + e.message);
+      log('=== SEND ERROR: ' + e.message + ' ===');
     }
   }
 

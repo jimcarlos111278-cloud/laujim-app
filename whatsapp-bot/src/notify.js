@@ -1,5 +1,10 @@
 import { createServer } from 'http';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { log, getLogs, clearLogs } from './logger.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let client = null;
 let currentQrBase64 = null;
@@ -110,6 +115,17 @@ export function startNotifyServer(port) {
           activeProxyUrl: proxyUrl ? proxyUrl.replace(/:([^:@]+)@/, ':***@') : null,
           proxyType: proxyUrl ? (proxyUrl.startsWith('socks') ? 'socks' : 'http') : null,
         }));
+      } else if (req.url === '/groups') {
+        try {
+          const gruposPath = join(__dirname, '..', 'data', 'grupos.json');
+          const raw = readFileSync(gruposPath, 'utf-8');
+          const data = JSON.parse(raw);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ groups: data, count: Object.keys(data).length }));
+        } catch {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ groups: {}, count: 0 }));
+        }
       } else {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'Not found' }));
@@ -199,6 +215,7 @@ export function startNotifyServer(port) {
     log('  GET  /logs - Recent log entries');
     log('  GET  /clear-logs - Clear log buffer');
     log('  GET  /proxy-status - Proxy configuration');
+    log('  GET  /groups - Group mapping');
   });
 
   return server;
