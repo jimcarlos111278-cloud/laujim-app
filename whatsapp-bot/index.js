@@ -330,18 +330,8 @@ async function startBot() {
 
   async function sendReply(targetJid, content) {
     log('=== SEND to=' + targetJid + ' text="' + (content || '').slice(0, 50) + '" ===');
-    let sendTo = targetJid;
-    if (targetJid.endsWith('@lid')) {
-      const resolved = await waitForLidMap(targetJid, 15000);
-      if (resolved) {
-        sendTo = resolved;
-        log('LID RESOLVED: ' + targetJid + ' -> ' + sendTo);
-      } else {
-        log('LID UNRESOLVED: usando @lid como fallback');
-      }
-    }
     try {
-      const result = await sock.sendMessage(sendTo, { text: content });
+      const result = await sock.sendMessage(targetJid, { text: content });
       log('=== SEND OK id=' + (result?.key?.id || '') + ' ===');
     } catch (e) {
       log('=== SEND ERROR: ' + e.message + ' ===');
@@ -384,15 +374,17 @@ async function startBot() {
 
           if (authFlow.isInAuth(callerJid)) {
             log('PRIVATE: continuing auth');
+            const retryDiscover = async () => { try { await discoverGroups(); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
             const result = await authFlow.handleMessage(callerJid, text,
               sendReply,
-              aptoToGroupJid);
+              aptoToGroupJid,
+              retryDiscover);
             if (result.action === 'authenticated' && result.session) {
-              const realJid = result.session.callerJid;
-              sessionStore.setSession(realJid, result.session);
-              lidToJid.set(callerJid, realJid);
-              log('PRIVATE AUTH OK: apto=' + result.session.apartment + ' group=' + result.session.groupJid + ' jid=' + realJid);
-              await sendReply(realJid, scripts.get('session_created', { apto: result.session.apartment }));
+              const lidJid = result.session.callerJid;
+              sessionStore.setSession(lidJid, result.session);
+              lidToJid.set(lidJid, result.session.phoneJid);
+              log('PRIVATE AUTH OK: apto=' + result.session.apartment + ' group=' + result.session.groupJid + ' lid=' + lidJid);
+              await sendReply(lidJid, scripts.get('session_created', { apto: result.session.apartment }));
             }
             log('PRIVATE AUTH: action=' + result.action);
             continue;
@@ -407,9 +399,11 @@ async function startBot() {
           }
 
           log('PRIVATE: starting auth');
+          const retryDiscover = async () => { try { await discoverGroups(); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
           const result = await authFlow.handleMessage(callerJid, text,
             sendReply,
-            aptoToGroupJid);
+            aptoToGroupJid,
+            retryDiscover);
           log('PRIVATE AUTH: action=' + result.action);
         }
 

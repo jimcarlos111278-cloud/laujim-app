@@ -38,7 +38,7 @@ export function cancelAuth(callerJid) {
   clearState(callerJid);
 }
 
-export async function handleMessage(callerJid, message, sendReply, aptoToGroupJid) {
+export async function handleMessage(callerJid, message, sendReply, aptoToGroupJid, retryDiscover) {
   const authState = getState(callerJid);
   if (!authState) {
     setState(callerJid, 'awaiting_phone', {});
@@ -53,49 +53,56 @@ export async function handleMessage(callerJid, message, sendReply, aptoToGroupJi
       return { action: 'auth_phone' };
     }
     const phoneJid = '57' + phone + '@s.whatsapp.net';
-    setState(callerJid, 'awaiting_apto', { phoneJid });
-    log('AUTH: phone received, real JID=' + phoneJid);
-    await sendReply(phoneJid, scripts.get('auth_welcome'));
+    setState(callerJid, 'awaiting_apto', { phoneJid, lidJid: callerJid });
+    log('AUTH: phone received, lid=' + callerJid + ' realJID=' + phoneJid);
+    await sendReply(callerJid, scripts.get('auth_welcome'));
     return { action: 'auth_apto' };
   }
 
   if (authState.state === 'awaiting_apto') {
     const apto = message.trim();
     if (!/^\d{3}$/.test(apto)) {
-      await sendReply(authState.data.phoneJid, scripts.get('auth_invalid_apto'));
+      await sendReply(authState.data.lidJid, scripts.get('auth_invalid_apto'));
       return { action: 'auth_apto' };
     }
     const apt = await api.getApartmentByName(apto);
     if (!apt || !apt.id) {
       log('AUTH: getApartmentByName(' + apto + ') returned: ' + JSON.stringify(apt));
-      await sendReply(authState.data.phoneJid, scripts.get('auth_apto_not_found', { apto }));
+      await sendReply(authState.data.lidJid, scripts.get('auth_apto_not_found', { apto }));
       return { action: 'auth_apto' };
     }
-    const groupJid = aptoToGroupJid[apto];
+    let groupJid = aptoToGroupJid[apto];
     if (!groupJid) {
-      await sendReply(authState.data.phoneJid, '❌ No hay un grupo configurado para el apartamento *' + apto + '*.\n\nContacta al administrador.');
-      clearState(callerJid);
-      return { action: 'auth_failed' };
+      if (typeof retryDiscover === 'function') {
+        await retryDiscover();
+        groupJid = aptoToGroupJid[apto];
+      }
+      if (!groupJid) {
+        await sendReply(authState.data.lidJid, '❌ No hay un grupo configurado para el apartamento *' + apto + '*.\n\nContacta al administrador.');
+        clearState(callerJid);
+        return { action: 'auth_failed' };
+      }
     }
     authState.data.apto = apto;
     authState.data.aptId = apt.id;
     authState.data.groupJid = groupJid;
     setState(callerJid, 'awaiting_cedula', authState.data);
-    await sendReply(authState.data.phoneJid, scripts.get('auth_prompt_cedula'));
+    await sendReply(authState.data.lidJid, scripts.get('auth_prompt_cedula'));
     return { action: 'auth_cedula' };
   }
 
   if (authState.state === 'awaiting_cedula') {
     const cedula = message.trim();
     if (cedula.length < 5) {
-      await sendReply(authState.data.phoneJid, scripts.get('auth_invalid_cedula'));
+      await sendReply(authState.data.lidJid, scripts.get('auth_invalid_cedula'));
       return { action: 'auth_cedula' };
     }
     const result = await api.login(authState.data.apto, cedula);
     if (result.authenticated && result.role === 'tenant') {
       const tenantName = result.name || authState.data.apto;
       const sessionData = {
-        callerJid: authState.data.phoneJid,
+        callerJid: authState.data.lidJid,
+        phoneJid: authState.data.phoneJid,
         apartment: authState.data.apto,
         groupJid: authState.data.groupJid,
         tenantName,
@@ -104,7 +111,7 @@ export async function handleMessage(callerJid, message, sendReply, aptoToGroupJi
       clearState(callerJid);
       return { action: 'authenticated', session: sessionData };
     } else {
-      await sendReply(authState.data.phoneJid, scripts.get('auth_failed'));
+      await sendReply(authState.data.lidJid, scripts.get('auth_failed'));
       setState(callerJid, 'awaiting_phone', {});
       return { action: 'auth_failed' };
     }
