@@ -451,19 +451,32 @@ export default function WhatsAppBot() {
           </button>
           {showLogs && (
             <>
-              <button
-                onClick={() => {
-                  const text = botLogs.map(e => '[' + new Date(e.ts).toLocaleTimeString() + '] ' + e.msg).join('\n');
-                  navigator.clipboard.writeText(text).then(() => {
-                    const btn = document.getElementById('copy-logs-btn');
-                    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy logs'; }, 2000); }
-                  });
-                }}
-                id="copy-logs-btn"
-                className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-2"
-              >
-                Copy logs
-              </button>
+              <div className="flex gap-2 mb-2">
+                <button
+                  onClick={() => {
+                    const text = botLogs.map(e => '[' + new Date(e.ts).toLocaleTimeString() + '] ' + e.msg).join('\n');
+                    navigator.clipboard.writeText(text).then(() => {
+                      const btn = document.getElementById('copy-logs-btn');
+                      if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = 'Copy logs'; }, 2000); }
+                    });
+                  }}
+                  id="copy-logs-btn"
+                  className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Copy logs
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await fetch(getBase() + '/whatsapp-bot/clear-logs', { headers: { 'x-auth-token': AUTH_TOKEN } });
+                      setBotLogs([]);
+                    } catch {}
+                  }}
+                  className="flex-1 px-3 py-1.5 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg text-xs hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  Clear logs
+                </button>
+              </div>
               <div className="max-h-60 overflow-y-auto bg-gray-900 text-green-400 text-xs font-mono p-3 rounded-lg">
                 {botLogs.length === 0 ? (
                   <p className="text-gray-500">No hay logs disponibles</p>

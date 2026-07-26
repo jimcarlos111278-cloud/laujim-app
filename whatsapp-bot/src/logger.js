@@ -11,3 +11,7 @@ export function log(...args) {
 export function getLogs() {
   return logs.slice(-100);
 }
+
+export function clearLogs() {
+  logs.length = 0;
+}

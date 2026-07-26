@@ -1,5 +1,5 @@
 import { createServer } from 'http';
-import { log, getLogs } from './logger.js';
+import { log, getLogs, clearLogs } from './logger.js';
 
 let client = null;
 let currentQrBase64 = null;
@@ -96,6 +96,10 @@ export function startNotifyServer(port) {
       } else if (req.url === '/logs') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(getLogs()));
+      } else if (req.url === '/clear-logs') {
+        clearLogs();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
       } else if (req.url === '/proxy-status') {
         const proxyUrl = process.env.BOT_PROXY || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -193,6 +197,7 @@ export function startNotifyServer(port) {
     log('  GET  /qr - QR code image');
     log('  GET  /pairing-code - Get pairing code');
     log('  GET  /logs - Recent log entries');
+    log('  GET  /clear-logs - Clear log buffer');
     log('  GET  /proxy-status - Proxy configuration');
   });
 

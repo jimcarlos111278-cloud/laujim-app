@@ -516,6 +516,12 @@ app.get('/api/whatsapp-bot/logs', async (req, res) => {
   try { res.json(JSON.parse(buf.toString())); } catch { res.json([]); }
 });
 
+app.get('/api/whatsapp-bot/clear-logs', async (req, res) => {
+  const buf = await fetchBotBuffer('/clear-logs');
+  if (!buf) return res.json({ error: 'Bot not reachable' });
+  try { res.json(JSON.parse(buf.toString())); } catch { res.json({ error: 'Parse error' }); }
+});
+
 app.get('/api/whatsapp-bot/proxy-status', async (req, res) => {
   const buf = await fetchBotBuffer('/proxy-status');
   if (!buf) return res.json({ error: 'Bot not reachable' });
