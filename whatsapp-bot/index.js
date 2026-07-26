@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
+import { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, isLidUser } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
@@ -24,7 +24,7 @@ log('============================================');
 log('');
 
 sessionStore.load();
-scripts.load();
+scripts.load().catch(e => log('Scripts load error: ' + e.message));
 
 const SESSION_DIR = process.env.SESSION_PATH || path.join(path.dirname(fileURLToPath(import.meta.url)), 'data', 'baileys-sessions');
 try { if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true }); } catch {}
@@ -113,13 +113,14 @@ async function startBot() {
     }
 
     if (connection === 'close') {
-      const reason = lastDisconnect?.error?.message || 'unknown';
-      const code = lastDisconnect?.error?.output?.statusCode;
+      const err = lastDisconnect?.error;
+      const reason = err?.message || 'unknown';
+      const code = err?.output?.statusCode || err?.statusCode || err?.data?.code;
       log('Disconnected. Reason: ' + reason + ' Code: ' + code);
       heartbeat.stopHeartbeat();
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
 
-      if (code === DisconnectReason.loggedOut) {
+      if (code === DisconnectReason.loggedOut || code === 401) {
         log('Session logged out. Clearing session files...');
         notify.setQr(null);
         notify.setClient(null);
@@ -142,54 +143,73 @@ async function startBot() {
 
   sock.ev.on('creds.update', saveCreds);
 
+  function getTimeoutPromise(ms) {
+    return new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_' + ms + 'ms')), ms));
+  }
+
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     log('Messages event type=' + type + ' count=' + messages.length);
     for (const msg of messages) {
-      log('MSG key=' + msg.key?.remoteJid + ' fromMe=' + msg.key?.fromMe + ' hasMsg=' + !!msg.message);
-      if (msg.key.fromMe) continue;
-      if (!msg.message) continue;
+      try {
+        log('MSG key=' + msg.key?.remoteJid + ' fromMe=' + msg.key?.fromMe + ' hasMsg=' + !!msg.message);
+        if (msg.key.fromMe) continue;
+        if (!msg.message) continue;
 
-      const remoteJid = msg.key.remoteJid;
-      if (!remoteJid) continue;
-      const isLid = remoteJid.endsWith('@lid');
-      const isNormal = remoteJid.endsWith('@s.whatsapp.net');
-      if (!isLid && !isNormal) continue;
+        const remoteJid = msg.key.remoteJid;
+        if (!remoteJid) continue;
+        const isLid = isLidUser(remoteJid);
+        const isNormal = remoteJid.endsWith('@s.whatsapp.net');
+        if (!isLid && !isNormal) continue;
 
-      const phone = isNormal ? remoteJid.replace('@s.whatsapp.net', '') : remoteJid;
-      const text = msg.message.conversation ||
-                   msg.message.extendedTextMessage?.text ||
-                   msg.message.imageMessage?.caption ||
-                   '';
-      log('MSG from=' + phone + ' text="' + (text || '').slice(0, 50) + '"');
-      if (!text.trim()) continue;
+        const phone = isNormal ? remoteJid.replace('@s.whatsapp.net', '') : remoteJid;
+        const text = msg.message.conversation ||
+                     msg.message.extendedTextMessage?.text ||
+                     msg.message.imageMessage?.caption ||
+                     '';
+        log('MSG from=' + phone + ' text="' + (text || '').slice(0, 50) + '"');
+        if (!text.trim()) continue;
 
-      async function sendReply(content) {
-        try {
-          await sock.sendMessage(remoteJid, { text: content });
-        } catch (e) {
-          log('Error sending reply: ' + e.message);
+        async function sendReply(content) {
+          try {
+            await Promise.race([
+              sock.sendMessage(remoteJid, { text: content }),
+              getTimeoutPromise(15000),
+            ]);
+          } catch (e) {
+            log('Error sending reply to ' + remoteJid + ': ' + e.message);
+          }
         }
-      }
 
-      if (adminCommands.isAdminMessage(phone)) {
-        const handled = await adminCommands.handleCommand(phone, text, sock, sendReply);
-        if (handled) continue;
-      }
+        log('Handler branch: phone=' + phone + ' type=' + type);
 
-      if (authFlow.isInAuth(phone)) {
-        await authFlow.handleMessage(phone, text, sendReply, remoteJid);
-        continue;
-      }
+        if (adminCommands.isAdminMessage(phone)) {
+          log('Branch: admin cmd');
+          const handled = await adminCommands.handleCommand(phone, text, sock, sendReply);
+          if (handled) { log('Branch: admin cmd handled'); continue; }
+        }
 
-      const session = sessionStore.getSession(phone);
-      if (session && session.status === 'activo') {
-        log('Relaying from ' + session.apto + ': ' + text.slice(0, 50));
-        await messageRelay.relayToChat(phone, session, text, sock);
-        await sendReply(scripts.get('confirmation_sent'));
-        continue;
-      }
+        if (authFlow.isInAuth(phone)) {
+          log('Branch: inAuth');
+          const result = await authFlow.handleMessage(phone, text, sendReply, remoteJid);
+          log('Branch: inAuth result action=' + result.action);
+          continue;
+        }
 
-      await authFlow.handleMessage(phone, text, sendReply, remoteJid);
+        const session = sessionStore.getSession(phone);
+        if (session && session.status === 'activo') {
+          log('Branch: relay session=' + session.apto + ' jid=' + (session.jid || 'none'));
+          log('Relaying from ' + session.apto + ': ' + text.slice(0, 50));
+          await messageRelay.relayToChat(phone, session, text, sock);
+          await sendReply(scripts.get('confirmation_sent'));
+          continue;
+        }
+
+        log('Branch: start auth (no session)');
+        const result = await authFlow.handleMessage(phone, text, sendReply, remoteJid);
+        log('Branch: start auth result action=' + result.action);
+      } catch (e) {
+        log('MSG HANDLER ERROR: ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' '));
+      }
     }
   });
 }
