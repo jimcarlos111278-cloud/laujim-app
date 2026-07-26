@@ -134,9 +134,8 @@ async function startBot() {
       heartbeat.stopHeartbeat();
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
 
-      const shouldClear = code === DisconnectReason.loggedOut || code === 401 || code === 515;
-      if (shouldClear) {
-        log('Clearing session files (code=' + code + ')...');
+      if (code === DisconnectReason.loggedOut || code === 401) {
+        log('Session logged out. Clearing session files...');
         notify.setQr(null);
         notify.setClient(null);
         try {
@@ -148,9 +147,7 @@ async function startBot() {
         } catch (e) {
           log('Error clearing session: ' + e.message);
         }
-        const delay = code === 515 ? 5000 : 30000;
-        log('Reconnecting in ' + (delay / 1000) + 's (new session)...');
-        reconnectTimer = setTimeout(startBot, delay);
+        reconnectTimer = setTimeout(startBot, 30000);
       } else {
         log('Reconnecting in 5s...');
         reconnectTimer = setTimeout(startBot, 5000);
@@ -255,6 +252,22 @@ process.on('uncaughtException', (err) => {
 
 process.on('unhandledRejection', (reason) => {
   log('UNHANDLED: ' + reason);
+});
+
+process.on('SIGTERM', () => {
+  log('SIGTERM received, closing WebSocket gracefully...');
+  if (sock?.ws?.readyState === sock?.ws?.OPEN) {
+    sock.ws.close(1000, 'deploy');
+  }
+  setTimeout(() => process.exit(0), 3000);
+});
+
+process.on('SIGINT', () => {
+  log('SIGINT received, closing WebSocket gracefully...');
+  if (sock?.ws?.readyState === sock?.ws?.OPEN) {
+    sock.ws.close(1000, 'shutdown');
+  }
+  setTimeout(() => process.exit(0), 3000);
 });
 
 const BOT_PORT = parseInt(process.env.BOT_PORT || '3002', 10);
