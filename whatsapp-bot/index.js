@@ -132,8 +132,10 @@ async function startBot() {
 
   sock.ev.on('creds.update', saveCreds);
 
-  sock.ev.on('messages.upsert', async ({ messages }) => {
+  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    log('Messages event type=' + type + ' count=' + messages.length);
     for (const msg of messages) {
+      log('MSG key=' + msg.key?.remoteJid + ' fromMe=' + msg.key?.fromMe + ' hasMsg=' + !!msg.message);
       if (msg.key.fromMe) continue;
       if (!msg.message) continue;
 
@@ -145,6 +147,7 @@ async function startBot() {
                    msg.message.extendedTextMessage?.text ||
                    msg.message.imageMessage?.caption ||
                    '';
+      log('MSG from=' + phone + ' text="' + (text || '').slice(0, 50) + '"');
       if (!text.trim()) continue;
 
       async function sendReply(content) {
