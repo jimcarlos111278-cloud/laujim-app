@@ -486,6 +486,7 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
   }
 
   let qrTimestamp = 0;
+  let lastError = null;
   const statusBuf = await fetchBotBuffer('/status');
   if (statusBuf) {
     try {
@@ -494,6 +495,7 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
       authenticated = data.authenticated || false;
       number = data.number || null;
       qrTimestamp = data.qrTimestamp || 0;
+      lastError = data.lastError || null;
     } catch {}
   }
 
@@ -504,7 +506,7 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
     }
   }
 
-  res.json({ running, pid, authenticated, number, qr, qrTimestamp });
+  res.json({ running, pid, authenticated, number, qr, qrTimestamp, lastError });
 });
 
 app.post('/api/whatsapp-bot/start', (req, res) => {

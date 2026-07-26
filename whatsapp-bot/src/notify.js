@@ -5,6 +5,7 @@ let currentQrBase64 = null;
 let pendingPairingPhone = null;
 let currentPairingCode = null;
 let qrTimestamp = 0;
+let lastError = null;
 
 export function setClient(c) {
   client = c;
@@ -43,6 +44,14 @@ export function getQrTimestamp() {
   return qrTimestamp;
 }
 
+export function setLastError(err) {
+  lastError = err;
+}
+
+export function getLastError() {
+  return lastError;
+}
+
 export function startNotifyServer(port) {
   const server = createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -64,6 +73,7 @@ export function startNotifyServer(port) {
           authenticated: !!(client?.user),
           number,
           qrTimestamp,
+          lastError,
         }));
       } else if (req.url === '/qr') {
         if (currentQrBase64) {
@@ -79,6 +89,9 @@ export function startNotifyServer(port) {
           code: currentPairingCode,
           phone: pendingPairingPhone,
         }));
+      } else if (req.url === '/log') {
+        res.writeHead(200);
+        res.end(JSON.stringify({ error: lastError }));
       } else {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'Not found' }));
@@ -116,6 +129,7 @@ export function startNotifyServer(port) {
               authenticated: !!(client?.user),
               number,
               qrTimestamp,
+              lastError,
             }));
           } else if (req.url === '/request-code') {
             if (!client) {

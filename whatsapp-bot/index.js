@@ -26,8 +26,11 @@ const SESSION_DIR = process.env.SESSION_PATH || path.join(path.dirname(fileURLTo
 try { if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true }); } catch {}
 
 let sock = null;
+let reconnectTimer = null;
 
 async function startBot() {
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+
   const { version } = await fetchLatestBaileysVersion();
   console.log('WA version: ' + version.join('.'));
 
@@ -41,6 +44,9 @@ async function startBot() {
     browser: ['Laujim APP', 'Chrome', '1.0'],
     markOnlineOnConnect: true,
     syncFullHistory: false,
+    connectTimeoutMs: 60000,
+    qrTimeout: 60,
+    keepAliveIntervalMs: 25000,
   });
 
   notify.setClient(sock);
@@ -55,6 +61,7 @@ async function startBot() {
         const dataUrl = await QRCode.toDataURL(qr, { width: 400, margin: 1, color: { dark: '#000', light: '#fff' } });
         const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
         notify.setQr(base64);
+        notify.setLastError(null);
         console.log('QR ready (base64, length: ' + base64.length + ')');
         const pendingPhone = notify.getPendingPairingPhone();
         if (pendingPhone) {
@@ -64,6 +71,7 @@ async function startBot() {
             console.log('Pairing code requested for ' + pendingPhone + ': ' + code);
           } catch (e) {
             console.error('Error requesting pairing code:', e.message);
+            notify.setLastError('Error pairing code: ' + e.message);
           }
         }
       } catch (e) {
@@ -75,6 +83,7 @@ async function startBot() {
       const number = sock?.user?.id ? sock.user.id.split(':')[0].replace('@s.whatsapp.net', '') : 'unknown';
       console.log('Connected. Number: ' + number);
       notify.setClient(sock);
+      notify.setLastError(null);
       heartbeat.startHeartbeat();
       messageRelay.startPolling(sock);
       messageRelay.onAdminMessage((session, msg) => {
@@ -83,16 +92,20 @@ async function startBot() {
     }
 
     if (connection === 'close') {
-      console.log('Disconnected:', lastDisconnect?.error?.message || 'unknown');
-      heartbeat.stopHeartbeat();
-      notify.setClient(null);
+      const reason = lastDisconnect?.error?.message || 'unknown';
       const code = lastDisconnect?.error?.output?.statusCode;
+      console.log('Disconnected. Reason:', reason, 'Code:', code);
+      heartbeat.stopHeartbeat();
+      notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
+
       if (code === DisconnectReason.loggedOut) {
         console.log('Session logged out. Restarting for new QR...');
         notify.setQr(null);
-        setTimeout(startBot, 3000);
+        notify.setClient(null);
+        reconnectTimer = setTimeout(startBot, 3000);
       } else {
-        console.log('Reconnecting automatically...');
+        console.log('Will reconnect in 10s...');
+        reconnectTimer = setTimeout(startBot, 10000);
       }
     }
   });

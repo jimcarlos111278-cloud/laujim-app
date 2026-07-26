@@ -289,6 +289,13 @@ export default function WhatsAppBot() {
                       {qrAge && <p className="text-xs text-gray-400 mt-1">QR generado hace {qrAge}</p>}
                     </div>
                   )}
+
+                  {botStatus.lastError && (
+                    <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
+                      <p className="text-xs font-medium text-red-700 dark:text-red-400">Error de conexión:</p>
+                      <p className="text-xs text-red-600 dark:text-red-300 mt-1 break-words">{botStatus.lastError}</p>
+                    </div>
+                  )}
                 </>
               )}
 
