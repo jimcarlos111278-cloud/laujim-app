@@ -66,8 +66,9 @@ export async function startPolling(client) {
           const text = scripts.get('relay_admin_prefix', { content: msg.content });
 
           try {
-            await client.sendMessage(phone + '@s.whatsapp.net', { text });
-            log('Forwarded admin reply to ' + session.apto + ' (' + phone + ')');
+            const jid = session.jid || phone + '@s.whatsapp.net';
+            await client.sendMessage(jid, { text });
+            log('Forwarded admin reply to ' + session.apto + ' (' + jid + ')');
           } catch (e) {
             log('Error forwarding to tenant ' + phone + ': ' + e.message);
           }

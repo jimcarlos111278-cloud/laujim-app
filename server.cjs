@@ -438,10 +438,11 @@ function startBot() {
   const botDir = path.join(__dirname, 'whatsapp-bot');
   if (!fs.existsSync(botDir) || botProcess) return;
   try {
+    const apiBaseUrl = 'http://localhost:' + PORT + '/api';
     botProcess = spawn('node', ['index.js'], {
       cwd: botDir,
       stdio: 'pipe',
-      env: { ...process.env, NODE_OPTIONS: '--max_old_space_size=256' },
+      env: { ...process.env, NODE_OPTIONS: '--max_old_space_size=256', API_BASE_URL: apiBaseUrl },
     });
     botProcess.stdout.on('data', (data) => console.log('[BOT]', data.toString().trim()));
     botProcess.stderr.on('data', (data) => console.error('[BOT]', data.toString().trim()));

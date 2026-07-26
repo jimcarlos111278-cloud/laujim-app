@@ -49,7 +49,8 @@ export async function handleCommand(phone, text, client, sendReply) {
       }
       sessionStore.deleteSession(session.phone);
       try {
-        await client.sendMessage(session.phone + '@s.whatsapp.net', { text: scripts.get('session_closed') });
+        const sessionJid = session.jid || session.phone + '@s.whatsapp.net';
+        await client.sendMessage(sessionJid, { text: scripts.get('session_closed') });
       } catch (e) { /* ignore */ }
       await sendReply(scripts.get('cmd_cortar_done', { apto }));
       return true;
@@ -68,7 +69,8 @@ export async function handleCommand(phone, text, client, sendReply) {
       }
       sessionStore.updateSession(session.phone, { status: 'bloqueado' });
       try {
-        await client.sendMessage(session.phone + '@s.whatsapp.net', { text: scripts.get('session_blocked') });
+        const sessionJid = session.jid || session.phone + '@s.whatsapp.net';
+        await client.sendMessage(sessionJid, { text: scripts.get('session_blocked') });
       } catch (e) { /* ignore */ }
       await sendReply(scripts.get('cmd_bloquear_done', { apto }));
       return true;

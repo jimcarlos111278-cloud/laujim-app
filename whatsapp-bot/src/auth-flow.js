@@ -34,7 +34,7 @@ export function resetAuth(phone) {
   clearState(phone);
 }
 
-export async function handleMessage(phone, message, sendReply) {
+export async function handleMessage(phone, message, sendReply, jid) {
   const session = sessionStore.getSession(phone);
   if (session && session.status === 'activo') {
     return { action: 'relay', session };
@@ -79,10 +79,12 @@ export async function handleMessage(phone, message, sendReply) {
     const result = await api.login(authState.data.apto, cedula);
     if (result.authenticated && result.role === 'tenant') {
       const tenantName = result.name || authState.data.apto;
+      const sessionJid = jid || (phone.includes('@') ? phone : phone + '@s.whatsapp.net');
       sessionStore.setSession(phone, {
         apto: authState.data.apto,
         aptId: authState.data.aptId,
         tenantName,
+        jid: sessionJid,
         status: 'activo',
         createdAt: new Date().toISOString(),
       });

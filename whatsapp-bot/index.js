@@ -140,9 +140,12 @@ async function startBot() {
       if (!msg.message) continue;
 
       const remoteJid = msg.key.remoteJid;
-      if (!remoteJid || !remoteJid.endsWith('@s.whatsapp.net')) continue;
+      if (!remoteJid) continue;
+      const isLid = remoteJid.endsWith('@lid');
+      const isNormal = remoteJid.endsWith('@s.whatsapp.net');
+      if (!isLid && !isNormal) continue;
 
-      const phone = remoteJid.replace('@s.whatsapp.net', '');
+      const phone = isNormal ? remoteJid.replace('@s.whatsapp.net', '') : remoteJid;
       const text = msg.message.conversation ||
                    msg.message.extendedTextMessage?.text ||
                    msg.message.imageMessage?.caption ||
@@ -164,7 +167,7 @@ async function startBot() {
       }
 
       if (authFlow.isInAuth(phone)) {
-        await authFlow.handleMessage(phone, text, sendReply);
+        await authFlow.handleMessage(phone, text, sendReply, remoteJid);
         continue;
       }
 
@@ -176,7 +179,7 @@ async function startBot() {
         continue;
       }
 
-      await authFlow.handleMessage(phone, text, sendReply);
+      await authFlow.handleMessage(phone, text, sendReply, remoteJid);
     }
   });
 }
