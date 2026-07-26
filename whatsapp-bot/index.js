@@ -37,6 +37,7 @@ let aptoToGroupJid = {};
 let botNumber = null;
 let botName = null;
 let discoverAttempts = 0;
+const lidToJid = new Map();
 
 function loadGroupMapping() {
   try {
@@ -141,6 +142,18 @@ async function startBot() {
 
   sock = makeWASocket(sockOpts);
   notify.setClient(sock);
+
+  sock.ev.on('contacts.upsert', (contacts) => {
+    for (const c of contacts) {
+      if (c.lid && c.jid && c.jid.endsWith('@s.whatsapp.net')) {
+        const lidJid = c.lid.endsWith('@lid') ? c.lid : c.lid + '@lid';
+        if (!lidToJid.has(lidJid)) {
+          lidToJid.set(lidJid, c.jid);
+          log('LID MAP: ' + lidJid + ' -> ' + c.jid + ' (' + (c.name || c.notify || '') + ')');
+        }
+      }
+    }
+  });
 
   const pendingPhone = notify.getPendingPairingPhone();
   if (pendingPhone) {
@@ -298,10 +311,37 @@ async function startBot() {
     }
   }
 
+  async function waitForLidMap(lidJid, timeoutMs) {
+    if (lidToJid.has(lidJid)) return lidToJid.get(lidJid);
+    if (timeoutMs <= 0) return null;
+    return new Promise(resolve => {
+      const check = setInterval(() => {
+        if (lidToJid.has(lidJid)) {
+          clearInterval(check); clearTimeout(fallback);
+          resolve(lidToJid.get(lidJid));
+        }
+      }, 200);
+      const fallback = setTimeout(() => {
+        clearInterval(check);
+        resolve(null);
+      }, timeoutMs);
+    });
+  }
+
   async function sendReply(targetJid, content) {
     log('=== SEND to=' + targetJid + ' text="' + (content || '').slice(0, 50) + '" ===');
+    let sendTo = targetJid;
+    if (targetJid.endsWith('@lid')) {
+      const resolved = await waitForLidMap(targetJid, 15000);
+      if (resolved) {
+        sendTo = resolved;
+        log('LID RESOLVED: ' + targetJid + ' -> ' + sendTo);
+      } else {
+        log('LID UNRESOLVED: usando @lid como fallback');
+      }
+    }
     try {
-      const result = await sock.sendMessage(targetJid, { text: content });
+      const result = await sock.sendMessage(sendTo, { text: content });
       log('=== SEND OK id=' + (result?.key?.id || '') + ' ===');
     } catch (e) {
       log('=== SEND ERROR: ' + e.message + ' ===');
