@@ -267,19 +267,20 @@ async function startBot() {
     return null;
   }
 
-  function sendToTenant(convJid, content, source) {
-    if (!sock) { log('SEND_TO_TENANT: no sock, skipping'); return; }
+  async function sendToTenant(convJid, content, source) {
+    if (!sock) { log('SEND_TO_TENANT: no sock, skipping source=' + (source || '?')); return false; }
     const session = sessionStore.getSession(convJid);
     const deliveryJid = session?.deliveryJid || convJid;
     const masked = deliveryJid.split('@')[0].slice(0, 4) + '...@' + deliveryJid.split('@')[1];
-    log('SEND_TO_TENANT source=' + (source || '?') + ' conv=' + convJid.split('@')[0].slice(0, 4) + '... route=' + masked + ' text="' + (content || '').slice(0, 50) + '"');
+    const sessionInfo = session ? 'apto=' + session.apto + ' deliveryJid=' + session.deliveryJid : 'no-session';
+    log('SEND_TO_TENANT source=' + (source || '?') + ' session=' + sessionInfo + ' deliveryJid=' + deliveryJid + ' contentLen=' + (content || '').length + ' contentStart="' + (content || '').slice(0, 80) + '"');
     try {
-      const result = sock.sendMessage(deliveryJid, { text: content });
-      if (result && result.then) {
-        result.then(r => log('SEND_TO_TENANT OK source=' + (source || '?') + ' id=' + (r?.key?.id || '') + ' route=' + masked)).catch(e => log('SEND_TO_TENANT ERROR source=' + (source || '?') + ' ' + e.message));
-      }
+      const result = await sock.sendMessage(deliveryJid, { text: content });
+      log('SEND_TO_TENANT OK source=' + (source || '?') + ' id=' + (result?.key?.id || '') + ' route=' + masked);
+      return true;
     } catch (e) {
-      log('SEND_TO_TENANT ERROR source=' + (source || '?') + ' ' + e.message);
+      log('SEND_TO_TENANT ERROR source=' + (source || '?') + ' ' + e.message + ' deliveryJid=' + deliveryJid);
+      return false;
     }
   }
 
@@ -330,28 +331,35 @@ async function startBot() {
     log('=== UPSERT START === type=' + type + ' count=' + messages.length);
     for (const msg of messages) {
       try {
-        if (msg.key.fromMe) continue;
-        if (!msg.message) continue;
+        const msgKey = msg.key;
+        log('MSG_KEY: fromMe=' + msgKey.fromMe + ' id=' + (msgKey.id || '') + ' remoteJid=' + (msgKey.remoteJid || '') + ' participant=' + (msgKey.participant || '') + ' senderPn=' + (msgKey.senderPn || '') + ' conversationJid=' + (msgKey.conversationJid || ''));
 
-        const remoteJid = msg.key.remoteJid;
-        if (!remoteJid) continue;
+        if (msgKey.fromMe) { log('MSG: skipped fromMe'); continue; }
+        if (!msg.message) { log('MSG: skipped no message body'); continue; }
+
+        const remoteJid = msgKey.remoteJid;
+        if (!remoteJid) { log('MSG: skipped no remoteJid'); continue; }
 
         const isGroup = remoteJid.endsWith('@g.us');
         const isPrivate = remoteJid.endsWith('@s.whatsapp.net') || isLidUser(remoteJid);
-        if (!isGroup && !isPrivate) continue;
+        log('MSG: remoteJid=' + remoteJid + ' isGroup=' + isGroup + ' isPrivate=' + isPrivate + ' isLidUser=' + isLidUser(remoteJid));
+        if (!isGroup && !isPrivate) { log('MSG: skipped not group nor private'); continue; }
 
         const text = msg.message.conversation ||
                      msg.message.extendedTextMessage?.text ||
                      msg.message.imageMessage?.caption ||
                      '';
-        if (!text.trim()) continue;
+        log('MSG: text="' + (text || '').slice(0, 80) + '" textLength=' + (text?.length || 0));
 
         const command = matchCommand(text);
+        log('MSG: matchedCommand=' + (command || 'none'));
 
         if (isPrivate) {
           const convJid = remoteJid;
-          const deliveryJid = msg.key?.senderPn || convJid;
-          log('PRIVATE conv=' + maskJid(convJid) + ' delivery=' + maskJid(deliveryJid));
+          const senderPnRaw = msgKey.senderPn || '';
+          const deliveryJid = senderPnRaw || convJid;
+          log('PRIVATE: convJid=' + convJid + ' senderPnRaw="' + senderPnRaw + '" deliveryJid=' + deliveryJid + ' same=' + (convJid === deliveryJid));
+          log('PRIVATE: mask conv=' + maskJid(convJid) + ' delivery=' + maskJid(deliveryJid));
 
           if (command && ['/help', '/status', '/endsession', '/logout', '/relogin', '/cancel'].includes(command)) {
             log('PRIVATE COMMAND: ' + command);
@@ -360,10 +368,11 @@ async function startBot() {
           }
 
           if (authFlow.isInAuth(convJid)) {
-            log('PRIVATE: continuing auth');
+            log('PRIVATE: continuing auth convJid=' + convJid + ' deliveryJid=' + deliveryJid);
             const retryDiscover = async () => { try { await discoverGroups(); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
             const result = await authFlow.handleMessage(convJid, text,
               sendToTenant, aptoToGroupJid, retryDiscover);
+            log('PRIVATE: authFlow result action=' + result.action + ' session=' + (result.session ? JSON.stringify({ apto: result.session.apto, groupJid: result.session.groupJid, tenantName: result.session.tenantName }) : 'none'));
 
             if (result.action === 'authenticated' && result.session) {
               const existing = sessionStore.closeExistingSessionForGroup(result.session.groupJid);
@@ -373,7 +382,7 @@ async function startBot() {
                 conversationJid: convJid,
                 deliveryJid,
               });
-              log('PRIVATE AUTH OK: apto=' + result.session.apto);
+              log('PRIVATE AUTH OK: apto=' + result.session.apto + ' convJid=' + convJid + ' deliveryJid=' + deliveryJid);
               await sendToTenant(convJid, scripts.get('session_created', { apto: result.session.apto }));
             }
             log('PRIVATE AUTH: action=' + result.action);
@@ -381,14 +390,15 @@ async function startBot() {
           }
 
           const session = sessionStore.getSession(convJid);
+          log('PRIVATE: session lookup convJid=' + convJid + ' found=' + !!session + ' state=' + (session?.state || 'none') + ' apto=' + (session?.apto || 'none') + ' sessionDeliveryJid=' + (session?.deliveryJid || 'none'));
           if (session && session.state === 'ACTIVE') {
-            log('PRIVATE RELAY: apto=' + session.apto);
+            log('PRIVATE RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid + ' text="' + text.slice(0, 40) + '"');
             await messageRelay.relayToGroup(sock, session, text);
             sessionStore.updateSession(convJid, {});
             continue;
           }
 
-          log('PRIVATE: starting auth');
+          log('PRIVATE: no active session, starting auth flow convJid=' + convJid);
           const retryDiscover = async () => { try { await discoverGroups(); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
           const result = await authFlow.handleMessage(convJid, text,
             sendToTenant, aptoToGroupJid, retryDiscover);
@@ -397,47 +407,51 @@ async function startBot() {
 
         if (isGroup) {
           const groupJid = remoteJid;
-          log('GROUP conv=' + groupJid);
+          log('GROUP: groupJid=' + groupJid + ' senderPn=' + (msgKey.senderPn || '') + ' participant=' + (msgKey.participant || '') + ' fromMe=' + msgKey.fromMe);
 
           let groupMetadata = null;
           try {
             groupMetadata = await sock.groupMetadata(groupJid);
+            log('GROUP: metadata fetched participantsCount=' + (groupMetadata?.participants?.length || 0) + ' subject="' + (groupMetadata?.subject || '') + '"');
           } catch (e) {
             log('GROUP: metadata fetch failed: ' + e.message);
           }
 
           if (command && ['/session', '/close', '/who', '/status', '/ping'].includes(command)) {
             if (!adminCommands.isAuthorized(msg, sock, groupMetadata)) {
-              log('GROUP: unauthorized command attempt');
+              log('GROUP: unauthorized command attempt command=' + command);
               continue;
             }
             const session = sessionStore.getSessionByGroup(groupJid);
-            log('GROUP COMMAND: ' + command + ' session=' + (session ? 'active' : 'none'));
+            log('GROUP COMMAND: ' + command + ' session=' + (session ? 'found apto=' + session.apto : 'none'));
             await adminCommands.handleGroupCommand(command, [], session, sock, groupJid, sendToTenant);
             continue;
           }
 
-          const participant = msg.key.participant || '';
+          const participant = msgKey.participant || '';
           const authResult = adminCommands.isAuthorized(msg, sock, groupMetadata);
-          log('GROUP: participant=' + participant + ' isAuthorized=' + authResult);
+          log('GROUP: participant=' + participant + ' isAuthorized=' + authResult + ' groupMetadata=' + (groupMetadata ? 'ok' : 'null'));
           if (!authResult) {
-            log('GROUP: non-admin message ignored');
+            log('GROUP: non-admin message ignored participant=' + participant);
             continue;
           }
 
           const session = sessionStore.getSessionByGroup(groupJid);
+          log('GROUP: getSessionByGroup groupJid=' + groupJid + ' found=' + !!session + ' state=' + (session?.state || 'none') + ' apto=' + (session?.apto || 'none'));
           if (session && session.state === 'ACTIVE') {
-            log('GROUP RELAY: to tenant apto=' + session.apto + ' convJid=' + (session.conversationJid || 'none') + ' deliveryJid=' + (session.deliveryJid || 'none'));
+            log('GROUP RELAY: apto=' + session.apto + ' convJid=' + (session.conversationJid || 'none') + ' deliveryJid=' + (session.deliveryJid || 'none') + ' text="' + text.slice(0, 40) + '"');
             const displayText = text;
             const prefix = scripts.get('relay_from_group', { apto: session.apto });
             const fullText = prefix + '\n' + displayText;
+            log('GROUP RELAY: prefix="' + prefix.slice(0, 40) + '" fullTextLength=' + fullText.length);
             sendToTenant(session.conversationJid, fullText, 'GROUP_RELAY');
             sessionStore.updateSession(session.conversationJid, {});
+            log('GROUP RELAY: completed call to sendToTenant');
             continue;
           }
 
           const apto = aptoToGroupJid ? Object.keys(aptoToGroupJid).find(k => aptoToGroupJid[k] === groupJid) : null;
-          log('GROUP: no active session for groupJid=' + groupJid + ' mappedApto=' + (apto || 'none'));
+          log('GROUP: no active session for groupJid=' + groupJid + ' mappedApto=' + (apto || 'none') + ' aptoToGroupJid keys=' + Object.keys(aptoToGroupJid || {}).length);
         }
       } catch (e) {
         log('=== UPSERT ERROR === ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' '));
