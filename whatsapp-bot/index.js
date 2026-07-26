@@ -159,14 +159,14 @@ async function startBot() {
   sock.ev.on('creds.update', saveCreds);
 
   sock.ev.on('messages.update', updates => {
-    for (const u of updates) {
-      log('=== MSG UPDATE === id=' + (u.key?.id || '') + ' status=' + (u.status || '') + ' jid=' + (u.key?.remoteJid || ''));
+    for (const { key, update } of updates) {
+      log('=== MSG UPDATE === id=' + (key?.id || '') + ' status=' + (update?.status ?? '') + ' jid=' + (key?.remoteJid || ''));
     }
   });
 
   sock.ev.on('message-receipt.update', updates => {
-    for (const u of updates) {
-      log('=== RECEIPT === id=' + (u.key?.id || '') + ' receipt=' + (u.receipt || '') + ' jid=' + (u.key?.remoteJid || ''));
+    for (const { key, receipt } of updates) {
+      log('=== RECEIPT === id=' + (key?.id || '') + ' receipt=' + (receipt ?? '') + ' jid=' + (key?.remoteJid || ''));
     }
   });
 
