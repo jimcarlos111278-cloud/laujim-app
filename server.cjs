@@ -460,6 +460,23 @@ function startBot() {
   }
 }
 
+const BOT_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3002';
+
+async function fetchBotBuffer(path) {
+  try {
+    const url = new URL(path, BOT_URL);
+    return await new Promise((resolve, reject) => {
+      const mod = require(url.protocol === 'https:' ? 'https' : 'http');
+      mod.get(url.href, (resp) => {
+        if (resp.statusCode !== 200) { resp.resume(); resolve(null); return; }
+        const chunks = [];
+        resp.on('data', chunk => chunks.push(chunk));
+        resp.on('end', () => resolve(Buffer.concat(chunks)));
+      }).on('error', reject).setTimeout(3000, () => reject(new Error('timeout')));
+    });
+  } catch { return null; }
+}
+
 app.get('/api/whatsapp-bot/status', async (req, res) => {
   const tracked = botProcess !== null && !botProcess.killed;
   let running = tracked;
@@ -467,23 +484,6 @@ app.get('/api/whatsapp-bot/status', async (req, res) => {
   let number = null;
   let qr = null;
   let pid = tracked ? botProcess.pid : null;
-
-  const botUrl = process.env.WHATSAPP_BOT_URL || 'http://localhost:3002';
-
-  async function fetchBotBuffer(path) {
-    try {
-      const url = new URL(path, botUrl);
-      return await new Promise((resolve, reject) => {
-        const mod = require(url.protocol === 'https:' ? 'https' : 'http');
-        mod.get(url.href, (resp) => {
-          if (resp.statusCode !== 200) { resp.resume(); resolve(null); return; }
-          const chunks = [];
-          resp.on('data', chunk => chunks.push(chunk));
-          resp.on('end', () => resolve(Buffer.concat(chunks)));
-        }).on('error', reject).setTimeout(3000, () => reject(new Error('timeout')));
-      });
-    } catch { return null; }
-  }
 
   let qrTimestamp = 0;
   let lastError = null;
