@@ -3,6 +3,7 @@ import { readFileSync, rmSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { log, getLogs, clearLogs } from './logger.js';
+import * as ladder from './ladder.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || join(__dirname, '..', 'data');
@@ -69,7 +70,7 @@ export function startNotifyServer(port) {
       return;
     }
 
-    if (!isAuthorized(req) && req.url !== '/status' && req.url !== '/log' && req.url !== '/qr' && req.url !== '/pairing-code' && req.url !== '/' && req.url !== '/info' && req.url !== '/groups' && req.url !== '/proxy-status' && req.url !== '/logs') {
+    if (!isAuthorized(req) && req.url !== '/status' && req.url !== '/log' && req.url !== '/qr' && req.url !== '/pairing-code' && req.url !== '/' && req.url !== '/info' && req.url !== '/groups' && req.url !== '/proxy-status' && req.url !== '/logs' && req.url !== '/ladder') {
       sendJson(res, 401, { error: 'Unauthorized. Set BOT_ADMIN_TOKEN or provide Authorization header.' });
       return;
     }
@@ -108,6 +109,8 @@ export function startNotifyServer(port) {
           botProxySet: !!process.env.BOT_PROXY,
           proxyConfigured: !!(process.env.BOT_PROXY || process.env.HTTPS_PROXY || process.env.HTTP_PROXY),
         });
+      } else if (req.url === '/ladder') {
+        sendJson(res, 200, ladder.getLadder());
       } else if (req.url === '/groups') {
         try {
           const gruposPath = join(DATA_DIR, 'grupos.json');
@@ -209,6 +212,7 @@ export function startNotifyServer(port) {
     log('  GET  /clear-logs - Clear logs');
     log('  GET  /groups - Group mapping');
     log('  GET  /proxy-status - Proxy config');
+    log('  GET  /ladder - Delivery trace ladder');
     log('  GET  / - Service info');
     log('  POST /request-code - Pairing code');
     log('  POST /reset-session - Clear session & restart');

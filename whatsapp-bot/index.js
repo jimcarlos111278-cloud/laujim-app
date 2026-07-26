@@ -15,6 +15,7 @@ import * as scripts from './src/scripts.js';
 import * as notify from './src/notify.js';
 import * as heartbeat from './src/heartbeat.js';
 import { log } from './src/logger.js';
+import * as ladder from './src/ladder.js';
 
 log('');
 log('============================================');
@@ -238,8 +239,11 @@ async function startBot() {
     for (const { key, update } of updates) {
       const id = key?.id || '';
       const status = update?.status ?? '';
+      const statusNames = { 0: 'ERROR', 1: 'PENDING', 2: 'SERVER_ACK', 3: 'DELIVERY_ACK', 4: 'READ', 5: 'PLAYED' };
+      const sname = statusNames[status] || 'STATUS_' + status;
       if (id && status !== undefined) {
-        log('=== MSG STATUS === id=' + id + ' status=' + status);
+        log('=== MSG STATUS === id=' + id + ' status=' + status + ' (' + sname + ')');
+        ladder.updateByMsgId(id, sname, '');
       }
     }
   });
@@ -248,7 +252,9 @@ async function startBot() {
     for (const { key, receipt } of updates) {
       const id = key?.id || '';
       if (id && receipt) {
-        log('=== RECEIPT === id=' + id + ' type=' + (receipt?.type || ''));
+        const rtype = receipt?.type || '';
+        log('=== RECEIPT === id=' + id + ' type=' + rtype);
+        ladder.updateByMsgId(id, 'RECEIPT_' + rtype, '');
       }
     }
   });
@@ -274,12 +280,17 @@ async function startBot() {
     const masked = deliveryJid.split('@')[0].slice(0, 4) + '...@' + deliveryJid.split('@')[1];
     const sessionInfo = session ? 'apto=' + session.apto + ' deliveryJid=' + session.deliveryJid : 'no-session';
     log('SEND_TO_TENANT source=' + (source || '?') + ' session=' + sessionInfo + ' deliveryJid=' + deliveryJid + ' contentLen=' + (content || '').length + ' contentStart="' + (content || '').slice(0, 80) + '"');
+    const aptoLabel = session?.apto || '';
+    ladder.push('Bot→Usr', 'Bot', maskJid(deliveryJid), source, content, '', 'PENDING', '', aptoLabel);
     try {
       const result = await sock.sendMessage(deliveryJid, { text: content });
-      log('SEND_TO_TENANT OK source=' + (source || '?') + ' id=' + (result?.key?.id || '') + ' route=' + masked);
+      const msgId = result?.key?.id || '';
+      log('SEND_TO_TENANT OK source=' + (source || '?') + ' id=' + msgId + ' route=' + masked);
+      ladder.updateLatest('OK', 'id=' + msgId);
       return true;
     } catch (e) {
       log('SEND_TO_TENANT ERROR source=' + (source || '?') + ' ' + e.message + ' deliveryJid=' + deliveryJid);
+      ladder.updateLatest('ERROR', e.message.slice(0, 40));
       return false;
     }
   }
@@ -360,15 +371,18 @@ async function startBot() {
           const deliveryJid = senderPnRaw || convJid;
           log('PRIVATE: convJid=' + convJid + ' senderPnRaw="' + senderPnRaw + '" deliveryJid=' + deliveryJid + ' same=' + (convJid === deliveryJid));
           log('PRIVATE: mask conv=' + maskJid(convJid) + ' delivery=' + maskJid(deliveryJid));
+          ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'MENSAJE', text, '', '', '', '');
 
           if (command && ['/help', '/status', '/endsession', '/logout', '/relogin', '/cancel'].includes(command)) {
             log('PRIVATE COMMAND: ' + command);
+            ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'CMD_' + command, text, '', '', '', '');
             await handlePrivateCommand(convJid, command);
             continue;
           }
 
           if (authFlow.isInAuth(convJid)) {
             log('PRIVATE: continuing auth convJid=' + convJid + ' deliveryJid=' + deliveryJid);
+            ladder.updateLatest('AUTH_CONTINUE', '');
             const retryDiscover = async () => { try { await discoverGroups(); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
             const result = await authFlow.handleMessage(convJid, text,
               sendToTenant, aptoToGroupJid, retryDiscover);
@@ -383,6 +397,7 @@ async function startBot() {
                 deliveryJid,
               });
               log('PRIVATE AUTH OK: apto=' + result.session.apto + ' convJid=' + convJid + ' deliveryJid=' + deliveryJid);
+              ladder.push('Bot→Usr', 'Bot', maskJid(deliveryJid), 'SESSION_CREATED', '✅ Sesión iniciada apto=' + result.session.apto, '', '', '', result.session.apto);
               await sendToTenant(convJid, scripts.get('session_created', { apto: result.session.apto }));
             }
             log('PRIVATE AUTH: action=' + result.action);
@@ -393,12 +408,14 @@ async function startBot() {
           log('PRIVATE: session lookup convJid=' + convJid + ' found=' + !!session + ' state=' + (session?.state || 'none') + ' apto=' + (session?.apto || 'none') + ' sessionDeliveryJid=' + (session?.deliveryJid || 'none'));
           if (session && session.state === 'ACTIVE') {
             log('PRIVATE RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid + ' text="' + text.slice(0, 40) + '"');
+            ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_TO_GROUP', text, '', '', '', session.apto);
             await messageRelay.relayToGroup(sock, session, text);
             sessionStore.updateSession(convJid, {});
             continue;
           }
 
           log('PRIVATE: no active session, starting auth flow convJid=' + convJid);
+          ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'AUTH_START', text, '', '', '', '');
           const retryDiscover = async () => { try { await discoverGroups(); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
           const result = await authFlow.handleMessage(convJid, text,
             sendToTenant, aptoToGroupJid, retryDiscover);
@@ -407,12 +424,15 @@ async function startBot() {
 
         if (isGroup) {
           const groupJid = remoteJid;
+          const displayJid = groupJid.split('@')[0].slice(0, 6) + '...g.us';
           log('GROUP: groupJid=' + groupJid + ' senderPn=' + (msgKey.senderPn || '') + ' participant=' + (msgKey.participant || '') + ' fromMe=' + msgKey.fromMe);
 
           let groupMetadata = null;
+          let groupSubject = '';
           try {
             groupMetadata = await sock.groupMetadata(groupJid);
-            log('GROUP: metadata fetched participantsCount=' + (groupMetadata?.participants?.length || 0) + ' subject="' + (groupMetadata?.subject || '') + '"');
+            groupSubject = groupMetadata?.subject || '';
+            log('GROUP: metadata fetched participantsCount=' + (groupMetadata?.participants?.length || 0) + ' subject="' + groupSubject + '"');
           } catch (e) {
             log('GROUP: metadata fetch failed: ' + e.message);
           }
@@ -420,10 +440,12 @@ async function startBot() {
           if (command && ['/session', '/close', '/who', '/status', '/ping'].includes(command)) {
             if (!adminCommands.isAuthorized(msg, sock, groupMetadata)) {
               log('GROUP: unauthorized command attempt command=' + command);
+              ladder.push('Grp→Bot', displayJid, 'Bot', 'GRP_CMD_UNAUTH', command, '', '', '', '');
               continue;
             }
             const session = sessionStore.getSessionByGroup(groupJid);
             log('GROUP COMMAND: ' + command + ' session=' + (session ? 'found apto=' + session.apto : 'none'));
+            ladder.push('Grp→Bot', displayJid, 'Bot', 'GRP_CMD_' + command, text, '', '', '', session?.apto || '');
             await adminCommands.handleGroupCommand(command, [], session, sock, groupJid, sendToTenant);
             continue;
           }
@@ -433,6 +455,7 @@ async function startBot() {
           log('GROUP: participant=' + participant + ' isAuthorized=' + authResult + ' groupMetadata=' + (groupMetadata ? 'ok' : 'null'));
           if (!authResult) {
             log('GROUP: non-admin message ignored participant=' + participant);
+            ladder.push('Grp→Bot', displayJid, 'Bot', 'GRP_SKIP_UNAUTH', text, '', '', '', '');
             continue;
           }
 
@@ -440,11 +463,12 @@ async function startBot() {
           log('GROUP: getSessionByGroup groupJid=' + groupJid + ' found=' + !!session + ' state=' + (session?.state || 'none') + ' apto=' + (session?.apto || 'none'));
           if (session && session.state === 'ACTIVE') {
             log('GROUP RELAY: apto=' + session.apto + ' convJid=' + (session.conversationJid || 'none') + ' deliveryJid=' + (session.deliveryJid || 'none') + ' text="' + text.slice(0, 40) + '"');
+            ladder.push('Grp→Bot', displayJid + '(' + groupSubject + ')', 'Bot', 'GROUP_RELAY', text, '', '', '', session.apto);
             const displayText = text;
             const prefix = scripts.get('relay_from_group', { apto: session.apto });
             const fullText = prefix + '\n' + displayText;
             log('GROUP RELAY: prefix="' + prefix.slice(0, 40) + '" fullTextLength=' + fullText.length);
-            sendToTenant(session.conversationJid, fullText, 'GROUP_RELAY');
+            await sendToTenant(session.conversationJid, fullText, 'GROUP_RELAY');
             sessionStore.updateSession(session.conversationJid, {});
             log('GROUP RELAY: completed call to sendToTenant');
             continue;
@@ -452,11 +476,14 @@ async function startBot() {
 
           const apto = aptoToGroupJid ? Object.keys(aptoToGroupJid).find(k => aptoToGroupJid[k] === groupJid) : null;
           log('GROUP: no active session for groupJid=' + groupJid + ' mappedApto=' + (apto || 'none') + ' aptoToGroupJid keys=' + Object.keys(aptoToGroupJid || {}).length);
+          ladder.push('Grp→Bot', displayJid, 'Bot', 'GRP_NO_SESSION', text, '', '', '', apto || '');
         }
       } catch (e) {
         log('=== UPSERT ERROR === ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' '));
       }
     }
+    const ladderDump = ladder.printSession(12);
+    if (ladderDump) log(ladderDump);
     log('=== UPSERT END ===');
   });
 }
