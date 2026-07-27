@@ -8,6 +8,19 @@ export function isAuthorized(msg, sock, groupMetadata) {
   return groupMetadata.participants.some(p => p.id === participant && (p.admin === 'admin' || p.admin === 'superadmin'));
 }
 
+export function isAuthorizedForRelay(msg, groupMetadata, groupJid) {
+  if (msg.key.fromMe) return true;
+  if (!groupMetadata || !groupMetadata.participants) {
+    const session = sessionStore.getSessionByGroup(groupJid);
+    return !!session;
+  }
+  const participant = msg.key.participant || msg.key.remoteJid;
+  const isAdmin = groupMetadata.participants.some(p => p.id === participant && (p.admin === 'admin' || p.admin === 'superadmin'));
+  if (isAdmin) return true;
+  const session = sessionStore.getSessionByGroup(groupJid);
+  return !!session;
+}
+
 export async function handleGroupCommand(command, args, session, sock, groupJid, sendToTenant) {
   switch (command) {
     case '/session': {

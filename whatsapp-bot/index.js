@@ -498,14 +498,21 @@ async function startBot() {
           const displayJid = groupJid.split('@')[0].slice(0, 6) + '...g.us';
           log('GROUP: groupJid=' + groupJid + ' senderPn=' + (msgKey.senderPn || '') + ' participant=' + (msgKey.participant || '') + ' fromMe=' + msgKey.fromMe);
 
+          const session = sessionStore.getSessionByGroup(groupJid);
+
           let groupMetadata = null;
           let groupSubject = '';
-          try {
-            groupMetadata = await sock.groupMetadata(groupJid);
-            groupSubject = groupMetadata?.subject || '';
-            log('GROUP: metadata fetched participantsCount=' + (groupMetadata?.participants?.length || 0) + ' subject="' + groupSubject + '"');
-          } catch (e) {
-            log('GROUP: metadata fetch failed: ' + e.message);
+          if (!session) {
+            try {
+              groupMetadata = await sock.groupMetadata(groupJid);
+              groupSubject = groupMetadata?.subject || '';
+              log('GROUP: metadata fetched participantsCount=' + (groupMetadata?.participants?.length || 0) + ' subject="' + groupSubject + '"');
+            } catch (e) {
+              log('GROUP: metadata fetch failed: ' + e.message);
+            }
+          } else {
+            groupSubject = 'apto ' + session.apto;
+            log('GROUP: using session cache for groupJid=' + groupJid + ' apto=' + session.apto);
           }
 
           if (command && ['/session', '/close', '/who', '/status', '/ping'].includes(command)) {
@@ -522,7 +529,7 @@ async function startBot() {
           }
 
           const participant = msgKey.participant || '';
-          const authResult = adminCommands.isAuthorized(msg, sock, groupMetadata);
+          const authResult = adminCommands.isAuthorizedForRelay(msg, groupMetadata, groupJid);
           log('GROUP: participant=' + participant + ' isAuthorized=' + authResult + ' groupMetadata=' + (groupMetadata ? 'ok' : 'null'));
           if (!authResult) {
             log('GROUP: non-admin message ignored participant=' + participant);
@@ -530,7 +537,6 @@ async function startBot() {
             continue;
           }
 
-          const session = sessionStore.getSessionByGroup(groupJid);
           log('GROUP: getSessionByGroup groupJid=' + groupJid + ' found=' + !!session + ' state=' + (session?.state || 'none') + ' apto=' + (session?.apto || 'none'));
           if (session && session.state === 'ACTIVE') {
             log('GROUP RELAY: apto=' + session.apto + ' convJid=' + (session.conversationJid || 'none') + ' deliveryJid=' + (session.deliveryJid || 'none') + ' text="' + text.slice(0, 40) + '"');
