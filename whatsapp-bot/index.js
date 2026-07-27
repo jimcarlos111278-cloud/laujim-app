@@ -164,7 +164,7 @@ async function startBot() {
   if (reconnectTimer) clearTimeout(reconnectTimer);
 
   loadGroupMapping();
-  await loadSettings();
+  loadSettings().catch(e => log('SETTINGS startup error: ' + e.message));
 
   const { version } = await fetchLatestBaileysVersion();
   log('WA version: ' + version.join('.'));
@@ -376,7 +376,7 @@ async function startBot() {
       }
       case '/menu': {
         authFlow.cancelAuth(convJid);
-        const retryDiscover = async () => { try { await discoverGroups(); } catch {} };
+        const retryDiscover = async () => { try { await Promise.race([discoverGroups(), new Promise(r => setTimeout(r, 10000))]); } catch {} };
         const result = await authFlow.handleMessage(convJid, '', sendToTenant, aptoToGroupJid, retryDiscover);
         return true;
       }
@@ -430,11 +430,11 @@ async function startBot() {
           if (authFlow.isInAuth(convJid)) {
             log('PRIVATE: continuing auth convJid=' + convJid + ' deliveryJid=' + deliveryJid);
             ladder.updateLatest('AUTH_CONTINUE', '');
-            const retryDiscover = async () => { try { await discoverGroups(); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
-            const result = await authFlow.handleMessage(convJid, text, sendToTenant, aptoToGroupJid, retryDiscover);
-            log('PRIVATE: authFlow result action=' + result.action + ' session=' + (result.session ? JSON.stringify({ apto: result.session.apto, groupJid: result.session.groupJid, tenantName: result.session.tenantName }) : 'none'));
+          const retryDiscover = async () => { try { await Promise.race([discoverGroups(), new Promise(r => setTimeout(r, 10000))]); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
+          const result = await authFlow.handleMessage(convJid, text, sendToTenant, aptoToGroupJid, retryDiscover);
 
-            if (result.action === 'authenticated' && result.session) {
+
+          if (result.action === 'authenticated' && result.session) {
               const existing = sessionStore.closeExistingSessionForGroup(result.session.groupJid);
               if (existing) log('PRIVATE AUTH: replaced existing session for group ' + result.session.groupJid);
               sessionStore.setSession(convJid, {
@@ -472,8 +472,11 @@ async function startBot() {
 
           log('PRIVATE: no active session, trying auto-auth by phone');
           const phone = convJid.split('@')[0];
-          const retryDiscover = async () => { try { await discoverGroups(); } catch {} };
-          const autoSession = await authFlow.autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJid, retryDiscover);
+          const retryDiscover = async () => { try { await Promise.race([discoverGroups(), new Promise(r => setTimeout(r, 10000))]); } catch {} };
+          const autoSession = await Promise.race([
+            authFlow.autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJid, retryDiscover),
+            new Promise(r => setTimeout(() => r(null), 5000)),
+          ]);
 
           if (autoSession && autoSession.apto) {
             const existing = sessionStore.closeExistingSessionForGroup(autoSession.groupJid);
