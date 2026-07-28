@@ -40,11 +40,15 @@ export default function Tenants() {
 
   async function handleAdd(e) {
     e.preventDefault();
-    const newTenant = await api.tenants.add({ ...form, linkedAptId: undefined, createdAt: new Date().toISOString() });
-    if (form.linkedAptId) {
-      const apt = apartments.find(a => a.id === Number(form.linkedAptId));
-      const existingContracts = contracts.filter(c => c.apartmentId === Number(form.linkedAptId) && (!c.endDate || new Date(c.endDate) > new Date()));
-      if (existingContracts.length === 0) {
+    try {
+      const newTenant = await api.tenants.add({ ...form, linkedAptId: undefined, createdAt: new Date().toISOString() });
+      if (form.linkedAptId) {
+        const apt = apartments.find(a => a.id === Number(form.linkedAptId));
+        const existingContracts = contracts.filter(c => c.apartmentId === Number(form.linkedAptId) && (!c.endDate || new Date(c.endDate) > new Date()));
+        // End any existing active contracts before assigning the new tenant
+        for (const ec of existingContracts) {
+          await api.contracts.update(ec.id, { endDate: new Date().toISOString().split('T')[0] });
+        }
         await api.contracts.add({
           apartmentId: Number(form.linkedAptId),
           tenantId: newTenant.id,
@@ -57,16 +61,21 @@ export default function Tenants() {
         });
         if (apt) await api.apartments.update(apt.id, { status: 'occupied' });
       }
+      setShowAdd(false);
+      setForm({ name: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
+      load();
+    } catch (err) {
+      alert('Error al guardar: ' + err.message);
     }
-    setShowAdd(false);
-    setForm({ name: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
-    load();
   }
 
   async function handleDelete(id) {
-    if (confirm('¿Eliminar este inquilino?')) {
+    if (!confirm('¿Eliminar este inquilino?')) return;
+    try {
       await api.tenants.delete(id);
       load();
+    } catch (err) {
+      alert('Error al eliminar: ' + err.message);
     }
   }
 
@@ -208,10 +217,13 @@ export default function Tenants() {
               <option value="">-- Sin apartamento --</option>
               {apartments.map(a => {
                 const hasActive = contracts.some(c => c.apartmentId === a.id && (!c.endDate || new Date(c.endDate) > new Date()));
-                return <option key={a.id} value={a.id}>{a.name} {hasActive ? '(OCUPADO)' : '(VACANTE)'}</option>;
+                return <option key={a.id} value={a.id}>{a.name} {hasActive ? '🔴 OCUPADO' : '🟢 VACANTE'}</option>;
               })}
             </select>
-            <p className="text-xs text-gray-400 mt-1">Al seleccionar un apartamento vacante, se creará un contrato automáticamente.</p>
+            {form.linkedAptId && contracts.some(c => c.apartmentId === Number(form.linkedAptId) && (!c.endDate || new Date(c.endDate) > new Date())) && (
+              <p className="text-xs text-amber-600 mt-1">⚠️ Este apartamento tiene un inquilino activo. Se creará un nuevo contrato y se finalizará el anterior.</p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">Al seleccionar un apartamento, se creará un contrato automáticamente.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
