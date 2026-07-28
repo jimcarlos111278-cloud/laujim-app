@@ -421,7 +421,7 @@ async function startBot() {
           const deliveryJid = senderPnRaw || convJid;
           log('PRIVATE: convJid=' + convJid + ' senderPnRaw="' + senderPnRaw + '" deliveryJid=' + deliveryJid + ' same=' + (convJid === deliveryJid));
 
-          if (command && ['/help', '/status', '/endsession', '/logout', '/relogin', '/cancel', '/menu'].includes(command)) {
+          if (command && ['/help', '/status', '/endsession', '/logout', '/relogin', '/cancel'].includes(command)) {
             log('PRIVATE COMMAND: ' + command);
             ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'CMD_' + command, text, '', '', '', '');
             await handlePrivateCommand(convJid, command);
@@ -478,7 +478,7 @@ async function startBot() {
           const retryDiscover = async () => { try { await Promise.race([discoverGroups(), new Promise(r => setTimeout(r, 10000))]); } catch {} };
           const autoSession = await Promise.race([
             authFlow.autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJid, retryDiscover),
-            new Promise(r => setTimeout(() => r(null), 5000)),
+            new Promise(r => setTimeout(() => r(null), 1000)),
           ]);
 
           if (autoSession && autoSession.apto) {
@@ -505,17 +505,13 @@ async function startBot() {
 
           let groupMetadata = null;
           let groupSubject = '';
-          if (!session) {
-            try {
-              groupMetadata = await sock.groupMetadata(groupJid);
-              groupSubject = groupMetadata?.subject || '';
-              log('GROUP: metadata fetched participantsCount=' + (groupMetadata?.participants?.length || 0) + ' subject="' + groupSubject + '"');
-            } catch (e) {
-              log('GROUP: metadata fetch failed: ' + e.message);
-            }
-          } else {
-            groupSubject = 'apto ' + session.apto;
-            log('GROUP: using session cache for groupJid=' + groupJid + ' apto=' + session.apto);
+          try {
+            groupMetadata = await sock.groupMetadata(groupJid);
+            groupSubject = groupMetadata?.subject || '';
+            log('GROUP: metadata fetched participantsCount=' + (groupMetadata?.participants?.length || 0) + ' subject="' + groupSubject + '"');
+          } catch (e) {
+            log('GROUP: metadata fetch failed: ' + e.message);
+            if (session) groupSubject = 'apto ' + session.apto;
           }
 
           if (command && ['/session', '/close', '/who', '/status', '/ping'].includes(command)) {

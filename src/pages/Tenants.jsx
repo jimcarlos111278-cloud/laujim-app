@@ -44,11 +44,6 @@ export default function Tenants() {
       const newTenant = await api.tenants.add({ ...form, apartmentId: form.linkedAptId ? Number(form.linkedAptId) : undefined, linkedAptId: undefined, createdAt: new Date().toISOString() });
       if (form.linkedAptId) {
         const apt = apartments.find(a => a.id === Number(form.linkedAptId));
-        const existingContracts = contracts.filter(c => c.apartmentId === Number(form.linkedAptId) && (!c.endDate || new Date(c.endDate) > new Date()));
-        // End any existing active contracts before assigning the new tenant
-        for (const ec of existingContracts) {
-          await api.contracts.update(ec.id, { endDate: new Date().toISOString().split('T')[0] });
-        }
         await api.contracts.add({
           apartmentId: Number(form.linkedAptId),
           tenantId: newTenant.id,
@@ -184,6 +179,7 @@ export default function Tenants() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <span className="text-gray-500">Teléfono:</span><span className="text-gray-700">{t.phone || '-'}</span>
                     <span className="text-gray-500">Tel. Trabajo:</span><span className="text-gray-700">{t.workPhone || '-'}</span>
                     <span className="text-gray-500">Dir. Trabajo:</span><span className="text-gray-700">{t.workAddress || '-'}</span>
                     <span className="text-gray-500">Apartamento:</span><span className="text-gray-700">{apt ? <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{apt.name}</span> : '-'}</span>
