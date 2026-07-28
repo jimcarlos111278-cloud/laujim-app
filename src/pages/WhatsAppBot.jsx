@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, AlertCircle, CheckCircle, XCircle, Key, Terminal, Globe, ExternalLink, Users, FileText, Shield, Menu, Image, Video, FilePlus, Phone, Search } from 'lucide-react';
+import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, AlertCircle, CheckCircle, XCircle, Key, Terminal, Globe, ExternalLink, FileText, Shield, Menu, Image, Video, FilePlus, Phone, Search } from 'lucide-react';
 import { getAuth } from '../utils/auth';
 import { getBase, AUTH_TOKEN } from '../utils/config';
 
@@ -113,8 +113,11 @@ export default function WhatsAppBot() {
   const [sessions, setSessions] = useState([]);
   const [showSessions, setShowSessions] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
-  const [groupCreateApto, setGroupCreateApto] = useState('');
-  const [groupCreating, setGroupCreating] = useState(false);
+  const [chatConversations, setChatConversations] = useState([]);
+  const [activeChatJid, setActiveChatJid] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
   const [passwordOld, setPasswordOld] = useState('');
   const [passwordNew, setPasswordNew] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -142,8 +145,10 @@ export default function WhatsAppBot() {
     fetchStatus();
     fetchBotInfo();
     fetchProxyStatus();
+    fetchConversations();
     const iv = setInterval(fetchStatus, 5000);
     const infoIv = setInterval(fetchBotInfo, 15000);
+    const chatIv = setInterval(fetchConversations, 3000);
     const ageIv = setInterval(() => {
       const ts = qrTimestampRef.current;
       if (ts > 0) {
@@ -151,8 +156,19 @@ export default function WhatsAppBot() {
         setQrAge(secs < 60 ? secs + 's' : Math.floor(secs / 60) + 'min');
       }
     }, 1000);
-    return () => { clearInterval(iv); clearInterval(infoIv); clearInterval(ageIv); };
+    return () => { clearInterval(iv); clearInterval(infoIv); clearInterval(chatIv); clearInterval(ageIv); };
   }, []);
+
+  useEffect(() => {
+    if (activeChatJid) {
+      fetchMessages(activeChatJid);
+      handleMarkRead(activeChatJid);
+      const iv = setInterval(() => { fetchMessages(activeChatJid); fetchConversations(); }, 3000);
+      return () => clearInterval(iv);
+    } else {
+      setChatMessages([]);
+    }
+  }, [activeChatJid]);
 
   async function loadConfig() {
     try {
@@ -193,6 +209,58 @@ export default function WhatsAppBot() {
     try {
       const res = await fetch(getBase() + '/whatsapp-bot/sessions', { headers: { 'x-auth-token': AUTH_TOKEN } });
       if (res.ok) setSessions(await res.json());
+    } catch {}
+  }
+
+  async function fetchConversations() {
+    try {
+      const res = await fetch(getBase() + '/whatsapp-bot/wa/conversations', { headers: { 'x-auth-token': AUTH_TOKEN } });
+      if (res.ok) {
+        const data = await res.json();
+        setChatConversations(data.conversations || []);
+      }
+    } catch {}
+  }
+
+  async function fetchMessages(jid) {
+    try {
+      const res = await fetch(getBase() + '/whatsapp-bot/wa/conversations?jid=' + encodeURIComponent(jid), { headers: { 'x-auth-token': AUTH_TOKEN } });
+      if (res.ok) {
+        const data = await res.json();
+        setChatMessages(data.messages || []);
+      }
+    } catch {}
+  }
+
+  async function handleSendReply() {
+    if (!replyText.trim() || !activeChatJid) return;
+    setSendingReply(true);
+    try {
+      const res = await fetch(getBase() + '/whatsapp-bot/wa/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        body: JSON.stringify({ jid: activeChatJid, text: replyText.trim() }),
+      });
+      if (res.ok) {
+        setReplyText('');
+        setTimeout(() => { fetchMessages(activeChatJid); fetchConversations(); }, 500);
+      } else {
+        const data = await res.json();
+        showAction(data.error || 'Error al enviar mensaje', 'error');
+      }
+    } catch (e) {
+      showAction('Error: ' + e.message, 'error');
+    }
+    setSendingReply(false);
+  }
+
+  async function handleMarkRead(jid) {
+    try {
+      await fetch(getBase() + '/whatsapp-bot/wa/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        body: JSON.stringify({ jid }),
+      });
     } catch {}
   }
 
@@ -309,33 +377,6 @@ export default function WhatsAppBot() {
     }
   }, [pairingCode, pairingCodeLoading]);
 
-  async function handleCreateGroup() {
-    const apto = groupCreateApto.trim();
-    if (!/^\d{3}$/.test(apto)) {
-      showAction('Ingresa un número de apto válido (3 dígitos)', 'error');
-      return;
-    }
-    setGroupCreating(true);
-    try {
-      const res = await fetch(getBase() + '/whatsapp-bot/groups/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
-        body: JSON.stringify({ apto, adminPhone: adminPhone.includes('@') ? adminPhone : adminPhone + '@s.whatsapp.net' }),
-      });
-      const data = await res.json();
-      if (res.ok && data.ok) {
-        showAction('Grupo creado para apto ' + apto, 'success');
-        setGroupCreateApto('');
-        setTimeout(fetchBotInfo, 2000);
-      } else {
-        showAction(data.error || 'Error al crear grupo', 'error');
-      }
-    } catch (e) {
-      showAction('Error: ' + e.message, 'error');
-    }
-    setGroupCreating(false);
-  }
-
   async function handleChangePassword() {
     if (!passwordNew || passwordNew.length < 6) {
       showAction('La nueva contraseña debe tener al menos 6 caracteres', 'error');
@@ -401,10 +442,10 @@ export default function WhatsAppBot() {
 
   const tabs = [
     { id: 'general', label: 'General', icon: MessageCircle },
+    { id: 'chat', label: 'Chat WA', icon: MessageCircle },
     { id: 'features', label: 'Funciones', icon: Menu },
     { id: 'messages', label: 'Mensajes', icon: Edit3 },
     { id: 'leads', label: 'Leads', icon: FileText },
-    { id: 'groups', label: 'Grupos', icon: Users },
     { id: 'advanced', label: 'Avanzado', icon: Shield },
   ];
 
@@ -685,13 +726,7 @@ export default function WhatsAppBot() {
                 </div>
                 <p className="text-xs text-amber-500 mt-1">Usuarios interesados llenan nombre, teléfono y email. Leads guardados en la base de datos.</p>
               </div>
-              <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-indigo-600" />
-                  <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Auto-creación de grupos WhatsApp</p>
-                </div>
-                <p className="text-xs text-indigo-500 mt-1">Crea grupos automáticamente desde este panel. El bot agrega al admin como participante.</p>
-              </div>
+
             </div>
           </div>
 
@@ -714,6 +749,18 @@ export default function WhatsAppBot() {
                   )) : (<p className="text-xs text-gray-400">No hay sesiones activas</p>)}
                 </div>
               )}
+
+              <button onClick={() => handleBotAction('discover')} className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                <p className="font-medium text-gray-900 dark:text-white">Rediscover Groups</p>
+                <p className="text-xs text-gray-500 mt-1">Busca grupos nuevos que contengan número de apto en el nombre</p>
+              </button>
+
+              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">Grupos descubiertos: <strong>{botInfo.groups?.length || 0}</strong></p>
+                <div className="text-xs text-gray-500 mt-1">
+                  {botInfo.groups?.length > 0 ? botInfo.groups.join(', ') : 'Ninguno'}
+                </div>
+              </div>
 
               <button onClick={async () => {
                 showAction('Verifica el panel externo para el ladder de entrega', 'success');
@@ -820,50 +867,117 @@ export default function WhatsAppBot() {
         </div>
       )}
 
-      {/* ─── TAB GRUPOS ─── */}
-      {activeTab === 'groups' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Users className="w-4 h-4" /> Crear Grupo WhatsApp</h3>
-            <p className="text-sm text-gray-500 mb-4">Crea un grupo para un apartamento. El bot agrega al admin automáticamente si el número es correcto.</p>
-            <div className="flex gap-2">
-              <input type="text" value={groupCreateApto} onChange={e => setGroupCreateApto(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                placeholder="203" className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center font-bold text-lg" maxLength={3} />
-              <button onClick={handleCreateGroup} disabled={groupCreating || !botStatus.authenticated}
-                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
-                {groupCreating ? 'Creando...' : <><Users className="w-4 h-4" /> Crear Grupo</>}
-              </button>
-            </div>
-            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p className="text-xs text-gray-500">Grupos existentes: <strong className="text-gray-900 dark:text-white">{botInfo.groups?.length || 0}</strong></p>
-              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                {botInfo.groups?.length > 0 ? botInfo.groups.join(', ') : 'Ninguno'}
+      {/* ─── TAB CHAT WA ─── */}
+      {activeTab === 'chat' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden" style={{ height: '560px' }}>
+          <div className="flex h-full">
+            {/* Sidebar */}
+            <div className="w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-900">
+              <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4" /> Conversaciones
+                  {chatConversations.filter(c => c.unread > 0).length > 0 && (
+                    <span className="ml-auto text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                      {chatConversations.filter(c => c.unread > 0).length} nuevas
+                    </span>
+                  )}
+                </h3>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {chatConversations.length === 0 ? (
+                  <div className="p-6 text-center text-gray-400 text-sm">
+                    <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>Sin conversaciones</p>
+                    <p className="text-xs mt-1">Los mensajes relayeados aparecerán aquí</p>
+                  </div>
+                ) : chatConversations.map(c => (
+                  <div key={c.jid}
+                    onClick={() => setActiveChatJid(c.jid)}
+                    className={`flex items-center gap-2 p-3 cursor-pointer border-b border-gray-200 dark:border-gray-700 transition-colors ${activeChatJid === c.jid ? 'bg-blue-50 dark:bg-blue-900/30 border-l-2 border-l-blue-500' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {c.apto || c.jid.slice(2, 5)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Apto {c.apto || '?'}</span>
+                        <span className="text-xs text-gray-400">{c.lastMessage ? new Date(c.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {c.unread > 0 && <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0"></span>}
+                        <span className="text-xs text-gray-500 truncate">
+                          {c.lastMessage ? (c.lastMessage.direction === 'in' ? '→ ' : '← ') + c.lastMessage.text : 'Sin mensajes'}
+                        </span>
+                      </div>
+                    </div>
+                    {c.unread > 0 && (
+                      <span className="text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{c.unread}</span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Search className="w-4 h-4" /> Grupos y Sesiones</h3>
-            <p className="text-sm text-gray-500 mb-4">El bot descubre automáticamente los grupos que tienen un número de apto de 3 dígitos en el nombre.</p>
-            <div className="space-y-3">
-              <button onClick={() => handleBotAction('discover')} className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors text-sm">
-                <RefreshCw className="w-4 h-4" /> Rediscover Groups
-              </button>
-              <button onClick={() => { fetchSessions(); setShowSessions(!showSessions); }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
-                <Users className="w-4 h-4" /> {showSessions ? 'Ocultar' : 'Ver'} sesiones activas
-              </button>
-              {showSessions && (
-                <div className="max-h-60 overflow-y-auto space-y-2">
-                  {(!sessions.sessions || sessions.sessions.length === 0) ? (
-                    <p className="text-xs text-gray-400 p-2">No hay sesiones activas</p>
-                  ) : sessions.sessions.map((s, i) => (
-                    <div key={i} className="p-2 bg-gray-50 dark:bg-gray-700 rounded text-xs flex justify-between">
-                      <span className="font-medium">Apto {s.apto}</span>
-                      <span className="text-gray-500">{s.tenantName}</span>
-                      <span className="text-gray-400">{new Date(s.lastActivity).toLocaleTimeString()}</span>
+            {/* Chat panel */}
+            <div className="flex-1 flex flex-col">
+              {activeChatJid ? (
+                <>
+                  <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                      {chatConversations.find(c => c.jid === activeChatJid)?.apto || activeChatJid.slice(2, 5)}
                     </div>
-                  ))}
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        Apto {chatConversations.find(c => c.jid === activeChatJid)?.apto || '?'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {chatMessages.length} mensajes · {botStatus.authenticated ? 'Bot activo' : 'Bot desconectado'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
+                    {chatMessages.length === 0 ? (
+                      <div className="text-center text-gray-400 text-sm pt-10">
+                        <p>No hay mensajes en esta conversación</p>
+                        <p className="text-xs mt-1">Los mensajes aparecen cuando el inquilino escribe</p>
+                      </div>
+                    ) : chatMessages.map(m => (
+                      <div key={m.id} className={`flex ${m.direction === 'in' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[75%] px-3 py-2 rounded-xl text-sm ${m.direction === 'in' ? 'bg-blue-600 text-white rounded-br-md' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-md'}`}>
+                          {m.direction === 'out' && m.sender && (
+                            <p className="text-xs font-semibold text-blue-500 dark:text-blue-400 mb-0.5">{m.sender}</p>
+                          )}
+                          <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                          <p className={`text-xs mt-1 ${m.direction === 'in' ? 'text-blue-200' : 'text-gray-400'}`}>
+                            {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <div className="flex gap-2 items-center">
+                      <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
+                        placeholder="Escribe para responder al inquilino..."
+                        disabled={sendingReply || !botStatus.authenticated}
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50" />
+                      <button onClick={handleSendReply} disabled={!replyText.trim() || sendingReply || !botStatus.authenticated}
+                        className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-40 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m22 2-7 20-4-9-9-4Z"/></svg>
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1.5 text-center">
+                      {botStatus.authenticated ? 'Los mensajes se envían vía WhatsApp al inquilino' : 'Espera a que el bot esté conectado'}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm">Selecciona una conversación</p>
+                    <p className="text-xs mt-1">Los mensajes relayeados entre inquilinos y grupos aparecen aquí</p>
+                  </div>
                 </div>
               )}
             </div>

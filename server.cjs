@@ -723,9 +723,28 @@ app.get('/api/whatsapp-bot/sessions', async (req, res) => {
   try { res.json(JSON.parse(buf.toString())); } catch { res.json({ count: 0, sessions: [] }); }
 });
 
-app.post('/api/whatsapp-bot/groups/create', async (req, res) => {
+// ─── WHATSAPP BOT CHAT (web conversations) ───
+app.get('/api/whatsapp-bot/wa/conversations', async (req, res) => {
+  const { jid } = req.query;
+  const path = jid ? '/wa/conversations/' + encodeURIComponent(jid) : '/wa/conversations';
+  const buf = await fetchBotBuffer(path);
+  if (!buf) return res.json({ conversations: [] });
+  try { res.json(JSON.parse(buf.toString())); } catch { res.json({ conversations: [] }); }
+});
+
+app.post('/api/whatsapp-bot/wa/send', async (req, res) => {
   try {
-    const result = await proxyPostToBot('/groups/create', req.body);
+    const result = await proxyPostToBot('/wa/send', req.body);
+    if (result.error) return res.status(500).json(result);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: 'Error al conectar con el bot: ' + e.message });
+  }
+});
+
+app.post('/api/whatsapp-bot/wa/mark-read', async (req, res) => {
+  try {
+    const result = await proxyPostToBot('/wa/mark-read', req.body);
     if (result.error) return res.status(500).json(result);
     res.json(result);
   } catch (e) {

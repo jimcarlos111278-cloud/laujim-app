@@ -17,6 +17,7 @@ import * as heartbeat from './src/heartbeat.js';
 import * as api from './src/api-client.js';
 import { log } from './src/logger.js';
 import * as ladder from './src/ladder.js';
+import * as waStore from './src/wa-store.js';
 
 log('');
 log('============================================');
@@ -459,10 +460,12 @@ async function startBot() {
               log('PRIVATE MEDIA RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid);
               ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_MEDIA', text, '', '', '', session.apto);
               await messageRelay.relayToGroup(sock, session, msg, getAdminName());
+              waStore.addMessage(session.groupJid, session.apto, text || '[Media]', 'in', 'Inquilino Apto ' + session.apto);
             } else if (text) {
               log('PRIVATE RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid + ' text="' + text.slice(0, 40) + '"');
               ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_TO_GROUP', text, '', '', '', session.apto);
               await messageRelay.relayToGroup(sock, session, msg, getAdminName());
+              waStore.addMessage(session.groupJid, session.apto, text, 'in', 'Inquilino Apto ' + session.apto);
             } else {
               log('PRIVATE: no text and no media, skipping');
             }
@@ -546,6 +549,7 @@ async function startBot() {
             const fullText = prefix + '\n' + displayText;
             log('GROUP RELAY: prefix="' + prefix.slice(0, 40) + '" fullTextLength=' + fullText.length);
             await sendToTenant(session.conversationJid, fullText, 'GROUP_RELAY');
+            waStore.addMessage(groupJid, session.apto, displayText, 'out', getAdminName());
             sessionStore.updateSession(session.conversationJid, {});
             log('GROUP RELAY: completed call to sendToTenant');
             continue;

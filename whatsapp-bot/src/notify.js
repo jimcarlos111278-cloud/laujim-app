@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { log, getLogs, clearLogs } from './logger.js';
 import * as ladder from './ladder.js';
 import * as api from './api-client.js';
-import * as groupManager from './group-manager.js';
+import * as waStore from './wa-store.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || join(__dirname, '..', 'data');
@@ -92,8 +92,9 @@ export function startNotifyServer(port) {
       return;
     }
 
-    const publicPaths = ['/status', '/log', '/qr', '/pairing-code', '/', '/info', '/groups', '/proxy-status', '/logs', '/ladder', '/sessions', '/leads'];
-    if (!isAuthorized(req) && !publicPaths.includes(req.url)) {
+    const publicPaths = ['/status', '/log', '/qr', '/pairing-code', '/', '/info', '/groups', '/proxy-status', '/logs', '/ladder', '/sessions', '/leads', '/wa/conversations'];
+    const isPublic = publicPaths.includes(req.url) || req.url.startsWith('/wa/conversations/');
+    if (!isAuthorized(req) && !isPublic) {
       sendJson(res, 401, { error: 'Unauthorized. Set BOT_ADMIN_TOKEN or provide Authorization header.' });
       return;
     }
@@ -150,6 +151,13 @@ export function startNotifyServer(port) {
           const active = ss.getActiveSessions();
           sendJson(res, 200, { count: active.length, sessions: active.map(s => ({ apto: s.apto, tenantName: s.tenantName, lastActivity: s.lastActivity })) });
         }).catch(() => sendJson(res, 200, { count: 0, sessions: [] }));
+      } else if (req.url === '/wa/conversations') {
+        const conversations = waStore.getConversations();
+        sendJson(res, 200, { conversations });
+      } else if (req.url.startsWith('/wa/conversations/')) {
+        const jid = decodeURIComponent(req.url.slice('/wa/conversations/'.length));
+        const messages = waStore.getMessages(jid);
+        sendJson(res, 200, { jid, messages, count: messages.length });
       } else if (req.url === '/leads') {
         try {
           const leads = await api.getLeads();
@@ -284,29 +292,44 @@ export function startNotifyServer(port) {
         } catch (e) {
           sendJson(res, 500, { error: 'Error al resetear sesión: ' + e.message });
         }
-      } else if (req.url === '/groups/create') {
+      } else if (req.url === '/wa/send') {
         if (!client) {
           sendJson(res, 503, { error: 'WhatsApp client not ready' });
           return;
         }
-        const { apto, adminPhone } = data || {};
-        if (!apto) {
-          sendJson(res, 400, { error: 'apto requerido' });
+        const { jid, text } = data || {};
+        if (!jid || !text) {
+          sendJson(res, 400, { error: 'jid and text required' });
           return;
         }
         try {
-          const jid = await groupManager.ensureGroupForApto(client, apto, adminPhone || '');
-          if (jid) {
-            const mapping = loadGroupMapping();
-            mapping[String(apto)] = jid;
-            saveGroupMapping(mapping);
-            sendJson(res, 200, { ok: true, jid, apto });
-          } else {
-            sendJson(res, 500, { error: 'No se pudo crear el grupo' });
-          }
+          const conv = waStore.getConversation(jid);
+          const apto = conv?.apto || '';
+          import('./session-store.js').then(ss => {
+            const session = ss.getSessionByGroup(jid);
+            const targetJid = session?.conversationJid || '';
+            if (!targetJid) {
+              sendJson(res, 400, { error: 'No hay sesión activa para este grupo' });
+              return;
+            }
+            client.sendMessage(targetJid, { text }).then(r => {
+              waStore.addMessage(jid, apto, text, 'out', 'Administrador');
+              sendJson(res, 200, { ok: true, id: r?.key?.id });
+            }).catch(e => {
+              sendJson(res, 500, { error: e.message });
+            });
+          }).catch(() => sendJson(res, 500, { error: 'Error loading session store' }));
         } catch (e) {
           sendJson(res, 500, { error: e.message });
         }
+      } else if (req.url === '/wa/mark-read') {
+        const { jid } = data || {};
+        if (!jid) {
+          sendJson(res, 400, { error: 'jid required' });
+          return;
+        }
+        waStore.markRead(jid);
+        sendJson(res, 200, { ok: true });
       } else if (req.url === '/discover') {
         if (!client) {
           sendJson(res, 503, { error: 'WhatsApp client not ready' });
@@ -356,7 +379,10 @@ export function startNotifyServer(port) {
     log('  GET  / - Service info');
     log('  POST /request-code - Pairing code');
     log('  POST /reset-session - Clear session & restart');
-    log('  POST /groups/create - Auto-create WhatsApp group');
+    log('  GET  /wa/conversations - Chat conversation list');
+    log('  GET  /wa/conversations/{jid} - Chat messages for group');
+    log('  POST /wa/send - Send message to tenant via chat');
+    log('  POST /wa/mark-read - Mark conversation as read');
     log('  POST /send - Send text message');
     log('Auth: BOT_ADMIN_TOKEN required on POST routes');
   });
