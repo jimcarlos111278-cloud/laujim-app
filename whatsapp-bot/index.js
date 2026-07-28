@@ -315,13 +315,13 @@ async function startBot() {
     return null;
   }
 
-  async function sendToTenant(convJid, content, source) {
+  async function sendToTenant(convJid, content, source, deliveryJidOverride) {
     if (!sock) { log('SEND_TO_TENANT: no sock, skipping source=' + (source || '?')); return false; }
     const session = sessionStore.getSession(convJid);
-    const deliveryJid = session?.deliveryJid || convJid;
+    const deliveryJid = deliveryJidOverride || session?.deliveryJid || convJid;
     const masked = deliveryJid.split('@')[0].slice(0, 4) + '...@' + deliveryJid.split('@')[1];
     const sessionInfo = session ? 'apto=' + session.apto + ' deliveryJid=' + session.deliveryJid : 'no-session';
-    log('SEND_TO_TENANT source=' + (source || '?') + ' session=' + sessionInfo + ' deliveryJid=' + deliveryJid + ' contentLen=' + (content || '').length + ' contentStart="' + (content || '').slice(0, 80) + '"');
+    log('SEND_TO_TENANT source=' + (source || '?') + ' session=' + sessionInfo + ' deliveryJid=' + deliveryJid + ' contentLen=' + (content || '').length + ' content="' + (content || '') + '"');
     const aptoLabel = session?.apto || '';
     ladder.push('Bot→Usr', 'Bot', maskJid(deliveryJid), source, content, '', 'PENDING', '', aptoLabel);
     try {
@@ -410,7 +410,7 @@ async function startBot() {
                      msg.message.videoMessage?.caption ||
                      msg.message.documentMessage?.caption ||
                      '';
-        log('MSG: text="' + (text || '').slice(0, 80) + '" textLength=' + (text?.length || 0));
+        log('MSG: text="' + (text || '') + '" textLength=' + (text?.length || 0));
 
         const command = matchCommand(text);
         log('MSG: matchedCommand=' + (command || 'none'));
@@ -432,7 +432,7 @@ async function startBot() {
             log('PRIVATE: continuing auth convJid=' + convJid + ' deliveryJid=' + deliveryJid);
             ladder.updateLatest('AUTH_CONTINUE', '');
           const retryDiscover = async () => { try { await Promise.race([discoverGroups(), new Promise(r => setTimeout(r, 10000))]); } catch (e) { log('RETRY DISCOVER error: ' + e.message); } };
-          const result = await authFlow.handleMessage(convJid, text, sendToTenant, aptoToGroupJid, retryDiscover);
+          const result = await authFlow.handleMessage(convJid, text, sendToTenant, aptoToGroupJid, retryDiscover, deliveryJid);
 
 
           if (result.action === 'authenticated' && result.session) {
@@ -462,7 +462,7 @@ async function startBot() {
               await messageRelay.relayToGroup(sock, session, msg, getAdminName());
               waStore.addMessage(session.groupJid, session.apto, text || '[Media]', 'in', 'Inquilino Apto ' + session.apto);
             } else if (text) {
-              log('PRIVATE RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid + ' text="' + text.slice(0, 40) + '"');
+              log('PRIVATE RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid + ' text="' + text + '"');
               ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_TO_GROUP', text, '', '', '', session.apto);
               await messageRelay.relayToGroup(sock, session, msg, getAdminName());
               waStore.addMessage(session.groupJid, session.apto, text, 'in', 'Inquilino Apto ' + session.apto);
@@ -474,7 +474,7 @@ async function startBot() {
           }
 
           log('PRIVATE: no active session, trying auto-auth by phone');
-          const phone = convJid.split('@')[0];
+          const phone = senderPnRaw ? senderPnRaw.split('@')[0] : convJid.split('@')[0];
           const retryDiscover = async () => { try { await Promise.race([discoverGroups(), new Promise(r => setTimeout(r, 10000))]); } catch {} };
           const autoSession = await Promise.race([
             authFlow.autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJid, retryDiscover),
@@ -490,9 +490,9 @@ async function startBot() {
             continue;
           }
 
-          log('PRIVATE: auto-auth failed, starting menu flow convJid=' + convJid);
+          log('PRIVATE: auto-auth failed, starting menu flow convJid=' + convJid + ' deliveryJid=' + deliveryJid);
           ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'MENU_START', text, '', '', '', '');
-          const result = await authFlow.handleMessage(convJid, text, sendToTenant, aptoToGroupJid, retryDiscover);
+          const result = await authFlow.handleMessage(convJid, text, sendToTenant, aptoToGroupJid, retryDiscover, deliveryJid);
           log('PRIVATE MENU: action=' + result.action);
         }
 
@@ -538,12 +538,12 @@ async function startBot() {
 
           log('GROUP: getSessionByGroup groupJid=' + groupJid + ' found=' + !!session + ' state=' + (session?.state || 'none') + ' apto=' + (session?.apto || 'none'));
           if (session && session.state === 'ACTIVE') {
-            log('GROUP RELAY: apto=' + session.apto + ' convJid=' + (session.conversationJid || 'none') + ' deliveryJid=' + (session.deliveryJid || 'none') + ' text="' + text.slice(0, 40) + '"');
+            log('GROUP RELAY: apto=' + session.apto + ' convJid=' + (session.conversationJid || 'none') + ' deliveryJid=' + (session.deliveryJid || 'none') + ' text="' + text + '"');
             ladder.push('Grp→Bot', displayJid + '(' + groupSubject + ')', 'Bot', 'GROUP_RELAY', text, '', '', '', session.apto);
             const displayText = text;
             const prefix = scripts.get('relay_from_group', { apto: session.apto, adminName: getAdminName() });
             const fullText = prefix + '\n' + displayText;
-            log('GROUP RELAY: prefix="' + prefix.slice(0, 40) + '" fullTextLength=' + fullText.length);
+            log('GROUP RELAY: prefix="' + prefix + '" fullTextLength=' + fullText.length);
             await sendToTenant(session.conversationJid, fullText, 'GROUP_RELAY');
             waStore.addMessage(groupJid, session.apto, displayText, 'out', getAdminName());
             sessionStore.updateSession(session.conversationJid, {});

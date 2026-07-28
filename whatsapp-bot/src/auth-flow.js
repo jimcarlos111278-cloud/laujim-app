@@ -41,12 +41,12 @@ export function cancelAuth(convJid) {
   clearState(convJid);
 }
 
-export async function handleMessage(convJid, message, sendToTenant, aptoToGroupJid, retryDiscover) {
+export async function handleMessage(convJid, message, sendToTenant, aptoToGroupJid, retryDiscover, deliveryJidOverride) {
   let authState = getState(convJid);
-  log('AUTH: handleMessage convJid=' + convJid + ' state=' + (authState?.state || 'none') + ' message="' + (message || '').slice(0, 30) + '"');
+  log('AUTH: handleMessage convJid=' + convJid + ' state=' + (authState?.state || 'none') + ' message="' + (message || '') + '"');
 
   const sendViaBot = async (text, source) => {
-    await sendToTenant(convJid, text, source || 'AUTH');
+    await sendToTenant(convJid, text, source || 'AUTH', deliveryJidOverride);
   };
 
   if (!authState) {
@@ -274,7 +274,6 @@ export async function autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJ
       return null;
     }
 
-    // Resolve apartmentId: try tenant.apartmentId first, then fallback to active contract
     let apartmentId = tenant.apartmentId;
     if (!apartmentId) {
       log('AUTO_AUTH: tenant.apartmentId not set, looking up active contract for tenant=' + tenant.id);
@@ -291,7 +290,6 @@ export async function autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJ
       return null;
     }
 
-    // Resolve apartment name (apto number) from apartment ID
     let apto = '';
     try {
       const apt = await api.getApartmentById(apartmentId);
