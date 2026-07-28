@@ -163,7 +163,7 @@ export default function ContractGenerator() {
             if (form.arrendatario_telefono && !match.phone) await api.tenants.update(match.id, { phone: form.arrendatario_telefono });
             if (form.arrendatario_direccion_trabajo && !match.workAddress) await api.tenants.update(match.id, { workAddress: form.arrendatario_direccion_trabajo });
           } else {
-            const newT = await api.tenants.add({ name: form.arrendatario_nombre, documentId: form.arrendatario_cedula, phone: form.arrendatario_telefono || '', workAddress: form.arrendatario_direccion_trabajo || '', createdAt: new Date().toISOString() });
+            const newT = await api.tenants.add({ name: form.arrendatario_nombre, documentId: form.arrendatario_cedula, phone: form.arrendatario_telefono || '', workAddress: form.arrendatario_direccion_trabajo || '', apartmentId: apt?.id || null, createdAt: new Date().toISOString() });
             tenantIds.push(newT.id);
           }
         }

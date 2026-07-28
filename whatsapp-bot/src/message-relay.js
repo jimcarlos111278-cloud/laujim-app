@@ -36,7 +36,7 @@ function getTextContent(msg) {
          '';
 }
 
-export async function relayToGroup(sock, session, msg) {
+export async function relayToGroup(sock, session, msg, adminName) {
   log('RELAY_TO_GROUP: entered sock=' + !!sock + ' session=' + !!session + ' groupJid=' + (session?.groupJid || 'none') + ' apto=' + (session?.apto || 'none'));
   if (!sock || !session || !session.groupJid) {
     log('RELAY_TO_GROUP: skipped - missing sock/session/groupJid');
@@ -45,7 +45,7 @@ export async function relayToGroup(sock, session, msg) {
 
   const mediaInfo = getMediaInfo(msg);
   const text = getTextContent(msg);
-  const prefix = scripts.get('relay_from_tenant', { apto: session.apto });
+  const prefix = scripts.get('relay_from_tenant', { apto: session.apto, name: session.tenantName || '', adminName: adminName || '' });
   const fullCaption = prefix + (text ? '\n' + text : '');
   const groupShort = session.groupJid.split('@')[0].slice(0, 6) + '...g.us';
   const relayType = mediaInfo ? mediaInfo.type.toUpperCase() : 'TEXT';

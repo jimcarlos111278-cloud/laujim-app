@@ -83,3 +83,27 @@ export async function getLeads() {
   const res = await fetch(`${BASE_URL}/leads`, { headers: headers(), signal: signal() });
   return res.json().catch(() => []);
 }
+
+export async function getApartmentById(id) {
+  const res = await fetch(`${BASE_URL}/apartments/${Number(id)}`, {
+    headers: headers(),
+    signal: signal(),
+  });
+  return res.json().catch(() => null);
+}
+
+export async function getTenantContracts(tenantId) {
+  const res = await fetch(`${BASE_URL}/contracts/filter/tenantId/${Number(tenantId)}`, {
+    headers: headers(),
+    signal: signal(),
+  });
+  return res.json().catch(() => []);
+}
+
+export async function getAllTenants() {
+  const res = await fetch(`${BASE_URL}/tenants`, {
+    headers: headers(),
+    signal: signal(),
+  });
+  return res.json().catch(() => []);
+}

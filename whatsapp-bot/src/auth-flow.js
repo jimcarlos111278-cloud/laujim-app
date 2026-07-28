@@ -273,11 +273,37 @@ export async function autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJ
       log('AUTO_AUTH: no tenant found for phone=' + phone);
       return null;
     }
-    const apto = (tenant.apto || '').toString();
-    const contractsList = [];
+
+    // Resolve apartmentId: try tenant.apartmentId first, then fallback to active contract
+    let apartmentId = tenant.apartmentId;
+    if (!apartmentId) {
+      log('AUTO_AUTH: tenant.apartmentId not set, looking up active contract for tenant=' + tenant.id);
+      try {
+        const contracts = await api.getTenantContracts(tenant.id);
+        const active = contracts.find(c => !c.endDate || new Date(c.endDate) > new Date());
+        if (active) apartmentId = active.apartmentId;
+      } catch (e2) {
+        log('AUTO_AUTH: contract lookup error: ' + e2.message);
+      }
+    }
+    if (!apartmentId) {
+      log('AUTO_AUTH: no apartmentId found for tenant=' + tenant.id);
+      return null;
+    }
+
+    // Resolve apartment name (apto number) from apartment ID
+    let apto = '';
     try {
-      const contracts = await api.getAllApartments().catch(() => []);
-    } catch {}
+      const apt = await api.getApartmentById(apartmentId);
+      if (apt && apt.name) apto = String(apt.name);
+    } catch (e3) {
+      log('AUTO_AUTH: apartment lookup error: ' + e3.message);
+    }
+    if (!apto) {
+      log('AUTO_AUTH: could not resolve apto for apartmentId=' + apartmentId);
+      return null;
+    }
+
     let groupJid = aptoToGroupJid[apto];
     if (!groupJid && typeof retryDiscover === 'function') {
       await retryDiscover();

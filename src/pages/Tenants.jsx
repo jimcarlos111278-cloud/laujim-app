@@ -41,7 +41,7 @@ export default function Tenants() {
   async function handleAdd(e) {
     e.preventDefault();
     try {
-      const newTenant = await api.tenants.add({ ...form, linkedAptId: undefined, createdAt: new Date().toISOString() });
+      const newTenant = await api.tenants.add({ ...form, apartmentId: form.linkedAptId ? Number(form.linkedAptId) : undefined, linkedAptId: undefined, createdAt: new Date().toISOString() });
       if (form.linkedAptId) {
         const apt = apartments.find(a => a.id === Number(form.linkedAptId));
         const existingContracts = contracts.filter(c => c.apartmentId === Number(form.linkedAptId) && (!c.endDate || new Date(c.endDate) > new Date()));

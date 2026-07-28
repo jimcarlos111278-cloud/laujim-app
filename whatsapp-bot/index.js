@@ -458,11 +458,11 @@ async function startBot() {
             if (hasMedia) {
               log('PRIVATE MEDIA RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid);
               ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_MEDIA', text, '', '', '', session.apto);
-              await messageRelay.relayToGroup(sock, session, msg);
+              await messageRelay.relayToGroup(sock, session, msg, getAdminName());
             } else if (text) {
               log('PRIVATE RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid + ' text="' + text.slice(0, 40) + '"');
               ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_TO_GROUP', text, '', '', '', session.apto);
-              await messageRelay.relayToGroup(sock, session, msg);
+              await messageRelay.relayToGroup(sock, session, msg, getAdminName());
             } else {
               log('PRIVATE: no text and no media, skipping');
             }
@@ -542,7 +542,7 @@ async function startBot() {
             log('GROUP RELAY: apto=' + session.apto + ' convJid=' + (session.conversationJid || 'none') + ' deliveryJid=' + (session.deliveryJid || 'none') + ' text="' + text.slice(0, 40) + '"');
             ladder.push('Grp→Bot', displayJid + '(' + groupSubject + ')', 'Bot', 'GROUP_RELAY', text, '', '', '', session.apto);
             const displayText = text;
-            const prefix = scripts.get('relay_from_group', { apto: session.apto });
+            const prefix = scripts.get('relay_from_group', { apto: session.apto, adminName: getAdminName() });
             const fullText = prefix + '\n' + displayText;
             log('GROUP RELAY: prefix="' + prefix.slice(0, 40) + '" fullTextLength=' + fullText.length);
             await sendToTenant(session.conversationJid, fullText, 'GROUP_RELAY');

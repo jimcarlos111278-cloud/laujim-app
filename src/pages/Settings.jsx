@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save } from 'lucide-react';
+import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Gauge, Activity, HardDrive, Cpu, ToggleLeft } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { generateBookmarkletCode } from '../utils/marketplaceBookmarklet';
@@ -30,6 +30,19 @@ export default function Settings() {
   const [botConfig, setBotConfig] = useState({ enabled: false, phone: '' });
   const [botSaving, setBotSaving] = useState(false);
   const [botSaved, setBotSaved] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [statsError, setStatsError] = useState(false);
+  const [menuOptions, setMenuOptions] = useState([
+    { num: '1', label: 'Ver aptos disponibles', action: 'vacants', enabled: true },
+    { num: '2', label: 'Consultar información de un apto', action: 'info', enabled: true },
+    { num: '3', label: 'Registrar mi interés', action: 'lead', enabled: true },
+    { num: '4', label: 'Soy residente (iniciar sesión)', action: 'login', enabled: true },
+  ]);
+  const [relayTemplates, setRelayTemplates] = useState({ relay_from_tenant: '', relay_from_group: '' });
+  const [menuSaving, setMenuSaving] = useState(false);
+  const [menuSaved, setMenuSaved] = useState(false);
+  const [relaySaving, setRelaySaving] = useState(false);
+  const [relaySaved, setRelaySaved] = useState(false);
 
   async function handleResetDb() {
     setResetting(true);
@@ -61,6 +74,20 @@ export default function Settings() {
   }
 
   useEffect(() => { load(); checkServerAvailability(); }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(getBase() + '/system/stats', { headers: { 'x-auth-token': 'laujim laujim' }, signal: AbortSignal.timeout(5000) });
+        if (!res.ok) throw new Error('Not ok');
+        setStats(await res.json());
+        setStatsError(false);
+      } catch { setStatsError(true); }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function checkServerAvailability() {
     const status = await isServerAvailable();
@@ -178,6 +205,12 @@ export default function Settings() {
     localStorage.setItem('wa_template_name1', n1);
     localStorage.setItem('wa_template_name2', n2);
     setBotConfig({ enabled: getVal('whatsapp_bot_enabled', 'false') === 'true', phone: getVal('whatsapp_bot_phone', '') });
+    const savedMenu = getVal('whatsapp_bot_menu_config', '');
+    if (savedMenu) { try { setMenuOptions(JSON.parse(savedMenu)); } catch {} }
+    setRelayTemplates({
+      relay_from_tenant: getVal('whatsapp_bot_msg_relay_from_tenant', '*Inquilino Apto {apto}*'),
+      relay_from_group: getVal('whatsapp_bot_msg_relay_from_group', '*Mensaje del grupo {apto}*'),
+    });
   }
 
   async function upsertSetting(key, value) {
@@ -230,6 +263,52 @@ export default function Settings() {
   async function handleNotificationRequest() {
     const ok = await requestNotificationPermission();
     setNotifStatus(ok ? 'granted' : 'denied');
+  }
+
+  function updateMenuOption(idx, field, value) {
+    setMenuOptions(prev => prev.map((o, i) => i === idx ? { ...o, [field]: value } : o));
+  }
+
+  function toggleMenuOption(idx) {
+    setMenuOptions(prev => prev.map((o, i) => i === idx ? { ...o, enabled: !o.enabled } : o));
+  }
+
+  async function handleSaveMenuConfig() {
+    setMenuSaving(true);
+    try {
+      await upsertSetting('whatsapp_bot_menu_config', JSON.stringify(menuOptions));
+      setMenuSaved(true); setTimeout(() => setMenuSaved(false), 3000);
+    } catch (e) { alert('Error al guardar menú: ' + e.message); }
+    setMenuSaving(false);
+  }
+
+  async function handleSaveRelayTemplates() {
+    setRelaySaving(true);
+    try {
+      await upsertSetting('whatsapp_bot_msg_relay_from_tenant', relayTemplates.relay_from_tenant);
+      await upsertSetting('whatsapp_bot_msg_relay_from_group', relayTemplates.relay_from_group);
+      setRelaySaved(true); setTimeout(() => setRelaySaved(false), 3000);
+    } catch (e) { alert('Error al guardar templates: ' + e.message); }
+    setRelaySaving(false);
+  }
+
+  function formatUptime(seconds) {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+    if (h > 0) return h + 'h ' + m + 'm ' + s + 's';
+    if (m > 0) return m + 'm ' + s + 's';
+    return s + 's';
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   }
 
   return (
@@ -504,6 +583,100 @@ export default function Settings() {
               <span className="text-gray-900 dark:text-white">Air-e — Pagar recibo</span><span className="text-blue-600 text-xs">Abrir →</span>
             </a>
           </div>
+        </div>
+
+        {/* ─── Server Monitor Dashboard ─── */}
+        <div className="bg-[#0f172a] rounded-xl border border-[#1e293b] p-5 col-span-1 lg:col-span-2">
+          <h3 className="font-semibold text-white mb-4 flex items-center gap-2"><Server className="w-4 h-4 text-blue-400" /> Monitoreo del Servidor</h3>
+          {statsError && <p className="text-xs text-red-400 mb-2">No se puede conectar al servidor</p>}
+          {stats ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="bg-[#1e293b] rounded-lg p-3">
+                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Cpu className="w-3 h-3" /> RAM (Proceso)</div>
+                <div className="text-lg font-bold text-blue-400">{((stats.heapUsed / stats.heapTotal) * 100).toFixed(1)}%</div>
+                <div className="text-xs text-slate-500">{formatBytes(stats.heapUsed)} / {formatBytes(stats.heapTotal)}</div>
+                <div className="mt-1 h-1.5 bg-[#0f172a] rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full" style={{ width: Math.min(100, (stats.heapUsed / stats.heapTotal) * 100) + '%' }}></div></div>
+              </div>
+              <div className="bg-[#1e293b] rounded-lg p-3">
+                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Activity className="w-3 h-3" /> RAM (Sistema)</div>
+                <div className="text-lg font-bold text-emerald-400">{((1 - stats.freemem / stats.totalmem) * 100).toFixed(1)}%</div>
+                <div className="text-xs text-slate-500">{formatBytes(stats.totalmem - stats.freemem)} / {formatBytes(stats.totalmem)}</div>
+                <div className="mt-1 h-1.5 bg-[#0f172a] rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: Math.min(100, (1 - stats.freemem / stats.totalmem) * 100) + '%' }}></div></div>
+              </div>
+              <div className="bg-[#1e293b] rounded-lg p-3">
+                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><HardDrive className="w-3 h-3" /> Base de Datos</div>
+                <div className="text-lg font-bold text-violet-400">{stats.dbSize > 0 ? formatBytes(stats.dbSize) : '—'}</div>
+                <div className="text-xs text-slate-500">{stats.collections ? Object.keys(stats.collections).length + ' colecciones' : '—'}</div>
+              </div>
+              <div className="bg-[#1e293b] rounded-lg p-3">
+                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Gauge className="w-3 h-3" /> Tiempo Activo</div>
+                <div className="text-lg font-bold text-amber-400 text-sm leading-tight">{formatUptime(stats.uptime)}</div>
+                <div className="text-xs text-slate-500">{stats.requests || 0} solicitudes</div>
+              </div>
+            </div>
+          ) : <p className="text-xs text-slate-500">Cargando estadísticas...</p>}
+          {stats && stats.collections && <details className="group">
+            <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300">Ver colecciones ({Object.keys(stats.collections).length})</summary>
+            <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1">
+              {Object.entries(stats.collections).map(([k, v]) => (
+                <div key={k} className="bg-[#1e293b] rounded px-2 py-1 text-xs flex justify-between"><span className="text-slate-400">{k}</span><span className="text-white font-mono">{v}</span></div>
+              ))}
+            </div>
+          </details>}
+        </div>
+
+        {/* ─── Bot Menu Editor ─── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Menú del Bot WhatsApp</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza las opciones del menú que ven los inquilinos al escribir al bot.</p>
+          <div className="space-y-2 mb-4">
+            {menuOptions.map((opt, i) => (
+              <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm font-mono text-gray-400 w-6 shrink-0">{opt.num}.</span>
+                <input value={opt.label} onChange={e => updateMenuOption(i, 'label', e.target.value)}
+                  className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white min-w-0" placeholder="Etiqueta" />
+                <select value={opt.action} onChange={e => updateMenuOption(i, 'action', e.target.value)}
+                  className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                  <option value="vacants">Listar vacantes</option>
+                  <option value="info">Consultar apto</option>
+                  <option value="lead">Registrar interés</option>
+                  <option value="login">Iniciar sesión</option>
+                  <option value="payment_info">Info de pago</option>
+                  <option value="services">Servicios públicos</option>
+                  <option value="contact_admin">Contactar admin</option>
+                  <option value="status">Estado sesión</option>
+                  <option value="help">Ayuda</option>
+                </select>
+                <button onClick={() => toggleMenuOption(i)} className={`px-2 py-1 text-xs rounded shrink-0 ${opt.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400'}`}>
+                  {opt.enabled ? 'ON' : 'OFF'}
+                </button>
+              </div>
+            ))}
+          </div>
+          <button onClick={handleSaveMenuConfig} disabled={menuSaving} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium">
+            <Save className="w-4 h-4" /> {menuSaving ? 'Guardando...' : menuSaved ? '✓ Guardado' : 'Guardar Menú'}
+          </button>
+        </div>
+
+        {/* ─── Relay Templates Editor ─── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Formato de Reenvío (Relay)</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza cómo se muestran los mensajes reenviados. Placeholders: {'{apto}'}, {'{name}'}, {'{adminName}'}</p>
+          <div className="space-y-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Inquilino → Grupo ({'{apto}'}, {'{name}'}, {'{adminName}'})</label>
+              <input type="text" value={relayTemplates.relay_from_tenant} onChange={e => setRelayTemplates(prev => ({ ...prev, relay_from_tenant: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Grupo → Inquilino ({'{apto}'}, {'{adminName}'})</label>
+              <input type="text" value={relayTemplates.relay_from_group} onChange={e => setRelayTemplates(prev => ({ ...prev, relay_from_group: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono" />
+            </div>
+          </div>
+          <button onClick={handleSaveRelayTemplates} disabled={relaySaving} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium">
+            <Save className="w-4 h-4" /> {relaySaving ? 'Guardando...' : relaySaved ? '✓ Guardado' : 'Guardar Formato'}
+          </button>
         </div>
 
       </div>

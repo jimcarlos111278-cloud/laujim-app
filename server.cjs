@@ -6,11 +6,13 @@ const multer = require('multer');
 const { spawn } = require('child_process');
 const { exec } = require('child_process');
 const https = require('https');
+const os = require('os');
 const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 1011;
 const AUTH_TOKEN = 'laujim laujim';
+let requestCount = 0;
 
 process.on('uncaughtException', (err) => { console.error('UNCAUGHT:', err.message, err.stack); });
 process.on('unhandledRejection', (reason) => { console.error('UNHANDLED:', reason); });
@@ -21,7 +23,8 @@ app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type'
 app.use(express.json({ limit: '50mb' }));
 
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && req.path !== '/api/data-version' && !req.path.startsWith('/api/public/') && !req.path.startsWith('/api/whatsapp/')) {
+  if (req.path.startsWith('/api/')) requestCount++;
+  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && req.path !== '/api/data-version' && req.path !== '/api/system/stats' && !req.path.startsWith('/api/public/') && !req.path.startsWith('/api/whatsapp/')) {
     const token = req.headers['x-auth-token'];
     if (token !== AUTH_TOKEN) {
       return res.status(401).json({ error: 'No autorizado' });
@@ -201,6 +204,28 @@ function startServer() {
 
 app.get('/api/data-version', (req, res) => {
   res.json({ version: dataVersion });
+});
+
+app.get('/api/system/stats', (req, res) => {
+  let dbSize = 0;
+  try { if (fs.existsSync(DATA_FILE)) dbSize = fs.statSync(DATA_FILE).size; } catch {}
+  const collections = {};
+  Object.keys(db).forEach(key => { if (Array.isArray(db[key])) collections[key] = db[key].length; });
+  res.json({
+    hostname: os.hostname(),
+    platform: os.platform(),
+    uptime: os.uptime(),
+    totalmem: os.totalmem(),
+    freemem: os.freemem(),
+    heapUsed: process.memoryUsage().heapUsed,
+    heapTotal: process.memoryUsage().heapTotal,
+    rss: process.memoryUsage().rss,
+    pid: process.pid,
+    nodeVersion: process.version,
+    dbSize,
+    collections,
+    requests: requestCount,
+  });
 });
 
 app.get('/api/version', (req, res) => {
