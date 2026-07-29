@@ -41,6 +41,7 @@ let sock = null;
 let reconnectTimer = null;
 let sessionTimeoutInterval = null;
 let healthInterval = null;
+let loadSettingsInterval = null;
 let aptoToGroupJid = {};
 let botNumber = null;
 let botName = null;
@@ -173,8 +174,6 @@ async function startBot() {
 
   loadGroupMapping();
   loadSettings().catch(e => log('SETTINGS startup error: ' + e.message));
-  proxyPool.initPool();
-
   const { version } = await fetchLatestBaileysVersion();
   log('WA version: ' + version.join('.'));
 
@@ -190,7 +189,7 @@ async function startBot() {
     syncFullHistory: false,
     connectTimeoutMs: 120000,
     qrTimeout: 0,
-    keepAliveIntervalMs: 5000,
+    keepAliveIntervalMs: 25000,
   };
 
   const agent = getProxyAgent();
@@ -258,7 +257,8 @@ async function startBot() {
         if (before !== after) log('SESSION CLEANUP: ' + (before - after) + ' expired');
       }, 60000);
 
-      setInterval(loadSettings, 60000);
+      if (loadSettingsInterval) clearInterval(loadSettingsInterval);
+      loadSettingsInterval = setInterval(loadSettings, 60000);
     }
 
     if (connection === 'close') {
@@ -273,9 +273,10 @@ async function startBot() {
       heartbeat.stopHeartbeat();
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
       if (sessionTimeoutInterval) clearInterval(sessionTimeoutInterval);
+      if (loadSettingsInterval) { clearInterval(loadSettingsInterval); loadSettingsInterval = null; }
       if (healthInterval) { clearInterval(healthInterval); healthInterval = null; }
 
-      if (code === 408 || code === 515) {
+      if (code === 408 || code === 515 || code === 401) {
         if (proxyPool.hasProxies()) {
           const activeUrl = proxyPool.getActiveProxyUrl();
           if (activeUrl) {
@@ -659,4 +660,5 @@ process.on('SIGINT', () => {
 const BOT_PORT = parseInt(process.env.PORT || process.env.BOT_PORT || '3002', 10);
 notify.startNotifyServer(BOT_PORT);
 
+proxyPool.initPool();
 startBot().catch(e => log('FATAL: ' + e.message));
