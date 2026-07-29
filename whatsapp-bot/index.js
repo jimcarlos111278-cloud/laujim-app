@@ -46,6 +46,7 @@ let botNumber = null;
 let botName = null;
 let discoverAttempts = 0;
 let cachedSettings = {};
+let lastMsgTime = Date.now();
 
 async function loadSettings() {
   try {
@@ -188,7 +189,7 @@ async function startBot() {
     syncFullHistory: false,
     connectTimeoutMs: 120000,
     qrTimeout: 0,
-    keepAliveIntervalMs: 10000,
+    keepAliveIntervalMs: 5000,
   };
 
   const agent = getProxyAgent();
@@ -230,6 +231,7 @@ async function startBot() {
     }
 
     if (connection === 'open') {
+      lastMsgTime = Date.now();
       const number = sock?.user?.id ? sock.user.id.split(':')[0].replace('@s.whatsapp.net', '') : 'unknown';
       botNumber = number;
       botName = sock?.user?.name || 'Relay Bot';
@@ -427,6 +429,7 @@ async function startBot() {
   const relayedGroupMsgIds = new Set();
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    lastMsgTime = Date.now();
     log('=== UPSERT START === type=' + type + ' count=' + messages.length);
     for (const msg of messages) {
       try {
@@ -615,15 +618,16 @@ async function startBot() {
   if (healthInterval) clearInterval(healthInterval);
   healthInterval = setInterval(() => {
     const wsState = sock?.ws?.readyState;
-    if (wsState === 3) {
-      log('HEALTH: socket closed, forcing reconnect');
+    const idle = Date.now() - lastMsgTime;
+    if (wsState === 3 || (wsState === 1 && idle > 25000)) {
+      log('HEALTH: ' + (wsState === 3 ? 'socket closed' : 'no messages for ' + idle + 'ms') + ', reconnecting');
       if (sock?.end) sock.end();
       if (reconnectTimer) clearTimeout(reconnectTimer);
       startBot();
     } else {
-      log('HEALTH: socket state=' + wsState + ' (0=CONNECTING,1=OPEN,2=CLOSING,3=CLOSED)');
+      log('HEALTH: wsState=' + (wsState === undefined ? 'undefined' : wsState) + ' idle=' + idle + 'ms');
     }
-  }, 60000);
+  }, 10000);
 }
 
 process.on('uncaughtException', (err) => {
