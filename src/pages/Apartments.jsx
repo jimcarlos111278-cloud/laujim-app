@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Building2, Home, Users, DollarSign, Search, Phone, MessageCircle } from 'lucide-react';
+import { Plus, Building2, Home, Users, DollarSign, Search, Phone, MessageCircle, Bot } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { formatCurrency } from '../utils/helpers';
@@ -20,11 +20,16 @@ export default function Apartments() {
     setApartments(apts); setTenants(tnts); setContracts(cnts);
   }
 
-  function getCurrentTenant(aptId) {
-    const t = tenants.find(t => t.apartmentId === aptId);
-    if (t) return t;
-    const c = contracts.find(ct => ct.apartmentId === aptId && (!ct.endDate || new Date(ct.endDate) > new Date()));
-    return c ? tenants.find(t => t.id === c.tenantId) : null;
+  function getCurrentTenants(aptId) {
+    const direct = tenants.filter(t => t.apartmentId === aptId);
+    const activeContracts = contracts.filter(c => c.apartmentId === aptId && (!c.endDate || new Date(c.endDate) > new Date()));
+    const fromContracts = activeContracts.map(c => tenants.find(t => t.id === c.tenantId)).filter(Boolean);
+    const seen = new Set();
+    return [...direct, ...fromContracts].filter(t => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
   }
 
   const filtered = apartments.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) || (a.description || '').toLowerCase().includes(search.toLowerCase()));
@@ -77,7 +82,7 @@ export default function Apartments() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map(apt => {
-          const tenant = getCurrentTenant(apt.id);
+          const tenants = getCurrentTenants(apt.id);
           return (
             <Link key={apt.id} to={`/apartments/${apt.id}`} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md hover:border-blue-200 transition-all group">
               <div className="flex items-start justify-between mb-3">
@@ -89,23 +94,28 @@ export default function Apartments() {
                   {apt.status === 'occupied' ? 'OCUPADO' : 'VACANTE'}
                 </span>
               </div>
-              <div className="space-y-1.5 text-sm text-gray-500">
+              <div className="space-y-1.5 text-sm text-gray-500" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-3.5 h-3.5" />
                   <span>{formatCurrency(apt.monthlyRent)}/mes</span>
                 </div>
-                {tenant && (
-                  <div className="flex items-center gap-2">
-                    <Users className="w-3.5 h-3.5" />
-                    <span>{tenant.name}</span>
-                  </div>
-                )}
-                {tenant?.phone && (
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-gray-400">Tel:</span>
-                    <span>{tenant.phone}</span>
-                    <a href={`tel:${tenant.phone}`} className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors" title="Llamar"><Phone className="w-3.5 h-3.5" /></a>
-                    <a href={`https://wa.me/57${tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="WhatsApp"><MessageCircle className="w-3.5 h-3.5" /></a>
+                {tenants.length > 0 && (
+                  <div className="border-t border-gray-100 pt-2 mt-2 space-y-2">
+                    {tenants.map(t => (
+                      <div key={t.id} className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Users className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                          <span className="text-gray-800 truncate">{t.name}</span>
+                        </div>
+                        {t.phone && (
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <a href={`tel:${t.phone}`} className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors" title="Llamar"><Phone className="w-3.5 h-3.5" /></a>
+                            <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="WhatsApp"><MessageCircle className="w-3.5 h-3.5" /></a>
+                            <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('👋 Hola ' + t.name + ', te escribe la administración.')}`} target="_blank" rel="noopener noreferrer" className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Enviar por Bot"><Bot className="w-3.5 h-3.5" /></a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
                 {apt.rooms && (
