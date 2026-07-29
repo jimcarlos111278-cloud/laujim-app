@@ -343,13 +343,26 @@ export function startNotifyServer(port) {
           sendJson(res, 503, { error: 'WhatsApp client not ready' });
           return;
         }
-        const { to, text } = data || {};
+        const { to, text, apto, tenantName } = data || {};
         if (!to || !text) {
           sendJson(res, 400, { error: 'to and text required' });
           return;
         }
         try {
           await client.sendMessage(to, { text });
+          const groups = loadGroupMapping();
+          const groupJid = apto ? Object.keys(groups).find(k => groups[k] === apto) || Object.values(groups).find(v => v) : null;
+          const actualGroupJid = apto ? groups[apto] : null;
+          if (tenantName) log('SEND via admin: to=' + to.split('@')[0].slice(0, 6) + '... text="' + text.slice(0, 40) + '" apto=' + (apto || '?') + ' tenant=' + (tenantName || '?'));
+          if (actualGroupJid) {
+            waStore.addMessage(actualGroupJid, apto, text, 'out', 'Administrador');
+            try {
+              const groupText = '📩 *Admin → ' + (tenantName || 'Inquilino') + '*\n' + text;
+              await client.sendMessage(actualGroupJid, { text: groupText });
+            } catch (e) {
+              log('SEND: error relaying to group: ' + e.message);
+            }
+          }
           sendJson(res, 200, { ok: true });
         } catch (e) {
           sendJson(res, 500, { error: e.message });

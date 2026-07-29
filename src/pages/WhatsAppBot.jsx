@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, AlertCircle, CheckCircle, XCircle, Key, Terminal, Globe, ExternalLink, FileText, Shield, Menu, Image, Video, FilePlus, Phone, Search } from 'lucide-react';
+import { MessageCircle, Save, Play, Square, RefreshCw, Edit3, Eye, RotateCcw, Smartphone, AlertCircle, CheckCircle, XCircle, Key, Terminal, Globe, ExternalLink, FileText, Shield, Menu, Image, Video, FilePlus, Phone, Search, Plus, Send } from 'lucide-react';
 import { getAuth } from '../utils/auth';
 import { getBase, AUTH_TOKEN } from '../utils/config';
+import Modal from '../components/Modal';
 
 const DEFAULT_SCRIPTS = {
   auth_welcome: '🏢 *Bienvenido al sistema de mensajería*\n\nPara identificarte, escribe tu *número de apartamento* (ej: 203)',
@@ -125,6 +126,27 @@ export default function WhatsAppBot() {
   const [passwordChanging, setPasswordChanging] = useState(false);
   const [secAnswer, setSecAnswer] = useState('');
   const [secVerified, setSecVerified] = useState(false);
+  const [showNewMsg, setShowNewMsg] = useState(false);
+  const [newMsgTenants, setNewMsgTenants] = useState([]);
+  const [newMsgText, setNewMsgText] = useState('');
+  const [newMsgSending, setNewMsgSending] = useState(false);
+  const [newMsgSent, setNewMsgSent] = useState(false);
+  const [newMsgTenant, setNewMsgTenant] = useState(null);
+
+  async function handleNewMsgSend() {
+    if (!newMsgTenant || !newMsgText.trim()) return;
+    setNewMsgSending(true);
+    try {
+      const jid = '57' + newMsgTenant.phone.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+      const res = await fetch(getBase() + '/whatsapp-bot/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        body: JSON.stringify({ to: jid, text: newMsgText.trim(), apto: '', tenantName: newMsgTenant.name }),
+      });
+      if (res.ok) { setNewMsgSent(true); setNewMsgText(''); } else { const d = await res.json(); alert('Error: ' + (d.error || '?')); }
+    } catch (e) { alert('Error: ' + e.message); }
+    setNewMsgSending(false);
+  }
 
   async function fetchProxyStatus() {
     try {
@@ -534,8 +556,51 @@ export default function WhatsAppBot() {
                       <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
                         <p className="text-xs font-medium text-red-700 dark:text-red-400">Error de conexión:</p>
                         <p className="text-xs text-red-600 dark:text-red-300 mt-1 break-words">{botStatus.lastError}</p>
-                      </div>
-                    )}
+</div>
+      )}
+
+      <Modal open={showNewMsg} onClose={() => setShowNewMsg(false)} title="Nuevo mensaje vía Bot" size="sm">
+        <div className="space-y-4 p-2">
+          {newMsgSent ? (
+            <div className="text-center py-6">
+              <CheckCircle className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
+              <p className="text-sm font-medium text-gray-900">Mensaje enviado</p>
+              <button onClick={() => { setShowNewMsg(false); setNewMsgSent(false); }} className="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">Cerrar</button>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500">Selecciona el inquilino y escribe el mensaje. El bot lo enviará vía WhatsApp y lo reenviará al grupo.</p>
+              <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-200 rounded-lg p-1">
+                {newMsgTenants.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-4">No hay inquilinos con teléfono registrado</p>
+                ) : newMsgTenants.map(t => (
+                  <label key={t.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer text-sm">
+                    <input type="radio" name="newMsgTenant" value={t.id} onChange={() => setNewMsgTenant(t)} className="accent-blue-600" />
+                    <span className="font-medium text-gray-900">{t.name}</span>
+                    <span className="text-xs text-gray-400 ml-auto">{t.phone}</span>
+                  </label>
+                ))}
+              </div>
+              {newMsgTenant && (
+                <div className="p-2 bg-blue-50 rounded-lg text-xs text-blue-700">
+                  Enviando a: <strong>{newMsgTenant.name}</strong> ({newMsgTenant.phone})
+                </div>
+              )}
+              <textarea value={newMsgText} onChange={e => setNewMsgText(e.target.value)} rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Escribe tu mensaje..." disabled={!newMsgTenant || newMsgSending} />
+              <div className="flex gap-3">
+                <button onClick={() => setShowNewMsg(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors" disabled={newMsgSending}>Cancelar</button>
+                <button onClick={handleNewMsgSend} disabled={!newMsgTenant || !newMsgText.trim() || newMsgSending}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                  {newMsgSending ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Send className="w-4 h-4" />}
+                  {newMsgSending ? 'Enviando...' : 'Enviar'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
                   </>
                 )}
 
@@ -883,14 +948,17 @@ export default function WhatsAppBot() {
             {/* Sidebar */}
             <div className="w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-900">
               <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" /> Conversaciones
-                  {chatConversations.filter(c => c.unread > 0).length > 0 && (
-                    <span className="ml-auto text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
-                      {chatConversations.filter(c => c.unread > 0).length} nuevas
-                    </span>
-                  )}
-                </h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4" /> Conversaciones
+                    {chatConversations.filter(c => c.unread > 0).length > 0 && (
+                      <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                        {chatConversations.filter(c => c.unread > 0).length} nuevas
+                      </span>
+                    )}
+                  </h3>
+                  <button onClick={async () => { try { const r = await fetch(getBase() + '/api/tenants', { headers: { 'x-auth-token': AUTH_TOKEN } }); const t = await r.json(); setNewMsgTenants(t.filter(t => t.phone)); } catch {} setShowNewMsg(true); setNewMsgText(''); setNewMsgSent(false); }} className="text-xs flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"><Plus className="w-3 h-3" /> Nuevo</button>
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {chatConversations.length === 0 ? (

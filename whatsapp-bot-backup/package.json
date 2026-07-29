@@ -1,0 +1,17 @@
+{
+  "name": "whatsapp-proxy-bot",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.5",
+    "dotenv": "^16.4.7",
+    "https-proxy-agent": "^9.1.0",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4",
+    "socks-proxy-agent": "^10.1.0"
+  }
+}
