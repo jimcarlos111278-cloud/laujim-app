@@ -18,6 +18,7 @@ import * as api from './src/api-client.js';
 import { log } from './src/logger.js';
 import * as ladder from './src/ladder.js';
 import * as waStore from './src/wa-store.js';
+import * as proxyPool from './src/proxy-pool.js';
 
 log('');
 log('============================================');
@@ -150,9 +151,12 @@ function maskJid(jid) {
 }
 
 function getProxyAgent() {
+  const setting = cachedSettings['whatsapp_bot_proxy_enabled'];
+  if (setting === 'false') { log('Proxy disabled by settings'); return undefined; }
+  if (proxyPool.hasProxies()) return proxyPool.createAgent();
   const proxyUrl = process.env.BOT_PROXY || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
   if (!proxyUrl) return undefined;
-  log('Using proxy: ' + proxyUrl.replace(/:([^:@]+)@/, ':***@'));
+  log('Using proxy (legacy): ' + proxyUrl.replace(/:([^:@]+)@/, ':***@'));
   try {
     if (proxyUrl.startsWith('socks')) return new SocksProxyAgent(proxyUrl);
     return new HttpsProxyAgent(proxyUrl);
@@ -167,6 +171,7 @@ async function startBot() {
 
   loadGroupMapping();
   loadSettings().catch(e => log('SETTINGS startup error: ' + e.message));
+  proxyPool.initPool();
 
   const { version } = await fetchLatestBaileysVersion();
   log('WA version: ' + version.join('.'));
@@ -231,6 +236,12 @@ async function startBot() {
       log('Connected. Number: ' + number);
       notify.setClient(sock);
       notify.setLastError(null);
+      notify.setWsConnected(true);
+      notify.pushDisconnect({ time: Date.now(), reason: 'connected', code: 0 });
+      if (proxyPool.hasProxies()) {
+        const active = proxyPool.getActiveProxy();
+        if (active) proxyPool.markHealthy(proxyPool.getActiveProxyUrl());
+      }
       heartbeat.startHeartbeat();
 
       discoverGroups();
@@ -252,10 +263,22 @@ async function startBot() {
       const code = err?.output?.statusCode || err?.statusCode || err?.data?.code;
       log('Disconnected. Reason: ' + reason + ' Code: ' + code);
       notify.setQr(null);
+      notify.setWsConnected(false);
+      notify.pushDisconnect({ time: Date.now(), reason, code });
       heartbeat.stopHeartbeat();
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
       if (sessionTimeoutInterval) clearInterval(sessionTimeoutInterval);
       if (healthInterval) { clearInterval(healthInterval); healthInterval = null; }
+
+      if (code === 408 || code === 515) {
+        if (proxyPool.hasProxies()) {
+          const activeUrl = proxyPool.getActiveProxyUrl();
+          if (activeUrl) {
+            const rotated = proxyPool.markFailed(activeUrl);
+            if (rotated) log('PROXY FAILOVER: rotated to next proxy');
+          }
+        }
+      }
 
       if (code === DisconnectReason.loggedOut || code === 401) {
         log('Session logged out. Clearing session files...');

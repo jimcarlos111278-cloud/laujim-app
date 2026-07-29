@@ -24,6 +24,9 @@ let pendingPairingPhone = null;
 let currentPairingCode = null;
 let qrTimestamp = 0;
 let lastError = null;
+let wsConnected = false;
+let wsConnectedSince = null;
+let disconnectHistory = [];
 
 export function setClient(c) { client = c; }
 export function setQr(qrBase64) { currentQrBase64 = qrBase64; qrTimestamp = Date.now(); }
@@ -36,6 +39,17 @@ export function clearPairingCode() { currentPairingCode = null; }
 export function getQrTimestamp() { return qrTimestamp; }
 export function setLastError(err) { lastError = err; }
 export function getLastError() { return lastError; }
+export function setWsConnected(val) {
+  wsConnected = val;
+  wsConnectedSince = val ? Date.now() : wsConnectedSince;
+}
+export function getWsConnected() { return wsConnected; }
+export function getWsConnectedSince() { return wsConnectedSince; }
+export function pushDisconnect(entry) {
+  disconnectHistory.push(entry);
+  if (disconnectHistory.length > 50) disconnectHistory.shift();
+}
+export function getDisconnectHistory() { return disconnectHistory.slice(); }
 
 function isAuthorized(req) {
   if (!BOT_ADMIN_TOKEN) return true;
@@ -92,7 +106,7 @@ export function startNotifyServer(port) {
       return;
     }
 
-    const publicPaths = ['/status', '/log', '/qr', '/pairing-code', '/', '/info', '/groups', '/proxy-status', '/logs', '/ladder', '/sessions', '/leads', '/wa/conversations'];
+    const publicPaths = ['/status', '/log', '/qr', '/pairing-code', '/', '/info', '/groups', '/proxy-status', '/logs', '/ladder', '/sessions', '/leads', '/wa/conversations', '/ws'];
     const isPublic = publicPaths.includes(req.url) || req.url.startsWith('/wa/conversations/');
     if (!isAuthorized(req) && !isPublic) {
       sendJson(res, 401, { error: 'Unauthorized. Set BOT_ADMIN_TOKEN or provide Authorization header.' });
@@ -135,6 +149,23 @@ export function startNotifyServer(port) {
         });
       } else if (req.url === '/ladder') {
         sendJson(res, 200, ladder.getLadder());
+      } else if (req.url === '/ws') {
+        const now = Date.now();
+        const uptime = wsConnected && wsConnectedSince ? Math.floor((now - wsConnectedSince) / 1000) : 0;
+        const hours = Math.floor(uptime / 3600);
+        const mins = Math.floor((uptime % 3600) / 60);
+        const secs = uptime % 60;
+        const lastDisc = disconnectHistory.length > 0 ? disconnectHistory[disconnectHistory.length - 1] : null;
+        const disconnects1h = disconnectHistory.filter(d => d.code > 0 && now - d.time < 3600000).length;
+        sendJson(res, 200, {
+          connected: wsConnected,
+          uptime,
+          uptimeLabel: hours + 'h ' + mins + 'm ' + secs + 's',
+          wsConnectedSince,
+          lastDisconnect: lastDisc ? { time: new Date(lastDisc.time).toISOString(), reason: lastDisc.reason, code: lastDisc.code } : null,
+          disconnects1h,
+          disconnectHistory: disconnectHistory.slice(-10).map(d => ({ time: new Date(d.time).toISOString(), reason: d.reason, code: d.code })),
+        });
       } else if (req.url === '/groups') {
         try {
           const raw = readFileSync(GRUPOS_PATH, 'utf-8');
@@ -228,6 +259,9 @@ export function startNotifyServer(port) {
           '<div class="stat"><div class="num">0</div><div class="label">Sesiones</div></div>' +
           '<div class="stat"><div class="num">' + (auth ? number : '—') + '</div><div class="label">Número</div></div></div></div>' +
 
+          '<div class="card"><h2>🔌 WebSocket</h2>' +
+          '<div id="ws-card"><span class="badge badge-amber">● Cargando...</span></div></div>' +
+
           (!auth && qrTimestamp > 0 ? '<div class="card"><h2>📱 Escanea el QR</h2><div class="qr-box"><img src="/qr" alt="QR"/><p style="font-size:.8rem;color:#64748b">WhatsApp → Vincular dispositivo</p></div>' +
           '<div class="relative" style="text-align:center;margin:12px 0"><span style="color:#475569;font-size:.8rem">— o usa código de vinculación —</span></div>' +
           '<div class="pairing"><input type="text" id="phone" placeholder="573001234567"/><button onclick="fetch(\'/request-code\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({phone:document.getElementById(\'phone\').value.replace(/[^0-9]/g,\'\')})}).then(r=>r.json()).then(d=>{if(d.code)document.getElementById(\'code\').innerText=d.code;else alert(d.error)}).catch(e=>alert(e))">Obtener código</button></div>' +
@@ -247,7 +281,21 @@ export function startNotifyServer(port) {
 
           '<div class="footer">Laujim WhatsApp Bot · Proyecto Sabanilla · <a href="https://github.com/anomalyco/opencode">opencode</a></div>' +
           '</div>' +
-          '<script>fetch(\'/pairing-code\').then(r=>r.json()).then(d=>{if(d.code){document.getElementById(\'code\').innerText=d.code;document.getElementById(\'code\').style.display=\'block\'}})</script>' +
+          '<script>' +
+'fetch("/pairing-code").then(r=>r.json()).then(d=>{if(d.code){document.getElementById("code").innerText=d.code;document.getElementById("code").style.display="block"}});' +
+'function refreshWs(){fetch("/ws").then(r=>r.json()).then(function(d){' +
+'var c=document.getElementById("ws-card");if(!c)return;' +
+'var b=d.connected?"badge-green":"badge-red";' +
+'var l=d.connected?"Conectado":"Desconectado";' +
+'var h="<span class=\\"badge "+b+"\\">&#9679; "+l+"</span>";' +
+'h+=" <span style=\\"font-size:.85rem;color:#64748b;margin-left:8px\\">"+d.uptimeLabel+"</span>";' +
+'if(d.disconnects1h>0)h+=" <span class=\\"badge badge-red\\" style=\\"font-size:.75rem\\">"+d.disconnects1h+" descon/h</span>";' +
+'h+="<div style=\\"margin-top:8px;font-size:.8rem;color:#64748b\\">";' +
+'h+=d.lastDisconnect?"Ultima: "+d.lastDisconnect.reason+" ("+d.lastDisconnect.code+")":"Sin desconexiones";' +
+'h+="</div>";c.innerHTML=h}).catch(function(){})}' +
+'setInterval(refreshWs,3000);' +
+'setInterval(function(){fetch("/pairing-code").then(function(r){return r.json()}).then(function(d){if(d.code){var el=document.getElementById("code");if(el){el.innerText=d.code;el.style.display="block"}}})},10000);' +
+'</script>' +
           '</body></html>';
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(html);
