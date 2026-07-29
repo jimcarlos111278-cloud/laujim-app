@@ -355,11 +355,10 @@ async function startBot() {
     const aptoLabel = session?.apto || '';
     ladder.push('Bot→Usr', 'Bot', maskJid(deliveryJid), source, content, '', 'PENDING', '', aptoLabel);
 
-    const wsState = sock?.ws?.readyState;
-    if (wsState !== 1) {
-      const wsLabel = wsState === undefined ? 'WS_UNDEFINED' : 'WS_CLOSED';
-      log('SEND_TO_TENANT ' + wsLabel + ' source=' + (source || '?') + ' route=' + masked);
-      ladder.updateLatest(wsLabel, 'state=' + wsState);
+    const isWsOpen = sock?.ws?.isOpen;
+    if (!isWsOpen) {
+      log('SEND_TO_TENANT WS_CLOSED source=' + (source || '?') + ' route=' + masked + ' isOpen=' + isWsOpen);
+      ladder.updateLatest('WS_CLOSED', 'isOpen=' + isWsOpen);
       return false;
     }
 
@@ -617,15 +616,20 @@ async function startBot() {
 
   if (healthInterval) clearInterval(healthInterval);
   healthInterval = setInterval(() => {
-    const wsState = sock?.ws?.readyState;
+    const isOpen = sock?.ws?.isOpen;
     const idle = Date.now() - lastMsgTime;
-    if (wsState === 3 || (wsState === 1 && idle > 25000)) {
-      log('HEALTH: ' + (wsState === 3 ? 'socket closed' : 'no messages for ' + idle + 'ms') + ', reconnecting');
+    if (isOpen === false && idle > 20000) {
+      log('HEALTH: socket not open for ' + idle + 'ms, reconnecting');
+      if (sock?.end) sock.end();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      startBot();
+    } else if (isOpen === true && idle > 30000) {
+      log('HEALTH: no messages for ' + idle + 'ms, reconnecting');
       if (sock?.end) sock.end();
       if (reconnectTimer) clearTimeout(reconnectTimer);
       startBot();
     } else {
-      log('HEALTH: wsState=' + (wsState === undefined ? 'undefined' : wsState) + ' idle=' + idle + 'ms');
+      log('HEALTH: isOpen=' + isOpen + ' idle=' + idle + 'ms');
     }
   }, 10000);
 }
@@ -640,13 +644,13 @@ process.on('unhandledRejection', (reason) => {
 
 process.on('SIGTERM', () => {
   log('SIGTERM received, closing...');
-  if (sock?.ws?.readyState === sock?.ws?.OPEN) sock.ws.close(1000, 'deploy');
+  if (sock?.ws?.isOpen) sock.ws.close();
   setTimeout(() => process.exit(0), 3000);
 });
 
 process.on('SIGINT', () => {
   log('SIGINT received, closing...');
-  if (sock?.ws?.readyState === sock?.ws?.OPEN) sock.ws.close(1000, 'shutdown');
+  if (sock?.ws?.isOpen) sock.ws.close();
   setTimeout(() => process.exit(0), 3000);
 });
 
