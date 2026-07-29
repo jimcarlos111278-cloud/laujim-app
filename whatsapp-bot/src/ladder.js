@@ -33,10 +33,11 @@ export function updateByMsgId(msgId, delivery, deliveryDetail) {
 }
 
 export function updateLatest(delivery, deliveryDetail) {
-  if (entries.length === 0) return;
+  if (entries.length === 0) return null;
   const last = entries[entries.length - 1];
   last.delivery = delivery;
   if (deliveryDetail) last.deliveryDetail = deliveryDetail;
+  return last;
 }
 
 export function getLadder() {

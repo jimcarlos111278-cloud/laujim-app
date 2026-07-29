@@ -288,8 +288,9 @@ async function startBot() {
       const statusNames = { 0: 'ERROR', 1: 'PENDING', 2: 'SERVER_ACK', 3: 'DELIVERY_ACK', 4: 'READ', 5: 'PLAYED' };
       const sname = statusNames[status] || 'STATUS_' + status;
       if (id && status !== undefined) {
-        log('=== MSG STATUS === id=' + id + ' remoteJid=' + remoteJid + ' participant=' + participant + ' status=' + sname);
-        ladder.updateByMsgId(id, sname, '');
+        const prev = ladder.updateByMsgId(id, sname, '');
+        const prevDelivery = prev ? prev.delivery : '?';
+        log('=== MSG STATUS === id=' + id + ' remoteJid=' + remoteJid + ' status=' + sname + ' from=' + prevDelivery);
       }
     }
   });
@@ -328,11 +329,21 @@ async function startBot() {
     log('SEND_TO_TENANT source=' + (source || '?') + ' session=' + sessionInfo + ' deliveryJid=' + deliveryJid + ' contentLen=' + (content || '').length + ' content="' + (content || '') + '"');
     const aptoLabel = session?.apto || '';
     ladder.push('Bot→Usr', 'Bot', maskJid(deliveryJid), source, content, '', 'PENDING', '', aptoLabel);
+
+    const wsState = sock?.ws?.readyState;
+    if (wsState !== 1) {
+      const wsLabel = wsState === undefined ? 'WS_UNDEFINED' : 'WS_CLOSED';
+      log('SEND_TO_TENANT ' + wsLabel + ' source=' + (source || '?') + ' route=' + masked);
+      ladder.updateLatest(wsLabel, 'state=' + wsState);
+      return false;
+    }
+
     try {
       const result = await sock.sendMessage(deliveryJid, { text: content });
       const msgId = result?.key?.id || '';
-      log('SEND_TO_TENANT OK source=' + (source || '?') + ' id=' + msgId + ' route=' + masked);
-      ladder.updateLatest('OK', 'id=' + msgId);
+      log('SEND_TO_TENANT QUEUED source=' + (source || '?') + ' id=' + msgId + ' route=' + masked);
+      const entry = ladder.updateLatest('QUEUED', 'id=' + msgId);
+      if (entry) entry.msgId = msgId;
       return true;
     } catch (e) {
       log('SEND_TO_TENANT ERROR source=' + (source || '?') + ' ' + e.message + ' deliveryJid=' + deliveryJid);

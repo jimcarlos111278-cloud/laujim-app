@@ -82,7 +82,8 @@ export async function relayToGroup(sock, session, msg, adminName) {
 
     const msgId = result?.key?.id || '';
     log('RELAY_TO_GROUP OK: apto=' + session.apto + ' groupJid=' + session.groupJid + ' type=' + relayType + ' id=' + msgId);
-    ladder.updateLatest('OK', '');
+    const entry = ladder.updateLatest('QUEUED', 'id=' + msgId);
+    if (entry) entry.msgId = msgId;
     return msgId || null;
   } catch (e) {
     log('RELAY_TO_GROUP ERROR: apto=' + session.apto + ' groupJid=' + session.groupJid + ' error=' + e.message);
