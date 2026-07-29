@@ -267,10 +267,23 @@ export async function handleMessage(convJid, message, sendToTenant, aptoToGroupJ
 export async function autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJid, retryDiscover) {
   log('AUTO_AUTH: checking phone=' + phone + ' convJid=' + convJid);
   try {
-    const tenant = await api.getTenantByPhone(phone);
-    log('AUTO_AUTH: tenant lookup result=' + JSON.stringify(tenant).slice(0, 100));
+    const formats = [phone];
+    const without57 = phone.replace(/^57/, '');
+    if (without57 !== phone) formats.push(without57);
+    const with57 = phone.startsWith('57') ? phone : '57' + phone;
+    if (with57 !== phone) formats.push(with57);
+    const stripped = phone.replace(/^\+/, '');
+    if (stripped !== phone) formats.push(stripped);
+    if (stripped !== phone && !stripped.startsWith('57')) formats.push('57' + stripped);
+    const uniqueFormats = [...new Set(formats)];
+    let tenant = null;
+    for (const fmt of uniqueFormats) {
+      tenant = await api.getTenantByPhone(fmt);
+      log('AUTO_AUTH: trying format="' + fmt + '" found=' + (tenant && tenant.id ? 'yes' : 'no'));
+      if (tenant && tenant.id) break;
+    }
     if (!tenant || !tenant.id) {
-      log('AUTO_AUTH: no tenant found for phone=' + phone);
+      log('AUTO_AUTH: no tenant found for any format, tried=' + uniqueFormats.join(','));
       return null;
     }
 

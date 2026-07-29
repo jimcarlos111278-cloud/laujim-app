@@ -39,6 +39,7 @@ const GRUPOS_PATH = path.join(DATA_DIR, 'grupos.json');
 let sock = null;
 let reconnectTimer = null;
 let sessionTimeoutInterval = null;
+let healthInterval = null;
 let aptoToGroupJid = {};
 let botNumber = null;
 let botName = null;
@@ -253,6 +254,7 @@ async function startBot() {
       heartbeat.stopHeartbeat();
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
       if (sessionTimeoutInterval) clearInterval(sessionTimeoutInterval);
+      if (healthInterval) { clearInterval(healthInterval); healthInterval = null; }
 
       if (code === DisconnectReason.loggedOut || code === 401) {
         log('Session logged out. Clearing session files...');
@@ -280,11 +282,13 @@ async function startBot() {
   sock.ev.on('messages.update', updates => {
     for (const { key, update } of updates) {
       const id = key?.id || '';
+      const remoteJid = key?.remoteJid || '';
+      const participant = key?.participant || '';
       const status = update?.status ?? '';
       const statusNames = { 0: 'ERROR', 1: 'PENDING', 2: 'SERVER_ACK', 3: 'DELIVERY_ACK', 4: 'READ', 5: 'PLAYED' };
       const sname = statusNames[status] || 'STATUS_' + status;
       if (id && status !== undefined) {
-        log('=== MSG STATUS === id=' + id + ' status=' + status + ' (' + sname + ')');
+        log('=== MSG STATUS === id=' + id + ' remoteJid=' + remoteJid + ' participant=' + participant + ' status=' + sname);
         ladder.updateByMsgId(id, sname, '');
       }
     }
@@ -386,6 +390,8 @@ async function startBot() {
     }
   }
 
+  const relayedGroupMsgIds = new Set();
+
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     log('=== UPSERT START === type=' + type + ' count=' + messages.length);
     for (const msg of messages) {
@@ -393,7 +399,13 @@ async function startBot() {
         const msgKey = msg.key;
         log('MSG_KEY: fromMe=' + msgKey.fromMe + ' id=' + (msgKey.id || '') + ' remoteJid=' + (msgKey.remoteJid || '') + ' participant=' + (msgKey.participant || '') + ' senderPn=' + (msgKey.senderPn || '') + ' conversationJid=' + (msgKey.conversationJid || ''));
 
-        if (msgKey.fromMe) { log('MSG: skipped fromMe'); continue; }
+        if (msgKey.fromMe) {
+          const rJid = msgKey.remoteJid;
+          const isPvt = rJid && (rJid.endsWith('@s.whatsapp.net') || isLidUser(rJid));
+          if (isPvt) { log('MSG: skipped fromMe private'); continue; }
+          if (relayedGroupMsgIds.has(msgKey.id)) { log('MSG: skipped fromMe group dedup id=' + msgKey.id); continue; }
+          log('MSG: fromMe group allowed id=' + msgKey.id);
+        }
         if (!msg.message) { log('MSG: skipped no message body'); continue; }
 
         const remoteJid = msgKey.remoteJid;
@@ -459,12 +471,14 @@ async function startBot() {
             if (hasMedia) {
               log('PRIVATE MEDIA RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid);
               ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_MEDIA', text, '', '', '', session.apto);
-              await messageRelay.relayToGroup(sock, session, msg, getAdminName());
+              const relayMediaId = await messageRelay.relayToGroup(sock, session, msg, getAdminName());
+              if (relayMediaId) { relayedGroupMsgIds.add(relayMediaId); setTimeout(() => relayedGroupMsgIds.delete(relayMediaId), 30000); }
               waStore.addMessage(session.groupJid, session.apto, text || '[Media]', 'in', 'Inquilino Apto ' + session.apto);
             } else if (text) {
               log('PRIVATE RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid + ' text="' + text + '"');
               ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_TO_GROUP', text, '', '', '', session.apto);
-              await messageRelay.relayToGroup(sock, session, msg, getAdminName());
+              const relayTextId = await messageRelay.relayToGroup(sock, session, msg, getAdminName());
+              if (relayTextId) { relayedGroupMsgIds.add(relayTextId); setTimeout(() => relayedGroupMsgIds.delete(relayTextId), 30000); }
               waStore.addMessage(session.groupJid, session.apto, text, 'in', 'Inquilino Apto ' + session.apto);
             } else {
               log('PRIVATE: no text and no media, skipping');
@@ -478,7 +492,7 @@ async function startBot() {
           const retryDiscover = async () => { try { await Promise.race([discoverGroups(), new Promise(r => setTimeout(r, 10000))]); } catch {} };
           const autoSession = await Promise.race([
             authFlow.autoAuthByPhone(convJid, phone, sendToTenant, aptoToGroupJid, retryDiscover),
-            new Promise(r => setTimeout(() => r(null), 1000)),
+            new Promise(r => setTimeout(() => r(null), 8000)),
           ]);
 
           if (autoSession && autoSession.apto) {
@@ -563,6 +577,19 @@ async function startBot() {
     if (ladderDump) log(ladderDump);
     log('=== UPSERT END ===');
   });
+
+  if (healthInterval) clearInterval(healthInterval);
+  healthInterval = setInterval(() => {
+    const wsState = sock?.ws?.readyState;
+    if (wsState === undefined || wsState === 3) {
+      log('HEALTH: socket closed (state=' + wsState + '), forcing reconnect');
+      if (sock?.end) sock.end();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      startBot();
+    } else {
+      log('HEALTH: socket state=' + wsState + ' (0=CONNECTING,1=OPEN,2=CLOSING,3=CLOSED)');
+    }
+  }, 60000);
 }
 
 process.on('uncaughtException', (err) => {

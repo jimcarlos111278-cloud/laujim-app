@@ -40,7 +40,7 @@ export async function relayToGroup(sock, session, msg, adminName) {
   log('RELAY_TO_GROUP: entered sock=' + !!sock + ' session=' + !!session + ' groupJid=' + (session?.groupJid || 'none') + ' apto=' + (session?.apto || 'none'));
   if (!sock || !session || !session.groupJid) {
     log('RELAY_TO_GROUP: skipped - missing sock/session/groupJid');
-    return;
+    return null;
   }
 
   const mediaInfo = getMediaInfo(msg);
@@ -53,37 +53,40 @@ export async function relayToGroup(sock, session, msg, adminName) {
   ladder.push('Bot→Grp', 'Bot', groupShort, 'RELAY_' + relayType, text, '', 'PENDING', '', session.apto);
 
   try {
+    let result;
     if (mediaInfo && mediaInfo.type === 'image') {
       const buffer = await downloadMedia(sock, msg);
       if (buffer) {
-        await sock.sendMessage(session.groupJid, { image: buffer, caption: fullCaption });
+        result = await sock.sendMessage(session.groupJid, { image: buffer, caption: fullCaption });
       } else {
-        await sock.sendMessage(session.groupJid, { text: fullCaption + '\n\n🖼 [Imagen]' });
+        result = await sock.sendMessage(session.groupJid, { text: fullCaption + '\n\n🖼 [Imagen]' });
       }
     } else if (mediaInfo && mediaInfo.type === 'video') {
       const buffer = await downloadMedia(sock, msg);
       if (buffer) {
-        await sock.sendMessage(session.groupJid, { video: buffer, caption: fullCaption });
+        result = await sock.sendMessage(session.groupJid, { video: buffer, caption: fullCaption });
       } else {
-        await sock.sendMessage(session.groupJid, { text: fullCaption + '\n\n🎬 [Video]' });
+        result = await sock.sendMessage(session.groupJid, { text: fullCaption + '\n\n🎬 [Video]' });
       }
     } else if (mediaInfo && mediaInfo.type === 'document') {
       const buffer = await downloadMedia(sock, msg);
       if (buffer) {
-        await sock.sendMessage(session.groupJid, { document: buffer, mimetype: mediaInfo.mimetype, fileName: mediaInfo.filename, caption: fullCaption });
+        result = await sock.sendMessage(session.groupJid, { document: buffer, mimetype: mediaInfo.mimetype, fileName: mediaInfo.filename, caption: fullCaption });
       } else {
-        await sock.sendMessage(session.groupJid, { text: fullCaption + '\n\n📄 [' + mediaInfo.filename + ']' });
+        result = await sock.sendMessage(session.groupJid, { text: fullCaption + '\n\n📄 [' + mediaInfo.filename + ']' });
       }
     } else {
       const fullText = prefix + '\n' + text;
-      await sock.sendMessage(session.groupJid, { text: fullText });
+      result = await sock.sendMessage(session.groupJid, { text: fullText });
     }
 
-    const msgId = '';
-    log('RELAY_TO_GROUP OK: apto=' + session.apto + ' groupJid=' + session.groupJid + ' type=' + relayType);
+    const msgId = result?.key?.id || '';
+    log('RELAY_TO_GROUP OK: apto=' + session.apto + ' groupJid=' + session.groupJid + ' type=' + relayType + ' id=' + msgId);
     ladder.updateLatest('OK', '');
+    return msgId || null;
   } catch (e) {
     log('RELAY_TO_GROUP ERROR: apto=' + session.apto + ' groupJid=' + session.groupJid + ' error=' + e.message);
     ladder.updateLatest('ERROR', e.message.slice(0, 40));
+    return null;
   }
 }
