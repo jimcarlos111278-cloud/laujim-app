@@ -88,14 +88,20 @@ export function getActiveProxyUrl() {
 export function createAgent() {
   const p = getActiveProxy();
   if (!p) return undefined;
-  const url = getProxyUrl(activeIndex);
   try {
     if (p.scheme.startsWith('socks')) {
-      return new SocksProxyAgent(url);
+      return new SocksProxyAgent({
+        host: p.host,
+        port: p.port,
+        protocol: p.scheme + ':',
+        userId: p.user,
+        password: p.pass,
+      });
     }
+    const url = getProxyUrl(activeIndex);
     return new HttpsProxyAgent(url);
   } catch (e) {
-    log('PROXY POOL: agent error for ' + p.host + ': ' + e.message);
+    log('PROXY POOL: agent error for ' + p.host + ':' + p.port + ': ' + e.message);
     return undefined;
   }
 }
