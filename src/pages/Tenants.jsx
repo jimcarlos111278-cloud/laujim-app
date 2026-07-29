@@ -22,39 +22,43 @@ export default function Tenants() {
     setTenants(t); setContracts(c); setApartments(a);
   }
 
-  function getCurrentApartment(tenantId) {
-    const c = contracts.find(ct => ct.tenantId === tenantId && (!ct.endDate || new Date(ct.endDate) > new Date()));
-    return c ? apartments.find(a => a.id === c.apartmentId) : null;
+  function getApartmentName(tenant) {
+    if (tenant.apartmentId) {
+      const apt = apartments.find(a => a.id === tenant.apartmentId);
+      if (apt) return apt.name;
+    }
+    const c = contracts.find(ct => ct.tenantId === tenant.id && (!ct.endDate || new Date(ct.endDate) > new Date()));
+    return c ? apartments.find(a => a.id === c.apartmentId)?.name : null;
   }
 
-  function getTenantContracts(tenantId) {
-    return contracts.filter(c => c.tenantId === tenantId);
-  }
+  const sorted = [...tenants].sort((a, b) => {
+    const aptA = getApartmentName(a) || '';
+    const aptB = getApartmentName(b) || '';
+    if (aptA && aptB) return aptA.localeCompare(aptB, undefined, { numeric: true });
+    if (aptA) return -1;
+    if (aptB) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
-  const filtered = tenants.filter(t =>
+  const filtered = sorted.filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
-
-
     t.documentId?.includes(search)
   );
 
   async function handleAdd(e) {
     e.preventDefault();
     try {
-      const newTenant = await api.tenants.add({ ...form, apartmentId: form.linkedAptId ? Number(form.linkedAptId) : undefined, linkedAptId: undefined, createdAt: new Date().toISOString() });
+      const newTenant = await api.tenants.add({
+        ...form,
+        apartmentId: form.linkedAptId ? Number(form.linkedAptId) : undefined,
+        linkedAptId: undefined,
+        createdAt: new Date().toISOString(),
+      });
       if (form.linkedAptId) {
         const apt = apartments.find(a => a.id === Number(form.linkedAptId));
-        await api.contracts.add({
-          apartmentId: Number(form.linkedAptId),
-          tenantId: newTenant.id,
-          startDate: new Date().toISOString().split('T')[0],
-          endDate: null,
-          monthlyRent: apt?.monthlyRent || 0,
-          depositAmount: apt?.depositAmount || 0,
-          depositPaid: false,
-          createdAt: new Date().toISOString(),
-        });
-        if (apt) await api.apartments.update(apt.id, { status: 'occupied' });
+        if (apt && apt.status !== 'occupied') {
+          await api.apartments.update(apt.id, { status: 'occupied' });
+        }
       }
       setShowAdd(false);
       setForm({ name: '', phone: '', documentId: '', workPhone: '', workAddress: '', notes: '', linkedAptId: '' });
@@ -83,6 +87,7 @@ export default function Tenants() {
       workPhone: form.workPhone,
       workAddress: form.workAddress,
       notes: form.notes,
+      apartmentId: form.linkedAptId ? Number(form.linkedAptId) : null,
     });
     setShowEdit(false);
     setEditingTenant(null);
@@ -115,38 +120,36 @@ export default function Tenants() {
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Nombre</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Documento</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Contacto</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Teléfono</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Tel. Trabajo</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Dir. Trabajo</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Apartamento</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Contratos</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.map(t => {
-                  const apt = getCurrentApartment(t.id);
-                  const cs = getTenantContracts(t.id);
+                  const aptName = getApartmentName(t);
                   return (
                     <tr key={t.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{t.name}</td>
                       <td className="px-4 py-3 text-gray-500">{t.documentId || '-'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2 text-gray-500">
-                          {t.phone && (
+                          {t.phone ? (
                             <>
+                              <span className="text-gray-700">{t.phone}</span>
                               <a href={`tel:${t.phone}`} className="p-1 hover:text-green-600" title="Llamar"><Phone className="w-3.5 h-3.5" /></a>
                               <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 hover:text-emerald-600" title="WhatsApp"><MessageCircle className="w-3.5 h-3.5" /></a>
                             </>
-                          )}
+                          ) : <span className="text-gray-400">-</span>}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-gray-500">{t.workPhone || '-'}</td>
                       <td className="px-4 py-3 text-gray-500 max-w-[120px] truncate" title={t.workAddress || ''}>{t.workAddress || '-'}</td>
-                      <td className="px-4 py-3">{apt ? <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{apt.name}</span> : <span className="text-gray-400">-</span>}</td>
-                      <td className="px-4 py-3 text-gray-500">{cs.length}</td>
+                      <td className="px-4 py-3">{aptName ? <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{aptName}</span> : <span className="text-gray-400">-</span>}</td>
                       <td className="px-4 py-3 text-right">
-                        <button onClick={() => { setEditingTenant(t); setForm({ name: t.name, phone: t.phone || '', documentId: t.documentId || '', workPhone: t.workPhone || '', workAddress: t.workAddress || '', notes: t.notes || '', linkedAptId: '' }); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => { setEditingTenant(t); setForm({ name: t.name, phone: t.phone || '', documentId: t.documentId || '', workPhone: t.workPhone || '', workAddress: t.workAddress || '', notes: t.notes || '', linkedAptId: t.apartmentId || '' }); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-4 h-4" /></button>
                         <button onClick={() => handleDelete(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </tr>
@@ -158,8 +161,7 @@ export default function Tenants() {
         ) : (
           <div className="divide-y divide-gray-100">
             {filtered.map(t => {
-              const apt = getCurrentApartment(t.id);
-              const cs = getTenantContracts(t.id);
+              const aptName = getApartmentName(t);
               return (
                 <div key={t.id} className="p-4 space-y-2">
                   <div className="flex items-start justify-between">
@@ -174,7 +176,7 @@ export default function Tenants() {
                           <a href={`https://wa.me/57${t.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-emerald-600 transition-colors"><MessageCircle className="w-4 h-4" /></a>
                         </>
                       )}
-                      <button onClick={() => { setEditingTenant(t); setForm({ name: t.name, phone: t.phone || '', documentId: t.documentId || '', workPhone: t.workPhone || '', workAddress: t.workAddress || '', notes: t.notes || '', linkedAptId: '' }); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => { setEditingTenant(t); setForm({ name: t.name, phone: t.phone || '', documentId: t.documentId || '', workPhone: t.workPhone || '', workAddress: t.workAddress || '', notes: t.notes || '', linkedAptId: t.apartmentId || '' }); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"><Pencil className="w-4 h-4" /></button>
                       <button onClick={() => handleDelete(t.id)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
@@ -182,8 +184,7 @@ export default function Tenants() {
                     <span className="text-gray-500">Teléfono:</span><span className="text-gray-700">{t.phone || '-'}</span>
                     <span className="text-gray-500">Tel. Trabajo:</span><span className="text-gray-700">{t.workPhone || '-'}</span>
                     <span className="text-gray-500">Dir. Trabajo:</span><span className="text-gray-700">{t.workAddress || '-'}</span>
-                    <span className="text-gray-500">Apartamento:</span><span className="text-gray-700">{apt ? <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{apt.name}</span> : '-'}</span>
-                    <span className="text-gray-500">Contratos:</span><span className="text-gray-700">{cs.length}</span>
+                    <span className="text-gray-500">Apartamento:</span><span className="text-gray-700">{aptName ? <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{aptName}</span> : '-'}</span>
                   </div>
                 </div>
               );
@@ -211,15 +212,11 @@ export default function Tenants() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Asociar a Apartamento (opcional)</label>
             <select value={form.linkedAptId} onChange={e => setForm({...form, linkedAptId: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
               <option value="">-- Sin apartamento --</option>
-              {apartments.map(a => {
-                const hasActive = contracts.some(c => c.apartmentId === a.id && (!c.endDate || new Date(c.endDate) > new Date()));
-                return <option key={a.id} value={a.id}>{a.name} {hasActive ? '🔴 OCUPADO' : '🟢 VACANTE'}</option>;
-              })}
+              {apartments.map(a =>
+                <option key={a.id} value={a.id}>{a.name}</option>
+              )}
             </select>
-            {form.linkedAptId && contracts.some(c => c.apartmentId === Number(form.linkedAptId) && (!c.endDate || new Date(c.endDate) > new Date())) && (
-              <p className="text-xs text-amber-600 mt-1">⚠️ Este apartamento tiene un inquilino activo. Se creará un nuevo contrato y se finalizará el anterior.</p>
-            )}
-            <p className="text-xs text-gray-400 mt-1">Al seleccionar un apartamento, se creará un contrato automáticamente.</p>
+            <p className="text-xs text-gray-400 mt-1">Al seleccionar un apartamento se asignará directamente al inquilino.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -255,6 +252,15 @@ export default function Tenants() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Documento (Cédula)</label>
             <input type="text" value={form.documentId} onChange={e => setForm({...form, documentId: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Asociar a Apartamento (opcional)</label>
+            <select value={form.linkedAptId} onChange={e => setForm({...form, linkedAptId: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="">-- Sin apartamento --</option>
+              {apartments.map(a =>
+                <option key={a.id} value={a.id}>{a.name}</option>
+              )}
+            </select>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

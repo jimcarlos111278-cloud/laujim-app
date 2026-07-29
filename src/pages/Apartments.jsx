@@ -21,6 +21,8 @@ export default function Apartments() {
   }
 
   function getCurrentTenant(aptId) {
+    const t = tenants.find(t => t.apartmentId === aptId);
+    if (t) return t;
     const c = contracts.find(ct => ct.apartmentId === aptId && (!ct.endDate || new Date(ct.endDate) > new Date()));
     return c ? tenants.find(t => t.id === c.tenantId) : null;
   }
