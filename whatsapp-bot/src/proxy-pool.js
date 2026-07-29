@@ -4,11 +4,18 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 
 const MAX_FAILS = 2;
 const RESET_INTERVAL = 5 * 60 * 1000;
+const FETCH_INTERVAL = 10 * 60 * 1000;
+
+const FREE_PROXY_SOURCES = [
+  'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt',
+  'https://sockslist.us/Raw',
+];
 
 let proxies = [];
 let activeIndex = 0;
 let failCounts = [];
 let resetTimer = null;
+let fetchTimer = null;
 
 function getProxyUrl(index) {
   const p = proxies[index];
@@ -19,7 +26,13 @@ function getProxyUrl(index) {
 function parseProxyUrl(url) {
   try {
     const match = url.match(/^(socks5|socks5h|http|https):\/\/(?:(.+?):(.+?)@)?([^:]+):(\d+)$/);
-    if (!match) return null;
+    if (!match) {
+      const raw = url.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)$/);
+      if (raw) {
+        return { scheme: 'socks5', user: undefined, pass: undefined, host: raw[1], port: parseInt(raw[2]), auth: null, url: 'socks5://' + raw[1] + ':' + raw[2] };
+      }
+      return null;
+    }
     const scheme = match[1];
     const user = match[2];
     const pass = match[3];
@@ -44,25 +57,74 @@ function parseProxyList() {
   return urls;
 }
 
-export function initPool() {
-  const raw = parseProxyList();
-  proxies = [];
-  failCounts = [];
-  activeIndex = 0;
+function loadFromUrls(raw) {
+  const p = [];
+  const f = [];
   for (const u of raw) {
     const parsed = parseProxyUrl(u);
     if (parsed) {
-      proxies.push(parsed);
-      failCounts.push(0);
+      p.push(parsed);
+      f.push(0);
       log('PROXY POOL: added ' + parsed.scheme + '://' + (parsed.auth ? parsed.host : '(no auth)'));
     } else {
       log('PROXY POOL: invalid url, skipping: ' + u.replace(/:([^:@]+)@/, ':***@'));
     }
   }
-  if (proxies.length > 0) {
-    log('PROXY POOL: loaded ' + proxies.length + ' proxies, active 0');
+  if (p.length > 0) {
+    log('PROXY POOL: loaded ' + p.length + ' proxies');
+    proxies = p;
+    failCounts = f;
+    activeIndex = 0;
+  }
+}
+
+async function fetchFreeProxies() {
+  for (const source of FREE_PROXY_SOURCES) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(source, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!res.ok) continue;
+      const text = await res.text();
+      const parsed = [];
+      for (const line of text.split('\n')) {
+        const p = parseProxyUrl(line.trim());
+        if (p) parsed.push(p);
+      }
+      if (parsed.length > 0) {
+        log('PROXY POOL: fetched ' + parsed.length + ' free proxies from ' + source);
+        return parsed;
+      }
+    } catch (e) {
+      log('PROXY POOL: fetch failed from ' + source + ': ' + e.message);
+    }
+  }
+  return null;
+}
+
+async function refreshPool() {
+  const fresh = await fetchFreeProxies();
+  if (fresh && fresh.length > 0) {
+    proxies = fresh;
+    failCounts = fresh.map(() => 0);
+    activeIndex = 0;
+    log('PROXY POOL: pool replaced with ' + proxies.length + ' fresh proxies');
+  }
+}
+
+export function initPool() {
+  const raw = parseProxyList();
+  proxies = [];
+  failCounts = [];
+  activeIndex = 0;
+  if (raw.length > 0) {
+    loadFromUrls(raw);
   } else {
-    log('PROXY POOL: no proxies configured');
+    log('PROXY POOL: no env proxies, will fetch free list');
+  }
+  if (proxies.length === 0) {
+    refreshPool();
   }
   if (resetTimer) clearInterval(resetTimer);
   resetTimer = setInterval(() => {
@@ -73,6 +135,8 @@ export function initPool() {
       log('PROXY POOL: reset all fail counts');
     }
   }, RESET_INTERVAL);
+  if (fetchTimer) clearInterval(fetchTimer);
+  fetchTimer = setInterval(refreshPool, FETCH_INTERVAL);
 }
 
 export function getActiveProxy() {
@@ -120,9 +184,8 @@ export function markFailed(proxyUrl) {
 
   if (failCount >= MAX_FAILS) {
     if (allFailed()) {
-      failCounts.fill(0);
-      activeIndex = 0;
-      log('PROXY POOL: all proxies failed, resetting');
+      log('PROXY POOL: all proxies failed, fetching fresh list');
+      refreshPool();
       return true;
     }
     rotate();
