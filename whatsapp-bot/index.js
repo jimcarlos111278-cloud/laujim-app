@@ -179,11 +179,11 @@ async function startBot() {
     printQRInTerminal: true,
     logger: pino({ level: 'silent' }),
     browser: ['Laujim APP', 'Chrome', '1.0'],
-    markOnlineOnConnect: true,
+    markOnlineOnConnect: false,
     syncFullHistory: false,
-    connectTimeoutMs: 60000,
+    connectTimeoutMs: 120000,
     qrTimeout: 0,
-    keepAliveIntervalMs: 25000,
+    keepAliveIntervalMs: 10000,
   };
 
   const agent = getProxyAgent();
@@ -205,7 +205,7 @@ async function startBot() {
       } catch (e) {
         log('Pairing code error: ' + e.message);
       }
-    }, 3000);
+    }, 15000);
   }
 
   sock.ev.on('connection.update', async (update) => {
@@ -271,8 +271,8 @@ async function startBot() {
         }
         reconnectTimer = setTimeout(startBot, 30000);
       } else {
-        log('Reconnecting in 5s...');
-        reconnectTimer = setTimeout(startBot, 5000);
+        log('Reconnecting in 15s...');
+        reconnectTimer = setTimeout(startBot, 15000);
       }
     }
   });
@@ -581,9 +581,8 @@ async function startBot() {
   if (healthInterval) clearInterval(healthInterval);
   healthInterval = setInterval(() => {
     const wsState = sock?.ws?.readyState;
-    if (wsState === undefined || wsState === 3) {
-      log('HEALTH: socket closed (state=' + wsState + '), forcing reconnect');
-      notify.setQr(null);
+    if (wsState === 3) {
+      log('HEALTH: socket closed, forcing reconnect');
       if (sock?.end) sock.end();
       if (reconnectTimer) clearTimeout(reconnectTimer);
       startBot();
