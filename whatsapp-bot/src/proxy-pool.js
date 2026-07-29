@@ -24,6 +24,10 @@ function parseProxyUrl(url) {
       if (raw) {
         return { scheme: 'socks5', user: undefined, pass: undefined, host: raw[1], port: parseInt(raw[2]), auth: null, url: 'socks5://' + raw[1] + ':' + raw[2] };
       }
+      const ws = url.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+):(.+?):(.+)$/);
+      if (ws) {
+        return { scheme: 'http', user: ws[3], pass: ws[4], host: ws[1], port: parseInt(ws[2]), auth: ws[3] + ':' + ws[4], url: 'http://' + ws[3] + ':' + ws[4] + '@' + ws[1] + ':' + ws[2] };
+      }
       return null;
     }
     const scheme = match[1];
