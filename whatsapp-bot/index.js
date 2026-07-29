@@ -251,6 +251,7 @@ async function startBot() {
       const reason = err?.message || 'unknown';
       const code = err?.output?.statusCode || err?.statusCode || err?.data?.code;
       log('Disconnected. Reason: ' + reason + ' Code: ' + code);
+      notify.setQr(null);
       heartbeat.stopHeartbeat();
       notify.setLastError('Disconnected: ' + reason + ' (code: ' + code + ')');
       if (sessionTimeoutInterval) clearInterval(sessionTimeoutInterval);
@@ -258,7 +259,6 @@ async function startBot() {
 
       if (code === DisconnectReason.loggedOut || code === 401) {
         log('Session logged out. Clearing session files...');
-        notify.setQr(null);
         notify.setClient(null);
         sessionStore.expireAll();
         try {
@@ -583,6 +583,7 @@ async function startBot() {
     const wsState = sock?.ws?.readyState;
     if (wsState === undefined || wsState === 3) {
       log('HEALTH: socket closed (state=' + wsState + '), forcing reconnect');
+      notify.setQr(null);
       if (sock?.end) sock.end();
       if (reconnectTimer) clearTimeout(reconnectTimer);
       startBot();
