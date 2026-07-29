@@ -47,6 +47,7 @@ let botName = null;
 let discoverAttempts = 0;
 let cachedSettings = {};
 let lastMsgTime = Date.now();
+let sessionReady = false;
 
 async function loadSettings() {
   try {
@@ -231,6 +232,7 @@ async function startBot() {
     }
 
     if (connection === 'open') {
+      sessionReady = true;
       lastMsgTime = Date.now();
       const number = sock?.user?.id ? sock.user.id.split(':')[0].replace('@s.whatsapp.net', '') : 'unknown';
       botNumber = number;
@@ -260,6 +262,7 @@ async function startBot() {
     }
 
     if (connection === 'close') {
+      sessionReady = false;
       const err = lastDisconnect?.error;
       const reason = err?.message || 'unknown';
       const code = err?.output?.statusCode || err?.statusCode || err?.data?.code;
@@ -618,13 +621,12 @@ async function startBot() {
   healthInterval = setInterval(() => {
     const isOpen = sock?.ws?.isOpen;
     const idle = Date.now() - lastMsgTime;
+    if (!sessionReady) {
+      log('HEALTH: waiting QR (sessionReady=false) idle=' + idle + 'ms');
+      return;
+    }
     if (isOpen === false && idle > 20000) {
       log('HEALTH: socket not open for ' + idle + 'ms, reconnecting');
-      if (sock?.end) sock.end();
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      startBot();
-    } else if (isOpen === true && idle > 30000) {
-      log('HEALTH: no messages for ' + idle + 'ms, reconnecting');
       if (sock?.end) sock.end();
       if (reconnectTimer) clearTimeout(reconnectTimer);
       startBot();
