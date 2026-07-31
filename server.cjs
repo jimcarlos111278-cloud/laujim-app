@@ -903,7 +903,10 @@ app.get('/api/whatsapp/webhook', (req, res) => {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
   const savedToken = cloudConfig().verifyToken;
-  if (cloudReady() && mode === 'subscribe' && token === savedToken) {
+  // Meta verifies the callback before the production access token and phone ID
+  // exist.  Requiring the entire Cloud configuration here prevents the safe
+  // bootstrap sequence from ever completing.
+  if (savedToken && mode === 'subscribe' && token === savedToken) {
     return res.status(200).send(challenge);
   }
   res.status(403).send('Forbidden');
