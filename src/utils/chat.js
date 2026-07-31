@@ -1,5 +1,6 @@
 import db from '../db/database';
 import { getBase, AUTH_TOKEN } from './config';
+import { getAuth } from './auth';
 
 let lastCheck = new Date(0).toISOString();
 let pollTimer = null;
@@ -14,9 +15,10 @@ export async function sendMessage(roomId, from, to, content) {
   const saved = { ...msg, id: localId };
   try {
     const base = getBase();
-    const res = await fetch(base + '/messages', {
+    const isTenant = getAuth()?.role === 'tenant';
+    const res = await fetch(base + (isTenant ? '/tenant/messages' : '/messages'), {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
-      body: JSON.stringify(saved),
+      body: JSON.stringify(isTenant ? { content } : saved),
     });
     if (res.ok) {
       const serverMsg = await res.json();
@@ -32,9 +34,10 @@ export async function sendMessage(roomId, from, to, content) {
 export async function sendHeartbeat(userId, status) {
   try {
     const base = getBase();
-    await fetch(base + '/presence/heartbeat', {
+    const isTenant = getAuth()?.role === 'tenant';
+    await fetch(base + (isTenant ? '/tenant/presence/heartbeat' : '/presence/heartbeat'), {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
-      body: JSON.stringify({ userId, status }),
+      body: JSON.stringify(isTenant ? { status } : { userId, status }),
     });
   } catch {}
 }
@@ -42,7 +45,8 @@ export async function sendHeartbeat(userId, status) {
 export async function fetchPresence() {
   try {
     const base = getBase();
-    const res = await fetch(base + '/presence', {
+    const isTenant = getAuth()?.role === 'tenant';
+    const res = await fetch(base + (isTenant ? '/tenant/presence' : '/presence'), {
       headers: { 'x-auth-token': AUTH_TOKEN }, signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return [];
@@ -53,7 +57,9 @@ export async function fetchPresence() {
 export async function pollNewMessages() {
   try {
     const base = getBase();
-    const res = await fetch(base + '/messages/updates/' + encodeURIComponent(lastCheck), {
+    const isTenant = getAuth()?.role === 'tenant';
+    const path = isTenant ? '/tenant/messages/updates/' : '/messages/updates/';
+    const res = await fetch(base + path + encodeURIComponent(lastCheck), {
       headers: { 'x-auth-token': AUTH_TOKEN }, signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return;

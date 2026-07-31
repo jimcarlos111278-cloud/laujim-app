@@ -62,6 +62,7 @@ export default function ApartmentDetail() {
   const videoRef = useRef(null);
   const [marketplaceUrl, setMarketplaceUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [publicPageCopied, setPublicPageCopied] = useState(false);
   const [showWaModal, setShowWaModal] = useState(false);
   const [showBotModal, setShowBotModal] = useState(false);
   const [botMsg, setBotMsg] = useState('');
@@ -489,6 +490,18 @@ export default function ApartmentDetail() {
     }).catch(() => alert('No se pudo copiar. Selecciona el texto manualmente.'));
   }
 
+  async function copyPublicApartmentPage() {
+    if (!apt?.id) return;
+    const url = `${window.location.origin}/publico/apartamento/${apt.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setPublicPageCopied(true);
+      setTimeout(() => setPublicPageCopied(false), 2000);
+    } catch {
+      window.prompt('Copia este enlace para compartir la página del apartamento:', url);
+    }
+  }
+
   function openMarketplace() {
     window.open('https://www.facebook.com/marketplace/you/selling', '_blank');
   }
@@ -556,7 +569,8 @@ export default function ApartmentDetail() {
         apt.rooms ? `${apt.rooms} hab / ${apt.bathrooms} ba\u00f1os / ${apt.area} m\u00b2` : '',
         apt.notes || '',
       ].filter(Boolean).join('\n');
-      const fullText = text + '\n\n' + window.location.href;
+      const publicPageUrl = `${window.location.origin}/publico/apartamento/${apt.id}`;
+      const fullText = text + '\n\nMás información y servicios: ' + publicPageUrl;
       const photoUrls = photos.map(p => { const u = photoUrl(p); return u || null; }).filter(Boolean);
 
       if (isCapacitor()) {
@@ -658,6 +672,9 @@ export default function ApartmentDetail() {
           <button onClick={() => setEditing(true)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar"><Edit2 className="w-5 h-5" /></button>
           <button onClick={handleDelete} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar"><Trash2 className="w-5 h-5" /></button>
           <button onClick={() => generateApartmentPDF(apt, tenant, contract)} className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Descargar PDF"><FileText className="w-5 h-5" /></button>
+          <button onClick={copyPublicApartmentPage} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title={publicPageCopied ? 'Enlace copiado' : 'Copiar página pública'}>
+            {publicPageCopied ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
+          </button>
           <button onClick={shareToWhatsAppApt} disabled={shareLoading} className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Compartir por WhatsApp">
             <MessageCircle className="w-5 h-5" />
           </button>

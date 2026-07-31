@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Home, DollarSign, ChevronLeft, ChevronRight, Image, ExternalLink } from 'lucide-react';
 import { getBase } from '../utils/config';
 
@@ -98,6 +99,7 @@ export default function PublicApartments() {
                   {apt.paymentDueDay && <p className="text-xs text-gray-400 mt-1">Día de pago: {apt.paymentDueDay} de cada mes</p>}
                   {apt.notes && <p className="text-sm text-gray-500 mt-2 p-2 bg-gray-50 rounded-lg">{apt.notes}</p>}
                   <span className="inline-block mt-3 text-xs font-bold bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">DISPONIBLE</span>
+                  <Link to={`/publico/apartamento/${apt.id}`} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800">Ver detalles y servicios <ExternalLink className="w-3.5 h-3.5" /></Link>
                 </div>
               </div>
             );

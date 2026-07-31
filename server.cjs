@@ -6,12 +6,13 @@ const multer = require('multer');
 const { spawn } = require('child_process');
 const { exec } = require('child_process');
 const https = require('https');
+const crypto = require('crypto');
 const os = require('os');
 const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 1011;
-const AUTH_TOKEN = 'laujim laujim';
+const SESSION_TTL_MS = Math.max(1, Number(process.env.SESSION_TTL_HOURS || 12)) * 60 * 60 * 1000;
 let requestCount = 0;
 
 process.on('uncaughtException', (err) => { console.error('UNCAUGHT:', err.message, err.stack); });
@@ -20,14 +21,21 @@ process.on('unhandledRejection', (reason) => { console.error('UNHANDLED:', reaso
 app.get('/health', (req, res) => res.send('ok'));
 
 app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type', 'x-auth-token'] }));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) requestCount++;
-  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && req.path !== '/api/data-version' && req.path !== '/api/system/stats' && !req.path.startsWith('/api/public/') && !req.path.startsWith('/api/whatsapp/')) {
-    const token = req.headers['x-auth-token'];
-    if (token !== AUTH_TOKEN) {
+  const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
+    req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook';
+  if (req.path.startsWith('/api/') && !isPublicApi) {
+    const session = getAuthSession(req.headers['x-auth-token']);
+    if (!session) {
       return res.status(401).json({ error: 'No autorizado' });
+    }
+    req.auth = session;
+    const tenantPath = req.path === '/api/logout' || req.path.startsWith('/api/tenant/');
+    if (session.role === 'tenant' && !tenantPath) {
+      return res.status(403).json({ error: 'Acceso restringido al apartamento autenticado' });
     }
   }
   next();
@@ -63,6 +71,63 @@ const { INITIAL_DATA } = require('./db.cjs');
 
 let db = { ...INITIAL_DATA };
 let nextId = {};
+
+function constantTimeEqual(left, right) {
+  const a = Buffer.from(String(left || ''));
+  const b = Buffer.from(String(right || ''));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function ensureAuthSessions() {
+  if (!Array.isArray(db.authSessions)) db.authSessions = [];
+}
+
+function pruneAuthSessions() {
+  ensureAuthSessions();
+  const now = Date.now();
+  const before = db.authSessions.length;
+  db.authSessions = db.authSessions.filter(session => new Date(session.expiresAt).getTime() > now);
+  return before !== db.authSessions.length;
+}
+
+function createAuthSession({ role, name, apartmentId = null, tenantId = null }) {
+  pruneAuthSessions();
+  const token = crypto.randomBytes(32).toString('base64url');
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + SESSION_TTL_MS).toISOString();
+  const session = {
+    id: crypto.randomUUID(),
+    tokenHash: crypto.createHash('sha256').update(token).digest('hex'),
+    role,
+    name,
+    apartmentId,
+    tenantId,
+    createdAt: now.toISOString(),
+    expiresAt,
+  };
+  db.authSessions.push(session);
+  saveData();
+  return { token, expiresAt };
+}
+
+function getAuthSession(token) {
+  if (!token || typeof token !== 'string') return null;
+  const changed = pruneAuthSessions();
+  if (changed) saveData();
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  const session = (db.authSessions || []).find(item => constantTimeEqual(item.tokenHash, hash));
+  if (!session || new Date(session.expiresAt).getTime() <= Date.now()) return null;
+  return session;
+}
+
+function removeAuthSession(token) {
+  if (!token || typeof token !== 'string') return;
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  ensureAuthSessions();
+  const before = db.authSessions.length;
+  db.authSessions = db.authSessions.filter(item => !constantTimeEqual(item.tokenHash, hash));
+  if (before !== db.authSessions.length) saveData();
+}
 
 // ─── WhatsApp helper ───
 function isBotEnabled() {
@@ -109,6 +174,316 @@ function sendWhatsApp(to, text) {
   req.on('error', (e) => console.error('WhatsApp send error:', e.message));
   req.write(postData);
   req.end();
+}
+
+// ─── WhatsApp Business Platform (Cloud API) ─────────────────────────────────
+// This is intentionally independent from the legacy Baileys relay. It stays
+// disabled until Meta credentials are configured in the deployment environment.
+const CLOUD_AUTH_TTL = 5 * 60 * 1000;
+const CLOUD_AUTH_MAX_ATTEMPTS = 3;
+const CLOUD_PROCESSED_MESSAGE_TTL = 7 * 24 * 60 * 60 * 1000;
+
+function cloudConfig() {
+  return {
+    enabled: process.env.WHATSAPP_CLOUD_ENABLED === 'true',
+    token: process.env.WHATSAPP_ACCESS_TOKEN || '',
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
+    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || '',
+    appSecret: process.env.WHATSAPP_APP_SECRET || '',
+    graphVersion: process.env.WHATSAPP_GRAPH_VERSION || '',
+  };
+}
+
+function cloudReady() {
+  const c = cloudConfig();
+  return c.enabled && c.token && c.phoneNumberId && c.verifyToken && c.appSecret && c.graphVersion;
+}
+
+function normalizePhone(phone) {
+  return String(phone || '').replace(/\D/g, '');
+}
+
+function samePhone(a, b) {
+  const left = normalizePhone(a);
+  const right = normalizePhone(b);
+  return left && right && (left === right || left.slice(-10) === right.slice(-10));
+}
+
+function tenantBelongsToApartment(tenant, apartmentId) {
+  if (Number(tenant?.apartmentId) === Number(apartmentId)) return true;
+  return (db.contracts || []).some(c =>
+    Number(c.tenantId) === Number(tenant?.id) &&
+    Number(c.apartmentId) === Number(apartmentId) &&
+    c.status !== 'terminated' && c.status !== 'cancelled' &&
+    (!c.endDate || new Date(c.endDate).getTime() >= Date.now())
+  );
+}
+
+function ensureCloudCollections() {
+  for (const name of ['whatsappContacts', 'whatsappConversations', 'whatsappMessages', 'whatsappAuthStates', 'whatsappBlockedUsers', 'whatsappProcessedMessages']) {
+    if (!Array.isArray(db[name])) db[name] = [];
+    if (!nextId[name]) nextId[name] = db[name].reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+  }
+}
+
+function pruneCloudCollections() {
+  ensureCloudCollections();
+  const now = Date.now();
+  db.whatsappAuthStates = db.whatsappAuthStates.filter(state => new Date(state.expiresAt).getTime() > now);
+  db.whatsappProcessedMessages = db.whatsappProcessedMessages.filter(item =>
+    now - new Date(item.createdAt).getTime() < CLOUD_PROCESSED_MESSAGE_TTL
+  );
+}
+
+function getCloudAuthState(phone) {
+  pruneCloudCollections();
+  return db.whatsappAuthStates.find(state => samePhone(state.phone, phone)) || null;
+}
+
+function setCloudAuthState(phone, state) {
+  ensureCloudCollections();
+  const now = new Date().toISOString();
+  const index = db.whatsappAuthStates.findIndex(item => samePhone(item.phone, phone));
+  const record = {
+    id: index >= 0 ? db.whatsappAuthStates[index].id : nextId.whatsappAuthStates++,
+    phone: normalizePhone(phone),
+    step: state.step,
+    apartmentId: state.apartmentId || null,
+    attempts: Number(state.attempts) || 0,
+    expiresAt: state.expiresAt,
+    createdAt: index >= 0 ? db.whatsappAuthStates[index].createdAt : now,
+    updatedAt: now,
+  };
+  if (index >= 0) db.whatsappAuthStates[index] = record;
+  else db.whatsappAuthStates.push(record);
+  return record;
+}
+
+function clearCloudAuthState(phone) {
+  ensureCloudCollections();
+  db.whatsappAuthStates = db.whatsappAuthStates.filter(state => !samePhone(state.phone, phone));
+}
+
+function isCloudBlocked(phone) {
+  ensureCloudCollections();
+  return db.whatsappBlockedUsers.some(item => samePhone(item.phone, phone));
+}
+
+function isCloudMessageProcessed(messageId) {
+  if (!messageId) return false;
+  pruneCloudCollections();
+  return db.whatsappProcessedMessages.some(item => item.messageId === messageId);
+}
+
+function markCloudMessageProcessed(messageId) {
+  if (!messageId) return;
+  ensureCloudCollections();
+  db.whatsappProcessedMessages.push({
+    id: nextId.whatsappProcessedMessages++,
+    messageId,
+    createdAt: new Date().toISOString(),
+  });
+}
+
+function authorizedCloudContact(phone) {
+  ensureCloudCollections();
+  const now = Date.now();
+  const explicit = db.whatsappContacts.find(c => c.enabled !== false && samePhone(c.phone, phone) &&
+    (!c.expiresAt || new Date(c.expiresAt).getTime() > now));
+  if (explicit) return explicit;
+
+  const tenant = (db.tenants || []).find(t => samePhone(t.phone, phone));
+  if (!tenant) return null;
+  const contract = (db.contracts || []).find(c => Number(c.tenantId) === Number(tenant.id) &&
+    c.status !== 'terminated' && c.status !== 'cancelled' &&
+    (!c.endDate || new Date(c.endDate).getTime() >= Date.now()));
+  if (!contract) return null;
+  return { phone: normalizePhone(phone), tenantId: tenant.id, apartmentId: contract.apartmentId, source: 'database' };
+}
+
+function getCloudConversation(contact) {
+  ensureCloudCollections();
+  let conversation = db.whatsappConversations.find(c => samePhone(c.phone, contact.phone));
+  if (!conversation) {
+    conversation = { id: nextId.whatsappConversations++, phone: normalizePhone(contact.phone), tenantId: contact.tenantId,
+      apartmentId: contact.apartmentId, status: 'active', createdAt: new Date().toISOString(), lastInboundAt: null,
+      customerServiceWindowUntil: null };
+    db.whatsappConversations.push(conversation);
+  }
+  return conversation;
+}
+
+function addCloudMessage(conversation, direction, message) {
+  ensureCloudCollections();
+  const record = { id: nextId.whatsappMessages++, conversationId: conversation.id, direction,
+    type: message.type || 'text', text: message.text || '', mediaId: message.mediaId || null,
+    whatsappMessageId: message.whatsappMessageId || null, createdAt: new Date().toISOString() };
+  db.whatsappMessages.push(record);
+  return record;
+}
+
+function cloudApiRequest(pathname, method, payload) {
+  const c = cloudConfig();
+  if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no está configurada'));
+  const body = payload ? JSON.stringify(payload) : null;
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'graph.facebook.com', path: `/${c.graphVersion}/${c.phoneNumberId}${pathname}`, method,
+      headers: {
+        Authorization: `Bearer ${c.token}`,
+        ...(body ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } : {}),
+      },
+    }, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data || '{}');
+          if (res.statusCode >= 200 && res.statusCode < 300) resolve(parsed);
+          else reject(new Error(parsed.error?.message || 'Cloud API error'));
+        } catch {
+          reject(new Error('Respuesta inválida de Cloud API'));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(15000, () => req.destroy(new Error('Cloud API timeout')));
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+function sendCloudText(to, body) {
+  return cloudApiRequest('/messages', 'POST', {
+    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'text', text: { body },
+  });
+}
+
+async function blockCloudUser(phone, reason) {
+  ensureCloudCollections();
+  const normalized = normalizePhone(phone);
+  const index = db.whatsappBlockedUsers.findIndex(item => samePhone(item.phone, normalized));
+  const record = {
+    id: index >= 0 ? db.whatsappBlockedUsers[index].id : nextId.whatsappBlockedUsers++,
+    phone: normalized,
+    reason: reason || 'authentication_failed',
+    blockedAt: index >= 0 ? db.whatsappBlockedUsers[index].blockedAt : new Date().toISOString(),
+    remoteBlocked: false,
+    updatedAt: new Date().toISOString(),
+  };
+  if (index >= 0) db.whatsappBlockedUsers[index] = record;
+  else db.whatsappBlockedUsers.push(record);
+
+  try {
+    await cloudApiRequest('/block_users', 'POST', {
+      messaging_product: 'whatsapp', block_users: [{ user: normalized }],
+    });
+    record.remoteBlocked = true;
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] block user error:', error.message);
+  }
+  saveData();
+  return record;
+}
+
+async function failCloudAuthentication(phone, state, response) {
+  const attempts = (Number(state?.attempts) || 0) + 1;
+  if (attempts < CLOUD_AUTH_MAX_ATTEMPTS) {
+    setCloudAuthState(phone, { ...state, attempts, expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString() });
+    saveData();
+    await sendCloudText(phone, response);
+    return false;
+  }
+
+  clearCloudAuthState(phone);
+  saveData();
+  try {
+    await sendCloudText(phone, 'No fue posible validar tu identidad. Este canal solo acepta mensajes de residentes autorizados.');
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] final authentication message error:', error.message);
+  }
+  await blockCloudUser(phone, 'authentication_failed');
+  return true;
+}
+
+function validCloudSignature(req) {
+  const c = cloudConfig();
+  const signature = req.get('x-hub-signature-256') || '';
+  if (!c.appSecret || !signature.startsWith('sha256=')) return false;
+  const expected = 'sha256=' + crypto.createHmac('sha256', c.appSecret).update(req.rawBody || '').digest('hex');
+  return signature.length === expected.length && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
+
+function requireCloudAdmin(req, res) {
+  if (req.auth?.role === 'admin') return true;
+  res.status(403).json({ error: 'Acceso de administración requerido' });
+  return false;
+}
+
+async function handleCloudInbound(message) {
+  const phone = normalizePhone(message.from);
+  if (!phone || isCloudMessageProcessed(message.id)) return;
+  markCloudMessageProcessed(message.id);
+  pruneCloudCollections();
+
+  if (isCloudBlocked(phone)) {
+    saveData();
+    return;
+  }
+
+  const known = authorizedCloudContact(phone);
+  if (known) {
+    const conversation = getCloudConversation(known);
+    conversation.lastInboundAt = new Date().toISOString();
+    conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const type = message.type || 'unknown';
+    // Content and media identifiers are persisted only after authorization.
+    addCloudMessage(conversation, 'in', { type, text: type === 'text' ? (message.text?.body || '') : '', mediaId: message[type]?.id || null, whatsappMessageId: message.id });
+    saveData();
+    return;
+  }
+
+  const state = getCloudAuthState(phone);
+  const text = message.type === 'text' ? String(message.text?.body || '').trim() : '';
+  if (!state || new Date(state.expiresAt).getTime() < Date.now()) {
+    setCloudAuthState(phone, { step: 'apartment', expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString(), attempts: 0 });
+    saveData();
+    await sendCloudText(phone, '🤖 Laujim Bot: este canal requiere autenticación. Tus mensajes y archivos no se entregan ni se guardan hasta verificar tu identidad. Escribe tu número de apartamento.');
+    return;
+  }
+  if (!text) {
+    await failCloudAuthentication(phone, state, 'Para validar tu identidad, responde solo con texto. Escribe tu número de apartamento.');
+    return;
+  }
+  if (state.step === 'apartment') {
+    const apartment = (db.apartments || []).find(a => String(a.name) === text || String(a.id) === text);
+    if (!apartment) {
+      await failCloudAuthentication(phone, state, 'No encontré ese apartamento. Intenta nuevamente.');
+      return;
+    }
+    setCloudAuthState(phone, { ...state, step: 'document', apartmentId: apartment.id, expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString() });
+    saveData();
+    await sendCloudText(phone, 'Ahora escribe tu número de cédula para verificar la residencia.');
+    return;
+  }
+  const tenant = (db.tenants || []).find(t => String(t.documentId || '') === text && tenantBelongsToApartment(t, state.apartmentId));
+  if (!tenant) {
+    await failCloudAuthentication(phone, state, 'Los datos no coinciden. Intenta de nuevo.');
+    return;
+  }
+  ensureCloudCollections();
+  const now = new Date().toISOString();
+  const existingIndex = db.whatsappContacts.findIndex(item => samePhone(item.phone, phone));
+  const contact = { id: existingIndex >= 0 ? db.whatsappContacts[existingIndex].id : nextId.whatsappContacts++, phone, tenantId: tenant.id, apartmentId: state.apartmentId, enabled: true,
+    source: 'authenticated', verifiedAt: now, createdAt: existingIndex >= 0 ? db.whatsappContacts[existingIndex].createdAt : now };
+  if (existingIndex >= 0) db.whatsappContacts[existingIndex] = contact;
+  else db.whatsappContacts.push(contact);
+  clearCloudAuthState(phone);
+  const conversation = getCloudConversation(contact);
+  conversation.lastInboundAt = new Date().toISOString();
+  conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  saveData();
+  await sendCloudText(phone, '✅ Identidad verificada. Desde ahora tus mensajes llegarán al administrador por este canal.');
 }
 
 // ─── PostgreSQL persistence ───
@@ -158,7 +533,8 @@ function loadData() {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
-  ['messages', 'payments', 'expenses', 'leads', 'settings'].forEach(k => { if (!db[k]) db[k] = []; });
+  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence'].forEach(k => { if (!db[k]) db[k] = []; });
+  if (pruneAuthSessions()) console.log('Expired authentication sessions removed');
   recalcNextId();
 }
 
@@ -242,24 +618,58 @@ app.get('/api/data/all', (req, res) => {
 });
 
 app.post('/api/login', (req, res) => {
-  const { token, username, password } = req.body;
-  if (token) {
-    if (token === AUTH_TOKEN) {
+  const { username, password } = req.body || {};
+  const adminUsername = process.env.ADMIN_USERNAME || '';
+  const adminPassword = process.env.ADMIN_PASSWORD || '';
+  if (adminUsername && adminPassword && constantTimeEqual(username, adminUsername) && constantTimeEqual(password, adminPassword)) {
+    const session = createAuthSession({ role: 'admin', name: 'Administrador' });
+    return res.json({ authenticated: true, role: 'admin', name: 'Administrador', ...session });
+  }
+  if (false) {
+    if (false) {
       return res.json({ authenticated: true, role: 'admin', name: 'Administrador' });
     }
     return res.status(401).json({ error: 'Token inválido' });
   }
-  if (username === 'admin' && password === 'laujim123') {
-    return res.json({ authenticated: true, role: 'admin', name: 'Administrador' });
-  }
-  const apt = (db.apartments || []).find(a => a.name === username || String(a.id) === username);
+  const apartmentLogin = String(username || '').trim();
+  const documentId = String(password || '').trim();
+  const apt = (db.apartments || []).find(a => a.name === apartmentLogin || String(a.id) === apartmentLogin);
   if (apt) {
-    const tenant = (db.tenants || []).find(t => t.documentId && t.documentId === password);
+    const tenant = (db.tenants || []).find(t => {
+      if (!t.documentId || !constantTimeEqual(t.documentId, documentId)) return false;
+      if (Number(t.apartmentId) === Number(apt.id)) return true;
+      return (db.contracts || []).some(c =>
+        Number(c.tenantId) === Number(t.id) &&
+        Number(c.apartmentId) === Number(apt.id) &&
+        c.status !== 'terminated' && c.status !== 'cancelled'
+      );
+    });
     if (tenant) {
-      return res.json({ authenticated: true, role: 'tenant', apartmentId: apt.id, name: tenant.name });
+      const session = createAuthSession({ role: 'tenant', apartmentId: apt.id, tenantId: tenant.id, name: tenant.name });
+      return res.json({ authenticated: true, role: 'tenant', apartmentId: apt.id, name: tenant.name, ...session });
     }
   }
   res.status(401).json({ error: 'Credenciales inválidas' });
+});
+
+app.post('/api/logout', (req, res) => {
+  removeAuthSession(req.headers['x-auth-token']);
+  res.json({ ok: true });
+});
+
+app.get('/api/tenant/overview', (req, res) => {
+  const apartmentId = Number(req.auth.apartmentId);
+  const tenantId = Number(req.auth.tenantId);
+  const apartment = (db.apartments || []).find(item => Number(item.id) === apartmentId);
+  const tenant = (db.tenants || []).find(item => Number(item.id) === tenantId && tenantBelongsToApartment(item, apartmentId));
+  if (!apartment || !tenant) return res.status(403).json({ error: 'Sesion de inquilino invalida' });
+  const contract = (db.contracts || []).find(item =>
+    Number(item.apartmentId) === apartmentId && Number(item.tenantId) === tenantId &&
+    item.status !== 'terminated' && item.status !== 'cancelled' &&
+    (!item.endDate || new Date(item.endDate).getTime() >= Date.now())
+  ) || null;
+  const payments = (db.payments || []).filter(item => Number(item.apartmentId) === apartmentId && item.type === 'rent');
+  res.json({ apartment, tenant, contract, payments });
 });
 
 app.get('/api/public/vacants', (req, res) => {
@@ -269,6 +679,39 @@ app.get('/api/public/vacants', (req, res) => {
   }));
   const photos = (db.photos || []).filter(p => vacants.some(a => a.id === Number(p.apartmentId)));
   res.json({ apartments: vacants, photos });
+});
+
+app.get('/api/public/apartments/:id', (req, res) => {
+  const apartment = (db.apartments || []).find(item => item.id === Number(req.params.id));
+  if (!apartment || apartment.publicPageEnabled === false) {
+    return res.status(404).json({ error: 'Página de apartamento no disponible' });
+  }
+  const publicApartment = {
+    id: apartment.id,
+    name: apartment.name,
+    description: apartment.description || '',
+    monthlyRent: apartment.monthlyRent || 0,
+    rooms: apartment.rooms || null,
+    bathrooms: apartment.bathrooms || null,
+    area: apartment.area || null,
+    floor: apartment.floor || null,
+    status: apartment.status || 'unknown',
+  };
+  const photos = (db.photos || []).filter(photo => Number(photo.apartmentId) === Number(apartment.id)).map(photo => ({
+    id: photo.id,
+    data: photo.data || null,
+    url: photo.url || null,
+    uploadedAt: photo.uploadedAt || null,
+  }));
+  res.json({
+    apartment: publicApartment,
+    photos,
+    services: [
+      { id: 'water', name: 'Agua', provider: 'Triple A', url: 'https://portal.aaa.com.co/pagos' },
+      { id: 'gas', name: 'Gas', provider: 'Gases del Caribe', url: 'https://www.gascaribe.com/' },
+      { id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Pagar#/List' },
+    ],
+  });
 });
 
 app.post('/api/save', (req, res) => {
@@ -386,6 +829,43 @@ app.post('/api/generate-contract', (req, res) => {
 });
 
 // ─── PRESENCIA ───
+app.post('/api/tenant/presence/heartbeat', (req, res) => {
+  const userId = 'tenant-' + req.auth.tenantId;
+  const status = ['online', 'away', 'offline'].includes(req.body?.status) ? req.body.status : 'online';
+  if (!db.presence) db.presence = [];
+  const idx = db.presence.findIndex(p => p.userId === userId);
+  const record = { userId, status, lastSeen: new Date().toISOString(), apartmentId: req.auth.apartmentId };
+  if (idx >= 0) db.presence[idx] = { ...db.presence[idx], ...record };
+  else { record.id = nextId.presence || 1; nextId.presence = record.id + 1; db.presence.push(record); }
+  saveData();
+  res.json({ ok: true });
+});
+
+app.get('/api/tenant/presence', (req, res) => {
+  res.json((db.presence || []).filter(item => item.userId === 'admin'));
+});
+
+app.post('/api/tenant/messages', (req, res) => {
+  const content = String(req.body?.content || '').trim();
+  if (!content || content.length > 4000) return res.status(400).json({ error: 'Mensaje inválido' });
+  const roomId = 'admin-' + req.auth.apartmentId;
+  const newItem = {
+    id: nextId.messages || 1, roomId, from: 'tenant-' + req.auth.tenantId, to: 'admin', content,
+    createdAt: new Date().toISOString(), read: false, type: 'text', apartmentId: req.auth.apartmentId,
+  };
+  if (!db.messages) db.messages = [];
+  db.messages.push(newItem);
+  nextId.messages = newItem.id + 1;
+  saveData();
+  res.status(201).json(newItem);
+});
+
+app.get('/api/tenant/messages/updates/:since', (req, res) => {
+  const roomId = 'admin-' + req.auth.apartmentId;
+  const since = req.params.since;
+  res.json((db.messages || []).filter(item => item.roomId === roomId && item.createdAt >= since));
+});
+
 app.post('/api/presence/heartbeat', (req, res) => {
   const { userId, status } = req.body || {};
   if (!userId) return res.status(400).json({ error: 'userId required' });
@@ -422,8 +902,8 @@ app.get('/api/whatsapp/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
-  const savedToken = (db.settings || []).find(s => s.key === 'whatsapp_verify_token')?.value || 'laujim_whatsapp_verify';
-  if (mode === 'subscribe' && token === savedToken) {
+  const savedToken = cloudConfig().verifyToken;
+  if (cloudReady() && mode === 'subscribe' && token === savedToken) {
     return res.status(200).send(challenge);
   }
   res.status(403).send('Forbidden');
@@ -431,24 +911,63 @@ app.get('/api/whatsapp/webhook', (req, res) => {
 
 app.post('/api/whatsapp/webhook', (req, res) => {
   const body = req.body;
-  if (body.object === 'whatsapp_business_account') {
-    for (const entry of body.entry || []) {
-      for (const change of entry.changes || []) {
-        if (change.field !== 'messages') continue;
-        for (const msg of change.value.messages || []) {
-          if (msg.type === 'text' || msg.text?.body) {
-            sendWhatsApp(msg.from, 'Este es un canal de notificaciones. No recibimos mensajes aquí.');
-          }
-        }
-      }
+  if (!cloudReady()) return res.status(503).json({ error: 'WhatsApp Cloud API no configurada' });
+  if (!validCloudSignature(req)) return res.sendStatus(401);
+  if (body.object !== 'whatsapp_business_account') return res.sendStatus(404);
+  res.sendStatus(200);
+  for (const entry of body.entry || []) for (const change of entry.changes || []) {
+    if (change.field !== 'messages') continue;
+    for (const msg of change.value.messages || []) {
+      handleCloudInbound(msg).catch(err => console.error('[WHATSAPP CLOUD] inbound error:', err.message));
     }
-    res.sendStatus(200);
-  } else {
-    res.sendStatus(404);
   }
 });
 
+app.get('/api/whatsapp/cloud/status', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const c = cloudConfig();
+  res.json({ ready: !!cloudReady(), enabled: c.enabled, configured: {
+    accessToken: !!c.token, phoneNumberId: !!c.phoneNumberId, verifyToken: !!c.verifyToken, appSecret: !!c.appSecret, graphVersion: !!c.graphVersion,
+  }, conversations: db.whatsappConversations.length, contacts: db.whatsappContacts.length,
+  quarantined: db.whatsappAuthStates.length, blocked: db.whatsappBlockedUsers.length });
+});
+
+app.get('/api/whatsapp/cloud/conversations', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  res.json(db.whatsappConversations.map(c => ({ ...c, messages: (db.whatsappMessages || []).filter(m => m.conversationId === c.id).slice(-1) })));
+});
+
+app.get('/api/whatsapp/cloud/conversations/:id/messages', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const id = Number(req.params.id);
+  if (!db.whatsappConversations.some(c => c.id === id)) return res.status(404).json({ error: 'Conversación no encontrada' });
+  res.json((db.whatsappMessages || []).filter(m => m.conversationId === id));
+});
+
+app.post('/api/whatsapp/cloud/send', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const { conversationId, text } = req.body || {};
+  const conversation = db.whatsappConversations.find(c => c.id === Number(conversationId));
+  if (!conversation || !text || !String(text).trim()) return res.status(400).json({ error: 'Conversación y texto son requeridos' });
+  if (!conversation.customerServiceWindowUntil || new Date(conversation.customerServiceWindowUntil).getTime() < Date.now()) {
+    return res.status(409).json({ error: 'La ventana gratuita de servicio terminó; se requiere una plantilla aprobada.' });
+  }
+  try {
+    const result = await sendCloudText(conversation.phone, String(text).trim());
+    addCloudMessage(conversation, 'out', { type: 'text', text: String(text).trim(), whatsappMessageId: result.messages?.[0]?.id || null });
+    saveData(); res.json({ ok: true, id: result.messages?.[0]?.id || null });
+  } catch (error) { res.status(502).json({ error: error.message }); }
+});
+
+// Legacy relay is deliberately opt-in. Production uses Cloud API only.
 app.post('/api/whatsapp/send', (req, res) => {
+  if (!LEGACY_BAILEYS_ENABLED) {
+    return res.status(410).json({ error: 'El relay Baileys está desactivado. Usa WhatsApp Cloud API.' });
+  }
   const { to, text } = req.body || {};
   if (!to || !text) return res.status(400).json({ error: 'to and text required' });
   sendWhatsApp(to, text);
@@ -460,6 +979,7 @@ let botProcess = null;
 let botRestartTimer = null;
 
 function startBot() {
+  if (!LEGACY_BAILEYS_ENABLED) { console.log('[BOT] Legacy Baileys relay disabled'); return; }
   if (BOT_IS_EXTERNAL) { console.log('[BOT] External service, skipping local spawn'); return; }
   const botDir = path.join(__dirname, 'whatsapp-bot');
   if (!fs.existsSync(botDir) || botProcess) return;
@@ -489,6 +1009,7 @@ function startBot() {
 
 const BOT_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3002';
 const BOT_IS_EXTERNAL = !!process.env.WHATSAPP_BOT_URL;
+const LEGACY_BAILEYS_ENABLED = process.env.ENABLE_LEGACY_BAILEYS === 'true';
 
 async function fetchBotBuffer(path) {
   try {
@@ -597,6 +1118,9 @@ app.get('/api/whatsapp-bot/info', async (req, res) => {
 });
 
 app.post('/api/whatsapp-bot/start', (req, res) => {
+  if (!LEGACY_BAILEYS_ENABLED) {
+    return res.status(410).json({ error: 'Baileys está desactivado para producción. Configura WhatsApp Cloud API.' });
+  }
   if (BOT_IS_EXTERNAL) {
     return res.json({ ok: true, message: 'El bot corre como servicio independiente en laujim-whatsapp-bot.onrender.com' });
   }
@@ -771,7 +1295,8 @@ app.post('/api/whatsapp-bot/discover', async (req, res) => {
 // ─── ADMIN PASSWORD & SECURITY ───
 app.post('/api/admin/verify-password', (req, res) => {
   const { password } = req.body || {};
-  if (password === 'laujim123') {
+  const adminPassword = process.env.ADMIN_PASSWORD || '';
+  if (adminPassword && constantTimeEqual(password, adminPassword)) {
     return res.json({ ok: true, role: 'admin', name: 'Administrador' });
   }
   res.status(401).json({ error: 'Contraseña inválida' });
@@ -779,12 +1304,14 @@ app.post('/api/admin/verify-password', (req, res) => {
 
 app.post('/api/admin/change-password', (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
-  if (currentPassword !== 'laujim123') {
+  const adminPassword = process.env.ADMIN_PASSWORD || '';
+  if (!adminPassword || !constantTimeEqual(currentPassword, adminPassword)) {
     return res.status(401).json({ error: 'Contraseña actual inválida' });
   }
   if (!newPassword || newPassword.length < 6) {
     return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
   }
+  return res.status(409).json({ error: 'Actualiza ADMIN_PASSWORD en Render; las contraseñas no se guardan en la base de datos.' });
   const setting = (db.settings || []).find(s => s.key === 'admin_password');
   if (setting) {
     setting.value = newPassword;
@@ -798,8 +1325,8 @@ app.post('/api/admin/change-password', (req, res) => {
 
 app.post('/api/admin/verify-security-question', (req, res) => {
   const { answer } = req.body || {};
-  const expected = (db.settings || []).find(s => s.key === 'security_question_answer')?.value || 'quessep martelo';
-  if ((answer || '').toLowerCase().trim() === expected.toLowerCase().trim()) {
+  const expected = process.env.SECURITY_QUESTION_ANSWER || '';
+  if (expected && constantTimeEqual((answer || '').toLowerCase().trim(), expected.toLowerCase().trim())) {
     return res.json({ ok: true, message: 'Respuesta correcta' });
   }
   res.status(401).json({ error: 'Respuesta incorrecta' });
@@ -923,14 +1450,17 @@ app.delete('/api/:collection/:id', (req, res) => {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const PROJECT_DIR = path.resolve(__dirname);
-const EDITOR_AUTH = { username: 'admin', password: 'admin123' };
+const EDITOR_ENABLED = process.env.EDITOR_ENABLED === 'true';
+const EDITOR_AUTH = { username: process.env.EDITOR_USERNAME || '', password: process.env.EDITOR_PASSWORD || '' };
 
 function editorAuth(req, res, next) {
+  if (!EDITOR_ENABLED) return res.status(404).end('Editor disabled');
+  if (!EDITOR_AUTH.username || !EDITOR_AUTH.password) return res.status(503).end('Editor credentials are not configured');
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Basic ')) return res.status(401).set('WWW-Authenticate', 'Basic realm="Editor"').end('Auth required');
   const buf = Buffer.from(auth.slice(6), 'base64').toString();
   const [u, p] = buf.split(':');
-  if (u !== EDITOR_AUTH.username || p !== EDITOR_AUTH.password) return res.status(403).end('Bad auth');
+  if (!constantTimeEqual(u, EDITOR_AUTH.username) || !constantTimeEqual(p, EDITOR_AUTH.password)) return res.status(403).end('Bad auth');
   next();
 }
 
@@ -1035,7 +1565,7 @@ app.use((req, res) => {
     }
     console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode'));
 
-    if (process.env.AUTO_START_BOT !== 'false' && !BOT_IS_EXTERNAL) {
+    if (LEGACY_BAILEYS_ENABLED && process.env.AUTO_START_BOT !== 'false' && !BOT_IS_EXTERNAL) {
       startBot();
     }
   })();

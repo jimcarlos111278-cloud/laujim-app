@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Calendar, DollarSign, FileText, Droplets, Flame, Zap, LogOut, Download, Hash, Phone, MapPin, CheckCircle2, MessageCircle, Send, ChevronDown } from 'lucide-react';
+import { Building2, Calendar, DollarSign, FileText, Droplets, Flame, Zap, LogOut, Download, Hash, MapPin, CheckCircle2, MessageCircle, Send } from 'lucide-react';
 import { getAuth, clearAuth, isTenant } from '../utils/auth';
-import { api } from '../api';
+import { AUTH_TOKEN, getBase } from '../utils/config';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod } from '../utils/helpers';
-import { sendMessage, getRoomMessages, startChatPoll, stopChatPoll, fetchPresence, startHeartbeat, stopHeartbeat, startPresencePoll, stopPresencePoll, getStatusLabel, sendHeartbeat } from '../utils/chat';
+import { sendMessage, getRoomMessages, startChatPoll, stopChatPoll, startHeartbeat, stopHeartbeat, startPresencePoll, stopPresencePoll, getStatusLabel, sendHeartbeat } from '../utils/chat';
 
 export default function MiApto() {
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ export default function MiApto() {
   const [tenant, setTenant] = useState(null);
   const [contract, setContract] = useState(null);
   const [payments, setPayments] = useState([]);
-  const [auth, setAuth] = useState(getAuth());
+  const [auth] = useState(getAuth());
   const [chatMsgs, setChatMsgs] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const chatBottomRef = useRef(null);
@@ -26,7 +26,7 @@ export default function MiApto() {
     let onHide, onVis;
     if (a && a.apartmentId) {
       const roomId = 'admin-' + a.apartmentId;
-      const userId = a.username || 'apt-' + a.apartmentId;
+      const userId = 'tenant-' + a.apartmentId;
       getRoomMessages(roomId).then(setChatMsgs);
       startChatPoll(newMsgs => {
         if (newMsgs.some(m => m.roomId === roomId)) {
@@ -50,19 +50,18 @@ export default function MiApto() {
   useEffect(() => { chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMsgs]);
 
   async function loadData() {
-    const a = getAuth();
-    if (!a || !a.apartmentId) return;
-    const [apartments, tenants, contracts, allPayments] = await Promise.all([
-      api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(), api.payments.toArray(),
-    ]);
-    const apt = apartments.find(x => x.id === a.apartmentId);
-    const contract = contracts.find(c => c.apartmentId === a.apartmentId && (!c.endDate || new Date(c.endDate) > new Date()));
-    const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
-    const aptPayments = allPayments.filter(p => p.apartmentId === a.apartmentId && p.type === 'rent').sort((a, b) => new Date(b.date) - new Date(a.date));
-    setApt(apt);
-    setContract(contract);
-    setTenant(tenant);
-    setPayments(aptPayments);
+    try {
+      const res = await fetch(getBase() + '/tenant/overview', { headers: { 'x-auth-token': AUTH_TOKEN }, signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('No autorizado');
+      const data = await res.json();
+      setApt(data.apartment || null);
+      setContract(data.contract || null);
+      setTenant(data.tenant || null);
+      setPayments((data.payments || []).sort((left, right) => new Date(right.date) - new Date(left.date)));
+    } catch {
+      clearAuth();
+      navigate('/login', { replace: true });
+    }
   }
 
   function handleLogout() {
@@ -76,7 +75,7 @@ export default function MiApto() {
     if (!text || !auth.apartmentId) return;
     setChatInput('');
     const roomId = 'admin-' + auth.apartmentId;
-    const from = auth.username || 'apt-' + auth.apartmentId;
+    const from = 'tenant-' + auth.apartmentId;
     try { await sendMessage(roomId, from, 'admin', text); } catch { setChatError('Error al enviar'); setTimeout(() => setChatError(''), 3000); }
     getRoomMessages(roomId).then(setChatMsgs);
   }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { initDB } from './db/database';
 import { isCapacitor } from './utils/config';
 import Layout from './components/Layout';
@@ -20,6 +20,7 @@ import Settings from './pages/Settings';
 import Chat from './pages/Chat';
 import WhatsAppBot from './pages/WhatsAppBot';
 import PublicApartments from './pages/PublicApartments';
+import PublicApartment from './pages/PublicApartment';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
 import { requestNotificationPermission } from './utils/notifications';
@@ -40,11 +41,17 @@ function AdminRoute({ children }) {
   return children;
 }
 
-export default function App() {
+function PrivateApp() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     try { initDB(); } catch (e) { console.error('DB init error:', e); }
+    const auth = getAuth();
+    if (!auth || auth.role !== 'admin') {
+      setLoading(false);
+      try { initTheme(); } catch (e) { console.error('Theme init error:', e); }
+      return;
+    }
     requestNotificationPermission();
     // Fetch ALL data from server on startup (cloud-first)
     (async function startup() {
@@ -79,11 +86,9 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/mi-apto" element={<MiApto />} />
-        <Route path="/publico" element={<PublicApartments />} />
         <Route path="*" element={
           <ProtectedRoute>
             <AdminRoute>
@@ -113,6 +118,22 @@ export default function App() {
           </ProtectedRoute>
         } />
       </Routes>
-    </BrowserRouter>
   );
+}
+
+function AppContent() {
+  const location = useLocation();
+  if (location.pathname === '/publico' || location.pathname.startsWith('/publico/')) {
+    return (
+      <Routes>
+        <Route path="/publico" element={<PublicApartments />} />
+        <Route path="/publico/apartamento/:id" element={<PublicApartment />} />
+      </Routes>
+    );
+  }
+  return <PrivateApp />;
+}
+
+export default function App() {
+  return <BrowserRouter><AppContent /></BrowserRouter>;
 }

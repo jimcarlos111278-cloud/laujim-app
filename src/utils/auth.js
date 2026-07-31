@@ -1,72 +1,49 @@
-import { AUTH_TOKEN, getBase } from './config';
+import { AUTH_TOKEN, getBase, setApiToken } from './config';
 
 const STORAGE_KEY = 'apt_auth';
 
 export function getAuth() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const auth = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (!auth?.token || !auth?.role) return null;
+    return auth;
   } catch { return null; }
 }
 
 export function setAuth(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  const auth = { role: data.role, name: data.name, apartmentId: data.apartmentId || null, token: data.token, expiresAt: data.expiresAt || null };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+  setApiToken(auth.token);
 }
 
 export function clearAuth() {
+  const token = AUTH_TOKEN;
   localStorage.removeItem(STORAGE_KEY);
+  setApiToken('');
+  if (token) fetch(getBase() + '/logout', { method: 'POST', headers: { 'x-auth-token': token } }).catch(() => {});
 }
 
-export function isAdmin() {
-  const a = getAuth();
-  return a?.role === 'admin';
-}
+export function isAdmin() { return getAuth()?.role === 'admin'; }
+export function isTenant() { return getAuth()?.role === 'tenant'; }
+export function getTenantApartmentId() { return isTenant() ? getAuth().apartmentId : null; }
+export function requireAuth() { return getAuth() ? null : { redirect: '/login' }; }
 
-export function isTenant() {
-  const a = getAuth();
-  return a?.role === 'tenant';
-}
-
-export function getTenantApartmentId() {
-  const a = getAuth();
-  return a?.role === 'tenant' ? a.apartmentId : null;
-}
-
-export function requireAuth() {
-  const a = getAuth();
-  if (!a) return { redirect: '/login' };
-  return null;
-}
-
-export async function loginAdmin(username, password) {
-  if (username === 'admin' && password === 'laujim123') {
-    setAuth({ role: 'admin', username: 'admin', name: 'Administrador' });
-    return { ok: true, role: 'admin' };
+async function login(username, password) {
+  try {
+    const res = await fetch(getBase() + '/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.authenticated || !data.token) return { ok: false, error: data.error || 'Credenciales inválidas' };
+    setAuth(data);
+    return { ok: true, role: data.role, apartmentId: data.apartmentId };
+  } catch {
+    return { ok: false, error: 'No se pudo conectar con el servidor' };
   }
-  return { ok: false, error: 'Credenciales inválidas' };
 }
 
-async function serverReq(method, url) {
-  const res = await fetch(getBase() + url, {
-    method,
-    headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-export async function loginTenant(aptName, password) {
-  const apartments = await serverReq('GET', '/apartments');
-  const apt = apartments.find(a => a.name === aptName || String(a.id) === aptName);
-  if (!apt) return { ok: false, error: 'Apartamento no encontrado' };
-  const tenants = await serverReq('GET', '/tenants');
-  const contracts = await serverReq('GET', '/contracts');
-  const contract = contracts.find(c => c.apartmentId === apt.id && (!c.endDate || new Date(c.endDate) > new Date()));
-  if (!contract) return { ok: false, error: 'Sin contrato activo' };
-  const tenant = tenants.find(t => t.id === contract.tenantId);
-  if (!tenant) return { ok: false, error: 'Inquilino no encontrado' };
-  if (tenant.documentId !== password) return { ok: false, error: 'Contraseña incorrecta' };
-  setAuth({ role: 'tenant', apartmentId: apt.id, name: tenant?.name || apt.name, username: apt.name });
-  return { ok: true, role: 'tenant', apartmentId: apt.id };
-}
+export function loginAdmin(username, password) { return login(username, password); }
+export function loginTenant(apartment, documentId) { return login(apartment, documentId); }

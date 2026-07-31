@@ -4,7 +4,7 @@ import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOu
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { generateBookmarkletCode } from '../utils/marketplaceBookmarklet';
-import { getBase } from '../utils/config';
+import { AUTH_TOKEN, getBase } from '../utils/config';
 import { requestNotificationPermission } from '../utils/notifications';
 import { isServerAvailable } from '../utils/sync';
 import { refreshAllFromServer } from '../api';
@@ -48,7 +48,7 @@ export default function Settings() {
     setResetting(true);
     try {
       const base = getBase().replace('/api', '');
-      const res = await fetch(base + '/api/reset-db', { method: 'POST', headers: { 'x-auth-token': 'laujim laujim' } });
+      const res = await fetch(base + '/api/reset-db', { method: 'POST', headers: { 'x-auth-token': AUTH_TOKEN } });
       if (!res.ok) throw new Error(await res.text());
       await refreshAllFromServer();
       setConfirmReset(false);
@@ -78,7 +78,7 @@ export default function Settings() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch(getBase() + '/system/stats', { headers: { 'x-auth-token': 'laujim laujim' }, signal: AbortSignal.timeout(5000) });
+        const res = await fetch(getBase() + '/system/stats', { headers: { 'x-auth-token': AUTH_TOKEN }, signal: AbortSignal.timeout(5000) });
         if (!res.ok) throw new Error('Not ok');
         setStats(await res.json());
         setStatsError(false);
@@ -104,7 +104,7 @@ export default function Settings() {
 
   async function handleBackup() {
     try {
-      const res = await fetch(getBase() + '/data/all', { headers: { 'x-auth-token': 'laujim laujim' } });
+      const res = await fetch(getBase() + '/data/all', { headers: { 'x-auth-token': AUTH_TOKEN } });
       const data = await res.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -128,7 +128,7 @@ export default function Settings() {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      const res = await fetch(getBase() + '/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' }, body: JSON.stringify(data) });
+      const res = await fetch(getBase() + '/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN }, body: JSON.stringify(data) });
       if (!res.ok) throw new Error(await res.text());
       const result = await res.json();
       setBackupInfo(`Backup restaurado: ${result.saved} registros`);
@@ -190,7 +190,7 @@ export default function Settings() {
   }
 
   async function load() {
-    const s = await fetch(getBase() + '/settings', { headers: { 'x-auth-token': 'laujim laujim' } }).then(r => r.json()).catch(() => []);
+    const s = await fetch(getBase() + '/settings', { headers: { 'x-auth-token': AUTH_TOKEN } }).then(r => r.json()).catch(() => []);
     setSettingsList(s);
     const getVal = (k, def) => s.find(x => x.key === k)?.value || def;
     setWaConfig({ apiToken: getVal('whatsapp_api_token', ''), phoneNumberId: getVal('whatsapp_phone_number_id', ''), verifyToken: getVal('whatsapp_verify_token', 'laujim_whatsapp_verify') });
@@ -215,7 +215,7 @@ export default function Settings() {
 
   async function upsertSetting(key, value) {
     const existing = settingsList.find(s => s.key === key);
-    const headers = { 'Content-Type': 'application/json', 'x-auth-token': 'laujim laujim' };
+    const headers = { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN };
     if (existing) {
       await fetch(getBase() + '/settings/' + existing.id, { method: 'PUT', headers, body: JSON.stringify({ ...existing, value }) });
     } else {
