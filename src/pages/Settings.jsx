@@ -129,6 +129,11 @@ export default function Settings() {
       const text = await file.text();
       const data = JSON.parse(text);
       const res = await fetch(getBase() + '/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN }, body: JSON.stringify(data) });
+      if (res.status === 401) {
+        clearAuth();
+        navigate('/login', { replace: true });
+        throw new Error('La sesión venció. Inicia sesión con la nueva contraseña y vuelve a restaurar el mismo backup.');
+      }
       if (!res.ok) throw new Error(await res.text());
       const result = await res.json();
       setBackupInfo(`Backup restaurado: ${result.saved} registros`);

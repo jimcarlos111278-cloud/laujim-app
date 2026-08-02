@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginAdmin, loginTenant, getAuth } from '../utils/auth';
+import { loginAdmin, loginTenant, getAuth, clearAuth } from '../utils/auth';
+import { getBase } from '../utils/config';
 import { getViewMode, setViewMode } from '../utils/viewMode';
 import { Building2, Monitor, Smartphone, KeyRound, User, ShieldCheck } from 'lucide-react';
 
@@ -13,11 +14,34 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const existing = getAuth();
-  if (existing) {
-    if (existing.role === 'admin') navigate('/dashboard', { replace: true });
-    else navigate('/mi-apto', { replace: true });
-  }
+  const [checkingStoredSession, setCheckingStoredSession] = useState(() => Boolean(getAuth()));
+
+  // A Render deploy or a restored database can invalidate server sessions.
+  // Never redirect based only on localStorage: verify the token first so the
+  // owner can sign in again instead of being trapped in an unauthorized loop.
+  useEffect(() => {
+    const existing = getAuth();
+    if (!existing?.token) {
+      setCheckingStoredSession(false);
+      return;
+    }
+    let cancelled = false;
+    fetch(getBase() + '/data-version', { headers: { 'x-auth-token': existing.token }, signal: AbortSignal.timeout(5000) })
+      .then(res => {
+        if (cancelled) return;
+        if (res.ok) {
+          navigate(existing.role === 'admin' ? '/dashboard' : '/mi-apto', { replace: true });
+        } else {
+          clearAuth();
+          setCheckingStoredSession(false);
+          setError('Tu sesión venció tras el cambio del servidor. Inicia sesión de nuevo.');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCheckingStoredSession(false);
+      });
+    return () => { cancelled = true; };
+  }, [navigate]);
 
   function changeViewMode(mode) {
     setViewMode(mode);
@@ -37,10 +61,14 @@ export default function Login() {
       } else {
         setError(result.error || 'Error al iniciar sesión');
       }
-    } catch (e) {
+    } catch {
       setError('Error de conexión');
     }
     setLoading(false);
+  }
+
+  if (checkingStoredSession) {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Verificando sesión…</div>;
   }
 
   return (

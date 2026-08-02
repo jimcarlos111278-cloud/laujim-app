@@ -492,15 +492,25 @@ let pgPool = null;
 async function initPostgres() {
   if (!process.env.DATABASE_URL) return false;
   const pgUrl = process.env.DATABASE_URL.replace(/sslmode=[^&]+&?/, '');
-  pgPool = new Pool({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
-  await pgPool.query(`
-    CREATE TABLE IF NOT EXISTS store (
-      key TEXT PRIMARY KEY,
-      value JSONB NOT NULL
-    )
-  `);
-  console.log('PostgreSQL connected');
-  return true;
+  // Do not leave a half-initialized pool behind. Before this guard, a failed
+  // DNS/credential check was reported as "connected" and the app continued
+  // writing to Render's ephemeral filesystem.
+  const candidatePool = new Pool({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
+  try {
+    await candidatePool.query(`
+      CREATE TABLE IF NOT EXISTS store (
+        key TEXT PRIMARY KEY,
+        value JSONB NOT NULL
+      )
+    `);
+    pgPool = candidatePool;
+    console.log('PostgreSQL connected');
+    return true;
+  } catch (error) {
+    await candidatePool.end().catch(() => {});
+    pgPool = null;
+    throw error;
+  }
 }
 
 async function loadFromPostgres() {
