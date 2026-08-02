@@ -9,7 +9,7 @@ const https = require('https');
 const crypto = require('crypto');
 const os = require('os');
 const { Pool } = require('pg');
-const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 
 const app = express();
 const PORT = process.env.PORT || 1011;
@@ -811,6 +811,80 @@ function saveData() {
   }
 }
 
+let r2UsageCache = { checkedAt: 0, bytes: 0, objects: 0, source: 'tracked', error: null };
+
+function readMemoryLimit(fileName) {
+  try {
+    const raw = fs.readFileSync(fileName, 'utf8').trim();
+    if (!raw || raw === 'max') return null;
+    const value = Number(raw);
+    return Number.isFinite(value) && value > 0 && value < Number.MAX_SAFE_INTEGER ? value : null;
+  } catch { return null; }
+}
+
+function runtimeMemory() {
+  const rss = process.memoryUsage().rss;
+  // Render runs inside a Linux container. cgroup is the actual limit assigned
+  // to this service, unlike os.totalmem() which can describe the host.
+  const limit = readMemoryLimit('/sys/fs/cgroup/memory.max') ||
+    readMemoryLimit('/sys/fs/cgroup/memory/memory.limit_in_bytes') || os.totalmem();
+  return {
+    usedBytes: rss,
+    limitBytes: limit,
+    percent: limit ? Math.min(100, Number(((rss / limit) * 100).toFixed(1))) : null,
+    heapUsedBytes: process.memoryUsage().heapUsed,
+    heapTotalBytes: process.memoryUsage().heapTotal,
+  };
+}
+
+async function getR2Usage() {
+  const tracked = ensureR2Usage().bytes;
+  if (!r2Ready()) return { configured: false, bytes: tracked, limitBytes: r2Config().limitBytes, percent: null, source: 'not_configured' };
+  if (Date.now() - r2UsageCache.checkedAt > 60 * 1000) {
+    try {
+      let bytes = 0;
+      let objects = 0;
+      let token;
+      do {
+        const page = await getR2Client().send(new ListObjectsV2Command({ Bucket: r2Config().bucket, ContinuationToken: token }));
+        for (const object of page.Contents || []) { bytes += Number(object.Size) || 0; objects++; }
+        token = page.IsTruncated ? page.NextContinuationToken : null;
+      } while (token);
+      r2UsageCache = { checkedAt: Date.now(), bytes, objects, source: 'live', error: null };
+    } catch (error) {
+      r2UsageCache = { checkedAt: Date.now(), bytes: tracked, objects: null, source: 'tracked', error: error.message };
+    }
+  }
+  const limitBytes = r2Config().limitBytes;
+  return {
+    configured: true, bytes: r2UsageCache.bytes, objects: r2UsageCache.objects, limitBytes,
+    percent: Math.min(100, Number(((r2UsageCache.bytes / limitBytes) * 100).toFixed(1))),
+    source: r2UsageCache.source, error: r2UsageCache.error, checkedAt: new Date(r2UsageCache.checkedAt).toISOString(),
+  };
+}
+
+async function getDatabaseUsage() {
+  let bytes = 0;
+  let connected = false;
+  let error = null;
+  if (pgPool) {
+    try {
+      const result = await pgPool.query('SELECT pg_database_size(current_database()) AS bytes');
+      bytes = Number(result.rows?.[0]?.bytes || 0);
+      connected = true;
+    } catch (queryError) { error = queryError.message; }
+  }
+  if (!connected) {
+    try { bytes = fs.existsSync(DATA_FILE) ? fs.statSync(DATA_FILE).size : 0; } catch {}
+  }
+  const limitBytes = Number(process.env.AIVEN_DATABASE_LIMIT_BYTES || 0) || null;
+  return {
+    provider: connected ? 'Aiven PostgreSQL' : 'Archivo local de respaldo', connected, bytes, limitBytes,
+    percent: limitBytes ? Math.min(100, Number(((bytes / limitBytes) * 100).toFixed(1))) : null,
+    error,
+  };
+}
+
 function syncPasswordFromTenant(tenantId, apartmentId) {
   const tenant = (db.tenants || []).find(t => t.id === tenantId);
   if (!tenant || !tenant.documentId) return;
@@ -832,22 +906,22 @@ app.get('/api/data-version', (req, res) => {
   res.json({ version: dataVersion });
 });
 
-app.get('/api/system/stats', (req, res) => {
+app.get('/api/system/stats', async (req, res) => {
   let dbSize = 0;
   try { if (fs.existsSync(DATA_FILE)) dbSize = fs.statSync(DATA_FILE).size; } catch {}
   const collections = {};
   Object.keys(db).forEach(key => { if (Array.isArray(db[key])) collections[key] = db[key].length; });
+  const [database, storage] = await Promise.all([getDatabaseUsage(), getR2Usage()]);
+  const memory = runtimeMemory();
   res.json({
-    hostname: os.hostname(),
-    platform: os.platform(),
-    uptime: os.uptime(),
-    totalmem: os.totalmem(),
-    freemem: os.freemem(),
-    heapUsed: process.memoryUsage().heapUsed,
-    heapTotal: process.memoryUsage().heapTotal,
-    rss: process.memoryUsage().rss,
-    pid: process.pid,
-    nodeVersion: process.version,
+    app: { provider: 'Render', status: 'online', uptime: process.uptime(), memory },
+    database,
+    storage,
+    // Fields retained for compatibility with older versions of the settings UI.
+    hostname: os.hostname(), platform: os.platform(), uptime: process.uptime(),
+    totalmem: memory.limitBytes, freemem: Math.max(0, memory.limitBytes - memory.usedBytes),
+    heapUsed: memory.heapUsedBytes, heapTotal: memory.heapTotalBytes, rss: memory.usedBytes,
+    pid: process.pid, nodeVersion: process.version,
     dbSize,
     collections,
     requests: requestCount,

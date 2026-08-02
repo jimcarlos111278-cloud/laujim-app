@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Gauge, Activity, HardDrive, Cpu, ToggleLeft } from 'lucide-react';
+import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { generateBookmarkletCode } from '../utils/marketplaceBookmarklet';
@@ -85,7 +85,7 @@ export default function Settings() {
       } catch { setStatsError(true); }
     };
     fetchStats();
-    const interval = setInterval(fetchStats, 5000);
+    const interval = setInterval(fetchStats, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -318,7 +318,7 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
           <p className="text-gray-500 mt-1">Administra la app, accesos y datos</p>
@@ -591,32 +591,41 @@ export default function Settings() {
         </div>
 
         {/* ─── Server Monitor Dashboard ─── */}
-        <div className="bg-[#0f172a] rounded-xl border border-[#1e293b] p-5 col-span-1 lg:col-span-2">
-          <h3 className="font-semibold text-white mb-4 flex items-center gap-2"><Server className="w-4 h-4 text-blue-400" /> Monitoreo del Servidor</h3>
+        <div className="bg-[#0f172a] rounded-xl border border-[#1e293b] p-4 sm:p-5 col-span-1 lg:col-span-2">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-white flex items-center gap-2"><Server className="w-4 h-4 text-blue-400" /> Estado de tus servicios</h3>
+              <p className="text-xs text-slate-400 mt-1">Render, Aiven y Cloudflare R2. Actualizado cada 10 segundos.</p>
+            </div>
+            <span className={`inline-flex w-fit items-center gap-1 text-xs ${statsError ? 'text-red-400' : 'text-emerald-400'}`}><span className={`h-2 w-2 rounded-full ${statsError ? 'bg-red-400' : 'bg-emerald-400 animate-pulse'}`} />{statsError ? 'Sin conexión' : 'En tiempo real'}</span>
+          </div>
           {statsError && <p className="text-xs text-red-400 mb-2">No se puede conectar al servidor</p>}
           {stats ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
               <div className="bg-[#1e293b] rounded-lg p-3">
-                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Cpu className="w-3 h-3" /> RAM (Proceso)</div>
-                <div className="text-lg font-bold text-blue-400">{((stats.heapUsed / stats.heapTotal) * 100).toFixed(1)}%</div>
-                <div className="text-xs text-slate-500">{formatBytes(stats.heapUsed)} / {formatBytes(stats.heapTotal)}</div>
-                <div className="mt-1 h-1.5 bg-[#0f172a] rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full" style={{ width: Math.min(100, (stats.heapUsed / stats.heapTotal) * 100) + '%' }}></div></div>
+                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Server className="w-3 h-3" /> Web app · Render</div>
+                <div className="text-lg font-bold text-blue-400">{stats.app?.status === 'online' ? 'En línea' : 'Verificando'}</div>
+                <div className="text-xs text-slate-500">{formatUptime(stats.app?.uptime ?? stats.uptime)} · {stats.requests || 0} solicitudes</div>
+                <div className="mt-1 h-1.5 bg-[#0f172a] rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full" style={{ width: '100%' }}></div></div>
               </div>
               <div className="bg-[#1e293b] rounded-lg p-3">
-                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Activity className="w-3 h-3" /> RAM (Sistema)</div>
-                <div className="text-lg font-bold text-emerald-400">{((1 - stats.freemem / stats.totalmem) * 100).toFixed(1)}%</div>
-                <div className="text-xs text-slate-500">{formatBytes(stats.totalmem - stats.freemem)} / {formatBytes(stats.totalmem)}</div>
-                <div className="mt-1 h-1.5 bg-[#0f172a] rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: Math.min(100, (1 - stats.freemem / stats.totalmem) * 100) + '%' }}></div></div>
+                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Cpu className="w-3 h-3" /> RAM de la web app</div>
+                <div className="text-lg font-bold text-emerald-400">{stats.app?.memory?.percent ?? '—'}{stats.app?.memory?.percent !== null && stats.app?.memory?.percent !== undefined ? '%' : ''}</div>
+                <div className="text-xs text-slate-500">{formatBytes(stats.app?.memory?.usedBytes ?? stats.rss)} / {formatBytes(stats.app?.memory?.limitBytes ?? stats.totalmem)}</div>
+                <div className="mt-1 h-1.5 bg-[#0f172a] rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: Math.min(100, stats.app?.memory?.percent ?? 0) + '%' }}></div></div>
               </div>
               <div className="bg-[#1e293b] rounded-lg p-3">
-                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><HardDrive className="w-3 h-3" /> Base de Datos</div>
+                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Database className="w-3 h-3" /> Base de datos · Aiven</div>
+                <div className="text-lg font-bold text-violet-400">{stats.database?.percent ?? '—'}{stats.database?.percent !== null && stats.database?.percent !== undefined ? '%' : ''}</div>
+                <div className="mt-1 h-1.5 bg-[#0f172a] rounded-full overflow-hidden"><div className="h-full bg-violet-500 rounded-full" style={{ width: Math.min(100, stats.database?.percent ?? 0) + '%' }}></div></div>
                 <div className="text-lg font-bold text-violet-400">{stats.dbSize > 0 ? formatBytes(stats.dbSize) : '—'}</div>
                 <div className="text-xs text-slate-500">{stats.collections ? Object.keys(stats.collections).length + ' colecciones' : '—'}</div>
               </div>
               <div className="bg-[#1e293b] rounded-lg p-3">
-                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Gauge className="w-3 h-3" /> Tiempo Activo</div>
-                <div className="text-lg font-bold text-amber-400 text-sm leading-tight">{formatUptime(stats.uptime)}</div>
-                <div className="text-xs text-slate-500">{stats.requests || 0} solicitudes</div>
+                <div className="flex items-center gap-1 text-xs text-slate-400 mb-1"><Cloud className="w-3 h-3" /> Archivos · Cloudflare R2</div>
+                <div className="text-lg font-bold text-amber-400 text-sm leading-tight">{stats.storage?.percent ?? '—'}{stats.storage?.percent !== null && stats.storage?.percent !== undefined ? '%' : ''}</div>
+                <div className="text-xs text-slate-500">{formatBytes(stats.storage?.bytes ?? 0)} / {formatBytes(stats.storage?.limitBytes ?? 0)}</div>
+                <div className="mt-1 h-1.5 bg-[#0f172a] rounded-full overflow-hidden"><div className="h-full bg-amber-500 rounded-full" style={{ width: Math.min(100, stats.storage?.percent ?? 0) + '%' }}></div></div>
               </div>
             </div>
           ) : <p className="text-xs text-slate-500">Cargando estadísticas...</p>}

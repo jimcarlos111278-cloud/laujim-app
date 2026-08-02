@@ -72,17 +72,17 @@ export default function Layout({ children }) {
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
+    <div className="app-layout flex h-[100dvh] bg-gray-100 dark:bg-gray-900 overflow-hidden">
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-20" onClick={() => setSidebarOpen(false)} />
       )}
-      <aside style={{ zoom: fontScale }} className={`fixed top-0 left-0 z-30 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside style={{ zoom: fontScale }} className={`fixed top-0 left-0 z-30 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 flex flex-col lg:static lg:z-auto lg:translate-x-0 lg:shrink-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="flex items-center gap-2">
             <Home className="w-5 h-5 text-blue-600" />
             <span className="font-bold text-base text-gray-900 dark:text-white">Gestión Aptos</span>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">
+          <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400 lg:hidden">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -123,7 +123,7 @@ export default function Layout({ children }) {
       </aside>
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3 shrink-0">
-          <button onClick={() => setSidebarOpen(true)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">
+          <button onClick={() => setSidebarOpen(true)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400 lg:hidden">
             <Menu className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-2">
