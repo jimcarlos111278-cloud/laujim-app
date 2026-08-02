@@ -490,8 +490,11 @@ async function handleCloudInbound(message) {
 let pgPool = null;
 
 async function initPostgres() {
-  if (!process.env.DATABASE_URL) return false;
-  const pgUrl = process.env.DATABASE_URL.replace(/sslmode=[^&]+&?/, '');
+  // Blueprint-managed DATABASE_URL can still point at a deleted Render
+  // datastore. An explicitly configured Aiven URL always takes precedence.
+  const databaseUrl = process.env.AIVEN_DATABASE_URL || process.env.DATABASE_URL;
+  if (!databaseUrl) return false;
+  const pgUrl = databaseUrl.replace(/sslmode=[^&]+&?/, '');
   // Do not leave a half-initialized pool behind. Before this guard, a failed
   // DNS/credential check was reported as "connected" and the app continued
   // writing to Render's ephemeral filesystem.

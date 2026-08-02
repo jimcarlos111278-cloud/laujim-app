@@ -22,6 +22,9 @@ services:
         # The production database is Aiven. Keep its private URL only in the
         # Render dashboard; the old Render database was deleted/expired.
         sync: false
+      - key: AIVEN_DATABASE_URL
+        # This independent key bypasses the legacy Blueprint database link.
+        sync: false
       - key: EDITOR_ENABLED
         value: "false"
       # Cloud API is the only production WhatsApp channel. Baileys stays disabled.
