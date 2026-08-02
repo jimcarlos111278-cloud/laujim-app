@@ -385,8 +385,12 @@ function authorizedCloudContact(phone) {
   const contract = (db.contracts || []).find(c => Number(c.tenantId) === Number(tenant.id) &&
     c.status !== 'terminated' && c.status !== 'cancelled' &&
     (!c.endDate || new Date(c.endDate).getTime() >= Date.now()));
-  if (!contract) return null;
-  return { phone: normalizePhone(phone), tenantId: tenant.id, apartmentId: contract.apartmentId, source: 'database' };
+  return {
+    phone: normalizePhone(phone),
+    tenantId: tenant.id,
+    apartmentId: contract?.apartmentId ?? tenant.linkedAptId ?? null,
+    source: 'database',
+  };
 }
 
 function getCloudConversation(contact) {
@@ -1357,13 +1361,15 @@ app.get('/api/whatsapp/cloud/contacts', (req, res) => {
   const contacts = (db.tenants || []).map(tenant => {
     const contract = (db.contracts || []).find(c => Number(c.tenantId) === Number(tenant.id) &&
       c.status !== 'terminated' && c.status !== 'cancelled' && (!c.endDate || new Date(c.endDate).getTime() >= now));
-    if (!tenant.phone || !contract) return null;
-    const apartment = (db.apartments || []).find(a => Number(a.id) === Number(contract.apartmentId));
+    if (!tenant.phone) return null;
+    const apartmentId = contract?.apartmentId ?? tenant.linkedAptId ?? null;
+    const apartment = (db.apartments || []).find(a => Number(a.id) === Number(apartmentId));
     const conversation = (db.whatsappConversations || []).find(c => samePhone(c.phone, tenant.phone));
     const explicit = (db.whatsappContacts || []).find(c => samePhone(c.phone, tenant.phone));
     const windowOpen = !!conversation?.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil).getTime() > now;
-    return { tenantId: tenant.id, name: tenant.name || 'Inquilino', phone: normalizePhone(tenant.phone), apartmentId: contract.apartmentId,
-      apartmentName: apartment?.name || null, conversationId: conversation?.id || null, windowOpen, source: explicit?.source || 'database' };
+    return { tenantId: tenant.id, name: tenant.name || 'Inquilino', phone: normalizePhone(tenant.phone), apartmentId,
+      apartmentName: apartment?.name || null, activeContract: !!contract, conversationId: conversation?.id || null,
+      windowOpen, source: explicit?.source || 'database' };
   }).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, 'es'));
   res.json(contacts);
 });
