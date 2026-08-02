@@ -2281,7 +2281,7 @@ app.get('/', (req, res) => {
 // APKs are published as GitHub Release assets so deployments stay light while
 // the stable in-app URL always points to the most recent Android installer.
 app.get('/app-debug.apk', (req, res) => {
-  res.redirect(302, 'https://github.com/jimcarlos111278-cloud/laujim-app/releases/latest/download/laujim-app.apk');
+  res.redirect(302, 'https://github.com/jimcarlos111278-cloud/laujim-app/releases/latest/download/app-debug.apk');
 });
 
 app.use(express.static(path.resolve(__dirname, 'dist')));
