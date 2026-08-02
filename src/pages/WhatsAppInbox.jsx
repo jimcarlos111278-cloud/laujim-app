@@ -182,6 +182,7 @@ export default function WhatsAppInbox() {
     if (!selected || !windowOpen || sending || recording || (!draft.trim() && !attachment)) return;
     setSending(true);
     try {
+      let result;
       if (attachment) {
         const form = new FormData();
         form.append('conversationId', String(selected));
@@ -190,12 +191,18 @@ export default function WhatsAppInbox() {
         const response = await fetch(getBase() + '/whatsapp/cloud/send-media', { method: 'POST', headers: { 'x-auth-token': AUTH_TOKEN }, body: form });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'No fue posible enviar el archivo');
+        result = data;
         clearAttachment();
       } else {
-        await cloudRequest('/whatsapp/cloud/send', { method: 'POST', body: JSON.stringify({ conversationId: selected, text: draft.trim() }) });
+        result = await cloudRequest('/whatsapp/cloud/send', { method: 'POST', body: JSON.stringify({ conversationId: selected, text: draft.trim() }) });
       }
       setDraft('');
-      await Promise.all([loadMessages(selected), loadConversations()]);
+      if (result?.message) {
+        setMessages(current => current.some(message => message.id === result.message.id) ? current : [...current, result.message]);
+        setConversations(current => current.map(conversation => conversation.id === selected
+          ? { ...conversation, messages: [result.message] }
+          : conversation));
+      }
     } catch (err) { setError(err.message); }
     finally { setSending(false); }
   }

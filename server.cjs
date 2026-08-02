@@ -1465,8 +1465,8 @@ app.post('/api/whatsapp/cloud/send', async (req, res) => {
   }
   try {
     const result = await sendCloudText(conversation.phone, String(text).trim());
-    addCloudMessage(conversation, 'out', { type: 'text', text: String(text).trim(), whatsappMessageId: result.messages?.[0]?.id || null });
-    saveData(); res.json({ ok: true, id: result.messages?.[0]?.id || null });
+    const message = addCloudMessage(conversation, 'out', { type: 'text', text: String(text).trim(), whatsappMessageId: result.messages?.[0]?.id || null });
+    saveData(); res.json({ ok: true, id: result.messages?.[0]?.id || null, message });
   } catch (error) { res.status(502).json({ error: error.message }); }
 });
 
@@ -1494,12 +1494,12 @@ app.post('/api/whatsapp/cloud/send-media', (req, res) => {
       }));
       media.archiveStatus = 'stored';
       const result = await sendCloudMedia(conversation.phone, media, String(caption || '').trim());
-      addCloudMessage(conversation, 'out', {
+      const message = addCloudMessage(conversation, 'out', {
         type: media.kind, text: String(caption || '').trim(), mediaId: media.id, media,
         whatsappMessageId: result.messages?.[0]?.id || null,
       });
       saveData();
-      res.json({ ok: true, id: result.messages?.[0]?.id || null, mediaId: media.id });
+      res.json({ ok: true, id: result.messages?.[0]?.id || null, mediaId: media.id, message });
     } catch (uploadError) { res.status(502).json({ error: uploadError.message }); }
   });
 });
