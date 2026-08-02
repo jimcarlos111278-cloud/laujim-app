@@ -929,9 +929,21 @@ app.get('/api/whatsapp/webhook', (req, res) => {
 
 app.post('/api/whatsapp/webhook', (req, res) => {
   const body = req.body;
-  if (!cloudReady()) return res.status(503).json({ error: 'WhatsApp Cloud API no configurada' });
-  if (!validCloudSignature(req)) return res.sendStatus(401);
-  if (body.object !== 'whatsapp_business_account') return res.sendStatus(404);
+  if (!cloudReady()) {
+    console.error('[WHATSAPP CLOUD] webhook ignored: Cloud API is not configured');
+    return res.status(503).json({ error: 'WhatsApp Cloud API no configurada' });
+  }
+  if (!validCloudSignature(req)) {
+    console.error('[WHATSAPP CLOUD] webhook rejected: invalid signature');
+    return res.sendStatus(401);
+  }
+  if (body.object !== 'whatsapp_business_account') {
+    console.error('[WHATSAPP CLOUD] webhook ignored: unexpected object');
+    return res.sendStatus(404);
+  }
+  const messageCount = (body.entry || []).reduce((total, entry) => total + (entry.changes || []).reduce((count, change) =>
+    count + (change.field === 'messages' ? (change.value?.messages || []).length : 0), 0), 0);
+  console.log(`[WHATSAPP CLOUD] webhook accepted: ${messageCount} incoming message event(s)`);
   res.sendStatus(200);
   for (const entry of body.entry || []) for (const change of entry.changes || []) {
     if (change.field !== 'messages') continue;
