@@ -33,16 +33,25 @@ export default function Dashboard() {
     // Pending proof submissions are visible in Pagos, but only approved
     // payments represent money actually collected in dashboard metrics.
     const approvedPayments = payments.filter(p => p.status !== 'pending_validation' && p.status !== 'rejected');
-    const occupied = apartments.filter(a => a.status === 'occupied').length;
-    const vacant = apartments.filter(a => a.status === 'vacant').length;
-    const vacantApts = apartments.filter(a => a.status === 'vacant');
-
     const activeContracts = contracts.filter(c => !c.endDate || new Date(c.endDate) > new Date());
-    const occupiedAptIds = new Set(apartments.filter(a => a.status === 'occupied').map(a => a.id));
-    const tenantContracts = activeContracts
-      .filter(c => occupiedAptIds.has(c.apartmentId) && tenants.some(t => t.id === c.tenantId));
-    const expectedIncome = tenantContracts
-      .reduce((sum, c) => sum + (c.monthlyRent || 0), 0);
+    const tenantsByApartment = new Map(tenants
+      .map(tenant => ({ tenant, apartmentId: tenant.apartmentId ?? tenant.linkedAptId }))
+      .filter(({ apartmentId }) => apartmentId !== null && apartmentId !== undefined && apartmentId !== '')
+      .map(({ tenant, apartmentId }) => [Number(apartmentId), tenant]));
+    const contractsByApartment = new Map(activeContracts
+      .filter(contract => tenants.some(tenant => Number(tenant.id) === Number(contract.tenantId)))
+      .map(contract => [Number(contract.apartmentId), contract]));
+    // A tenant associated from the Inquilinos screen is a valid occupancy even
+    // without a formal contract. Contracts only override the rent value.
+    const occupiedApts = apartments.filter(apartment =>
+      tenantsByApartment.has(Number(apartment.id)) || contractsByApartment.has(Number(apartment.id)));
+    const occupied = occupiedApts.length;
+    const vacantApts = apartments.filter(apartment => !occupiedApts.some(occupiedApartment => Number(occupiedApartment.id) === Number(apartment.id)));
+    const vacant = vacantApts.length;
+    const expectedIncome = occupiedApts.reduce((sum, apartment) => {
+      const contract = contractsByApartment.get(Number(apartment.id));
+      return sum + Number(contract?.monthlyRent || apartment.monthlyRent || 0);
+    }, 0);
     const maxPotentialIncome = apartments.reduce((sum, a) => sum + (a.monthlyRent || 0), 0);
 
     const now = new Date();
@@ -54,9 +63,8 @@ export default function Dashboard() {
     const paidForCurrentPeriod = approvedPayments.filter(p => p.type === 'rent' && p.period === currentPeriod);
     const paymentsReceivedInSelectedMonth = approvedPayments.filter(p => p.type === 'rent' && p.date?.slice(0, 7) === collectionPeriod);
     const collectedThisMonth = paymentsReceivedInSelectedMonth.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const pendingPayments = Math.max(0, tenantContracts.length - paidForCurrentPeriod.length);
-
-    const occupiedApts = apartments.filter(a => a.status === 'occupied');
+    const paidApartmentIds = new Set(paidForCurrentPeriod.map(payment => Number(payment.apartmentId)));
+    const pendingPayments = occupiedApts.filter(apartment => !paidApartmentIds.has(Number(apartment.id))).length;
     const previousPeriodDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const previousPeriod = `${previousPeriodDate.getFullYear()}-${String(previousPeriodDate.getMonth() + 1).padStart(2, '0')}`;
 
@@ -68,10 +76,10 @@ export default function Dashboard() {
       const periodPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === currentPeriod);
       const previousPeriodPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === previousPeriod);
       const paidThisPeriod = !!periodPayment;
-      const contract = activeContracts.find(c => c.apartmentId === a.id);
-      const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
+      const contract = contractsByApartment.get(Number(a.id)) || null;
+      const tenant = (contract ? tenants.find(t => Number(t.id) === Number(contract.tenantId)) : null) || tenantsByApartment.get(Number(a.id)) || null;
       return { ...a, daysLeft, targetDate, lastPayment, periodPayment, previousPeriodPayment, paidThisPeriod, rent: contract?.monthlyRent || a.monthlyRent, tenant, contract };
-    }).filter(a => a.contract && a.tenant);
+    }).filter(a => a.tenant);
 
     const overdue = enriched
       .filter(a => a.paymentDueDay <= currentDay)
@@ -90,7 +98,7 @@ export default function Dashboard() {
     const nextMonthPaid = enriched.map(a => {
       const contract = a.contract;
       const nextPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === nextPeriodStr);
-      return { ...a, rent: contract.monthlyRent || a.monthlyRent, nextPayment, paidNext: !!nextPayment };
+      return { ...a, rent: contract?.monthlyRent || a.monthlyRent, nextPayment, paidNext: !!nextPayment };
     }).sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
     const nextMonthNotPaid = nextMonthPaid.filter(a => !a.paidNext);
     const nextMonthAlreadyPaid = nextMonthPaid.filter(a => a.paidNext);
