@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Lock, MessageCircle, RefreshCw, Send } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 
 async function cloudRequest(path, options = {}) {
@@ -17,6 +18,8 @@ function formatDate(value) {
 }
 
 export default function WhatsAppInbox() {
+  const [searchParams] = useSearchParams();
+  const requestedConversation = Number(searchParams.get('conversation')) || null;
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -36,12 +39,13 @@ export default function WhatsAppInbox() {
       setConversations(nextConversations);
       setError('');
       setSelected(current => {
+        if (requestedConversation && nextConversations.some(c => c.id === requestedConversation)) return requestedConversation;
         if (current && nextConversations.some(c => c.id === current)) return current;
         return nextConversations[0]?.id || null;
       });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, []);
+  }, [requestedConversation]);
 
   const loadMessages = useCallback(async (conversationId) => {
     if (!conversationId) return setMessages([]);
@@ -87,8 +91,8 @@ export default function WhatsAppInbox() {
         <aside className="border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 overflow-auto max-h-52 lg:max-h-none">
           {loading ? <p className="p-4 text-sm text-gray-500">Cargando conversaciones…</p> : conversations.length === 0 ? <p className="p-4 text-sm text-gray-500">Aún no hay mensajes autorizados.</p> : conversations.map(conversation => (
             <button key={conversation.id} onClick={() => setSelected(conversation.id)} className={`w-full text-left p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${selected === conversation.id ? 'bg-emerald-50 dark:bg-emerald-950/30' : ''}`}>
-              <div className="font-medium text-gray-900 dark:text-white">{conversation.phone}</div>
-              <div className="text-xs text-gray-500 mt-1">Apto. {conversation.apartmentId || '—'} · {formatDate(conversation.lastInboundAt)}</div>
+              <div className="font-medium text-gray-900 dark:text-white">{conversation.tenantName || 'Inquilino autorizado'}</div>
+              <div className="text-xs text-gray-500 mt-1">{conversation.phone} · Apto. {conversation.apartmentName || conversation.apartmentId || '—'} · {formatDate(conversation.lastInboundAt)}</div>
               <div className={`text-xs mt-1 ${conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'text-emerald-600' : 'text-amber-600'}`}>{conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'Ventana de respuesta activa' : 'Se requiere plantilla'}</div>
             </button>
           ))}
@@ -96,7 +100,7 @@ export default function WhatsAppInbox() {
 
         <section className="min-h-0 flex flex-col">
           {!selectedConversation ? <div className="m-auto text-center text-gray-500"><Lock className="w-8 h-8 mx-auto mb-2" />Selecciona una conversación.</div> : <>
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700"><p className="font-semibold text-gray-900 dark:text-white">{selectedConversation.phone}</p><p className="text-xs text-gray-500">Residente autorizado · Apartamento {selectedConversation.apartmentId || '—'}</p></div>
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700"><p className="font-semibold text-gray-900 dark:text-white">{selectedConversation.tenantName || 'Inquilino autorizado'}</p><p className="text-xs text-gray-500">{selectedConversation.phone} · Apartamento {selectedConversation.apartmentName || selectedConversation.apartmentId || '—'}</p></div>
             <div className="flex-1 min-h-0 overflow-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900/40">
               {messages.length === 0 ? <p className="text-sm text-gray-500 text-center pt-8">Cargando mensajes…</p> : messages.map(message => (
                 <div key={message.id} className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${message.direction === 'out' ? 'ml-auto bg-emerald-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'}`}>

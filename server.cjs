@@ -973,7 +973,30 @@ app.get('/api/whatsapp/cloud/status', (req, res) => {
 app.get('/api/whatsapp/cloud/conversations', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   ensureCloudCollections();
-  res.json(db.whatsappConversations.map(c => ({ ...c, messages: (db.whatsappMessages || []).filter(m => m.conversationId === c.id).slice(-1) })));
+  res.json(db.whatsappConversations.map(c => {
+    const tenant = (db.tenants || []).find(t => Number(t.id) === Number(c.tenantId));
+    const apartment = (db.apartments || []).find(a => Number(a.id) === Number(c.apartmentId));
+    return { ...c, tenantName: tenant?.name || 'Inquilino autorizado', apartmentName: apartment?.name || null,
+      messages: (db.whatsappMessages || []).filter(m => m.conversationId === c.id).slice(-1) };
+  }));
+});
+
+app.get('/api/whatsapp/cloud/contacts', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const now = Date.now();
+  const contacts = (db.tenants || []).map(tenant => {
+    const contract = (db.contracts || []).find(c => Number(c.tenantId) === Number(tenant.id) &&
+      c.status !== 'terminated' && c.status !== 'cancelled' && (!c.endDate || new Date(c.endDate).getTime() >= now));
+    if (!tenant.phone || !contract) return null;
+    const apartment = (db.apartments || []).find(a => Number(a.id) === Number(contract.apartmentId));
+    const conversation = (db.whatsappConversations || []).find(c => samePhone(c.phone, tenant.phone));
+    const explicit = (db.whatsappContacts || []).find(c => samePhone(c.phone, tenant.phone));
+    const windowOpen = !!conversation?.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil).getTime() > now;
+    return { tenantId: tenant.id, name: tenant.name || 'Inquilino', phone: normalizePhone(tenant.phone), apartmentId: contract.apartmentId,
+      apartmentName: apartment?.name || null, conversationId: conversation?.id || null, windowOpen, source: explicit?.source || 'database' };
+  }).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  res.json(contacts);
 });
 
 app.get('/api/whatsapp/cloud/conversations/:id/messages', (req, res) => {
