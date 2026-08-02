@@ -86,6 +86,45 @@ public class AuthorizedCallerPlugin extends Plugin {
         startActivityForResult(call, roles.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING), "screeningRoleResult");
     }
 
+    @PluginMethod
+    public void requestSmsRole(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            call.reject("El filtro de SMS requiere Android 10 o superior");
+            return;
+        }
+        RoleManager roles = (RoleManager) getContext().getSystemService(Context.ROLE_SERVICE);
+        if (roles == null || !roles.isRoleAvailable(RoleManager.ROLE_SMS)) {
+            call.reject("Este teléfono no permite usar a Laujim como aplicación de SMS");
+            return;
+        }
+        if (roles.isRoleHeld(RoleManager.ROLE_SMS)) {
+            call.resolve(status());
+            return;
+        }
+        startActivityForResult(call, roles.createRequestRoleIntent(RoleManager.ROLE_SMS), "smsRoleResult");
+    }
+
+    @ActivityCallback
+    private void smsRoleResult(PluginCall call, ActivityResult activityResult) {
+        JSObject result = status();
+        result.put("requested", true);
+        result.put("granted", activityResult.getResultCode() == Activity.RESULT_OK && isSmsRoleGranted());
+        call.resolve(result);
+        notifyListeners("smsRoleResult", result);
+    }
+
+    @PluginMethod
+    public void getAuthorizedSmsMessages(PluginCall call) {
+        JSArray messages = new JSArray();
+        org.json.JSONArray stored = AuthorizedSmsStore.messages(getContext());
+        for (int index = 0; index < stored.length(); index++) {
+            try { messages.put(stored.getJSONObject(index)); } catch (Exception ignored) {}
+        }
+        JSObject result = status();
+        result.put("messages", messages);
+        call.resolve(result);
+    }
+
     @ActivityCallback
     private void screeningRoleResult(PluginCall call, ActivityResult activityResult) {
         JSObject result = status();
@@ -105,6 +144,9 @@ public class AuthorizedCallerPlugin extends Plugin {
         result.put("allowContacts", AuthorizedCallerStore.allowContacts(getContext()));
         result.put("contactsPermissionGranted", getPermissionState("contacts") == PermissionState.GRANTED);
         result.put("roleGranted", isRoleGranted());
+        result.put("smsRoleAvailable", supported && isSmsRoleAvailable());
+        result.put("smsRoleGranted", isSmsRoleGranted());
+        result.put("authorizedSmsCount", AuthorizedSmsStore.count(getContext()));
         return result;
     }
 
@@ -113,5 +155,18 @@ public class AuthorizedCallerPlugin extends Plugin {
         RoleManager roles = (RoleManager) getContext().getSystemService(Context.ROLE_SERVICE);
         return roles != null && roles.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING)
             && roles.isRoleHeld(RoleManager.ROLE_CALL_SCREENING);
+    }
+
+    private boolean isSmsRoleAvailable() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false;
+        RoleManager roles = (RoleManager) getContext().getSystemService(Context.ROLE_SERVICE);
+        return roles != null && roles.isRoleAvailable(RoleManager.ROLE_SMS);
+    }
+
+    private boolean isSmsRoleGranted() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false;
+        RoleManager roles = (RoleManager) getContext().getSystemService(Context.ROLE_SERVICE);
+        return roles != null && roles.isRoleAvailable(RoleManager.ROLE_SMS)
+            && roles.isRoleHeld(RoleManager.ROLE_SMS);
     }
 }

@@ -11,7 +11,7 @@ import { refreshAllFromServer } from '../api';
 import { getNotifConfig, saveNotifConfig, schedulePaymentReminders, cancelAllNotifications } from '../utils/localNotifications';
 import ThemeSelector from '../components/ThemeSelector';
 import { clearAuth, getAuth } from '../utils/auth';
-import { getCallScreeningStatus, requestCallScreeningRole, setCallScreeningEnabled, setAllowCallsFromContacts, syncAuthorizedCallerNumbers } from '../utils/callScreening';
+import { getAuthorizedSmsMessages, getCallScreeningStatus, requestCallScreeningRole, requestProtectedSmsRole, setCallScreeningEnabled, setAllowCallsFromContacts, syncAuthorizedCallerNumbers } from '../utils/callScreening';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -36,6 +36,7 @@ export default function Settings() {
   const [callScreening, setCallScreening] = useState(null);
   const [callScreeningBusy, setCallScreeningBusy] = useState(false);
   const [callScreeningError, setCallScreeningError] = useState('');
+  const [authorizedSms, setAuthorizedSms] = useState([]);
   const [menuOptions, setMenuOptions] = useState([]);
   const [relayTemplates, setRelayTemplates] = useState({ relay_from_tenant: '', relay_from_group: '' });
   const [menuSaving, setMenuSaving] = useState(false);
@@ -101,7 +102,14 @@ export default function Settings() {
   }
 
   async function refreshCallScreeningStatus() {
-    setCallScreening(await getCallScreeningStatus());
+    const status = await getCallScreeningStatus();
+    setCallScreening(status);
+    if (status.smsRoleGranted) {
+      const result = await getAuthorizedSmsMessages();
+      setAuthorizedSms(result.messages || []);
+    } else {
+      setAuthorizedSms([]);
+    }
   }
 
   async function setupCallScreening() {
@@ -141,6 +149,27 @@ export default function Settings() {
     try { setCallScreening(await setAllowCallsFromContacts(!callScreening.allowContacts)); }
     catch (error) { setCallScreeningError(error.message || 'No fue posible actualizar los contactos permitidos.'); }
     finally { setCallScreeningBusy(false); }
+  }
+
+  async function setupProtectedSms() {
+    if (!callScreening?.native) return;
+    const accepted = window.confirm('Android cambiará la aplicación predeterminada de SMS a Laujim. Solo se conservarán aquí los mensajes de inquilinos autorizados o contactos permitidos; los demás se descartarán sin notificación. ¿Continuar?');
+    if (!accepted) return;
+    setCallScreeningBusy(true);
+    setCallScreeningError('');
+    try {
+      await refreshAllFromServer();
+      const tenants = await api.tenants.toArray();
+      const synced = await syncAuthorizedCallerNumbers(tenants);
+      setCallScreening(synced);
+      const role = await requestProtectedSmsRole();
+      setCallScreening({ ...synced, ...role });
+      await refreshCallScreeningStatus();
+    } catch (error) {
+      setCallScreeningError(error.message || 'No fue posible activar el filtro de mensajes SMS.');
+    } finally {
+      setCallScreeningBusy(false);
+    }
   }
 
   async function handleRefreshFromServer() {
@@ -659,6 +688,30 @@ export default function Settings() {
           </>}
           {callScreeningError && <p className="mt-3 text-sm text-red-600">{callScreeningError}</p>}
           <p className="mt-3 text-xs text-gray-500">Las llamadas no autorizadas se rechazan antes de timbrar. Android puede conservarlas como bloqueadas en el historial del sistema.</p>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><MessageCircle className="w-4 h-4 text-violet-600" /> Filtro de mensajes SMS (Android)</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Protege los SMS normales usando la misma lista de inquilinos y, si la activaste arriba, los contactos del teléfono.</p>
+            </div>
+            {callScreening?.native && callScreening.smsRoleGranted && <span className="text-xs font-medium text-emerald-600">Modo protegido activo</span>}
+          </div>
+          {!callScreening?.native ? <p className="mt-4 rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-600 dark:text-gray-300">Disponible dentro de la APK Laujim instalada en el Android que recibe los SMS.</p> : !callScreening?.smsRoleAvailable ? <p className="mt-4 rounded-lg bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">Este teléfono no permite asignar a Laujim como aplicación predeterminada de SMS.</p> : <>
+            <p className="mt-4 text-sm text-gray-700 dark:text-gray-200">{callScreening.smsRoleGranted ? `Laujim guarda en este teléfono solo los SMS permitidos. ${callScreening.authorizedSmsCount || 0} mensaje(s) autorizado(s) archivado(s).` : 'Al activarlo, Android mostrará su aviso de aplicación predeterminada de SMS.'}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {!callScreening.smsRoleGranted && <button onClick={setupProtectedSms} disabled={callScreeningBusy} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 text-white text-sm disabled:opacity-50"><MessageCircle className="w-4 h-4" /> {callScreeningBusy ? 'Configurando…' : 'Activar modo SMS protegido'}</button>}
+              {callScreening.smsRoleGranted && <button onClick={refreshCallScreeningStatus} disabled={callScreeningBusy} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 disabled:opacity-50"><RefreshCw className="w-4 h-4" /> Actualizar bandeja</button>}
+            </div>
+            {callScreening.smsRoleGranted && <p className="mt-3 text-xs text-gray-500">Para desactivarlo, selecciona otra aplicación de SMS en los ajustes de Android. Los SMS no autorizados se descartan localmente: no aparecen ni generan notificación en Laujim.</p>}
+            {callScreening.smsRoleGranted && <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 overflow-hidden">
+              {authorizedSms.length === 0 ? <p className="px-3 py-3 text-sm text-gray-500">Aún no hay SMS autorizados recibidos.</p> : authorizedSms.slice(0, 8).map(message => <div key={message.id} className="px-3 py-3">
+                <div className="flex items-center justify-between gap-3 text-xs text-gray-500"><span className="font-medium text-gray-700 dark:text-gray-200">{message.phone}</span><span>{new Date(message.receivedAt).toLocaleString('es-CO')}</span></div>
+                <p className="mt-1 text-sm text-gray-800 dark:text-gray-100 break-words">{message.body}</p>
+              </div>)}
+            </div>}
+          </>}
         </div>
 
         <div className="bg-[#0f172a] rounded-xl border border-[#1e293b] p-4 sm:p-5 col-span-1 lg:col-span-2">

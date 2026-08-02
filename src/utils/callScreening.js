@@ -45,3 +45,13 @@ export async function setAllowCallsFromContacts(enabled) {
   if (!nativeAndroid()) return getCallScreeningStatus();
   return { native: true, ...(await callerScreeningPlugin().setAllowContacts({ enabled })) };
 }
+
+export async function requestProtectedSmsRole() {
+  if (!nativeAndroid()) return getCallScreeningStatus();
+  return { native: true, ...(await callerScreeningPlugin().requestSmsRole()) };
+}
+
+export async function getAuthorizedSmsMessages() {
+  if (!nativeAndroid()) return { native: false, messages: [] };
+  return { native: true, ...(await callerScreeningPlugin().getAuthorizedSmsMessages()) };
+}

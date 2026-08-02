@@ -42,6 +42,14 @@ final class AuthorizedCallerStore {
 
     static boolean isAllowed(Context context, String phone) {
         if (!isEnabled(context)) return true;
+        return isAuthorizedPhone(context, phone);
+    }
+
+    /**
+     * Authorization used by SMS. Unlike calls, SMS must never become open merely
+     * because the call-screening switch is paused.
+     */
+    static boolean isAuthorizedPhone(Context context, String phone) {
         String value = normalize(phone);
         if (value.isEmpty()) return false;
         if (allowed(context).contains(value)) return true;
