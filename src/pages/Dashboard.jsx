@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon, ArrowUpDown } from 'lucide-react';
+import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsCard from '../components/StatsCard';
 import Modal from '../components/Modal';
 import { api } from '../api';
-import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, nextPeriod, formatRelativeDueDate } from '../utils/helpers';
+import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, formatRelativeDueDate } from '../utils/helpers';
 import { addCalendarReminder } from '../utils/calendar';
 import { notifyPaymentReminder } from '../utils/notifications';
 import ThemeSelector from '../components/ThemeSelector';
@@ -19,10 +19,11 @@ export default function Dashboard() {
   const [showExpense, setShowExpense] = useState(null);
   const [expenseForm, setExpenseForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: true });
   const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
+  const [collectionPeriod, setCollectionPeriod] = useState(getCurrentPeriod());
 
   const expenseCategories = ['Mantenimiento', 'Reparación', 'Limpieza', 'Impuesto', 'Seguro', 'Adecuación', 'Otro'];
 
-  useEffect(() => { loadStats(); }, []);
+  useEffect(() => { loadStats(); }, [collectionPeriod]);
 
   async function loadStats() {
     const [apartments, tenants, contracts, payments, expenses] = await Promise.all([
@@ -42,15 +43,16 @@ export default function Dashboard() {
 
     const now = new Date();
     const currentDay = now.getDate();
-    const thisMonth = now.toISOString().substring(0, 7);
+    const currentPeriod = getCurrentPeriod();
 
-    const paidThisMonth = payments.filter(p => p.type === 'rent' && p.period === thisMonth);
-    const collectedThisMonth = paidThisMonth.reduce((s, p) => s + (p.amount || 0), 0);
-    const collectedTotal = payments.filter(p => p.type === 'rent').reduce((s, p) => s + (p.amount || 0), 0);
-    const pendingPayments = Math.max(0, activeContracts.length - paidThisMonth.length);
+    // Payment period tells us which rent is covered; date tells us when cash was received.
+    // Revenue widgets and monthly reports must group by receipt date.
+    const paidForCurrentPeriod = payments.filter(p => p.type === 'rent' && p.period === currentPeriod);
+    const paymentsReceivedInSelectedMonth = payments.filter(p => p.type === 'rent' && p.date?.slice(0, 7) === collectionPeriod);
+    const collectedThisMonth = paymentsReceivedInSelectedMonth.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const pendingPayments = Math.max(0, activeContracts.length - paidForCurrentPeriod.length);
 
     const occupiedApts = apartments.filter(a => a.status === 'occupied');
-    const currentPeriod = getCurrentPeriod();
     const previousPeriodDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const previousPeriod = `${previousPeriodDate.getFullYear()}-${String(previousPeriodDate.getMonth() + 1).padStart(2, '0')}`;
 
@@ -91,7 +93,7 @@ export default function Dashboard() {
     const nextMonthAlreadyPaid = nextMonthPaid.filter(a => a.paidNext);
 
     const thisMonthPaid = enriched.filter(a => a.paymentDueDay > currentDay && a.paidThisPeriod);
-    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, lastMonthMissing, thisMonthMissing, nextMonthMissing: nextMonthNotPaid, thisMonthPaid, nextMonthAlreadyPaid });
+    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedThisMonth, collectedThisMonth, pendingPayments, vacantApts, overdue, lastMonthMissing, thisMonthMissing, nextMonthMissing: nextMonthNotPaid, thisMonthPaid, nextMonthAlreadyPaid });
   }
 
   function openPayModal(apt, period) {
@@ -179,6 +181,8 @@ export default function Dashboard() {
 
   const now = new Date();
   const currentMonthLabel = now.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
+  const collectionPeriodLabel = getPeriodLabel(collectionPeriod);
+  const canAdvanceCollectionPeriod = collectionPeriod < getCurrentPeriod();
   const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const nextMonthLabel = nextMonthDate.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -235,7 +239,21 @@ export default function Dashboard() {
         <StatsCard title="Inquilinos" value={stats.totalTenants} subtitle="Activos" icon={Users} color="green" />
         <StatsCard title="Ingreso Ocupados" value={formatCurrency(stats.expectedIncome)} subtitle="Canones activos" icon={DollarSign} color="purple" />
         <StatsCard title="Potencial Total" value={formatCurrency(stats.maxPotentialIncome)} subtitle="Si todos ocupados" icon={Building2} color="blue" />
-        <StatsCard title="Recolectado Total" value={formatCurrency(stats.collectedIncome)} subtitle={`${formatCurrency(stats.collectedThisMonth)} este mes / ${formatCurrency(stats.expectedIncome)} esperado`} icon={TrendingUp} color="green" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-sm transition-shadow">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Recolectado</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatCurrency(stats.collectedIncome)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Pagos recibidos en {collectionPeriodLabel}</p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-c-50 text-c-500"><TrendingUp className="w-5 h-5" /></div>
+          </div>
+          <div className="mt-3 flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-700/50 p-1">
+            <button onClick={() => setCollectionPeriod(prevPeriod(collectionPeriod))} className="p-1 rounded text-gray-500 hover:bg-white hover:text-c-600 dark:hover:bg-gray-700" aria-label="Ver mes anterior"><ChevronLeft className="w-4 h-4" /></button>
+            <span className="text-xs font-medium capitalize text-gray-600 dark:text-gray-300">{collectionPeriodLabel}</span>
+            <button onClick={() => setCollectionPeriod(nextPeriod(collectionPeriod))} disabled={!canAdvanceCollectionPeriod} className="p-1 rounded text-gray-500 hover:bg-white hover:text-c-600 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent" aria-label="Ver mes siguiente"><ChevronRight className="w-4 h-4" /></button>
+          </div>
+        </div>
         <StatsCard title="Mes pasado sin pagar" value={stats.lastMonthMissing.length} subtitle={stats.lastMonthMissing.length ? `${formatCurrency(stats.lastMonthMissing.reduce((sum, apt) => sum + (apt.rent || 0), 0))} pendiente` : 'Todo al día'} icon={AlertCircle} color="red" />
       </div>
 
@@ -261,11 +279,11 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-gray-600 dark:text-gray-400">Total recaudado: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.collectedIncome)}</strong></span>
+                <span className="text-gray-600 dark:text-gray-400">Recaudado en {collectionPeriodLabel}: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.collectedIncome)}</strong></span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
-                <span className="text-gray-600 dark:text-gray-400">Este mes: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.collectedThisMonth)}</strong> / {formatCurrency(stats.expectedIncome)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Meta del mes actual: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.expectedIncome)}</strong></span>
               </div>
             </div>
           </div>
