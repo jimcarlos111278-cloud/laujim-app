@@ -227,6 +227,42 @@ export default function Dashboard() {
     );
   }
 
+  function DuePaymentCard({ apartment: a, overdue = false }) {
+    const isPaid = a.paidThisPeriod;
+    const payment = a.periodPayment;
+    const tone = isPaid
+      ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900'
+      : overdue || a.daysLeft <= 1
+        ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900'
+        : a.daysLeft <= 5
+          ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900'
+          : 'bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-900';
+    const dueColor = isPaid ? 'text-emerald-700 dark:text-emerald-300' : overdue || a.daysLeft <= 1 ? 'text-red-700 dark:text-red-300' : a.daysLeft <= 5 ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300';
+    return (
+      <div className={`rounded-xl border p-3.5 transition-colors ${tone}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link to={`/apartments/${a.id}`} className="block font-bold text-gray-900 dark:text-white hover:underline">{a.name}</Link>
+            <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">{a.tenant?.name || 'Sin inquilino asignado'}</p>
+          </div>
+          <p className="shrink-0 text-base font-bold text-gray-900 dark:text-white">{formatCurrency(a.rent)}</p>
+        </div>
+        <div className="mt-3 flex items-center gap-2 border-t border-black/5 pt-3 dark:border-white/10">
+          <Bell className={`h-4 w-4 shrink-0 ${dueColor}`} />
+          {isPaid ? <span className={`text-sm font-medium ${dueColor}`}>Pagado {payment ? formatShortDate(payment.date) : ''}</span> : <span className={`text-sm font-medium ${dueColor}`}>{formatRelativeDueDate(a.paymentDueDay)}</span>}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
+          {a.tenant?.phone && <>
+            <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">WhatsApp</a>
+            <a href={`tel:${a.tenant.phone}`} className="hidden sm:inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">Llamar</a>
+          </>}
+          {isPaid && payment ? <button onClick={() => setConfirmDelete(payment)} className="col-span-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 sm:col-span-1">Revisar pago</button> : <button onClick={() => openPayModal(a, overdue ? lastMonthPeriod : undefined)} className="rounded-lg bg-c-600 px-3 py-2 text-sm font-semibold text-white hover:bg-c-700">Pagar</button>}
+          <button onClick={() => setShowExpense(a)} className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">Imprevistos</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -359,7 +395,10 @@ export default function Dashboard() {
             <span className="text-sm font-normal text-gray-400">({overdueCount} pendiente(s))</span>
           </h3>
           <SortHeader />
-          <div className="space-y-2">
+          <div className="space-y-2 sm:hidden">
+            {sortedOverdue.map(a => <DuePaymentCard key={a.id} apartment={a} overdue />)}
+          </div>
+          <div className="hidden space-y-2 sm:block">
             {sortedOverdue.map(a => {
               const isPaid = a.paidThisPeriod;
               const payment = a.periodPayment;
@@ -417,7 +456,10 @@ export default function Dashboard() {
             Este mes faltan — {currentMonthLabel}
           </h3>
           <SortHeader />
-          <div className="space-y-2">
+          <div className="space-y-2 sm:hidden">
+            {sortedThisMonth.map(a => <DuePaymentCard key={a.id} apartment={a} />)}
+          </div>
+          <div className="hidden space-y-2 sm:block">
             {sortedThisMonth.map(a => (
               <div key={a.id} className={`flex items-center justify-between p-3 rounded-lg text-sm transition-colors ${a.daysLeft <= 1 ? 'bg-red-50' : a.daysLeft <= 5 ? 'bg-amber-50' : 'bg-gray-50'}`}>
                 <Link to={`/apartments/${a.id}`} className="flex-1 font-medium text-gray-900 hover:underline">{a.name}</Link>

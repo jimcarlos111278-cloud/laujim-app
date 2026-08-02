@@ -5,6 +5,7 @@ import android.app.role.RoleManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.Manifest;
 import androidx.activity.result.ActivityResult;
 
 import com.getcapacitor.JSArray;
@@ -14,11 +15,16 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
+import com.getcapacitor.PermissionState;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@CapacitorPlugin(name = "AuthorizedCallerScreening")
+@CapacitorPlugin(name = "AuthorizedCallerScreening", permissions = {
+    @Permission(alias = "contacts", strings = { Manifest.permission.READ_CONTACTS })
+})
 public class AuthorizedCallerPlugin extends Plugin {
     @PluginMethod
     public void getStatus(PluginCall call) {
@@ -40,6 +46,26 @@ public class AuthorizedCallerPlugin extends Plugin {
     public void setEnabled(PluginCall call) {
         AuthorizedCallerStore.setEnabled(getContext(), call.getBoolean("enabled", false));
         call.resolve(status());
+    }
+
+    @PluginMethod
+    public void setAllowContacts(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", false);
+        if (enabled && getPermissionState("contacts") != PermissionState.GRANTED) {
+            requestPermissionForAlias("contacts", call, "contactsPermissionResult");
+            return;
+        }
+        AuthorizedCallerStore.setAllowContacts(getContext(), enabled);
+        call.resolve(status());
+    }
+
+    @PermissionCallback
+    private void contactsPermissionResult(PluginCall call) {
+        boolean granted = getPermissionState("contacts") == PermissionState.GRANTED;
+        AuthorizedCallerStore.setAllowContacts(getContext(), granted);
+        JSObject result = status();
+        result.put("contactsPermissionRequested", true);
+        call.resolve(result);
     }
 
     @PluginMethod
@@ -76,6 +102,8 @@ public class AuthorizedCallerPlugin extends Plugin {
         result.put("enabled", AuthorizedCallerStore.isEnabled(getContext()));
         result.put("authorizedCount", AuthorizedCallerStore.count(getContext()));
         result.put("lastSyncedAt", AuthorizedCallerStore.lastSyncedAt(getContext()));
+        result.put("allowContacts", AuthorizedCallerStore.allowContacts(getContext()));
+        result.put("contactsPermissionGranted", getPermissionState("contacts") == PermissionState.GRANTED);
         result.put("roleGranted", isRoleGranted());
         return result;
     }

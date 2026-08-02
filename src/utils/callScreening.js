@@ -40,3 +40,8 @@ export async function setCallScreeningEnabled(enabled) {
   if (!nativeAndroid()) return getCallScreeningStatus();
   return { native: true, ...(await callerScreeningPlugin().setEnabled({ enabled })) };
 }
+
+export async function setAllowCallsFromContacts(enabled) {
+  if (!nativeAndroid()) return getCallScreeningStatus();
+  return { native: true, ...(await callerScreeningPlugin().setAllowContacts({ enabled })) };
+}

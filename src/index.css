@@ -128,6 +128,36 @@ td, th { word-break: normal; overflow-wrap: normal; }
 :root.theme-amarillo .border-gray-200 { border-color: #f5e4b8; }
 :root.theme-amarillo .hover\:bg-gray-50:hover { background-color: #fef3d0; }
 
+.theme-violeta {
+  --c-50: #f5f3ff; --c-100: #ede9fe; --c-200: #ddd6fe;
+  --c-500: #7c3aed; --c-600: #6d28d9; --c-700: #5b21b6;
+  --c-50-900-30: rgba(91, 33, 182, 0.3);
+}
+:root.theme-violeta .bg-gray-100 { background-color: #f0edff; }
+:root.theme-violeta .bg-white { background-color: #faf9ff; }
+:root.theme-violeta .bg-gray-50 { background-color: #f5f3ff; }
+:root.theme-violeta .border-gray-200 { border-color: #ded7fb; }
+
+.theme-turquesa {
+  --c-50: #f0fdfa; --c-100: #ccfbf1; --c-200: #99f6e4;
+  --c-500: #0f766e; --c-600: #0d625b; --c-700: #115e59;
+  --c-50-900-30: rgba(15, 118, 110, 0.3);
+}
+:root.theme-turquesa .bg-gray-100 { background-color: #e7f8f5; }
+:root.theme-turquesa .bg-white { background-color: #f4fcfa; }
+:root.theme-turquesa .bg-gray-50 { background-color: #eafaf7; }
+:root.theme-turquesa .border-gray-200 { border-color: #c6ebe3; }
+
+.theme-coral {
+  --c-50: #fff7ed; --c-100: #ffedd5; --c-200: #fed7aa;
+  --c-500: #ea580c; --c-600: #c2410c; --c-700: #9a3412;
+  --c-50-900-30: rgba(154, 52, 18, 0.3);
+}
+:root.theme-coral .bg-gray-100 { background-color: #fff0df; }
+:root.theme-coral .bg-white { background-color: #fffaf5; }
+:root.theme-coral .bg-gray-50 { background-color: #fff3e6; }
+:root.theme-coral .border-gray-200 { border-color: #f4d6be; }
+
 /* Utility classes */
 .bg-c-50 { background-color: var(--c-50); }
 .bg-c-100 { background-color: var(--c-100); }
@@ -146,6 +176,14 @@ td, th { word-break: normal; overflow-wrap: normal; }
 /* Active nav link in sidebar */
 .nav-active { background-color: var(--c-50); color: var(--c-700); }
 .dark .nav-active { background-color: var(--c-50-900-30); color: var(--c-200); }
+
+/* Several older cards use a neutral text class without a dark: variant.
+   Keep contrast readable whenever the global dark mode is selected. */
+.dark .app-layout .text-gray-900 { color: #f9fafb; }
+.dark .app-layout .text-gray-800 { color: #f3f4f6; }
+.dark .app-layout .text-gray-700 { color: #e5e7eb; }
+.dark .app-layout .text-gray-600 { color: #d1d5db; }
+.dark .app-layout .text-gray-500 { color: #9ca3af; }
 
 /* ========== FONT SCALE ========== */
 :root { --font-scale: 1; }

@@ -11,7 +11,7 @@ import { refreshAllFromServer } from '../api';
 import { getNotifConfig, saveNotifConfig, schedulePaymentReminders, cancelAllNotifications } from '../utils/localNotifications';
 import ThemeSelector from '../components/ThemeSelector';
 import { clearAuth, getAuth } from '../utils/auth';
-import { getCallScreeningStatus, requestCallScreeningRole, setCallScreeningEnabled, syncAuthorizedCallerNumbers } from '../utils/callScreening';
+import { getCallScreeningStatus, requestCallScreeningRole, setCallScreeningEnabled, setAllowCallsFromContacts, syncAuthorizedCallerNumbers } from '../utils/callScreening';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -131,6 +131,15 @@ export default function Settings() {
     setCallScreeningError('');
     try { setCallScreening(await setCallScreeningEnabled(!callScreening.enabled)); }
     catch (error) { setCallScreeningError(error.message || 'No fue posible cambiar el filtro de llamadas.'); }
+    finally { setCallScreeningBusy(false); }
+  }
+
+  async function toggleContactCallers() {
+    if (!callScreening?.native) return;
+    setCallScreeningBusy(true);
+    setCallScreeningError('');
+    try { setCallScreening(await setAllowCallsFromContacts(!callScreening.allowContacts)); }
+    catch (error) { setCallScreeningError(error.message || 'No fue posible actualizar los contactos permitidos.'); }
     finally { setCallScreeningBusy(false); }
   }
 
@@ -644,7 +653,9 @@ export default function Settings() {
             <div className="mt-4 flex flex-wrap gap-2">
               <button onClick={setupCallScreening} disabled={callScreeningBusy} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm disabled:opacity-50"><RefreshCw className="w-4 h-4" /> {callScreeningBusy ? 'Configurando…' : callScreening.roleGranted ? 'Sincronizar autorizados' : 'Configurar filtro'}</button>
               {callScreening.roleGranted && <button onClick={toggleCallScreening} disabled={callScreeningBusy} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 disabled:opacity-50">{callScreening.enabled ? 'Pausar filtro' : 'Activar filtro'}</button>}
+              {callScreening.roleGranted && <button onClick={toggleContactCallers} disabled={callScreeningBusy} className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm disabled:opacity-50 ${callScreening.allowContacts ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'}`}>{callScreening.allowContacts ? 'Contactos: permitidos' : 'Permitir contactos del celular'}</button>}
             </div>
+            {callScreening?.roleGranted && <p className="mt-3 text-xs text-gray-500">Regla actual: siempre entran los inquilinos de Laujim; al activar contactos, también podrán llamar los números guardados en la agenda del teléfono. La app pedirá permiso para leer contactos una sola vez.</p>}
           </>}
           {callScreeningError && <p className="mt-3 text-sm text-red-600">{callScreeningError}</p>}
           <p className="mt-3 text-xs text-gray-500">Las llamadas no autorizadas se rechazan antes de timbrar. Android puede conservarlas como bloqueadas en el historial del sistema.</p>
