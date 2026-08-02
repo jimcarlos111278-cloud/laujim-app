@@ -1,9 +1,13 @@
-import { Capacitor, registerPlugin } from '@capacitor/core';
-
-const AuthorizedCallerScreening = registerPlugin('AuthorizedCallerScreening');
-
 function nativeAndroid() {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+  const capacitor = window.Capacitor;
+  return Boolean(capacitor?.isNativePlatform?.() && capacitor.getPlatform?.() === 'android');
+}
+
+function callerScreeningPlugin() {
+  const capacitor = window.Capacitor;
+  const plugin = capacitor?.registerPlugin?.('AuthorizedCallerScreening') || capacitor?.Plugins?.AuthorizedCallerScreening;
+  if (!plugin) throw new Error('El filtro de llamadas no está disponible en esta instalación.');
+  return plugin;
 }
 
 function normalizedPhone(phone) {
@@ -15,7 +19,7 @@ function normalizedPhone(phone) {
 export async function getCallScreeningStatus() {
   if (!nativeAndroid()) return { native: false, supported: false, message: 'Disponible únicamente en la APK Android de Laujim.' };
   try {
-    return { native: true, ...(await AuthorizedCallerScreening.getStatus()) };
+    return { native: true, ...(await callerScreeningPlugin().getStatus()) };
   } catch (error) {
     return { native: true, supported: false, message: error.message || 'No fue posible consultar el filtro de llamadas.' };
   }
@@ -24,15 +28,15 @@ export async function getCallScreeningStatus() {
 export async function syncAuthorizedCallerNumbers(tenants) {
   if (!nativeAndroid()) return getCallScreeningStatus();
   const numbers = [...new Set((tenants || []).map(tenant => normalizedPhone(tenant.phone)).filter(Boolean))];
-  return { native: true, ...(await AuthorizedCallerScreening.syncAuthorizedNumbers({ numbers })) };
+  return { native: true, ...(await callerScreeningPlugin().syncAuthorizedNumbers({ numbers })) };
 }
 
 export async function requestCallScreeningRole() {
   if (!nativeAndroid()) return getCallScreeningStatus();
-  return { native: true, ...(await AuthorizedCallerScreening.requestScreeningRole()) };
+  return { native: true, ...(await callerScreeningPlugin().requestScreeningRole()) };
 }
 
 export async function setCallScreeningEnabled(enabled) {
   if (!nativeAndroid()) return getCallScreeningStatus();
-  return { native: true, ...(await AuthorizedCallerScreening.setEnabled({ enabled })) };
+  return { native: true, ...(await callerScreeningPlugin().setEnabled({ enabled })) };
 }
