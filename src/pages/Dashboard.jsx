@@ -39,8 +39,9 @@ export default function Dashboard() {
 
     const activeContracts = contracts.filter(c => !c.endDate || new Date(c.endDate) > new Date());
     const occupiedAptIds = new Set(apartments.filter(a => a.status === 'occupied').map(a => a.id));
-    const expectedIncome = activeContracts
-      .filter(c => occupiedAptIds.has(c.apartmentId))
+    const tenantContracts = activeContracts
+      .filter(c => occupiedAptIds.has(c.apartmentId) && tenants.some(t => t.id === c.tenantId));
+    const expectedIncome = tenantContracts
       .reduce((sum, c) => sum + (c.monthlyRent || 0), 0);
     const maxPotentialIncome = apartments.reduce((sum, a) => sum + (a.monthlyRent || 0), 0);
 
@@ -53,7 +54,7 @@ export default function Dashboard() {
     const paidForCurrentPeriod = approvedPayments.filter(p => p.type === 'rent' && p.period === currentPeriod);
     const paymentsReceivedInSelectedMonth = approvedPayments.filter(p => p.type === 'rent' && p.date?.slice(0, 7) === collectionPeriod);
     const collectedThisMonth = paymentsReceivedInSelectedMonth.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const pendingPayments = Math.max(0, activeContracts.length - paidForCurrentPeriod.length);
+    const pendingPayments = Math.max(0, tenantContracts.length - paidForCurrentPeriod.length);
 
     const occupiedApts = apartments.filter(a => a.status === 'occupied');
     const previousPeriodDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -70,7 +71,7 @@ export default function Dashboard() {
       const contract = activeContracts.find(c => c.apartmentId === a.id);
       const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
       return { ...a, daysLeft, targetDate, lastPayment, periodPayment, previousPeriodPayment, paidThisPeriod, rent: contract?.monthlyRent || a.monthlyRent, tenant, contract };
-    });
+    }).filter(a => a.contract && a.tenant);
 
     const overdue = enriched
       .filter(a => a.paymentDueDay <= currentDay)
@@ -86,11 +87,10 @@ export default function Dashboard() {
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
     const nextPeriodStr = nextPeriod(currentPeriod);
-    const nextMonthPaid = occupiedApts.map(a => {
-      const contract = activeContracts.find(c => c.apartmentId === a.id);
+    const nextMonthPaid = enriched.map(a => {
+      const contract = a.contract;
       const nextPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === nextPeriodStr);
-      const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
-      return { ...a, rent: contract?.monthlyRent || a.monthlyRent, nextPayment, paidNext: !!nextPayment, tenant, contract };
+      return { ...a, rent: contract.monthlyRent || a.monthlyRent, nextPayment, paidNext: !!nextPayment };
     }).sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
     const nextMonthNotPaid = nextMonthPaid.filter(a => !a.paidNext);
     const nextMonthAlreadyPaid = nextMonthPaid.filter(a => a.paidNext);
@@ -295,7 +295,6 @@ export default function Dashboard() {
             <button onClick={() => setCollectionPeriod(nextPeriod(collectionPeriod))} disabled={!canAdvanceCollectionPeriod} className="p-1 rounded text-gray-500 hover:bg-white hover:text-c-600 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent" aria-label="Ver mes siguiente"><ChevronRight className="w-4 h-4" /></button>
           </div>
         </div>
-        <StatsCard title="Mes pasado sin pagar" value={stats.lastMonthMissing.length} subtitle={stats.lastMonthMissing.length ? `${formatCurrency(stats.lastMonthMissing.reduce((sum, apt) => sum + (apt.rent || 0), 0))} pendiente` : 'Todo al día'} icon={AlertCircle} color="red" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -368,7 +367,6 @@ export default function Dashboard() {
           <h3 className="font-semibold text-red-800 dark:text-red-300 mb-3 flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
             Mes pasado aún faltan por pagar — {lastMonthLabel}
-            <span className="text-sm font-normal text-red-600 dark:text-red-400">({stats.lastMonthMissing.length} pendiente(s))</span>
           </h3>
           <div className="space-y-2">
             {stats.lastMonthMissing.map(apt => (
@@ -392,7 +390,6 @@ export default function Dashboard() {
           <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-500" />
             Ya deberían estar pagos — {currentMonthLabel}
-            <span className="text-sm font-normal text-gray-400">({overdueCount} pendiente(s))</span>
           </h3>
           <SortHeader />
           <div className="space-y-2 sm:hidden">
