@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AudioLines, Download, FileText, Image, Lock, MessageCircle, Mic, Paperclip, Phone, RefreshCw, Send, Square, Video, X } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { ArrowLeft, AudioLines, Download, FileText, Image, Lock, MessageCircle, Mic, Paperclip, Phone, RefreshCw, Send, Square, Video, X } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 
 async function cloudRequest(path, options = {}) {
@@ -75,6 +75,7 @@ function MediaMessage({ message }) {
 }
 
 export default function WhatsAppInbox() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedConversation = Number(searchParams.get('conversation')) || null;
   const [conversations, setConversations] = useState([]);
@@ -88,6 +89,8 @@ export default function WhatsAppInbox() {
   const [error, setError] = useState('');
   const [recording, setRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateSending, setTemplateSending] = useState('');
   const fileInput = useRef(null);
   const recorderRef = useRef(null);
   const recorderStreamRef = useRef(null);
@@ -106,7 +109,7 @@ export default function WhatsAppInbox() {
       setSelected(current => {
         if (requestedConversation && nextConversations.some(c => c.id === requestedConversation)) return requestedConversation;
         if (current && nextConversations.some(c => c.id === current)) return current;
-        return nextConversations[0]?.id || null;
+        return null;
       });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -123,6 +126,18 @@ export default function WhatsAppInbox() {
 
   const selectedConversation = conversations.find(c => c.id === selected);
   const windowOpen = selectedConversation?.customerServiceWindowUntil && new Date(selectedConversation.customerServiceWindowUntil) > new Date();
+
+  function openConversation(conversationId) {
+    setSelected(conversationId);
+    setShowTemplates(false);
+    navigate(`/whatsapp?conversation=${conversationId}`);
+  }
+
+  function returnToConversationList() {
+    setSelected(null);
+    setShowTemplates(false);
+    navigate('/whatsapp');
+  }
 
   function clearAttachment() {
     setAttachment(null);
@@ -207,9 +222,28 @@ export default function WhatsAppInbox() {
     finally { setSending(false); }
   }
 
+  async function sendTemplate(template) {
+    if (!selected || templateSending) return;
+    setTemplateSending(template);
+    setError('');
+    try {
+      const result = await cloudRequest('/whatsapp/cloud/send-template', {
+        method: 'POST', body: JSON.stringify({ conversationId: selected, template }),
+      });
+      if (result?.message) {
+        setMessages(current => current.some(message => message.id === result.message.id) ? current : [...current, result.message]);
+        setConversations(current => current.map(conversation => conversation.id === selected
+          ? { ...conversation, messages: [result.message] }
+          : conversation));
+      }
+      setShowTemplates(false);
+    } catch (err) { setError(err.message); }
+    finally { setTemplateSending(''); }
+  }
+
   return (
-    <div className="p-4 md:p-6 h-full flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="h-full min-h-0 flex flex-col gap-0 sm:gap-4">
+      <div className={`px-1 pb-4 sm:px-0 sm:pb-0 flex flex-wrap items-start justify-between gap-3 ${selected ? 'hidden lg:flex' : 'flex'}`}>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><MessageCircle className="w-6 h-6 text-emerald-600" /> WhatsApp Cloud</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Conversaciones de residentes autorizados. Los mensajes no autorizados no se muestran aquí.</p>
@@ -217,15 +251,15 @@ export default function WhatsAppInbox() {
         <button onClick={loadConversations} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"><RefreshCw className="w-4 h-4" /> Actualizar</button>
       </div>
 
-      {status && <div className={`text-sm rounded-lg px-3 py-2 ${status.ready ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-50 text-amber-800'}`}>
+      {status && <div className={`mb-4 sm:mb-0 text-sm rounded-lg px-3 py-2 ${selected ? 'hidden lg:block' : 'block'} ${status.ready ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-50 text-amber-800'}`}>
         Cloud API: {status.ready ? 'conectada' : 'requiere configuración'} · {status.conversations} conversación(es) · {status.quarantined} autenticación(es) pendientes
       </div>}
-      {error && <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm">{error}</div>}
+      {error && <div className="mb-3 sm:mb-0 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm">{error}</div>}
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[320px_1fr] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-        <aside className="border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 overflow-auto max-h-52 lg:max-h-none">
+      <div className={`flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[320px_1fr] bg-white dark:bg-gray-800 overflow-hidden ${selected ? 'border-0 rounded-none lg:border lg:border-gray-200 lg:dark:border-gray-700 lg:rounded-xl' : 'border border-gray-200 dark:border-gray-700 rounded-xl'}`}>
+        <aside className={`${selected ? 'hidden lg:block' : 'block'} border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 overflow-auto min-h-0`}>
           {loading ? <p className="p-4 text-sm text-gray-500">Cargando conversaciones…</p> : conversations.length === 0 ? <p className="p-4 text-sm text-gray-500">Aún no hay mensajes autorizados.</p> : conversations.map(conversation => (
-            <button key={conversation.id} onClick={() => setSelected(conversation.id)} className={`w-full text-left p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${selected === conversation.id ? 'bg-emerald-50 dark:bg-emerald-950/30' : ''}`}>
+            <button key={conversation.id} onClick={() => openConversation(conversation.id)} className={`w-full text-left p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${selected === conversation.id ? 'bg-emerald-50 dark:bg-emerald-950/30' : ''}`}>
               <div className="font-medium text-gray-900 dark:text-white">{conversation.tenantName || 'Inquilino autorizado'}</div>
               <div className="text-xs text-gray-500 mt-1">{conversation.phone} · Apto. {conversation.apartmentName || conversation.apartmentId || '—'} · {formatDate(conversation.lastInboundAt)}</div>
               <div className={`text-xs mt-1 ${conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'text-emerald-600' : 'text-amber-600'}`}>{conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'Ventana de respuesta activa' : 'Se requiere plantilla'}</div>
@@ -233,9 +267,28 @@ export default function WhatsAppInbox() {
           ))}
         </aside>
 
-        <section className="min-h-0 flex flex-col">
+        <section className={`${selected ? 'flex' : 'hidden lg:flex'} min-h-0 flex-col`}>
           {!selectedConversation ? <div className="m-auto text-center text-gray-500"><Lock className="w-8 h-8 mx-auto mb-2" />Selecciona una conversación.</div> : <>
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3"><div><p className="font-semibold text-gray-900 dark:text-white">{selectedConversation.tenantName || 'Inquilino autorizado'}</p><p className="text-xs text-gray-500">{selectedConversation.phone} · Apartamento {selectedConversation.apartmentName || selectedConversation.apartmentId || '—'}</p></div><a href={`tel:+${selectedConversation.phone}`} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm hover:bg-gray-50 dark:hover:bg-gray-700"><Phone className="w-4 h-4" /> Llamar</a></div>
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="p-3 sm:p-4 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <button type="button" onClick={returnToConversationList} className="lg:hidden shrink-0 rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Volver a conversaciones"><ArrowLeft className="w-5 h-5" /></button>
+                  <div className="min-w-0"><p className="truncate font-semibold text-gray-900 dark:text-white">{selectedConversation.tenantName || 'Inquilino autorizado'}</p><p className="truncate text-xs text-gray-500">{selectedConversation.phone} · Apartamento {selectedConversation.apartmentName || selectedConversation.apartmentId || '—'}</p></div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button type="button" onClick={() => setShowTemplates(open => !open)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium ${showTemplates ? 'bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-200' : 'border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'}`} title="Enviar plantilla"><FileText className="w-4 h-4" /><span className="hidden sm:inline">Plantillas</span></button>
+                  <a href={`tel:+${selectedConversation.phone}`} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-2 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"><Phone className="w-4 h-4" /><span className="hidden sm:inline">Llamar</span></a>
+                </div>
+              </div>
+              {showTemplates && <div className="border-t border-gray-100 bg-violet-50/70 px-3 py-3 dark:border-gray-700 dark:bg-violet-950/20 sm:px-4">
+                <p className="mb-2 text-xs text-violet-900 dark:text-violet-200">Plantillas de WhatsApp (también funcionan fuera de la ventana de 24 horas).</p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" disabled={!!templateSending} onClick={() => sendTemplate('greeting')} className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{templateSending === 'greeting' ? 'Enviando…' : 'Hola, ¿cómo estás?'}</button>
+                  <button type="button" disabled={!!templateSending} onClick={() => sendTemplate('payment_reminder')} className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-800 disabled:opacity-50 dark:border-violet-800 dark:bg-gray-800 dark:text-violet-200">{templateSending === 'payment_reminder' ? 'Enviando…' : 'Recordatorio de pago'}</button>
+                </div>
+                <p className="mt-2 text-[11px] text-violet-700 dark:text-violet-300">Meta debe aprobarlas antes de que se puedan entregar.</p>
+              </div>}
+            </div>
             <div className="flex-1 min-h-0 overflow-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900/40">
               {messages.length === 0 ? <p className="text-sm text-gray-500 text-center pt-8">Aún no hay mensajes.</p> : messages.map(message => (
                 <div key={message.id} className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${message.direction === 'out' ? 'ml-auto bg-emerald-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'}`}>

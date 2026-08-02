@@ -612,16 +612,25 @@ function sendCloudGreetingTemplate(to, name) {
   });
 }
 
-// This template must be created and approved in WhatsApp Manager. It only has
-// one body variable: the tenant's first name. Configure the exact template name
-// in Render with WHATSAPP_PAYMENT_REMINDER_TEMPLATE.
-function sendCloudPaymentReminderTemplate(to, name) {
+function cloudPeriodLabel(period = colombiaDate().slice(0, 7)) {
+  const match = String(period).match(/^(\d{4})-(\d{2})$/);
+  if (!match) return String(period);
+  return new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' })
+    .format(new Date(Number(match[1]), Number(match[2]) - 1, 1));
+}
+
+// This template must be created and approved in WhatsApp Manager. It has the
+// tenant's first name and the payment period as body variables.
+function sendCloudPaymentReminderTemplate(to, name, period) {
   const templateName = String(process.env.WHATSAPP_PAYMENT_REMINDER_TEMPLATE || 'recordatorio_pago').trim();
   return cloudApiRequest('/messages', 'POST', {
     messaging_product: 'whatsapp', to: normalizePhone(to), type: 'template',
     template: {
       name: templateName, language: { code: 'es_CO' },
-      components: [{ type: 'body', parameters: [{ type: 'text', text: firstName(name) }] }],
+      components: [{ type: 'body', parameters: [
+        { type: 'text', text: firstName(name) },
+        { type: 'text', text: cloudPeriodLabel(period) },
+      ] }],
     },
   });
 }
@@ -686,7 +695,7 @@ async function runPaymentReminders({ force = false } = {}) {
       const log = { id: nextId.paymentReminderLogs++, key, apartmentId: apartment.id, tenantId: tenant.id, period, offset,
         createdAt: new Date().toISOString(), status: 'sent' };
       try {
-        const sent = await sendCloudPaymentReminderTemplate(tenant.phone, tenant.name);
+        const sent = await sendCloudPaymentReminderTemplate(tenant.phone, tenant.name, period);
         const conversation = getCloudConversation({ phone: tenant.phone, tenantId: tenant.id, apartmentId: apartment.id });
         addCloudMessage(conversation, 'out', { type: 'template', text: `Recordatorio de pago (${period})`,
           template: process.env.WHATSAPP_PAYMENT_REMINDER_TEMPLATE || 'recordatorio_pago', whatsappMessageId: sent.messages?.[0]?.id || null });
@@ -1685,6 +1694,43 @@ app.post('/api/whatsapp/cloud/send', async (req, res) => {
     const message = addCloudMessage(conversation, 'out', { type: 'text', text: String(text).trim(), whatsappMessageId: result.messages?.[0]?.id || null });
     saveData(); res.json({ ok: true, id: result.messages?.[0]?.id || null, message });
   } catch (error) { res.status(502).json({ error: error.message }); }
+});
+
+// Templates can be sent from the inbox even after the 24-hour service window.
+// Their approval and category are enforced by Meta before delivery.
+app.post('/api/whatsapp/cloud/send-template', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const conversation = db.whatsappConversations.find(c => c.id === Number(req.body?.conversationId));
+  const template = String(req.body?.template || '').trim();
+  if (!conversation || !['greeting', 'payment_reminder'].includes(template)) {
+    return res.status(400).json({ error: 'Conversación y plantilla válida son requeridas' });
+  }
+  const tenant = (db.tenants || []).find(item => Number(item.id) === Number(conversation.tenantId));
+  try {
+    let result;
+    let message;
+    if (template === 'greeting') {
+      result = await sendCloudGreetingTemplate(conversation.phone, tenant?.name);
+      message = addCloudMessage(conversation, 'out', {
+        type: 'template', text: `Hola, ${firstName(tenant?.name)}, ¿cómo estás? ¿Podemos hablar un momento?`,
+        template: process.env.WHATSAPP_GREETING_TEMPLATE || 'saludo_inquilino',
+        whatsappMessageId: result.messages?.[0]?.id || null,
+      });
+    } else {
+      const period = String(req.body?.period || colombiaDate().slice(0, 7));
+      result = await sendCloudPaymentReminderTemplate(conversation.phone, tenant?.name, period);
+      message = addCloudMessage(conversation, 'out', {
+        type: 'template', text: `Recordatorio de pago — ${cloudPeriodLabel(period)}`,
+        template: process.env.WHATSAPP_PAYMENT_REMINDER_TEMPLATE || 'recordatorio_pago',
+        whatsappMessageId: result.messages?.[0]?.id || null,
+      });
+    }
+    saveData();
+    res.json({ ok: true, id: result.messages?.[0]?.id || null, message });
+  } catch (error) {
+    res.status(502).json({ error: `No fue posible enviar la plantilla: ${error.message}` });
+  }
 });
 
 app.post('/api/whatsapp/cloud/send-media', (req, res) => {
