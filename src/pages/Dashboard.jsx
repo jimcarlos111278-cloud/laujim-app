@@ -10,7 +10,7 @@ import { notifyPaymentReminder } from '../utils/notifications';
 import ThemeSelector from '../components/ThemeSelector';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ totalApts: 0, occupied: 0, vacant: 0, totalTenants: 0, monthlyIncome: 0, expectedIncome: 0, collectedIncome: 0, pendingPayments: 0, vacantApts: [], overdue: [], thisMonthMissing: [], nextMonthMissing: [], nextMonthAlreadyPaid: [] });
+  const [stats, setStats] = useState({ totalApts: 0, occupied: 0, vacant: 0, totalTenants: 0, monthlyIncome: 0, expectedIncome: 0, collectedIncome: 0, pendingPayments: 0, vacantApts: [], overdue: [], lastMonthMissing: [], thisMonthMissing: [], nextMonthMissing: [], nextMonthAlreadyPaid: [] });
   const [showPay, setShowPay] = useState(null);
   const [payStep, setPayStep] = useState('period');
   const [payPeriod, setPayPeriod] = useState(getCurrentPeriod());
@@ -51,6 +51,8 @@ export default function Dashboard() {
 
     const occupiedApts = apartments.filter(a => a.status === 'occupied');
     const currentPeriod = getCurrentPeriod();
+    const previousPeriodDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousPeriod = `${previousPeriodDate.getFullYear()}-${String(previousPeriodDate.getMonth() + 1).padStart(2, '0')}`;
 
     const enriched = occupiedApts.map(a => {
       const { daysLeft, targetDate } = daysUntil(a.paymentDueDay);
@@ -58,10 +60,11 @@ export default function Dashboard() {
         .filter(p => p.apartmentId === a.id && p.type === 'rent')
         .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
       const periodPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === currentPeriod);
+      const previousPeriodPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === previousPeriod);
       const paidThisPeriod = !!periodPayment;
       const contract = activeContracts.find(c => c.apartmentId === a.id);
       const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
-      return { ...a, daysLeft, targetDate, lastPayment, periodPayment, paidThisPeriod, rent: contract?.monthlyRent || a.monthlyRent, tenant, contract };
+      return { ...a, daysLeft, targetDate, lastPayment, periodPayment, previousPeriodPayment, paidThisPeriod, rent: contract?.monthlyRent || a.monthlyRent, tenant, contract };
     });
 
     const overdue = enriched
@@ -71,6 +74,11 @@ export default function Dashboard() {
     const thisMonthMissing = enriched
       .filter(a => a.paymentDueDay > currentDay && !a.paidThisPeriod)
       .sort((a, b) => a.daysLeft - b.daysLeft);
+
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const lastMonthMissing = enriched
+      .filter(a => !a.previousPeriodPayment && (!a.contract?.startDate || new Date(a.contract.startDate) <= lastMonthEnd))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
     const nextPeriodStr = nextPeriod(currentPeriod);
     const nextMonthPaid = occupiedApts.map(a => {
@@ -83,7 +91,7 @@ export default function Dashboard() {
     const nextMonthAlreadyPaid = nextMonthPaid.filter(a => a.paidNext);
 
     const thisMonthPaid = enriched.filter(a => a.paymentDueDay > currentDay && a.paidThisPeriod);
-    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, thisMonthMissing, nextMonthMissing: nextMonthNotPaid, thisMonthPaid, nextMonthAlreadyPaid });
+    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedTotal, collectedThisMonth, pendingPayments, vacantApts, overdue, lastMonthMissing, thisMonthMissing, nextMonthMissing: nextMonthNotPaid, thisMonthPaid, nextMonthAlreadyPaid });
   }
 
   function openPayModal(apt, period) {
@@ -173,6 +181,9 @@ export default function Dashboard() {
   const currentMonthLabel = now.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
   const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const nextMonthLabel = nextMonthDate.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthLabel = lastMonthDate.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
+  const lastMonthPeriod = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
   const sortedOverdue = useMemo(() => {
     const list = [...stats.overdue];
@@ -225,6 +236,7 @@ export default function Dashboard() {
         <StatsCard title="Ingreso Ocupados" value={formatCurrency(stats.expectedIncome)} subtitle="Canones activos" icon={DollarSign} color="purple" />
         <StatsCard title="Potencial Total" value={formatCurrency(stats.maxPotentialIncome)} subtitle="Si todos ocupados" icon={Building2} color="blue" />
         <StatsCard title="Recolectado Total" value={formatCurrency(stats.collectedIncome)} subtitle={`${formatCurrency(stats.collectedThisMonth)} este mes / ${formatCurrency(stats.expectedIncome)} esperado`} icon={TrendingUp} color="green" />
+        <StatsCard title="Mes pasado sin pagar" value={stats.lastMonthMissing.length} subtitle={stats.lastMonthMissing.length ? `${formatCurrency(stats.lastMonthMissing.reduce((sum, apt) => sum + (apt.rent || 0), 0))} pendiente` : 'Todo al día'} icon={AlertCircle} color="red" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -288,6 +300,30 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {stats.lastMonthMissing.length > 0 && (
+        <div className="bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-200 dark:border-red-900 p-4 sm:p-5">
+          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-3 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            Mes pasado aún faltan por pagar — {lastMonthLabel}
+            <span className="text-sm font-normal text-red-600 dark:text-red-400">({stats.lastMonthMissing.length} pendiente(s))</span>
+          </h3>
+          <div className="space-y-2">
+            {stats.lastMonthMissing.map(apt => (
+              <div key={apt.id} className="flex flex-col gap-3 rounded-lg border border-red-200 dark:border-red-900 bg-white/80 dark:bg-gray-900/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <Link to={`/apartments/${apt.id}`} className="font-medium text-gray-900 dark:text-white hover:underline">{apt.name}</Link>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{apt.tenant?.name || 'Sin inquilino asignado'} · {formatCurrency(apt.rent)}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {apt.tenant?.phone && <a href={`tel:${apt.tenant.phone}`} className="px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">Llamar</a>}
+                  <button onClick={() => openPayModal(apt, lastMonthPeriod)} className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Registrar pago</button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
