@@ -17,6 +17,7 @@ const INITIAL_DATA = {
   presence: [],
   leads: [],
   authSessions: [],
+  paymentReminderLogs: [],
 };
 
 module.exports = { INITIAL_DATA };

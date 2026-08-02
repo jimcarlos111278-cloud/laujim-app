@@ -30,6 +30,9 @@ export default function Dashboard() {
       api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(), api.payments.toArray(), api.expenses.toArray(),
     ]);
 
+    // Pending proof submissions are visible in Pagos, but only approved
+    // payments represent money actually collected in dashboard metrics.
+    const approvedPayments = payments.filter(p => p.status !== 'pending_validation' && p.status !== 'rejected');
     const occupied = apartments.filter(a => a.status === 'occupied').length;
     const vacant = apartments.filter(a => a.status === 'vacant').length;
     const vacantApts = apartments.filter(a => a.status === 'vacant');
@@ -47,8 +50,8 @@ export default function Dashboard() {
 
     // Payment period tells us which rent is covered; date tells us when cash was received.
     // Revenue widgets and monthly reports must group by receipt date.
-    const paidForCurrentPeriod = payments.filter(p => p.type === 'rent' && p.period === currentPeriod);
-    const paymentsReceivedInSelectedMonth = payments.filter(p => p.type === 'rent' && p.date?.slice(0, 7) === collectionPeriod);
+    const paidForCurrentPeriod = approvedPayments.filter(p => p.type === 'rent' && p.period === currentPeriod);
+    const paymentsReceivedInSelectedMonth = approvedPayments.filter(p => p.type === 'rent' && p.date?.slice(0, 7) === collectionPeriod);
     const collectedThisMonth = paymentsReceivedInSelectedMonth.reduce((sum, p) => sum + (p.amount || 0), 0);
     const pendingPayments = Math.max(0, activeContracts.length - paidForCurrentPeriod.length);
 
@@ -58,11 +61,11 @@ export default function Dashboard() {
 
     const enriched = occupiedApts.map(a => {
       const { daysLeft, targetDate } = daysUntil(a.paymentDueDay);
-      const lastPayment = payments
+      const lastPayment = approvedPayments
         .filter(p => p.apartmentId === a.id && p.type === 'rent')
         .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-      const periodPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === currentPeriod);
-      const previousPeriodPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === previousPeriod);
+      const periodPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === currentPeriod);
+      const previousPeriodPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === previousPeriod);
       const paidThisPeriod = !!periodPayment;
       const contract = activeContracts.find(c => c.apartmentId === a.id);
       const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
@@ -85,7 +88,7 @@ export default function Dashboard() {
     const nextPeriodStr = nextPeriod(currentPeriod);
     const nextMonthPaid = occupiedApts.map(a => {
       const contract = activeContracts.find(c => c.apartmentId === a.id);
-      const nextPayment = payments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === nextPeriodStr);
+      const nextPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === nextPeriodStr);
       const tenant = contract ? tenants.find(t => t.id === contract.tenantId) : null;
       return { ...a, rent: contract?.monthlyRent || a.monthlyRent, nextPayment, paidNext: !!nextPayment, tenant, contract };
     }).sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
@@ -143,6 +146,8 @@ export default function Dashboard() {
       period: payPeriod,
       type: 'rent',
       paymentMode: 'full',
+      status: 'approved',
+      approvedAt: new Date().toISOString(),
       description: `Pago de arriendo - ${showPay.name} (${getPeriodLabel(payPeriod)})`,
       createdAt: new Date().toISOString(),
     });

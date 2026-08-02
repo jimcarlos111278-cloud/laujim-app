@@ -13,7 +13,7 @@ function getPaymentStatus(payments, period, apartment) {
   if (apartment.status === 'vacant') return 'vacant';
 
   const payment = payments.find(
-    p => p.period === period && p.type === 'rent'
+    p => p.period === period && p.type === 'rent' && p.status !== 'pending_validation' && p.status !== 'rejected'
   );
 
   if (!payment || !payment.paid) return 'noData';
@@ -35,7 +35,7 @@ function getChartData(apartment, payments) {
 
   for (let i = 0; i < MONTHS_TO_SHOW; i++) {
     const status = getPaymentStatus(payments, current, apartment);
-    const payment = payments.find(p => p.period === current && p.type === 'rent');
+    const payment = payments.find(p => p.period === current && p.type === 'rent' && p.status !== 'pending_validation' && p.status !== 'rejected');
     data.unshift({
       period: current,
       label: getPeriodLabel(current),

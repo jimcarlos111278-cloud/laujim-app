@@ -80,6 +80,8 @@ export default function ApartmentDetail() {
       marketplaceBedrooms: a.marketplaceBedrooms !== undefined ? a.marketplaceBedrooms : a.rooms || '',
       marketplaceBathrooms: a.marketplaceBathrooms !== undefined ? a.marketplaceBathrooms : a.bathrooms || '',
       marketplaceRentalType: a.marketplaceRentalType || 'Departamento/condominio',
+      paymentRemindersEnabled: a.paymentRemindersEnabled !== false,
+      paymentReminderDays: Array.isArray(a.paymentReminderDays) ? a.paymentReminderDays : [-3, 0, 3],
     });
 
     const [allC, allP, allE, allV, allF, allT, allPhotos, allU] = await Promise.all([
@@ -125,6 +127,9 @@ export default function ApartmentDetail() {
       waterReadingDay: Number(form.waterReadingDay || 10),
       gasReadingDay: Number(form.gasReadingDay || 12),
       electricityReadingDay: Number(form.electricityReadingDay || 15),
+      paymentRemindersEnabled: form.paymentRemindersEnabled !== false,
+      paymentReminderDays: (Array.isArray(form.paymentReminderDays) ? form.paymentReminderDays : [-3, 0, 3])
+        .map(Number).filter(day => Number.isInteger(day) && day >= -15 && day <= 31),
       waterPaymentUrl: form.waterPaymentUrl || '',
       gasPaymentUrl: form.gasPaymentUrl || '',
       electricityPaymentUrl: autoUrl || form.electricityPaymentUrl || '',
@@ -651,7 +656,7 @@ export default function ApartmentDetail() {
 
   if (!apt) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>;
 
-  const totalIncome = payments.filter(p => p.type === 'rent').reduce((s, p) => s + (p.amount || 0), 0);
+  const totalIncome = payments.filter(p => p.type === 'rent' && p.status !== 'pending_validation' && p.status !== 'rejected').reduce((s, p) => s + (p.amount || 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0) + payments.filter(p => p.type === 'expense').reduce((s, p) => s + (p.amount || 0), 0);
   const { daysLeft: daysToPay, targetDate: nextPayDate } = daysUntil(apt.paymentDueDay);
 
@@ -1127,6 +1132,15 @@ export default function ApartmentDetail() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Día de Pago</label>
               <input type="number" min="1" max="31" value={form.paymentDueDay} onChange={e => setForm({...form, paymentDueDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Recordatorios WhatsApp</label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 mt-2"><input type="checkbox" checked={form.paymentRemindersEnabled !== false} onChange={e => setForm({...form, paymentRemindersEnabled: e.target.checked})} className="rounded border-gray-300" /> Enviar recordatorios de pago</label>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Días para recordar</label>
+              <input type="text" value={(form.paymentReminderDays || [-3, 0, 3]).join(', ')} onChange={e => setForm({...form, paymentReminderDays: e.target.value.split(',').map(value => Number(value.trim())).filter(value => Number.isInteger(value))})} placeholder="-3, 0, 3" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <p className="text-xs text-gray-400 mt-1">Usa números separados por coma: -3 es tres días antes, 0 el día de pago y 3 tres días después.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>

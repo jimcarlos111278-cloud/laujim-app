@@ -308,7 +308,7 @@ function tenantBelongsToApartment(tenant, apartmentId) {
 }
 
 function ensureCloudCollections() {
-  for (const name of ['whatsappContacts', 'whatsappConversations', 'whatsappMessages', 'whatsappAuthStates', 'whatsappBlockedUsers', 'whatsappProcessedMessages']) {
+  for (const name of ['whatsappContacts', 'whatsappConversations', 'whatsappMessages', 'whatsappAuthStates', 'whatsappBlockedUsers', 'whatsappProcessedMessages', 'paymentReminderLogs']) {
     if (!Array.isArray(db[name])) db[name] = [];
     if (!nextId[name]) nextId[name] = db[name].reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
   }
@@ -612,6 +612,136 @@ function sendCloudGreetingTemplate(to, name) {
   });
 }
 
+// This template must be created and approved in WhatsApp Manager. It only has
+// one body variable: the tenant's first name. Configure the exact template name
+// in Render with WHATSAPP_PAYMENT_REMINDER_TEMPLATE.
+function sendCloudPaymentReminderTemplate(to, name) {
+  const templateName = String(process.env.WHATSAPP_PAYMENT_REMINDER_TEMPLATE || 'recordatorio_pago').trim();
+  return cloudApiRequest('/messages', 'POST', {
+    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'template',
+    template: {
+      name: templateName, language: { code: 'es_CO' },
+      components: [{ type: 'body', parameters: [{ type: 'text', text: firstName(name) }] }],
+    },
+  });
+}
+
+function colombiaDate(date = new Date()) {
+  const values = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date).reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function paymentPeriod(payment) {
+  return String(payment?.period || payment?.date || '').slice(0, 7);
+}
+
+function paymentCountsAsCollected(payment) {
+  return payment?.status !== 'pending_validation' && payment?.status !== 'rejected';
+}
+
+function activeContractForApartment(apartmentId) {
+  const now = Date.now();
+  return (db.contracts || []).find(contract => Number(contract.apartmentId) === Number(apartmentId) &&
+    contract.status !== 'terminated' && contract.status !== 'cancelled' &&
+    (!contract.endDate || new Date(contract.endDate).getTime() >= now));
+}
+
+function paymentReminderOffsets(apartment) {
+  const offsets = Array.isArray(apartment?.paymentReminderDays) ? apartment.paymentReminderDays : [-3, 0, 3];
+  return [...new Set(offsets.map(Number).filter(day => Number.isInteger(day) && day >= -15 && day <= 31))];
+}
+
+async function runPaymentReminders({ force = false } = {}) {
+  ensureCloudCollections();
+  const today = colombiaDate();
+  const period = today.slice(0, 7);
+  const [year, month] = period.split('-').map(Number);
+  const result = { checked: 0, sent: 0, skipped: 0, failed: 0, period };
+  if (!cloudReady()) return { ...result, error: 'WhatsApp Cloud API no está configurada' };
+
+  for (const apartment of db.apartments || []) {
+    if (apartment.status !== 'occupied' || apartment.paymentRemindersEnabled === false) continue;
+    const contract = activeContractForApartment(apartment.id);
+    const tenant = contract && (db.tenants || []).find(item => Number(item.id) === Number(contract.tenantId));
+    if (!tenant?.phone) continue;
+    const dueDay = Math.min(31, Math.max(1, Number(apartment.paymentDueDay) || 5));
+    // A configured day 31 should mean the last day in shorter months, not a
+    // reminder accidentally moving to the following month.
+    const dueAt = new Date(Date.UTC(year, month, 0));
+    dueAt.setUTCDate(Math.min(dueDay, dueAt.getUTCDate()));
+    for (const offset of paymentReminderOffsets(apartment)) {
+      const target = new Date(dueAt);
+      target.setUTCDate(target.getUTCDate() + offset);
+      if (colombiaDate(target) !== today) continue;
+      result.checked++;
+      const key = `${apartment.id}:${period}:${offset}`;
+      if (!force && db.paymentReminderLogs.some(log => log.key === key)) { result.skipped++; continue; }
+      const alreadyPaid = (db.payments || []).some(payment => Number(payment.apartmentId) === Number(apartment.id) &&
+        payment.type === 'rent' && paymentPeriod(payment) === period && paymentCountsAsCollected(payment));
+      const awaitingReview = (db.payments || []).some(payment => Number(payment.apartmentId) === Number(apartment.id) &&
+        payment.type === 'rent' && paymentPeriod(payment) === period && payment.status === 'pending_validation');
+      if (alreadyPaid || awaitingReview) { result.skipped++; continue; }
+      const log = { id: nextId.paymentReminderLogs++, key, apartmentId: apartment.id, tenantId: tenant.id, period, offset,
+        createdAt: new Date().toISOString(), status: 'sent' };
+      try {
+        const sent = await sendCloudPaymentReminderTemplate(tenant.phone, tenant.name);
+        const conversation = getCloudConversation({ phone: tenant.phone, tenantId: tenant.id, apartmentId: apartment.id });
+        addCloudMessage(conversation, 'out', { type: 'template', text: `Recordatorio de pago (${period})`,
+          template: process.env.WHATSAPP_PAYMENT_REMINDER_TEMPLATE || 'recordatorio_pago', whatsappMessageId: sent.messages?.[0]?.id || null });
+        db.paymentReminderLogs.push(log);
+        result.sent++;
+      } catch (error) {
+        db.paymentReminderLogs.push({ ...log, status: 'failed', error: error.message });
+        result.failed++;
+        console.error('[WHATSAPP CLOUD] payment reminder error:', error.message);
+      }
+    }
+  }
+  saveData();
+  return result;
+}
+
+function cloudInteractiveReply(message) {
+  const reply = message?.interactive?.button_reply || message?.interactive?.list_reply;
+  return reply ? { id: String(reply.id || ''), title: String(reply.title || '') } : null;
+}
+
+function requestedPaymentProof(conversation, period = colombiaDate().slice(0, 7)) {
+  conversation.paymentProofRequestedAt = new Date().toISOString();
+  conversation.paymentProofPeriod = period;
+}
+
+function paymentProofIsActive(conversation) {
+  return !!conversation?.paymentProofRequestedAt &&
+    Date.now() - new Date(conversation.paymentProofRequestedAt).getTime() < 72 * 60 * 60 * 1000;
+}
+
+function createPendingPaymentFromProof(conversation, media, messageId) {
+  if (!media?.storageKey || media.archiveStatus !== 'stored') return null;
+  const apartment = (db.apartments || []).find(item => Number(item.id) === Number(conversation.apartmentId));
+  const contract = activeContractForApartment(conversation.apartmentId);
+  const period = conversation.paymentProofPeriod || colombiaDate().slice(0, 7);
+  const submittedAt = new Date().toISOString();
+  const existing = (db.payments || []).find(payment => Number(payment.apartmentId) === Number(conversation.apartmentId) &&
+    payment.type === 'rent' && paymentPeriod(payment) === period && payment.status === 'pending_validation');
+  const details = {
+    apartmentId: Number(conversation.apartmentId), contractId: contract?.id || null, tenantId: conversation.tenantId || null,
+    amount: Number(contract?.monthlyRent || apartment?.monthlyRent || 0), date: colombiaDate(), period, type: 'rent',
+    paymentMode: 'full', status: 'pending_validation', origin: 'whatsapp', submittedAt,
+    receiptMedia: media, receiptMessageId: messageId,
+    description: `Comprobante de pago por WhatsApp - ${apartment?.name || 'apartamento'} (${period})`,
+  };
+  if (existing) {
+    Object.assign(existing, details, { updatedAt: submittedAt });
+    return existing;
+  }
+  const payment = { id: nextId.payments++, ...details, createdAt: submittedAt };
+  db.payments.push(payment);
+  return payment;
+}
+
 function transcodeVoiceNote(file) {
   const isBrowserRecording = /^audio\/webm/i.test(String(file?.mimetype || ''));
   if (!isBrowserRecording || !ffmpegPath) return Promise.resolve(file);
@@ -713,12 +843,36 @@ async function handleCloudInbound(message) {
     conversation.lastInboundAt = new Date().toISOString();
     conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const type = message.type || 'unknown';
+    const interactive = cloudInteractiveReply(message);
     // Content and media identifiers are persisted only after authorization.
     const media = await archiveCloudInboundMedia(cloudInboundMedia(message, type));
-    addCloudMessage(conversation, 'in', {
-      type, text: type === 'text' ? (message.text?.body || '') : (media?.caption || ''),
+    const incoming = addCloudMessage(conversation, 'in', {
+      type, text: type === 'text' ? (message.text?.body || '') : (interactive?.title || media?.caption || ''),
       mediaId: media?.id || null, media, whatsappMessageId: message.id,
     });
+    const writtenConfirmation = type === 'text' && /^(?:ya\s+)?(?:lo\s+)?pag(?:u[eé]|ue)(?:\.|\s|$)/i.test(message.text?.body || '');
+    const confirmedWithButton = type === 'interactive' && (interactive?.id === 'payment_confirmed' || /^ya\s+pag(?:u[eé]|ue)/i.test(interactive?.title || ''));
+    if (confirmedWithButton || writtenConfirmation) {
+      requestedPaymentProof(conversation);
+      saveData();
+      try {
+        const sent = await sendCloudText(phone, 'Perfecto. Envía por aquí una foto o PDF del comprobante para revisarlo.');
+        addCloudMessage(conversation, 'out', {
+          type: 'text', text: 'Perfecto. Envía por aquí una foto o PDF del comprobante para revisarlo.',
+          whatsappMessageId: sent.messages?.[0]?.id || null,
+        });
+        saveData();
+      } catch (error) { console.error('[WHATSAPP CLOUD] proof request error:', error.message); }
+      return;
+    }
+    if (media && paymentProofIsActive(conversation)) {
+      const payment = createPendingPaymentFromProof(conversation, media, incoming.id);
+      if (payment) {
+        conversation.paymentProofRequestedAt = null;
+        conversation.paymentProofPeriod = null;
+        console.log(`[WHATSAPP CLOUD] payment proof pending validation: ${payment.id}`);
+      }
+    }
     saveData();
     return;
   }
@@ -826,7 +980,7 @@ function loadData() {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
-  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence'].forEach(k => { if (!db[k]) db[k] = []; });
+  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs'].forEach(k => { if (!db[k]) db[k] = []; });
   if (pruneAuthSessions()) console.log('Expired authentication sessions removed');
   recalcNextId();
 }
@@ -1452,6 +1606,69 @@ app.get('/api/whatsapp/cloud/messages/:messageId/media', async (req, res) => {
     proxy.setTimeout(30000, () => proxy.destroy(new Error('La descarga del archivo tardó demasiado')));
     proxy.end();
   } catch (error) { res.status(502).json({ error: error.message }); }
+});
+
+// Payment proofs are kept as regular payment records so they share the same
+// history and reports, but nothing reaches the collected-income metrics until
+// an administrator explicitly approves it.
+app.get('/api/whatsapp/cloud/payment-validations', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const validations = (db.payments || []).filter(payment => payment.status === 'pending_validation').map(payment => {
+    const apartment = (db.apartments || []).find(item => Number(item.id) === Number(payment.apartmentId));
+    const tenant = (db.tenants || []).find(item => Number(item.id) === Number(payment.tenantId));
+    return { ...payment, apartmentName: apartment?.name || 'Apartamento', tenantName: tenant?.name || 'Inquilino' };
+  }).sort((a, b) => new Date(b.submittedAt || b.createdAt || 0) - new Date(a.submittedAt || a.createdAt || 0));
+  res.json(validations);
+});
+
+app.get('/api/whatsapp/cloud/payment-validations/:id/proof', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const payment = (db.payments || []).find(item => Number(item.id) === Number(req.params.id));
+  if (!payment?.receiptMedia?.storageKey) return res.status(404).json({ error: 'El comprobante no está disponible en el almacenamiento permanente' });
+  try {
+    await streamR2Object(payment.receiptMedia.storageKey, res, {
+      fileName: payment.receiptMedia.fileName || `comprobante-${payment.id}`,
+      mimeType: payment.receiptMedia.mimeType,
+    });
+  } catch (error) { res.status(502).json({ error: `No fue posible abrir el comprobante: ${error.message}` }); }
+});
+
+app.post('/api/whatsapp/cloud/payment-validations/:id/approve', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const payment = (db.payments || []).find(item => Number(item.id) === Number(req.params.id));
+  if (!payment) return res.status(404).json({ error: 'Pago no encontrado' });
+  if (payment.status !== 'pending_validation') return res.status(409).json({ error: 'Este comprobante ya fue revisado' });
+  const amount = req.body?.amount === undefined ? payment.amount : Number(req.body.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'El valor aprobado debe ser mayor que cero' });
+  payment.amount = amount;
+  payment.status = 'approved';
+  payment.approvedAt = new Date().toISOString();
+  payment.approvedBy = req.auth?.name || 'Administrador';
+  payment.updatedAt = payment.approvedAt;
+  saveData();
+  res.json(payment);
+});
+
+app.post('/api/whatsapp/cloud/payment-validations/:id/reject', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const payment = (db.payments || []).find(item => Number(item.id) === Number(req.params.id));
+  if (!payment) return res.status(404).json({ error: 'Pago no encontrado' });
+  if (payment.status !== 'pending_validation') return res.status(409).json({ error: 'Este comprobante ya fue revisado' });
+  payment.status = 'rejected';
+  payment.rejectedAt = new Date().toISOString();
+  payment.rejectedBy = req.auth?.name || 'Administrador';
+  payment.rejectionReason = String(req.body?.reason || '').trim();
+  payment.updatedAt = payment.rejectedAt;
+  saveData();
+  res.json(payment);
+});
+
+// Useful for checking the scheduled reminder setup without waiting for the
+// next hourly run. It still sends only reminders that are due today.
+app.post('/api/whatsapp/cloud/reminders/run', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  try { res.json(await runPaymentReminders({ force: req.body?.force === true })); }
+  catch (error) { res.status(502).json({ error: error.message }); }
 });
 
 app.post('/api/whatsapp/cloud/send', async (req, res) => {
@@ -2111,6 +2328,13 @@ app.use((req, res) => {
       }
     }
     console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode'));
+
+    // Check when the service starts and then once an hour. The log prevents a
+    // deployment restart from sending the same scheduled reminder twice.
+    runPaymentReminders().catch(error => console.error('[WHATSAPP CLOUD] reminder run error:', error.message));
+    setInterval(() => {
+      runPaymentReminders().catch(error => console.error('[WHATSAPP CLOUD] reminder run error:', error.message));
+    }, 60 * 60 * 1000).unref();
 
     if (LEGACY_BAILEYS_ENABLED && process.env.AUTO_START_BOT !== 'false' && !BOT_IS_EXTERNAL) {
       startBot();

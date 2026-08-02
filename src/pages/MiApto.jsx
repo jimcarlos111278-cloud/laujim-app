@@ -44,7 +44,8 @@ export default function MiApto() {
   );
 
   const currentPeriod = getCurrentPeriod();
-  const paidThisPeriod = payments.some(p => p.date && p.date.startsWith(currentPeriod));
+  const paidThisPeriod = payments.some(p => p.type === 'rent' && p.status !== 'pending_validation' && p.status !== 'rejected' && (p.period === currentPeriod || p.date?.startsWith(currentPeriod)));
+  const proofPending = payments.some(p => p.type === 'rent' && p.status === 'pending_validation' && (p.period === currentPeriod || p.date?.startsWith(currentPeriod)));
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -83,6 +84,8 @@ export default function MiApto() {
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
                   <CheckCircle2 className="w-3 h-3" /> Pagado este mes
                 </span>
+              ) : proofPending ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 text-xs rounded-full font-medium">Comprobante en validación</span>
               ) : (
                 <span className="text-amber-600 font-medium text-sm">{formatRelativeDueDate(apt.paymentDueDay)}</span>
               )}
@@ -165,7 +168,7 @@ export default function MiApto() {
                   <span className="text-gray-600 dark:text-gray-400">{formatShortDate(p.date)}</span>
                   <div className="flex items-center gap-2">
                     {p.period && <span className="text-xs text-gray-400">{p.period}</span>}
-                    <strong className="text-emerald-600">{formatCurrency(p.amount)}</strong>
+                    <strong className={p.status === 'pending_validation' ? 'text-amber-600' : p.status === 'rejected' ? 'text-red-600' : 'text-emerald-600'}>{formatCurrency(p.amount)}</strong>
                   </div>
                 </div>
               ))}

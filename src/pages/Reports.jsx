@@ -22,7 +22,8 @@ export default function Reports() {
     setApartments(a); setPayments(p); setExpenses(e); setContracts(c); setVacancies(v);
   }
 
-  const paymentsThisYear = payments.filter(p => p.date && p.date.startsWith(String(year)));
+  // A submitted WhatsApp receipt is not income until it has been approved.
+  const paymentsThisYear = payments.filter(p => p.status !== 'pending_validation' && p.status !== 'rejected' && p.date && p.date.startsWith(String(year)));
   const expensesThisYear = expenses.filter(e => e.date && e.date.startsWith(String(year)));
 
   const monthlyIncome = Array.from({length: 12}, (_, i) => {

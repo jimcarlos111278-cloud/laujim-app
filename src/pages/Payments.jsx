@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, DollarSign, Filter, Trash2 } from 'lucide-react';
+import { Plus, Search, DollarSign, Filter, Trash2, Check, X, Eye, Clock3 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { formatCurrency, formatShortDate } from '../utils/helpers';
+import { AUTH_TOKEN, getBase } from '../utils/config';
 
 export default function Payments() {
   const [payments, setPayments] = useState([]);
@@ -15,6 +16,7 @@ export default function Payments() {
   const [showAdd, setShowAdd] = useState(false);
   const [showExpense, setShowExpense] = useState(false);
   const [paymentMode, setPaymentMode] = useState(null);
+  const [reviewingId, setReviewingId] = useState(null);
   const [fullRent, setFullRent] = useState(0);
   const [form, setForm] = useState({ apartmentId: '', contractId: '', amount: '', date: new Date().toISOString().split('T')[0], type: 'rent', description: '', category: '', isUnexpected: false });
 
@@ -67,8 +69,11 @@ export default function Payments() {
       contractId: Number(form.contractId) || null,
       amount: Number(form.amount),
       date: form.date,
+      period: form.date.slice(0, 7),
       type: 'rent',
       paymentMode: paymentMode || 'partial',
+      status: 'approved',
+      approvedAt: new Date().toISOString(),
       description: paymentMode === 'full' ? `Pago completo de arriendo - ${getApartment(Number(form.apartmentId))?.name}` : `Pago parcial de arriendo - ${getApartment(Number(form.apartmentId))?.name}`,
       createdAt: new Date().toISOString(),
     });
@@ -104,7 +109,34 @@ export default function Payments() {
     load();
   }
 
-  const totalPayments = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  async function reviewPayment(payment, action) {
+    const verb = action === 'approve' ? 'aprobar' : 'rechazar';
+    if (!confirm(`¿Seguro que deseas ${verb} este comprobante?`)) return;
+    setReviewingId(payment.id);
+    try {
+      const res = await fetch(`${getBase()}/whatsapp/cloud/payment-validations/${payment.id}/${action}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN }, body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await load();
+    } catch (error) { alert(`No fue posible ${verb} el comprobante: ${error.message}`); }
+    finally { setReviewingId(null); }
+  }
+
+  async function openProof(payment) {
+    try {
+      const res = await fetch(`${getBase()}/whatsapp/cloud/payment-validations/${payment.id}/proof`, { headers: { 'x-auth-token': AUTH_TOKEN } });
+      if (!res.ok) throw new Error(await res.text());
+      const url = URL.createObjectURL(await res.blob());
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) { alert(`No fue posible abrir el comprobante: ${error.message}`); }
+  }
+
+  const pendingValidations = payments.filter(p => p.status === 'pending_validation')
+    .sort((a, b) => new Date(b.submittedAt || b.createdAt) - new Date(a.submittedAt || a.createdAt));
+  const confirmedPayments = payments.filter(p => p.status !== 'pending_validation' && p.status !== 'rejected');
+  const totalPayments = confirmedPayments.reduce((s, p) => s + (p.amount || 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
 
   return (
@@ -169,6 +201,30 @@ export default function Payments() {
         <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500 font-medium">Balance Neto</p><p className={`text-xl font-bold mt-1 ${totalPayments - totalExpenses >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{formatCurrency(totalPayments - totalExpenses)}</p></div>
       </div>
 
+      {pendingValidations.length > 0 && (
+        <section className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock3 className="w-5 h-5 text-amber-600" />
+            <div><h2 className="font-semibold text-amber-950">Comprobantes por validar</h2><p className="text-xs text-amber-800">No se suman al recaudo hasta que los apruebes.</p></div>
+          </div>
+          <div className="space-y-2">
+            {pendingValidations.map(payment => {
+              const apt = getApartment(payment.apartmentId);
+              const tenant = tenants.find(t => t.id === payment.tenantId);
+              const busy = reviewingId === payment.id;
+              return <div key={payment.id} className="bg-white border border-amber-100 rounded-lg p-3 flex flex-col md:flex-row md:items-center gap-3">
+                <div className="min-w-0 flex-1"><p className="font-medium text-gray-900">{apt?.name || 'Apartamento'} · {tenant?.name || 'Inquilino'}</p><p className="text-xs text-gray-500">{formatCurrency(payment.amount)} · Corresponde a {payment.period || 'este período'} · Recibido {formatShortDate(payment.submittedAt || payment.createdAt)}</p></div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => openProof(payment)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:bg-gray-50"><Eye className="w-3.5 h-3.5" /> Ver comprobante</button>
+                  <button disabled={busy} onClick={() => reviewPayment(payment, 'approve')} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-60"><Check className="w-3.5 h-3.5" /> Aprobar</button>
+                  <button disabled={busy} onClick={() => reviewPayment(payment, 'reject')} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60"><X className="w-3.5 h-3.5" /> Rechazar</button>
+                </div>
+              </div>;
+            })}
+          </div>
+        </section>
+      )}
+
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -178,6 +234,7 @@ export default function Payments() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Tipo</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Apartamento</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Concepto</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Estado</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Monto</th>
                 <th className="px-4 py-3 w-10"></th>
               </tr>
@@ -191,6 +248,7 @@ export default function Payments() {
                     <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-medium ${t._color}`}>{t._type}</span></td>
                     <td className="px-4 py-3">{apt?.name || 'General'}</td>
                     <td className="px-4 py-3 text-gray-600">{t.description || t.category || t.type}</td>
+                    <td className="px-4 py-3">{t._type === 'Pago' ? <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.status === 'pending_validation' ? 'bg-amber-100 text-amber-700' : t.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>{t.status === 'pending_validation' ? 'En validación' : t.status === 'rejected' ? 'Rechazado' : 'Aprobado'}</span> : <span className="text-gray-400">—</span>}</td>
                     <td className="px-4 py-3 text-right font-medium">{formatCurrency(t.amount)}</td>
                     <td className="px-4 py-3">
                       <button onClick={() => handleDelete(t.id, t._type)} className="p-1 text-gray-300 hover:text-red-500 transition-colors" title="Eliminar">
