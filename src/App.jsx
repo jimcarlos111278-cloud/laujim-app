@@ -19,6 +19,7 @@ import ContractGenerator from './pages/ContractGenerator';
 import Settings from './pages/Settings';
 import Chat from './pages/Chat';
 import WhatsAppBot from './pages/WhatsAppBot';
+import WhatsAppInbox from './pages/WhatsAppInbox';
 import PublicApartments from './pages/PublicApartments';
 import PublicApartment from './pages/PublicApartment';
 import Login from './pages/Login';
@@ -110,6 +111,7 @@ function PrivateApp() {
                   <Route path="/generate-contract/:id" element={<ContractGenerator />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/whatsapp-bot" element={<WhatsAppBot />} />
+                  <Route path="/whatsapp" element={<WhatsAppInbox />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
                 <VersionBanner />

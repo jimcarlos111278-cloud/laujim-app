@@ -16,6 +16,7 @@ const navItems = [
   { to: '/generate-contract', label: 'Generar Contrato', icon: ScrollText },
   { to: '/payments', label: 'Pagos', icon: DollarSign },
   { to: '/chat', label: 'Chat', icon: MessageCircle },
+  { to: '/whatsapp', label: 'WhatsApp Cloud', icon: MessageCircle },
   { to: '/whatsapp-bot', label: 'WhatsApp BOT', icon: MessageCircle },
   { to: '/utilities', label: 'Servicios Públicos', icon: Zap },
   { to: '/share', label: 'Compartir', icon: Share2 },
