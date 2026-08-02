@@ -26,7 +26,12 @@ const navItems = [
 export default function Layout({ children }) {
   const [connected, setConnected] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [fontScale, setFontScale] = useState(() => Number(localStorage.getItem('font-scale') || 1));
+  const compactScreen = typeof window !== 'undefined' && window.innerWidth < 640;
+  const maxFontScale = compactScreen ? 1.15 : 2;
+  const [fontScale, setFontScale] = useState(() => {
+    const saved = Number(localStorage.getItem('font-scale') || 1);
+    return Math.max(0.85, Math.min(typeof window !== 'undefined' && window.innerWidth < 640 ? 1.15 : 2, saved));
+  });
   const [installPrompt, setInstallPrompt] = useState(null);
   const location = useLocation();
 
@@ -55,7 +60,9 @@ export default function Layout({ children }) {
   }, []);
 
   function changeFontSize(delta) {
-    const next = Math.max(0.5, Math.min(2.0, fontScale + delta));
+    // Layout zoom can make words split on compact Android screens. Keep the
+    // accessibility control useful without allowing it to collapse columns.
+    const next = Math.max(compactScreen ? 0.85 : 0.5, Math.min(maxFontScale, fontScale + delta));
     setFontScale(next);
     localStorage.setItem('font-scale', String(next));
     document.documentElement.style.setProperty('--font-scale', next);
@@ -80,7 +87,7 @@ export default function Layout({ children }) {
         <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="flex items-center gap-2">
             <Home className="w-5 h-5 text-blue-600" />
-            <span className="font-bold text-base text-gray-900 dark:text-white">Gestión Aptos</span>
+            <span className="font-bold text-base text-gray-900 dark:text-white whitespace-nowrap">Gestión Aptos</span>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400 lg:hidden">
             <X className="w-5 h-5" />
@@ -98,7 +105,7 @@ export default function Layout({ children }) {
               }
             >
               <item.icon className={`${item.sub ? 'w-4 h-4' : 'w-5 h-5'}`} />
-              {item.label}
+              <span className="min-w-0 whitespace-nowrap">{item.label}</span>
             </NavLink>
           ))}
         </nav>
@@ -128,7 +135,7 @@ export default function Layout({ children }) {
           </button>
           <div className="flex items-center gap-2">
             <Home className="w-5 h-5 text-blue-600" />
-            <span className="font-semibold text-gray-900 dark:text-white">Gestión Aptos</span>
+            <span className="font-semibold text-gray-900 dark:text-white truncate">Gestión Aptos</span>
           </div>
           {installPrompt && <button onClick={installApp} className="ml-auto inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2 py-1.5 text-xs font-medium text-white"><Download className="w-3.5 h-3.5" /> Instalar app</button>}
         </header>

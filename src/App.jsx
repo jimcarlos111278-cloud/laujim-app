@@ -77,7 +77,11 @@ function PrivateApp() {
     })();
     const callerSyncTimer = setInterval(syncCallScreening, 60000);
     try { initTheme(); } catch (e) { console.error('Theme init error:', e); }
-    if (isCapacitor() || window.innerWidth < 900) document.documentElement.classList.add('force-desktop');
+    // The APK uses the same responsive layout as the web app. The previous
+    // desktop-forcing class compressed narrow Android screens and made labels
+    // split in the middle of words.
+    document.documentElement.classList.remove('force-desktop');
+    document.documentElement.classList.toggle('app-android', isCapacitor());
     return () => clearInterval(callerSyncTimer);
   }, []);
 

@@ -38,7 +38,7 @@ html, body, #root {
 }
 
 table { width: 100%; }
-td, th { word-break: break-word; }
+td, th { word-break: normal; overflow-wrap: normal; }
 
 @media (max-width: 640px) {
   .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -150,31 +150,71 @@ td, th { word-break: break-word; }
 /* ========== FONT SCALE ========== */
 :root { --font-scale: 1; }
 
-/* ========== FORCE DESKTOP LAYOUT (APK + mobile web) ========== */
-.force-desktop {
+/* ========== ANDROID / SMALL-SCREEN LAYOUT ========== */
+/* Do not force a desktop density inside the APK. Android devices vary a lot
+   in width, so the layout follows the actual viewport and keeps controls
+   finger-friendly. */
+.app-android {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
-.force-desktop .app-layout {
-  font-size: 15px;
+.app-layout main { min-width: 0; }
+
+@media (max-width: 640px) {
+  .app-layout {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .app-layout > div > header {
+    padding: 0.75rem;
+  }
+
+  .app-layout main {
+    padding: 0.875rem;
+    overscroll-behavior: contain;
+  }
+
+  /* Android enlarges small form fields when touched. Keeping them at 16px
+     prevents viewport zoom and the resulting horizontal clipping. */
+  .app-layout input,
+  .app-layout select,
+  .app-layout textarea {
+    font-size: 16px;
+  }
+
+  .app-layout button,
+  .app-layout a[role="button"] {
+    min-height: 2.5rem;
+  }
+
+  /* Tables are intentionally scrollable instead of breaking a label such as
+     "Apartamentos" in half on narrow phones. */
+  .app-layout .overflow-x-auto,
+  .app-layout .table-container,
+  .app-layout .overflow-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-layout .overflow-x-auto table,
+  .app-layout .table-container table,
+  .app-layout .overflow-table table {
+    min-width: 38rem;
+  }
+
+  .app-layout th,
+  .app-layout td {
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
 }
 
-.force-desktop .app-layout .p-3 {
-  padding: 0.6rem;
-}
-
-.force-desktop .app-layout .gap-3 {
-  gap: 0.6rem;
-}
-
-.force-desktop .app-layout .text-2xl {
-  font-size: 1.25rem;
-  line-height: 1.6;
-}
-
-.force-desktop .app-layout .rounded-xl {
-  border-radius: 0.6rem;
+@media (max-width: 380px) {
+  .app-layout main { padding: 0.75rem; }
+  .app-layout .text-2xl { font-size: 1.35rem; line-height: 1.25; }
+  .app-layout .p-5 { padding: 1rem; }
 }
 
 /* ========== RESPONSIVE: table containers & flex overflow ========== */
