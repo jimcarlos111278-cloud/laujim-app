@@ -17,9 +17,9 @@ export default function VersionBanner() {
             .then(r => r.json())
             .then(server => {
               if (!server.version) return;
-              const localPatch = Number(local.version.split('.')[2] || 0);
-              const serverPatch = Number(server.version.split('.')[2] || 0);
-              if (serverPatch > localPatch) {
+              const localBuild = Number(local.build || 0);
+              const serverBuild = Number(server.build || 0);
+              if (serverBuild > localBuild) {
                 const key = 'apt_update_' + server.version;
                 if (!sessionStorage.getItem(key)) {
                   setShow({ version: server.version, apkUrl: serverBase + '/app-debug.apk' });

@@ -72,17 +72,19 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
+    <div className="login-scene min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 overflow-hidden">
+      <div className="login-orb login-orb-one" aria-hidden="true" />
+      <div className="login-orb login-orb-two" aria-hidden="true" />
+      <div className="login-content w-full max-w-md relative z-10">
+        <div className="text-center mb-8 login-enter login-enter-1">
+          <div className="login-logo inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-600/25">
             <Building2 className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Apartamentos</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Inicia sesión para continuar</p>
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-6 animate-fadeIn">
+        <div className="flex items-center justify-center gap-2 mb-6 login-enter login-enter-2">
           <button onClick={() => changeViewMode('horizontal')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${vm === 'horizontal' ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-white dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}>
             <Monitor className="w-4 h-4" /> PC
           </button>
@@ -92,7 +94,7 @@ export default function Login() {
           </button>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="login-card bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden login-enter login-enter-3">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button onClick={() => { setTab('admin'); setError(''); }} className={`flex-1 py-3.5 text-sm font-medium text-center transition-colors ${tab === 'admin' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
               <ShieldCheck className="w-4 h-4 mx-auto mb-1" /> Administrador
@@ -139,7 +141,7 @@ export default function Login() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
+        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6 login-enter login-enter-4">
           Los inquilinos ingresan con el número de apartamento y su número de cédula
         </p>
       </div>

@@ -9,6 +9,29 @@
 }
 .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
 
+/* Login: movement is intentionally quiet so it supports, rather than distracts from, access. */
+.login-scene { position: relative; isolation: isolate; }
+.login-orb { position: absolute; z-index: 0; width: 19rem; height: 19rem; border-radius: 9999px; filter: blur(2px); opacity: .42; pointer-events: none; }
+.login-orb-one { background: radial-gradient(circle at 30% 30%, #93c5fd, #6366f1 72%); top: -7rem; left: -6rem; animation: login-float-one 15s ease-in-out infinite; }
+.login-orb-two { background: radial-gradient(circle at 60% 45%, #a7f3d0, #60a5fa 76%); bottom: -8rem; right: -7rem; animation: login-float-two 18s ease-in-out infinite; }
+.login-content { animation: login-content-in .65s cubic-bezier(.16, 1, .3, 1) both; }
+.login-logo { animation: login-logo-breathe 4.5s ease-in-out 1s infinite; }
+.login-card { backdrop-filter: blur(8px); }
+.login-enter { opacity: 0; animation: login-enter .55s cubic-bezier(.16, 1, .3, 1) forwards; }
+.login-enter-1 { animation-delay: .08s; }
+.login-enter-2 { animation-delay: .16s; }
+.login-enter-3 { animation-delay: .24s; }
+.login-enter-4 { animation-delay: .32s; }
+@keyframes login-content-in { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes login-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes login-logo-breathe { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-2px) scale(1.03); } }
+@keyframes login-float-one { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(3rem, 2rem, 0) scale(1.08); } }
+@keyframes login-float-two { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(-3rem, -2rem, 0) scale(1.1); } }
+@media (prefers-reduced-motion: reduce) {
+  .login-orb, .login-content, .login-logo, .login-enter { animation: none !important; }
+  .login-enter { opacity: 1; }
+}
+
 html, body, #root {
   overflow-x: hidden;
   max-width: 100vw;
