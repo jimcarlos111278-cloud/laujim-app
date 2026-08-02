@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Calendar, DollarSign, FileText, Droplets, Flame, Zap, LogOut, Download, Hash, MapPin, CheckCircle2, MessageCircle, Send } from 'lucide-react';
-import { getAuth, clearAuth, isTenant } from '../utils/auth';
+import { Building2, Calendar, DollarSign, FileText, Droplets, Flame, Zap, LogOut, Download, Hash, MapPin, CheckCircle2 } from 'lucide-react';
+import { clearAuth, isTenant } from '../utils/auth';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod } from '../utils/helpers';
-import { sendMessage, getRoomMessages, startChatPoll, stopChatPoll, startHeartbeat, stopHeartbeat, startPresencePoll, stopPresencePoll, getStatusLabel, sendHeartbeat } from '../utils/chat';
 
 export default function MiApto() {
   const navigate = useNavigate();
@@ -12,42 +11,11 @@ export default function MiApto() {
   const [tenant, setTenant] = useState(null);
   const [contract, setContract] = useState(null);
   const [payments, setPayments] = useState([]);
-  const [auth] = useState(getAuth());
-  const [chatMsgs, setChatMsgs] = useState([]);
-  const [chatInput, setChatInput] = useState('');
-  const chatBottomRef = useRef(null);
-  const [chatError, setChatError] = useState('');
-  const [presence, setPresence] = useState([]);
 
   useEffect(() => {
     if (!isTenant()) { navigate('/login', { replace: true }); return; }
     loadData();
-    const a = getAuth();
-    let onHide, onVis;
-    if (a && a.apartmentId) {
-      const roomId = 'admin-' + a.apartmentId;
-      const userId = 'tenant-' + a.apartmentId;
-      getRoomMessages(roomId).then(setChatMsgs);
-      startChatPoll(newMsgs => {
-        if (newMsgs.some(m => m.roomId === roomId)) {
-          getRoomMessages(roomId).then(setChatMsgs);
-        }
-      }, 3000);
-      startHeartbeat(userId, 10000);
-      startPresencePoll(data => setPresence(data || []), 5000);
-      onHide = () => sendHeartbeat(userId, 'offline');
-      onVis = () => sendHeartbeat(userId, document.hidden ? 'away' : 'online');
-      window.addEventListener('beforeunload', onHide);
-      document.addEventListener('visibilitychange', onVis);
-    }
-    return () => {
-      stopChatPoll(); stopHeartbeat(); stopPresencePoll();
-      if (onHide) window.removeEventListener('beforeunload', onHide);
-      if (onVis) document.removeEventListener('visibilitychange', onVis);
-    };
   }, []);
-
-  useEffect(() => { chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMsgs]);
 
   async function loadData() {
     try {
@@ -68,19 +36,6 @@ export default function MiApto() {
     clearAuth();
     navigate('/login', { replace: true });
   }
-
-  async function handleChatSend(e) {
-    e.preventDefault();
-    const text = chatInput.trim();
-    if (!text || !auth.apartmentId) return;
-    setChatInput('');
-    const roomId = 'admin-' + auth.apartmentId;
-    const from = 'tenant-' + auth.apartmentId;
-    try { await sendMessage(roomId, from, 'admin', text); } catch { setChatError('Error al enviar'); setTimeout(() => setChatError(''), 3000); }
-    getRoomMessages(roomId).then(setChatMsgs);
-  }
-
-  const adminStatus = getStatusLabel(presence, 'admin');
 
   if (!apt) return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -216,41 +171,6 @@ export default function MiApto() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Chat con Administrador */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <MessageCircle className="w-4 h-4" /> Chat con Administrador
-              <span className={`w-2 h-2 rounded-full ${adminStatus.dot} inline-block shrink-0`} title={adminStatus.label} />
-            </h3>
-            <div className="text-[10px] text-gray-400">{adminStatus.label}</div>
-          </div>
-          <div className="h-48 overflow-y-auto p-3 space-y-2 bg-gray-50 dark:bg-gray-900/50">
-            {chatMsgs.length === 0 && <p className="text-xs text-gray-400 text-center mt-6">Sin mensajes aún</p>}
-            {chatMsgs.map(msg => {
-              const isMine = msg.from !== 'admin';
-              return (
-                <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] px-3 py-1.5 rounded-lg text-sm ${isMine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm border border-gray-200 dark:border-gray-600'}`}>
-                    <div>{msg.content}</div>
-                    <div className={`text-[10px] mt-0.5 ${isMine ? 'text-blue-200' : 'text-gray-400'}`}>
-                      {new Date(msg.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            <div ref={chatBottomRef} />
-          </div>
-          <form onSubmit={handleChatSend} className="p-3 border-t border-gray-200 dark:border-gray-700 flex gap-2">
-            <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Escribe un mensaje..." className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-            <button type="submit" disabled={!chatInput.trim()} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-          {chatError && <p className="text-xs text-red-500 px-3 pb-2">{chatError}</p>}
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
