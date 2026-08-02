@@ -9,6 +9,7 @@ const https = require('https');
 const crypto = require('crypto');
 const os = require('os');
 const { Pool } = require('pg');
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 const app = express();
 const PORT = process.env.PORT || 1011;
@@ -54,17 +55,9 @@ try { [DATA_DIR, BACKUP_DIR, PHOTOS_DIR, CONTRACTS_DIR].forEach(d => { if (!fs.e
 
 let upload;
 try {
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      const dir = file.fieldname === 'contract' ? CONTRACTS_DIR : PHOTOS_DIR;
-      cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      cb(null, Date.now() + '-' + Math.random().toString(36).slice(2) + ext);
-    },
-  });
-  upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
+  // Apartment documents are immediately copied to R2; keeping them in
+  // memory avoids treating Render's ephemeral filesystem as an archive.
+  upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 } catch (e) { console.error('MULTER SETUP FAILED:', e.message); upload = null; }
 
 // Attachments sent from the Cloud inbox are relayed directly to Meta. They are
@@ -79,6 +72,90 @@ const { INITIAL_DATA } = require('./db.cjs');
 
 let db = { ...INITIAL_DATA };
 let nextId = {};
+
+// R2 remains private. Files are served only through application routes, so an
+// object URL or storage credential never reaches a browser.
+const R2_DEFAULT_LIMIT_BYTES = 9 * 1024 * 1024 * 1024;
+let r2Client = null;
+
+function r2Config() {
+  const accountId = String(process.env.R2_ACCOUNT_ID || '').trim();
+  const bucket = String(process.env.R2_BUCKET || '').trim();
+  const accessKeyId = String(process.env.R2_ACCESS_KEY_ID || '').trim();
+  const secretAccessKey = String(process.env.R2_SECRET_ACCESS_KEY || '').trim();
+  const endpoint = String(process.env.R2_ENDPOINT || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : '')).trim();
+  const limitBytes = Math.max(1, Number(process.env.R2_MAX_BYTES || R2_DEFAULT_LIMIT_BYTES));
+  return { accountId, bucket, accessKeyId, secretAccessKey, endpoint, limitBytes };
+}
+
+function r2Ready() {
+  const c = r2Config();
+  return Boolean(c.bucket && c.accessKeyId && c.secretAccessKey && c.endpoint);
+}
+
+function getR2Client() {
+  if (!r2Ready()) throw new Error('El almacenamiento permanente R2 no est\u00e1 configurado');
+  if (!r2Client) {
+    const c = r2Config();
+    r2Client = new S3Client({
+      region: 'auto', endpoint: c.endpoint, forcePathStyle: true,
+      credentials: { accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey },
+    });
+  }
+  return r2Client;
+}
+
+function ensureR2Usage() {
+  if (!db.r2Storage || typeof db.r2Storage !== 'object' || Array.isArray(db.r2Storage)) {
+    db.r2Storage = { bytes: 0, updatedAt: null };
+  }
+  db.r2Storage.bytes = Math.max(0, Number(db.r2Storage.bytes) || 0);
+  return db.r2Storage;
+}
+
+function r2SafeFileName(name) {
+  return String(name || 'archivo').replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-120) || 'archivo';
+}
+
+function r2Key(section, fileName) {
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '/');
+  return `${section}/${stamp}/${crypto.randomUUID()}-${r2SafeFileName(fileName)}`;
+}
+
+async function putR2Buffer({ section, fileName, buffer, mimeType, contentDisposition = null }) {
+  if (!Buffer.isBuffer(buffer)) throw new Error('Archivo inv\u00e1lido para almacenamiento permanente');
+  const c = r2Config();
+  const usage = ensureR2Usage();
+  if (usage.bytes + buffer.length > c.limitBytes) {
+    throw new Error('El almacenamiento permanente alcanz\u00f3 el l\u00edmite seguro de 9 GB. Elimina archivos antes de agregar otro.');
+  }
+  const key = r2Key(section, fileName);
+  await getR2Client().send(new PutObjectCommand({
+    Bucket: c.bucket, Key: key, Body: buffer,
+    ContentType: mimeType || 'application/octet-stream',
+    ...(contentDisposition ? { ContentDisposition: contentDisposition } : {}),
+  }));
+  usage.bytes += buffer.length;
+  usage.updatedAt = new Date().toISOString();
+  return { storageKey: key, size: buffer.length, mimeType: mimeType || 'application/octet-stream', storedAt: usage.updatedAt };
+}
+
+async function deleteR2Object(storageKey, knownSize = 0) {
+  if (!storageKey || !r2Ready()) return;
+  await getR2Client().send(new DeleteObjectCommand({ Bucket: r2Config().bucket, Key: storageKey }));
+  const usage = ensureR2Usage();
+  usage.bytes = Math.max(0, usage.bytes - Math.max(0, Number(knownSize) || 0));
+  usage.updatedAt = new Date().toISOString();
+}
+
+async function streamR2Object(storageKey, res, fallback = {}) {
+  const object = await getR2Client().send(new GetObjectCommand({ Bucket: r2Config().bucket, Key: storageKey }));
+  const safeName = r2SafeFileName(fallback.fileName || path.basename(storageKey));
+  res.setHeader('Content-Type', object.ContentType || fallback.mimeType || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(safeName)}`);
+  if (object.ContentLength !== undefined) res.setHeader('Content-Length', String(object.ContentLength));
+  object.Body.pipe(res);
+}
 
 function constantTimeEqual(left, right) {
   const a = Buffer.from(String(left || ''));
@@ -415,6 +492,55 @@ function cloudInboundMedia(message, type) {
   };
 }
 
+function downloadCloudMedia(mediaId, maxBytes = 20 * 1024 * 1024) {
+  return cloudGraphRequest(`/${encodeURIComponent(mediaId)}`).then(info => new Promise((resolve, reject) => {
+    if (!info.url) return reject(new Error('WhatsApp no entreg\u00f3 una URL para este archivo'));
+    const remoteUrl = new URL(info.url);
+    const c = cloudConfig();
+    const request = https.request({
+      hostname: remoteUrl.hostname, port: remoteUrl.port || 443,
+      path: remoteUrl.pathname + remoteUrl.search, method: 'GET', headers: { Authorization: `Bearer ${c.token}` },
+    }, remote => {
+      if (remote.statusCode < 200 || remote.statusCode >= 300) {
+        remote.resume();
+        return reject(new Error('WhatsApp no pudo entregar el archivo'));
+      }
+      const declaredSize = Number(remote.headers['content-length'] || 0);
+      if (declaredSize > maxBytes) {
+        remote.resume();
+        return reject(new Error('El archivo supera el l\u00edmite de 20 MB del archivo permanente'));
+      }
+      let size = 0;
+      const chunks = [];
+      remote.on('data', chunk => {
+        size += chunk.length;
+        if (size > maxBytes) remote.destroy(new Error('El archivo supera el l\u00edmite de 20 MB del archivo permanente'));
+        else chunks.push(chunk);
+      });
+      remote.on('error', reject);
+      remote.on('end', () => resolve({ buffer: Buffer.concat(chunks), mimeType: remote.headers['content-type'] || info.mime_type || 'application/octet-stream' }));
+    });
+    request.on('error', reject);
+    request.setTimeout(30000, () => request.destroy(new Error('La descarga del archivo tard\u00f3 demasiado')));
+    request.end();
+  }));
+}
+
+async function archiveCloudInboundMedia(media) {
+  if (!media?.id) return media;
+  try {
+    const file = await downloadCloudMedia(media.id);
+    const stored = await putR2Buffer({
+      section: 'whatsapp/inbound', fileName: media.fileName || `whatsapp-${media.id}`,
+      buffer: file.buffer, mimeType: media.mimeType || file.mimeType,
+    });
+    return { ...media, ...stored, archiveStatus: 'stored' };
+  } catch (error) {
+    console.error('[R2] inbound WhatsApp media archive error:', error.message);
+    return { ...media, archiveStatus: 'pending_or_failed', archiveError: error.message };
+  }
+}
+
 function uploadCloudMedia(file) {
   const c = cloudConfig();
   if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no estÃ¡ configurada'));
@@ -545,7 +671,7 @@ async function handleCloudInbound(message) {
     conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const type = message.type || 'unknown';
     // Content and media identifiers are persisted only after authorization.
-    const media = cloudInboundMedia(message, type);
+    const media = await archiveCloudInboundMedia(cloudInboundMedia(message, type));
     addCloudMessage(conversation, 'in', {
       type, text: type === 'text' ? (message.text?.body || '') : (media?.caption || ''),
       mediaId: media?.id || null, media, whatsappMessageId: message.id,
@@ -892,29 +1018,49 @@ app.post('/api/bulk-add/:collection', (req, res) => {
 
 app.post('/api/upload/photo', (req, res) => {
   if (!upload) return res.status(500).json({ error: 'Upload not available' });
-  upload.single('photo')(req, res, () => {
+  upload.single('photo')(req, res, async error => {
+    if (error) return res.status(400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? 'La foto supera el l\u00edmite de 20 MB' : error.message });
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    const photo = {
-      id: nextId.photos || 1,
-      apartmentId: Number(req.body.apartmentId),
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      url: '/uploads/photos/' + req.file.filename,
-      uploadedAt: new Date().toISOString(),
-    };
-    nextId.photos = (nextId.photos || 1) + 1;
-    db.photos.push(photo);
-    saveData();
-    res.status(201).json(photo);
+    try {
+      const stored = await putR2Buffer({
+        section: 'apartments/photos', fileName: req.file.originalname, buffer: req.file.buffer, mimeType: req.file.mimetype,
+      });
+      const photo = {
+        id: nextId.photos || 1, apartmentId: Number(req.body.apartmentId),
+        filename: r2SafeFileName(req.file.originalname), originalName: req.file.originalname,
+        storageKey: stored.storageKey, size: stored.size, mimeType: stored.mimeType,
+        url: `/api/public/photos/${nextId.photos || 1}`, uploadedAt: new Date().toISOString(),
+      };
+      nextId.photos = (nextId.photos || 1) + 1;
+      db.photos.push(photo);
+      saveData();
+      res.status(201).json(photo);
+    } catch (storageError) { res.status(503).json({ error: storageError.message }); }
   });
 });
 
-app.delete('/api/photo/:id', (req, res) => {
+app.get('/api/public/photos/:id', async (req, res) => {
+  const photo = (db.photos || []).find(item => Number(item.id) === Number(req.params.id));
+  if (!photo) return res.status(404).json({ error: 'Foto no encontrada' });
+  if (photo.storageKey && r2Ready()) {
+    try {
+      await streamR2Object(photo.storageKey, res, { fileName: photo.originalName || photo.filename, mimeType: photo.mimeType });
+      return;
+    } catch (error) { return res.status(502).json({ error: `No fue posible leer la foto permanente: ${error.message}` }); }
+  }
+  const legacyPath = path.join(PHOTOS_DIR, photo.filename || '');
+  if (!photo.filename || !fs.existsSync(legacyPath)) return res.status(404).json({ error: 'Foto no disponible' });
+  res.sendFile(legacyPath);
+});
+
+app.delete('/api/photo/:id', async (req, res) => {
   const idx = db.photos.findIndex(p => p.id === Number(req.params.id));
   if (idx === -1) return res.status(404).json({ error: 'Photo not found' });
   const photo = db.photos[idx];
-  const filePath = path.join(PHOTOS_DIR, photo.filename);
-  try { fs.unlinkSync(filePath); } catch {}
+  try {
+    if (photo.storageKey) await deleteR2Object(photo.storageKey, photo.size);
+    else if (photo.filename) fs.unlinkSync(path.join(PHOTOS_DIR, photo.filename));
+  } catch (error) { return res.status(502).json({ error: `No fue posible eliminar la foto permanente: ${error.message}` }); }
   db.photos.splice(idx, 1);
   saveData();
   res.json({ success: true });
@@ -922,17 +1068,25 @@ app.delete('/api/photo/:id', (req, res) => {
 
 app.post('/api/upload/contract', (req, res) => {
   if (!upload) return res.status(500).json({ error: 'Upload not available' });
-  upload.single('contract')(req, res, () => {
+  upload.single('contract')(req, res, async error => {
+    if (error) return res.status(400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? 'El contrato supera el l\u00edmite de 20 MB' : error.message });
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    const file = {
-      id: Date.now(),
-      contractId: Number(req.body.contractId),
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      url: '/uploads/contracts/' + req.file.filename,
-      uploadedAt: new Date().toISOString(),
-    };
-    res.status(201).json(file);
+    try {
+      const stored = await putR2Buffer({
+        section: 'apartments/contracts', fileName: req.file.originalname, buffer: req.file.buffer, mimeType: req.file.mimetype,
+      });
+      if (!Array.isArray(db.contractFiles)) db.contractFiles = [];
+      const file = {
+        id: nextId.contractFiles || Date.now(), contractId: Number(req.body.contractId),
+        filename: r2SafeFileName(req.file.originalname), originalName: req.file.originalname,
+        storageKey: stored.storageKey, size: stored.size, mimeType: stored.mimeType,
+        uploadedAt: new Date().toISOString(),
+      };
+      nextId.contractFiles = (nextId.contractFiles || file.id) + 1;
+      db.contractFiles.push(file);
+      saveData();
+      res.status(201).json(file);
+    } catch (storageError) { res.status(503).json({ error: storageError.message }); }
   });
 });
 
@@ -1115,7 +1269,17 @@ app.get('/api/whatsapp/cloud/messages/:messageId/media', async (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   ensureCloudCollections();
   const message = (db.whatsappMessages || []).find(item => Number(item.id) === Number(req.params.messageId));
-  if (!message?.mediaId) return res.status(404).json({ error: 'Este mensaje no contiene un archivo' });
+  if (!message?.mediaId && !message?.media?.storageKey) return res.status(404).json({ error: 'Este mensaje no contiene un archivo' });
+  if (message.media?.storageKey && r2Ready()) {
+    try {
+      await streamR2Object(message.media.storageKey, res, { fileName: message.media.fileName, mimeType: message.media.mimeType });
+      return;
+    } catch (error) {
+      // Older WhatsApp media can still be fetched from Meta while it remains
+      // available, so a transient R2 error does not make the inbox unusable.
+      console.error('[R2] media proxy error:', error.message);
+    }
+  }
   try {
     const info = await cloudGraphRequest(`/${encodeURIComponent(message.mediaId)}`);
     if (!info.url) throw new Error('WhatsApp no entregó una URL para este archivo');
@@ -1179,6 +1343,10 @@ app.post('/api/whatsapp/cloud/send-media', (req, res) => {
     try {
       const uploaded = await uploadCloudMedia(req.file);
       media.id = uploaded.id;
+      Object.assign(media, await putR2Buffer({
+        section: 'whatsapp/outbound', fileName: media.fileName, buffer: req.file.buffer, mimeType: media.mimeType,
+      }));
+      media.archiveStatus = 'stored';
       const result = await sendCloudMedia(conversation.phone, media, String(caption || '').trim());
       addCloudMessage(conversation, 'out', {
         type: media.kind, text: String(caption || '').trim(), mediaId: media.id, media,
