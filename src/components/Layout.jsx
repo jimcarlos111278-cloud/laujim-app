@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, MessageCircle, Plus, Minus, Type
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
 import ThemeSelector from './ThemeSelector';
@@ -27,9 +27,21 @@ export default function Layout({ children }) {
   const [connected, setConnected] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [fontScale, setFontScale] = useState(() => Number(localStorage.getItem('font-scale') || 1));
+  const [installPrompt, setInstallPrompt] = useState(null);
   const location = useLocation();
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    const captureInstallPrompt = event => { event.preventDefault(); setInstallPrompt(event); };
+    const clearInstallPrompt = () => setInstallPrompt(null);
+    window.addEventListener('beforeinstallprompt', captureInstallPrompt);
+    window.addEventListener('appinstalled', clearInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
+      window.removeEventListener('appinstalled', clearInstallPrompt);
+    };
+  }, []);
 
   useEffect(() => {
     const check = async () => {
@@ -47,6 +59,13 @@ export default function Layout({ children }) {
     setFontScale(next);
     localStorage.setItem('font-scale', String(next));
     document.documentElement.style.setProperty('--font-scale', next);
+  }
+
+  async function installApp() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice.catch(() => null);
+    setInstallPrompt(null);
   }
   useEffect(() => {
     document.documentElement.style.setProperty('--font-scale', fontScale);
@@ -111,6 +130,7 @@ export default function Layout({ children }) {
             <Home className="w-5 h-5 text-blue-600" />
             <span className="font-semibold text-gray-900 dark:text-white">Gestión Aptos</span>
           </div>
+          {installPrompt && <button onClick={installApp} className="ml-auto inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2 py-1.5 text-xs font-medium text-white"><Download className="w-3.5 h-3.5" /> Instalar app</button>}
         </header>
         <main className="flex-1 overflow-auto p-3 md:p-6" style={{ zoom: fontScale }}>
           {children}

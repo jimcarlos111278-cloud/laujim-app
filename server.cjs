@@ -67,6 +67,14 @@ try {
   upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
 } catch (e) { console.error('MULTER SETUP FAILED:', e.message); upload = null; }
 
+// Attachments sent from the Cloud inbox are relayed directly to Meta. They are
+// kept in memory only for the duration of the request; this prevents the
+// Render filesystem from becoming an accidental, non-durable media archive.
+let cloudUpload;
+try {
+  cloudUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 16 * 1024 * 1024 } });
+} catch (e) { console.error('CLOUD MULTER SETUP FAILED:', e.message); cloudUpload = null; }
+
 const { INITIAL_DATA } = require('./db.cjs');
 
 let db = { ...INITIAL_DATA };
@@ -319,6 +327,7 @@ function addCloudMessage(conversation, direction, message) {
   ensureCloudCollections();
   const record = { id: nextId.whatsappMessages++, conversationId: conversation.id, direction,
     type: message.type || 'text', text: message.text || '', mediaId: message.mediaId || null,
+    media: message.media || null,
     whatsappMessageId: message.whatsappMessageId || null, createdAt: new Date().toISOString() };
   db.whatsappMessages.push(record);
   return record;
@@ -352,6 +361,102 @@ function cloudApiRequest(pathname, method, payload) {
     req.setTimeout(15000, () => req.destroy(new Error('Cloud API timeout')));
     if (body) req.write(body);
     req.end();
+  });
+}
+
+// Some Cloud API resources, such as media, are addressed directly under the
+// Graph version and not under a phone-number ID.
+function cloudGraphRequest(pathname, method = 'GET', payload = null) {
+  const c = cloudConfig();
+  if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no estÃ¡ configurada'));
+  const body = payload ? JSON.stringify(payload) : null;
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'graph.facebook.com', path: `/${c.graphVersion}${pathname}`, method,
+      headers: {
+        Authorization: `Bearer ${c.token}`,
+        ...(body ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } : {}),
+      },
+    }, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data || '{}');
+          if (res.statusCode >= 200 && res.statusCode < 300) resolve(parsed);
+          else reject(new Error(parsed.error?.message || 'Cloud API error'));
+        } catch { reject(new Error('Respuesta invÃ¡lida de Cloud API')); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(15000, () => req.destroy(new Error('Cloud API timeout')));
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+function cloudMediaKind(file) {
+  const mime = String(file?.mimetype || '').toLowerCase();
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('audio/')) return 'audio';
+  if (mime.startsWith('video/')) return 'video';
+  return 'document';
+}
+
+function cloudInboundMedia(message, type) {
+  const source = message?.[type];
+  if (!source?.id) return null;
+  return {
+    id: source.id,
+    mimeType: source.mime_type || null,
+    fileName: source.filename || null,
+    caption: source.caption || '',
+    voice: !!source.voice,
+  };
+}
+
+function uploadCloudMedia(file) {
+  const c = cloudConfig();
+  if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no estÃ¡ configurada'));
+  const boundary = `----LaujimMedia${crypto.randomBytes(12).toString('hex')}`;
+  const safeName = String(file.originalname || 'archivo').replace(/[\r\n"]/g, '_');
+  const mime = file.mimetype || 'application/octet-stream';
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="messaging_product"\r\n\r\nwhatsapp\r\n`),
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="type"\r\n\r\n${mime}\r\n`),
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${safeName}"\r\nContent-Type: ${mime}\r\n\r\n`),
+    file.buffer,
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  ]);
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'graph.facebook.com', path: `/${c.graphVersion}/${c.phoneNumberId}/media`, method: 'POST',
+      headers: { Authorization: `Bearer ${c.token}`, 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length },
+    }, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data || '{}');
+          if (res.statusCode >= 200 && res.statusCode < 300 && parsed.id) resolve(parsed);
+          else reject(new Error(parsed.error?.message || 'No fue posible cargar el archivo a WhatsApp'));
+        } catch { reject(new Error('Respuesta invÃ¡lida al cargar el archivo')); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(30000, () => req.destroy(new Error('La carga del archivo tardÃ³ demasiado')));
+    req.write(body);
+    req.end();
+  });
+}
+
+function sendCloudMedia(to, media, caption = '') {
+  const type = media.kind;
+  const content = { id: media.id };
+  if ((type === 'image' || type === 'video' || type === 'document') && caption) content.caption = caption;
+  if (type === 'document' && media.fileName) content.filename = media.fileName;
+  return cloudApiRequest('/messages', 'POST', {
+    messaging_product: 'whatsapp', to: normalizePhone(to), type, [type]: content,
   });
 }
 
@@ -440,7 +545,11 @@ async function handleCloudInbound(message) {
     conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const type = message.type || 'unknown';
     // Content and media identifiers are persisted only after authorization.
-    addCloudMessage(conversation, 'in', { type, text: type === 'text' ? (message.text?.body || '') : '', mediaId: message[type]?.id || null, whatsappMessageId: message.id });
+    const media = cloudInboundMedia(message, type);
+    addCloudMessage(conversation, 'in', {
+      type, text: type === 'text' ? (message.text?.body || '') : (media?.caption || ''),
+      mediaId: media?.id || null, media, whatsappMessageId: message.id,
+    });
     saveData();
     return;
   }
@@ -1000,6 +1109,42 @@ app.get('/api/whatsapp/cloud/conversations/:id/messages', (req, res) => {
   res.json((db.whatsappMessages || []).filter(m => m.conversationId === id));
 });
 
+// Media is proxied through the authenticated backend so the browser never
+// receives the Cloud API access token.
+app.get('/api/whatsapp/cloud/messages/:messageId/media', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const message = (db.whatsappMessages || []).find(item => Number(item.id) === Number(req.params.messageId));
+  if (!message?.mediaId) return res.status(404).json({ error: 'Este mensaje no contiene un archivo' });
+  try {
+    const info = await cloudGraphRequest(`/${encodeURIComponent(message.mediaId)}`);
+    if (!info.url) throw new Error('WhatsApp no entregó una URL para este archivo');
+    const remoteUrl = new URL(info.url);
+    const c = cloudConfig();
+    const proxy = https.request({
+      hostname: remoteUrl.hostname, port: remoteUrl.port || 443,
+      path: remoteUrl.pathname + remoteUrl.search, method: 'GET',
+      headers: { Authorization: `Bearer ${c.token}` },
+    }, remote => {
+      if (remote.statusCode < 200 || remote.statusCode >= 300) {
+        remote.resume();
+        return res.status(502).json({ error: 'WhatsApp no pudo entregar el archivo solicitado' });
+      }
+      const fileName = message.media?.fileName || `whatsapp-${message.id}`;
+      res.setHeader('Content-Type', remote.headers['content-type'] || message.media?.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(fileName)}`);
+      if (remote.headers['content-length']) res.setHeader('Content-Length', remote.headers['content-length']);
+      remote.pipe(res);
+    });
+    proxy.on('error', error => {
+      if (!res.headersSent) res.status(502).json({ error: error.message });
+      else res.end();
+    });
+    proxy.setTimeout(30000, () => proxy.destroy(new Error('La descarga del archivo tardó demasiado')));
+    proxy.end();
+  } catch (error) { res.status(502).json({ error: error.message }); }
+});
+
 app.post('/api/whatsapp/cloud/send', async (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   ensureCloudCollections();
@@ -1014,6 +1159,35 @@ app.post('/api/whatsapp/cloud/send', async (req, res) => {
     addCloudMessage(conversation, 'out', { type: 'text', text: String(text).trim(), whatsappMessageId: result.messages?.[0]?.id || null });
     saveData(); res.json({ ok: true, id: result.messages?.[0]?.id || null });
   } catch (error) { res.status(502).json({ error: error.message }); }
+});
+
+app.post('/api/whatsapp/cloud/send-media', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  if (!cloudUpload) return res.status(500).json({ error: 'La carga de archivos no está disponible' });
+  cloudUpload.single('file')(req, res, async error => {
+    if (error) return res.status(400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? 'El archivo supera el límite de 16 MB' : error.message });
+    const { conversationId, caption } = req.body || {};
+    const conversation = db.whatsappConversations.find(c => c.id === Number(conversationId));
+    if (!conversation || !req.file) return res.status(400).json({ error: 'Conversación y archivo son requeridos' });
+    if (!conversation.customerServiceWindowUntil || new Date(conversation.customerServiceWindowUntil).getTime() < Date.now()) {
+      return res.status(409).json({ error: 'La ventana de 24 h terminó; no se puede enviar un archivo libre sin una plantilla aprobada.' });
+    }
+    const media = {
+      kind: cloudMediaKind(req.file), mimeType: req.file.mimetype || 'application/octet-stream',
+      fileName: req.file.originalname || 'archivo', size: req.file.size,
+    };
+    try {
+      const uploaded = await uploadCloudMedia(req.file);
+      media.id = uploaded.id;
+      const result = await sendCloudMedia(conversation.phone, media, String(caption || '').trim());
+      addCloudMessage(conversation, 'out', {
+        type: media.kind, text: String(caption || '').trim(), mediaId: media.id, media,
+        whatsappMessageId: result.messages?.[0]?.id || null,
+      });
+      saveData();
+      res.json({ ok: true, id: result.messages?.[0]?.id || null, mediaId: media.id });
+    } catch (uploadError) { res.status(502).json({ error: uploadError.message }); }
+  });
 });
 
 // Legacy relay is deliberately opt-in. Production uses Cloud API only.
