@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const os = require('os');
 const { Pool } = require('pg');
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const ffmpegPath = require('ffmpeg-static');
 
 const app = express();
 const PORT = process.env.PORT || 1011;
@@ -589,6 +590,44 @@ function sendCloudMedia(to, media, caption = '') {
 function sendCloudText(to, body) {
   return cloudApiRequest('/messages', 'POST', {
     messaging_product: 'whatsapp', to: normalizePhone(to), type: 'text', text: { body },
+  });
+}
+
+function firstName(name) {
+  return String(name || 'hola').trim().split(/\s+/)[0] || 'hola';
+}
+
+function sendCloudGreetingTemplate(to, name) {
+  const templateName = String(process.env.WHATSAPP_GREETING_TEMPLATE || 'saludo_inquilino').trim();
+  return cloudApiRequest('/messages', 'POST', {
+    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'template',
+    template: {
+      name: templateName, language: { code: 'es_CO' },
+      components: [{ type: 'body', parameters: [{ type: 'text', text: firstName(name) }] }],
+    },
+  });
+}
+
+function transcodeVoiceNote(file) {
+  const isBrowserRecording = /^audio\/webm/i.test(String(file?.mimetype || ''));
+  if (!isBrowserRecording || !ffmpegPath) return Promise.resolve(file);
+  const id = crypto.randomUUID();
+  const input = path.join(os.tmpdir(), `laujim-voice-${id}.webm`);
+  const output = path.join(os.tmpdir(), `laujim-voice-${id}.ogg`);
+  return new Promise((resolve, reject) => {
+    try { fs.writeFileSync(input, file.buffer); } catch (error) { return reject(error); }
+    const ffmpegProcess = spawn(ffmpegPath, ['-y', '-i', input, '-vn', '-c:a', 'libopus', '-b:a', '32k', output], { windowsHide: true });
+    let stderr = '';
+    ffmpegProcess.stderr.on('data', chunk => { stderr += chunk.toString(); });
+    ffmpegProcess.on('error', error => { try { fs.unlinkSync(input); } catch {} reject(error); });
+    ffmpegProcess.on('close', code => {
+      try {
+        if (code !== 0 || !fs.existsSync(output)) throw new Error(stderr || 'No fue posible convertir la nota de voz');
+        const buffer = fs.readFileSync(output);
+        resolve({ ...file, buffer, size: buffer.length, mimetype: 'audio/ogg', originalname: 'nota-de-voz.ogg', voice: true });
+      } catch (error) { reject(error); }
+      finally { [input, output].forEach(temp => { try { fs.unlinkSync(temp); } catch {} }); }
+    });
   });
 }
 
@@ -1329,6 +1368,32 @@ app.get('/api/whatsapp/cloud/contacts', (req, res) => {
   res.json(contacts);
 });
 
+// A tenant remains a contact even before sending the first message. Outside
+// the 24-hour window, WhatsApp requires the approved greeting template.
+app.post('/api/whatsapp/cloud/start-conversation', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const tenantId = Number(req.body?.tenantId);
+  const tenant = (db.tenants || []).find(item => Number(item.id) === tenantId);
+  if (!tenant?.phone) return res.status(404).json({ error: 'El inquilino no tiene un teléfono registrado' });
+  const contact = authorizedCloudContact(tenant.phone);
+  if (!contact) return res.status(409).json({ error: 'El inquilino no tiene un contrato activo autorizado' });
+  const conversation = getCloudConversation(contact);
+  const now = Date.now();
+  if (conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil).getTime() > now) {
+    return res.json({ ok: true, conversationId: conversation.id, windowOpen: true, sentTemplate: false });
+  }
+  try {
+    const result = await sendCloudGreetingTemplate(contact.phone, tenant.name);
+    addCloudMessage(conversation, 'out', {
+      type: 'template', text: `Hola, ${firstName(tenant.name)}, ¿cómo estás? ¿Podemos hablar un momento?`,
+      template: process.env.WHATSAPP_GREETING_TEMPLATE || 'saludo_inquilino',
+      whatsappMessageId: result.messages?.[0]?.id || null,
+    });
+    saveData();
+    res.json({ ok: true, conversationId: conversation.id, windowOpen: false, sentTemplate: true });
+  } catch (error) { res.status(502).json({ error: `No fue posible enviar la plantilla de saludo: ${error.message}` }); }
+});
+
 app.get('/api/whatsapp/cloud/conversations/:id/messages', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   ensureCloudCollections();
@@ -1410,15 +1475,16 @@ app.post('/api/whatsapp/cloud/send-media', (req, res) => {
     if (!conversation.customerServiceWindowUntil || new Date(conversation.customerServiceWindowUntil).getTime() < Date.now()) {
       return res.status(409).json({ error: 'La ventana de 24 h terminó; no se puede enviar un archivo libre sin una plantilla aprobada.' });
     }
-    const media = {
-      kind: cloudMediaKind(req.file), mimeType: req.file.mimetype || 'application/octet-stream',
-      fileName: req.file.originalname || 'archivo', size: req.file.size,
-    };
     try {
-      const uploaded = await uploadCloudMedia(req.file);
+      const file = await transcodeVoiceNote(req.file);
+      const media = {
+        kind: cloudMediaKind(file), mimeType: file.mimetype || 'application/octet-stream',
+        fileName: file.originalname || 'archivo', size: file.size, voice: !!file.voice,
+      };
+      const uploaded = await uploadCloudMedia(file);
       media.id = uploaded.id;
       Object.assign(media, await putR2Buffer({
-        section: 'whatsapp/outbound', fileName: media.fileName, buffer: req.file.buffer, mimeType: media.mimeType,
+        section: 'whatsapp/outbound', fileName: media.fileName, buffer: file.buffer, mimeType: media.mimeType,
       }));
       media.archiveStatus = 'stored';
       const result = await sendCloudMedia(conversation.phone, media, String(caption || '').trim());

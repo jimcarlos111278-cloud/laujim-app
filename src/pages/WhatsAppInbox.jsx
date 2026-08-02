@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AudioLines, Download, FileText, Image, Lock, MessageCircle, Paperclip, Phone, RefreshCw, Send, Video, X } from 'lucide-react';
+import { AudioLines, Download, FileText, Image, Lock, MessageCircle, Mic, Paperclip, Phone, RefreshCw, Send, Square, Video, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 
@@ -86,7 +86,13 @@ export default function WhatsAppInbox() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const fileInput = useRef(null);
+  const recorderRef = useRef(null);
+  const recorderStreamRef = useRef(null);
+  const recordingTimerRef = useRef(null);
+  const recordingChunksRef = useRef([]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -123,9 +129,57 @@ export default function WhatsAppInbox() {
     if (fileInput.current) fileInput.current.value = '';
   }
 
+  function stopRecording() {
+    if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+  }
+
+  async function startRecording() {
+    if (!windowOpen || sending || recording) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setError('Este navegador no permite grabar notas de voz. Adjunta un audio en su lugar.');
+      return;
+    }
+    try {
+      setError('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const supportsType = typeof MediaRecorder.isTypeSupported === 'function';
+      const mimeType = supportsType && ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm'].find(type => MediaRecorder.isTypeSupported(type));
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recordingChunksRef.current = [];
+      recorderStreamRef.current = stream;
+      recorder.ondataavailable = event => { if (event.data.size) recordingChunksRef.current.push(event.data); };
+      recorder.onstop = () => {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+        stream.getTracks().forEach(track => track.stop());
+        recorderStreamRef.current = null;
+        setRecording(false);
+        const type = recorder.mimeType || mimeType || 'audio/webm';
+        const extension = type.includes('ogg') ? 'ogg' : 'webm';
+        const blob = new Blob(recordingChunksRef.current, { type });
+        if (blob.size) setAttachment(new File([blob], `nota-de-voz.${extension}`, { type }));
+      };
+      recorder.start(1000);
+      recorderRef.current = recorder;
+      setRecordingSeconds(0);
+      setRecording(true);
+      recordingTimerRef.current = setInterval(() => setRecordingSeconds(seconds => {
+        const next = seconds + 1;
+        if (next >= 600) stopRecording();
+        return next;
+      }), 1000);
+    } catch (err) { setError(err.name === 'NotAllowedError' ? 'Necesitas permitir el micrófono para grabar.' : err.message || 'No fue posible iniciar la grabación.'); }
+  }
+
+  useEffect(() => () => {
+    clearInterval(recordingTimerRef.current);
+    if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+    recorderStreamRef.current?.getTracks().forEach(track => track.stop());
+  }, []);
+
   async function sendMessage(event) {
     event.preventDefault();
-    if (!selected || !windowOpen || sending || (!draft.trim() && !attachment)) return;
+    if (!selected || !windowOpen || sending || recording || (!draft.trim() && !attachment)) return;
     setSending(true);
     try {
       if (attachment) {
@@ -188,10 +242,11 @@ export default function WhatsAppInbox() {
             <form onSubmit={sendMessage} className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
               {attachment && <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-100 dark:bg-gray-700 px-3 py-2 text-xs"><span className="truncate flex items-center gap-2"><MediaIcon type={attachment.type.startsWith('image/') ? 'image' : attachment.type.startsWith('audio/') ? 'audio' : attachment.type.startsWith('video/') ? 'video' : 'document'} className="w-4 h-4" />{attachment.name} · {(attachment.size / (1024 * 1024)).toFixed(1)} MB</span><button type="button" onClick={clearAttachment} className="p-1"><X className="w-4 h-4" /></button></div>}
               <div className="flex gap-2">
+                {recording ? <button type="button" onClick={stopRecording} title="Detener grabación" className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-red-600 text-white"><Square className="w-4 h-4" /> <span className="text-xs tabular-nums">{String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}</span></button> : <button type="button" onClick={startRecording} disabled={!windowOpen || sending} title="Grabar nota de voz" className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"><Mic className="w-4 h-4" /></button>}
                 <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => setAttachment(event.target.files?.[0] || null)} />
-                <button type="button" onClick={() => fileInput.current?.click()} disabled={!windowOpen || sending} title="Adjuntar imagen, audio, video o documento (máx. 16 MB)" className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"><Paperclip className="w-4 h-4" /></button>
-                <input value={draft} onChange={e => setDraft(e.target.value)} disabled={!windowOpen || sending} placeholder={windowOpen ? attachment ? 'Añade un texto opcional…' : 'Escribe una respuesta…' : 'La ventana de 24 h terminó: usa una plantilla aprobada'} className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm disabled:opacity-60" />
-                <button disabled={(!draft.trim() && !attachment) || !windowOpen || sending} title={attachment ? 'Enviar archivo' : 'Enviar mensaje'} className="px-3 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-50"><Send className="w-4 h-4" /></button>
+                <button type="button" onClick={() => fileInput.current?.click()} disabled={!windowOpen || sending || recording} title="Adjuntar imagen, audio, video o documento (máx. 16 MB)" className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"><Paperclip className="w-4 h-4" /></button>
+                <input value={draft} onChange={e => setDraft(e.target.value)} disabled={!windowOpen || sending || recording} placeholder={recording ? 'Grabando nota de voz…' : windowOpen ? attachment ? 'Añade un texto opcional…' : 'Escribe una respuesta…' : 'La ventana de 24 h terminó: usa una plantilla aprobada'} className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm disabled:opacity-60" />
+                <button disabled={recording || (!draft.trim() && !attachment) || !windowOpen || sending} title={attachment ? 'Enviar archivo' : 'Enviar mensaje'} className="px-3 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-50"><Send className="w-4 h-4" /></button>
               </div>
               <p className="text-[11px] text-gray-500">Imágenes, notas de voz, videos y documentos · máximo 16 MB · solo durante la ventana activa de 24 h.</p>
             </form>
