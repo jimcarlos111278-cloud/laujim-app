@@ -11,6 +11,7 @@ import { refreshAllFromServer } from '../api';
 import { getNotifConfig, saveNotifConfig, schedulePaymentReminders, cancelAllNotifications } from '../utils/localNotifications';
 import ThemeSelector from '../components/ThemeSelector';
 import { clearAuth, getAuth } from '../utils/auth';
+import { getCallScreeningStatus, requestCallScreeningRole, setCallScreeningEnabled, syncAuthorizedCallerNumbers } from '../utils/callScreening';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -32,6 +33,9 @@ export default function Settings() {
   const [waTemplateNames, setWaTemplateNames] = useState({ name1: 'Servicios públicos', name2: 'Recordatorio de pago' });
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState(false);
+  const [callScreening, setCallScreening] = useState(null);
+  const [callScreeningBusy, setCallScreeningBusy] = useState(false);
+  const [callScreeningError, setCallScreeningError] = useState('');
   const [menuOptions, setMenuOptions] = useState([]);
   const [relayTemplates, setRelayTemplates] = useState({ relay_from_tenant: '', relay_from_group: '' });
   const [menuSaving, setMenuSaving] = useState(false);
@@ -74,7 +78,7 @@ export default function Settings() {
     if (next.enabled) { await cancelAllNotifications(); const a = await api.apartments.toArray(); await schedulePaymentReminders(a); }
   }
 
-  useEffect(() => { load(); checkServerAvailability(); }, []);
+  useEffect(() => { load(); checkServerAvailability(); refreshCallScreeningStatus(); }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -94,6 +98,40 @@ export default function Settings() {
     const status = await isServerAvailable();
     setSyncStatus(s => ({ ...s, serverAvailable: status.ok, error: status.ok ? null : status.reason }));
     return status.ok;
+  }
+
+  async function refreshCallScreeningStatus() {
+    setCallScreening(await getCallScreeningStatus());
+  }
+
+  async function setupCallScreening() {
+    setCallScreeningBusy(true);
+    setCallScreeningError('');
+    try {
+      await refreshAllFromServer();
+      const tenants = await api.tenants.toArray();
+      const synced = await syncAuthorizedCallerNumbers(tenants);
+      setCallScreening(synced);
+      if (synced.native && synced.supported && !synced.roleGranted) {
+        const role = await requestCallScreeningRole();
+        setCallScreening({ ...synced, ...role });
+      }
+      const latest = await getCallScreeningStatus();
+      setCallScreening(latest.roleGranted ? await setCallScreeningEnabled(true) : latest);
+    } catch (error) {
+      setCallScreeningError(error.message || 'No fue posible configurar el filtro de llamadas.');
+    } finally {
+      setCallScreeningBusy(false);
+    }
+  }
+
+  async function toggleCallScreening() {
+    if (!callScreening?.native) return;
+    setCallScreeningBusy(true);
+    setCallScreeningError('');
+    try { setCallScreening(await setCallScreeningEnabled(!callScreening.enabled)); }
+    catch (error) { setCallScreeningError(error.message || 'No fue posible cambiar el filtro de llamadas.'); }
+    finally { setCallScreeningBusy(false); }
   }
 
   async function handleRefreshFromServer() {
@@ -592,6 +630,26 @@ export default function Settings() {
         </div>
 
         {/* ─── Server Monitor Dashboard ─── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Smartphone className="w-4 h-4 text-emerald-600" /> Filtro de llamadas (Android)</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">En la APK instalada en el teléfono con la SIM, solo timbran los números de inquilinos registrados.</p>
+            </div>
+            {callScreening?.native && callScreening.supported && callScreening.roleGranted && <span className={`text-xs font-medium ${callScreening.enabled ? 'text-emerald-600' : 'text-amber-600'}`}>{callScreening.enabled ? 'Filtro activo' : 'Filtro pausado'}</span>}
+          </div>
+          {!callScreening?.native ? <p className="mt-4 rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-600 dark:text-gray-300">Instala y abre la APK Laujim en un Android 10 o superior que tenga la SIM Movistar.</p> : !callScreening.supported ? <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Este teléfono no admite el filtro. Se requiere Android 10 o superior y que el fabricante permita el rol de filtro de llamadas.</p> : <>
+            <p className="mt-4 text-sm text-gray-700 dark:text-gray-200">{callScreening.roleGranted ? `${callScreening.authorizedCount || 0} números autorizados sincronizados.` : 'Falta permitir a Laujim filtrar llamadas en Android.'}</p>
+            {callScreening.lastSyncedAt > 0 && <p className="mt-1 text-xs text-gray-500">Última sincronización: {new Date(callScreening.lastSyncedAt).toLocaleString('es-CO')}</p>}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button onClick={setupCallScreening} disabled={callScreeningBusy} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm disabled:opacity-50"><RefreshCw className="w-4 h-4" /> {callScreeningBusy ? 'Configurando…' : callScreening.roleGranted ? 'Sincronizar autorizados' : 'Configurar filtro'}</button>
+              {callScreening.roleGranted && <button onClick={toggleCallScreening} disabled={callScreeningBusy} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 disabled:opacity-50">{callScreening.enabled ? 'Pausar filtro' : 'Activar filtro'}</button>}
+            </div>
+          </>}
+          {callScreeningError && <p className="mt-3 text-sm text-red-600">{callScreeningError}</p>}
+          <p className="mt-3 text-xs text-gray-500">Las llamadas no autorizadas se rechazan antes de timbrar. Android puede conservarlas como bloqueadas en el historial del sistema.</p>
+        </div>
+
         <div className="bg-[#0f172a] rounded-xl border border-[#1e293b] p-4 sm:p-5 col-span-1 lg:col-span-2">
           <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>

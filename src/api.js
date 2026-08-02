@@ -79,7 +79,7 @@ export function startDataVersionPolling(ms = 3000) {
         }
         // Don't reload on chat pages — they have their own real-time polling
         const path = window.location.pathname;
-        if (path !== '/chat' && path !== '/mi-apto') {
+        if (path !== '/chat' && path !== '/whatsapp' && path !== '/whatsapp-contactos' && path !== '/mi-apto') {
           window.location.reload();
         } else {
           lastDataVersion = res.version;

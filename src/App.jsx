@@ -24,9 +24,10 @@ import PublicApartment from './pages/PublicApartment';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
 import { requestNotificationPermission } from './utils/notifications';
-import { refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
+import { api, refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
 import { initTheme, loadThemeFromServer } from './utils/theme';
 import { getAuth } from './utils/auth';
+import { syncAuthorizedCallerNumbers } from './utils/callScreening';
 
 function ProtectedRoute({ children }) {
   const auth = getAuth();
@@ -53,6 +54,9 @@ function PrivateApp() {
       return;
     }
     requestNotificationPermission();
+    const syncCallScreening = async () => {
+      try { await syncAuthorizedCallerNumbers(await api.tenants.toArray()); } catch (e) { console.warn('Call screening sync failed'); }
+    };
     // Fetch ALL data from server on startup (cloud-first)
     (async function startup() {
       for (let i = 0; i < 3; i++) {
@@ -62,6 +66,7 @@ function PrivateApp() {
         } catch (e) { console.warn('Cloud startup attempt ' + (i+1) + ' failed'); }
         if (i < 2) await new Promise(r => setTimeout(r, 5000));
       }
+      await syncCallScreening();
       setLoading(false);
       // Start polling for changes from other PCs
       startCloudPolling(15000);
@@ -70,8 +75,10 @@ function PrivateApp() {
       // Load theme preference from server
       try { await loadThemeFromServer(); } catch (e) { /* ignore */ }
     })();
+    const callerSyncTimer = setInterval(syncCallScreening, 60000);
     try { initTheme(); } catch (e) { console.error('Theme init error:', e); }
     if (isCapacitor() || window.innerWidth < 900) document.documentElement.classList.add('force-desktop');
+    return () => clearInterval(callerSyncTimer);
   }, []);
 
   if (loading) {
