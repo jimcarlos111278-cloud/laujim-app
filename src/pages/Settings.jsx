@@ -24,25 +24,26 @@ export default function Settings() {
   const [settingsList, setSettingsList] = useState([]);
   const [waConfig, setWaConfig] = useState({ apiToken: '', phoneNumberId: '', verifyToken: '' });
   const [waTemplates, setWaTemplates] = useState({ services: '', reminder: '' });
-  const [waTemplateNames, setWaTemplateNames] = useState({ name1: 'Servicios públicos', name2: 'Recordatorio de pago' });
   const [waSaving, setWaSaving] = useState(false);
   const [waSaved, setWaSaved] = useState(false);
   const [botConfig, setBotConfig] = useState({ enabled: false, phone: '' });
   const [botSaving, setBotSaving] = useState(false);
   const [botSaved, setBotSaved] = useState(false);
+  const [waTemplateNames, setWaTemplateNames] = useState({ name1: 'Servicios públicos', name2: 'Recordatorio de pago' });
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState(false);
-  const [menuOptions, setMenuOptions] = useState([
-    { num: '1', label: 'Ver aptos disponibles', action: 'vacants', enabled: true },
-    { num: '2', label: 'Consultar información de un apto', action: 'info', enabled: true },
-    { num: '3', label: 'Registrar mi interés', action: 'lead', enabled: true },
-    { num: '4', label: 'Soy residente (iniciar sesión)', action: 'login', enabled: true },
-  ]);
+  const [menuOptions, setMenuOptions] = useState([]);
   const [relayTemplates, setRelayTemplates] = useState({ relay_from_tenant: '', relay_from_group: '' });
   const [menuSaving, setMenuSaving] = useState(false);
   const [menuSaved, setMenuSaved] = useState(false);
   const [relaySaving, setRelaySaving] = useState(false);
   const [relaySaved, setRelaySaved] = useState(false);
+  const [legacyMenuOptions, setLegacyMenuOptions] = useState([
+    { num: '1', label: 'Ver aptos disponibles', action: 'vacants', enabled: true },
+    { num: '2', label: 'Consultar información de un apto', action: 'info', enabled: true },
+    { num: '3', label: 'Registrar mi interés', action: 'lead', enabled: true },
+    { num: '4', label: 'Soy residente (iniciar sesión)', action: 'login', enabled: true },
+  ]);
 
   async function handleResetDb() {
     setResetting(true);
@@ -443,7 +444,7 @@ export default function Settings() {
         </div>
 
         {/* WhatsApp API Config */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div className="hidden" aria-hidden="true">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp API</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Configuración para el bot de auto-respuesta y envío de mensajes.</p>
           <div className="space-y-3">
@@ -470,7 +471,7 @@ export default function Settings() {
         </div>
 
         {/* WhatsApp Templates */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div className="hidden" aria-hidden="true">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Plantillas WhatsApp</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza los mensajes que se envían desde los botones de WhatsApp.</p>
           <div className="space-y-4">
@@ -495,7 +496,7 @@ export default function Settings() {
         </div>
 
         {/* WhatsApp Proxy Bot */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div className="hidden" aria-hidden="true">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Bot WhatsApp Proxy</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Puente entre WhatsApp y el chat web. Los inquilinos escriben al bot y los mensajes llegan al chat del admin, y viceversa.</p>
           <div className="space-y-3">
@@ -640,7 +641,7 @@ export default function Settings() {
         </div>
 
         {/* ─── Bot Menu Editor ─── */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+        <div className="hidden" aria-hidden="true">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Menú del Bot WhatsApp</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza las opciones del menú que ven los inquilinos al escribir al bot.</p>
           <div className="space-y-2 mb-4">
@@ -673,7 +674,7 @@ export default function Settings() {
         </div>
 
         {/* ─── Relay Templates Editor ─── */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+        <div className="hidden" aria-hidden="true">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Formato de Reenvío (Relay)</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza cómo se muestran los mensajes reenviados. Placeholders: {'{apto}'}, {'{name}'}, {'{adminName}'}</p>
           <div className="space-y-4 mb-4">
