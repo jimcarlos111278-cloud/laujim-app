@@ -187,7 +187,9 @@ function cloudConfig() {
   return {
     enabled: process.env.WHATSAPP_CLOUD_ENABLED === 'true',
     token: process.env.WHATSAPP_ACCESS_TOKEN || '',
-    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
+    // An explicit production override lets the service switch numbers without
+    // rewriting a Blueprint-managed setup variable.
+    phoneNumberId: process.env.WHATSAPP_ACTIVE_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || '',
     verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || '',
     appSecret: process.env.WHATSAPP_APP_SECRET || '',
     graphVersion: process.env.WHATSAPP_GRAPH_VERSION || '',
