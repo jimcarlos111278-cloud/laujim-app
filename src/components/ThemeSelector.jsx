@@ -4,7 +4,7 @@ import { THEMES, getTheme, setTheme, getThemeInfo } from '../utils/theme';
 
 const iconMap = { Sun, Moon, Palette };
 
-export default function ThemeSelector({ variant = 'dropdown' }) {
+export default function ThemeSelector({ variant = 'dropdown', placement = 'down' }) {
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(getTheme());
   const ref = useRef(null);
@@ -57,7 +57,7 @@ export default function ThemeSelector({ variant = 'dropdown' }) {
         {currentTheme.label}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-1.5 z-50 min-w-[170px]">
+        <div className={`absolute right-0 ${placement === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'} bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-1.5 z-50 min-w-[170px]`}>
           {THEMES.map(t => {
             const Icon2 = iconMap[t.icon] || Palette;
             const isActive = current === t.id;

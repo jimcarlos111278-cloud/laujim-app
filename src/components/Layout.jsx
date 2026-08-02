@@ -113,7 +113,7 @@ export default function Layout({ children }) {
               <Plus className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="flex justify-center"><ThemeSelector /></div>
+          <div className="flex justify-center"><ThemeSelector placement="up" /></div>
           <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
             {connected === null && <span className="text-gray-400">Verificando...</span>}
             {connected === true && <><Cloud className="w-3.5 h-3.5 text-green-500" /><span className="text-green-600">En línea</span></>}
