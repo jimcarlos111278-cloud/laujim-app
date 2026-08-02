@@ -442,13 +442,6 @@ async function handleCloudInbound(message) {
     // Content and media identifiers are persisted only after authorization.
     addCloudMessage(conversation, 'in', { type, text: type === 'text' ? (message.text?.body || '') : '', mediaId: message[type]?.id || null, whatsappMessageId: message.id });
     saveData();
-    try {
-      const result = await sendCloudText(phone, '✅ Mensaje recibido. La administración atenderá tu solicitud por este canal.');
-      addCloudMessage(conversation, 'out', { type: 'text', text: 'Confirmación automática enviada', whatsappMessageId: result.messages?.[0]?.id || null });
-      saveData();
-    } catch (error) {
-      console.error('[WHATSAPP CLOUD] authorized reply error:', error.message);
-    }
     return;
   }
 
