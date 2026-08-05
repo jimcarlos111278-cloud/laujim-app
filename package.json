@@ -8,9 +8,9 @@
   },
   "scripts": {
     "start": "node server.cjs",
-    "dev": "vite",
-    "build": "vite build && node scripts/generate-version.js && node scripts/fix-html.js",
-    "postinstall": "node -e \"require('child_process').execSync('npm install',{cwd:'whatsapp-bot',stdio:'inherit'})\"",
+    "graphify": "node scripts/graphify-update.cjs",
+    "dev": "npm run graphify && vite",
+    "build": "npm run graphify && vite build && node scripts/generate-version.js && node scripts/fix-html.js",
     "build-apk": "npm run build && npx cap copy android && cd android && gradlew.bat assembleDebug && cd .. && node scripts/copy-apk.js",
     "lint": "oxlint",
     "preview": "vite preview",

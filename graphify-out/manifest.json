@@ -1,0 +1,952 @@
+{
+  ".build-state.json": {
+    "mtime": 1784523238.307861,
+    "ast_hash": "e2406d89088d30b558866ab271ccad99",
+    "semantic_hash": "e2406d89088d30b558866ab271ccad99"
+  },
+  ".oxlintrc.json": {
+    "mtime": 1784337544.0380108,
+    "ast_hash": "5e6e3cea3e89137071c142dd7835b0ef",
+    "semantic_hash": "5e6e3cea3e89137071c142dd7835b0ef"
+  },
+  "Backup/backup-2026-07-21.json": {
+    "mtime": 1784598969.3567417,
+    "ast_hash": "cddd6763a1cabd33ef503ef52cc4e8b2",
+    "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
+  },
+  "android/app/build.gradle": {
+    "mtime": 1784351671.9223952,
+    "ast_hash": "0b584ae03285f487bbf3fbfb9cdcdd9d",
+    "semantic_hash": "0b584ae03285f487bbf3fbfb9cdcdd9d"
+  },
+  "android/app/capacitor.build.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "e940357ea6f9ea51513b7661a2eebc14",
+    "semantic_hash": "e940357ea6f9ea51513b7661a2eebc14"
+  },
+  "android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": "fbaf7cc870c663eb52dcf218531c439d"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerPlugin.java": {
+    "mtime": 1785685896.7872722,
+    "ast_hash": "506e6679a1e894ea73941e875e10b911",
+    "semantic_hash": "506e6679a1e894ea73941e875e10b911"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerScreeningService.java": {
+    "mtime": 1785653825.5832536,
+    "ast_hash": "661a53f13bda5e32ba68a52057904185",
+    "semantic_hash": "661a53f13bda5e32ba68a52057904185"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerStore.java": {
+    "mtime": 1785685896.779499,
+    "ast_hash": "059d7722db87d693523852e6e4f9b726",
+    "semantic_hash": "059d7722db87d693523852e6e4f9b726"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "ff7b282d7aa3590aa28f8d02f85d64ee",
+    "semantic_hash": "ff7b282d7aa3590aa28f8d02f85d64ee"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "5781e0404ddf7e24472167e8030af71b",
+    "semantic_hash": "5781e0404ddf7e24472167e8030af71b"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsStore.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45",
+    "semantic_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
+    "mtime": 1785653825.586251,
+    "ast_hash": "697edc0dc5724e78f4ef8d65bbabaaf9",
+    "semantic_hash": "697edc0dc5724e78f4ef8d65bbabaaf9"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "0ec678ec6c08fed6e53ae33d7832244f",
+    "semantic_hash": "0ec678ec6c08fed6e53ae33d7832244f"
+  },
+  "android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": "e91b4501c14da821682fa5c26a16d616"
+  },
+  "android/build.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "682315a426653617c6a74fc12bef55b6",
+    "semantic_hash": "682315a426653617c6a74fc12bef55b6"
+  },
+  "android/capacitor.settings.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "caae8211d536637a16db5dc4708e1326",
+    "semantic_hash": "caae8211d536637a16db5dc4708e1326"
+  },
+  "android/gradlew": {
+    "mtime": 1784050294.0,
+    "ast_hash": "794669d78aef1dd5c7d889ef618b311a",
+    "semantic_hash": "794669d78aef1dd5c7d889ef618b311a"
+  },
+  "android/settings.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": "f6cd925b3f859e23c3d819fe2459e0e4"
+  },
+  "android/variables.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4b3fce8ea2a515a9d2e47e74757172ec",
+    "semantic_hash": "4b3fce8ea2a515a9d2e47e74757172ec"
+  },
+  "backup.ps1": {
+    "mtime": 1784438374.503012,
+    "ast_hash": "8dc686cb24cb56f60710910fb8b6722d",
+    "semantic_hash": "8dc686cb24cb56f60710910fb8b6722d"
+  },
+  "backups/auto-latest.json": {
+    "mtime": 1785933025.663632,
+    "ast_hash": "24e99c4c4eeabbe87c692014a9dc03f5",
+    "semantic_hash": "24e99c4c4eeabbe87c692014a9dc03f5"
+  },
+  "backups/database-20260720T005559.json": {
+    "mtime": 1784526878.0369473,
+    "ast_hash": "1214737f2b7952f929010ab1c8d82cbf",
+    "semantic_hash": "1214737f2b7952f929010ab1c8d82cbf"
+  },
+  "backups/pre-whatsapp-bot/database.json": {
+    "mtime": 1784654960.3979342,
+    "ast_hash": "05d2c8c695b1181ad7a1ea5e802a8140",
+    "semantic_hash": "05d2c8c695b1181ad7a1ea5e802a8140"
+  },
+  "backups/pre-whatsapp-bot/db.cjs": {
+    "mtime": 1784776042.280447,
+    "ast_hash": "94b988e1ea530a822dfd73815c596f51",
+    "semantic_hash": "94b988e1ea530a822dfd73815c596f51"
+  },
+  "backups/pre-whatsapp-bot/package.json": {
+    "mtime": 1784775672.2047627,
+    "ast_hash": "fd245b7c25a0b0c42c0118ca86a5ea44",
+    "semantic_hash": "fd245b7c25a0b0c42c0118ca86a5ea44"
+  },
+  "backups/pre-whatsapp-bot/server.cjs": {
+    "mtime": 1784934576.1903706,
+    "ast_hash": "3bf87e7262dfb606d46b5ec00dc6927f",
+    "semantic_hash": "3bf87e7262dfb606d46b5ec00dc6927f"
+  },
+  "build-apk.ps1": {
+    "mtime": 1784355317.1797059,
+    "ast_hash": "49740947aca59da255cc69f923afee44",
+    "semantic_hash": "49740947aca59da255cc69f923afee44"
+  },
+  "capacitor.config.json": {
+    "mtime": 1784523650.427904,
+    "ast_hash": "00e4fa5a750020713d4f102b2cb21d87",
+    "semantic_hash": "00e4fa5a750020713d4f102b2cb21d87"
+  },
+  "capacitor.json": {
+    "mtime": 1784523650.429912,
+    "ast_hash": "0fd37d4e16504cfdea2fa3f39a18def2",
+    "semantic_hash": "0fd37d4e16504cfdea2fa3f39a18def2"
+  },
+  "crear-acceso-directo.ps1": {
+    "mtime": 1784341897.0494392,
+    "ast_hash": "9bd25f44f8255f4a9af580f3b89bc797",
+    "semantic_hash": "9bd25f44f8255f4a9af580f3b89bc797"
+  },
+  "data/database.json": {
+    "mtime": 1785933025.663632,
+    "ast_hash": "24e99c4c4eeabbe87c692014a9dc03f5",
+    "semantic_hash": "24e99c4c4eeabbe87c692014a9dc03f5"
+  },
+  "db.cjs": {
+    "mtime": 1785932015.0863092,
+    "ast_hash": "9115838b60df265d4769a360112b0fbc",
+    "semantic_hash": "9115838b60df265d4769a360112b0fbc"
+  },
+  "exportar-backup.ps1": {
+    "mtime": 1784438500.3115952,
+    "ast_hash": "f394bb4ec897b59f8785fec087e82237",
+    "semantic_hash": "f394bb4ec897b59f8785fec087e82237"
+  },
+  "extension/background.js": {
+    "mtime": 1785935416.6341722,
+    "ast_hash": "cafa47a37ec86d74904f1da8d41351c1",
+    "semantic_hash": "cafa47a37ec86d74904f1da8d41351c1"
+  },
+  "extension/content-facebook.js": {
+    "mtime": 1784866979.912038,
+    "ast_hash": "f305bc6422ea7f9d729105391d94ccf6",
+    "semantic_hash": "f305bc6422ea7f9d729105391d94ccf6"
+  },
+  "extension/content-laujim.js": {
+    "mtime": 1785932622.7238877,
+    "ast_hash": "a4dc581cfc38ccc46244f00a83316acc",
+    "semantic_hash": "a4dc581cfc38ccc46244f00a83316acc"
+  },
+  "extension/content-portals.js": {
+    "mtime": 1785935398.8501718,
+    "ast_hash": "633401563c96d78971ebe198ea8e416c",
+    "semantic_hash": "633401563c96d78971ebe198ea8e416c"
+  },
+  "extension/manifest.json": {
+    "mtime": 1785935445.1696,
+    "ast_hash": "1c3993f545ad25f37bd3f32954ec7296",
+    "semantic_hash": "1c3993f545ad25f37bd3f32954ec7296"
+  },
+  "extension/popup.js": {
+    "mtime": 1784931539.1461453,
+    "ast_hash": "c10baeb674152ee5c41d1c2038a785b5",
+    "semantic_hash": "c10baeb674152ee5c41d1c2038a785b5"
+  },
+  "find-jdk21.ps1": {
+    "mtime": 1784345174.7719202,
+    "ast_hash": "df8481c2a365eb0e981dcc791222efd1",
+    "semantic_hash": "df8481c2a365eb0e981dcc791222efd1"
+  },
+  "package.json": {
+    "mtime": 1785969884.3371127,
+    "ast_hash": "a1cbdb2eccbc16ca06012d272cf1c480",
+    "semantic_hash": ""
+  },
+  "public/app-version.json": {
+    "mtime": 1785686699.955258,
+    "ast_hash": "1455e21915cac03ac3c1ed67ec24ce35",
+    "semantic_hash": "1455e21915cac03ac3c1ed67ec24ce35"
+  },
+  "public/manifest.json": {
+    "mtime": 1784437087.071502,
+    "ast_hash": "9d837f8c042b8d751ce72dd1221a3c26",
+    "semantic_hash": "9d837f8c042b8d751ce72dd1221a3c26"
+  },
+  "public/sw.js": {
+    "mtime": 1784349052.567231,
+    "ast_hash": "40338c8f99cde3361d7de7583e4329c6",
+    "semantic_hash": "40338c8f99cde3361d7de7583e4329c6"
+  },
+  "scripts/add-passwords.js": {
+    "mtime": 1784530856.2532387,
+    "ast_hash": "805faf43c146cac8528b818dd7b22661",
+    "semantic_hash": "805faf43c146cac8528b818dd7b22661"
+  },
+  "scripts/backup.js": {
+    "mtime": 1784526948.8692968,
+    "ast_hash": "71a67340b976e6da54a894c626095751",
+    "semantic_hash": "71a67340b976e6da54a894c626095751"
+  },
+  "scripts/copy-apk.js": {
+    "mtime": 1784348575.8851767,
+    "ast_hash": "c07e32e22ffa50f97d6d225e2887c4cf",
+    "semantic_hash": "c07e32e22ffa50f97d6d225e2887c4cf"
+  },
+  "scripts/deploy-snapshot.cjs": {
+    "mtime": 1784651500.5076938,
+    "ast_hash": "0f590442a014768bb9585d35542232a5",
+    "semantic_hash": "0f590442a014768bb9585d35542232a5"
+  },
+  "scripts/fix-html.js": {
+    "mtime": 1784525386.566541,
+    "ast_hash": "2c4327c7a48d078af1557e05ba5beed3",
+    "semantic_hash": "2c4327c7a48d078af1557e05ba5beed3"
+  },
+  "scripts/generate-version.js": {
+    "mtime": 1784523650.4431763,
+    "ast_hash": "99a1a67237642de12e4bf3d94ef96335",
+    "semantic_hash": "99a1a67237642de12e4bf3d94ef96335"
+  },
+  "scripts/migrate-to-aiven.cjs": {
+    "mtime": 1784705814.3623314,
+    "ast_hash": "906ebd0409369793eaffb7329da5370b",
+    "semantic_hash": "906ebd0409369793eaffb7329da5370b"
+  },
+  "scripts/seed-data.js": {
+    "mtime": 1784526873.0052493,
+    "ast_hash": "7ede08dcba321ba1f74e7584f94978a4",
+    "semantic_hash": "7ede08dcba321ba1f74e7584f94978a4"
+  },
+  "scripts/sync-seed.js": {
+    "mtime": 1784531017.1822913,
+    "ast_hash": "cc581821805c0d3965503cb373131345",
+    "semantic_hash": "cc581821805c0d3965503cb373131345"
+  },
+  "server.cjs": {
+    "mtime": 1785967772.9979062,
+    "ast_hash": "cc54baf60fded8115df06d11d98dabb4",
+    "semantic_hash": "cc54baf60fded8115df06d11d98dabb4"
+  },
+  "services-scraper.cjs": {
+    "mtime": 1785932495.544476,
+    "ast_hash": "4ee3de337c76c7968e79913cf0ec7e8e",
+    "semantic_hash": "4ee3de337c76c7968e79913cf0ec7e8e"
+  },
+  "setup-android-sdk.ps1": {
+    "mtime": 1784344428.9890685,
+    "ast_hash": "09a383d66f90fa95d4caf412f3f45111",
+    "semantic_hash": "09a383d66f90fa95d4caf412f3f45111"
+  },
+  "setup-java.ps1": {
+    "mtime": 1784343954.1920307,
+    "ast_hash": "29cdee1095d1f60e9d9f4d8d4cec3bde",
+    "semantic_hash": "29cdee1095d1f60e9d9f4d8d4cec3bde"
+  },
+  "src/App.jsx": {
+    "mtime": 1785660513.76043,
+    "ast_hash": "8aac2e89d0be788314c2efcce0866139",
+    "semantic_hash": "8aac2e89d0be788314c2efcce0866139"
+  },
+  "src/api.js": {
+    "mtime": 1785653768.0828106,
+    "ast_hash": "5ef0cce193e2e347458613a4ee26aed5",
+    "semantic_hash": "5ef0cce193e2e347458613a4ee26aed5"
+  },
+  "src/components/ErrorBoundary.jsx": {
+    "mtime": 1784355580.7349665,
+    "ast_hash": "3d82f6b120b2a5ba30ebc89bd6d8f817",
+    "semantic_hash": "3d82f6b120b2a5ba30ebc89bd6d8f817"
+  },
+  "src/components/Layout.jsx": {
+    "mtime": 1785934338.9950995,
+    "ast_hash": "d0b97f999c85462ca50024f7053e90d5",
+    "semantic_hash": "d0b97f999c85462ca50024f7053e90d5"
+  },
+  "src/components/Modal.jsx": {
+    "mtime": 1784437774.47363,
+    "ast_hash": "bc9686150b782c5afbc6e87ff2e8f9cf",
+    "semantic_hash": "bc9686150b782c5afbc6e87ff2e8f9cf"
+  },
+  "src/components/PaymentHistoryChart.jsx": {
+    "mtime": 1785657833.9839747,
+    "ast_hash": "f892291975279b5c9d1993e82590b8f4",
+    "semantic_hash": "f892291975279b5c9d1993e82590b8f4"
+  },
+  "src/components/StatsCard.jsx": {
+    "mtime": 1784693498.3626757,
+    "ast_hash": "080f116b9bc23596d908bd9be960eebc",
+    "semantic_hash": "080f116b9bc23596d908bd9be960eebc"
+  },
+  "src/components/ThemeSelector.jsx": {
+    "mtime": 1785659676.5757046,
+    "ast_hash": "d1562b8f31bed9be185596d9980063f5",
+    "semantic_hash": "d1562b8f31bed9be185596d9980063f5"
+  },
+  "src/components/VersionBanner.jsx": {
+    "mtime": 1785685242.387405,
+    "ast_hash": "8cec2d407781a3d676dbf4c0cdfe81e4",
+    "semantic_hash": "8cec2d407781a3d676dbf4c0cdfe81e4"
+  },
+  "src/db/database.js": {
+    "mtime": 1785527079.5526433,
+    "ast_hash": "8ad21c25990d80c95367510b3b5b4cb7",
+    "semantic_hash": "8ad21c25990d80c95367510b3b5b4cb7"
+  },
+  "src/main.jsx": {
+    "mtime": 1784356082.2433405,
+    "ast_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d",
+    "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
+  },
+  "src/pages/ApartmentDetail.jsx": {
+    "mtime": 1785967683.9937007,
+    "ast_hash": "e0b4ad835262f9e2fb56d81a5448a497",
+    "semantic_hash": "e0b4ad835262f9e2fb56d81a5448a497"
+  },
+  "src/pages/Apartments.jsx": {
+    "mtime": 1785293991.048328,
+    "ast_hash": "77ad2b28274d197d6be9bdff22ae4b31",
+    "semantic_hash": "77ad2b28274d197d6be9bdff22ae4b31"
+  },
+  "src/pages/Chat.jsx": {
+    "mtime": 1784658079.0855865,
+    "ast_hash": "2e6fb67a47b37023392a7b76c1429537",
+    "semantic_hash": "2e6fb67a47b37023392a7b76c1429537"
+  },
+  "src/pages/ContractGenerator.jsx": {
+    "mtime": 1785226669.921393,
+    "ast_hash": "d6c61a005b446f69af9c44f1b9a26258",
+    "semantic_hash": "d6c61a005b446f69af9c44f1b9a26258"
+  },
+  "src/pages/Contracts.jsx": {
+    "mtime": 1785293953.0753508,
+    "ast_hash": "1d3986ee6d1aace4367655cce52bc161",
+    "semantic_hash": "1d3986ee6d1aace4367655cce52bc161"
+  },
+  "src/pages/Dashboard.jsx": {
+    "mtime": 1785686679.512708,
+    "ast_hash": "f4dce85497860373e9a66413d4ece625",
+    "semantic_hash": "f4dce85497860373e9a66413d4ece625"
+  },
+  "src/pages/Login.jsx": {
+    "mtime": 1785654974.0680583,
+    "ast_hash": "dfed780a2b9a0c00207491e5c0c68732",
+    "semantic_hash": "dfed780a2b9a0c00207491e5c0c68732"
+  },
+  "src/pages/MiApto.jsx": {
+    "mtime": 1785965937.6819677,
+    "ast_hash": "e39792286ce7e87368d4ab7a20335011",
+    "semantic_hash": "e39792286ce7e87368d4ab7a20335011"
+  },
+  "src/pages/Payments.jsx": {
+    "mtime": 1785657923.7275558,
+    "ast_hash": "bddab6a0911887b792930f427c6ad141",
+    "semantic_hash": "bddab6a0911887b792930f427c6ad141"
+  },
+  "src/pages/Predial.jsx": {
+    "mtime": 1784697672.7309265,
+    "ast_hash": "92334ae360d741e8cc2445ad3e5601ff",
+    "semantic_hash": "92334ae360d741e8cc2445ad3e5601ff"
+  },
+  "src/pages/PublicApartment.jsx": {
+    "mtime": 1785526282.997071,
+    "ast_hash": "b291bc0ff7941633b1164a068c71c683",
+    "semantic_hash": "b291bc0ff7941633b1164a068c71c683"
+  },
+  "src/pages/PublicApartments.jsx": {
+    "mtime": 1785526346.476079,
+    "ast_hash": "de18f151ccb7081781cba4e6aa706313",
+    "semantic_hash": "de18f151ccb7081781cba4e6aa706313"
+  },
+  "src/pages/Reports.jsx": {
+    "mtime": 1785657828.0381367,
+    "ast_hash": "06d210c608488e3ab874d98741af56d5",
+    "semantic_hash": "06d210c608488e3ab874d98741af56d5"
+  },
+  "src/pages/Settings.jsx": {
+    "mtime": 1785967572.2345176,
+    "ast_hash": "ea6c1fedff70ebb7f58aa257d3d59291",
+    "semantic_hash": "ea6c1fedff70ebb7f58aa257d3d59291"
+  },
+  "src/pages/ShareApartments.jsx": {
+    "mtime": 1784523214.6272404,
+    "ast_hash": "079cefaa649d73d5dd8a9f20a5cb52b4",
+    "semantic_hash": "079cefaa649d73d5dd8a9f20a5cb52b4"
+  },
+  "src/pages/Tenants.jsx": {
+    "mtime": 1785293953.0753508,
+    "ast_hash": "429688cf1006d5eb8b337df244be0c02",
+    "semantic_hash": "429688cf1006d5eb8b337df244be0c02"
+  },
+  "src/pages/Utilities.jsx": {
+    "mtime": 1785965936.5263498,
+    "ast_hash": "2d9da5210e015bac965013493c12106a",
+    "semantic_hash": "2d9da5210e015bac965013493c12106a"
+  },
+  "src/pages/WhatsAppContacts.jsx": {
+    "mtime": 1785652742.017105,
+    "ast_hash": "d82b1206738f525a8b4abefc271ec0bf",
+    "semantic_hash": "d82b1206738f525a8b4abefc271ec0bf"
+  },
+  "src/pages/WhatsAppInbox.jsx": {
+    "mtime": 1785686571.0516887,
+    "ast_hash": "1096d97d4fdc63ea4c10b1844964c178",
+    "semantic_hash": "1096d97d4fdc63ea4c10b1844964c178"
+  },
+  "src/utils/auth.js": {
+    "mtime": 1785526893.3867667,
+    "ast_hash": "403a601aaba8e6278471e50b4f2a5de1",
+    "semantic_hash": "403a601aaba8e6278471e50b4f2a5de1"
+  },
+  "src/utils/calendar.js": {
+    "mtime": 1784359924.9005756,
+    "ast_hash": "c64ba8bc37aa6a8ff1664b3311e3446c",
+    "semantic_hash": "c64ba8bc37aa6a8ff1664b3311e3446c"
+  },
+  "src/utils/callScreening.js": {
+    "mtime": 1785685896.7892797,
+    "ast_hash": "5ee5627bb9c5a9b7c083cca875983da9",
+    "semantic_hash": "5ee5627bb9c5a9b7c083cca875983da9"
+  },
+  "src/utils/chat.js": {
+    "mtime": 1785526943.921282,
+    "ast_hash": "d53d9018b9ed4d3031c05622e9b92ef6",
+    "semantic_hash": "d53d9018b9ed4d3031c05622e9b92ef6"
+  },
+  "src/utils/clipboard.js": {
+    "mtime": 1784440962.0785885,
+    "ast_hash": "e8ea61df1a9638a776b3a1426d61420d",
+    "semantic_hash": "e8ea61df1a9638a776b3a1426d61420d"
+  },
+  "src/utils/config.js": {
+    "mtime": 1785526876.8390439,
+    "ast_hash": "c662fd36b5857f84bc3b4160ee294ce0",
+    "semantic_hash": "c662fd36b5857f84bc3b4160ee294ce0"
+  },
+  "src/utils/contractGenerator.js": {
+    "mtime": 1784595088.1600473,
+    "ast_hash": "d73ede6405fe1799e927c8040924f965",
+    "semantic_hash": "d73ede6405fe1799e927c8040924f965"
+  },
+  "src/utils/darkMode.js": {
+    "mtime": 1784523650.4596667,
+    "ast_hash": "41250d0d056d66cd67af1c06998b6c4c",
+    "semantic_hash": "41250d0d056d66cd67af1c06998b6c4c"
+  },
+  "src/utils/generate-apartments-html.js": {
+    "mtime": 1784523219.520583,
+    "ast_hash": "c14175f18325eeaa20fec67342c1b350",
+    "semantic_hash": "c14175f18325eeaa20fec67342c1b350"
+  },
+  "src/utils/helpers.js": {
+    "mtime": 1784529235.7575383,
+    "ast_hash": "dededba22dbd11e52b1d0782da9db670",
+    "semantic_hash": "dededba22dbd11e52b1d0782da9db670"
+  },
+  "src/utils/localNotifications.js": {
+    "mtime": 1784437682.326316,
+    "ast_hash": "9d14c0ac489b59385c392a5481226eea",
+    "semantic_hash": "9d14c0ac489b59385c392a5481226eea"
+  },
+  "src/utils/marketplaceBookmarklet.js": {
+    "mtime": 1784847411.7964797,
+    "ast_hash": "0c0244a413508f171e3467847aefa781",
+    "semantic_hash": "0c0244a413508f171e3467847aefa781"
+  },
+  "src/utils/notifications.js": {
+    "mtime": 1784523650.4618523,
+    "ast_hash": "131b8e56af73bd9fe032e046048d0a00",
+    "semantic_hash": "131b8e56af73bd9fe032e046048d0a00"
+  },
+  "src/utils/pdf.js": {
+    "mtime": 1784523650.4618523,
+    "ast_hash": "55129c765a2429ce9b212f4adba5261f",
+    "semantic_hash": "55129c765a2429ce9b212f4adba5261f"
+  },
+  "src/utils/sync.js": {
+    "mtime": 1784598755.816864,
+    "ast_hash": "0487e4c9233a522c3b70777b7a660d31",
+    "semantic_hash": "0487e4c9233a522c3b70777b7a660d31"
+  },
+  "src/utils/theme.js": {
+    "mtime": 1785685181.4767778,
+    "ast_hash": "3d4ecceeb98ea4c96bd61e8be3e87755",
+    "semantic_hash": "3d4ecceeb98ea4c96bd61e8be3e87755"
+  },
+  "src/utils/viewMode.js": {
+    "mtime": 1784826122.3261342,
+    "ast_hash": "0d822670144449c21c88e7554b813c31",
+    "semantic_hash": "0d822670144449c21c88e7554b813c31"
+  },
+  "vite.config.js": {
+    "mtime": 1784524399.2378979,
+    "ast_hash": "de6d0ef60a41f82da6c930655fe7f731",
+    "semantic_hash": "de6d0ef60a41f82da6c930655fe7f731"
+  },
+  "whatsapp-bot-backup/data/grupos.json": {
+    "mtime": 1785052505.1953003,
+    "ast_hash": "c443b04d0fc26b0a5a4573a78e0082a1",
+    "semantic_hash": "c443b04d0fc26b0a5a4573a78e0082a1"
+  },
+  "whatsapp-bot-backup/index.js": {
+    "mtime": 1785089095.683978,
+    "ast_hash": "fe3d0e3a236ea90c76a86d0e745c5624",
+    "semantic_hash": "fe3d0e3a236ea90c76a86d0e745c5624"
+  },
+  "whatsapp-bot-backup/package.json": {
+    "mtime": 1785027606.1166024,
+    "ast_hash": "2008dccb5119d8e5012bafa06cc8872a",
+    "semantic_hash": "2008dccb5119d8e5012bafa06cc8872a"
+  },
+  "whatsapp-bot-backup/src/admin-cmds.js": {
+    "mtime": 1785074987.494982,
+    "ast_hash": "c84eb68cf78beb938fc857684b199a0f",
+    "semantic_hash": "c84eb68cf78beb938fc857684b199a0f"
+  },
+  "whatsapp-bot-backup/src/api-client.js": {
+    "mtime": 1785055608.564324,
+    "ast_hash": "e0848dca22834066ae04ec24d2a1739a",
+    "semantic_hash": "e0848dca22834066ae04ec24d2a1739a"
+  },
+  "whatsapp-bot-backup/src/auth-flow.js": {
+    "mtime": 1785081752.2986865,
+    "ast_hash": "08e1be43ec34e87b1bd0a9403bbe9a8d",
+    "semantic_hash": "08e1be43ec34e87b1bd0a9403bbe9a8d"
+  },
+  "whatsapp-bot-backup/src/heartbeat.js": {
+    "mtime": 1785052582.4255445,
+    "ast_hash": "75678c2b6529b6e0758bdd65f07085bc",
+    "semantic_hash": "75678c2b6529b6e0758bdd65f07085bc"
+  },
+  "whatsapp-bot-backup/src/ladder.js": {
+    "mtime": 1785089043.034659,
+    "ast_hash": "e49b7637c081b637163e9f9065a93ace",
+    "semantic_hash": "e49b7637c081b637163e9f9065a93ace"
+  },
+  "whatsapp-bot-backup/src/logger.js": {
+    "mtime": 1785081718.1389856,
+    "ast_hash": "1d7778269bf4ed2d9c3464ae559d319d",
+    "semantic_hash": "1d7778269bf4ed2d9c3464ae559d319d"
+  },
+  "whatsapp-bot-backup/src/message-relay.js": {
+    "mtime": 1785089119.846045,
+    "ast_hash": "44e3c7072731bbe685b8f63bb8a4af8e",
+    "semantic_hash": "44e3c7072731bbe685b8f63bb8a4af8e"
+  },
+  "whatsapp-bot-backup/src/notify.js": {
+    "mtime": 1785089113.054504,
+    "ast_hash": "cb486a8dfa88771b71217dbdec76c642",
+    "semantic_hash": "cb486a8dfa88771b71217dbdec76c642"
+  },
+  "whatsapp-bot-backup/src/scripts.js": {
+    "mtime": 1785081725.6164944,
+    "ast_hash": "4e52afde0b9fab02fbc0009f9dcf9900",
+    "semantic_hash": "4e52afde0b9fab02fbc0009f9dcf9900"
+  },
+  "whatsapp-bot-backup/src/session-store.js": {
+    "mtime": 1785074977.0645275,
+    "ast_hash": "c6893aad901d6258d61b38c4e6e63ebf",
+    "semantic_hash": "c6893aad901d6258d61b38c4e6e63ebf"
+  },
+  "whatsapp-bot/data/grupos.json": {
+    "mtime": 1785052505.1953003,
+    "ast_hash": "c443b04d0fc26b0a5a4573a78e0082a1",
+    "semantic_hash": "c443b04d0fc26b0a5a4573a78e0082a1"
+  },
+  "whatsapp-bot/index.js": {
+    "mtime": 1785425687.5348687,
+    "ast_hash": "8bc10911034aa32389326610ae558b94",
+    "semantic_hash": "8bc10911034aa32389326610ae558b94"
+  },
+  "whatsapp-bot/package.json": {
+    "mtime": 1785027606.1166024,
+    "ast_hash": "2008dccb5119d8e5012bafa06cc8872a",
+    "semantic_hash": "2008dccb5119d8e5012bafa06cc8872a"
+  },
+  "whatsapp-bot/src/admin-cmds.js": {
+    "mtime": 1785149617.1889646,
+    "ast_hash": "bdf2b3c7be40d6bc88f4b1b4eb99e303",
+    "semantic_hash": "bdf2b3c7be40d6bc88f4b1b4eb99e303"
+  },
+  "whatsapp-bot/src/api-client.js": {
+    "mtime": 1785226671.4474747,
+    "ast_hash": "2f8619fa04145ffc5c21a879dd15b1fa",
+    "semantic_hash": "2f8619fa04145ffc5c21a879dd15b1fa"
+  },
+  "whatsapp-bot/src/auth-flow.js": {
+    "mtime": 1785425684.9227169,
+    "ast_hash": "d2f293ca91d07f3fcd2aafc7c24b8711",
+    "semantic_hash": "d2f293ca91d07f3fcd2aafc7c24b8711"
+  },
+  "whatsapp-bot/src/heartbeat.js": {
+    "mtime": 1785226645.810442,
+    "ast_hash": "8434a53be580bb59737504be3cee0e1d",
+    "semantic_hash": "8434a53be580bb59737504be3cee0e1d"
+  },
+  "whatsapp-bot/src/ladder.js": {
+    "mtime": 1785303430.5443177,
+    "ast_hash": "b27647f131d6654683afcadb7835355c",
+    "semantic_hash": "b27647f131d6654683afcadb7835355c"
+  },
+  "whatsapp-bot/src/logger.js": {
+    "mtime": 1785263949.8833585,
+    "ast_hash": "844a22a3caeebafd53ba2841ab46878e",
+    "semantic_hash": "844a22a3caeebafd53ba2841ab46878e"
+  },
+  "whatsapp-bot/src/message-relay.js": {
+    "mtime": 1785303473.3041656,
+    "ast_hash": "a24408a343575f0db17c126b85781425",
+    "semantic_hash": "a24408a343575f0db17c126b85781425"
+  },
+  "whatsapp-bot/src/notify.js": {
+    "mtime": 1785422459.5425093,
+    "ast_hash": "587bb667c6a6634ad0c5fb42db5ea1f1",
+    "semantic_hash": "587bb667c6a6634ad0c5fb42db5ea1f1"
+  },
+  "whatsapp-bot/src/proxy-pool.js": {
+    "mtime": 1785310376.4036715,
+    "ast_hash": "1c3b7b1869377e2a64b9d2fc9178d93a",
+    "semantic_hash": "1c3b7b1869377e2a64b9d2fc9178d93a"
+  },
+  "whatsapp-bot/src/scripts.js": {
+    "mtime": 1785425686.1973207,
+    "ast_hash": "e0b46f0617a74000cff5491b02a0a19b",
+    "semantic_hash": "e0b46f0617a74000cff5491b02a0a19b"
+  },
+  "whatsapp-bot/src/session-store.js": {
+    "mtime": 1785074977.0645275,
+    "ast_hash": "c6893aad901d6258d61b38c4e6e63ebf",
+    "semantic_hash": "c6893aad901d6258d61b38c4e6e63ebf"
+  },
+  "whatsapp-bot/src/wa-store.js": {
+    "mtime": 1785227767.2105813,
+    "ast_hash": "2e222b2f6d197f77d07c240e2bd1aa9c",
+    "semantic_hash": "2e222b2f6d197f77d07c240e2bd1aa9c"
+  },
+  "scripts/graphify-update.cjs": {
+    "mtime": 1785969825.5314314,
+    "ast_hash": "4ee7ea9e4b883590dd063cd059fee51b",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1785968171.7059903,
+    "ast_hash": "01d7ae93980e1eaf3224588777dda1d1",
+    "semantic_hash": ""
+  },
+  "capacitor-build.md": {
+    "mtime": 1784343357.1381583,
+    "ast_hash": "ed7b56a44e0775b37e6c41b4577196fe",
+    "semantic_hash": ""
+  },
+  "capacitor-instructions.md": {
+    "mtime": 1784337810.5222938,
+    "ast_hash": "cfe1a33692e248ad16b919a7f3b35164",
+    "semantic_hash": ""
+  },
+  "design-proposals/design-01-operativo.html": {
+    "mtime": 1785425089.02703,
+    "ast_hash": "726577bc990995bd274d49b8fd238e19",
+    "semantic_hash": ""
+  },
+  "design-proposals/design-02-movil.html": {
+    "mtime": 1785425091.449701,
+    "ast_hash": "857d4f51ac26b04363dcc872d261465f",
+    "semantic_hash": ""
+  },
+  "design-proposals/design-03-chat.html": {
+    "mtime": 1785425093.845956,
+    "ast_hash": "fd0eb23508e37e2024899b319af8f9cf",
+    "semantic_hash": ""
+  },
+  "design-proposals/laujim-app-redesign.html": {
+    "mtime": 1785823422.6014917,
+    "ast_hash": "11d8f7e34548a36b5f4d18d44f3a952d",
+    "semantic_hash": ""
+  },
+  "editor/index.html": {
+    "mtime": 1784451870.5334847,
+    "ast_hash": "cc52badcbd09085d34a170e0203edd48",
+    "semantic_hash": ""
+  },
+  "extension/popup.html": {
+    "mtime": 1784837096.8647046,
+    "ast_hash": "2a895712fd28798aa8f5202aca3f631a",
+    "semantic_hash": ""
+  },
+  "index.html": {
+    "mtime": 1784695190.7633243,
+    "ast_hash": "8246c50d286c6a1981d61b6a0e1bc7fa",
+    "semantic_hash": ""
+  },
+  "proyecto de camaras/diagrama-flujo.html": {
+    "mtime": 1785793638.6731658,
+    "ast_hash": "4051deaeba9b46606d0825b4a73f8913",
+    "semantic_hash": ""
+  },
+  "proyecto de camaras/para-codex-integracion-seguridad.md": {
+    "mtime": 1785793650.9811904,
+    "ast_hash": "dbedcf8ecb1fb44ac7f946345ffda524",
+    "semantic_hash": ""
+  },
+  "proyecto de camaras/plan-cameras-videoportero.md": {
+    "mtime": 1785831802.4737995,
+    "ast_hash": "797f91dad5102aed75856d776a2a80e1",
+    "semantic_hash": ""
+  },
+  "proyecto de camaras/topologia.html": {
+    "mtime": 1785831920.9836915,
+    "ast_hash": "c88d0d4c241ea732399bb215a96c6cb5",
+    "semantic_hash": ""
+  },
+  "proyecto de camaras/whatsapp-cloud-api.md": {
+    "mtime": 1785426434.3816273,
+    "ast_hash": "8381b687512c8dd502ad24bc66f040a7",
+    "semantic_hash": ""
+  },
+  "public/privacy.html": {
+    "mtime": 1785641888.3909152,
+    "ast_hash": "f3394a30a2b8354b9ce7cb4c8afe17a0",
+    "semantic_hash": ""
+  },
+  "render.yaml": {
+    "mtime": 1785630821.8577929,
+    "ast_hash": "c06dc47dc79046792aaa1d342a5eeeef",
+    "semantic_hash": ""
+  },
+  "whatsapp-bot-backup/BACKUP-CONFIG.md": {
+    "mtime": 1785096856.595137,
+    "ast_hash": "da797c3c88ac3a7525e53d90554c4953",
+    "semantic_hash": ""
+  },
+  "IMG_4307.jpeg": {
+    "mtime": 1784487706.1416965,
+    "ast_hash": "e3ff26d236cec776e873b01107426122",
+    "semantic_hash": ""
+  },
+  "WhatsApp Image 2026-07-19 at 1.26.45 PM.jpeg": {
+    "mtime": 1784487767.3129857,
+    "ast_hash": "f9971ba7ad32e0734c0d58a373e1ec49",
+    "semantic_hash": ""
+  },
+  "WhatsApp Image 2026-07-19 at 1.26.46 PM (1).jpeg": {
+    "mtime": 1784487779.411842,
+    "ast_hash": "03c98550cc54e24fffffe62bf7acd47f",
+    "semantic_hash": ""
+  },
+  "WhatsApp Image 2026-07-19 at 1.26.46 PM.jpeg": {
+    "mtime": 1784487772.91742,
+    "ast_hash": "b9cbf49b4de32a13152ae24c7cc84255",
+    "semantic_hash": ""
+  },
+  "WhatsApp Image 2026-07-19 at 2.07.05 PM.jpeg": {
+    "mtime": 1784523141.788321,
+    "ast_hash": "03c98550cc54e24fffffe62bf7acd47f",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/drawable/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  "extension/icons/icon128.png": {
+    "mtime": 1784837141.6322856,
+    "ast_hash": "242065e3036ebdef2a140fa33993485a",
+    "semantic_hash": ""
+  },
+  "public/favicon.svg": {
+    "mtime": 1784337544.1688738,
+    "ast_hash": "7e840862161341271697daa99a40d76b",
+    "semantic_hash": ""
+  },
+  "public/icons.svg": {
+    "mtime": 1784343345.74238,
+    "ast_hash": "958d8c22ce63c384916067c6c1386e91",
+    "semantic_hash": ""
+  },
+  "whatsapp-bot-backup/qr.png": {
+    "mtime": 1784974402.899192,
+    "ast_hash": "9b76bcdb8773227ee36631fa38b57161",
+    "semantic_hash": ""
+  },
+  "hooks/pre-commit": {
+    "mtime": 1785969971.3521059,
+    "ast_hash": "376a4d8b34d01ba3cc93d11ba1edf8b0",
+    "semantic_hash": ""
+  },
+  "scripts/setup-graphify-hooks.cjs": {
+    "mtime": 1785969896.841095,
+    "ast_hash": "6c718f25f8bd153e14a2fe28257e5531",
+    "semantic_hash": ""
+  }
+}
