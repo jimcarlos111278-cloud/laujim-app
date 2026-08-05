@@ -897,5 +897,25 @@
       "provider": "Air-e",
       "scrapedAt": "2026-08-05T06:21:33.420Z"
     }
-  ]
+  ],
+  "leads": [],
+  "authSessions": [
+    {
+      "id": "30d7ac0a-ff15-48ea-8595-4231f500dde9",
+      "tokenHash": "cd6aec83117daf4ef670fff10d12d6eafb9ccfaa6773e0b52fd6e28d41ab2bd7",
+      "role": "admin",
+      "name": "Administrador",
+      "apartmentId": null,
+      "tenantId": null,
+      "createdAt": "2026-08-05T12:30:25.666Z",
+      "expiresAt": "2026-08-06T00:30:25.666Z"
+    }
+  ],
+  "paymentReminderLogs": [],
+  "whatsappContacts": [],
+  "whatsappConversations": [],
+  "whatsappMessages": [],
+  "whatsappAuthStates": [],
+  "whatsappBlockedUsers": [],
+  "whatsappProcessedMessages": []
 }

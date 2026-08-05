@@ -12,6 +12,7 @@ const INITIAL_DATA = {
   familyMembers: [],
   settings: [],
   passwords: [],
+  portalCredentials: [],
   photos: [],
   messages: [],
   presence: [],

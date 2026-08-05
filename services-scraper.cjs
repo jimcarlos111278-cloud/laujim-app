@@ -45,11 +45,6 @@ async function resolveChromium() {
 
 // ─── CONFIG ─────────────────────────────────────────────────────────────────
 
-const AIR_E_CREDENTIALS = {
-  email: 'arriendo.apartamentos.la.victoria@gmail.com',
-  password: 'Laujim1011.',
-};
-
 const AIR_E_URLS = {
   login:   'https://portal.air-e.com/Login?returnurl=%2fMis-Facturas%2fListado-de-Facturas',
   listado: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List',
@@ -74,10 +69,27 @@ const AIR_E_NIC_MAP = {
 // ── DB REF (set by server.cjs) ─────────────────────────────────────────────
 let db = null;
 let saveData = null;
+let decryptSecret = null;
 
-function init(dbRef, saveFn) {
+function init(dbRef, saveFn, decryptFn) {
   db = dbRef;
   saveData = saveFn;
+  decryptSecret = decryptFn || null;
+}
+
+// Air-e credentials are stored encrypted in db.portalCredentials (provider 'air-e')
+// and decrypted server-side. No plaintext secrets live in this file.
+function getAirECredentials() {
+  const rec = (db && db.portalCredentials || []).find(r => r.provider === 'air-e');
+  if (!rec) {
+    throw new Error('Credenciales de Air-e no configuradas. Guárdalas en Ajustes → Credenciales de servicios.');
+  }
+  const email = decryptSecret ? decryptSecret(rec.username) : rec.username;
+  const password = decryptSecret ? decryptSecret(rec.password) : rec.password;
+  if (!email || !password) {
+    throw new Error('Credenciales de Air-e incompletas.');
+  }
+  return { email, password };
 }
 
 // ── BROWSER LAUNCH (Render-compatible) ─────────────────────────────────────
@@ -109,6 +121,7 @@ async function scrapeAirE() {
 
   try {
     console.log('[AIR-E] Launching browser (sparticuz chromium)...');
+    const creds = getAirECredentials();
     browser = await launchBrowser();
     const page = await browser.newPage();
     await page.setViewport({ width: 1366, height: 768 });
@@ -119,8 +132,8 @@ async function scrapeAirE() {
     await sleep(2000);
 
     // Fill login form (Air-e is DotNetNuke WebForms; select by stable name attributes)
-    await waitAndType(page, 'input[name*="txtUsername"], input[name*="Login$"]', AIR_E_CREDENTIALS.email);
-    await waitAndType(page, 'input[name*="txtPassword"]', AIR_E_CREDENTIALS.password);
+    await waitAndType(page, 'input[name*="txtUsername"], input[name*="Login$"]', creds.email);
+    await waitAndType(page, 'input[name*="txtPassword"]', creds.password);
     const loginBtn = await page.$('#dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_cmdLogin') ||
                      await page.$('button::-p-text("Ingresar")');
     if (loginBtn) await loginBtn.click();

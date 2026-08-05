@@ -165,6 +165,57 @@ function constantTimeEqual(left, right) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+// ─── Secrets encryption (AES-256-GCM) ────────────────────────────────────
+// Sensitive fields such as utility portal credentials are encrypted at rest.
+// The key is derived from SERVER_ENC_KEY; if absent a random key is generated
+// and persisted to SECRET_KEY_FILE so the server stays stable across restarts.
+const SECRET_KEY_FILE = path.join(__dirname, 'portal-credentials.key');
+let secretKey = null;
+
+function getSecretKey() {
+  if (secretKey) return secretKey;
+  const envKey = process.env.SERVER_ENC_KEY;
+  if (envKey) {
+    secretKey = crypto.createHash('sha256').update(envKey).digest();
+    return secretKey;
+  }
+  try {
+    if (fs.existsSync(SECRET_KEY_FILE)) {
+      secretKey = Buffer.from(fs.readFileSync(SECRET_KEY_FILE, 'utf8').trim(), 'base64');
+      if (secretKey.length !== 32) secretKey = null;
+    }
+  } catch { /* fall through to regeneration */ }
+  if (!secretKey) {
+    secretKey = crypto.randomBytes(32);
+    try { fs.writeFileSync(SECRET_KEY_FILE, secretKey.toString('base64'), { mode: 0o600 }); }
+    catch { /* non-fatal on read-only filesystems; key stays ephemeral */ }
+  }
+  return secretKey;
+}
+
+function encryptSecret(plaintext) {
+  if (plaintext === undefined || plaintext === null || plaintext === '') return plaintext;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', getSecretKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(String(plaintext), 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `enc:v1:${iv.toString('base64')}:${tag.toString('base64')}:${encrypted.toString('base64')}`;
+}
+
+function decryptSecret(value) {
+  if (typeof value !== 'string' || !value.startsWith('enc:v1:')) return value;
+  const parts = value.split(':');
+  if (parts.length !== 6) return value;
+  try {
+    const iv = Buffer.from(parts[2], 'base64');
+    const tag = Buffer.from(parts[3], 'base64');
+    const data = Buffer.from(parts[4], 'base64');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', getSecretKey(), iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
+  } catch { return value; }
+}
+
 function ensureAuthSessions() {
   if (!Array.isArray(db.authSessions)) db.authSessions = [];
 }
@@ -2259,6 +2310,68 @@ app.post('/api/admin/verify-security-question', (req, res) => {
   res.status(401).json({ error: 'Respuesta incorrecta' });
 });
 
+// ─── CREDENCIALES DE PORTALES DE SERVICIOS PÚBLICOS ───
+// Admin-only. Secrets are encrypted at rest (AES-256-GCM) via encryptSecret.
+
+app.get('/api/portal-credentials', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const records = (db.portalCredentials || []).map(rec => ({
+    id: rec.id,
+    provider: rec.provider,
+    username: decryptSecret(rec.username),
+    password: decryptSecret(rec.password),
+    updatedAt: rec.updatedAt,
+  }));
+  res.json({ ok: true, data: records });
+});
+
+app.put('/api/portal-credentials/:provider', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const provider = String(req.params.provider || '').trim().toLowerCase();
+  if (!provider) return res.status(400).json({ error: 'Proveedor requerido' });
+  const { username, password } = req.body || {};
+  if (username === undefined || username === null || String(username).trim() === '') {
+    return res.status(400).json({ error: 'Usuario requerido' });
+  }
+  if (password === undefined || password === null || String(password).trim() === '') {
+    return res.status(400).json({ error: 'Contraseña requerida' });
+  }
+  if (!db.portalCredentials) db.portalCredentials = [];
+  const index = db.portalCredentials.findIndex(rec => rec.provider === provider);
+  const updatedAt = new Date().toISOString();
+  let record;
+  if (index === -1) {
+    record = {
+      id: nextId.portalCredentials || 1,
+      provider,
+      username: encryptSecret(String(username).trim()),
+      password: encryptSecret(String(password)),
+      updatedAt,
+    };
+    db.portalCredentials.push(record);
+    nextId.portalCredentials = record.id + 1;
+  } else {
+    record = {
+      ...db.portalCredentials[index],
+      username: encryptSecret(String(username).trim()),
+      password: encryptSecret(String(password)),
+      updatedAt,
+    };
+    db.portalCredentials[index] = record;
+  }
+  saveData();
+  res.json({ ok: true, id: record.id, provider: record.provider, updatedAt });
+});
+
+app.delete('/api/portal-credentials/:provider', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const provider = String(req.params.provider || '').trim().toLowerCase();
+  const before = (db.portalCredentials || []).length;
+  db.portalCredentials = (db.portalCredentials || []).filter(rec => rec.provider !== provider);
+  if (before !== (db.portalCredentials || []).length) saveData();
+  res.json({ ok: true });
+});
+
 app.get('/api/leads', (req, res) => {
   res.json(db.leads || []);
 });
@@ -2506,7 +2619,7 @@ app.use((req, res) => {
     }, 60 * 60 * 1000).unref();
 
     // Init services scraper with DB reference and start 24h scheduler
-    servicesScraper.init(db, saveData);
+    servicesScraper.init(db, saveData, decryptSecret);
     servicesScraper.startScheduler();
 
     if (LEGACY_BAILEYS_ENABLED && process.env.AUTO_START_BOT !== 'false' && !BOT_IS_EXTERNAL) {

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
+import { clearAuth } from '../utils/auth';
 import ThemeSelector from './ThemeSelector';
 
 const navItems = [
@@ -32,8 +33,14 @@ export default function Layout({ children }) {
     const saved = Number(localStorage.getItem('font-scale') || 1);
     return Math.max(0.85, Math.min(typeof window !== 'undefined' && window.innerWidth < 640 ? 1.15 : 2, saved));
   });
-  const [installPrompt, setInstallPrompt] = useState(null);
+const [installPrompt, setInstallPrompt] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    clearAuth();
+    navigate('/login', { replace: true });
+  }
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
@@ -126,6 +133,9 @@ export default function Layout({ children }) {
             {connected === true && <><Cloud className="w-3.5 h-3.5 text-green-500" /><span className="text-green-600">En línea</span></>}
             {connected === false && <><CloudOff className="w-3.5 h-3.5 text-red-500" /><span className="text-red-500">Sin conexión</span></>}
           </div>
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+            <LogOut className="w-4 h-4" /> Cerrar sesión
+          </button>
         </div>
       </aside>
       <div className="flex-1 flex flex-col min-w-0">

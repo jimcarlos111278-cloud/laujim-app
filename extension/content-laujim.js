@@ -1,6 +1,32 @@
 (function () {
   'use strict';
 
+  // Record the authenticated session so background.js can fetch the portal
+  // credentials (Air-e login) and have the content script autofill them.
+  function sessionFromPage() {
+    var base = '';
+    var custom = localStorage.getItem('apt_server_url');
+    if (custom) {
+      base = custom + '/api';
+    } else {
+      base = window.location.origin + '/api';
+    }
+    var token = '';
+    try {
+      token = JSON.parse(localStorage.getItem('apt_auth') || '{}').token || '';
+    } catch (e) { token = ''; }
+    return { apiBase: base, token: token };
+  }
+
+  // Stash the live session for the background worker. Keeps the token out of
+  // the bundle and lets GET_PORTAL_CREDENTIALS reuse the user's login.
+  function storeSession() {
+    var s = sessionFromPage();
+    if (s.apiBase && s.token) {
+      chrome.storage.local.set({ laujimSession: s });
+    }
+  }
+
   function storeData(data) {
     chrome.storage.local.set({
       marketplaceData: data,
@@ -55,6 +81,9 @@
   }, 1000);
 
   checkAndStore();
+
+  storeSession();
+  setInterval(storeSession, 60000);
 
   console.log('[Laujim Ext] Content script listo en Laujim');
 })();

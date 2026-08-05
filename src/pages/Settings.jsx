@@ -49,6 +49,13 @@ export default function Settings() {
     { num: '3', label: 'Registrar mi interés', action: 'lead', enabled: true },
     { num: '4', label: 'Soy residente (iniciar sesión)', action: 'login', enabled: true },
   ]);
+  const [portalCreds, setPortalCreds] = useState({
+    'air-e': { username: '', password: '' },
+    'triple-a': { username: '', password: '' },
+    'gascaribe': { username: '', password: '' },
+  });
+  const [portalCredsSaving, setPortalCredsSaving] = useState(false);
+  const [portalCredsMsg, setPortalCredsMsg] = useState('');
 
   async function handleResetDb() {
     setResetting(true);
@@ -274,6 +281,16 @@ export default function Settings() {
   async function load() {
     const s = await fetch(getBase() + '/settings', { headers: { 'x-auth-token': AUTH_TOKEN } }).then(r => r.json()).catch(() => []);
     setSettingsList(s);
+    fetch(getBase() + '/portal-credentials', { headers: { 'x-auth-token': AUTH_TOKEN } })
+      .then(r => r.ok ? r.json() : { data: [] })
+      .then(res => {
+        if (res && Array.isArray(res.data)) {
+          const records = {};
+          res.data.forEach(rec => { records[rec.provider] = { username: rec.username || '', password: rec.password || '' }; });
+          if (Object.keys(records).length) setPortalCreds(prev => ({ ...prev, ...records }));
+        }
+      })
+      .catch(() => {});
     const getVal = (k, def) => s.find(x => x.key === k)?.value || def;
     setWaConfig({ apiToken: getVal('whatsapp_api_token', ''), phoneNumberId: getVal('whatsapp_phone_number_id', ''), verifyToken: getVal('whatsapp_verify_token', 'laujim_whatsapp_verify') });
     const svc = getVal('whatsapp_template_services', '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Sabemos que es fácil perder la información de pago de los servicios, por eso te compartimos los enlaces directos:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\n📌 También puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar esta información y contactarnos por el chat directo.\n👉 https://laujim-app.onrender.com/login\n\n¡Gracias!');
@@ -372,6 +389,21 @@ export default function Settings() {
       setRelaySaved(true); setTimeout(() => setRelaySaved(false), 3000);
     } catch (e) { alert('Error al guardar templates: ' + e.message); }
     setRelaySaving(false);
+  }
+
+  async function handleSavePortalCreds() {
+    setPortalCredsSaving(true); setPortalCredsMsg('');
+    try {
+      const headers = { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN };
+      for (const [provider, creds] of Object.entries(portalCreds)) {
+        if (!String(creds.username).trim() || !String(creds.password)) continue;
+        const res = await fetch(getBase() + '/portal-credentials/' + provider, { method: 'PUT', headers, body: JSON.stringify({ username: creds.username, password: creds.password }) });
+        if (!res.ok) throw new Error(await res.text());
+      }
+      setPortalCredsMsg('Credenciales guardadas. La extensión de Chrome autocompletará los 3 portales.');
+    } catch (e) { setPortalCredsMsg('Error al guardar: ' + e.message); }
+    setPortalCredsSaving(false);
+    setTimeout(() => setPortalCredsMsg(''), 6000);
   }
 
   function formatUptime(seconds) {
@@ -665,6 +697,51 @@ export default function Settings() {
               <span className="text-gray-900 dark:text-white">Air-e — Pagar recibo</span><span className="text-blue-600 text-xs">Abrir →</span>
             </a>
           </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Zap className="w-4 h-4" /> Credenciales de Servicios (Autollenado)</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">La extensión de Chrome rellena automáticamente el usuario y la contraseña en cada portal. Solo llena los campos; tú haces clic en "Iniciar sesión".</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {[
+              { key: 'air-e', name: 'Air-e (Energía)', portal: 'portal.air-e.com' },
+              { key: 'triple-a', name: 'Triple A (Agua)', portal: 'portal.aaa.com.co' },
+              { key: 'gascaribe', name: 'Gases del Caribe (Gas)', portal: 'portal.gascaribe.com' },
+            ].map(svc => (
+              <div key={svc.key} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{svc.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{svc.portal}</p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Usuario</label>
+                    <input
+                      type="text"
+                      value={portalCreds[svc.key]?.username || ''}
+                      onChange={e => setPortalCreds(prev => ({ ...prev, [svc.key]: { ...prev[svc.key], username: e.target.value } }))}
+                      autoComplete="off"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="Correo o documento"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña</label>
+                    <input
+                      type="password"
+                      value={portalCreds[svc.key]?.password || ''}
+                      onChange={e => setPortalCreds(prev => ({ ...prev, [svc.key]: { ...prev[svc.key], password: e.target.value } }))}
+                      autoComplete="off"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={handleSavePortalCreds} disabled={portalCredsSaving} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium">
+            <Save className="w-4 h-4" /> {portalCredsSaving ? 'Guardando...' : 'Guardar Credenciales'}
+          </button>
+          {portalCredsMsg && <p className={`mt-2 text-xs ${portalCredsMsg.startsWith('Error') ? 'text-red-600' : 'text-emerald-600'}`}>{portalCredsMsg}</p>}
         </div>
 
         {/* ─── Server Monitor Dashboard ─── */}

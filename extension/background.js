@@ -38,6 +38,31 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === 'GET_PORTAL_CREDENTIALS') {
+    chrome.storage.local.get('laujimSession', (res) => {
+      const session = res.laujimSession;
+      if (!session || !session.apiBase || !session.token) {
+        sendResponse({ ok: false, error: 'No hay sesión de Laujim guardada. Abre primero Gestión Laujim.' });
+        return;
+      }
+      fetch(session.apiBase + '/portal-credentials', {
+        headers: { 'x-auth-token': session.token }
+      })
+        .then((r) => r.json().then((body) => ({ status: r.status, body })))
+        .then(({ status, body }) => {
+          if (status !== 200 || !body.ok) {
+            sendResponse({ ok: false, error: (body && body.error) || 'No se pudieron obtener las credenciales de los servicios.' });
+            return;
+          }
+          const records = Array.isArray(body.data) ? body.data : [];
+          const provider = String(msg.provider || 'air-e').trim();
+          const rec = records.find((r) => String(r.provider).trim() === provider) || null;
+          sendResponse({ ok: true, provider, credentials: rec ? { username: rec.username, password: rec.password } : null });
+        })
+        .catch((err) => sendResponse({ ok: false, error: 'Error de red al obtener credenciales: ' + err.message }));
+    });
+    return true;
+  }
   if (msg.type === 'REPORT_EXTENSION_ERROR') {
     chrome.storage.local.set({
       marketplaceLastError: {

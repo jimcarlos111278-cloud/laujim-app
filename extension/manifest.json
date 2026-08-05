@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Llenar Laujim",
-  "version": "1.4.5",
-  "description": "Auto-llena los anuncios de Facebook Marketplace desde Gestión Laujim. Incluye fotos, precio, descripción y más.",
+  "version": "1.6.0",
+  "description": "Auto-llena los anuncios de Facebook Marketplace desde Gestión Laujim. Incluye fotos, precio, descripción y más. Autocompleta el login de los servicios (Air-e, Triple A, Gases del Caribe) con las credenciales guardadas.",
   "permissions": [
     "storage",
     "unlimitedStorage",
@@ -16,7 +16,10 @@
     "https://laujim-app-2f53.onbelmo.uk/*",
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "*://*.facebook.com/*"
+    "*://*.facebook.com/*",
+    "https://portal.air-e.com/*",
+    "https://portal.aaa.com.co/*",
+    "https://*.gascaribe.com/*"
   ],
   "content_scripts": [
     {
@@ -36,6 +39,15 @@
       ],
       "js": ["content-facebook.js"],
       "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://portal.air-e.com/*",
+        "https://portal.aaa.com.co/*",
+        "https://*.gascaribe.com/*"
+      ],
+      "js": ["content-portals.js"],
+      "run_at": "document_idle"
     }
   ],
   "background": {
