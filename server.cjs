@@ -1282,8 +1282,14 @@ app.get('/api/utility-status', (req, res) => {
     return {
       id: apt.id,
       name: apt.name,
-      electricity: latest && latest.Factura === 'Air-e'
-        ? { estado: latest.estado, valor: latest.valor, vence: latest.vence, periodo: latest.periodo, factura: latest.factura, scrapedAt: latest.scrapedAt }
+      electricity: latest && latest.provider === 'Air-e'
+        ? {
+            deudaCOP: latest.deudaCOP,
+            numFacturas: latest.numFacturas,
+            deudaText: latest.deudaText,
+            nic: latest.nic,
+            scrapedAt: latest.scrapedAt,
+          }
         : null,
       // Triple A and Gases will be populated later
       water: null,
@@ -1298,11 +1304,11 @@ app.post('/api/scrape-air-e', async (req, res) => {
   try {
     res.json({ ok: true, message: 'Scrape iniciado. Los resultados se guardarán en utilityRecords.' });
     const results = await servicesScraper.scrapeAirE();
-    // Persist results
+    // Persist results (one current-debt record per NIC)
     if (!db.utilityRecords) db.utilityRecords = [];
     for (const r of results) {
       const existing = db.utilityRecords.findIndex(
-        (u) => u.factura === r.factura && u.provider === 'Air-e'
+        (u) => u.nic === r.nic && u.provider === 'Air-e'
       );
       if (existing >= 0) {
         db.utilityRecords[existing] = { ...db.utilityRecords[existing], ...r };
@@ -1339,10 +1345,9 @@ app.get('/api/public/utility-status/:apartmentId', (req, res) => {
     if (elecRecords.length > 0) {
       const latest = elecRecords[0];
       electricityInfo = {
-        estado: latest.estado,
-        valor: latest.valor,
-        vence: latest.vence,
-        periodo: latest.periodo,
+        deudaCOP: latest.deudaCOP,
+        numFacturas: latest.numFacturas,
+        deudaText: latest.deudaText,
         actualizado: latest.scrapedAt,
       };
     }

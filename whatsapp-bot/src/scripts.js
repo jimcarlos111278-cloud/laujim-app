@@ -1,10 +1,10 @@
 const DEFAULTS = {
-  auth_welcome: '🏢 *Bienvenido al sistema de mensajería*\n\nPara identificarte, escribe tu *número de apartamento* (ej: 203)',
+  auth_welcome: '🤖 *Laujim Bot de atención*\n\nEste canal es automático y tus mensajes no se envían al administrador hasta verificar tu identidad.\n\nPara continuar, escribe tu *número de apartamento* (ej: 203):',
   auth_invalid_apto: '❌ El número de apartamento debe ser de 3 dígitos.\n\nIntenta de nuevo:',
   auth_apto_not_found: '❌ No encontré el apartamento *{apto}*.\n\nVerifica el número e intenta de nuevo:',
   auth_prompt_cedula: '🪪 Ahora escribe tu *cédula* (número de documento):',
   auth_invalid_cedula: '❌ La cédula debe tener al menos 5 dígitos.\n\nIntenta de nuevo:',
-  auth_failed: '❌ Los datos no coinciden con nuestros registros.\n\nEscribe tu *número de apartamento* para intentar de nuevo:',
+  auth_failed: '❌ Los datos no coinciden con nuestros registros. Tus mensajes siguen sin ser entregados al administrador.\n\nEscribe tu *número de apartamento* para intentar de nuevo:',
   auth_timeout: '⏰ Tiempo de espera agotado. Escribe cualquier mensaje para iniciar de nuevo.',
   session_created: '✅ *Sesión iniciada*\n\nTu conversación con el grupo *{apto}* ya está activa. Escribe lo que necesites.',
   session_expired: '⏰ Tu sesión ha expirado por inactividad. Escribe cualquier mensaje para iniciar de nuevo.',

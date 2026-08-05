@@ -462,7 +462,8 @@ async function startBot() {
                      msg.message.videoMessage?.caption ||
                      msg.message.documentMessage?.caption ||
                      '';
-        log('MSG: text="' + (text || '') + '" textLength=' + (text?.length || 0));
+        const hasMedia = !!(msg.message.imageMessage || msg.message.videoMessage || msg.message.documentMessage || msg.message.audioMessage);
+        log('MSG: textLength=' + (text?.length || 0) + ' hasMedia=' + hasMedia);
 
         const command = matchCommand(text);
         log('MSG: matchedCommand=' + (command || 'none'));
@@ -507,7 +508,6 @@ async function startBot() {
           log('PRIVATE: session lookup convJid=' + convJid + ' found=' + !!session + ' state=' + (session?.state || 'none') + ' apto=' + (session?.apto || 'none'));
 
           if (session && session.state === 'ACTIVE') {
-            const hasMedia = !!(msg.message.imageMessage || msg.message.videoMessage || msg.message.documentMessage || msg.message.audioMessage);
             if (hasMedia) {
               log('PRIVATE MEDIA RELAY: apto=' + session.apto + ' groupJid=' + session.groupJid);
               ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'RELAY_MEDIA', text, '', '', '', session.apto);
@@ -545,7 +545,8 @@ async function startBot() {
           }
 
           log('PRIVATE: auto-auth failed, starting menu flow convJid=' + convJid + ' deliveryJid=' + deliveryJid);
-          ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'MENU_START', text, '', '', '', '');
+          // The first message from an unknown number is deliberately not stored.
+          ladder.push('Usr→Bot', maskJid(convJid), 'Bot', 'AUTH_REQUIRED', '[contenido no almacenado]', '', '', '', '');
           const result = await authFlow.handleMessage(convJid, text, sendToTenant, aptoToGroupJid, retryDiscover, deliveryJid);
           log('PRIVATE MENU: action=' + result.action);
         }

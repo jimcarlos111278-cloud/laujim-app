@@ -61,3 +61,6 @@ sessions/
 # Runtime error logs
 bot.err
 server.err
+
+# Contiene credenciales de la base Aiven - no subir
+restore-aiven.cjs

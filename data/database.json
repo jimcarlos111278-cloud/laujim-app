@@ -3,7 +3,7 @@
     {
       "id": 1,
       "username": "admin",
-      "password": "admin123",
+      "password": "laujim123",
       "role": "owner",
       "name": "Administrador"
     },
@@ -34,7 +34,7 @@
       "waterReadingDay": 7,
       "gasPaymentCode": "1036207",
       "gasReadingDay": 7,
-      "electricityPaymentCode": "",
+      "electricityPaymentCode": "2059378",
       "electricityReadingDay": 21,
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
@@ -56,7 +56,7 @@
       "waterReadingDay": 7,
       "gasPaymentCode": "1036207",
       "gasReadingDay": 7,
-      "electricityPaymentCode": "",
+      "electricityPaymentCode": "6906395",
       "electricityReadingDay": 21,
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
@@ -78,7 +78,7 @@
       "waterReadingDay": 7,
       "gasPaymentCode": "66499522",
       "gasReadingDay": 7,
-      "electricityPaymentCode": "",
+      "electricityPaymentCode": "7889028",
       "electricityReadingDay": 21,
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
@@ -100,7 +100,7 @@
       "waterReadingDay": 7,
       "gasPaymentCode": "66499584",
       "gasReadingDay": 7,
-      "electricityPaymentCode": "",
+      "electricityPaymentCode": "7809670",
       "electricityReadingDay": 21,
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
@@ -276,7 +276,7 @@
       "waterReadingDay": 7,
       "gasPaymentCode": "67426719",
       "gasReadingDay": 7,
-      "electricityPaymentCode": "",
+      "electricityPaymentCode": "7889035",
       "electricityReadingDay": 21,
       "createdAt": "2026-07-20T06:47:58.630Z"
     },
@@ -293,7 +293,8 @@
       "name": "101",
       "monthlyRent": 500000,
       "id": 14,
-      "createdAt": "2026-07-21T17:29:20.411Z"
+      "createdAt": "2026-07-21T17:29:20.411Z",
+      "electricityPaymentCode": "2059378"
     }
   ],
   "tenants": [
@@ -785,6 +786,116 @@
       "status": "online",
       "lastSeen": "2026-07-25T16:37:34.778Z",
       "id": 3
+    }
+  ],
+  "utilityRecords": [
+    {
+      "apt": "101",
+      "nic": "2059378",
+      "deudaCOP": 0,
+      "numFacturas": 0,
+      "deudaText": "La deuda del NIC es $000.000,00 correspondiente a 0 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.419Z"
+    },
+    {
+      "apt": "102",
+      "nic": "6906395",
+      "deudaCOP": 285510,
+      "numFacturas": 3,
+      "deudaText": "La deuda del NIC es $285.510 correspondiente a 3 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "202",
+      "nic": "7809670",
+      "deudaCOP": 223140,
+      "numFacturas": 2,
+      "deudaText": "La deuda del NIC es $223.140 correspondiente a 2 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "203",
+      "nic": "7809672",
+      "deudaCOP": 248620,
+      "numFacturas": 3,
+      "deudaText": "La deuda del NIC es $248.620 correspondiente a 3 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "201",
+      "nic": "7889028",
+      "deudaCOP": 0,
+      "numFacturas": 0,
+      "deudaText": "La deuda del NIC es $000.000,00 correspondiente a 0 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "301",
+      "nic": "7889031",
+      "deudaCOP": 0,
+      "numFacturas": 0,
+      "deudaText": "La deuda del NIC es $000.000,00 correspondiente a 0 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "302",
+      "nic": "7889033",
+      "deudaCOP": 0,
+      "numFacturas": 0,
+      "deudaText": "La deuda del NIC es $000.000,00 correspondiente a 0 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "303",
+      "nic": "7889034",
+      "deudaCOP": 80990,
+      "numFacturas": 1,
+      "deudaText": "La deuda del NIC es $80.990 correspondiente a 1 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "501",
+      "nic": "7889035",
+      "deudaCOP": 0,
+      "numFacturas": 0,
+      "deudaText": "La deuda del NIC es $000.000,00 correspondiente a 0 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "401",
+      "nic": "7889036",
+      "deudaCOP": 40280,
+      "numFacturas": 1,
+      "deudaText": "La deuda del NIC es $40.280 correspondiente a 1 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "402",
+      "nic": "7889037",
+      "deudaCOP": 16020,
+      "numFacturas": 8,
+      "deudaText": "La deuda del NIC es $16.020 correspondiente a 8 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
+    },
+    {
+      "apt": "403",
+      "nic": "7889039",
+      "deudaCOP": 16000,
+      "numFacturas": 1,
+      "deudaText": "La deuda del NIC es $16.000 correspondiente a 1 facturas.",
+      "provider": "Air-e",
+      "scrapedAt": "2026-08-05T06:21:33.420Z"
     }
   ]
 }

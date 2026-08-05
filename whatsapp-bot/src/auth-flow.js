@@ -43,20 +43,18 @@ export function cancelAuth(convJid) {
 
 export async function handleMessage(convJid, message, sendToTenant, aptoToGroupJid, retryDiscover, deliveryJidOverride) {
   let authState = getState(convJid);
-  log('AUTH: handleMessage convJid=' + convJid + ' state=' + (authState?.state || 'none') + ' message="' + (message || '') + '"');
+  // Never write credentials or unauthenticated message contents to the log.
+  log('AUTH: handleMessage convJid=' + convJid + ' state=' + (authState?.state || 'none') + ' messageLength=' + (message || '').length);
 
   const sendViaBot = async (text, source) => {
     await sendToTenant(convJid, text, source || 'AUTH', deliveryJidOverride);
   };
 
   if (!authState) {
-    if (message === '0') {
-      return { action: 'return_menu' };
-    }
-    setState(convJid, 'menu_main', {});
-    log('AUTH: showing main menu for convJid=' + convJid);
-    await sendViaBot(scripts.get('menu_main'), 'MENU_MAIN');
-    return { action: 'menu' };
+    setState(convJid, 'awaiting_apto', {});
+    log('AUTH: starting resident authentication for convJid=' + convJid);
+    await sendViaBot(scripts.get('auth_welcome'), 'AUTH_WELCOME');
+    return { action: 'auth_apto' };
   }
 
   if (authState.state === 'menu_main') {

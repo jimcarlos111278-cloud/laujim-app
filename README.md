@@ -1339,6 +1339,19 @@ Usr→Bot "Hola" (senderPn=57310XXXXXXX)
 | `whatsapp-bot/src/ladder.js` | **NUEVO**: Trazabilidad de delivery (buffer circular 300 entradas) |
 | `whatsapp-bot/src/group-manager.js` | **FUTURO**: Auto-creación de grupos WhatsApp |
 
+### Regla de privacidad de entrada
+
+- Un mensaje de un número no asociado a un inquilino inicia solamente la autenticación `apto → cédula`.
+- Antes de que exista una sesión `ACTIVE`, el bot no reenvía mensajes ni adjuntos al grupo, no descarga adjuntos y no guarda el contenido inicial en el ladder.
+- Los logs de autenticación registran estado y longitud, nunca el texto, la cédula ni el contenido de un adjunto.
+- El login del backend valida que la cédula corresponda al inquilino del apartamento solicitado (por `tenant.apartmentId` o contrato vigente). Una cédula válida de otro apartamento no concede acceso.
+
+### Migración a WhatsApp Business Platform
+
+La integración oficial Cloud API vive en `server.cjs` y está desactivada hasta configurar las variables `WHATSAPP_CLOUD_*` en Render. El webhook es `GET/POST /api/whatsapp/webhook`; valida la firma `X-Hub-Signature-256` y no procesa tráfico si faltan credenciales. Las conversaciones autorizadas se exponen bajo `/api/whatsapp/cloud/*`. La guía de configuración está en `docs/whatsapp-cloud-api.md`.
+
+Durante la migración, las pantallas Chat y WhatsApp Bot actuales se conservan. No deben retirarse ni reemplazarse hasta que el estado `GET /api/whatsapp/cloud/status` sea `ready` y se hayan probado recepción, autenticación y envío.
+
 ### Sistema Ladder — Trazabilidad de delivery
 
 Cada ciclo UPSERT imprime un ladder con los últimos pasos:
@@ -1387,9 +1400,9 @@ El bot se configura desde `src/pages/WhatsAppBot.jsx`:
 
 | Variable | Valor actual | Descripción |
 |----------|-------------|-------------|
-| `BOT_ADMIN_TOKEN` | `inxyu8VE0eHdUjFSz7kapo94DCTmbJOq` | Token para auth entre servicios |
+| `BOT_ADMIN_TOKEN` | `<secreto-aleatorio>` | Token para auth entre servicios; no documentar ni subir el valor real |
 | `PORT` | `10000` | Puerto del bot (coincide con main app) |
-| `BOT_PROXY` | `http://wdybipfu:***@31.59.20.176:6754` | Proxy HTTP (requerido en Render) |
+| `BOT_PROXY` | `<url-del-proxy>` | Proxy HTTP opcional para el despliegue |
 | `API_BASE_URL` | `https://laujim-app.onrender.com/api` | API REST del servidor principal |
 | `AUTH_TOKEN` | `laujim laujim` | Token x-auth-token para API |
 | `WHATSAPP_BOT_URL` | `https://laujim-whatsapp-bot.onrender.com` | URL del bot (para proxy desde main) |
@@ -1479,6 +1492,14 @@ Funcionalidades planificadas (no implementadas):
 
 ## Historial de Cambios
 
+### 2026-08-04 — Plan cámaras: re-análisis de precios CO reales + corrección NVR
+- **Update**: `proyecto de camaras/plan-cameras-videoportero.md` — precios reales extraídos del DOM de MercadoLibre CO (C440 PoE COP 251.000-274.000; NVR1008H-8P COP 440.300-451.285; Shelly 1 Mini Gen3 COP 207.990 en ML / COP 152.777 en yaxa.co); WD Purple 2TB **y** cantonera Auta marcados como **agotados** en sus listings ML verificados, con alternativas pendientes de verificar (`MCO25566849` para el WD; MCO-2824732264 / MCO-1343252105 para la cantonera)
+- **Fix**: especificación del NVR1008H-8P — 8 puertos PoE+ **53W** (no 110W); consumo de 6× C440 (~33W) al 62% del presupuesto PoE
+- **Update**: conversión USD recalculada con **TRM 3.150** (dato del dueño; antes ~4.000 asumida) — total equipos **US$908-1.121**, total con obra **US$1.208-1.421**
+- **Update**: nota de sesión de compra ML (requiere 1 login humano por verificación de cuenta)
+- **New**: `proyecto de camaras/topologia.html` reescrita — topología visual del plan híbrido aprobado: NVR1008H-8P (PoE 53W, grabación local) + 6× C440 con ubicaciones, GL.iNet → túnel WireGuard → VPS (Frigate + backend + página QR + bot WhatsApp), QR → Shelly 1 Mini Gen3 → cantonera 12V fail-secure, flujo visitante/inquilino, fallback WhatsApp y notas de dependencias (internet, PoE, UPS). Responsive, verificada en desktop y móvil (sin overflow, sin errores JS)
+- **Update**: versión no cambiada (solo documentación del plan de cámaras)
+
 ### 2026-07-25 — v2.5.0 — WhatsApp Proxy Bot + Punto de restauración
 - **New**: `whatsapp-bot/` — Servicio independiente de proxy WhatsApp con `whatsapp-web.js`:
   - `auth-flow.js`: autenticación de inquilinos vía apto + cédula contra API REST
@@ -1555,6 +1576,20 @@ Funcionalidades planificadas (no implementadas):
 - **Update**: `src/App.jsx` — init sequence: cloud-first (3 reintentos), polling 15s, version polling 3s, theme init, force-desktop class.
 - **Update**: `src/components/Layout.jsx` — 13 items nav (agregados Antecedentes, Predial), ThemeSelector en footer, indicador conexión.
 - **Update**: `server.cjs` — auth bypass para `/api/antecedentes/police*`, `POST /api/bulk-add/:collection`.
+
+### 2026-07-30 — Seguridad de autenticación y privacidad del bot
+
+- **Fix crítico**: `POST /api/login` verifica que el inquilino autenticado pertenezca al apartamento solicitado, incluyendo la relación por contrato vigente.
+- **Fix**: el bot ya no registra contenido de mensajes no autenticados en logs ni en el delivery ladder; solo conserva metadatos mínimos.
+- **Update**: un número no reconocido recibe directamente la autenticación de residente y un aviso claro de que habla con un bot; no se abre el flujo de relay hasta completar la verificación.
+- **Security**: se eliminaron del README los valores reales de credenciales y proxy.
+
+### 2026-07-30 — Base de integración oficial WhatsApp Cloud API
+
+- **New**: webhook oficial firmado, autenticación temporal sin persistencia para números desconocidos y almacenamiento exclusivo de conversaciones autorizadas.
+- **New**: endpoints Cloud API para estado, conversaciones, mensajes y envío dentro de la ventana de servicio de 24 horas.
+- **New**: `.env.example`, variables de Render y guía `docs/whatsapp-cloud-api.md` para configurar Meta sin subir secretos.
+- **Migration**: las secciones legacy de Chat/Bot quedan activas hasta validar la API oficial en producción.
 
 ### 2026-07-26 — v2.8.0 — Proyecto Sabanilla: ladder delivery trace, auto-auth, backup, doc
 

@@ -6,6 +6,7 @@ import { log, getLogs, clearLogs } from './logger.js';
 import * as ladder from './ladder.js';
 import * as api from './api-client.js';
 import * as waStore from './wa-store.js';
+import * as sessionStore from './session-store.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || join(__dirname, '..', 'data');
@@ -106,8 +107,8 @@ export function startNotifyServer(port) {
       return;
     }
 
-    const publicPaths = ['/status', '/log', '/qr', '/pairing-code', '/', '/info', '/groups', '/proxy-status', '/logs', '/ladder', '/sessions', '/leads', '/wa/conversations', '/ws'];
-    const isPublic = publicPaths.includes(req.url) || req.url.startsWith('/wa/conversations/');
+    const publicPaths = ['/status', '/log', '/qr', '/pairing-code', '/', '/info', '/proxy-status', '/ws'];
+    const isPublic = publicPaths.includes(req.url) || req.url.startsWith('/qr?');
     if (!isAuthorized(req) && !isPublic) {
       sendJson(res, 401, { error: 'Unauthorized. Set BOT_ADMIN_TOKEN or provide Authorization header.' });
       return;
@@ -123,7 +124,7 @@ export function startNotifyServer(port) {
           qrTimestamp,
           lastError,
         });
-      } else if (req.url === '/qr') {
+      } else if (req.url === '/qr' || req.url.startsWith('/qr?')) {
         if (currentQrBase64) {
           res.writeHead(200, { 'Content-Type': 'image/png' });
           res.end(Buffer.from(currentQrBase64, 'base64'));
@@ -175,13 +176,8 @@ export function startNotifyServer(port) {
           sendJson(res, 200, { groups: {}, count: 0 });
         }
       } else if (req.url === '/sessions') {
-        try {
-          const buf = await fetch('http://localhost:' + port + '/info').then(r => r.json()).catch(() => ({}));
-        } catch {}
-        import('./session-store.js').then(ss => {
-          const active = ss.getActiveSessions();
-          sendJson(res, 200, { count: active.length, sessions: active.map(s => ({ apto: s.apto, tenantName: s.tenantName, lastActivity: s.lastActivity })) });
-        }).catch(() => sendJson(res, 200, { count: 0, sessions: [] }));
+        const active = sessionStore.getActiveSessions();
+        sendJson(res, 200, { count: active.length, sessions: active.map(s => ({ apto: s.apto, tenantName: s.tenantName, lastActivity: s.lastActivity })) });
       } else if (req.url === '/wa/conversations') {
         const conversations = waStore.getConversations();
         sendJson(res, 200, { conversations });
@@ -204,7 +200,7 @@ export function startNotifyServer(port) {
         sendJson(res, 200, {
           number,
           groups: groupsCount,
-          activeSessions: 0,
+          activeSessions: sessionStore.getActiveSessions().length,
           ready: !!client,
           authenticated: !!(client?.user),
           qrTimestamp,
@@ -255,19 +251,19 @@ export function startNotifyServer(port) {
           '<span class="badge ' + (ready ? 'badge-green' : 'badge-red') + '">' + (ready ? '● En ejecución' : '○ Detenido') + '</span> ' +
           '<span class="badge ' + (auth ? 'badge-green' : 'badge-amber') + '">' + (auth ? '✓ Autenticado' : '✗ No autenticado') + '</span>' +
           (lastError ? '<div style="margin-top:8px;padding:8px 12px;background:#7f1d1d;border-radius:8px;font-size:.8rem">⚠️ ' + lastError + '</div>' : '') +
-          '<div class="stat-grid"><div class="stat"><div class="num">' + groupsCount + '</div><div class="label">Grupos</div></div>' +
-          '<div class="stat"><div class="num">0</div><div class="label">Sesiones</div></div>' +
+          '<div class="stat-grid"><div class="stat"><div class="num" id="groups-count">' + groupsCount + '</div><div class="label">Grupos</div></div>' +
+          '<div class="stat"><div class="num" id="sessions-count">' + sessionStore.getActiveSessions().length + '</div><div class="label">Sesiones</div></div>' +
           '<div class="stat"><div class="num">' + (auth ? number : '—') + '</div><div class="label">Número</div></div></div></div>' +
 
           '<div class="card"><h2>🔌 WebSocket</h2>' +
           '<div id="ws-card"><span class="badge badge-amber">● Cargando...</span></div></div>' +
 
-          (!auth && qrTimestamp > 0 ? '<div class="card"><h2>📱 Escanea el QR</h2><div class="qr-box"><img src="/qr" alt="QR"/><p style="font-size:.8rem;color:#64748b">WhatsApp → Vincular dispositivo</p></div>' +
+          (!auth && qrTimestamp > 0 ? '<div class="card"><h2>📱 Escanea el QR</h2><div class="qr-box"><img id="qr-image" src="/qr" alt="QR"/><p style="font-size:.8rem;color:#64748b">WhatsApp → Vincular dispositivo</p></div>' +
           '<div class="relative" style="text-align:center;margin:12px 0"><span style="color:#475569;font-size:.8rem">— o usa código de vinculación —</span></div>' +
-          '<div class="pairing"><input type="text" id="phone" placeholder="573001234567"/><button onclick="fetch(\'/request-code\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({phone:document.getElementById(\'phone\').value.replace(/[^0-9]/g,\'\')})}).then(r=>r.json()).then(d=>{if(d.code)document.getElementById(\'code\').innerText=d.code;else alert(d.error)}).catch(e=>alert(e))">Obtener código</button></div>' +
+          '<div class="pairing"><input type="text" id="phone" placeholder="573001234567"/><button id="pairing-button" onclick="requestPairingCode()">Obtener código</button></div>' +
           '<div id="code" class="code-box" style="display:none"></div></div>' : '') +
 
-          (groupsCount > 0 ? '<div class="card"><h2>👥 Grupos descubiertos</h2><table><thead><tr><th>Apto</th><th>JID</th></tr></thead><tbody>' + groupsList + '</tbody></table></div>' : '') +
+          '<div class="card" id="groups-card"' + (groupsCount ? '' : ' style="display:none"') + '><h2>👥 Grupos descubiertos</h2><table><thead><tr><th>Apto</th><th>JID</th></tr></thead><tbody id="groups-list">' + groupsList + '</tbody></table></div>' +
 
           '<div class="card"><h2>🔗 Enlaces</h2>' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.85rem">' +
@@ -282,7 +278,9 @@ export function startNotifyServer(port) {
           '<div class="footer">Laujim WhatsApp Bot · Proyecto Sabanilla · <a href="https://github.com/anomalyco/opencode">opencode</a></div>' +
           '</div>' +
           '<script>' +
-'fetch("/pairing-code").then(r=>r.json()).then(d=>{if(d.code){document.getElementById("code").innerText=d.code;document.getElementById("code").style.display="block"}});' +
+'function requestPairingCode(){var b=document.getElementById("pairing-button"),p=document.getElementById("phone");if(!b||!p)return;b.disabled=true;b.textContent="Solicitando…";fetch("/request-code",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:p.value.replace(/[^0-9]/g,"")})}).then(r=>r.json()).then(d=>{if(d.code){var e=document.getElementById("code");e.innerText=d.code;e.style.display="block"}else alert(d.error||"No fue posible obtener el código")}).catch(e=>alert(e.message)).finally(()=>{b.disabled=false;b.textContent="Obtener código"})}' +
+'function refreshQr(){var image=document.getElementById("qr-image");if(image)image.src="/qr?ts="+Date.now()}' +
+'function refreshGroupsAndSessions(){Promise.all([fetch("/groups").then(r=>r.ok?r.json():null),fetch("/sessions").then(r=>r.ok?r.json():null)]).then(function(values){var groups=values[0],sessions=values[1];if(groups){var count=document.getElementById("groups-count"),card=document.getElementById("groups-card"),list=document.getElementById("groups-list");if(count)count.textContent=groups.count||0;if(card)card.style.display=groups.count?"block":"none";if(list){list.replaceChildren();Object.entries(groups.groups||{}).forEach(function(entry){var row=document.createElement("tr"),apto=document.createElement("td"),jid=document.createElement("td");apto.textContent=entry[0];jid.className="jid";jid.textContent=String(entry[1]).split("@")[0].slice(0,8)+"…";row.append(apto,jid);list.append(row)})}}if(sessions){var n=document.getElementById("sessions-count");if(n)n.textContent=sessions.count||0}}).catch(function(){})}' +
 'function refreshWs(){fetch("/ws").then(r=>r.json()).then(function(d){' +
 'var c=document.getElementById("ws-card");if(!c)return;' +
 'var b=d.connected?"badge-green":"badge-red";' +
@@ -293,8 +291,8 @@ export function startNotifyServer(port) {
 'h+="<div style=\\"margin-top:8px;font-size:.8rem;color:#64748b\\">";' +
 'h+=d.lastDisconnect?"Ultima: "+d.lastDisconnect.reason+" ("+d.lastDisconnect.code+")":"Sin desconexiones";' +
 'h+="</div>";c.innerHTML=h}).catch(function(){})}' +
-'setInterval(refreshWs,3000);' +
-'setInterval(function(){fetch("/pairing-code").then(function(r){return r.json()}).then(function(d){if(d.code){var el=document.getElementById("code");if(el){el.innerText=d.code;el.style.display="block"}}})},10000);' +
+'function refreshVisible(){if(document.hidden)return;refreshWs();refreshGroupsAndSessions();refreshQr()}' +
+'refreshVisible();document.addEventListener("visibilitychange",function(){if(!document.hidden)refreshVisible()});setInterval(refreshVisible,30000);' +
 '</script>' +
           '</body></html>';
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -445,7 +443,7 @@ export function startNotifyServer(port) {
     log('  POST /wa/send - Send message to tenant via chat');
     log('  POST /wa/mark-read - Mark conversation as read');
     log('  POST /send - Send text message');
-    log('Auth: BOT_ADMIN_TOKEN required on POST routes');
+    log('Auth: BOT_ADMIN_TOKEN protects operational routes when configured');
   });
 
   return server;
