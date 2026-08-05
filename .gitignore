@@ -43,24 +43,8 @@ AGENTS.md
 
 Proyecto Laujim APP - Render/
 
-# WhatsApp bot
-whatsapp-bot/node_modules/
-whatsapp-bot/sessions/
-whatsapp-bot/data/session-store.json
-whatsapp-bot/.wwebjs_cache/
-whatsapp-bot/qr.png
-whatsapp-bot/data/baileys-sessions/
-
-# Backup del bot
-whatsapp-bot-backup/node_modules/
-whatsapp-bot-backup/data/baileys-sessions/
-
 # Puppeteer / Chrome session data
 sessions/
-
-# Runtime error logs
-bot.err
-server.err
 
 # Contiene credenciales de la base Aiven - no subir
 restore-aiven.cjs

@@ -1,30 +1,30 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-05)
 
 ## Corpus Check
-- 144 files · ~145,500 words
+- 115 files · ~127,654 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1315 nodes · 2270 edges · 124 communities (94 shown, 30 thin omitted)
+- 1015 nodes · 1778 edges · 115 communities (84 shown, 31 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.57)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8abf0bdc`
+- Built from commit: `577b41aa`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- whatsapp-bot-backup/src/notify.js
+- Settings.jsx
 - ApartmentDetail.jsx
 - .status
 - server.cjs
 - pre-whatsapp-bot/server.cjs
-- dependencies
+- callScreening.js
 - extension/manifest.json
-- whatsapp-bot/src/notify.js
+- PublicApartment.jsx
 - dependencies
-- App.jsx
+- getBase
 - dependencies
 - api.js
 - chat.js
@@ -33,30 +33,24 @@
 - calendar.js
 - handleCloudInbound
 - startServer
-- log
-- whatsapp-bot-backup/src/session-store.js
-- whatsapp-bot/src/session-store.js
+- Predial.jsx
+- Arquitectura del Sistema
+- generate-apartments-html.js
 - 5. ESPECIFICACIÓN DE INTEGRACIÓN (LO QUE CODEX DEBE CONSTRUIR)
-- proxy-pool.js
+- @aws-sdk/client-s3
 - services-scraper.cjs
 - contractGenerator.js
 - setup-graphify-hooks.cjs
-- whatsapp-bot/src/api-client.js
 - public/manifest.json
-- whatsapp-bot/src/ladder.js
-- whatsapp-bot/src/scripts.js
-- Settings.jsx
-- wa-store.js
+- App.jsx
 - scripts
 - @capacitor/filesystem
 - backup.js
 - getR2Client
-- formatCurrency
-- whatsapp-bot/src/auth-flow.js
-- dependencies
+- react
 - scripts
 - saveData
-- react
+- ErrorBoundary
 - .oxlintrc.json
 - add-passwords.js
 - runPaymentReminders
@@ -83,7 +77,6 @@
 - clipboard.js
 - Extensión de Chrome — Llenar Laujim
 - @capacitor/cli
-- Proyecto Sabanilla — WhatsApp Relay Bot (v2.8.0+)
 - @capacitor-mlkit/barcode-scanning
 - Plan — Cámaras + Timbre QR + Integración Laujim APP
 - react-dom
@@ -95,7 +88,6 @@
 - sw.js
 - graphify-update.cjs
 - Configuración Específica por Archivo
-- Backup del WhatsApp Bot — Proyecto Sabanilla
 - Sistema de Temas (6 Temas Visuales)
 - Construir APK para Android
 - API REST Completa
@@ -110,7 +102,6 @@
 - Persistencia PostgreSQL
 - Requerimientos del Sistema
 - Sistema de Autenticación
-- node-cron
 - @capacitor/core
 - @capacitor/share
 - cors
@@ -129,39 +120,39 @@
 ## God Nodes (most connected - your core abstractions)
 1. `startServer()` - 45 edges
 2. `getBase()` - 33 edges
-3. `log()` - 29 edges
-4. `react` - 26 edges
-5. `Gestión de Apartamentos — Laujim APP` - 26 edges
-6. `handleCloudInbound()` - 25 edges
-7. `getAuth()` - 20 edges
-8. `AuthorizedCallerPlugin` - 17 edges
-9. `formatCurrency()` - 17 edges
-10. `Extensión de Chrome — Llenar Laujim` - 16 edges
+3. `react` - 26 edges
+4. `handleCloudInbound()` - 25 edges
+5. `Gestión de Apartamentos — Laujim APP` - 25 edges
+6. `getAuth()` - 20 edges
+7. `AuthorizedCallerPlugin` - 17 edges
+8. `formatCurrency()` - 17 edges
+9. `Extensión de Chrome — Llenar Laujim` - 16 edges
+10. `Historial de Cambios` - 16 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `uploadFile()` --calls--> `getRawBase()`  [EXTRACTED]
-  src/api.js → src/utils/config.js
-- `CustomTooltip()` --calls--> `formatCurrency()`  [EXTRACTED]
-  src/components/PaymentHistoryChart.jsx → src/utils/helpers.js
-- `autoAuthByPhone()` --calls--> `log()`  [EXTRACTED]
-  whatsapp-bot/src/auth-flow.js → whatsapp-bot/src/logger.js
-- `saveGroupMapping()` --calls--> `log()`  [EXTRACTED]
-  whatsapp-bot/src/notify.js → whatsapp-bot/src/logger.js
-- `load()` --calls--> `log()`  [EXTRACTED]
-  whatsapp-bot/src/wa-store.js → whatsapp-bot/src/logger.js
+- `ProtectedRoute()` --calls--> `getAuth()`  [EXTRACTED]
+  src/App.jsx → src/utils/auth.js
+- `AdminRoute()` --calls--> `getAuth()`  [EXTRACTED]
+  src/App.jsx → src/utils/auth.js
+- `PrivateApp()` --calls--> `startDataVersionPolling()`  [EXTRACTED]
+  src/App.jsx → src/api.js
+- `PrivateApp()` --calls--> `getAuth()`  [EXTRACTED]
+  src/App.jsx → src/utils/auth.js
+- `PrivateApp()` --calls--> `syncAuthorizedCallerNumbers()`  [EXTRACTED]
+  src/App.jsx → src/utils/callScreening.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (124 total, 30 thin omitted)
+## Communities (115 total, 31 thin omitted)
 
-### Community 0 - "whatsapp-bot-backup/src/notify.js"
-Cohesion: 0.05
-Nodes (38): aptoToGroupJid, BOT_PORT, __dirname, discoverGroups(), getProxyAgent(), GRUPOS_PATH, loadGroupMapping(), maskJid() (+30 more)
+### Community 0 - "Settings.jsx"
+Cohesion: 0.25
+Nodes (10): Settings(), cancelAllNotifications(), getNotifConfig(), saveNotifConfig(), schedulePaymentReminders(), generateBookmarkletCode(), generateMarketplaceJson(), generateMarketplaceJsonString() (+2 more)
 
 ### Community 1 - "ApartmentDetail.jsx"
 Cohesion: 0.11
-Nodes (27): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), serviceColors (+19 more)
+Nodes (31): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), serviceColors (+23 more)
 
 ### Community 2 - ".status"
 Cohesion: 0.11
@@ -175,37 +166,37 @@ Nodes (34): INITIAL_DATA, app, BACKUP_DIR, BACKUP_FILE, CONTRACTS_DIR, cors, cry
 Cohesion: 0.08
 Nodes (31): INITIAL_DATA, app, BACKUP_DIR, BACKUP_FILE, CONTRACTS_DIR, cors, DATA_DIR, DATA_FILE (+23 more)
 
-### Community 5 - "dependencies"
-Cohesion: 0.10
-Nodes (19): dependencies, dotenv, https-proxy-agent, pino, qrcode, socks-proxy-agent, @whiskeysockets/baileys, dotenv (+11 more)
+### Community 5 - "callScreening.js"
+Cohesion: 0.55
+Nodes (10): callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus(), nativeAndroid(), normalizedPhone(), requestCallScreeningRole(), requestProtectedSmsRole(), setAllowCallsFromContacts() (+2 more)
 
 ### Community 6 - "extension/manifest.json"
 Cohesion: 0.07
 Nodes (29): action, default_icon, default_popup, default_title, background, service_worker, content_scripts, 128 (+21 more)
 
-### Community 7 - "whatsapp-bot/src/notify.js"
-Cohesion: 0.09
-Nodes (16): clearLogs(), getLogs(), logs, ALLOWED_ORIGINS, clearPendingPairingPhone(), __dirname, disconnectHistory, GRUPOS_PATH (+8 more)
+### Community 7 - "PublicApartment.jsx"
+Cohesion: 0.27
+Nodes (7): uploadFile(), VersionBanner(), versionIsNewer(), PublicApartment(), serviceIcons, getRawBase(), photoUrl()
 
 ### Community 8 - "dependencies"
 Cohesion: 0.29
-Nodes (7): @aws-sdk/client-s3, dependencies, @aws-sdk/client-s3, @capacitor/android, jsqr, @capacitor/android, jsqr
+Nodes (7): node-cron, dependencies, @capacitor/android, jsqr, node-cron, @capacitor/android, jsqr
 
-### Community 9 - "App.jsx"
-Cohesion: 0.14
-Nodes (20): getServerVersion(), VersionBanner(), versionIsNewer(), ContractGenerator(), PublicApartment(), serviceIcons, PublicApartments(), ShareApartments() (+12 more)
+### Community 9 - "getBase"
+Cohesion: 0.15
+Nodes (20): getServerVersion(), Layout(), navItems, Login(), PublicApartments(), WhatsAppContacts(), cloudRequest(), formatDate() (+12 more)
 
 ### Community 10 - "dependencies"
 Cohesion: 0.05
 Nodes (43): dependencies, @capacitor/android, @capacitor/cli, @capacitor/core, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share, cors (+35 more)
 
 ### Community 11 - "api.js"
-Cohesion: 0.11
-Nodes (26): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), refreshAllFromServer(), serverReq(), startCloudPolling(), startDataVersionPolling() (+18 more)
+Cohesion: 0.15
+Nodes (18): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), serverReq(), startDataVersionPolling(), stopCloudPolling(), stopDataVersionPolling() (+10 more)
 
 ### Community 12 - "chat.js"
-Cohesion: 0.15
-Nodes (29): AdminRoute(), ProtectedRoute(), Chat(), clearAuth(), getAuth(), getTenantApartmentId(), isAdmin(), isTenant() (+21 more)
+Cohesion: 0.23
+Nodes (20): AdminRoute(), ProtectedRoute(), Chat(), getAuth(), isAdmin(), requireAuth(), fetchPresence(), getAllRooms() (+12 more)
 
 ### Community 13 - ".messages"
 Cohesion: 0.15
@@ -227,25 +218,17 @@ Nodes (22): archiveCloudInboundMedia(), authorizedCloudContact(), blockCloudUser
 Cohesion: 0.17
 Nodes (21): cloudApiRequest(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudPeriodLabel(), cloudReady(), downloadCloudMedia(), firstName() (+13 more)
 
-### Community 18 - "log"
-Cohesion: 0.18
-Nodes (16): aptoToGroupJid, BOT_PORT, cachedSettings, __dirname, discoverGroups(), getAdminName(), getProxyAgent(), GRUPOS_PATH (+8 more)
+### Community 18 - "Predial.jsx"
+Cohesion: 0.60
+Nodes (4): getPredialUrl(), lookupRef(), Predial(), REF_MAP
 
-### Community 19 - "whatsapp-bot-backup/src/session-store.js"
-Cohesion: 0.21
-Nodes (18): cleanupExpired(), closeExistingSessionForGroup(), deleteSession(), __dirname, expireAll(), getActiveSessions(), getSession(), getSessionByGroup() (+10 more)
-
-### Community 20 - "whatsapp-bot/src/session-store.js"
-Cohesion: 0.21
-Nodes (18): cleanupExpired(), closeExistingSessionForGroup(), deleteSession(), __dirname, expireAll(), getActiveSessions(), getSession(), getSessionByGroup() (+10 more)
+### Community 19 - "Arquitectura del Sistema"
+Cohesion: 0.67
+Nodes (3): Arquitectura del Sistema, Flujo de Datos, Viewport y Layout Adaptativo
 
 ### Community 21 - "5. ESPECIFICACIÓN DE INTEGRACIÓN (LO QUE CODEX DEBE CONSTRUIR)"
 Cohesion: 0.07
 Nodes (27): 1.1 Identidad, 1.2 Stack (verificado en package.json + README), 1.3 Autenticación, 1.4 Colecciones existentes (13 núcleo), 1.5 Datos relevantes por apartamento, 1.6 Puntos de extensión existentes (patrones a imitar), 1. ESTADO ACTUAL DE LA APP, 2. LIMITACIONES DE HARDWARE / INFRAESTRUCTURA (CRÍTICAS) (+19 more)
-
-### Community 22 - "proxy-pool.js"
-Cohesion: 0.20
-Nodes (14): allFailed(), createAgent(), failCounts, getActiveProxy(), getActiveProxyUrl(), getProxyUrl(), initPool(), loadFromUrls() (+6 more)
 
 ### Community 23 - "services-scraper.cjs"
 Cohesion: 0.18
@@ -259,25 +242,13 @@ Nodes (13): centenasALetras(), CIENTOS, CLAUSULAS, DECENAS, ESPECIALES, fechaEnL
 Cohesion: 0.25
 Nodes (7): DST, { existsSync, copyFileSync, mkdirSync, chmodSync }, GIT_DIR, HOOKS_DIR, { join, dirname }, ROOT, SRC
 
-### Community 26 - "whatsapp-bot/src/api-client.js"
-Cohesion: 0.36
-Nodes (14): getAllApartments(), getAllTenants(), getApartmentById(), getApartmentByName(), getLeads(), getSettings(), getTenantByPhone(), getTenantContracts() (+6 more)
-
 ### Community 27 - "public/manifest.json"
 Cohesion: 0.14
 Nodes (13): background_color, categories, description, display, icons, name, orientation, screenshots (+5 more)
 
-### Community 28 - "whatsapp-bot/src/ladder.js"
-Cohesion: 0.19
-Nodes (5): entries, downloadMedia(), getMediaInfo(), getTextContent(), relayToGroup()
-
-### Community 30 - "Settings.jsx"
-Cohesion: 0.12
-Nodes (32): Layout(), navItems, iconMap, ThemeSelector(), Settings(), callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus() (+24 more)
-
-### Community 31 - "wa-store.js"
-Cohesion: 0.22
-Nodes (7): addMessage(), __dirname, load(), markRead(), persist(), store, STORE_PATH
+### Community 30 - "App.jsx"
+Cohesion: 0.17
+Nodes (19): refreshAllFromServer(), startCloudPolling(), PrivateApp(), iconMap, ThemeSelector(), initDB(), ContractGenerator(), ShareApartments() (+11 more)
 
 ### Community 32 - "scripts"
 Cohesion: 0.07
@@ -291,17 +262,9 @@ Nodes (9): backupDir, dataDir, __dirname, dst, files, now, root, src (+1 more)
 Cohesion: 0.42
 Nodes (10): deleteR2Object(), ensureR2Usage(), getR2Client(), getR2Usage(), putR2Buffer(), r2Config(), r2Key(), r2Ready() (+2 more)
 
-### Community 36 - "formatCurrency"
-Cohesion: 0.24
-Nodes (11): api, Modal(), Apartments(), Contracts(), Login(), Payments(), Reports(), Tenants() (+3 more)
-
-### Community 37 - "whatsapp-bot/src/auth-flow.js"
-Cohesion: 0.33
-Nodes (9): autoAuthByPhone(), cancelAuth(), clearState(), getState(), handleMessage(), isInAuth(), resetAuth(), setState() (+1 more)
-
-### Community 38 - "dependencies"
-Cohesion: 0.10
-Nodes (19): dependencies, dotenv, https-proxy-agent, pino, qrcode, socks-proxy-agent, @whiskeysockets/baileys, dotenv (+11 more)
+### Community 36 - "react"
+Cohesion: 0.25
+Nodes (9): react, api, Modal(), Contracts(), Tenants(), PORTALS, services, timeAgo() (+1 more)
 
 ### Community 39 - "scripts"
 Cohesion: 0.07
@@ -310,10 +273,6 @@ Nodes (28): devDependencies, oxlint, @types/react, @types/react-dom, vite, @vite
 ### Community 40 - "saveData"
 Cohesion: 0.31
 Nodes (9): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getAuthSession(), pruneAuthSessions(), removeAuthSession(), saveData(), saveToPostgres() (+1 more)
-
-### Community 41 - "react"
-Cohesion: 0.17
-Nodes (7): react, App(), ErrorBoundary, getPredialUrl(), lookupRef(), Predial(), REF_MAP
 
 ### Community 42 - ".oxlintrc.json"
 Cohesion: 0.25
@@ -332,8 +291,8 @@ Cohesion: 0.43
 Nodes (5): Intent, Override, RespondViaMessageService, IBinder, Service
 
 ### Community 46 - "Gestión de Apartamentos — Laujim APP"
-Cohesion: 0.12
-Nodes (16): Arquitectura del Sistema, Estructura del Proyecto, Flujo de Datos, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial (+8 more)
+Cohesion: 0.14
+Nodes (13): Estructura del Proyecto, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial, Notificaciones, Notificaciones del Navegador (`src/utils/notifications.js`) (+5 more)
 
 ### Community 48 - "generate-version.js"
 Cohesion: 0.29
@@ -399,10 +358,6 @@ Nodes (3): gradlew script, die(), warn()
 Cohesion: 0.12
 Nodes (16): Arquitectura, Backup de referencia, Configuración actual de dropdowns (v1.4.5), Extensión de Chrome — Llenar Laujim, Flujo de `chooseDropdown` (v1.4.5), Gestión de anuncios, Instalación, La app no carga en el navegador (+8 more)
 
-### Community 68 - "Proyecto Sabanilla — WhatsApp Relay Bot (v2.8.0+)"
-Cohesion: 0.12
-Nodes (16): Arquitectura (dos servicios en Render), Backup del bot, Componentes actuales, Configuración desde el dashboard, Dependencias del bot (`whatsapp-bot/package.json`), Descubrimiento de grupos, Flujo de autenticación (2 modos), Inicio rápido (+8 more)
-
 ### Community 70 - "Plan — Cámaras + Timbre QR + Integración Laujim APP"
 Cohesion: 0.18
 Nodes (10): Arquitectura (resumen), Decisión tomada, Equipos (compra el dueño, obra aparte ~$300), Funcionalidad, Integración en Laujim APP (alcance acordado), Orden de operaciones, Pendientes independientes de este plan, Plan — Cámaras + Timbre QR + Integración Laujim APP (+2 more)
@@ -418,10 +373,6 @@ Nodes (9): args, CANDIDATES, { existsSync }, { homedir }, { join, dirname }, PRO
 ### Community 93 - "Configuración Específica por Archivo"
 Cohesion: 0.25
 Nodes (8): `capacitor.config.json` — Capacitor 8, Configuración Específica por Archivo, `index.html` — Entry Point, `server.cjs` — Servidor Express, `src/App.jsx` — Router e Inicialización, `src/main.jsx` — Bootstrap React, `src/utils/config.js` — Conexión al Servidor, `vite.config.js` — Build & Dev Server
-
-### Community 94 - "Backup del WhatsApp Bot — Proyecto Sabanilla"
-Cohesion: 0.25
-Nodes (7): Backup del WhatsApp Bot — Proyecto Sabanilla, Contenido, Cómo restaurar, Datos sensibles, Estructura de archivos, Funcionalidades en desarrollo (Proyecto Sabanilla), Variables de entorno (`.env`)
 
 ### Community 95 - "Sistema de Temas (6 Temas Visuales)"
 Cohesion: 0.29
@@ -476,24 +427,24 @@ Cohesion: 0.50
 Nodes (4): Login Admin, Login Inquilino, Sesión, Sistema de Autenticación
 
 ## Knowledge Gaps
-- **480 isolated node(s):** `$schema`, `oxc`, `react/rules-of-hooks`, `warn`, `name` (+475 more)
+- **398 isolated node(s):** `$schema`, `oxc`, `react/rules-of-hooks`, `warn`, `name` (+393 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **30 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Gestión de Apartamentos — Laujim APP` connect `Gestión de Apartamentos — Laujim APP` to `API REST Completa`, `Extensión de Chrome — Llenar Laujim`, `Proyecto Sabanilla — WhatsApp Relay Bot (v2.8.0+)`, `Base de Datos en Memoria`, `Servicios Públicos y QR de Pago`, `Datos Iniciales (Seed)`, `Consulta de Antecedentes (Policía)`, `2. Modos de ejecución`, `Persistencia PostgreSQL`, `Requerimientos del Sistema`, `Sistema de Autenticación`, `Sistema de Chat`, `Historial de Cambios`, `Configuración Específica por Archivo`, `Sistema de Temas (6 Temas Visuales)`?**
-  _High betweenness centrality (0.010) - this node is a cross-community bridge._
-- **Why does `react` connect `react` to `ApartmentDetail.jsx`, `formatCurrency`, `App.jsx`, `.oxlintrc.json`, `chat.js`, `Settings.jsx`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Why does `dependencies` connect `dependencies` to `@capacitor/filesystem`, `scripts`, `ffmpeg-static`, `qrcode`, `@capacitor/cli`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `react-router-dom`, `@tailwindcss/vite`, `@capacitor/local-notifications`, `node-cron`, `@capacitor/core`, `@capacitor/share`, `cors`, `dexie`, `express`, `multer`, `pg`, `puppeteer-core`, `@sparticuz/chromium`, `tailwindcss`, `jspdf`, `lucide-react`, `react`, `recharts`?**
-  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **Why does `Gestión de Apartamentos — Laujim APP` connect `Gestión de Apartamentos — Laujim APP` to `API REST Completa`, `Extensión de Chrome — Llenar Laujim`, `Base de Datos en Memoria`, `Servicios Públicos y QR de Pago`, `Datos Iniciales (Seed)`, `Consulta de Antecedentes (Policía)`, `2. Modos de ejecución`, `Persistencia PostgreSQL`, `Requerimientos del Sistema`, `Sistema de Autenticación`, `Sistema de Chat`, `Arquitectura del Sistema`, `Historial de Cambios`, `Configuración Específica por Archivo`, `Sistema de Temas (6 Temas Visuales)`?**
+  _High betweenness centrality (0.011) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `Settings.jsx`, `ApartmentDetail.jsx`, `PublicApartment.jsx`, `ErrorBoundary`, `.oxlintrc.json`, `getBase`, `chat.js`, `Predial.jsx`, `App.jsx`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `dependencies` connect `dependencies` to `@aws-sdk/client-s3`, `@capacitor/filesystem`, `scripts`, `ffmpeg-static`, `qrcode`, `@capacitor/cli`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `react-router-dom`, `@tailwindcss/vite`, `@capacitor/local-notifications`, `@capacitor/core`, `@capacitor/share`, `cors`, `dexie`, `express`, `multer`, `pg`, `puppeteer-core`, `@sparticuz/chromium`, `tailwindcss`, `jspdf`, `lucide-react`, `react`, `recharts`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **What connects `$schema`, `oxc`, `react/rules-of-hooks` to the rest of the system?**
-  _480 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `whatsapp-bot-backup/src/notify.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.050203527815468114 - nodes in this community are weakly interconnected._
+  _398 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ApartmentDetail.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.11382113821138211 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11313131313131314 - nodes in this community are weakly interconnected._
 - **Should `.status` be split into smaller, more focused modules?**
   _Cohesion score 0.10904255319148937 - nodes in this community are weakly interconnected._
+- **Should `server.cjs` be split into smaller, more focused modules?**
+  _Cohesion score 0.06190476190476191 - nodes in this community are weakly interconnected._
