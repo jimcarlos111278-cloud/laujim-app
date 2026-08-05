@@ -52,6 +52,7 @@ export default function Utilities() {
   const [scanAptId, setScanAptId] = useState(null);
   const [scanService, setScanService] = useState(null);
   const [scanStatus, setScanStatus] = useState('');
+  const [debts, setDebts] = useState({});
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
   const scanTimerRef = useRef(null);
@@ -67,6 +68,21 @@ export default function Utilities() {
       api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(),
     ]);
     setApartments(a); setTenants(t); setContracts(c);
+    await loadDebts(a);
+  }
+
+  async function loadDebts(apts) {
+    const entries = {};
+    await Promise.all((apts || []).map(async apt => {
+      try {
+        const res = await fetch(getBase() + '/public/utility-status/' + apt.id, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) return;
+        const data = await res.json();
+        const pay = data?.services?.electricity?.payment;
+        if (pay) entries[apt.id] = pay;
+      } catch {}
+    }));
+    setDebts(entries);
   }
 
   function getActiveTenant(aptId) {
@@ -258,6 +274,13 @@ export default function Utilities() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{s.name}</p>
                       {code && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{s.codeLabel}: <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{code}</span></p>}
+                      {svc === 'electricity' && debts[apt.id] && (
+                        <p className={`text-xs font-semibold mt-1 ${debts[apt.id].deudaCOP > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          {debts[apt.id].deudaCOP > 0
+                            ? <>Deuda: <span className="font-bold">${Number(debts[apt.id].deudaCOP).toLocaleString('es-CO')}</span> · {debts[apt.id].numFacturas} {debts[apt.id].numFacturas === 1 ? 'factura' : 'facturas'}</>
+                            : 'Al día · Sin deuda'}
+                        </p>
+                      )}
                     </div>
                     {/* Actions */}
                     <div className="flex items-center gap-1.5 shrink-0">
