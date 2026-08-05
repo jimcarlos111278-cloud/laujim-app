@@ -9,6 +9,7 @@ const https = require('https');
 const crypto = require('crypto');
 const os = require('os');
 const { Pool } = require('pg');
+const servicesScraper = require('./services-scraper.cjs');
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const ffmpegPath = require('ffmpeg-static');
 
@@ -1237,10 +1238,127 @@ app.get('/api/public/apartments/:id', (req, res) => {
     apartment: publicApartment,
     photos,
     services: [
-      { id: 'water', name: 'Agua', provider: 'Triple A', url: 'https://portal.aaa.com.co/pagos' },
+      { id: 'water', name: 'Agua', provider: 'Triple A', url: 'https://portal.aaa.com.co/polizas' },
       { id: 'gas', name: 'Gas', provider: 'Gases del Caribe', url: 'https://www.gascaribe.com/' },
-      { id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Pagar#/List' },
+      { id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List' },
     ],
+  });
+});
+
+// ── SERVICIOS PÚBLICOS (Air-e, Triple A, Gases del Caribe) ──
+const SERVICES_CONFIG = {
+  water:      { id: 'water', name: 'Agua', provider: 'Triple A', url: 'https://portal.aaa.com.co/polizas' },
+  gas:        { id: 'gas', name: 'Gas', provider: 'Gases del Caribe', url: 'https://www.gascaribe.com/' },
+  electricity:{ id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List' },
+};
+
+// Get all utility records for an apartment (admin)
+app.get('/api/services/utility-records/:apartmentId', (req, res) => {
+  const aptId = Number(req.params.apartmentId);
+  if (!db.utilityRecords) db.utilityRecords = [];
+  const records = db.utilityRecords.filter(r => {
+    // Match by apartment name (e.g. "101", "201") or by electricityPaymentCode
+    const apt = db.apartments.find(a => a.id === aptId);
+    if (!apt) return false;
+    return r.apartment === apt.name || r.nic === (apt.electricityPaymentCode || apt.nic);
+  });
+  // Sort by scrapedAt DESC, then by periodo DESC
+  records.sort((a, b) => (b.scrapedAt || '').localeCompare(a.scrapedAt || '') || (b.periodo || '').localeCompare(a.periodo || ''));
+  res.json(records);
+});
+
+// Get latest utility status for all apartments (admin)
+app.get('/app/utility-status', (req, res) => {
+  if (!db.utilityRecords) db.utilityRecords = [];
+  const apts = db.apartments || [];
+  const status = apts.map(apt => {
+    const records = db.utilityRecords.filter(r =>
+      r.apartment === apt.name || r.nic === (apt.electricityPaymentCode || apt.nic)
+    );
+    const latest = records.length > 0 ? records.reduce((a, b) =>
+      (b.scrapedAt || '').localeCompare(a.scrapedAt || '') > 0 ? b : a
+    ) : null;
+
+    return {
+      id: apt.id,
+      name: apt.name,
+      electricity: latest && latest.Factura === 'Air-e'
+        ? { estado: latest.estado, valor: latest.valor, vence: latest.vence, periodo: latest.periodo, factura: latest.factura, scrapedAt: latest.scrapedAt }
+        : null,
+      // Triple A and Gases will be populated later
+      water: null,
+      gas: null,
+    };
+  });
+  res.json(status);
+});
+
+// Trigger Air-e scrape manually (admin only, via auth)
+app.post('/app/scrape-air-e', async (req, res) => {
+  try {
+    res.json({ ok: true, message: 'Scrape iniciado. Los resultados se guardarán en utilityRecords.' });
+    const results = await servicesScraper.scrapeAirE();
+    // Persist results
+    if (!db.utilityRecords) db.utilityRecords = [];
+    for (const r of results) {
+      const existing = db.utilityRecords.findIndex(
+        (u) => u.factura === r.factura && u.provider === 'Air-e'
+      );
+      if (existing >= 0) {
+        db.utilityRecords[existing] = { ...db.utilityRecords[existing], ...r };
+      } else {
+        db.utilityRecords.push(r);
+      }
+    }
+    saveData();
+    console.log(`[AIR-E MANUAL] Stored ${results.length} records.`);
+  } catch (e) {
+    console.error('[SCRAPE-AIR-E ERROR]', e.message);
+  }
+});
+
+// Public URL for services admin (for residents' individual link)
+app.get('/api/public/utility-status/:apartmentId', (req, res) => {
+  const aptId = Number(req.params.apartmentId);
+  const apt = db.apartments.find(a => a.id === aptId);
+  if (!apt) return res.status(404).json({ error: 'Apartamento no encontrado' });
+
+  // Only return public info (no credentials)
+  const svcConfig = {
+    water: { id: 'water', name: 'Agua', provider: 'Triple A', url: 'https://portal.aaa.com.co/poliz' },
+    gas: { id: 'gas', name: 'Gas', provider: 'Gases del Caribe', url: 'https://www.gascaribe.com/' },
+    electricity: { id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List' },
+  };
+
+  let electricityInfo = null;
+  const correctNic = apt.electricityPaymentCode || apt.nic || '';
+  if (correctNic && db.utilityRecords) {
+    const elecRecords = db.utilityRecords
+      .filter(r => r.nic === correctNic && r.provider === 'Air-e')
+      .sort((a, b) => (b.scrapedAt || '').localeCompare(a.scrapedAt || ''));
+    if (elecRecords.length > 0) {
+      const latest = elecRecords[0];
+      electricityInfo = {
+        estado: latest.estado,
+        valor: latest.valor,
+        vence: latest.vence,
+        periodo: latest.periodo,
+        actualizado: latest.scrapedAt,
+      };
+    }
+  }
+
+  res.json({
+    apartment: apt,
+    services: {
+      electricity: {
+        ...svcConfig.electricity,
+        payCode: apt.electricityPaymentCode || apt.nic || '',
+        payment: electricityInfo,
+      },
+      water: { ...svcConfig.water, payCode: apt.waterPaymentCode || '' },
+      gas: { ...svcConfig.gas, payCode: apt.gasPaymentCode || '' },
+    },
   });
 });
 
@@ -2381,6 +2499,10 @@ app.use((req, res) => {
     setInterval(() => {
       runPaymentReminders().catch(error => console.error('[WHATSAPP CLOUD] reminder run error:', error.message));
     }, 60 * 60 * 1000).unref();
+
+    // Init services scraper with DB reference and start 24h scheduler
+    servicesScraper.init(db, saveData);
+    servicesScraper.startScheduler();
 
     if (LEGACY_BAILEYS_ENABLED && process.env.AUTO_START_BOT !== 'false' && !BOT_IS_EXTERNAL) {
       startBot();
