@@ -1268,7 +1268,7 @@ app.get('/api/services/utility-records/:apartmentId', (req, res) => {
 });
 
 // Get latest utility status for all apartments (admin)
-app.get('/app/utility-status', (req, res) => {
+app.get('/api/utility-status', (req, res) => {
   if (!db.utilityRecords) db.utilityRecords = [];
   const apts = db.apartments || [];
   const status = apts.map(apt => {
@@ -1294,7 +1294,7 @@ app.get('/app/utility-status', (req, res) => {
 });
 
 // Trigger Air-e scrape manually (admin only, via auth)
-app.post('/app/scrape-air-e', async (req, res) => {
+app.post('/api/scrape-air-e', async (req, res) => {
   try {
     res.json({ ok: true, message: 'Scrape iniciado. Los resultados se guardarán en utilityRecords.' });
     const results = await servicesScraper.scrapeAirE();
