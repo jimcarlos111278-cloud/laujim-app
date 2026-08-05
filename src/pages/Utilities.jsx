@@ -3,7 +3,7 @@ import { Zap, Droplets, Flame, Search, ExternalLink, QrCode, Scan, Image, Chevro
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod } from '../utils/helpers';
-import { getBase } from '../utils/config';
+import { getBase, AUTH_TOKEN } from '../utils/config';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
 
@@ -21,6 +21,22 @@ const services = {
     bgLight: 'bg-purple-50', badgeColor: 'bg-purple-100 text-purple-700', codeLabel: 'NIC',
   },
 };
+
+function timeAgo(iso) {
+  if (!iso) return 'sin datos';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 0) return 'recién actualizado';
+  const h = Math.floor(ms / 3600000);
+  if (h < 1) return 'hace menos de 1 h';
+  if (h < 24) return `hace ${h} h`;
+  return `hace ${Math.floor(h / 24)} d`;
+}
+
+const PORTALS = [
+  { key: 'electricity', name: 'Energía', icon: Zap, url: 'https://portal.air-e.com/Login?returnurl=%2fMis-Facturas%2fListado-de-Facturas' },
+  { key: 'water', name: 'Agua', icon: Droplets, url: 'https://portal.aaa.com.co/poliz' },
+  { key: 'gas', name: 'Gas', icon: Flame, url: 'https://www.gascaribe.com/' },
+];
 
 function QrViewContent({ showQrModal, qrUrls, apartments, getUrl }) {
   const [aptIdStr, svc] = showQrModal.split('-');
@@ -53,6 +69,8 @@ export default function Utilities() {
   const [scanService, setScanService] = useState(null);
   const [scanStatus, setScanStatus] = useState('');
   const [debts, setDebts] = useState({});
+  const [syncingNow, setSyncingNow] = useState(false);
+  const [syncNote, setSyncNote] = useState('');
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
   const scanTimerRef = useRef(null);
@@ -83,6 +101,37 @@ export default function Utilities() {
       } catch {}
     }));
     setDebts(entries);
+  }
+
+  async function handleSync() {
+    if (syncingNow) return;
+    setSyncingNow(true);
+    setSyncNote('Sincronizando deuda de Air-e…');
+    try {
+      const res = await fetch(getBase() + '/scrape-air-e', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          setSyncNote('Sin permisos de administración para sincronizar.');
+        } else {
+          setSyncNote('El servidor rechazó la sincronización.');
+        }
+        setSyncingNow(false);
+        return;
+      }
+      setSyncNote('Scrape en curso, actualizando datos…');
+      setTimeout(async () => {
+        try { await loadDebts(apartments); } catch {}
+        setSyncingNow(false);
+        setSyncNote('');
+      }, 45000);
+    } catch {
+      setSyncNote('No se pudo iniciar la sincronización. Verifica la conexión.');
+      setSyncingNow(false);
+    }
   }
 
   function getActiveTenant(aptId) {
@@ -243,6 +292,27 @@ export default function Utilities() {
         </div>
       </div>
 
+      {/* Portals + Sync */}
+      <div className="flex flex-wrap items-center gap-2">
+        {PORTALS.map(p => {
+          const Icon = p.icon;
+          return (
+            <button key={p.key} onClick={() => window.open(p.url, '_blank', 'noopener')} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors shadow-sm">
+              <Icon className="w-3.5 h-3.5" /> Portal {p.name}
+            </button>
+          );
+        })}
+        <button onClick={handleSync} disabled={syncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg hover:from-purple-600 hover:to-violet-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
+          <RefreshCw className={`w-3.5 h-3.5 ${syncingNow ? 'animate-spin' : ''}`} /> {syncingNow ? 'Sincronizando…' : 'Sync ahora'}
+        </button>
+        {syncNote && <span className="text-xs text-gray-500 dark:text-gray-400">{syncNote}</span>}
+      </div>
+      {syncingNow && (
+        <p className="text-[11px] text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg px-3 py-2">
+          Si Air-e pide un código OTP o verificación, el servidor no podrá completarla automáticamente: usa el botón "Portal Energía" e inicia sesión manualmente.
+        </p>
+      )}
+
       {/* Search */}
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -279,6 +349,7 @@ export default function Utilities() {
                           {debts[apt.id].deudaCOP > 0
                             ? <>Deuda: <span className="font-bold">${Number(debts[apt.id].deudaCOP).toLocaleString('es-CO')}</span> · {debts[apt.id].numFacturas} {debts[apt.id].numFacturas === 1 ? 'factura' : 'facturas'}</>
                             : 'Al día · Sin deuda'}
+                          <span className="text-gray-400 dark:text-gray-500 font-normal"> · datos {timeAgo(debts[apt.id].actualizado)}</span>
                         </p>
                       )}
                     </div>
