@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, DollarSign, Calendar, Edit2, Trash2, User, FileText, Camera, Phone, Plus, X, Download, Image, MessageCircle, Hash, Clock, Droplets, Flame, Zap, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight, QrCode, Scan, Share2, Globe, Copy, Check, Bell, Send, Bot } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, Edit2, Trash2, User, FileText, Camera, Phone, Plus, X, Download, Image, MessageCircle, Hash, Clock, Droplets, Flame, Zap, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight, QrCode, Scan, Share2, Globe, Copy, Check, Bell, Send } from 'lucide-react';
 import Modal from '../components/Modal';
 import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
@@ -17,7 +17,7 @@ const serviceIcons = { water: Droplets, gas: Flame, electricity: Zap };
 const serviceColors = { water: 'text-blue-600 bg-blue-50', gas: 'text-amber-600 bg-amber-50', electricity: 'text-yellow-600 bg-yellow-50' };
 const utilityWebsites = {
   water: { name: 'Triple A', url: 'https://portal.aaa.com.co/pagos' },
-  gas: { name: 'Gases del Caribe', url: 'https://www.gascaribe.com/' },
+  gas: { name: 'Gases del Caribe', url: 'https://portal.gascaribe.com/login' },
   electricity: { name: 'Air-e', url: 'https://portal.air-e.com/Pagar#/List' },
 };
 
@@ -64,10 +64,6 @@ export default function ApartmentDetail() {
   const [copied, setCopied] = useState(false);
   const [publicPageCopied, setPublicPageCopied] = useState(false);
   const [showWaModal, setShowWaModal] = useState(false);
-  const [showBotModal, setShowBotModal] = useState(false);
-  const [botMsg, setBotMsg] = useState('');
-  const [sendingBot, setSendingBot] = useState(false);
-  const [botSent, setBotSent] = useState(false);
 
   useEffect(() => { if (id) load(); }, [id]);
 
@@ -409,31 +405,7 @@ export default function ApartmentDetail() {
     window.open('https://wa.me/57' + num, '_blank');
   }
 
-  async function sendViaBot(text) {
-    if (!tenant || !tenant.phone) { alert('El inquilino no tiene teléfono registrado'); return; }
-    setSendingBot(true);
-    setBotSent(false);
-    try {
-      const jid = '57' + tenant.phone.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-      const res = await fetch(getBase() + '/whatsapp-bot/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
-        body: JSON.stringify({ to: jid, text, apto: apt?.name, tenantName: tenant.name }),
-      });
-      if (res.ok) {
-        setBotSent(true);
-        setBotMsg('');
-      } else {
-        const data = await res.json();
-        alert('Error: ' + (data.error || 'No se pudo enviar'));
-      }
-    } catch (e) {
-      alert('Error: ' + e.message);
-    }
-    setSendingBot(false);
-  }
-
-  function handleWhatsAppReminder() {
+  async function handleWhatsAppReminder() {
     if (!tenant || !tenant.phone) { alert('El inquilino no tiene teléfono registrado'); return; }
     const num = tenant.phone.replace(/[^0-9]/g, '');
     const fullNum = num.startsWith('57') ? num : '57' + num;
@@ -456,7 +428,7 @@ export default function ApartmentDetail() {
       .replace(/{apto}/g, apt?.name || '')
       .replace(/{link_aire}/g, apt?.electricityPaymentUrl || 'https://portal.air-e.com/Pagar#/List')
       .replace(/{link_triplea}/g, apt?.waterPaymentUrl || 'https://portal.aaa.com.co/pagos')
-      .replace(/{link_gases}/g, apt?.gasPaymentUrl || 'https://www.gascaribe.com/');
+      .replace(/{link_gases}/g, apt?.gasPaymentUrl || 'https://portal.gascaribe.com/login');
     window.open(`https://wa.me/${fullNum}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
@@ -735,7 +707,6 @@ export default function ApartmentDetail() {
                   <div className="flex gap-2 mt-2">
                     <button onClick={() => callNumber(tenant.phone)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs hover:bg-green-100 transition-colors"><Phone className="w-3 h-3" /> Llamar</button>
                     <button onClick={() => setShowWaModal(true)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs hover:bg-emerald-700 transition-colors"><MessageCircle className="w-3 h-3" /> WhatsApp</button>
-                    <button onClick={() => { setBotMsg(''); setBotSent(false); setShowBotModal(true); }} className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 transition-colors"><MessageCircle className="w-3 h-3" /> Bot</button>
                   </div>
                 )}
                 {contract && <p><span className="text-gray-500">Desde:</span> {formatShortDate(contract.startDate)}</p>}
@@ -1321,34 +1292,6 @@ export default function ApartmentDetail() {
               </button>
             </>;
           })()}
-        </div>
-      </Modal>
-
-      <Modal open={showBotModal} onClose={() => setShowBotModal(false)} title={"Enviar vía Bot - " + (tenant?.name || '')} size="sm">
-        <div className="space-y-4 p-2">
-          {botSent ? (
-            <div className="text-center py-6">
-              <Check className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-900">Mensaje enviado</p>
-              <p className="text-xs text-gray-400 mt-1">El bot lo entregó al inquilino y lo reenvió al grupo</p>
-              <button onClick={() => setShowBotModal(false)} className="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">Cerrar</button>
-            </div>
-          ) : (
-            <>
-              <p className="text-xs text-gray-500">El mensaje se enviará al inquilino vía WhatsApp y también se publicará en el grupo del apartamento.</p>
-              <textarea value={botMsg} onChange={e => setBotMsg(e.target.value)} rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Escribe tu mensaje..." disabled={sendingBot} />
-              <div className="flex gap-3">
-                <button onClick={() => setShowBotModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors" disabled={sendingBot}>Cancelar</button>
-                <button onClick={() => sendViaBot(botMsg)} disabled={!botMsg.trim() || sendingBot}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                  {sendingBot ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Send className="w-4 h-4" />}
-                  {sendingBot ? 'Enviando...' : 'Enviar'}
-                </button>
-              </div>
-            </>
-          )}
         </div>
       </Modal>
     </div>

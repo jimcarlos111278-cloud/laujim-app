@@ -116,7 +116,7 @@ export default function MiApto() {
                 <p className="text-xs text-gray-500">N° Contrato: <strong className="text-gray-900 dark:text-white">{apt.gasPaymentCode || '-'}</strong></p>
                 <p className="text-xs text-gray-500">Lectura día {apt.gasReadingDay || 7}</p>
               </div>
-              <a href="https://www.gascaribe.com/" target="_blank" rel="noopener noreferrer" className="ml-auto px-3 py-1.5 text-xs bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors shrink-0">Pagar</a>
+              <a href="https://portal.gascaribe.com/login" target="_blank" rel="noopener noreferrer" className="ml-auto px-3 py-1.5 text-xs bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors shrink-0">Pagar</a>
             </div>
             <div className="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
               <Zap className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />

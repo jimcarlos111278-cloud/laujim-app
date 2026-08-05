@@ -27,9 +27,6 @@ export default function Settings() {
   const [waTemplates, setWaTemplates] = useState({ services: '', reminder: '' });
   const [waSaving, setWaSaving] = useState(false);
   const [waSaved, setWaSaved] = useState(false);
-  const [botConfig, setBotConfig] = useState({ enabled: false, phone: '' });
-  const [botSaving, setBotSaving] = useState(false);
-  const [botSaved, setBotSaved] = useState(false);
   const [waTemplateNames, setWaTemplateNames] = useState({ name1: 'Servicios públicos', name2: 'Recordatorio de pago' });
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState(false);
@@ -37,18 +34,6 @@ export default function Settings() {
   const [callScreeningBusy, setCallScreeningBusy] = useState(false);
   const [callScreeningError, setCallScreeningError] = useState('');
   const [authorizedSms, setAuthorizedSms] = useState([]);
-  const [menuOptions, setMenuOptions] = useState([]);
-  const [relayTemplates, setRelayTemplates] = useState({ relay_from_tenant: '', relay_from_group: '' });
-  const [menuSaving, setMenuSaving] = useState(false);
-  const [menuSaved, setMenuSaved] = useState(false);
-  const [relaySaving, setRelaySaving] = useState(false);
-  const [relaySaved, setRelaySaved] = useState(false);
-  const [legacyMenuOptions, setLegacyMenuOptions] = useState([
-    { num: '1', label: 'Ver aptos disponibles', action: 'vacants', enabled: true },
-    { num: '2', label: 'Consultar información de un apto', action: 'info', enabled: true },
-    { num: '3', label: 'Registrar mi interés', action: 'lead', enabled: true },
-    { num: '4', label: 'Soy residente (iniciar sesión)', action: 'login', enabled: true },
-  ]);
   const [portalCreds, setPortalCreds] = useState({
     'air-e': { username: '', password: '' },
     'triple-a': { username: '', password: '' },
@@ -303,13 +288,6 @@ export default function Settings() {
     setWaTemplateNames({ name1: n1, name2: n2 });
     localStorage.setItem('wa_template_name1', n1);
     localStorage.setItem('wa_template_name2', n2);
-    setBotConfig({ enabled: getVal('whatsapp_bot_enabled', 'false') === 'true', phone: getVal('whatsapp_bot_phone', '') });
-    const savedMenu = getVal('whatsapp_bot_menu_config', '');
-    if (savedMenu) { try { setMenuOptions(JSON.parse(savedMenu)); } catch {} }
-    setRelayTemplates({
-      relay_from_tenant: getVal('whatsapp_bot_msg_relay_from_tenant', '*Inquilino Apto {apto}*'),
-      relay_from_group: getVal('whatsapp_bot_msg_relay_from_group', '*Mensaje del grupo {apto}*'),
-    });
   }
 
   async function upsertSetting(key, value) {
@@ -333,16 +311,6 @@ export default function Settings() {
     setWaSaving(false);
   }
 
-  async function handleSaveBotConfig() {
-    setBotSaving(true);
-    try {
-      await upsertSetting('whatsapp_bot_enabled', botConfig.enabled ? 'true' : 'false');
-      await upsertSetting('whatsapp_bot_phone', botConfig.phone);
-      setBotSaved(true); setTimeout(() => setBotSaved(false), 3000);
-    } catch (e) { alert('Error al guardar: ' + e.message); }
-    setBotSaving(false);
-  }
-
   async function handleSaveTemplates() {
     setWaSaving(true);
     try {
@@ -362,33 +330,6 @@ export default function Settings() {
   async function handleNotificationRequest() {
     const ok = await requestNotificationPermission();
     setNotifStatus(ok ? 'granted' : 'denied');
-  }
-
-  function updateMenuOption(idx, field, value) {
-    setMenuOptions(prev => prev.map((o, i) => i === idx ? { ...o, [field]: value } : o));
-  }
-
-  function toggleMenuOption(idx) {
-    setMenuOptions(prev => prev.map((o, i) => i === idx ? { ...o, enabled: !o.enabled } : o));
-  }
-
-  async function handleSaveMenuConfig() {
-    setMenuSaving(true);
-    try {
-      await upsertSetting('whatsapp_bot_menu_config', JSON.stringify(menuOptions));
-      setMenuSaved(true); setTimeout(() => setMenuSaved(false), 3000);
-    } catch (e) { alert('Error al guardar menú: ' + e.message); }
-    setMenuSaving(false);
-  }
-
-  async function handleSaveRelayTemplates() {
-    setRelaySaving(true);
-    try {
-      await upsertSetting('whatsapp_bot_msg_relay_from_tenant', relayTemplates.relay_from_tenant);
-      await upsertSetting('whatsapp_bot_msg_relay_from_group', relayTemplates.relay_from_group);
-      setRelaySaved(true); setTimeout(() => setRelaySaved(false), 3000);
-    } catch (e) { alert('Error al guardar templates: ' + e.message); }
-    setRelaySaving(false);
   }
 
   async function handleSavePortalCreds() {
@@ -604,33 +545,6 @@ export default function Settings() {
         </div>
 
         {/* WhatsApp Proxy Bot */}
-        <div className="hidden" aria-hidden="true">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Bot WhatsApp Proxy</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Puente entre WhatsApp y el chat web. Los inquilinos escriben al bot y los mensajes llegan al chat del admin, y viceversa.</p>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Activar bot</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{botConfig.enabled ? 'El bot reenviará mensajes entre WhatsApp y el chat web' : 'Los mensajes del chat web no se reenviarán a WhatsApp'}</p>
-              </div>
-              <button onClick={() => setBotConfig({...botConfig, enabled: !botConfig.enabled})} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${botConfig.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${botConfig.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Número del bot (WhatsApp)</label>
-              <input type="text" value={botConfig.phone} onChange={e => setBotConfig({...botConfig, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="573005185668" />
-            </div>
-            <div className="text-xs text-gray-400 space-y-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p><strong>Para iniciar el bot:</strong> ejecuta <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">iniciar-whatsapp-bot.bat</code> en el servidor.</p>
-              <p><strong>Para cambiar de número:</strong> elimina la carpeta <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">whatsapp-bot/sessions/</code> y reinicia el bot para escanear un nuevo QR.</p>
-            </div>
-            <button onClick={handleSaveBotConfig} disabled={botSaving} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium">
-              <Save className="w-4 h-4" /> {botSaving ? 'Guardando...' : botSaved ? '✓ Guardado' : 'Guardar Configuración del Bot'}
-            </button>
-          </div>
-        </div>
-
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Globe className="w-4 h-4" /> Link Público</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Comparte aptos disponibles con posibles inquilinos.</p>
@@ -690,7 +604,7 @@ export default function Settings() {
             <a href="https://portal.aaa.com.co/pagos" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
               <span className="text-gray-900 dark:text-white">Triple A — Pagar recibo</span><span className="text-blue-600 text-xs">Abrir →</span>
             </a>
-            <a href="https://www.gascaribe.com/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
+            <a href="https://portal.gascaribe.com/login" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
               <span className="text-gray-900 dark:text-white">Gases del Caribe</span><span className="text-blue-600 text-xs">Abrir →</span>
             </a>
             <a href="https://portal.air-e.com/Pagar#/List" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
@@ -837,60 +751,6 @@ export default function Settings() {
               ))}
             </div>
           </details>}
-        </div>
-
-        {/* ─── Bot Menu Editor ─── */}
-        <div className="hidden" aria-hidden="true">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Menú del Bot WhatsApp</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza las opciones del menú que ven los inquilinos al escribir al bot.</p>
-          <div className="space-y-2 mb-4">
-            {menuOptions.map((opt, i) => (
-              <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="text-sm font-mono text-gray-400 w-6 shrink-0">{opt.num}.</span>
-                <input value={opt.label} onChange={e => updateMenuOption(i, 'label', e.target.value)}
-                  className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white min-w-0" placeholder="Etiqueta" />
-                <select value={opt.action} onChange={e => updateMenuOption(i, 'action', e.target.value)}
-                  className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-                  <option value="vacants">Listar vacantes</option>
-                  <option value="info">Consultar apto</option>
-                  <option value="lead">Registrar interés</option>
-                  <option value="login">Iniciar sesión</option>
-                  <option value="payment_info">Info de pago</option>
-                  <option value="services">Servicios públicos</option>
-                  <option value="contact_admin">Contactar admin</option>
-                  <option value="status">Estado sesión</option>
-                  <option value="help">Ayuda</option>
-                </select>
-                <button onClick={() => toggleMenuOption(i)} className={`px-2 py-1 text-xs rounded shrink-0 ${opt.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400'}`}>
-                  {opt.enabled ? 'ON' : 'OFF'}
-                </button>
-              </div>
-            ))}
-          </div>
-          <button onClick={handleSaveMenuConfig} disabled={menuSaving} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium">
-            <Save className="w-4 h-4" /> {menuSaving ? 'Guardando...' : menuSaved ? '✓ Guardado' : 'Guardar Menú'}
-          </button>
-        </div>
-
-        {/* ─── Relay Templates Editor ─── */}
-        <div className="hidden" aria-hidden="true">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Formato de Reenvío (Relay)</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza cómo se muestran los mensajes reenviados. Placeholders: {'{apto}'}, {'{name}'}, {'{adminName}'}</p>
-          <div className="space-y-4 mb-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Inquilino → Grupo ({'{apto}'}, {'{name}'}, {'{adminName}'})</label>
-              <input type="text" value={relayTemplates.relay_from_tenant} onChange={e => setRelayTemplates(prev => ({ ...prev, relay_from_tenant: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Grupo → Inquilino ({'{apto}'}, {'{adminName}'})</label>
-              <input type="text" value={relayTemplates.relay_from_group} onChange={e => setRelayTemplates(prev => ({ ...prev, relay_from_group: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono" />
-            </div>
-          </div>
-          <button onClick={handleSaveRelayTemplates} disabled={relaySaving} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium">
-            <Save className="w-4 h-4" /> {relaySaving ? 'Guardando...' : relaySaved ? '✓ Guardado' : 'Guardar Formato'}
-          </button>
         </div>
 
       </div>

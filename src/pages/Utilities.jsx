@@ -34,8 +34,8 @@ function timeAgo(iso) {
 
 const PORTALS = [
   { key: 'electricity', name: 'Energía', icon: Zap, url: 'https://portal.air-e.com/Login?returnurl=%2fMis-Facturas%2fListado-de-Facturas' },
-  { key: 'water', name: 'Agua', icon: Droplets, url: 'https://portal.aaa.com.co/poliz' },
-  { key: 'gas', name: 'Gas', icon: Flame, url: 'https://www.gascaribe.com/' },
+  { key: 'water', name: 'Agua', icon: Droplets, url: 'https://portal.aaa.com.co/polizas' },
+  { key: 'gas', name: 'Gas', icon: Flame, url: 'https://portal.gascaribe.com/login' },
 ];
 
 function QrViewContent({ showQrModal, qrUrls, apartments, getUrl }) {
@@ -150,7 +150,7 @@ export default function Utilities() {
       .replace(/{apto}/g, apt.name || '')
       .replace(/{link_aire}/g, apt.electricityPaymentUrl || 'https://portal.air-e.com/Pagar#/List')
       .replace(/{link_triplea}/g, apt.waterPaymentUrl || 'https://portal.aaa.com.co/pagos')
-      .replace(/{link_gases}/g, apt.gasPaymentUrl || 'https://www.gascaribe.com/');
+      .replace(/{link_gases}/g, apt.gasPaymentUrl || 'https://portal.gascaribe.com/login');
     window.open(`https://wa.me/${fullNum}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
