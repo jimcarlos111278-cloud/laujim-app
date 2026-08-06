@@ -114,6 +114,24 @@ async function waitAndType(page, selector, text) {
 }
 
 // ── AIR-E SCRAPER ──────────────────────────────────────────────────────────
+//
+// New approach (2026): Air-e exposes an authenticated JSON API that returns
+// every invoice for the whole contract in ONE call. This replaces the fragile
+// per-NIC md-autocomplete scraping. Flow:
+//
+//  1. Log in with email + password (the portal no longer forces OTP).
+//  2. Navigate to the "Listado de Facturas" page so the Angular module runs
+//     `Documento/Get?cd_Contrato=...` and reveals the contract UUID.
+//  3. Re-call the same internal API directly (page.fetch) with a large pageSize
+//     so all invoices for all NICs arrive in a single response.
+//  4. Group by NIC, keep only unpaid/partial invoices, sum the debt.
+//
+// `cd_Contrato` is a stable, per-account UUID. We read it from the page's own
+// request instead of hardcoding it, so it survives account/contract changes.
+
+const AIR_E_GET_ENDPOINT =
+  'https://portal.air-e.com/DesktopModules/GatewayOficinaVirtual.Maestro.MisFacturas/API/Documento/Get';
+const AIR_E_CONTRATO_RE = /cd_Contrato=([0-9A-Fa-f-]{36})/i;
 
 async function scrapeAirE() {
   const results = [];
@@ -126,138 +144,118 @@ async function scrapeAirE() {
     const page = await browser.newPage();
     await page.setViewport({ width: 1366, height: 768 });
 
-    // 1. Login
+    // 1. Login (no OTP on the portal anymore).
     console.log('[AIR-E] Navigating to login...');
     await page.goto(AIR_E_URLS.login, { waitUntil: 'networkidle2', timeout: 30000 });
     await sleep(2000);
 
-    // Fill login form (Air-e is DotNetNuke WebForms; select by stable name attributes)
     await waitAndType(page, 'input[name*="txtUsername"], input[name*="Login$"]', creds.email);
     await waitAndType(page, 'input[name*="txtPassword"]', creds.password);
-    const loginBtn = await page.$('#dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_cmdLogin') ||
-                     await page.$('button::-p-text("Ingresar")');
+
+    // Capture the cd_Contrato from the first Document/Get call the page fires
+    // after login. This is the current account's contract UUID.
+    let cdContrato = null;
+    const onResponse = (resp) => {
+      if (cdContrato) return;
+      const match = AIR_E_CONTRATO_RE.exec(resp.url());
+      if (match) cdContrato = match[1];
+    };
+    page.on('response', onResponse);
+
+    const loginBtn =
+      (await page.$('#dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_cmdLogin')) ||
+      (await page.$('button::-p-text("Ingresar")'));
     if (loginBtn) await loginBtn.click();
     await sleep(3000);
+
+    // Detect OTP/captcha challenges that block fully-automated scraping and
+    // surface a clear message instead of failing silently.
+    const blocked = await page.evaluate(() => {
+      const bodyText = document.body?.innerText || '';
+      const otpInput = document.querySelector(
+        'input[autocomplete="one-time-code"], input[name*="otp" i], input[name*="Code" i], input[maxlength="6"]'
+      );
+      return {
+        hasOtpInput: !!otpInput,
+        looksBlocked: /c[oó]digo\s+de\s+verificaci[oó]n|captcha|verificaci[oó]n\s+en\s+dos\s+pasos/i.test(bodyText.slice(0, 3000)),
+      };
+    }).catch(() => ({ hasOtpInput: false, looksBlocked: false }));
+    if (blocked.hasOtpInput || blocked.looksBlocked) {
+      console.error('[AIR-E] Login blocked: Air-e pidió un código OTP o captcha. El scrape automático no puede completar el login; ingresa manualmente desde "Portal Energía".');
+      return [];
+    }
 
     let currentUrl = page.url();
     console.log('[AIR-E] Current URL:', currentUrl);
 
-    // Air-e now enforces email OTP. If the OTP panel shows up, wait (timeboxed)
-    // for the user to enter the code — automation cannot read the mailbox.
-    const otpVisible = await page.$('#dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_txtOtpCode').then((el) => {
-      if (!el) return false;
-      return el.isVisible().catch(() => true);
-    }).catch(() => false);
-
-    if (otpVisible) {
-      console.log('[AIR-E] OTP required. Waiting up to 90s for manual code entry...');
-      const otpStart = Date.now();
-      const otpBtn = await page.$('#dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_cmdVerifyOtp');
-      while (Date.now() - otpStart < 90000) {
-        await sleep(2000);
-        if (otpBtn && await otpBtn.evaluate((b) => !b.disabled && (b.textContent || '').toLowerCase().includes('verificar'))) {
-          // try to click once code is filled
-        }
-        const code = await page.$eval('input[name*="txtOtpCode"]', (i) => i.value).catch(() => '');
-        if (code && code.length >= 5) {
-          if (otpBtn) await otpBtn.click();
-          await sleep(3000);
-          break;
-        }
-      }
-    }
-
-    currentUrl = page.url();
-    console.log('[AIR-E] Post-auth URL:', currentUrl);
-    if (!currentUrl.includes('Listado-de-Facturas') && !currentUrl.includes('Mis-Facturas')) {
-      console.log('[AIR-E] Login may have failed or redirected elsewhere.');
-    }
-
-    // 2. Iterate NICs: select each NIC in the combobox and read the current debt
-    //    ("La deuda del NIC es $X correspondiente a N facturas."). The table shows
-    //    the full history (691 rows), so paginating it is unnecessary for the app.
-    const nicsToCheck = Object.keys(AIR_E_NIC_MAP);
-    console.log(`[AIR-E] Checking ${nicsToCheck.length} NICs...`);
-
-    for (const nic of nicsToCheck) {
-      const aptoName = AIR_E_NIC_MAP[nic];
-      console.log(`[AIR-E]   NIC ${nic} → ${aptoName}`);
-
-      // Navigate to listado (fresh state each NIC)
-      await page.goto(AIR_E_URLS.listado, { waitUntil: 'networkidle2', timeout: 20000 });
+    // 2. Land on the listado so the Angular module issues Document/Get.
+    if (!currentUrl.includes('Mis-Facturas')) {
+      await page.goto(AIR_E_URLS.listado, { waitUntil: 'networkidle2', timeout: 30000 });
       await sleep(2500);
+    }
 
-      // The NIC picker is an Angular Material md-autocomplete with a search input
-      // and a clear button. Type the NIC, then click the matching suggestion.
-      const autoInput = await page.$('md-autocomplete input');
-      if (!autoInput) {
-        console.log(`[AIR-E]   NIC ${nic}: autocomplete not found, skipping.`);
-        continue;
-      }
-      await autoInput.click();
-      await sleep(400);
+    // Give the module a moment to fire the request if the same page was reused.
+    const listenStart = Date.now();
+    while (!cdContrato && Date.now() - listenStart < 10000) {
+      await sleep(500);
+    }
+    page.off('response', onResponse);
 
-      // Clear previous value if any (md-autocomplete keeps the last selection).
-      // The clear button is a <button> whose only text is "Clear" (no aria-label).
-      const clearBtn = await page.evaluateHandle(() => {
-        const b = [...document.querySelectorAll('md-autocomplete button')].find((x) => (x.textContent || '').trim() === 'Clear');
-        return b || null;
+    if (!cdContrato) {
+      console.error('[AIR-E] Could not resolve cd_Contrato from network traffic.');
+      return [];
+    }
+
+    // 3. Pull EVERY invoice for all NICs in one call.
+    const invoices = await page.evaluate(async (endpoint, contrato) => {
+      const url = `${endpoint}?cd_Contrato=${encodeURIComponent(contrato)}&pageIndex=1&pageSize=1000`;
+      const res = await fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'include',
       });
-      const clearEl = clearBtn.asElement();
-      if (clearEl && await clearEl.isVisible().catch(() => false)) {
-        await clearEl.click();
-        await sleep(400);
+      if (!res.ok) return { ok: false, status: res.status };
+      const json = await res.json();
+      return { ok: true, items: json.items || [], total: json.totalItemCount };
+    }, AIR_E_GET_ENDPOINT, cdContrato);
+
+    if (!invoices.ok) {
+      console.error(`[AIR-E] Fetch failed with status ${invoices.status}.`);
+      return [];
+    }
+    console.log(`[AIR-E] Got ${invoices.total} invoices in one call.`);
+
+    // 3. Group invoices by NIC (cd_Poliza). Keep only unpaid/partial ones and
+    //    report the MAXIMUM single-invoice debt (the value the Air-e portal
+    //    highlights), not the sum of every pending invoice.
+    const byNic = {};
+    for (const inv of invoices.items) {
+      const nic = (inv.cd_Poliza || '').trim();
+      if (!nic) continue;
+      const pending = (inv.cd_EstadosPagoDocumento || 'PAGADO').toUpperCase() !== 'PAGADO';
+      const debt = Number(inv.amt_SaldoConsulta || inv.amt_DeudaTotal || 0);
+      if (!byNic[nic]) byNic[nic] = { debt: 0, count: 0 };
+      if (pending) {
+        byNic[nic].debt = Math.max(byNic[nic].debt, debt);
+        byNic[nic].count += 1;
       }
-      clearBtn.dispose();
-      const inputValue = await page.$eval('md-autocomplete input', (i) => i.value).catch(() => '');
-      if (inputValue) {
-        // fallback clear: select all + delete
-        await autoInput.click();
-        await page.keyboard.down('Control');
-        await page.keyboard.press('KeyA');
-        await page.keyboard.up('Control');
-        await page.keyboard.press('Backspace');
-        await sleep(400);
-      }
+    }
 
-      await page.keyboard.type(nic, { delay: 60 });
-      await sleep(1200);
-
-      // Click the suggestion row whose text equals the NIC
-      const clicked = await page.evaluate((targetNIC) => {
-        const items = [...document.querySelectorAll('md-autocomplete-parent-scope, .md-autocomplete-suggestion, md-virtual-repeat-container button, md-autocomplete li, md-autocomplete button')];
-        const el = items.find((e) => (e.textContent || '').trim() === targetNIC);
-        if (el) { el.click(); return true; }
-        return false;
-      }, nic);
-      if (!clicked) {
-        // Fallback: press Enter to accept the highlighted suggestion
-        await page.keyboard.press('Enter');
-      }
-      await sleep(1800);
-
-      // Read the debt summary line. Example:
-      //   "La deuda del NIC es $103.230 correspondiente a 1 facturas."
-      // A zero balance shows "$000.000,00 correspondiente a 0 facturas."
-      const debtLine = await page.evaluate(() => {
-        const els = [...document.querySelectorAll('*')];
-        const el = els.find((e) => e.childElementCount === 0 && /La deuda del NIC es/.test((e.textContent || '')));
-        return el ? el.textContent.trim() : '';
-      });
-      const debtMatch = debtLine.match(/\$([\d.,]+)/);
-      const countMatch = debtLine.match(/correspondiente a\s+(\d+)\s+facturas?/);
-      const deudaCOP = debtMatch ? parseFloat(debtMatch[1].replace(/\./g, '').replace(/,/g, '.')) : null;
-      const numFacturas = countMatch ? parseInt(countMatch[1], 10) : 0;
-
-      console.log(`[AIR-E]   NIC ${nic} → ${aptoName}: deuda $${deudaCOP ?? 'N/A'} (${numFacturas} facturas)`);
+    // 4. Emit one record per NIC mapped to its apartment.
+    for (const nic of Object.keys(AIR_E_NIC_MAP)) {
+      const aptoName = AIR_E_NIC_MAP[nic];
+      const agg = byNic[nic] || { debt: 0, count: 0 };
+      const debtText = agg.debt > 0
+        ? `La deuda del NIC es $${agg.debt.toLocaleString('es-CO')} correspondiente a ${agg.count} factura${agg.count === 1 ? '' : 's'}.`
+        : `La deuda del NIC es $0 correspondiente a 0 facturas.`;
+      console.log(`[AIR-E]   NIC ${nic} → ${aptoName}: deuda $${agg.debt.toLocaleString('es-CO')} (${agg.count} facturas)`);
 
       results.push({
         provider: 'Air-e',
-        nic: nic,
+        nic,
         apartment: aptoName,
-        deudaCOP,
-        numFacturas,
-        deudaText: debtLine,
+        deudaCOP: agg.debt,
+        numFacturas: agg.count,
+        deudaText: debtText,
         scrapedAt: new Date().toISOString(),
       });
     }
@@ -277,19 +275,31 @@ async function scrapeAirE() {
 // ── SCHEDULER ──────────────────────────────────────────────────────────────
 
 let cronJob = null;
+let bootTimer = null;
+
+function runScrapeOnce(reason) {
+  console.log(`[SERVICES] Running scrape (${reason})...`);
+  return scrapeAirE()
+    .then((results) => {
+      if (db && saveData) persistResults(results);
+      return results;
+    })
+    .catch((e) => console.error('[SERVICES] Scrape error:', e.message));
+}
 
 function startScheduler() {
   if (cronJob) return;
-  console.log('[SERVICES] Starting 24h scheduler...');
-  cronJob = cron.schedule('0 */24 * * *', async () => {
-    console.log('[SERVICES] Running scheduled scrape...');
-    try {
-      const results = await scrapeAirE();
-      if (db && saveData) persistResults(results);
-    } catch (e) {
-      console.error('[SERVICES] Schedule error:', e.message);
-    }
-  });
+  const intervalHours = Math.max(1, Number(process.env.SERVICES_SCRAPE_INTERVAL_HOURS || 24));
+  console.log(`[SERVICES] Starting scheduler (every ${intervalHours}h + on boot)...`);
+
+  // Scrape shortly after boot so every deploy refreshes the debt data even
+  // though Render free instances sleep between requests (cron alone would
+  // never fire while the instance is asleep).
+  bootTimer = setTimeout(() => runScrapeOnce('boot'), 60 * 1000);
+  if (bootTimer.unref) bootTimer.unref();
+
+  // node-cron fires on the hour while the instance is awake.
+  cronJob = cron.schedule(`0 */${intervalHours} * * *`, () => runScrapeOnce('schedule'));
 }
 
 function persistResults(results) {

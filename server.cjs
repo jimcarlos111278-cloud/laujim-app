@@ -802,6 +802,34 @@ function requireCloudAdmin(req, res) {
   return false;
 }
 
+// ── Debt query intent (servicios públicos) ────────────────────────────────
+const DEBT_QUERY_RE =
+  /(?:cu[aá]nto\s+(?:debo|debe|vale|es|hay\s+que\s+pagar)|deuda|deudas|factura|facturas|servicios|energ[ií]a|aire|recibo|recibos)/i;
+
+function isDebtQuery(text) {
+  return DEBT_QUERY_RE.test(String(text || '').trim());
+}
+
+function buildDebtReply(contact) {
+  const aptId = Number(contact.apartmentId);
+  const apt = (db.apartments || []).find(a => Number(a.id) === aptId);
+  const nic = apt?.electricityPaymentCode || apt?.nic || '';
+  const records = (db.utilityRecords || [])
+    .filter(r => r.provider === 'Air-e' && (r.nic === nic || (apt && r.apartment === apt.name)))
+    .sort((a, b) => (b.scrapedAt || '').localeCompare(a.scrapedAt || ''));
+  const latest = records[0];
+  if (!latest) {
+    return 'No tengo datos de tu deuda de servicios en este momento. Si acabas de sincronizar, espera unos minutos y vuelve a preguntar.';
+  }
+  const debt = Number(latest.deudaCOP || 0);
+  const facturas = Number(latest.numFacturas || 0);
+  const when = latest.scrapedAt ? new Date(latest.scrapedAt).toLocaleString('es-CO', { dateStyle: 'short' }) : '';
+  if (debt <= 0) {
+    return `Tu deuda de energía (Air-e) está al día 🎉 (0 facturas pendientes). Datos del ${when}.`;
+  }
+  return `Tu deuda de energía (Air-e) es de $${debt.toLocaleString('es-CO')}, correspondiente a ${facturas} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'} (valor máximo de factura). Datos del ${when}.`;
+}
+
 async function handleCloudInbound(message) {
   const phone = normalizePhone(message.from);
   if (!phone || isCloudMessageProcessed(message.id)) return;
@@ -828,6 +856,18 @@ async function handleCloudInbound(message) {
     });
     const writtenConfirmation = type === 'text' && /^(?:ya\s+)?(?:lo\s+)?pag(?:u[eé]|ue)(?:\.|\s|$)/i.test(message.text?.body || '');
     const confirmedWithButton = type === 'interactive' && (interactive?.id === 'payment_confirmed' || /^ya\s+pag(?:u[eé]|ue)/i.test(interactive?.title || ''));
+    // "¿Cuánto debo?" intent: reply with the maximum outstanding Air-e debt.
+    if (type === 'text' && isDebtQuery(message.text?.body || '')) {
+      const reply = buildDebtReply(known);
+      let whatsappMessageId = null;
+      try {
+        const sent = await sendCloudText(phone, reply);
+        whatsappMessageId = sent.messages?.[0]?.id || null;
+      } catch (error) { console.error('[WHATSAPP CLOUD] debt reply error:', error.message); }
+      addCloudMessage(conversation, 'out', { type: 'text', text: reply, whatsappMessageId });
+      saveData();
+      return;
+    }
     if (confirmedWithButton || writtenConfirmation) {
       requestedPaymentProof(conversation);
       saveData();
@@ -2193,7 +2233,16 @@ app.use((req, res) => {
     if (!loaded) {
       loadData();
       if (pgPool) {
-        try { await saveToPostgres(); } catch (e) { console.error('PG save error:', e.message); }
+        // Seed Aiven from the local snapshot ONLY when it actually contains
+        // data. Pushing an empty/INITIAL_DATA snapshot (or a stale committed
+        // file) over a live Aiven store is what caused data to "revert to an
+        // old point" after every deploy.
+        const hasData = Object.values(db).some(v => Array.isArray(v) && v.length > 0);
+        if (hasData) {
+          try { await saveToPostgres(); } catch (e) { console.error('PG save error:', e.message); }
+        } else {
+          console.log('Aiven store empty and no local data to seed; starting fresh.');
+        }
       }
     }
     console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode'));

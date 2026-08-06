@@ -37,6 +37,12 @@ public/app-debug.apk
 # Photos / uploads
 uploads/photos/*
 
+# Runtime database snapshots. These are ephemeral local mirrors of the Aiven
+# PostgreSQL store. Committing them ships a stale snapshot to every deploy and
+# causes the app to "revert to an old state" when Aiven is unreachable/empty.
+data/
+backups/
+
 # Session state
 AGENTS.md
 .session*

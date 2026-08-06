@@ -104,36 +104,6 @@
     "ast_hash": "8dc686cb24cb56f60710910fb8b6722d",
     "semantic_hash": "8dc686cb24cb56f60710910fb8b6722d"
   },
-  "backups/auto-latest.json": {
-    "mtime": 1785933025.663632,
-    "ast_hash": "24e99c4c4eeabbe87c692014a9dc03f5",
-    "semantic_hash": "24e99c4c4eeabbe87c692014a9dc03f5"
-  },
-  "backups/database-20260720T005559.json": {
-    "mtime": 1784526878.0369473,
-    "ast_hash": "1214737f2b7952f929010ab1c8d82cbf",
-    "semantic_hash": "1214737f2b7952f929010ab1c8d82cbf"
-  },
-  "backups/pre-whatsapp-bot/database.json": {
-    "mtime": 1784654960.3979342,
-    "ast_hash": "05d2c8c695b1181ad7a1ea5e802a8140",
-    "semantic_hash": "05d2c8c695b1181ad7a1ea5e802a8140"
-  },
-  "backups/pre-whatsapp-bot/db.cjs": {
-    "mtime": 1784776042.280447,
-    "ast_hash": "94b988e1ea530a822dfd73815c596f51",
-    "semantic_hash": "94b988e1ea530a822dfd73815c596f51"
-  },
-  "backups/pre-whatsapp-bot/package.json": {
-    "mtime": 1784775672.2047627,
-    "ast_hash": "fd245b7c25a0b0c42c0118ca86a5ea44",
-    "semantic_hash": "fd245b7c25a0b0c42c0118ca86a5ea44"
-  },
-  "backups/pre-whatsapp-bot/server.cjs": {
-    "mtime": 1784934576.1903706,
-    "ast_hash": "3bf87e7262dfb606d46b5ec00dc6927f",
-    "semantic_hash": "3bf87e7262dfb606d46b5ec00dc6927f"
-  },
   "build-apk.ps1": {
     "mtime": 1784355317.1797059,
     "ast_hash": "49740947aca59da255cc69f923afee44",
@@ -153,11 +123,6 @@
     "mtime": 1784341897.0494392,
     "ast_hash": "9bd25f44f8255f4a9af580f3b89bc797",
     "semantic_hash": "9bd25f44f8255f4a9af580f3b89bc797"
-  },
-  "data/database.json": {
-    "mtime": 1785982617.8076947,
-    "ast_hash": "c3a89b91d6e598d688d6df2d7cabd7bd",
-    "semantic_hash": ""
   },
   "db.cjs": {
     "mtime": 1785932015.0863092,
@@ -270,13 +235,13 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1785974354.2852364,
-    "ast_hash": "9a17ca97f9e8ff334dc89f94e0beec19",
+    "mtime": 1786000389.8397932,
+    "ast_hash": "97a26f1033d39706a2115d1a2247da24",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1785977515.1742532,
-    "ast_hash": "649ec67558f1a0e316533c319a3945f8",
+    "mtime": 1786000362.0010448,
+    "ast_hash": "16b4ac07f4b07b9b57f7655049415ff8",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
