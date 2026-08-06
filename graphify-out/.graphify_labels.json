@@ -16,7 +16,7 @@
   "14": "content-facebook.js",
   "15": "calendar.js",
   "16": "ErrorBoundary",
-  "17": "@aws-sdk/client-s3",
+  "17": "tailwindcss",
   "19": "Arquitectura del Sistema",
   "20": "getR2Client",
   "21": "5. ESPECIFICACIÓN DE INTEGRACIÓN (LO QUE CODEX DEBE CONSTRUIR)",

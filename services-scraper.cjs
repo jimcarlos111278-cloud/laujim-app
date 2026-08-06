@@ -32,8 +32,10 @@ async function resolveChromium() {
     }
     throw new Error('No Chrome/Edge found on Windows. Install a browser to run the local scraper.');
   }
-  // Serverless / Linux: use sparticuz chromium (ESM default export).
-  const mod = require('@sparticuz/chromium');
+  // Serverless / Linux: use sparticuz chromium (ESM-only since v149).
+  // Load it with dynamic import() so it works from this CommonJS file
+  // (require() of an ESM module throws ERR_REQUIRE_ESM on Node >= 22).
+  const mod = await import('@sparticuz/chromium');
   const chromium = mod.default ?? mod;
   return {
     executablePath: await chromium.executablePath(),

@@ -1,7 +1,7 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-05)
 
 ## Corpus Check
-- 116 files · ~139,573 words
+- 116 files · ~139,635 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4815c93a`
+- Built from commit: `c2a87ce7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -32,7 +32,7 @@
 - content-facebook.js
 - calendar.js
 - ErrorBoundary
-- @aws-sdk/client-s3
+- tailwindcss
 - Arquitectura del Sistema
 - getR2Client
 - 5. ESPECIFICACIÓN DE INTEGRACIÓN (LO QUE CODEX DEBE CONSTRUIR)
@@ -174,7 +174,7 @@ Nodes (22): cloudMediaKind(), cloudPeriodLabel(), constantTimeEqual(), createAut
 
 ### Community 8 - "dependencies"
 Cohesion: 0.29
-Nodes (7): dependencies, @capacitor/android, jsqr, tailwindcss, @capacitor/android, jsqr, tailwindcss
+Nodes (7): @aws-sdk/client-s3, dependencies, @aws-sdk/client-s3, @capacitor/android, jsqr, @capacitor/android, jsqr
 
 ### Community 9 - "chat.js"
 Cohesion: 0.27
@@ -408,7 +408,7 @@ Nodes (4): Login Admin, Login Inquilino, Sesión, Sistema de Autenticación
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `@aws-sdk/client-s3`, `@capacitor/filesystem`, `scripts`, `ffmpeg-static`, `qrcode`, `@capacitor/cli`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `react-router-dom`, `@tailwindcss/vite`, `@capacitor/local-notifications`, `@capacitor/core`, `@capacitor/share`, `cors`, `dexie`, `express`, `multer`, `pg`, `puppeteer-core`, `@sparticuz/chromium`, `jspdf`, `lucide-react`, `react`, `recharts`, `node-cron`?**
+- **Why does `dependencies` connect `dependencies` to `tailwindcss`, `@capacitor/filesystem`, `scripts`, `ffmpeg-static`, `qrcode`, `@capacitor/cli`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `react-router-dom`, `@tailwindcss/vite`, `@capacitor/local-notifications`, `@capacitor/core`, `@capacitor/share`, `cors`, `dexie`, `express`, `multer`, `pg`, `puppeteer-core`, `@sparticuz/chromium`, `jspdf`, `lucide-react`, `react`, `recharts`, `node-cron`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
 - **Why does `react` connect `App.jsx` to `Settings.jsx`, `chat.js`, `.oxlintrc.json`, `api.js`, `ErrorBoundary`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
