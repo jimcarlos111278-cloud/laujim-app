@@ -25,6 +25,11 @@ const args = ['update', PROJECT_ROOT].concat(process.argv.slice(2));
 const res = spawnSync(ROOT, args, { cwd: PROJECT_ROOT, stdio: 'inherit', shell: false });
 
 if (res.error) {
+  // En CI/Render la CLI global de graphify no esta instalada; no debe romper el build.
+  if (res.error.code === 'ENOENT') {
+    console.warn('[graphify] CLI no encontrada en este entorno; se omite la actualizacion del grafo.');
+    process.exit(0);
+  }
   console.error(`[graphify] no se pudo ejecutar ${ROOT}: ${res.error.message}`);
   process.exit(2);
 }

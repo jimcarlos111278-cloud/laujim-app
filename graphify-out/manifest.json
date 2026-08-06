@@ -530,8 +530,8 @@
     "semantic_hash": "de6d0ef60a41f82da6c930655fe7f731"
   },
   "scripts/graphify-update.cjs": {
-    "mtime": 1785969825.5314314,
-    "ast_hash": "4ee7ea9e4b883590dd063cd059fee51b",
+    "mtime": 1785975100.7494464,
+    "ast_hash": "563b3a4b66598da42f7a038a5e7623fd",
     "semantic_hash": ""
   },
   "README.md": {
