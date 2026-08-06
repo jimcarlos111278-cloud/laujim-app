@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { loginAdmin, loginTenant, getAuth, clearAuth } from '../utils/auth';
 import { getBase } from '../utils/config';
 import { getViewMode, setViewMode } from '../utils/viewMode';
+import { refreshAllFromServer, startCloudPolling, startDataVersionPolling } from '../api';
 import { Building2, Monitor, Smartphone, KeyRound, User, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
@@ -57,6 +58,15 @@ export default function Login() {
         ? await loginAdmin(username, password)
         : await loginTenant(username, password);
       if (result.ok) {
+        // After an SPA login the PrivateApp startup effect has already returned
+        // (it only runs once on mount, when there was no session). Pull the
+        // server data and start the sync/polling loops here so the dashboard is
+        // never empty and other devices' changes still arrive in real time.
+        try {
+          if (result.role === 'admin') await refreshAllFromServer();
+          startCloudPolling(15000);
+          startDataVersionPolling(3000);
+        } catch { /* sync is best-effort; navigation proceeds anyway */ }
         navigate(result.role === 'admin' ? '/dashboard' : '/mi-apto', { replace: true });
       } else {
         setError(result.error || 'Error al iniciar sesión');
@@ -108,23 +118,23 @@ export default function Login() {
             {tab === 'admin' ? (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Usuario</label>
-                  <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="admin" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" required />
+                  <label htmlFor="login-admin-username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Usuario</label>
+                  <input id="login-admin-username" name="username" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="admin" autoComplete="username" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" required />
+                  <label htmlFor="login-admin-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña</label>
+                  <input id="login-admin-password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" required />
                 </div>
               </>
             ) : (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apartamento</label>
-                  <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Ej: 102, 201, 301" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" required />
+                  <label htmlFor="login-tenant-apartment" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apartamento</label>
+                  <input id="login-tenant-apartment" name="apartment" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Ej: 102, 201, 301" autoComplete="off" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cédula</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Número de cédula" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" required />
+                  <label htmlFor="login-tenant-document" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cédula</label>
+                  <input id="login-tenant-document" name="documentId" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Número de cédula" autoComplete="off" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" required />
                 </div>
               </>
             )}

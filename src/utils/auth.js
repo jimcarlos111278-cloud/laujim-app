@@ -1,4 +1,5 @@
 import { AUTH_TOKEN, getBase, setApiToken } from './config';
+import { stopCloudPolling, stopDataVersionPolling } from '../api';
 
 const STORAGE_KEY = 'apt_auth';
 
@@ -20,6 +21,11 @@ export function clearAuth() {
   const token = AUTH_TOKEN;
   localStorage.removeItem(STORAGE_KEY);
   setApiToken('');
+  // A Render deploy or a restored database can invalidate server sessions.
+  // After signing out this browser must stop polling or it would keep sending
+  // authenticated requests that the server now rejects (401) in a tight loop.
+  stopCloudPolling();
+  stopDataVersionPolling();
   if (token) fetch(getBase() + '/logout', { method: 'POST', headers: { 'x-auth-token': token } }).catch(() => {});
 }
 

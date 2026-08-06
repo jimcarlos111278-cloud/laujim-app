@@ -4,6 +4,84 @@
   "graph": {},
   "nodes": [
     {
+      "label": "opencode.json",
+      "file_type": "code",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "opencode_opencode",
+      "community": 38,
+      "community_name": "opencode.json",
+      "norm_label": "opencode.json"
+    },
+    {
+      "label": "$schema",
+      "file_type": "code",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L2",
+      "_origin": "ast",
+      "id": "opencode_opencode_schema",
+      "community": 38,
+      "community_name": "opencode.json",
+      "norm_label": "$schema"
+    },
+    {
+      "label": "plugin",
+      "file_type": "code",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "opencode_opencode_plugin",
+      "community": 38,
+      "community_name": "opencode.json",
+      "norm_label": "plugin"
+    },
+    {
+      "label": ".opencode/plugins/graphify.js",
+      "file_type": "concept",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "ref_opencode_plugins_graphify_js",
+      "community": 38,
+      "community_name": "opencode.json",
+      "norm_label": ".opencode/plugins/graphify.js"
+    },
+    {
+      "label": "graphify.js",
+      "file_type": "code",
+      "source_file": ".opencode/plugins/graphify.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "opencode_plugins_graphify",
+      "community": 30,
+      "community_name": "graphify.js",
+      "norm_label": "graphify.js"
+    },
+    {
+      "label": "GraphifyPlugin()",
+      "file_type": "code",
+      "source_file": ".opencode/plugins/graphify.js",
+      "source_location": "L12",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "opencode_plugins_graphify_graphifyplugin",
+      "community": 30,
+      "community_name": "graphify.js",
+      "norm_label": "graphifyplugin()"
+    },
+    {
+      "label": "IMPORTANT: keep the reminder string free of backticks and $(...) constructs.",
+      "file_type": "rationale",
+      "source_file": ".opencode/plugins/graphify.js",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "opencode_plugins_graphify_rationale_4",
+      "community": 30,
+      "community_name": "graphify.js",
+      "norm_label": "important: keep the reminder string free of backticks and $(...) constructs."
+    },
+    {
       "label": ".oxlintrc.json",
       "file_type": "code",
       "source_file": ".oxlintrc.json",
@@ -43,8 +121,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "ref_react",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "react"
     },
     {
@@ -4662,8 +4740,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "package",
-      "community": 39,
-      "community_name": "scripts",
+      "community": 36,
+      "community_name": "package.json",
       "norm_label": "package.json"
     },
     {
@@ -4673,8 +4751,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "package_name",
-      "community": 39,
-      "community_name": "scripts",
+      "community": 36,
+      "community_name": "package.json",
       "norm_label": "name"
     },
     {
@@ -4684,8 +4762,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "package_private",
-      "community": 39,
-      "community_name": "scripts",
+      "community": 36,
+      "community_name": "package.json",
       "norm_label": "private"
     },
     {
@@ -4695,8 +4773,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "package_version",
-      "community": 39,
-      "community_name": "scripts",
+      "community": 36,
+      "community_name": "package.json",
       "norm_label": "version"
     },
     {
@@ -4706,8 +4784,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "package_type",
-      "community": 39,
-      "community_name": "scripts",
+      "community": 36,
+      "community_name": "package.json",
       "norm_label": "type"
     },
     {
@@ -4717,8 +4795,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "package_engines",
-      "community": 39,
-      "community_name": "scripts",
+      "community": 36,
+      "community_name": "package.json",
       "norm_label": "engines"
     },
     {
@@ -4728,8 +4806,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "package_engines_node",
-      "community": 39,
-      "community_name": "scripts",
+      "community": 36,
+      "community_name": "package.json",
       "norm_label": "node"
     },
     {
@@ -4739,7 +4817,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "package_scripts",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "scripts"
     },
@@ -4750,7 +4828,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "package_scripts_start",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "start"
     },
@@ -4761,7 +4839,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "package_scripts_graphify",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "graphify"
     },
@@ -4772,7 +4850,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "package_scripts_dev",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "dev"
     },
@@ -4783,7 +4861,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "package_scripts_build",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "build"
     },
@@ -4794,7 +4872,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "package_scripts_build_apk",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "build-apk"
     },
@@ -4805,7 +4883,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "package_scripts_lint",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "lint"
     },
@@ -4816,7 +4894,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "package_scripts_preview",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "preview"
     },
@@ -4827,7 +4905,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "package_scripts_network",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "network"
     },
@@ -4838,7 +4916,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "package_scripts_backup",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "backup"
     },
@@ -4849,7 +4927,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "package_scripts_sync_seed",
-      "community": 39,
+      "community": 33,
       "community_name": "scripts",
       "norm_label": "sync-seed"
     },
@@ -4860,7 +4938,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "package_dependencies",
-      "community": 8,
+      "community": 31,
       "community_name": "dependencies",
       "norm_label": "dependencies"
     },
@@ -4871,7 +4949,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "package_dependencies_aws_sdk_client_s3",
-      "community": 8,
+      "community": 31,
       "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
@@ -4882,7 +4960,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "aws_sdk_client_s3",
-      "community": 8,
+      "community": 31,
       "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
@@ -4916,7 +4994,7 @@
       "_origin": "ast",
       "id": "package_dependencies_capacitor_android",
       "community": 8,
-      "community_name": "dependencies",
+      "community_name": "@capacitor/android",
       "norm_label": "@capacitor/android"
     },
     {
@@ -4927,7 +5005,7 @@
       "_origin": "ast",
       "id": "package_json_capacitor_android",
       "community": 8,
-      "community_name": "dependencies",
+      "community_name": "@capacitor/android",
       "norm_label": "@capacitor/android"
     },
     {
@@ -4937,8 +5015,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 67,
-      "community_name": "@capacitor/cli",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -4948,8 +5026,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "package_json_capacitor_cli",
-      "community": 67,
-      "community_name": "@capacitor/cli",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -4981,8 +5059,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_filesystem",
-      "community": 33,
-      "community_name": "@capacitor/filesystem",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/filesystem"
     },
     {
@@ -4992,8 +5070,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "capacitor_filesystem",
-      "community": 33,
-      "community_name": "@capacitor/filesystem",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/filesystem"
     },
     {
@@ -5025,8 +5103,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_share",
-      "community": 111,
-      "community_name": "@capacitor/share",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/share"
     },
     {
@@ -5036,8 +5114,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "package_json_capacitor_share",
-      "community": 111,
-      "community_name": "@capacitor/share",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/share"
     },
     {
@@ -5047,8 +5125,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "package_dependencies_tailwindcss_vite",
-      "community": 74,
-      "community_name": "@tailwindcss/vite",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "@tailwindcss/vite"
     },
     {
@@ -5058,8 +5136,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "package_json_tailwindcss_vite",
-      "community": 74,
-      "community_name": "@tailwindcss/vite",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "@tailwindcss/vite"
     },
     {
@@ -5113,8 +5191,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "package_dependencies_express",
-      "community": 114,
-      "community_name": "express",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "express"
     },
     {
@@ -5124,8 +5202,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "package_json_express",
-      "community": 114,
-      "community_name": "express",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "express"
     },
     {
@@ -5179,8 +5257,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "package_dependencies_jsqr",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 40,
+      "community_name": "jsqr",
       "norm_label": "jsqr"
     },
     {
@@ -5190,8 +5268,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "package_json_jsqr",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 40,
+      "community_name": "jsqr",
       "norm_label": "jsqr"
     },
     {
@@ -5245,8 +5323,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "package_dependencies_node_cron",
-      "community": 126,
-      "community_name": "node-cron",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "node-cron"
     },
     {
@@ -5256,8 +5334,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "node_cron",
-      "community": 126,
-      "community_name": "node-cron",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "node-cron"
     },
     {
@@ -5333,8 +5411,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "package_dependencies_qrcode",
-      "community": 64,
-      "community_name": "qrcode",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "qrcode"
     },
     {
@@ -5344,8 +5422,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "package_json_qrcode",
-      "community": 64,
-      "community_name": "qrcode",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "qrcode"
     },
     {
@@ -5399,8 +5477,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "package_dependencies_react_router_dom",
-      "community": 72,
-      "community_name": "react-router-dom",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "react-router-dom"
     },
     {
@@ -5410,8 +5488,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "package_json_react_router_dom",
-      "community": 72,
-      "community_name": "react-router-dom",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "react-router-dom"
     },
     {
@@ -5421,8 +5499,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "package_dependencies_recharts",
-      "community": 123,
-      "community_name": "recharts",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "recharts"
     },
     {
@@ -5432,8 +5510,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "package_json_recharts",
-      "community": 123,
-      "community_name": "recharts",
+      "community": 31,
+      "community_name": "dependencies",
       "norm_label": "recharts"
     },
     {
@@ -5443,7 +5521,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "package_dependencies_tailwindcss",
-      "community": 17,
+      "community": 41,
       "community_name": "tailwindcss",
       "norm_label": "tailwindcss"
     },
@@ -5454,7 +5532,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "package_json_tailwindcss",
-      "community": 17,
+      "community": 41,
       "community_name": "tailwindcss",
       "norm_label": "tailwindcss"
     },
@@ -5466,7 +5544,7 @@
       "_origin": "ast",
       "id": "package_devdependencies",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "devdependencies"
     },
     {
@@ -5477,7 +5555,7 @@
       "_origin": "ast",
       "id": "package_devdependencies_types_react",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@types/react"
     },
     {
@@ -5488,7 +5566,7 @@
       "_origin": "ast",
       "id": "package_json_types_react",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@types/react"
     },
     {
@@ -5499,7 +5577,7 @@
       "_origin": "ast",
       "id": "package_devdependencies_types_react_dom",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@types/react-dom"
     },
     {
@@ -5510,7 +5588,7 @@
       "_origin": "ast",
       "id": "package_json_types_react_dom",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@types/react-dom"
     },
     {
@@ -5521,7 +5599,7 @@
       "_origin": "ast",
       "id": "package_devdependencies_vitejs_plugin_react",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@vitejs/plugin-react"
     },
     {
@@ -5532,7 +5610,7 @@
       "_origin": "ast",
       "id": "package_json_vitejs_plugin_react",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@vitejs/plugin-react"
     },
     {
@@ -5543,7 +5621,7 @@
       "_origin": "ast",
       "id": "package_devdependencies_oxlint",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "oxlint"
     },
     {
@@ -5554,7 +5632,7 @@
       "_origin": "ast",
       "id": "package_json_oxlint",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "oxlint"
     },
     {
@@ -5565,7 +5643,7 @@
       "_origin": "ast",
       "id": "package_devdependencies_vite",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "vite"
     },
     {
@@ -5576,7 +5654,7 @@
       "_origin": "ast",
       "id": "package_json_vite",
       "community": 39,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "vite"
     },
     {
@@ -7945,7 +8023,7 @@
       "label": "scrapeAirE()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L118",
+      "source_location": "L136",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_scrapeaire",
@@ -7957,7 +8035,7 @@
       "label": "startScheduler()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L281",
+      "source_location": "L260",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_startscheduler",
@@ -7969,7 +8047,7 @@
       "label": "persistResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L295",
+      "source_location": "L274",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_persistresults",
@@ -8006,7 +8084,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "app.jsx"
     },
@@ -8054,7 +8132,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_appcontent",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "appcontent()"
     },
@@ -8113,8 +8191,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_getserverversion",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 17,
+      "community_name": "App.jsx",
       "norm_label": "getserverversion()"
     },
     {
@@ -8125,8 +8203,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_uploadfile",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 17,
+      "community_name": "App.jsx",
       "norm_label": "uploadfile()"
     },
     {
@@ -8184,8 +8262,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopdataversionpolling",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "stopdataversionpolling()"
     },
     {
@@ -8208,8 +8286,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopcloudpolling",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "stopcloudpolling()"
     },
     {
@@ -8279,8 +8357,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "src_api_api",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "api"
     },
     {
@@ -8362,8 +8440,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "layout.jsx"
     },
     {
@@ -8373,8 +8451,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_layout_navitems",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "navitems"
     },
     {
@@ -8385,8 +8463,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_layout_layout",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "layout()"
     },
     {
@@ -8396,8 +8474,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_modal",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "modal.jsx"
     },
     {
@@ -8408,8 +8486,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_modal_modal",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "modal()"
     },
     {
@@ -8420,7 +8498,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "paymenthistorychart.jsx"
     },
     {
@@ -8431,7 +8509,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_colors",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "colors"
     },
     {
@@ -8443,7 +8521,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_getpaymentstatus",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getpaymentstatus()"
     },
     {
@@ -8455,7 +8533,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_getchartdata",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getchartdata()"
     },
     {
@@ -8467,7 +8545,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_customtooltip",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "customtooltip()"
     },
     {
@@ -8479,7 +8557,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_paymenthistorychart",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "paymenthistorychart()"
     },
     {
@@ -8490,7 +8568,7 @@
       "_origin": "ast",
       "id": "src_components_statscard",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "statscard.jsx"
     },
     {
@@ -8502,7 +8580,7 @@
       "_origin": "ast",
       "id": "src_components_statscard_statscard",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "statscard()"
     },
     {
@@ -8512,8 +8590,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_themeselector",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "themeselector.jsx"
     },
     {
@@ -8523,8 +8601,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_themeselector_iconmap",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "iconmap"
     },
     {
@@ -8535,8 +8613,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_themeselector_themeselector",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "themeselector()"
     },
     {
@@ -8546,7 +8624,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_versionbanner",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "versionbanner.jsx"
     },
@@ -8558,7 +8636,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_versionbanner_versionisnewer",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "versionisnewer()"
     },
@@ -8570,7 +8648,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_versionbanner_versionbanner",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "versionbanner()"
     },
@@ -8733,7 +8811,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "apartmentdetail.jsx"
     },
     {
@@ -8744,7 +8822,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_servicenames",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "servicenames"
     },
     {
@@ -8755,7 +8833,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_serviceicons",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "serviceicons"
     },
     {
@@ -8766,7 +8844,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_servicecolors",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "servicecolors"
     },
     {
@@ -8777,7 +8855,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_utilitywebsites",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "utilitywebsites"
     },
     {
@@ -8789,7 +8867,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_apartmentdetail",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "apartmentdetail()"
     },
     {
@@ -8799,8 +8877,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_apartments",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "apartments.jsx"
     },
     {
@@ -8811,8 +8889,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartments_apartments",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "apartments()"
     },
     {
@@ -8845,7 +8923,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contractgenerator",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator.jsx"
     },
@@ -8857,7 +8935,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contractgenerator_contractgenerator",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator()"
     },
@@ -8868,8 +8946,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contracts",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "contracts.jsx"
     },
     {
@@ -8880,8 +8958,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contracts_contracts",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "contracts()"
     },
     {
@@ -8892,7 +8970,7 @@
       "_origin": "ast",
       "id": "src_pages_dashboard",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "dashboard.jsx"
     },
     {
@@ -8904,7 +8982,7 @@
       "_origin": "ast",
       "id": "src_pages_dashboard_dashboard",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "dashboard()"
     },
     {
@@ -8914,20 +8992,20 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "login.jsx"
     },
     {
       "label": "Login()",
       "file_type": "code",
       "source_file": "src/pages/Login.jsx",
-      "source_location": "L8",
+      "source_location": "L9",
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "login()"
     },
     {
@@ -8937,8 +9015,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_miapto",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "miapto.jsx"
     },
     {
@@ -8949,8 +9027,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_miapto_miapto",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "miapto()"
     },
     {
@@ -8960,8 +9038,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_payments",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "payments.jsx"
     },
     {
@@ -8972,8 +9050,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_payments_payments",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "payments()"
     },
     {
@@ -8983,8 +9061,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_predial",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 37,
+      "community_name": "Predial.jsx",
       "norm_label": "predial.jsx"
     },
     {
@@ -8994,8 +9072,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 37,
+      "community_name": "Predial.jsx",
       "norm_label": "ref_map"
     },
     {
@@ -9006,8 +9084,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 37,
+      "community_name": "Predial.jsx",
       "norm_label": "lookupref()"
     },
     {
@@ -9018,8 +9096,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 37,
+      "community_name": "Predial.jsx",
       "norm_label": "getpredialurl()"
     },
     {
@@ -9030,8 +9108,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_predial",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 37,
+      "community_name": "Predial.jsx",
       "norm_label": "predial()"
     },
     {
@@ -9041,7 +9119,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_publicapartment",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "publicapartment.jsx"
     },
@@ -9052,7 +9130,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_pages_publicapartment_serviceicons",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "serviceicons"
     },
@@ -9064,7 +9142,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_publicapartment_publicapartment",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "publicapartment()"
     },
@@ -9076,7 +9154,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_publicapartment_info",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "info()"
     },
@@ -9087,7 +9165,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_publicapartments",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "publicapartments.jsx"
     },
@@ -9099,7 +9177,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_publicapartments_publicapartments",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "publicapartments()"
     },
@@ -9110,8 +9188,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_reports",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "reports.jsx"
     },
     {
@@ -9122,8 +9200,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_reports_reports",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "reports()"
     },
     {
@@ -9156,7 +9234,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_shareapartments",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "shareapartments.jsx"
     },
@@ -9168,7 +9246,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_shareapartments_shareapartments",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "shareapartments()"
     },
@@ -9179,8 +9257,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_tenants",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "tenants.jsx"
     },
     {
@@ -9191,8 +9269,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_tenants_tenants",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "tenants()"
     },
     {
@@ -9203,7 +9281,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "utilities.jsx"
     },
     {
@@ -9214,7 +9292,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_services",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "services"
     },
     {
@@ -9226,7 +9304,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_timeago",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "timeago()"
     },
     {
@@ -9237,7 +9315,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_portals",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "portals"
     },
     {
@@ -9249,7 +9327,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_qrviewcontent",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "qrviewcontent()"
     },
     {
@@ -9261,7 +9339,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_utilities",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "utilities()"
     },
     {
@@ -9271,7 +9349,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "whatsappcontacts.jsx"
     },
@@ -9283,7 +9361,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts_whatsappcontacts",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "whatsappcontacts()"
     },
@@ -9294,7 +9372,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappinbox",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "whatsappinbox.jsx"
     },
@@ -9306,7 +9384,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_cloudrequest",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "cloudrequest()"
     },
@@ -9318,7 +9396,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_formatdate",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "formatdate()"
     },
@@ -9330,7 +9408,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediaicon",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "mediaicon()"
     },
@@ -9342,7 +9420,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediamessage",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "mediamessage()"
     },
@@ -9354,7 +9432,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_whatsappinbox",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "whatsappinbox()"
     },
@@ -9365,15 +9443,15 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_auth",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "auth.js"
     },
     {
       "label": "getAuth()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L5",
+      "source_location": "L6",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_getauth",
@@ -9385,108 +9463,108 @@
       "label": "setAuth()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L13",
+      "source_location": "L14",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_setauth",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "setauth()"
     },
     {
       "label": "clearAuth()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L19",
+      "source_location": "L20",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_clearauth",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "clearauth()"
     },
     {
       "label": "isAdmin()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L26",
+      "source_location": "L32",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_isadmin",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 9,
+      "community_name": "chat.js",
       "norm_label": "isadmin()"
     },
     {
       "label": "isTenant()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L27",
+      "source_location": "L33",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_istenant",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "istenant()"
     },
     {
       "label": "getTenantApartmentId()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L28",
+      "source_location": "L34",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_gettenantapartmentid",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "gettenantapartmentid()"
     },
     {
       "label": "requireAuth()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L29",
+      "source_location": "L35",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_requireauth",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 9,
+      "community_name": "chat.js",
       "norm_label": "requireauth()"
     },
     {
       "label": "login()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L31",
+      "source_location": "L37",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_login",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "login()"
     },
     {
       "label": "loginAdmin()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L48",
+      "source_location": "L54",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_loginadmin",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "loginadmin()"
     },
     {
       "label": "loginTenant()",
       "file_type": "code",
       "source_file": "src/utils/auth.js",
-      "source_location": "L49",
+      "source_location": "L55",
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_logintenant",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "logintenant()"
     },
     {
@@ -9627,8 +9705,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_callscreening",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "callscreening.js"
     },
     {
@@ -9639,8 +9717,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_nativeandroid",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "nativeandroid()"
     },
     {
@@ -9651,8 +9729,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_callerscreeningplugin",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "callerscreeningplugin()"
     },
     {
@@ -9663,8 +9741,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_normalizedphone",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "normalizedphone()"
     },
     {
@@ -9675,8 +9753,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_getcallscreeningstatus",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "getcallscreeningstatus()"
     },
     {
@@ -9687,8 +9765,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_syncauthorizedcallernumbers",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "syncauthorizedcallernumbers()"
     },
     {
@@ -9699,8 +9777,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_requestcallscreeningrole",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "requestcallscreeningrole()"
     },
     {
@@ -9711,8 +9789,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_setcallscreeningenabled",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "setcallscreeningenabled()"
     },
     {
@@ -9723,8 +9801,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_setallowcallsfromcontacts",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "setallowcallsfromcontacts()"
     },
     {
@@ -9735,8 +9813,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_requestprotectedsmsrole",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "requestprotectedsmsrole()"
     },
     {
@@ -9747,8 +9825,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_getauthorizedsmsmessages",
-      "community": 0,
-      "community_name": "Settings.jsx",
+      "community": 35,
+      "community_name": "callScreening.js",
       "norm_label": "getauthorizedsmsmessages()"
     },
     {
@@ -9983,7 +10061,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_config",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "config.js"
     },
@@ -9995,7 +10073,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_storedtoken",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "storedtoken()"
     },
@@ -10006,8 +10084,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_utils_config_auth_token",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "auth_token"
     },
     {
@@ -10018,8 +10096,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_setapitoken",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 28,
+      "community_name": "auth.js",
       "norm_label": "setapitoken()"
     },
     {
@@ -10030,7 +10108,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_iscapacitor",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "iscapacitor()"
     },
@@ -10042,7 +10120,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_getbase",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "getbase()"
     },
@@ -10054,7 +10132,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_getrawbase",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "getrawbase()"
     },
@@ -10066,7 +10144,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_photourl",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "photourl()"
     },
@@ -10321,7 +10399,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "generate-apartments-html.js"
     },
@@ -10333,7 +10411,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_fetchasbase64",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "fetchasbase64()"
     },
@@ -10345,7 +10423,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_buildapartmentshtml",
-      "community": 1,
+      "community": 17,
       "community_name": "App.jsx",
       "norm_label": "buildapartmentshtml()"
     },
@@ -10357,7 +10435,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "helpers.js"
     },
     {
@@ -10368,8 +10446,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatcurrency",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "formatcurrency()"
     },
     {
@@ -10381,7 +10459,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_formatdate",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatdate()"
     },
     {
@@ -10392,8 +10470,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatshortdate",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "formatshortdate()"
     },
     {
@@ -10405,7 +10483,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_daysbetween",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "daysbetween()"
     },
     {
@@ -10417,7 +10495,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_monthsbetween",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "monthsbetween()"
     },
     {
@@ -10429,7 +10507,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getcurrentperiod",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getcurrentperiod()"
     },
     {
@@ -10440,8 +10518,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_getmonthname",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "getmonthname()"
     },
     {
@@ -10453,7 +10531,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getperiodlabel",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getperiodlabel()"
     },
     {
@@ -10465,7 +10543,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_generateid",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generateid()"
     },
     {
@@ -10477,7 +10555,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_daysuntil",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "daysuntil()"
     },
     {
@@ -10489,7 +10567,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_periodtodate",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "periodtodate()"
     },
     {
@@ -10501,7 +10579,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_nextperiod",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "nextperiod()"
     },
     {
@@ -10513,7 +10591,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_prevperiod",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "prevperiod()"
     },
     {
@@ -10525,7 +10603,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getallperiodsfrom",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getallperiodsfrom()"
     },
     {
@@ -10537,7 +10615,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_isoverduebyreadingdate",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "isoverduebyreadingdate()"
     },
     {
@@ -10549,7 +10627,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_formatrelativeduedate",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatrelativeduedate()"
     },
     {
@@ -10713,7 +10791,7 @@
       "_origin": "ast",
       "id": "src_utils_pdf",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "pdf.js"
     },
     {
@@ -10725,7 +10803,7 @@
       "_origin": "ast",
       "id": "src_utils_pdf_generateapartmentpdf",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generateapartmentpdf()"
     },
     {
@@ -10737,7 +10815,7 @@
       "_origin": "ast",
       "id": "src_utils_pdf_generatepublichtml",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generatepublichtml()"
     },
     {
@@ -10747,8 +10825,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_sync",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "sync.js"
     },
     {
@@ -10759,8 +10837,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_sync_isserveravailable",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "isserveravailable()"
     },
     {
@@ -10770,8 +10848,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_theme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "theme.js"
     },
     {
@@ -10781,8 +10859,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_utils_theme_themes",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "themes"
     },
     {
@@ -10792,8 +10870,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_utils_theme_thememap",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "thememap"
     },
     {
@@ -10804,8 +10882,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_gettheme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "gettheme()"
     },
     {
@@ -10816,8 +10894,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_getthemeinfo",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "getthemeinfo()"
     },
     {
@@ -10828,8 +10906,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_settheme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "settheme()"
     },
     {
@@ -10840,8 +10918,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_inittheme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "inittheme()"
     },
     {
@@ -10852,8 +10930,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_applytheme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "applytheme()"
     },
     {
@@ -10864,8 +10942,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_syncthemetoserver",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "syncthemetoserver()"
     },
     {
@@ -10876,8 +10954,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_loadthemefromserver",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "loadthemefromserver()"
     },
     {
@@ -10887,8 +10965,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_viewmode",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "viewmode.js"
     },
     {
@@ -10899,8 +10977,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_viewmode_getviewmode",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "getviewmode()"
     },
     {
@@ -10911,8 +10989,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_viewmode_setviewmode",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 18,
+      "community_name": "react",
       "norm_label": "setviewmode()"
     },
     {
@@ -12787,6 +12865,62 @@
     }
   ],
   "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "opencode_opencode",
+      "target": "opencode_opencode_plugin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "opencode_opencode",
+      "target": "opencode_opencode_schema",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "context": "import",
+      "_origin": "ast",
+      "source": "opencode_opencode_plugin",
+      "target": "ref_opencode_plugins_graphify_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/plugins/graphify.js",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "opencode_plugins_graphify",
+      "target": "opencode_plugins_graphify_graphifyplugin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/plugins/graphify.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "opencode_plugins_graphify_rationale_4",
+      "target": "opencode_plugins_graphify",
+      "confidence_score": 1.0
+    },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
@@ -26428,7 +26562,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L318",
+      "source_location": "L297",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -26451,7 +26585,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L295",
+      "source_location": "L274",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -26484,7 +26618,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L319",
+      "source_location": "L298",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -26507,7 +26641,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L320",
+      "source_location": "L299",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -26531,7 +26665,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L132",
+      "source_location": "L150",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -26555,7 +26689,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L124",
+      "source_location": "L142",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -26567,7 +26701,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L125",
+      "source_location": "L143",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -26579,7 +26713,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L135",
+      "source_location": "L152",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -26591,7 +26725,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L287",
+      "source_location": "L266",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -26603,7 +26737,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L288",
+      "source_location": "L267",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -27902,6 +28036,18 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/pages/Login.jsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_login",
+      "target": "src_api",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/pages/Payments.jsx",
       "source_location": "L4",
       "weight": 1.0,
@@ -27979,6 +28125,18 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_utilities",
+      "target": "src_api",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/auth.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_utils_auth",
       "target": "src_api",
       "confidence_score": 1.0
     },
@@ -28132,6 +28290,18 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/pages/Login.jsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_login",
+      "target": "src_api_refreshallfromserver",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
       "source_location": "L10",
       "weight": 1.0,
@@ -28165,6 +28335,42 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/pages/Login.jsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_login",
+      "target": "src_api_startdataversionpolling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/auth.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_utils_auth",
+      "target": "src_api_stopdataversionpolling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/utils/auth.js",
+      "source_location": "L28",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_utils_auth_clearauth",
+      "target": "src_api_stopdataversionpolling"
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -28175,6 +28381,42 @@
       "source": "src_api_startcloudpolling",
       "target": "src_api_stopcloudpolling",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/pages/Login.jsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_login",
+      "target": "src_api_startcloudpolling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/auth.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_utils_auth",
+      "target": "src_api_stopcloudpolling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/utils/auth.js",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_utils_auth_clearauth",
+      "target": "src_api_stopcloudpolling"
     },
     {
       "relation": "calls",
@@ -30626,7 +30868,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Login.jsx",
-      "source_location": "L8",
+      "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_login",
@@ -30759,7 +31001,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Login.jsx",
-      "source_location": "L35",
+      "source_location": "L36",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_login_login",
@@ -30771,7 +31013,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Login.jsx",
-      "source_location": "L17",
+      "source_location": "L18",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_login_login",
@@ -30783,7 +31025,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Login.jsx",
-      "source_location": "L29",
+      "source_location": "L30",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_login_login",
@@ -30795,7 +31037,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Login.jsx",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_login_login",
@@ -32304,7 +32546,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32315,7 +32557,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L5",
+      "source_location": "L6",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32326,7 +32568,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L28",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32337,7 +32579,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L26",
+      "source_location": "L32",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32348,7 +32590,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L27",
+      "source_location": "L33",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32359,7 +32601,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L31",
+      "source_location": "L37",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32370,7 +32612,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L48",
+      "source_location": "L54",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32381,7 +32623,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L49",
+      "source_location": "L55",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32392,7 +32634,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L29",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32403,7 +32645,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth",
@@ -32475,7 +32717,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L28",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_gettenantapartmentid",
@@ -32487,7 +32729,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L26",
+      "source_location": "L32",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_isadmin",
@@ -32499,7 +32741,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L27",
+      "source_location": "L33",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_istenant",
@@ -32511,7 +32753,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L29",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_requireauth",
@@ -32583,7 +32825,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L41",
+      "source_location": "L47",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_login",
@@ -32596,7 +32838,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/auth.js",
-      "source_location": "L16",
+      "source_location": "L17",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_setauth",
@@ -32608,7 +32850,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/auth.js",
-      "source_location": "L23",
+      "source_location": "L29",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_clearauth",
@@ -32620,7 +32862,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/utils/auth.js",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_clearauth",
@@ -32631,7 +32873,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L28",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_gettenantapartmentid",
@@ -32643,7 +32885,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L33",
+      "source_location": "L39",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_login",
@@ -32655,7 +32897,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L48",
+      "source_location": "L54",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_loginadmin",
@@ -32667,7 +32909,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/auth.js",
-      "source_location": "L49",
+      "source_location": "L55",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_utils_auth_logintenant",
@@ -36524,5 +36766,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c2a87ce7e07fe5b37f7b48d2bca0a8fac36f21c1"
+  "built_at_commit": "83ea8c0106abf423dac2f460fcc88a38a6ecf6fa"
 }
