@@ -165,55 +165,17 @@ function constantTimeEqual(left, right) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-// ─── Secrets encryption (AES-256-GCM) ────────────────────────────────────
-// Sensitive fields such as utility portal credentials are encrypted at rest.
-// The key is derived from SERVER_ENC_KEY; if absent a random key is generated
-// and persisted to SECRET_KEY_FILE so the server stays stable across restarts.
-const SECRET_KEY_FILE = path.join(__dirname, 'portal-credentials.key');
-let secretKey = null;
-
-function getSecretKey() {
-  if (secretKey) return secretKey;
-  const envKey = process.env.SERVER_ENC_KEY;
-  if (envKey) {
-    secretKey = crypto.createHash('sha256').update(envKey).digest();
-    return secretKey;
-  }
-  try {
-    if (fs.existsSync(SECRET_KEY_FILE)) {
-      secretKey = Buffer.from(fs.readFileSync(SECRET_KEY_FILE, 'utf8').trim(), 'base64');
-      if (secretKey.length !== 32) secretKey = null;
-    }
-  } catch { /* fall through to regeneration */ }
-  if (!secretKey) {
-    secretKey = crypto.randomBytes(32);
-    try { fs.writeFileSync(SECRET_KEY_FILE, secretKey.toString('base64'), { mode: 0o600 }); }
-    catch { /* non-fatal on read-only filesystems; key stays ephemeral */ }
-  }
-  return secretKey;
-}
-
+// ─── Utility credentials (stored in plain text) ───────────────────────────
+// The portal-credentials endpoints are protected by requireCloudAdmin, so
+// values are stored/returned verbatim. Encryption was removed because the
+// runtime filesystem is ephemeral and generated keys caused unrecoverable
+// ciphertext across restarts. Only the ADMIN_PASSWORD secret protects access.
 function encryptSecret(plaintext) {
-  if (plaintext === undefined || plaintext === null || plaintext === '') return plaintext;
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', getSecretKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(String(plaintext), 'utf8'), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return `enc:v1:${iv.toString('base64')}:${tag.toString('base64')}:${encrypted.toString('base64')}`;
+  return plaintext;
 }
 
 function decryptSecret(value) {
-  if (typeof value !== 'string' || !value.startsWith('enc:v1:')) return value;
-  const parts = value.split(':');
-  if (parts.length !== 5) return value;
-  try {
-    const iv = Buffer.from(parts[2], 'base64');
-    const tag = Buffer.from(parts[3], 'base64');
-    const data = Buffer.from(parts[4], 'base64');
-    const decipher = crypto.createDecipheriv('aes-256-gcm', getSecretKey(), iv);
-    decipher.setAuthTag(tag);
-    return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
-  } catch { return value; }
+  return value;
 }
 
 function ensureAuthSessions() {
@@ -2244,7 +2206,7 @@ app.use((req, res) => {
     }, 60 * 60 * 1000).unref();
 
     // Init services scraper with DB reference and start 24h scheduler
-    servicesScraper.init(db, saveData, decryptSecret);
+    servicesScraper.init(db, saveData);
     servicesScraper.startScheduler();
 
   })();

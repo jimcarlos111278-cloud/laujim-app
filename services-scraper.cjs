@@ -69,23 +69,21 @@ const AIR_E_NIC_MAP = {
 // ── DB REF (set by server.cjs) ─────────────────────────────────────────────
 let db = null;
 let saveData = null;
-let decryptSecret = null;
 
-function init(dbRef, saveFn, decryptFn) {
+function init(dbRef, saveFn) {
   db = dbRef;
   saveData = saveFn;
-  decryptSecret = decryptFn || null;
 }
 
-// Air-e credentials are stored encrypted in db.portalCredentials (provider 'air-e')
-// and decrypted server-side. No plaintext secrets live in this file.
+// Air-e credentials are stored in plain text in db.portalCredentials (provider 'air-e')
+// by the admin-only portal-credentials endpoints.
 function getAirECredentials() {
   const rec = (db && db.portalCredentials || []).find(r => r.provider === 'air-e');
   if (!rec) {
     throw new Error('Credenciales de Air-e no configuradas. Guárdalas en Ajustes → Credenciales de servicios.');
   }
-  const email = decryptSecret ? decryptSecret(rec.username) : rec.username;
-  const password = decryptSecret ? decryptSecret(rec.password) : rec.password;
+  const email = rec.username;
+  const password = rec.password;
   if (!email || !password) {
     throw new Error('Credenciales de Air-e incompletas.');
   }

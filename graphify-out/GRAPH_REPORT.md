@@ -1,16 +1,16 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-05)
 
 ## Corpus Check
-- 116 files · ~139,763 words
+- 116 files · ~139,573 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1121 nodes · 2057 edges · 127 communities (86 shown, 41 thin omitted)
+- 1119 nodes · 2053 edges · 109 communities (79 shown, 30 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.57)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `64469b6c`
+- Built from commit: `4815c93a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -24,16 +24,15 @@
 - extension/manifest.json
 - startServer
 - dependencies
-- getBase
+- chat.js
 - dependencies
 - api.js
 - handleCloudInbound
 - .messages
 - content-facebook.js
 - calendar.js
-- handleCloudInbound
-- startServer
-- scripts
+- ErrorBoundary
+- @aws-sdk/client-s3
 - Arquitectura del Sistema
 - getR2Client
 - 5. ESPECIFICACIÓN DE INTEGRACIÓN (LO QUE CODEX DEBE CONSTRUIR)
@@ -43,23 +42,12 @@
 - setup-graphify-hooks.cjs
 - runPaymentReminders
 - public/manifest.json
-- pre-whatsapp-bot/package.json
-- @capacitor/android
-- @capacitor/core
-- cors
-- devDependencies
+- scripts
 - @capacitor/filesystem
 - backup.js
-- getR2Client
-- dexie
-- jspdf
-- jsqr
 - scripts
-- saveData
-- lucide-react
 - .oxlintrc.json
 - add-passwords.js
-- runPaymentReminders
 - RespondViaMessageService.java
 - Gestión de Apartamentos — Laujim APP
 - ffmpeg-static
@@ -83,7 +71,6 @@
 - clipboard.js
 - Extensión de Chrome — Llenar Laujim
 - @capacitor/cli
-- multer
 - @capacitor-mlkit/barcode-scanning
 - Plan — Cámaras + Timbre QR + Integración Laujim APP
 - react-dom
@@ -95,7 +82,6 @@
 - sw.js
 - graphify-update.cjs
 - Configuración Específica por Archivo
-- react-dom
 - Sistema de Temas (6 Temas Visuales)
 - Construir APK para Android
 - API REST Completa
@@ -110,7 +96,6 @@
 - Persistencia PostgreSQL
 - Requerimientos del Sistema
 - Sistema de Autenticación
-- react-router-dom
 - @capacitor/core
 - @capacitor/share
 - cors
@@ -120,13 +105,10 @@
 - pg
 - puppeteer-core
 - @sparticuz/chromium
-- tailwindcss
 - jspdf
 - lucide-react
 - react
 - recharts
-- recharts
-- @tailwindcss/vite
 - node-cron
 
 ## God Nodes (most connected - your core abstractions)
@@ -144,35 +126,35 @@
 ## Surprising Connections (you probably didn't know these)
 - `getServerVersion()` --calls--> `getBase()`  [EXTRACTED]
   src/api.js → src/utils/config.js
+- `uploadFile()` --calls--> `getRawBase()`  [EXTRACTED]
+  src/api.js → src/utils/config.js
 - `ProtectedRoute()` --calls--> `getAuth()`  [EXTRACTED]
   src/App.jsx → src/utils/auth.js
 - `AdminRoute()` --calls--> `getAuth()`  [EXTRACTED]
   src/App.jsx → src/utils/auth.js
 - `PrivateApp()` --calls--> `getAuth()`  [EXTRACTED]
   src/App.jsx → src/utils/auth.js
-- `PrivateApp()` --calls--> `syncAuthorizedCallerNumbers()`  [EXTRACTED]
-  src/App.jsx → src/utils/callScreening.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (127 total, 41 thin omitted)
+## Communities (109 total, 30 thin omitted)
 
 ### Community 0 - "Settings.jsx"
-Cohesion: 0.25
-Nodes (18): Settings(), callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus(), nativeAndroid(), normalizedPhone(), requestCallScreeningRole(), requestProtectedSmsRole() (+10 more)
+Cohesion: 0.19
+Nodes (21): Settings(), callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus(), nativeAndroid(), normalizedPhone(), requestCallScreeningRole(), requestProtectedSmsRole() (+13 more)
 
 ### Community 1 - "App.jsx"
-Cohesion: 0.06
-Nodes (51): react, api, App(), ErrorBoundary, Modal(), COLORS, CustomTooltip(), getChartData() (+43 more)
+Cohesion: 0.05
+Nodes (76): react, api, Layout(), navItems, Modal(), COLORS, CustomTooltip(), getChartData() (+68 more)
 
 ### Community 2 - ".status"
 Cohesion: 0.11
 Nodes (16): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, AuthorizedCallerScreeningService, Override, AuthorizedCallerStore, Context, SharedPreferences (+8 more)
 
 ### Community 3 - "server.cjs"
-Cohesion: 0.06
-Nodes (34): INITIAL_DATA, app, BACKUP_DIR, BACKUP_FILE, CONTRACTS_DIR, cors, crypto, DATA_DIR (+26 more)
+Cohesion: 0.05
+Nodes (102): INITIAL_DATA, activeContractForApartment(), addCloudMessage(), app, archiveCloudInboundMedia(), authorizedCloudContact(), BACKUP_DIR, BACKUP_FILE (+94 more)
 
 ### Community 4 - "pre-whatsapp-bot/server.cjs"
 Cohesion: 0.08
@@ -192,19 +174,19 @@ Nodes (22): cloudMediaKind(), cloudPeriodLabel(), constantTimeEqual(), createAut
 
 ### Community 8 - "dependencies"
 Cohesion: 0.29
-Nodes (7): @aws-sdk/client-s3, dependencies, @aws-sdk/client-s3, @capacitor/android, jsqr, @capacitor/android, jsqr
+Nodes (7): dependencies, @capacitor/android, jsqr, tailwindcss, @capacitor/android, jsqr, tailwindcss
 
-### Community 9 - "getBase"
-Cohesion: 0.08
-Nodes (49): uploadFile(), AdminRoute(), ProtectedRoute(), Layout(), navItems, VersionBanner(), versionIsNewer(), Chat() (+41 more)
+### Community 9 - "chat.js"
+Cohesion: 0.27
+Nodes (18): AdminRoute(), ProtectedRoute(), Chat(), getAuth(), fetchPresence(), getAllRooms(), getRoomMessages(), getStatusLabel() (+10 more)
 
 ### Community 10 - "dependencies"
-Cohesion: 0.11
-Nodes (19): dependencies, @capacitor/cli, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share, express, pg, qrcode (+11 more)
+Cohesion: 0.05
+Nodes (43): dependencies, @capacitor/android, @capacitor/cli, @capacitor/core, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share, cors (+35 more)
 
 ### Community 11 - "api.js"
-Cohesion: 0.10
-Nodes (34): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), getServerVersion(), refreshAllFromServer(), serverReq(), startCloudPolling() (+26 more)
+Cohesion: 0.09
+Nodes (35): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), getServerVersion(), refreshAllFromServer(), serverReq(), startCloudPolling() (+27 more)
 
 ### Community 12 - "handleCloudInbound"
 Cohesion: 0.22
@@ -221,18 +203,6 @@ Nodes (22): activate(), autoFill(), checkAndRun(), chooseDropdown(), fillAndConf
 ### Community 15 - "calendar.js"
 Cohesion: 0.38
 Nodes (10): addCalendarReminder(), downloadICS(), fmtDate(), generateAllPaymentReminders(), generateICS(), getStoredUIDs(), nextDueDate(), saveStoredUIDs() (+2 more)
-
-### Community 16 - "handleCloudInbound"
-Cohesion: 0.20
-Nodes (22): archiveCloudInboundMedia(), authorizedCloudContact(), blockCloudUser(), clearCloudAuthState(), cloudInboundMedia(), cloudInteractiveReply(), ensureCloudCollections(), failCloudAuthentication() (+14 more)
-
-### Community 17 - "startServer"
-Cohesion: 0.17
-Nodes (21): cloudApiRequest(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudPeriodLabel(), cloudReady(), downloadCloudMedia(), firstName() (+13 more)
-
-### Community 18 - "scripts"
-Cohesion: 0.20
-Nodes (10): scripts, backup, build, build-apk, dev, lint, network, preview (+2 more)
 
 ### Community 19 - "Arquitectura del Sistema"
 Cohesion: 0.67
@@ -270,29 +240,17 @@ Nodes (8): activeContractForApartment(), addCloudMessage(), colombiaDate(), crea
 Cohesion: 0.14
 Nodes (13): background_color, categories, description, display, icons, name, orientation, screenshots (+5 more)
 
-### Community 28 - "pre-whatsapp-bot/package.json"
-Cohesion: 0.29
-Nodes (6): engines, node, name, private, type, version
-
-### Community 32 - "devDependencies"
-Cohesion: 0.18
-Nodes (11): devDependencies, oxlint, @types/react, @types/react-dom, vite, @vitejs/plugin-react, oxlint, @types/react (+3 more)
+### Community 32 - "scripts"
+Cohesion: 0.07
+Nodes (27): devDependencies, oxlint, @types/react, @types/react-dom, vite, @vitejs/plugin-react, engines, node (+19 more)
 
 ### Community 34 - "backup.js"
 Cohesion: 0.20
 Nodes (9): backupDir, dataDir, __dirname, dst, files, now, root, src (+1 more)
 
-### Community 35 - "getR2Client"
-Cohesion: 0.42
-Nodes (10): deleteR2Object(), ensureR2Usage(), getR2Client(), getR2Usage(), putR2Buffer(), r2Config(), r2Key(), r2Ready() (+2 more)
-
 ### Community 39 - "scripts"
 Cohesion: 0.07
 Nodes (28): devDependencies, oxlint, @types/react, @types/react-dom, vite, @vitejs/plugin-react, engines, node (+20 more)
-
-### Community 40 - "saveData"
-Cohesion: 0.31
-Nodes (9): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getAuthSession(), pruneAuthSessions(), removeAuthSession(), saveData(), saveToPostgres() (+1 more)
 
 ### Community 42 - ".oxlintrc.json"
 Cohesion: 0.25
@@ -301,10 +259,6 @@ Nodes (7): plugins, rules, react/only-export-components, react/rules-of-hooks, $
 ### Community 43 - "add-passwords.js"
 Cohesion: 0.25
 Nodes (6): db, dbCjsPath, dbPath, __dirname, root, seedCopy
-
-### Community 44 - "runPaymentReminders"
-Cohesion: 0.32
-Nodes (8): activeContractForApartment(), addCloudMessage(), colombiaDate(), createPendingPaymentFromProof(), paymentCountsAsCollected(), paymentPeriod(), paymentReminderOffsets(), runPaymentReminders()
 
 ### Community 45 - "RespondViaMessageService.java"
 Cohesion: 0.43
@@ -447,24 +401,24 @@ Cohesion: 0.50
 Nodes (4): Login Admin, Login Inquilino, Sesión, Sistema de Autenticación
 
 ## Knowledge Gaps
-- **426 isolated node(s):** `$schema`, `oxc`, `react/rules-of-hooks`, `warn`, `express` (+421 more)
+- **425 isolated node(s):** `$schema`, `oxc`, `react/rules-of-hooks`, `warn`, `express` (+420 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **30 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `@capacitor/filesystem`, `scripts`, `ffmpeg-static`, `qrcode`, `@capacitor/cli`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `react-router-dom`, `@tailwindcss/vite`, `@capacitor/local-notifications`, `@capacitor/core`, `@capacitor/share`, `cors`, `dexie`, `express`, `multer`, `pg`, `puppeteer-core`, `@sparticuz/chromium`, `tailwindcss`, `jspdf`, `lucide-react`, `react`, `recharts`, `node-cron`?**
+- **Why does `dependencies` connect `dependencies` to `@aws-sdk/client-s3`, `@capacitor/filesystem`, `scripts`, `ffmpeg-static`, `qrcode`, `@capacitor/cli`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `react-router-dom`, `@tailwindcss/vite`, `@capacitor/local-notifications`, `@capacitor/core`, `@capacitor/share`, `cors`, `dexie`, `express`, `multer`, `pg`, `puppeteer-core`, `@sparticuz/chromium`, `jspdf`, `lucide-react`, `react`, `recharts`, `node-cron`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `react` connect `App.jsx` to `Settings.jsx`, `getBase`, `.oxlintrc.json`, `api.js`?**
+- **Why does `react` connect `App.jsx` to `Settings.jsx`, `chat.js`, `.oxlintrc.json`, `api.js`, `ErrorBoundary`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `getBase()` connect `getBase` to `Settings.jsx`, `App.jsx`, `api.js`?**
+- **Why does `Gestión de Apartamentos — Laujim APP` connect `Gestión de Apartamentos — Laujim APP` to `API REST Completa`, `Extensión de Chrome — Llenar Laujim`, `Base de Datos en Memoria`, `Servicios Públicos y QR de Pago`, `Datos Iniciales (Seed)`, `Consulta de Antecedentes (Policía)`, `2. Modos de ejecución`, `Persistencia PostgreSQL`, `Requerimientos del Sistema`, `Sistema de Autenticación`, `Sistema de Chat`, `Arquitectura del Sistema`, `Historial de Cambios`, `Configuración Específica por Archivo`, `Sistema de Temas (6 Temas Visuales)`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **What connects `$schema`, `oxc`, `react/rules-of-hooks` to the rest of the system?**
-  _426 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _425 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.06415396952686447 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05319776009431182 - nodes in this community are weakly interconnected._
 - **Should `.status` be split into smaller, more focused modules?**
   _Cohesion score 0.10904255319148937 - nodes in this community are weakly interconnected._
 - **Should `server.cjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.06190476190476191 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.050597460791635546 - nodes in this community are weakly interconnected._
