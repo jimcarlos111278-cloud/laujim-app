@@ -564,6 +564,20 @@ function sendCloudText(to, body) {
   });
 }
 
+// Interactive buttons only work inside the 24-hour customer service window.
+// Outside the window, use an approved template that already contains buttons.
+function sendCloudInteractiveButtons(to, body, buttons) {
+  return cloudApiRequest('/messages', 'POST', {
+    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'interactive',
+    interactive: {
+      type: 'button', body: { text: body },
+      action: { buttons: buttons.map((button, index) => ({
+        type: 'reply', reply: { id: button.id, title: button.title },
+      })) },
+    },
+  });
+}
+
 function firstName(name) {
   return String(name || 'hola').trim().split(/\s+/)[0] || 'hola';
 }
@@ -587,7 +601,9 @@ function cloudPeriodLabel(period = colombiaDate().slice(0, 7)) {
 }
 
 // This template must be created and approved in WhatsApp Manager. It has the
-// tenant's first name and the payment period as body variables.
+// tenant's first name and the payment period as body variables, plus two
+// reply buttons: "Ya pagué" (id: payment_confirmed) and "No he pagado"
+// (id: payment_pending). The buttons are defined in the template itself.
 function sendCloudPaymentReminderTemplate(to, name, period) {
   const templateName = String(process.env.WHATSAPP_PAYMENT_REMINDER_TEMPLATE || 'recordatorio_pago').trim();
   return cloudApiRequest('/messages', 'POST', {
@@ -830,6 +846,134 @@ function buildDebtReply(contact) {
   return `Tu deuda de energía (Air-e) es de $${debt.toLocaleString('es-CO')}, correspondiente a ${facturas} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'} (valor máximo de factura). Datos del ${when}.`;
 }
 
+// ── WhatsApp admins (configured in Settings, stored in db.settings) ────────
+function cloudAdminPhones() {
+  const setting = (db.settings || []).find(s => s.key === 'whatsapp_admin_phones');
+  try {
+    const parsed = JSON.parse(setting?.value || '[]');
+    return Array.isArray(parsed) ? parsed.map(normalizePhone).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function isCloudAdminPhone(phone) {
+  return cloudAdminPhones().some(admin => samePhone(admin, phone));
+}
+
+// Morosos: occupied apartments without a collected rent payment for the
+// current or previous month. Pending-validations count as morosos but are
+// flagged so the admin knows to review them. "Próximos a vencer": due within
+// the next 5 days.
+function buildAdminDebtReport() {
+  const today = colombiaDate();
+  const currentPeriod = today.slice(0, 7);
+  const [year, month] = currentPeriod.split('-').map(Number);
+  const prev = new Date(Date.UTC(year, month - 1, 1));
+  const prevPeriod = `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}`;
+  const periods = [currentPeriod, prevPeriod];
+  const now = new Date();
+  const morosos = [];
+  const proximos = [];
+  let pendingCount = 0;
+
+  for (const apartment of db.apartments || []) {
+    if (apartment.status !== 'occupied') continue;
+    const contract = activeContractForApartment(apartment.id);
+    const tenant = contract && (db.tenants || []).find(item => Number(item.id) === Number(contract.tenantId));
+    const rent = Number(contract?.monthlyRent || apartment?.monthlyRent || 0);
+    const dueDay = Math.min(31, Math.max(1, Number(apartment.paymentDueDay) || 5));
+    const payments = (db.payments || []).filter(payment => Number(payment.apartmentId) === Number(apartment.id) &&
+      payment.type === 'rent' && periods.includes(paymentPeriod(payment)));
+    const pending = payments.some(p => p.status === 'pending_validation');
+    const collected = payments.some(p => paymentCountsAsCollected(p));
+    const dueAt = new Date(now.getFullYear(), now.getMonth(), dueDay);
+    const daysLeft = Math.round((dueAt - now) / (1000 * 60 * 60 * 24));
+    const label = `🏠 ${apartment.name}${tenant?.name ? ` - ${tenant.name}` : ''}${rent ? ` - $${rent.toLocaleString('es-CO')}` : ''}`;
+
+    if (pending) {
+      pendingCount++;
+      morosos.push(`${label} - ⏳ comprobante en validación`);
+    } else if (!collected) {
+      const state = daysLeft < 0 ? 'VENCIDO' : daysLeft <= 5 ? `vence en ${daysLeft} día(s)` : `vence día ${dueDay}`;
+      morosos.push(`${label} - ${state}`);
+    } else if (daysLeft >= 0 && daysLeft <= 5) {
+      proximos.push(`${label} - vence en ${daysLeft} día(s)`);
+    }
+  }
+
+  const lines = [`📊 Reporte de cobros - ${cloudPeriodLabel(currentPeriod)}`];
+  if (morosos.length) lines.push(`\n🔴 SIN PAGO (${morosos.length}):\n${morosos.join('\n')}`);
+  if (proximos.length) lines.push(`\n🟡 PRÓXIMOS A VENCER (${proximos.length}):\n${proximos.join('\n')}`);
+  if (!morosos.length && !proximos.length) lines.push('\n✅ Todos los apartamentos están al día.');
+  if (pendingCount) lines.push(`\n💡 ${pendingCount} comprobante(s) esperando validación. Responde VALIDAR para revisarlos.`);
+  return lines.join('\n');
+}
+
+async function handleCloudAdminMessage(phone, message) {
+  const type = message.type || 'unknown';
+  const interactive = cloudInteractiveReply(message);
+  const text = type === 'text' ? String(message.text?.body || '').trim() : String(interactive?.title || '').trim();
+  if (!text) return;
+
+  const approveMatch = text.match(/^aprob(?:ar)?\s+(.+)$/i);
+  const rejectMatch = text.match(/^rechaz(?:ar)?\s+(.+)$/i);
+  if (approveMatch || rejectMatch) {
+    const ref = (approveMatch || rejectMatch)[1].trim();
+    const apartment = (db.apartments || []).find(a => String(a.name).toLowerCase() === ref.toLowerCase() || String(a.id) === ref);
+    if (!apartment) {
+      await sendCloudText(phone, `No encontré el apartamento "${ref}".`);
+      return;
+    }
+    const payment = (db.payments || []).find(p => Number(p.apartmentId) === Number(apartment.id) && p.status === 'pending_validation');
+    if (!payment) {
+      await sendCloudText(phone, `El apartamento ${apartment.name} no tiene comprobantes pendientes de validación.`);
+      return;
+    }
+    const tenant = (db.tenants || []).find(item => Number(item.id) === Number(payment.tenantId));
+    const periodLabel = cloudPeriodLabel(paymentPeriod(payment));
+    if (approveMatch) {
+      approveCloudPayment(payment, payment.amount, 'Admin WhatsApp');
+      if (tenant?.phone) {
+        try { await sendCloudText(tenant.phone, `✅ Tu pago de ${periodLabel} fue confirmado. ¡Gracias!`); }
+        catch (error) { console.error('[WHATSAPP CLOUD] admin approve tenant notice error:', error.message); }
+      }
+      await sendCloudText(phone, `✅ Pago de ${apartment.name} (${periodLabel}) aprobado.`);
+    } else {
+      rejectCloudPayment(payment, 'Rechazado desde WhatsApp', 'Admin WhatsApp');
+      if (tenant?.phone) {
+        try { await sendCloudText(tenant.phone, `❌ Tu comprobante de ${periodLabel} fue rechazado. Envía uno nuevo por favor.`); }
+        catch (error) { console.error('[WHATSAPP CLOUD] tenant reject notice error:', error.message); }
+      }
+      await sendCloudText(phone, `❌ Pago de ${apartment.name} (${periodLabel}) rechazado.`);
+    }
+    return;
+  }
+
+  if (/validar|validaciones|pendientes/i.test(text)) {
+    const pending = (db.payments || []).filter(p => p.status === 'pending_validation');
+    if (!pending.length) {
+      await sendCloudText(phone, '✅ No hay comprobantes pendientes de validación.');
+      return;
+    }
+    const lines = pending.map(p => {
+      const apartment = (db.apartments || []).find(a => Number(a.id) === Number(p.apartmentId));
+      const tenant = (db.tenants || []).find(item => Number(item.id) === Number(p.tenantId));
+      const aptName = apartment?.name || `Apto ${p.apartmentId}`;
+      return `⏳ ${aptName} - ${tenant?.name || 'Inquilino'} - $${Number(p.amount || 0).toLocaleString('es-CO')} (${cloudPeriodLabel(paymentPeriod(p))})\n   Responde: APROBAR ${aptName} o RECHAZAR ${aptName}`;
+    });
+    await sendCloudText(phone, `📋 Comprobantes en validación (${pending.length}):\n\n${lines.join('\n')}`);
+    return;
+  }
+
+  if (/cobros|deuda|canon|morosos|reporte/i.test(text)) {
+    await sendCloudText(phone, buildAdminDebtReport());
+    return;
+  }
+
+  await sendCloudText(phone, '🤖 Comandos admin:\n• "cobros" / "deuda" / "morosos" → reporte de pagos\n• "validar" → comprobantes pendientes\n• "APROBAR <apto>" / "RECHAZAR <apto>" → validar un pago');
+}
+
 async function handleCloudInbound(message) {
   const phone = normalizePhone(message.from);
   if (!phone || isCloudMessageProcessed(message.id)) return;
@@ -838,6 +982,11 @@ async function handleCloudInbound(message) {
 
   if (isCloudBlocked(phone)) {
     saveData();
+    return;
+  }
+
+  if (isCloudAdminPhone(phone)) {
+    await handleCloudAdminMessage(phone, message);
     return;
   }
 
@@ -866,6 +1015,18 @@ async function handleCloudInbound(message) {
       } catch (error) { console.error('[WHATSAPP CLOUD] debt reply error:', error.message); }
       addCloudMessage(conversation, 'out', { type: 'text', text: reply, whatsappMessageId });
       saveData();
+      return;
+    }
+    const pendingWithButton = type === 'interactive' && (interactive?.id === 'payment_pending' || /^no\s+he\s+pagado/i.test(interactive?.title || ''));
+    if (pendingWithButton) {
+      const reply = 'Entendido. Te pedimos realizar el pago lo antes posible. Cuando lo hagas, envía aquí el comprobante (foto o PDF) para validarlo.';
+      requestedPaymentProof(conversation);
+      saveData();
+      try {
+        const sent = await sendCloudText(phone, reply);
+        addCloudMessage(conversation, 'out', { type: 'text', text: reply, whatsappMessageId: sent.messages?.[0]?.id || null });
+        saveData();
+      } catch (error) { console.error('[WHATSAPP CLOUD] pending payment reply error:', error.message); }
       return;
     }
     if (confirmedWithButton || writtenConfirmation) {
@@ -1771,20 +1932,40 @@ app.get('/api/whatsapp/cloud/payment-validations/:id/proof', async (req, res) =>
   } catch (error) { res.status(502).json({ error: `No fue posible abrir el comprobante: ${error.message}` }); }
 });
 
+// Shared payment-validation logic, reused by the HTTP endpoints and by the
+// WhatsApp admin chat (APROBAR/RECHAZAR commands).
+function approveCloudPayment(payment, amount, by) {
+  const finalAmount = amount === undefined ? payment.amount : Number(amount);
+  if (!Number.isFinite(finalAmount) || finalAmount <= 0) throw new Error('El valor aprobado debe ser mayor que cero');
+  payment.amount = finalAmount;
+  payment.status = 'approved';
+  payment.approvedAt = new Date().toISOString();
+  payment.approvedBy = by || 'Administrador';
+  payment.updatedAt = payment.approvedAt;
+  saveData();
+  return payment;
+}
+
+function rejectCloudPayment(payment, reason, by) {
+  payment.status = 'rejected';
+  payment.rejectedAt = new Date().toISOString();
+  payment.rejectedBy = by || 'Administrador';
+  payment.rejectionReason = String(reason || '').trim();
+  payment.updatedAt = payment.rejectedAt;
+  saveData();
+  return payment;
+}
+
 app.post('/api/whatsapp/cloud/payment-validations/:id/approve', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   const payment = (db.payments || []).find(item => Number(item.id) === Number(req.params.id));
   if (!payment) return res.status(404).json({ error: 'Pago no encontrado' });
   if (payment.status !== 'pending_validation') return res.status(409).json({ error: 'Este comprobante ya fue revisado' });
-  const amount = req.body?.amount === undefined ? payment.amount : Number(req.body.amount);
-  if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'El valor aprobado debe ser mayor que cero' });
-  payment.amount = amount;
-  payment.status = 'approved';
-  payment.approvedAt = new Date().toISOString();
-  payment.approvedBy = req.auth?.name || 'Administrador';
-  payment.updatedAt = payment.approvedAt;
-  saveData();
-  res.json(payment);
+  try {
+    res.json(approveCloudPayment(payment, req.body?.amount, req.auth?.name));
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 app.post('/api/whatsapp/cloud/payment-validations/:id/reject', (req, res) => {
@@ -1792,12 +1973,7 @@ app.post('/api/whatsapp/cloud/payment-validations/:id/reject', (req, res) => {
   const payment = (db.payments || []).find(item => Number(item.id) === Number(req.params.id));
   if (!payment) return res.status(404).json({ error: 'Pago no encontrado' });
   if (payment.status !== 'pending_validation') return res.status(409).json({ error: 'Este comprobante ya fue revisado' });
-  payment.status = 'rejected';
-  payment.rejectedAt = new Date().toISOString();
-  payment.rejectedBy = req.auth?.name || 'Administrador';
-  payment.rejectionReason = String(req.body?.reason || '').trim();
-  payment.updatedAt = payment.rejectedAt;
-  saveData();
+  rejectCloudPayment(payment, req.body?.reason, req.auth?.name);
   res.json(payment);
 });
 

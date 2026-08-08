@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud } from 'lucide-react';
+import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud, Plus, CalendarCheck } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { generateBookmarkletCode } from '../utils/marketplaceBookmarklet';
@@ -9,6 +9,7 @@ import { requestNotificationPermission } from '../utils/notifications';
 import { isServerAvailable } from '../utils/sync';
 import { refreshAllFromServer } from '../api';
 import { getNotifConfig, saveNotifConfig, schedulePaymentReminders, cancelAllNotifications } from '../utils/localNotifications';
+import { syncAndGenerateReminders } from '../utils/calendar';
 import ThemeSelector from '../components/ThemeSelector';
 import { clearAuth, getAuth } from '../utils/auth';
 import { getAuthorizedSmsMessages, getCallScreeningStatus, requestCallScreeningRole, requestProtectedSmsRole, setCallScreeningEnabled, setAllowCallsFromContacts, syncAuthorizedCallerNumbers } from '../utils/callScreening';
@@ -41,6 +42,10 @@ export default function Settings() {
   });
   const [portalCredsSaving, setPortalCredsSaving] = useState(false);
   const [portalCredsMsg, setPortalCredsMsg] = useState('');
+  const [adminPhones, setAdminPhones] = useState([]);
+  const [adminPhoneInput, setAdminPhoneInput] = useState('');
+  const [adminPhonesSaving, setAdminPhonesSaving] = useState(false);
+  const [adminPhonesMsg, setAdminPhonesMsg] = useState('');
 
   async function handleResetDb() {
     setResetting(true);
@@ -69,6 +74,16 @@ export default function Settings() {
     const next = { ...notifConfig, daysBefore: Number(days) };
     setNotifConfig(next); saveNotifConfig(next);
     if (next.enabled) { await cancelAllNotifications(); const a = await api.apartments.toArray(); await schedulePaymentReminders(a); }
+  }
+
+  async function handleSyncCalendarReminders() {
+    setAdminPhonesMsg('');
+    try {
+      const apartments = await api.apartments.toArray();
+      const count = syncAndGenerateReminders(apartments);
+      setAdminPhonesMsg(count > 0 ? `✓ Se descargó el archivo con ${count} recordatorios` : '✓ Archivo descargado (sin recordatorios nuevos)');
+    } catch (e) { setAdminPhonesMsg('Error: ' + e.message); }
+    setTimeout(() => setAdminPhonesMsg(''), 6000);
   }
 
   useEffect(() => { load(); checkServerAvailability(); refreshCallScreeningStatus(); }, []);
@@ -278,6 +293,10 @@ export default function Settings() {
       .catch(() => {});
     const getVal = (k, def) => s.find(x => x.key === k)?.value || def;
     setWaConfig({ apiToken: getVal('whatsapp_api_token', ''), phoneNumberId: getVal('whatsapp_phone_number_id', ''), verifyToken: getVal('whatsapp_verify_token', 'laujim_whatsapp_verify') });
+    try {
+      const parsed = JSON.parse(getVal('whatsapp_admin_phones', '[]'));
+      setAdminPhones(Array.isArray(parsed) ? parsed : []);
+    } catch { setAdminPhones([]); }
     const svc = getVal('whatsapp_template_services', '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Sabemos que es fácil perder la información de pago de los servicios, por eso te compartimos los enlaces directos:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\n📌 También puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar esta información y contactarnos por el chat directo.\n👉 https://laujim-app.onrender.com/login\n\n¡Gracias!');
     const rem = getVal('whatsapp_template_reminder', '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Te recordamos que el canon de {valor_canon} vence el {dia_vencimiento}.\n\n📌 Sabemos que es fácil perder la información de pago. Puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar tus pagos y contactarnos por el chat directo.\n👉 https://laujim-app.onrender.com/login\n\n¡Gracias!');
     setWaTemplates({ services: svc, reminder: rem });
@@ -309,6 +328,30 @@ export default function Settings() {
       setWaSaved(true); setTimeout(() => setWaSaved(false), 3000);
     } catch (e) { alert('Error al guardar: ' + e.message); }
     setWaSaving(false);
+  }
+
+  async function persistAdminPhones(next) {
+    setAdminPhonesSaving(true); setAdminPhonesMsg('');
+    try {
+      await upsertSetting('whatsapp_admin_phones', JSON.stringify(next));
+      setAdminPhones(next);
+      setAdminPhonesMsg('✓ Guardado');
+      setTimeout(() => setAdminPhonesMsg(''), 3000);
+    } catch (e) { setAdminPhonesMsg('Error: ' + e.message); }
+    setAdminPhonesSaving(false);
+  }
+
+  function handleAddAdminPhone() {
+    const digits = adminPhoneInput.replace(/\D/g, '');
+    if (digits.length < 10) { setAdminPhonesMsg('Ingresa un número válido (ej: 573248279293)'); setTimeout(() => setAdminPhonesMsg(''), 4000); return; }
+    const normalized = digits.length === 10 ? '57' + digits : digits;
+    if (adminPhones.some(p => p === normalized)) { setAdminPhonesMsg('Ese número ya está en la lista'); setTimeout(() => setAdminPhonesMsg(''), 4000); return; }
+    persistAdminPhones([...adminPhones, normalized]);
+    setAdminPhoneInput('');
+  }
+
+  function handleRemoveAdminPhone(phone) {
+    persistAdminPhones(adminPhones.filter(p => p !== phone));
   }
 
   async function handleSaveTemplates() {
@@ -413,6 +456,10 @@ export default function Settings() {
                 </select>
               </div>
             )}
+            <button onClick={handleSyncCalendarReminders} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+              <CalendarCheck className="w-4 h-4" /> Sincronizar notificaciones de pago (.ics)
+            </button>
+            <p className="text-xs text-gray-400">Descarga el archivo de calendario con todos los recordatorios de pago. Impórtalo en Google Calendar u Outlook; los eventos antiguos se reemplazan automáticamente.</p>
           </div>
         </div>
 
@@ -552,6 +599,31 @@ export default function Settings() {
             <input type="text" readOnly value={window.location.origin + '/publico'} className="flex-1 text-sm text-gray-700 dark:text-gray-200 bg-transparent outline-none" onClick={e => e.target.select()} />
             <button onClick={() => { navigator.clipboard.writeText(window.location.origin + '/publico'); }} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shrink-0">Copiar</button>
           </div>
+        </div>
+
+        {/* WhatsApp Admins */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Administradores WhatsApp</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Números que pueden consultar el reporte de cobros y validar pagos desde el chat del bot. Formato: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">57XXXXXXXXXX</code> (código de país + número, sin + ni espacios).</p>
+          <div className="flex gap-2 mb-3">
+            <input type="tel" value={adminPhoneInput} onChange={e => setAdminPhoneInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleAddAdminPhone(); }} className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="573248279293" />
+            <button onClick={handleAddAdminPhone} disabled={adminPhonesSaving} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium shrink-0">
+              <Plus className="w-4 h-4 inline mr-1" />Agregar
+            </button>
+          </div>
+          {adminPhones.length === 0 ? (
+            <p className="text-xs text-gray-400">Aún no hay administradores configurados.</p>
+          ) : (
+            <ul className="space-y-2">
+              {adminPhones.map(phone => (
+                <li key={phone} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <span className="text-sm text-gray-700 dark:text-gray-200 font-mono">{phone}</span>
+                  <button onClick={() => handleRemoveAdminPhone(phone)} disabled={adminPhonesSaving} className="px-2 py-1 text-xs text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">Eliminar</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {adminPhonesMsg && <p className="text-xs text-emerald-600 mt-2">{adminPhonesMsg}</p>}
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">

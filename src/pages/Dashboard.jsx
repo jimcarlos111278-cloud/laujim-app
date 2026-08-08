@@ -5,7 +5,7 @@ import StatsCard from '../components/StatsCard';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, formatRelativeDueDate } from '../utils/helpers';
-import { addCalendarReminder } from '../utils/calendar';
+import { addCalendarReminder, syncAndGenerateReminders } from '../utils/calendar';
 import { notifyPaymentReminder } from '../utils/notifications';
 import ThemeSelector from '../components/ThemeSelector';
 
@@ -18,8 +18,9 @@ export default function Dashboard() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [showExpense, setShowExpense] = useState(null);
   const [expenseForm, setExpenseForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: true });
-  const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
+const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
   const [collectionPeriod, setCollectionPeriod] = useState(getCurrentPeriod());
+  const [syncMsg, setSyncMsg] = useState('');
 
   const expenseCategories = ['Mantenimiento', 'Reparación', 'Limpieza', 'Impuesto', 'Seguro', 'Adecuación', 'Otro'];
 
@@ -271,6 +272,16 @@ export default function Dashboard() {
     );
   }
 
+async function handleSyncReminders() {
+    setSyncMsg('Generando...');
+    try {
+      const apartments = await api.apartments.toArray();
+      const count = syncAndGenerateReminders(apartments);
+      setSyncMsg(count > 0 ? `✓ Se descargó el archivo con ${count} recordatorios` : '✓ Archivo descargado (sin recordatorios nuevos)');
+    } catch (e) { setSyncMsg('Error: ' + e.message); }
+    setTimeout(() => setSyncMsg(''), 6000);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -278,10 +289,16 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
           <p className="text-gray-500 mt-1">Resumen general de tu conjunto residencial</p>
         </div>
-        <div className="hidden sm:block">
-          <ThemeSelector />
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:block">
+            <ThemeSelector />
+          </div>
+          <button onClick={handleSyncReminders} className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 rounded-lg transition-colors" title="Descarga el archivo .ics con todos los recordatorios de pago para importarlo en tu calendario">
+            <CalendarCheck className="w-4 h-4" /> Sincronizar notificaciones
+          </button>
         </div>
       </div>
+      {syncMsg && <p className="text-xs text-emerald-600 dark:text-emerald-400">{syncMsg}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Apartamentos" value={`${stats.occupied}/${stats.totalApts}`} subtitle={`${stats.vacant} disponibles`} icon={Building2} color="blue" />

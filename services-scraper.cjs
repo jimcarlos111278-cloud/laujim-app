@@ -71,6 +71,11 @@ const AIR_E_NIC_MAP = {
 // ── DB REF (set by server.cjs) ─────────────────────────────────────────────
 let db = null;
 let saveData = null;
+let lastScrapeError = null;
+
+function getLastScrapeError() {
+  return lastScrapeError;
+}
 
 function init(dbRef, saveFn) {
   db = dbRef;
@@ -138,6 +143,7 @@ async function scrapeAirE() {
   let browser;
 
   try {
+    lastScrapeError = null;
     console.log('[AIR-E] Launching browser (sparticuz chromium)...');
     const creds = getAirECredentials();
     browser = await launchBrowser();
@@ -181,7 +187,9 @@ async function scrapeAirE() {
       };
     }).catch(() => ({ hasOtpInput: false, looksBlocked: false }));
     if (blocked.hasOtpInput || blocked.looksBlocked) {
-      console.error('[AIR-E] Login blocked: Air-e pidió un código OTP o captcha. El scrape automático no puede completar el login; ingresa manualmente desde "Portal Energía".');
+      const msg = 'Air-e pide un código OTP o captcha. El scrape automático no puede completar el login; ingresa manualmente desde "Portal Energía".';
+      lastScrapeError = msg;
+      console.error('[AIR-E] Login blocked:', msg);
       return [];
     }
 
@@ -202,7 +210,9 @@ async function scrapeAirE() {
     page.off('response', onResponse);
 
     if (!cdContrato) {
-      console.error('[AIR-E] Could not resolve cd_Contrato from network traffic.');
+      const msg = 'No se pudo resolver el contrato (cd_Contrato) del portal Air-e tras el login.';
+      lastScrapeError = msg;
+      console.error('[AIR-E]', msg);
       return [];
     }
 
@@ -219,7 +229,9 @@ async function scrapeAirE() {
     }, AIR_E_GET_ENDPOINT, cdContrato);
 
     if (!invoices.ok) {
-      console.error(`[AIR-E] Fetch failed with status ${invoices.status}.`);
+      const msg = `El portal Air-e rechazó la consulta de facturas (HTTP ${invoices.status}).`;
+      lastScrapeError = msg;
+      console.error('[AIR-E]', msg);
       return [];
     }
     console.log(`[AIR-E] Got ${invoices.total} invoices in one call.`);
@@ -261,6 +273,7 @@ async function scrapeAirE() {
     }
 
   } catch (e) {
+    lastScrapeError = e.message;
     console.error('[AIR-E] SCRAPER ERROR:', e.message);
   } finally {
     if (browser) {

@@ -121,8 +121,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "ref_react",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "react"
     },
     {
@@ -179,6 +179,87 @@
       "community": 42,
       "community_name": ".oxlintrc.json",
       "norm_label": "warn"
+    },
+    {
+      "label": "cdp-driver.cjs",
+      "file_type": "code",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tmp_cdp_driver_cjs_tmp_cdp_driver",
+      "community": 72,
+      "community_name": "cdp-driver.cjs",
+      "norm_label": "cdp-driver.cjs"
+    },
+    {
+      "label": "puppeteer",
+      "file_type": "code",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "tmp_cdp_driver_puppeteer",
+      "community": 72,
+      "community_name": "cdp-driver.cjs",
+      "norm_label": "puppeteer"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L12",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tmp_cdp_driver_cjs_tmp_cdp_driver_main",
+      "community": 72,
+      "community_name": "cdp-driver.cjs",
+      "norm_label": "main()"
+    },
+    {
+      "label": "findAppPage()",
+      "file_type": "code",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L63",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tmp_cdp_driver_cjs_tmp_cdp_driver_findapppage",
+      "community": 72,
+      "community_name": "cdp-driver.cjs",
+      "norm_label": "findapppage()"
+    },
+    {
+      "label": "cdp-driver.mjs",
+      "file_type": "code",
+      "source_file": ".tmp/cdp-driver.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tmp_cdp_driver_mjs_tmp_cdp_driver",
+      "community": 74,
+      "community_name": "cdp-driver.mjs",
+      "norm_label": "cdp-driver.mjs"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": ".tmp/cdp-driver.mjs",
+      "source_location": "L12",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tmp_cdp_driver_mjs_tmp_cdp_driver_main",
+      "community": 74,
+      "community_name": "cdp-driver.mjs",
+      "norm_label": "main()"
+    },
+    {
+      "label": "findAppPage()",
+      "file_type": "code",
+      "source_file": ".tmp/cdp-driver.mjs",
+      "source_location": "L60",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tmp_cdp_driver_mjs_tmp_cdp_driver_findapppage",
+      "community": 74,
+      "community_name": "cdp-driver.mjs",
+      "norm_label": "findapppage()"
     },
     {
       "label": "_head_server.cjs",
@@ -582,8 +663,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_constanttimeequal",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "constanttimeequal()"
     },
     {
@@ -641,8 +722,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_ensureauthsessions",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "ensureauthsessions()"
     },
     {
@@ -653,8 +734,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_pruneauthsessions",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "pruneauthsessions()"
     },
     {
@@ -665,8 +746,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_createauthsession",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "createauthsession()"
     },
     {
@@ -677,8 +758,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_getauthsession",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "getauthsession()"
     },
     {
@@ -689,8 +770,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_removeauthsession",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "removeauthsession()"
     },
     {
@@ -725,8 +806,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_cloudconfig",
-      "community": 22,
-      "community_name": "cloudApiRequest",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "cloudconfig()"
     },
     {
@@ -737,8 +818,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_cloudready",
-      "community": 22,
-      "community_name": "cloudApiRequest",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "cloudready()"
     },
     {
@@ -773,8 +854,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_tenantbelongstoapartment",
-      "community": 12,
-      "community_name": "handleCloudInbound",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "tenantbelongstoapartment()"
     },
     {
@@ -905,8 +986,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_addcloudmessage",
-      "community": 26,
-      "community_name": "runPaymentReminders",
+      "community": 12,
+      "community_name": "handleCloudInbound",
       "norm_label": "addcloudmessage()"
     },
     {
@@ -917,8 +998,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_cloudapirequest",
-      "community": 22,
-      "community_name": "cloudApiRequest",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "cloudapirequest()"
     },
     {
@@ -929,8 +1010,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_cloudgraphrequest",
-      "community": 22,
-      "community_name": "cloudApiRequest",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "cloudgraphrequest()"
     },
     {
@@ -965,8 +1046,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_downloadcloudmedia",
-      "community": 22,
-      "community_name": "cloudApiRequest",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "downloadcloudmedia()"
     },
     {
@@ -977,8 +1058,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_archivecloudinboundmedia",
-      "community": 22,
-      "community_name": "cloudApiRequest",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "archivecloudinboundmedia()"
     },
     {
@@ -989,8 +1070,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_uploadcloudmedia",
-      "community": 22,
-      "community_name": "cloudApiRequest",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "uploadcloudmedia()"
     },
     {
@@ -1001,8 +1082,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_sendcloudmedia",
-      "community": 22,
-      "community_name": "cloudApiRequest",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "sendcloudmedia()"
     },
     {
@@ -1229,8 +1310,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_validcloudsignature",
-      "community": 22,
-      "community_name": "cloudApiRequest",
+      "community": 7,
+      "community_name": "startServer",
       "norm_label": "validcloudsignature()"
     },
     {
@@ -1289,8 +1370,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_savetopostgres",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "savetopostgres()"
     },
     {
@@ -1301,8 +1382,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_loaddata",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "loaddata()"
     },
     {
@@ -1313,8 +1394,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_recalcnextid",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "recalcnextid()"
     },
     {
@@ -1336,8 +1417,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_savedata",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "savedata()"
     },
     {
@@ -1407,8 +1488,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "head_server_syncpasswordfromtenant",
-      "community": 7,
-      "community_name": "startServer",
+      "community": 9,
+      "community_name": "saveData",
       "norm_label": "syncpasswordfromtenant()"
     },
     {
@@ -2672,8 +2753,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "db",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 5,
+      "community_name": "_head_server.cjs",
       "norm_label": "db.cjs"
     },
     {
@@ -2683,8 +2764,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "db_initial_data",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 5,
+      "community_name": "_head_server.cjs",
       "norm_label": "initial_data"
     },
     {
@@ -3796,8 +3877,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "package_dependencies_aws_sdk_client_s3",
-      "community": 31,
-      "community_name": "@aws-sdk/client-s3",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -3807,8 +3888,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "aws_sdk_client_s3",
-      "community": 31,
-      "community_name": "@aws-sdk/client-s3",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -3862,7 +3943,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 29,
+      "community": 94,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -3873,7 +3954,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 29,
+      "community": 94,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -3884,8 +3965,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_core",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 120,
+      "community_name": "@capacitor/core",
       "norm_label": "@capacitor/core"
     },
     {
@@ -3895,8 +3976,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "capacitor_core",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 120,
+      "community_name": "@capacitor/core",
       "norm_label": "@capacitor/core"
     },
     {
@@ -3994,8 +4075,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "package_dependencies_cors",
-      "community": 112,
-      "community_name": "cors",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "cors"
     },
     {
@@ -4005,8 +4086,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "cors",
-      "community": 112,
-      "community_name": "cors",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "cors"
     },
     {
@@ -4016,8 +4097,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "package_dependencies_dexie",
-      "community": 113,
-      "community_name": "dexie",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "dexie"
     },
     {
@@ -4027,8 +4108,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "dexie",
-      "community": 113,
-      "community_name": "dexie",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "dexie"
     },
     {
@@ -4038,8 +4119,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "package_dependencies_express",
-      "community": 37,
-      "community_name": "express",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "express"
     },
     {
@@ -4049,8 +4130,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "express",
-      "community": 37,
-      "community_name": "express",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "express"
     },
     {
@@ -4082,8 +4163,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "package_dependencies_jspdf",
-      "community": 24,
-      "community_name": "contractGenerator.js",
+      "community": 109,
+      "community_name": "jspdf",
       "norm_label": "jspdf"
     },
     {
@@ -4093,8 +4174,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "jspdf",
-      "community": 24,
-      "community_name": "contractGenerator.js",
+      "community": 109,
+      "community_name": "jspdf",
       "norm_label": "jspdf"
     },
     {
@@ -4104,8 +4185,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "package_dependencies_jsqr",
-      "community": 40,
-      "community_name": "jsqr",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "jsqr"
     },
     {
@@ -4115,8 +4196,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "jsqr",
-      "community": 40,
-      "community_name": "jsqr",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "jsqr"
     },
     {
@@ -4258,8 +4339,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "package_dependencies_qrcode",
-      "community": 44,
-      "community_name": "qrcode",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "qrcode"
     },
     {
@@ -4269,8 +4350,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "qrcode",
-      "community": 44,
-      "community_name": "qrcode",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "qrcode"
     },
     {
@@ -4280,8 +4361,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "package_dependencies_react",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 110,
+      "community_name": "react",
       "norm_label": "react"
     },
     {
@@ -4291,8 +4372,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "react",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 110,
+      "community_name": "react",
       "norm_label": "react"
     },
     {
@@ -4324,8 +4405,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "package_dependencies_react_router_dom",
-      "community": 64,
-      "community_name": "react-router-dom",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "react-router-dom"
     },
     {
@@ -4335,8 +4416,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "react_router_dom",
-      "community": 64,
-      "community_name": "react-router-dom",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "react-router-dom"
     },
     {
@@ -4679,6 +4760,61 @@
       "community": 77,
       "community_name": "sw.js",
       "norm_label": "assets"
+    },
+    {
+      "label": "_scrape-diagnostic.cjs",
+      "file_type": "code",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_scrape_diagnostic",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
+      "norm_label": "_scrape-diagnostic.cjs"
+    },
+    {
+      "label": "fs",
+      "file_type": "code",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L2",
+      "_origin": "ast",
+      "id": "scripts_scrape_diagnostic_fs",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
+      "norm_label": "fs"
+    },
+    {
+      "label": "path",
+      "file_type": "code",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "scripts_scrape_diagnostic_path",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
+      "norm_label": "path"
+    },
+    {
+      "label": "scraper",
+      "file_type": "code",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "scripts_scrape_diagnostic_scraper",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
+      "norm_label": "scraper"
+    },
+    {
+      "label": "db",
+      "file_type": "code",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "scripts_scrape_diagnostic_db",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
+      "norm_label": "db"
     },
     {
       "label": "add-passwords.js",
@@ -5148,7 +5284,7 @@
       "label": "{ spawnSync }",
       "file_type": "code",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L4",
+      "source_location": "L7",
       "_origin": "ast",
       "id": "scripts_graphify_update_spawnsync",
       "community": 92,
@@ -5159,7 +5295,7 @@
       "label": "{ homedir }",
       "file_type": "code",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L5",
+      "source_location": "L8",
       "_origin": "ast",
       "id": "scripts_graphify_update_homedir",
       "community": 92,
@@ -5167,21 +5303,21 @@
       "norm_label": "{ homedir }"
     },
     {
-      "label": "{ existsSync }",
+      "label": "{ existsSync, readFileSync }",
       "file_type": "code",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L6",
+      "source_location": "L9",
       "_origin": "ast",
-      "id": "scripts_graphify_update_existssync",
+      "id": "scripts_graphify_update_existssync_readfilesync",
       "community": 92,
       "community_name": "graphify-update.cjs",
-      "norm_label": "{ existssync }"
+      "norm_label": "{ existssync, readfilesync }"
     },
     {
       "label": "{ join, dirname }",
       "file_type": "code",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L7",
+      "source_location": "L10",
       "_origin": "ast",
       "id": "scripts_graphify_update_join_dirname",
       "community": 92,
@@ -5192,7 +5328,7 @@
       "label": "PROJECT_ROOT",
       "file_type": "code",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L9",
+      "source_location": "L12",
       "_origin": "ast",
       "id": "scripts_graphify_update_project_root",
       "community": 92,
@@ -5200,21 +5336,56 @@
       "norm_label": "project_root"
     },
     {
-      "label": "CANDIDATES",
+      "label": "args",
       "file_type": "code",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L10",
+      "source_location": "L13",
       "_origin": "ast",
-      "id": "scripts_graphify_update_candidates",
+      "id": "scripts_graphify_update_args",
       "community": 92,
       "community_name": "graphify-update.cjs",
-      "norm_label": "candidates"
+      "norm_label": "args"
+    },
+    {
+      "label": "PYTHON_CANDIDATES",
+      "file_type": "code",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L17",
+      "_origin": "ast",
+      "id": "scripts_graphify_update_python_candidates",
+      "community": 92,
+      "community_name": "graphify-update.cjs",
+      "norm_label": "python_candidates"
+    },
+    {
+      "label": "hasGraphify()",
+      "file_type": "code",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L26",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_update_hasgraphify",
+      "community": 92,
+      "community_name": "graphify-update.cjs",
+      "norm_label": "hasgraphify()"
+    },
+    {
+      "label": "findPython()",
+      "file_type": "code",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L32",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_update_findpython",
+      "community": 92,
+      "community_name": "graphify-update.cjs",
+      "norm_label": "findpython()"
     },
     {
       "label": "findBinary()",
       "file_type": "code",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L15",
+      "source_location": "L39",
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_graphify_update_findbinary",
@@ -5223,10 +5394,33 @@
       "norm_label": "findbinary()"
     },
     {
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L46",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_update_run",
+      "community": 92,
+      "community_name": "graphify-update.cjs",
+      "norm_label": "run()"
+    },
+    {
+      "label": "python",
+      "file_type": "code",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L50",
+      "_origin": "ast",
+      "id": "scripts_graphify_update_python",
+      "community": 92,
+      "community_name": "graphify-update.cjs",
+      "norm_label": "python"
+    },
+    {
       "label": "ROOT",
       "file_type": "code",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L22",
+      "source_location": "L66",
       "_origin": "ast",
       "id": "scripts_graphify_update_root",
       "community": 92,
@@ -5234,21 +5428,10 @@
       "norm_label": "root"
     },
     {
-      "label": "args",
-      "file_type": "code",
-      "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L23",
-      "_origin": "ast",
-      "id": "scripts_graphify_update_args",
-      "community": 92,
-      "community_name": "graphify-update.cjs",
-      "norm_label": "args"
-    },
-    {
       "label": "res",
       "file_type": "code",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L25",
+      "source_location": "L67",
       "_origin": "ast",
       "id": "scripts_graphify_update_res",
       "community": 92,
@@ -5815,7 +5998,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_r2config",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "r2config()"
     },
@@ -5827,7 +6010,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_r2ready",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "r2ready()"
     },
@@ -5839,7 +6022,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_getr2client",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "getr2client()"
     },
@@ -5851,7 +6034,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_ensurer2usage",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "ensurer2usage()"
     },
@@ -5863,7 +6046,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_r2safefilename",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "r2safefilename()"
     },
@@ -5875,7 +6058,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_r2key",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "r2key()"
     },
@@ -5887,7 +6070,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_putr2buffer",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "putr2buffer()"
     },
@@ -5899,7 +6082,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_deleter2object",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "deleter2object()"
     },
@@ -5911,7 +6094,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_streamr2object",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "streamr2object()"
     },
@@ -5924,7 +6107,7 @@
       "_origin": "ast",
       "id": "server_constanttimeequal",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "constanttimeequal()"
     },
     {
@@ -5935,7 +6118,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_encryptsecret",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "encryptsecret()"
     },
@@ -5947,7 +6130,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_decryptsecret",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "decryptsecret()"
     },
@@ -5960,7 +6143,7 @@
       "_origin": "ast",
       "id": "server_ensureauthsessions",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "ensureauthsessions()"
     },
     {
@@ -5972,7 +6155,7 @@
       "_origin": "ast",
       "id": "server_pruneauthsessions",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "pruneauthsessions()"
     },
     {
@@ -5984,7 +6167,7 @@
       "_origin": "ast",
       "id": "server_createauthsession",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "createauthsession()"
     },
     {
@@ -5996,7 +6179,7 @@
       "_origin": "ast",
       "id": "server_getauthsession",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "getauthsession()"
     },
     {
@@ -6008,7 +6191,7 @@
       "_origin": "ast",
       "id": "server_removeauthsession",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "removeauthsession()"
     },
     {
@@ -6019,8 +6202,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudconfig",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 31,
+      "community_name": "cloudApiRequest",
       "norm_label": "cloudconfig()"
     },
     {
@@ -6031,8 +6214,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudready",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 31,
+      "community_name": "cloudApiRequest",
       "norm_label": "cloudready()"
     },
     {
@@ -6043,7 +6226,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_normalizephone",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "normalizephone()"
     },
@@ -6055,7 +6238,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_samephone",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "samephone()"
     },
@@ -6067,7 +6250,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_tenantbelongstoapartment",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "tenantbelongstoapartment()"
     },
@@ -6079,7 +6262,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_ensurecloudcollections",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "ensurecloudcollections()"
     },
@@ -6091,7 +6274,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_prunecloudcollections",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "prunecloudcollections()"
     },
@@ -6103,7 +6286,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_getcloudauthstate",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "getcloudauthstate()"
     },
@@ -6115,7 +6298,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_setcloudauthstate",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "setcloudauthstate()"
     },
@@ -6127,7 +6310,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_clearcloudauthstate",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "clearcloudauthstate()"
     },
@@ -6139,7 +6322,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_iscloudblocked",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "iscloudblocked()"
     },
@@ -6151,7 +6334,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_iscloudmessageprocessed",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "iscloudmessageprocessed()"
     },
@@ -6163,7 +6346,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_markcloudmessageprocessed",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "markcloudmessageprocessed()"
     },
@@ -6175,7 +6358,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_authorizedcloudcontact",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "authorizedcloudcontact()"
     },
@@ -6187,7 +6370,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_getcloudconversation",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "getcloudconversation()"
     },
@@ -6199,8 +6382,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_addcloudmessage",
-      "community": 28,
-      "community_name": "runPaymentReminders",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "addcloudmessage()"
     },
     {
@@ -6211,8 +6394,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudapirequest",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 31,
+      "community_name": "cloudApiRequest",
       "norm_label": "cloudapirequest()"
     },
     {
@@ -6223,8 +6406,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudgraphrequest",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 31,
+      "community_name": "cloudApiRequest",
       "norm_label": "cloudgraphrequest()"
     },
     {
@@ -6235,7 +6418,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudmediakind",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "cloudmediakind()"
     },
@@ -6247,7 +6430,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudinboundmedia",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "cloudinboundmedia()"
     },
@@ -6259,8 +6442,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_downloadcloudmedia",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 31,
+      "community_name": "cloudApiRequest",
       "norm_label": "downloadcloudmedia()"
     },
     {
@@ -6271,8 +6454,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_archivecloudinboundmedia",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 31,
+      "community_name": "cloudApiRequest",
       "norm_label": "archivecloudinboundmedia()"
     },
     {
@@ -6283,8 +6466,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_uploadcloudmedia",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 31,
+      "community_name": "cloudApiRequest",
       "norm_label": "uploadcloudmedia()"
     },
     {
@@ -6295,8 +6478,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudmedia",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 31,
+      "community_name": "cloudApiRequest",
       "norm_label": "sendcloudmedia()"
     },
     {
@@ -6307,19 +6490,31 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudtext",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "sendcloudtext()"
+    },
+    {
+      "label": "sendCloudInteractiveButtons()",
+      "file_type": "code",
+      "source_file": "server.cjs",
+      "source_location": "L569",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "server_sendcloudinteractivebuttons",
+      "community": 31,
+      "community_name": "cloudApiRequest",
+      "norm_label": "sendcloudinteractivebuttons()"
     },
     {
       "label": "firstName()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L567",
+      "source_location": "L581",
       "_callable": true,
       "_origin": "ast",
       "id": "server_firstname",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "firstname()"
     },
@@ -6327,11 +6522,11 @@
       "label": "sendCloudGreetingTemplate()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L571",
+      "source_location": "L585",
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudgreetingtemplate",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "sendcloudgreetingtemplate()"
     },
@@ -6339,35 +6534,35 @@
       "label": "cloudPeriodLabel()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L582",
+      "source_location": "L596",
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudperiodlabel",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 29,
+      "community_name": "runPaymentReminders",
       "norm_label": "cloudperiodlabel()"
     },
     {
       "label": "sendCloudPaymentReminderTemplate()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L591",
+      "source_location": "L607",
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudpaymentremindertemplate",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 29,
+      "community_name": "runPaymentReminders",
       "norm_label": "sendcloudpaymentremindertemplate()"
     },
     {
       "label": "colombiaDate()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L605",
+      "source_location": "L621",
       "_callable": true,
       "_origin": "ast",
       "id": "server_colombiadate",
-      "community": 28,
+      "community": 29,
       "community_name": "runPaymentReminders",
       "norm_label": "colombiadate()"
     },
@@ -6375,11 +6570,11 @@
       "label": "paymentPeriod()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L612",
+      "source_location": "L628",
       "_callable": true,
       "_origin": "ast",
       "id": "server_paymentperiod",
-      "community": 28,
+      "community": 29,
       "community_name": "runPaymentReminders",
       "norm_label": "paymentperiod()"
     },
@@ -6387,11 +6582,11 @@
       "label": "paymentCountsAsCollected()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L616",
+      "source_location": "L632",
       "_callable": true,
       "_origin": "ast",
       "id": "server_paymentcountsascollected",
-      "community": 28,
+      "community": 29,
       "community_name": "runPaymentReminders",
       "norm_label": "paymentcountsascollected()"
     },
@@ -6399,11 +6594,11 @@
       "label": "activeContractForApartment()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L620",
+      "source_location": "L636",
       "_callable": true,
       "_origin": "ast",
       "id": "server_activecontractforapartment",
-      "community": 28,
+      "community": 29,
       "community_name": "runPaymentReminders",
       "norm_label": "activecontractforapartment()"
     },
@@ -6411,11 +6606,11 @@
       "label": "paymentReminderOffsets()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L627",
+      "source_location": "L643",
       "_callable": true,
       "_origin": "ast",
       "id": "server_paymentreminderoffsets",
-      "community": 28,
+      "community": 29,
       "community_name": "runPaymentReminders",
       "norm_label": "paymentreminderoffsets()"
     },
@@ -6423,11 +6618,11 @@
       "label": "runPaymentReminders()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L632",
+      "source_location": "L648",
       "_callable": true,
       "_origin": "ast",
       "id": "server_runpaymentreminders",
-      "community": 28,
+      "community": 29,
       "community_name": "runPaymentReminders",
       "norm_label": "runpaymentreminders()"
     },
@@ -6435,11 +6630,11 @@
       "label": "cloudInteractiveReply()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L682",
+      "source_location": "L698",
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudinteractivereply",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "cloudinteractivereply()"
     },
@@ -6447,11 +6642,11 @@
       "label": "requestedPaymentProof()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L687",
+      "source_location": "L703",
       "_callable": true,
       "_origin": "ast",
       "id": "server_requestedpaymentproof",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "requestedpaymentproof()"
     },
@@ -6459,11 +6654,11 @@
       "label": "paymentProofIsActive()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L692",
+      "source_location": "L708",
       "_callable": true,
       "_origin": "ast",
       "id": "server_paymentproofisactive",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "paymentproofisactive()"
     },
@@ -6471,11 +6666,11 @@
       "label": "createPendingPaymentFromProof()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L697",
+      "source_location": "L713",
       "_callable": true,
       "_origin": "ast",
       "id": "server_creatependingpaymentfromproof",
-      "community": 28,
+      "community": 29,
       "community_name": "runPaymentReminders",
       "norm_label": "creatependingpaymentfromproof()"
     },
@@ -6483,11 +6678,11 @@
       "label": "transcodeVoiceNote()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L721",
+      "source_location": "L737",
       "_callable": true,
       "_origin": "ast",
       "id": "server_transcodevoicenote",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "transcodevoicenote()"
     },
@@ -6495,11 +6690,11 @@
       "label": "blockCloudUser()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L744",
+      "source_location": "L760",
       "_callable": true,
       "_origin": "ast",
       "id": "server_blockclouduser",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "blockclouduser()"
     },
@@ -6507,11 +6702,11 @@
       "label": "failCloudAuthentication()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L771",
+      "source_location": "L787",
       "_callable": true,
       "_origin": "ast",
       "id": "server_failcloudauthentication",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "failcloudauthentication()"
     },
@@ -6519,23 +6714,23 @@
       "label": "validCloudSignature()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L791",
+      "source_location": "L807",
       "_callable": true,
       "_origin": "ast",
       "id": "server_validcloudsignature",
-      "community": 16,
-      "community_name": "startServer",
+      "community": 31,
+      "community_name": "cloudApiRequest",
       "norm_label": "validcloudsignature()"
     },
     {
       "label": "requireCloudAdmin()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L799",
+      "source_location": "L815",
       "_callable": true,
       "_origin": "ast",
       "id": "server_requirecloudadmin",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "requirecloudadmin()"
     },
@@ -6543,11 +6738,11 @@
       "label": "isDebtQuery()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L809",
+      "source_location": "L825",
       "_callable": true,
       "_origin": "ast",
       "id": "server_isdebtquery",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "isdebtquery()"
     },
@@ -6555,23 +6750,71 @@
       "label": "buildDebtReply()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L813",
+      "source_location": "L829",
       "_callable": true,
       "_origin": "ast",
       "id": "server_builddebtreply",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "builddebtreply()"
+    },
+    {
+      "label": "cloudAdminPhones()",
+      "file_type": "code",
+      "source_file": "server.cjs",
+      "source_location": "L850",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "server_cloudadminphones",
+      "community": 16,
+      "community_name": "handleCloudInbound",
+      "norm_label": "cloudadminphones()"
+    },
+    {
+      "label": "isCloudAdminPhone()",
+      "file_type": "code",
+      "source_file": "server.cjs",
+      "source_location": "L860",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "server_iscloudadminphone",
+      "community": 16,
+      "community_name": "handleCloudInbound",
+      "norm_label": "iscloudadminphone()"
+    },
+    {
+      "label": "buildAdminDebtReport()",
+      "file_type": "code",
+      "source_file": "server.cjs",
+      "source_location": "L868",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "server_buildadmindebtreport",
+      "community": 29,
+      "community_name": "runPaymentReminders",
+      "norm_label": "buildadmindebtreport()"
+    },
+    {
+      "label": "handleCloudAdminMessage()",
+      "file_type": "code",
+      "source_file": "server.cjs",
+      "source_location": "L913",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "server_handlecloudadminmessage",
+      "community": 29,
+      "community_name": "runPaymentReminders",
+      "norm_label": "handlecloudadminmessage()"
     },
     {
       "label": "handleCloudInbound()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L833",
+      "source_location": "L977",
       "_callable": true,
       "_origin": "ast",
       "id": "server_handlecloudinbound",
-      "community": 9,
+      "community": 16,
       "community_name": "handleCloudInbound",
       "norm_label": "handlecloudinbound()"
     },
@@ -6579,11 +6822,11 @@
       "label": "initPostgres()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L942",
+      "source_location": "L1103",
       "_callable": true,
       "_origin": "ast",
       "id": "server_initpostgres",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "initpostgres()"
     },
@@ -6591,11 +6834,11 @@
       "label": "loadFromPostgres()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L969",
+      "source_location": "L1130",
       "_callable": true,
       "_origin": "ast",
       "id": "server_loadfrompostgres",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "loadfrompostgres()"
     },
@@ -6603,43 +6846,43 @@
       "label": "saveToPostgres()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L978",
+      "source_location": "L1139",
       "_callable": true,
       "_origin": "ast",
       "id": "server_savetopostgres",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "savetopostgres()"
     },
     {
       "label": "loadData()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L986",
+      "source_location": "L1147",
       "_callable": true,
       "_origin": "ast",
       "id": "server_loaddata",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "loaddata()"
     },
     {
       "label": "recalcNextId()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1004",
+      "source_location": "L1165",
       "_callable": true,
       "_origin": "ast",
       "id": "server_recalcnextid",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "recalcnextid()"
     },
     {
       "label": "dataVersion",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1015",
+      "source_location": "L1176",
       "_origin": "ast",
       "id": "server_dataversion",
       "community": 3,
@@ -6650,19 +6893,19 @@
       "label": "saveData()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1017",
+      "source_location": "L1178",
       "_callable": true,
       "_origin": "ast",
       "id": "server_savedata",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "savedata()"
     },
     {
       "label": "r2UsageCache",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1027",
+      "source_location": "L1188",
       "_origin": "ast",
       "id": "server_r2usagecache",
       "community": 3,
@@ -6673,7 +6916,7 @@
       "label": "readMemoryLimit()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1029",
+      "source_location": "L1190",
       "_callable": true,
       "_origin": "ast",
       "id": "server_readmemorylimit",
@@ -6685,7 +6928,7 @@
       "label": "runtimeMemory()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1038",
+      "source_location": "L1199",
       "_callable": true,
       "_origin": "ast",
       "id": "server_runtimememory",
@@ -6697,11 +6940,11 @@
       "label": "getR2Usage()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1053",
+      "source_location": "L1214",
       "_callable": true,
       "_origin": "ast",
       "id": "server_getr2usage",
-      "community": 18,
+      "community": 37,
       "community_name": "getR2Client",
       "norm_label": "getr2usage()"
     },
@@ -6709,11 +6952,11 @@
       "label": "getDatabaseUsage()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1079",
+      "source_location": "L1240",
       "_callable": true,
       "_origin": "ast",
       "id": "server_getdatabaseusage",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "getdatabaseusage()"
     },
@@ -6721,23 +6964,23 @@
       "label": "syncPasswordFromTenant()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1101",
+      "source_location": "L1262",
       "_callable": true,
       "_origin": "ast",
       "id": "server_syncpasswordfromtenant",
       "community": 17,
-      "community_name": "saveData",
+      "community_name": "startServer",
       "norm_label": "syncpasswordfromtenant()"
     },
     {
       "label": "startServer()",
       "file_type": "code",
       "source_file": "server.cjs",
-      "source_location": "L1115",
+      "source_location": "L1276",
       "_callable": true,
       "_origin": "ast",
       "id": "server_startserver",
-      "community": 16,
+      "community": 17,
       "community_name": "startServer",
       "norm_label": "startserver()"
     },
@@ -6843,10 +7086,22 @@
       "norm_label": "air_e_nic_map"
     },
     {
+      "label": "getLastScrapeError()",
+      "file_type": "code",
+      "source_file": "services-scraper.cjs",
+      "source_location": "L76",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "services_scraper_getlastscrapeerror",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
+      "norm_label": "getlastscrapeerror()"
+    },
+    {
       "label": "init()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L75",
+      "source_location": "L80",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_init",
@@ -6858,7 +7113,7 @@
       "label": "getAirECredentials()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L82",
+      "source_location": "L87",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_getairecredentials",
@@ -6870,7 +7125,7 @@
       "label": "launchBrowser()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L97",
+      "source_location": "L102",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_launchbrowser",
@@ -6882,7 +7137,7 @@
       "label": "waitAndType()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L109",
+      "source_location": "L114",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_waitandtype",
@@ -6894,7 +7149,7 @@
       "label": "scrapeAirE()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L136",
+      "source_location": "L141",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_scrapeaire",
@@ -6906,7 +7161,7 @@
       "label": "runScrapeOnce()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L280",
+      "source_location": "L293",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_runscrapeonce",
@@ -6918,7 +7173,7 @@
       "label": "startScheduler()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L290",
+      "source_location": "L303",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_startscheduler",
@@ -6930,7 +7185,7 @@
       "label": "persistResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L305",
+      "source_location": "L318",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_persistresults",
@@ -6967,7 +7222,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "app.jsx"
     },
@@ -6979,8 +7234,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_protectedroute",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "protectedroute()"
     },
     {
@@ -6991,8 +7246,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_adminroute",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "adminroute()"
     },
     {
@@ -7015,7 +7270,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_appcontent",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "appcontent()"
     },
@@ -7027,8 +7282,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_app",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 40,
+      "community_name": "ErrorBoundary",
       "norm_label": "app()"
     },
     {
@@ -7074,8 +7329,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_getserverversion",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "getserverversion()"
     },
     {
@@ -7086,7 +7341,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_uploadfile",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "uploadfile()"
     },
@@ -7240,8 +7495,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "src_api_api",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "api"
     },
     {
@@ -7251,8 +7506,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_errorboundary",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 40,
+      "community_name": "ErrorBoundary",
       "norm_label": "errorboundary.jsx"
     },
     {
@@ -7264,8 +7519,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 40,
+      "community_name": "ErrorBoundary",
       "norm_label": "errorboundary"
     },
     {
@@ -7276,8 +7531,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_constructor",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 40,
+      "community_name": "ErrorBoundary",
       "norm_label": ".constructor()"
     },
     {
@@ -7288,8 +7543,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_getderivedstatefromerror",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 40,
+      "community_name": "ErrorBoundary",
       "norm_label": ".getderivedstatefromerror()"
     },
     {
@@ -7300,8 +7555,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_componentdidcatch",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 40,
+      "community_name": "ErrorBoundary",
       "norm_label": ".componentdidcatch()"
     },
     {
@@ -7312,8 +7567,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_render",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 40,
+      "community_name": "ErrorBoundary",
       "norm_label": ".render()"
     },
     {
@@ -7323,8 +7578,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "layout.jsx"
     },
     {
@@ -7334,8 +7589,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_layout_navitems",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "navitems"
     },
     {
@@ -7346,8 +7601,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_layout_layout",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "layout()"
     },
     {
@@ -7357,8 +7612,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_modal",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "modal.jsx"
     },
     {
@@ -7369,8 +7624,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_modal_modal",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "modal()"
     },
     {
@@ -7381,7 +7636,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "paymenthistorychart.jsx"
     },
     {
@@ -7392,7 +7647,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_colors",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "colors"
     },
     {
@@ -7404,7 +7659,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_getpaymentstatus",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getpaymentstatus()"
     },
     {
@@ -7416,7 +7671,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_getchartdata",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getchartdata()"
     },
     {
@@ -7428,7 +7683,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_customtooltip",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "customtooltip()"
     },
     {
@@ -7440,7 +7695,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_paymenthistorychart",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "paymenthistorychart()"
     },
     {
@@ -7451,7 +7706,7 @@
       "_origin": "ast",
       "id": "src_components_statscard",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "statscard.jsx"
     },
     {
@@ -7463,7 +7718,7 @@
       "_origin": "ast",
       "id": "src_components_statscard_statscard",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "statscard()"
     },
     {
@@ -7473,8 +7728,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_themeselector",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "themeselector.jsx"
     },
     {
@@ -7484,8 +7739,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_themeselector_iconmap",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "iconmap"
     },
     {
@@ -7496,8 +7751,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_themeselector_themeselector",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "themeselector()"
     },
     {
@@ -7507,7 +7762,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_versionbanner",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "versionbanner.jsx"
     },
@@ -7519,7 +7774,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_versionbanner_versionisnewer",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "versionisnewer()"
     },
@@ -7531,7 +7786,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_versionbanner_versionbanner",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "versionbanner()"
     },
@@ -7670,8 +7925,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 40,
+      "community_name": "ErrorBoundary",
       "norm_label": "main.jsx"
     },
     {
@@ -7682,8 +7937,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_main_boot",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 40,
+      "community_name": "ErrorBoundary",
       "norm_label": "boot()"
     },
     {
@@ -7694,7 +7949,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "apartmentdetail.jsx"
     },
     {
@@ -7705,7 +7960,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_servicenames",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "servicenames"
     },
     {
@@ -7716,7 +7971,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_serviceicons",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "serviceicons"
     },
     {
@@ -7727,7 +7982,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_servicecolors",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "servicecolors"
     },
     {
@@ -7738,7 +7993,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_utilitywebsites",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "utilitywebsites"
     },
     {
@@ -7750,7 +8005,7 @@
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_apartmentdetail",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "apartmentdetail()"
     },
     {
@@ -7760,8 +8015,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_apartments",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "apartments.jsx"
     },
     {
@@ -7772,8 +8027,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartments_apartments",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "apartments()"
     },
     {
@@ -7783,8 +8038,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_chat",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "chat.jsx"
     },
     {
@@ -7795,8 +8050,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_chat_chat",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "chat()"
     },
     {
@@ -7806,7 +8061,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contractgenerator",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator.jsx"
     },
@@ -7818,7 +8073,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contractgenerator_contractgenerator",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator()"
     },
@@ -7829,8 +8084,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contracts",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "contracts.jsx"
     },
     {
@@ -7841,8 +8096,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contracts_contracts",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "contracts()"
     },
     {
@@ -7853,7 +8108,7 @@
       "_origin": "ast",
       "id": "src_pages_dashboard",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "dashboard.jsx"
     },
     {
@@ -7865,7 +8120,7 @@
       "_origin": "ast",
       "id": "src_pages_dashboard_dashboard",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "dashboard()"
     },
     {
@@ -7875,8 +8130,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "login.jsx"
     },
     {
@@ -7887,8 +8142,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "login()"
     },
     {
@@ -7898,8 +8153,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_miapto",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "miapto.jsx"
     },
     {
@@ -7911,7 +8166,7 @@
       "_origin": "ast",
       "id": "src_pages_miapto_miapto",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "miapto()"
     },
     {
@@ -7921,8 +8176,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_payments",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "payments.jsx"
     },
     {
@@ -7934,7 +8189,7 @@
       "_origin": "ast",
       "id": "src_pages_payments_payments",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "payments()"
     },
     {
@@ -7944,8 +8199,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_predial",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "predial.jsx"
     },
     {
@@ -7955,8 +8210,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "ref_map"
     },
     {
@@ -7967,8 +8222,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "lookupref()"
     },
     {
@@ -7979,8 +8234,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "getpredialurl()"
     },
     {
@@ -7991,8 +8246,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_predial",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "predial()"
     },
     {
@@ -8002,7 +8257,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_publicapartment",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "publicapartment.jsx"
     },
@@ -8013,7 +8268,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_pages_publicapartment_serviceicons",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "serviceicons"
     },
@@ -8025,7 +8280,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_publicapartment_publicapartment",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "publicapartment()"
     },
@@ -8037,7 +8292,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_publicapartment_info",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "info()"
     },
@@ -8048,8 +8303,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_publicapartments",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "publicapartments.jsx"
     },
     {
@@ -8060,8 +8315,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_publicapartments_publicapartments",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "publicapartments()"
     },
     {
@@ -8072,7 +8327,7 @@
       "_origin": "ast",
       "id": "src_pages_reports",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "reports.jsx"
     },
     {
@@ -8084,7 +8339,7 @@
       "_origin": "ast",
       "id": "src_pages_reports_reports",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "reports()"
     },
     {
@@ -8102,7 +8357,7 @@
       "label": "Settings()",
       "file_type": "code",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L16",
+      "source_location": "L17",
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_settings_settings",
@@ -8117,8 +8372,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_shareapartments",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 44,
+      "community_name": "ShareApartments.jsx",
       "norm_label": "shareapartments.jsx"
     },
     {
@@ -8129,8 +8384,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_shareapartments_shareapartments",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 44,
+      "community_name": "ShareApartments.jsx",
       "norm_label": "shareapartments()"
     },
     {
@@ -8140,8 +8395,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_tenants",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "tenants.jsx"
     },
     {
@@ -8152,8 +8407,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_tenants_tenants",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "tenants()"
     },
     {
@@ -8164,7 +8419,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "utilities.jsx"
     },
     {
@@ -8175,7 +8430,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_services",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "services"
     },
     {
@@ -8187,7 +8442,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_timeago",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "timeago()"
     },
     {
@@ -8198,7 +8453,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_portals",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "portals"
     },
     {
@@ -8210,7 +8465,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_qrviewcontent",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "qrviewcontent()"
     },
     {
@@ -8222,7 +8477,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_utilities",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "utilities()"
     },
     {
@@ -8232,8 +8487,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "whatsappcontacts.jsx"
     },
     {
@@ -8244,8 +8499,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts_whatsappcontacts",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "whatsappcontacts()"
     },
     {
@@ -8255,8 +8510,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappinbox",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "whatsappinbox.jsx"
     },
     {
@@ -8267,8 +8522,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_cloudrequest",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "cloudrequest()"
     },
     {
@@ -8279,8 +8534,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_formatdate",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "formatdate()"
     },
     {
@@ -8291,8 +8546,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediaicon",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "mediaicon()"
     },
     {
@@ -8303,8 +8558,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediamessage",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "mediamessage()"
     },
     {
@@ -8315,8 +8570,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_whatsappinbox",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "whatsappinbox()"
     },
     {
@@ -8326,8 +8581,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_auth",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "auth.js"
     },
     {
@@ -8338,8 +8593,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_getauth",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "getauth()"
     },
     {
@@ -8350,8 +8605,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_setauth",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "setauth()"
     },
     {
@@ -8362,8 +8617,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_clearauth",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "clearauth()"
     },
     {
@@ -8374,8 +8629,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_isadmin",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "isadmin()"
     },
     {
@@ -8386,8 +8641,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_istenant",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "istenant()"
     },
     {
@@ -8398,8 +8653,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_gettenantapartmentid",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "gettenantapartmentid()"
     },
     {
@@ -8410,8 +8665,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_requireauth",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "requireauth()"
     },
     {
@@ -8422,8 +8677,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_login",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "login()"
     },
     {
@@ -8434,8 +8689,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_loginadmin",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "loginadmin()"
     },
     {
@@ -8446,8 +8701,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_logintenant",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "logintenant()"
     },
     {
@@ -8457,8 +8712,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_calendar",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "calendar.js"
     },
     {
@@ -8469,8 +8724,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_uidforapt",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "uidforapt()"
     },
     {
@@ -8481,8 +8736,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_getstoreduids",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "getstoreduids()"
     },
     {
@@ -8493,8 +8748,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_savestoreduids",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "savestoreduids()"
     },
     {
@@ -8505,8 +8760,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_fmtdate",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -8517,8 +8772,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_nextduedate",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "nextduedate()"
     },
     {
@@ -8529,8 +8784,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateics",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "generateics()"
     },
     {
@@ -8541,8 +8796,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_downloadics",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "downloadics()"
     },
     {
@@ -8553,8 +8808,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_addcalendarreminder",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "addcalendarreminder()"
     },
     {
@@ -8565,8 +8820,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateallpaymentreminders",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "generateallpaymentreminders()"
     },
     {
@@ -8577,8 +8832,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_syncandgeneratereminders",
-      "community": 15,
-      "community_name": "calendar.js",
+      "community": 0,
+      "community_name": "Settings.jsx",
       "norm_label": "syncandgeneratereminders()"
     },
     {
@@ -8719,8 +8974,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_chat",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "chat.js"
     },
     {
@@ -8730,8 +8985,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_utils_chat_lastcheck",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "lastcheck"
     },
     {
@@ -8742,8 +8997,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_sendmessage",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "sendmessage()"
     },
     {
@@ -8754,8 +9009,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_sendheartbeat",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "sendheartbeat()"
     },
     {
@@ -8766,8 +9021,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_fetchpresence",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "fetchpresence()"
     },
     {
@@ -8778,8 +9033,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_pollnewmessages",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "pollnewmessages()"
     },
     {
@@ -8790,8 +9045,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_startchatpoll",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "startchatpoll()"
     },
     {
@@ -8802,8 +9057,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_stopchatpoll",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "stopchatpoll()"
     },
     {
@@ -8814,8 +9069,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_startheartbeat",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "startheartbeat()"
     },
     {
@@ -8826,8 +9081,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_stopheartbeat",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "stopheartbeat()"
     },
     {
@@ -8838,8 +9093,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_startpresencepoll",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "startpresencepoll()"
     },
     {
@@ -8850,8 +9105,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_stoppresencepoll",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "stoppresencepoll()"
     },
     {
@@ -8862,8 +9117,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_getstatuslabel",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "getstatuslabel()"
     },
     {
@@ -8874,8 +9129,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_getroommessages",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "getroommessages()"
     },
     {
@@ -8886,8 +9141,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_chat_getallrooms",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "chat.js",
       "norm_label": "getallrooms()"
     },
     {
@@ -8944,8 +9199,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_config",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "config.js"
     },
     {
@@ -8956,8 +9211,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_storedtoken",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "storedtoken()"
     },
     {
@@ -8967,8 +9222,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_utils_config_auth_token",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "auth_token"
     },
     {
@@ -8979,8 +9234,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_setapitoken",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "setapitoken()"
     },
     {
@@ -8991,7 +9246,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_iscapacitor",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "iscapacitor()"
     },
@@ -9003,8 +9258,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_getbase",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "getbase()"
     },
     {
@@ -9015,7 +9270,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_getrawbase",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "getrawbase()"
     },
@@ -9027,7 +9282,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_photourl",
-      "community": 1,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "photourl()"
     },
@@ -9282,8 +9537,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 44,
+      "community_name": "ShareApartments.jsx",
       "norm_label": "generate-apartments-html.js"
     },
     {
@@ -9294,8 +9549,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_fetchasbase64",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 44,
+      "community_name": "ShareApartments.jsx",
       "norm_label": "fetchasbase64()"
     },
     {
@@ -9306,8 +9561,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_buildapartmentshtml",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 44,
+      "community_name": "ShareApartments.jsx",
       "norm_label": "buildapartmentshtml()"
     },
     {
@@ -9318,7 +9573,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "helpers.js"
     },
     {
@@ -9330,7 +9585,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_formatcurrency",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatcurrency()"
     },
     {
@@ -9342,7 +9597,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_formatdate",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatdate()"
     },
     {
@@ -9354,7 +9609,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_formatshortdate",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatshortdate()"
     },
     {
@@ -9366,7 +9621,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_daysbetween",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "daysbetween()"
     },
     {
@@ -9378,7 +9633,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_monthsbetween",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "monthsbetween()"
     },
     {
@@ -9390,7 +9645,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getcurrentperiod",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getcurrentperiod()"
     },
     {
@@ -9402,7 +9657,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getmonthname",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getmonthname()"
     },
     {
@@ -9414,7 +9669,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getperiodlabel",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getperiodlabel()"
     },
     {
@@ -9426,7 +9681,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_generateid",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generateid()"
     },
     {
@@ -9438,7 +9693,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_daysuntil",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "daysuntil()"
     },
     {
@@ -9450,7 +9705,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_periodtodate",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "periodtodate()"
     },
     {
@@ -9462,7 +9717,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_nextperiod",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "nextperiod()"
     },
     {
@@ -9474,7 +9729,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_prevperiod",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "prevperiod()"
     },
     {
@@ -9486,7 +9741,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getallperiodsfrom",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getallperiodsfrom()"
     },
     {
@@ -9498,7 +9753,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_isoverduebyreadingdate",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "isoverduebyreadingdate()"
     },
     {
@@ -9510,7 +9765,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_formatrelativeduedate",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatrelativeduedate()"
     },
     {
@@ -9626,8 +9881,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_notifications",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 64,
+      "community_name": "notifications.js",
       "norm_label": "notifications.js"
     },
     {
@@ -9638,8 +9893,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_requestnotificationpermission",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 64,
+      "community_name": "notifications.js",
       "norm_label": "requestnotificationpermission()"
     },
     {
@@ -9650,8 +9905,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notify",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 64,
+      "community_name": "notifications.js",
       "norm_label": "notify()"
     },
     {
@@ -9662,8 +9917,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notifypaymentreminder",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 64,
+      "community_name": "notifications.js",
       "norm_label": "notifypaymentreminder()"
     },
     {
@@ -9674,7 +9929,7 @@
       "_origin": "ast",
       "id": "src_utils_pdf",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "pdf.js"
     },
     {
@@ -9686,7 +9941,7 @@
       "_origin": "ast",
       "id": "src_utils_pdf_generateapartmentpdf",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generateapartmentpdf()"
     },
     {
@@ -9698,7 +9953,7 @@
       "_origin": "ast",
       "id": "src_utils_pdf_generatepublichtml",
       "community": 1,
-      "community_name": "App.jsx",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generatepublichtml()"
     },
     {
@@ -9708,8 +9963,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_sync",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "sync.js"
     },
     {
@@ -9720,8 +9975,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_sync_isserveravailable",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "isserveravailable()"
     },
     {
@@ -9731,8 +9986,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_theme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "theme.js"
     },
     {
@@ -9742,8 +9997,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_utils_theme_themes",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "themes"
     },
     {
@@ -9753,8 +10008,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_utils_theme_thememap",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "thememap"
     },
     {
@@ -9765,8 +10020,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_gettheme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "gettheme()"
     },
     {
@@ -9777,8 +10032,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_getthemeinfo",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "getthemeinfo()"
     },
     {
@@ -9789,8 +10044,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_settheme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "settheme()"
     },
     {
@@ -9801,8 +10056,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_inittheme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "inittheme()"
     },
     {
@@ -9813,8 +10068,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_applytheme",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "applytheme()"
     },
     {
@@ -9825,8 +10080,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_syncthemetoserver",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "syncthemetoserver()"
     },
     {
@@ -9837,8 +10092,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_loadthemefromserver",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 28,
+      "community_name": "ThemeSelector.jsx",
       "norm_label": "loadthemefromserver()"
     },
     {
@@ -9848,8 +10103,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_viewmode",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "viewmode.js"
     },
     {
@@ -9860,8 +10115,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_viewmode_getviewmode",
-      "community": 1,
-      "community_name": "App.jsx",
+      "community": 19,
+      "community_name": "react",
       "norm_label": "getviewmode()"
     },
     {
@@ -9872,8 +10127,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_viewmode_setviewmode",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 22,
+      "community_name": "auth.js",
       "norm_label": "setviewmode()"
     },
     {
@@ -9927,8 +10182,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "readme_arquitectura_del_sistema",
-      "community": 19,
-      "community_name": "Arquitectura del Sistema",
+      "community": 46,
+      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
       "norm_label": "arquitectura del sistema"
     },
     {
@@ -9938,8 +10193,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "readme_flujo_de_datos",
-      "community": 19,
-      "community_name": "Arquitectura del Sistema",
+      "community": 46,
+      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
       "norm_label": "flujo de datos"
     },
     {
@@ -9949,8 +10204,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "readme_viewport_y_layout_adaptativo",
-      "community": 19,
-      "community_name": "Arquitectura del Sistema",
+      "community": 46,
+      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
       "norm_label": "viewport y layout adaptativo"
     },
     {
@@ -13346,6 +13601,85 @@
       "_origin": "ast",
       "source": "oxlintrc_rules_react_only_export_components",
       "target": "ref_warn",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L63",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_cjs_tmp_cdp_driver",
+      "target": "tmp_cdp_driver_cjs_tmp_cdp_driver_findapppage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_cjs_tmp_cdp_driver",
+      "target": "tmp_cdp_driver_cjs_tmp_cdp_driver_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_cjs_tmp_cdp_driver",
+      "target": "tmp_cdp_driver_puppeteer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_cjs_tmp_cdp_driver_main",
+      "target": "tmp_cdp_driver_cjs_tmp_cdp_driver_findapppage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.mjs",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_mjs_tmp_cdp_driver",
+      "target": "tmp_cdp_driver_mjs_tmp_cdp_driver_findapppage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.mjs",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_mjs_tmp_cdp_driver",
+      "target": "tmp_cdp_driver_mjs_tmp_cdp_driver_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.mjs",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_mjs_tmp_cdp_driver_main",
+      "target": "tmp_cdp_driver_mjs_tmp_cdp_driver_findapppage",
       "confidence_score": 1.0
     },
     {
@@ -21420,6 +21754,62 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_scrape_diagnostic",
+      "target": "scripts_scrape_diagnostic_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_scrape_diagnostic",
+      "target": "scripts_scrape_diagnostic_fs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_scrape_diagnostic",
+      "target": "scripts_scrape_diagnostic_path",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_scrape_diagnostic",
+      "target": "scripts_scrape_diagnostic_scraper",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/_scrape-diagnostic.cjs",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_scrape_diagnostic",
+      "target": "services_scraper",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "scripts/add-passwords.js",
       "source_location": "L22",
       "weight": 1.0,
@@ -21806,7 +22196,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L23",
+      "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_graphify_update",
@@ -21817,29 +22207,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L10",
+      "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_graphify_update",
-      "target": "scripts_graphify_update_candidates",
+      "target": "scripts_graphify_update_existssync_readfilesync",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "scripts_graphify_update",
-      "target": "scripts_graphify_update_existssync",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L15",
+      "source_location": "L39",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_graphify_update",
@@ -21850,7 +22229,29 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L5",
+      "source_location": "L32",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_update",
+      "target": "scripts_graphify_update_findpython",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L26",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_update",
+      "target": "scripts_graphify_update_hasgraphify",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L8",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_graphify_update",
@@ -21861,7 +22262,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L7",
+      "source_location": "L10",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_graphify_update",
@@ -21872,7 +22273,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L9",
+      "source_location": "L12",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_graphify_update",
@@ -21883,7 +22284,29 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L25",
+      "source_location": "L50",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_update",
+      "target": "scripts_graphify_update_python",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_update",
+      "target": "scripts_graphify_update_python_candidates",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L67",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_graphify_update",
@@ -21894,7 +22317,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L22",
+      "source_location": "L66",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_graphify_update",
@@ -21905,11 +22328,34 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/graphify-update.cjs",
-      "source_location": "L4",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_update",
+      "target": "scripts_graphify_update_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L7",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_graphify_update",
       "target": "scripts_graphify_update_spawnsync",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify-update.cjs",
+      "source_location": "L34",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_update_findpython",
+      "target": "scripts_graphify_update_hasgraphify",
       "confidence_score": 1.0
     },
     {
@@ -22136,7 +22582,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L620",
+      "source_location": "L636",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22213,7 +22659,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L744",
+      "source_location": "L760",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22224,7 +22670,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L813",
+      "source_location": "L868",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server",
+      "target": "server_buildadmindebtreport",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L829",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22240,6 +22697,17 @@
       "_origin": "ast",
       "source": "server",
       "target": "server_clearcloudauthstate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L850",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server",
+      "target": "server_cloudadminphones",
       "confidence_score": 1.0
     },
     {
@@ -22290,7 +22758,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L682",
+      "source_location": "L698",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22312,7 +22780,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L582",
+      "source_location": "L596",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22334,7 +22802,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L605",
+      "source_location": "L621",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22389,7 +22857,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L697",
+      "source_location": "L713",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22433,7 +22901,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1015",
+      "source_location": "L1176",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22554,7 +23022,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L771",
+      "source_location": "L787",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22576,7 +23044,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L567",
+      "source_location": "L581",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22631,7 +23099,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1079",
+      "source_location": "L1240",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22653,7 +23121,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1053",
+      "source_location": "L1214",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22664,7 +23132,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L833",
+      "source_location": "L913",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server",
+      "target": "server_handlecloudadminmessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L977",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22697,11 +23176,22 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L942",
+      "source_location": "L1103",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
       "target": "server_initpostgres",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L860",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server",
+      "target": "server_iscloudadminphone",
       "confidence_score": 1.0
     },
     {
@@ -22730,7 +23220,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L809",
+      "source_location": "L825",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22741,7 +23231,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L986",
+      "source_location": "L1147",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22752,7 +23242,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L969",
+      "source_location": "L1130",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22829,7 +23319,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L616",
+      "source_location": "L632",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22840,7 +23330,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L612",
+      "source_location": "L628",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22851,7 +23341,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L692",
+      "source_location": "L708",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22862,7 +23352,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L627",
+      "source_location": "L643",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22972,7 +23462,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1027",
+      "source_location": "L1188",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22983,7 +23473,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1029",
+      "source_location": "L1190",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -22994,7 +23484,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1004",
+      "source_location": "L1165",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23016,7 +23506,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L687",
+      "source_location": "L703",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23027,7 +23517,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L799",
+      "source_location": "L815",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23038,7 +23528,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L632",
+      "source_location": "L648",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23049,7 +23539,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1038",
+      "source_location": "L1199",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23082,7 +23572,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1017",
+      "source_location": "L1178",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23093,7 +23583,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L978",
+      "source_location": "L1139",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23104,11 +23594,22 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L571",
+      "source_location": "L585",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
       "target": "server_sendcloudgreetingtemplate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L569",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server",
+      "target": "server_sendcloudinteractivebuttons",
       "confidence_score": 1.0
     },
     {
@@ -23126,7 +23627,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L591",
+      "source_location": "L607",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23181,7 +23682,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1115",
+      "source_location": "L1276",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23203,7 +23704,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1101",
+      "source_location": "L1262",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23225,7 +23726,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L721",
+      "source_location": "L737",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23258,7 +23759,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L791",
+      "source_location": "L807",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server",
@@ -23306,7 +23807,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1055",
+      "source_location": "L1216",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_getr2usage",
@@ -23378,7 +23879,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1055",
+      "source_location": "L1216",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_getr2usage",
@@ -23390,7 +23891,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1454",
+      "source_location": "L1615",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23414,7 +23915,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1062",
+      "source_location": "L1223",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_getr2usage",
@@ -23462,7 +23963,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1054",
+      "source_location": "L1215",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_getr2usage",
@@ -23498,7 +23999,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1439",
+      "source_location": "L1600",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23546,7 +24047,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1434",
+      "source_location": "L1595",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23558,7 +24059,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1470",
+      "source_location": "L1631",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23570,7 +24071,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1456",
+      "source_location": "L1617",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23606,7 +24107,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1161",
+      "source_location": "L1322",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23618,7 +24119,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1974",
+      "source_location": "L2150",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23630,7 +24131,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1948",
+      "source_location": "L2124",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23690,7 +24191,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1000",
+      "source_location": "L1161",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_loaddata",
@@ -23714,7 +24215,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1162",
+      "source_location": "L1323",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23750,7 +24251,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1193",
+      "source_location": "L1354",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23810,7 +24311,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1592",
+      "source_location": "L1753",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23834,7 +24335,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L792",
+      "source_location": "L808",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_validcloudsignature",
@@ -23870,7 +24371,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L638",
+      "source_location": "L654",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_runpaymentreminders",
@@ -23882,7 +24383,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1604",
+      "source_location": "L1765",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -23918,12 +24419,24 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L746",
+      "source_location": "L762",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_blockclouduser",
       "target": "server_normalizephone",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "server.cjs",
+      "source_location": "L854",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_cloudadminphones",
+      "target": "server_normalizephone",
+      "confidence_score": 0.5
     },
     {
       "relation": "calls",
@@ -23942,7 +24455,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L834",
+      "source_location": "L978",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -23966,10 +24479,22 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L574",
+      "source_location": "L588",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_sendcloudgreetingtemplate",
+      "target": "server_normalizephone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L571",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_sendcloudinteractivebuttons",
       "target": "server_normalizephone",
       "confidence_score": 1.0
     },
@@ -23990,7 +24515,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L594",
+      "source_location": "L610",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_sendcloudpaymentremindertemplate",
@@ -24026,7 +24551,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1662",
+      "source_location": "L1823",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24050,7 +24575,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L747",
+      "source_location": "L763",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_blockclouduser",
@@ -24098,10 +24623,22 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L926",
+      "source_location": "L1087",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
+      "target": "server_samephone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L861",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_iscloudadminphone",
       "target": "server_samephone",
       "confidence_score": 1.0
     },
@@ -24134,7 +24671,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1659",
+      "source_location": "L1820",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24146,7 +24683,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L919",
+      "source_location": "L1080",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24158,7 +24695,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1201",
+      "source_location": "L1362",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24194,7 +24731,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L745",
+      "source_location": "L761",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_blockclouduser",
@@ -24230,7 +24767,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L924",
+      "source_location": "L1085",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24278,7 +24815,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L633",
+      "source_location": "L649",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_runpaymentreminders",
@@ -24302,7 +24839,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1630",
+      "source_location": "L1791",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24326,7 +24863,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L837",
+      "source_location": "L981",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24350,7 +24887,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L896",
+      "source_location": "L1057",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24362,7 +24899,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L774",
+      "source_location": "L790",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_failcloudauthentication",
@@ -24374,7 +24911,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L899",
+      "source_location": "L1060",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24386,7 +24923,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L780",
+      "source_location": "L796",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_failcloudauthentication",
@@ -24398,7 +24935,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L931",
+      "source_location": "L1092",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24410,7 +24947,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L839",
+      "source_location": "L983",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24422,7 +24959,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L835",
+      "source_location": "L979",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24434,7 +24971,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L836",
+      "source_location": "L980",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24446,7 +24983,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L844",
+      "source_location": "L993",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24458,7 +24995,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1676",
+      "source_location": "L1837",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24470,7 +25007,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L846",
+      "source_location": "L995",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24482,7 +25019,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L666",
+      "source_location": "L682",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_runpaymentreminders",
@@ -24494,7 +25031,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1678",
+      "source_location": "L1839",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24506,7 +25043,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L853",
+      "source_location": "L1002",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24518,7 +25055,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L667",
+      "source_location": "L683",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_runpaymentreminders",
@@ -24530,7 +25067,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1685",
+      "source_location": "L1846",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24542,7 +25079,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L760",
+      "source_location": "L776",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_blockclouduser",
@@ -24554,10 +25091,22 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L573",
+      "source_location": "L587",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_sendcloudgreetingtemplate",
+      "target": "server_cloudapirequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L570",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_sendcloudinteractivebuttons",
       "target": "server_cloudapirequest",
       "confidence_score": 1.0
     },
@@ -24578,7 +25127,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L593",
+      "source_location": "L609",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_sendcloudpaymentremindertemplate",
@@ -24614,7 +25163,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1721",
+      "source_location": "L1882",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24626,7 +25175,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1879",
+      "source_location": "L2055",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24638,7 +25187,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L852",
+      "source_location": "L1001",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24662,7 +25211,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L852",
+      "source_location": "L1001",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24674,7 +25223,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1882",
+      "source_location": "L2058",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24686,7 +25235,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1888",
+      "source_location": "L2064",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24698,7 +25247,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L776",
+      "source_location": "L792",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_failcloudauthentication",
@@ -24710,7 +25259,19 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L864",
+      "source_location": "L925",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_handlecloudadminmessage",
+      "target": "server_sendcloudtext",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L1013",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24722,7 +25283,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1822",
+      "source_location": "L1998",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24734,7 +25295,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L577",
+      "source_location": "L591",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_sendcloudgreetingtemplate",
@@ -24746,7 +25307,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L598",
+      "source_location": "L614",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_sendcloudpaymentremindertemplate",
@@ -24758,7 +25319,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1686",
+      "source_location": "L1847",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24770,7 +25331,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1684",
+      "source_location": "L1845",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24782,7 +25343,31 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L599",
+      "source_location": "L905",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_buildadmindebtreport",
+      "target": "server_cloudperiodlabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L934",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_handlecloudadminmessage",
+      "target": "server_cloudperiodlabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L615",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_sendcloudpaymentremindertemplate",
@@ -24794,7 +25379,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1853",
+      "source_location": "L2029",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24806,7 +25391,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L665",
+      "source_location": "L681",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_runpaymentreminders",
@@ -24818,7 +25403,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1851",
+      "source_location": "L2027",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24830,10 +25415,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L701",
+      "source_location": "L869",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "server_creatependingpaymentfromproof",
+      "source": "server_buildadmindebtreport",
       "target": "server_colombiadate",
       "confidence_score": 1.0
     },
@@ -24842,83 +25427,11 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L634",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "server_runpaymentreminders",
-      "target": "server_colombiadate",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "server.cjs",
-      "source_location": "L1850",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "server_startserver",
-      "target": "server_colombiadate",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "server.cjs",
-      "source_location": "L704",
+      "source_location": "L717",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_creatependingpaymentfromproof",
-      "target": "server_paymentperiod",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "server.cjs",
-      "source_location": "L658",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "server_runpaymentreminders",
-      "target": "server_paymentperiod",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "server.cjs",
-      "source_location": "L658",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "server_runpaymentreminders",
-      "target": "server_paymentcountsascollected",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "server.cjs",
-      "source_location": "L700",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "server_creatependingpaymentfromproof",
-      "target": "server_activecontractforapartment",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "server.cjs",
-      "source_location": "L642",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "server_runpaymentreminders",
-      "target": "server_activecontractforapartment",
+      "target": "server_colombiadate",
       "confidence_score": 1.0
     },
     {
@@ -24930,6 +25443,138 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_runpaymentreminders",
+      "target": "server_colombiadate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L2026",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_startserver",
+      "target": "server_colombiadate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L887",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_buildadmindebtreport",
+      "target": "server_paymentperiod",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L720",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_creatependingpaymentfromproof",
+      "target": "server_paymentperiod",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L934",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_handlecloudadminmessage",
+      "target": "server_paymentperiod",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L674",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_runpaymentreminders",
+      "target": "server_paymentperiod",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L889",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_buildadmindebtreport",
+      "target": "server_paymentcountsascollected",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L674",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_runpaymentreminders",
+      "target": "server_paymentcountsascollected",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L882",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_buildadmindebtreport",
+      "target": "server_activecontractforapartment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L716",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_creatependingpaymentfromproof",
+      "target": "server_activecontractforapartment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L658",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_runpaymentreminders",
+      "target": "server_activecontractforapartment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L666",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_runpaymentreminders",
       "target": "server_paymentreminderoffsets",
       "confidence_score": 1.0
     },
@@ -24938,7 +25583,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L678",
+      "source_location": "L694",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_runpaymentreminders",
@@ -24950,7 +25595,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1808",
+      "source_location": "L1984",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -24962,7 +25607,19 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L850",
+      "source_location": "L915",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_handlecloudadminmessage",
+      "target": "server_cloudinteractivereply",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L999",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24974,7 +25631,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L872",
+      "source_location": "L1023",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24986,7 +25643,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L884",
+      "source_location": "L1045",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -24998,7 +25655,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L885",
+      "source_location": "L1046",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -25010,7 +25667,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1877",
+      "source_location": "L2053",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25022,7 +25679,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L767",
+      "source_location": "L783",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_blockclouduser",
@@ -25034,7 +25691,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L787",
+      "source_location": "L803",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_failcloudauthentication",
@@ -25046,7 +25703,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L775",
+      "source_location": "L791",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_failcloudauthentication",
@@ -25058,7 +25715,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L905",
+      "source_location": "L1066",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -25070,7 +25727,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1608",
+      "source_location": "L1769",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25082,7 +25739,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1629",
+      "source_location": "L1790",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25094,7 +25751,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L860",
+      "source_location": "L1009",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -25106,7 +25763,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L861",
+      "source_location": "L1010",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -25118,7 +25775,55 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L840",
+      "source_location": "L861",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_iscloudadminphone",
+      "target": "server_cloudadminphones",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L988",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_handlecloudinbound",
+      "target": "server_iscloudadminphone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L970",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_handlecloudadminmessage",
+      "target": "server_buildadmindebtreport",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L989",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "server_handlecloudinbound",
+      "target": "server_handlecloudadminmessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "server.cjs",
+      "source_location": "L984",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_handlecloudinbound",
@@ -25130,7 +25835,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1623",
+      "source_location": "L1784",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25142,7 +25847,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L2221",
+      "source_location": "L2397",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25154,7 +25859,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L2222",
+      "source_location": "L2398",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25166,7 +25871,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1023",
+      "source_location": "L1184",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_savedata",
@@ -25178,7 +25883,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L2242",
+      "source_location": "L2418",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25190,7 +25895,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1001",
+      "source_location": "L1162",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_loaddata",
@@ -25202,7 +25907,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L2234",
+      "source_location": "L2410",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25214,7 +25919,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1405",
+      "source_location": "L1566",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25226,7 +25931,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1325",
+      "source_location": "L1486",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25238,7 +25943,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1112",
+      "source_location": "L1273",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_syncpasswordfromtenant",
@@ -25250,7 +25955,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1042",
+      "source_location": "L1203",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_runtimememory",
@@ -25262,7 +25967,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1128",
+      "source_location": "L1289",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25274,7 +25979,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1127",
+      "source_location": "L1288",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25286,7 +25991,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L1127",
+      "source_location": "L1288",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25298,7 +26003,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "server.cjs",
-      "source_location": "L2024",
+      "source_location": "L2200",
       "weight": 1.0,
       "_origin": "ast",
       "source": "server_startserver",
@@ -25364,7 +26069,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L82",
+      "source_location": "L87",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -25372,10 +26077,21 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services-scraper.cjs",
+      "source_location": "L76",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "services_scraper",
+      "target": "services_scraper_getlastscrapeerror",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L328",
+      "source_location": "L341",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -25387,7 +26103,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L97",
+      "source_location": "L102",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -25398,7 +26114,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L305",
+      "source_location": "L318",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -25431,7 +26147,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L280",
+      "source_location": "L293",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -25442,7 +26158,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L329",
+      "source_location": "L342",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -25465,7 +26181,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L330",
+      "source_location": "L343",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -25477,7 +26193,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L109",
+      "source_location": "L114",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -25489,7 +26205,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L150",
+      "source_location": "L156",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -25501,7 +26217,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L98",
+      "source_location": "L103",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_launchbrowser",
@@ -25513,7 +26229,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L142",
+      "source_location": "L148",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -25525,7 +26241,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L143",
+      "source_location": "L149",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -25537,7 +26253,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L152",
+      "source_location": "L158",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -25549,7 +26265,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L282",
+      "source_location": "L295",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runscrapeonce",
@@ -25561,7 +26277,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L284",
+      "source_location": "L297",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runscrapeonce",
@@ -25573,7 +26289,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L298",
+      "source_location": "L311",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -28179,7 +28895,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L12",
+      "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -28239,7 +28955,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L12",
+      "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -29473,6 +30189,18 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/pages/Dashboard.jsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_dashboard",
+      "target": "src_utils_calendar_syncandgeneratereminders",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -29610,7 +30338,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L472",
+      "source_location": "L489",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -29622,7 +30350,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L289",
+      "source_location": "L306",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -29634,7 +30362,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L425",
+      "source_location": "L442",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -29646,7 +30374,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L416",
+      "source_location": "L433",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -29670,7 +30398,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L197",
+      "source_location": "L198",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -29682,7 +30410,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L303",
+      "source_location": "L320",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -29694,7 +30422,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L301",
+      "source_location": "L318",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -30496,7 +31224,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L16",
+      "source_location": "L17",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30508,7 +31236,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30520,7 +31248,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30532,7 +31260,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30544,7 +31272,31 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L14",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_settings",
+      "target": "src_utils_calendar",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/pages/Settings.jsx",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_settings",
+      "target": "src_utils_calendar_syncandgeneratereminders",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/pages/Settings.jsx",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30556,7 +31308,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30568,7 +31320,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30580,7 +31332,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30592,7 +31344,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30604,7 +31356,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30616,7 +31368,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30628,7 +31380,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings",
@@ -30809,7 +31561,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings_settings",
@@ -30821,7 +31573,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L79",
+      "source_location": "L94",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings_settings",
@@ -30833,7 +31585,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings_settings",
@@ -30845,7 +31597,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Settings.jsx",
-      "source_location": "L584",
+      "source_location": "L656",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_settings_settings",
@@ -36895,5 +37647,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "2a1d96e95347082bfebaa093399b49f51f277ce8"
+  "built_at_commit": "cdd3093c0c89ae9f28398f22053d41223645335b"
 }

@@ -33,7 +33,7 @@ services:
       - key: ENABLE_LEGACY_BAILEYS
         value: "false"
       - key: WHATSAPP_CLOUD_ENABLED
-        value: "false"
+        value: "true"
       - key: WHATSAPP_ACCESS_TOKEN
         sync: false
       - key: WHATSAPP_PHONE_NUMBER_ID
