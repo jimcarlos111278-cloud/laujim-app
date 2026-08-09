@@ -481,6 +481,10 @@ Auth header: `x-auth-token: laujim laujim`
 | POST | `/api/presence/heartbeat` | Heartbeat de presencia (chat) | Sí |
 | GET | `/api/messages/updates/:since` | Mensajes nuevos desde ISO timestamp | Sí |
 | POST | `/api/bulk-add/:collection` | Crear múltiples registros | Sí |
+| GET | `/api/utility-status` | Estado de servicios y deuda conocida por apartamento | Sí |
+| GET | `/api/public/utility-status/:apartmentId` | Estado público de servicios para la tarjeta de servicios | No |
+| POST | `/api/scrape-air-e` | Iniciar sincronización manual de Air-e | Sí |
+| POST | `/api/scrape-water` | Iniciar consulta manual de enlaces QR de Triple A | Sí |
 
 ### Endpoints de Antecedentes (Policía)
 
@@ -806,6 +810,24 @@ Las URLs de pago se guardan por apartamento en campos:
 - `createImageBitmap` para escaneo desde archivo
 - Modal modal de selección: cámara o archivo
 - `@capacitor-mlkit/barcode-scanning` importado dinámicamente para evitar crash en web
+
+### Consulta horaria de agua
+
+`services-scraper.cjs` consulta de forma **solo lectura** cada hora los campos
+`apartments[].waterPaymentUrl` guardados al escanear el QR. Usa el navegador
+headless existente, no inicia pagos ni envía credenciales, y persiste un único
+registro por apartamento en `utilityRecords` con:
+
+- `status`: `paid`, `pending`, `captcha`, `timeout`, `error` o `unknown`
+- `deudaCOP`, `factura`, `periodo` y `checkedAt`
+
+La consulta también se ejecuta una vez después del arranque y puede iniciarse
+manualmente desde **Actualizar agua** en `/utilities` (`POST /api/scrape-water`).
+El scheduler usa `America/Bogota` por defecto, configurable con
+`SERVICES_TIMEZONE`; la frecuencia de Air-e continúa controlada por
+`SERVICES_SCRAPE_INTERVAL_HOURS`. Las ejecuciones de agua se protegen contra
+solapamientos y los errores de CAPTCHA, timeout o autenticación quedan visibles
+en la tarjeta sin bloquear la aplicación.
 
 ---
 
@@ -1197,6 +1219,13 @@ var dropdowns = [
 ---
 
 ## Historial de Cambios
+
+### 2026-08-09 — Consulta horaria de facturas de agua Triple A
+- **New**: `services-scraper.cjs` consulta cada hora los enlaces QR de agua (`waterPaymentUrl`) en modo solo lectura, con parser tolerante a cambios de HTML, estados de pago, deuda, factura, período, CAPTCHA y timeout.
+- **New**: persistencia de resultados en `utilityRecords`, endpoint `POST /api/scrape-water` y exposición del último estado en `/api/utility-status` y `/api/public/utility-status/:apartmentId`.
+- **Update**: `src/pages/Utilities.jsx` muestra estado/deuda/fecha de consulta de Triple A y agrega el botón manual **Actualizar agua**.
+- **Test**: `scripts/test-water-scraper.cjs` cubre estados pagado, pendiente, CAPTCHA, autenticación, timeout, navegador simulado y upsert de persistencia.
+- **Risk**: el portal de Triple A puede requerir CAPTCHA, autenticación o cambiar su estructura; debe validarse con un enlace QR real antes de afirmar que la deuda está automatizada en producción.
 
 ### 2026-08-04 — Plan cámaras: re-análisis de precios CO reales + corrección NVR
 - **Update**: `proyecto de camaras/plan-cameras-videoportero.md` — precios reales extraídos del DOM de MercadoLibre CO (C440 PoE COP 251.000-274.000; NVR1008H-8P COP 440.300-451.285; Shelly 1 Mini Gen3 COP 207.990 en ML / COP 152.777 en yaxa.co); WD Purple 2TB **y** cantonera Auta marcados como **agotados** en sus listings ML verificados, con alternativas pendientes de verificar (`MCO25566849` para el WD; MCO-2824732264 / MCO-1343252105 para la cantonera)

@@ -125,9 +125,9 @@
     "semantic_hash": "9bd25f44f8255f4a9af580f3b89bc797"
   },
   "db.cjs": {
-    "mtime": 1785932015.0863092,
-    "ast_hash": "9115838b60df265d4769a360112b0fbc",
-    "semantic_hash": "9115838b60df265d4769a360112b0fbc"
+    "mtime": 1786303617.0371745,
+    "ast_hash": "d299203f1045c982756a5c662b6d1b0e",
+    "semantic_hash": ""
   },
   "exportar-backup.ps1": {
     "mtime": 1784438500.3115952,
@@ -235,13 +235,13 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786253813.4370787,
-    "ast_hash": "3a6e204aa5f06ca13c68f5be8cf8f028",
+    "mtime": 1786303641.4251308,
+    "ast_hash": "7f516a163b8fb6d6cfe9b5606e7ba217",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1786003419.3270533,
-    "ast_hash": "175b749236f17802a845f8a1c07d691e",
+    "mtime": 1786305216.0310535,
+    "ast_hash": "6954c90545deedf53d531580ed517565",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
@@ -390,9 +390,9 @@
     "semantic_hash": "429688cf1006d5eb8b337df244be0c02"
   },
   "src/pages/Utilities.jsx": {
-    "mtime": 1785965936.5263498,
-    "ast_hash": "2d9da5210e015bac965013493c12106a",
-    "semantic_hash": "2d9da5210e015bac965013493c12106a"
+    "mtime": 1786303682.982684,
+    "ast_hash": "9539ccc18ab37ca5887853d886040b0b",
+    "semantic_hash": ""
   },
   "src/pages/WhatsAppContacts.jsx": {
     "mtime": 1785652742.017105,
@@ -500,8 +500,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1785970158.439669,
-    "ast_hash": "31f3cad151b07cb3fd0a16e5e800806f",
+    "mtime": 1786305189.0845814,
+    "ast_hash": "6cb3193cb596807f5be2e08ef799f2e5",
     "semantic_hash": ""
   },
   "capacitor-build.md": {
@@ -792,6 +792,11 @@
   "scripts/_scrape-diagnostic.cjs": {
     "mtime": 1786002957.6105096,
     "ast_hash": "9ec3ea6919cb4c177fba9bd319d99d7c",
+    "semantic_hash": ""
+  },
+  "scripts/test-water-scraper.cjs": {
+    "mtime": 1786305134.5646627,
+    "ast_hash": "87143c3af2f0ccd93c47bbe825b277a1",
     "semantic_hash": ""
   }
 }

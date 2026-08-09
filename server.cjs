@@ -1234,7 +1234,7 @@ function loadData() {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
-  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs'].forEach(k => { if (!db[k]) db[k] = []; });
+  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs', 'utilityRecords'].forEach(k => { if (!db[k]) db[k] = []; });
   if (pruneAuthSessions()) console.log('Expired authentication sessions removed');
   recalcNextId();
 }
@@ -1507,6 +1507,29 @@ const SERVICES_CONFIG = {
   electricity:{ id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List' },
 };
 
+function latestUtilityRecord(provider, apartment) {
+  const records = (db.utilityRecords || []).filter(record =>
+    record.provider === provider &&
+    (Number(record.apartmentId) === Number(apartment?.id) || record.apartment === apartment?.name)
+  );
+  return records.sort((a, b) => new Date(b.checkedAt || b.scrapedAt || b.updatedAt || 0) - new Date(a.checkedAt || a.scrapedAt || a.updatedAt || 0))[0] || null;
+}
+
+function utilityPaymentView(record) {
+  if (!record) return null;
+  const checkedAt = record.checkedAt || record.scrapedAt || record.updatedAt || null;
+  return {
+    status: record.status || 'unknown',
+    deudaCOP: record.deudaCOP === null || record.deudaCOP === undefined ? null : Number(record.deudaCOP) || 0,
+    numFacturas: Number(record.numFacturas) || 0,
+    factura: record.factura || record.invoiceNumber || null,
+    periodo: record.periodo || record.period || null,
+    actualizado: checkedAt,
+    checkedAt,
+    error: record.error || null,
+  };
+}
+
 // Get all utility records for an apartment (admin)
 app.get('/api/services/utility-records/:apartmentId', (req, res) => {
   const aptId = Number(req.params.apartmentId);
@@ -1534,6 +1557,7 @@ app.get('/api/utility-status', (req, res) => {
       (b.scrapedAt || '').localeCompare(a.scrapedAt || '') > 0 ? b : a
     ) : null;
 
+    const water = utilityPaymentView(latestUtilityRecord('Triple A', apt));
     return {
       id: apt.id,
       name: apt.name,
@@ -1546,8 +1570,7 @@ app.get('/api/utility-status', (req, res) => {
             scrapedAt: latest.scrapedAt,
           }
         : null,
-      // Triple A and Gases will be populated later
-      water: null,
+      water,
       gas: null,
     };
   });
@@ -1576,6 +1599,14 @@ app.post('/api/scrape-air-e', async (req, res) => {
   } catch (e) {
     console.error('[SCRAPE-AIR-E ERROR]', e.message);
   }
+});
+
+// Trigger a read-only Triple A water check. The browser request returns
+// immediately; the hourly scheduler and this manual endpoint share the same
+// overlap guard inside services-scraper.cjs.
+app.post('/api/scrape-water', (req, res) => {
+  res.json({ ok: true, message: 'Consulta de agua iniciada. Los resultados se guardarán en utilityRecords.' });
+  servicesScraper.runWaterScrapeOnce('manual').catch(error => console.error('[TRIPLE A MANUAL] Scrape error:', error.message));
 });
 
 // Public URL for services admin (for residents' individual link)
@@ -1616,7 +1647,7 @@ app.get('/api/public/utility-status/:apartmentId', (req, res) => {
         payCode: apt.electricityPaymentCode || apt.nic || '',
         payment: electricityInfo,
       },
-      water: { ...svcConfig.water, payCode: apt.waterPaymentCode || '' },
+      water: { ...svcConfig.water, payCode: apt.waterPaymentCode || '', payment: utilityPaymentView(latestUtilityRecord('Triple A', apt)) },
       gas: { ...svcConfig.gas, payCode: apt.gasPaymentCode || '' },
     },
   });

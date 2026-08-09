@@ -32,6 +32,34 @@ function timeAgo(iso) {
   return `hace ${Math.floor(h / 24)} d`;
 }
 
+function waterBillLabel(bill) {
+  if (!bill) return '';
+  if (bill.status === 'pending') {
+    if (Number(bill.deudaCOP) > 0) return `Deuda: $${Number(bill.deudaCOP).toLocaleString('es-CO')}`;
+    return 'Factura pendiente';
+  }
+  if (bill.status === 'paid') return 'Al día · Sin deuda';
+  if (bill.status === 'captcha') return 'Requiere verificación manual';
+  if (bill.status === 'timeout') return 'Consulta agotó el tiempo';
+  if (bill.status === 'error') return 'No se pudo consultar';
+  return 'Estado no identificado';
+}
+
+function waterBillClass(bill) {
+  if (bill?.status === 'pending' && Number(bill.deudaCOP) > 0) return 'text-red-600 dark:text-red-400';
+  if (bill?.status === 'paid') return 'text-emerald-600 dark:text-emerald-400';
+  return 'text-amber-600 dark:text-amber-400';
+}
+
+function waterBillMeta(bill) {
+  if (!bill) return '';
+  const parts = [];
+  if (bill.factura) parts.push(`factura ${bill.factura}`);
+  if (bill.periodo) parts.push(`periodo ${bill.periodo}`);
+  if (bill.actualizado) parts.push(`datos ${timeAgo(bill.actualizado)}`);
+  return parts.join(' · ');
+}
+
 const PORTALS = [
   { key: 'electricity', name: 'Energía', icon: Zap, url: 'https://portal.air-e.com/Login?returnurl=%2fMis-Facturas%2fListado-de-Facturas' },
   { key: 'water', name: 'Agua', icon: Droplets, url: 'https://portal.aaa.com.co/polizas' },
@@ -71,6 +99,8 @@ export default function Utilities() {
   const [debts, setDebts] = useState({});
   const [syncingNow, setSyncingNow] = useState(false);
   const [syncNote, setSyncNote] = useState('');
+  const [waterSyncingNow, setWaterSyncingNow] = useState(false);
+  const [waterSyncNote, setWaterSyncNote] = useState('');
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
   const scanTimerRef = useRef(null);
@@ -96,8 +126,9 @@ export default function Utilities() {
         const res = await fetch(getBase() + '/public/utility-status/' + apt.id, { signal: AbortSignal.timeout(8000) });
         if (!res.ok) return;
         const data = await res.json();
-        const pay = data?.services?.electricity?.payment;
-        if (pay) entries[apt.id] = pay;
+        const electricity = data?.services?.electricity?.payment;
+        const water = data?.services?.water?.payment;
+        if (electricity || water) entries[apt.id] = { electricity, water };
       } catch {}
     }));
     setDebts(entries);
@@ -131,6 +162,33 @@ export default function Utilities() {
     } catch {
       setSyncNote('No se pudo iniciar la sincronización. Verifica la conexión.');
       setSyncingNow(false);
+    }
+  }
+
+  async function handleWaterSync() {
+    if (waterSyncingNow) return;
+    setWaterSyncingNow(true);
+    setWaterSyncNote('Consultando enlaces QR de agua…');
+    try {
+      const res = await fetch(getBase() + '/scrape-water', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) {
+        setWaterSyncNote(res.status === 401 || res.status === 403 ? 'Sin permisos de administración para consultar agua.' : 'El servidor rechazó la consulta.');
+        setWaterSyncingNow(false);
+        return;
+      }
+      setWaterSyncNote('Consulta en curso; actualizando resultados…');
+      setTimeout(async () => {
+        try { await loadDebts(apartments); } catch {}
+        setWaterSyncingNow(false);
+        setWaterSyncNote('');
+      }, 30000);
+    } catch {
+      setWaterSyncNote('No se pudo iniciar la consulta de agua. Verifica la conexión.');
+      setWaterSyncingNow(false);
     }
   }
 
@@ -305,7 +363,11 @@ export default function Utilities() {
         <button onClick={handleSync} disabled={syncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg hover:from-purple-600 hover:to-violet-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
           <RefreshCw className={`w-3.5 h-3.5 ${syncingNow ? 'animate-spin' : ''}`} /> {syncingNow ? 'Sincronizando…' : 'Sync ahora'}
         </button>
+        <button onClick={handleWaterSync} disabled={waterSyncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
+          <Droplets className={`w-3.5 h-3.5 ${waterSyncingNow ? 'animate-pulse' : ''}`} /> {waterSyncingNow ? 'Consultando agua…' : 'Actualizar agua'}
+        </button>
         {syncNote && <span className="text-xs text-gray-500 dark:text-gray-400">{syncNote}</span>}
+        {waterSyncNote && <span className="text-xs text-gray-500 dark:text-gray-400">{waterSyncNote}</span>}
       </div>
       {syncingNow && (
         <p className="text-[11px] text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg px-3 py-2">
@@ -344,12 +406,19 @@ export default function Utilities() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{s.name}</p>
                       {code && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{s.codeLabel}: <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{code}</span></p>}
-                      {svc === 'electricity' && debts[apt.id] && (
-                        <p className={`text-xs font-semibold mt-1 ${debts[apt.id].deudaCOP > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                          {debts[apt.id].deudaCOP > 0
-                            ? <>Deuda: <span className="font-bold">${Number(debts[apt.id].deudaCOP).toLocaleString('es-CO')}</span> · {debts[apt.id].numFacturas} {debts[apt.id].numFacturas === 1 ? 'factura' : 'facturas'}</>
+                      {svc === 'water' && debts[apt.id]?.water && (
+                        <p className={`text-xs font-semibold mt-1 ${waterBillClass(debts[apt.id].water)}`}>
+                          {waterBillLabel(debts[apt.id].water)}
+                          {debts[apt.id].water.status === 'pending' && debts[apt.id].water.numFacturas > 0 && ` · ${debts[apt.id].water.numFacturas} ${debts[apt.id].water.numFacturas === 1 ? 'factura' : 'facturas'}`}
+                          {waterBillMeta(debts[apt.id].water) && <span className="text-gray-400 dark:text-gray-500 font-normal"> · {waterBillMeta(debts[apt.id].water)}</span>}
+                        </p>
+                      )}
+                      {svc === 'electricity' && debts[apt.id]?.electricity && (
+                        <p className={`text-xs font-semibold mt-1 ${debts[apt.id].electricity.deudaCOP > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          {debts[apt.id].electricity.deudaCOP > 0
+                            ? <>Deuda: <span className="font-bold">${Number(debts[apt.id].electricity.deudaCOP).toLocaleString('es-CO')}</span> · {debts[apt.id].electricity.numFacturas} {debts[apt.id].electricity.numFacturas === 1 ? 'factura' : 'facturas'}</>
                             : 'Al día · Sin deuda'}
-                          <span className="text-gray-400 dark:text-gray-500 font-normal"> · datos {timeAgo(debts[apt.id].actualizado)}</span>
+                          <span className="text-gray-400 dark:text-gray-500 font-normal"> · datos {timeAgo(debts[apt.id].electricity.actualizado)}</span>
                         </p>
                       )}
                     </div>

@@ -13,6 +13,7 @@ const INITIAL_DATA = {
   settings: [],
   passwords: [],
   portalCredentials: [],
+  utilityRecords: [],
   photos: [],
   messages: [],
   presence: [],

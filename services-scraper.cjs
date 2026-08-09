@@ -1,7 +1,7 @@
 /**
  * services-scraper.cjs
  *
- * Automated 24h checker for public service bills (Air-e, Triple A, Gases del Caribe).
+ * Automated checker for public service bills (Air-e, Triple A, Gases del Caribe).
  * Uses puppeteer-core + @sparticuz/chromium (lightweight Chromium for Render).
  */
 
@@ -72,9 +72,14 @@ const AIR_E_NIC_MAP = {
 let db = null;
 let saveData = null;
 let lastScrapeError = null;
+let lastWaterScrapeError = null;
 
 function getLastScrapeError() {
   return lastScrapeError;
+}
+
+function getLastWaterScrapeError() {
+  return lastWaterScrapeError;
 }
 
 function init(dbRef, saveFn) {
@@ -116,6 +121,196 @@ async function waitAndType(page, selector, text) {
   await page.click(selector);
   await page.evaluate((s) => { const el = document.querySelector(s); if (el) el.value = ''; }, selector);
   await page.type(selector, text, { delay: 50 });
+}
+
+// ── TRIPLE A WATER BILL SCRAPER ─────────────────────────────────────────────
+//
+// The URL saved from the apartment's QR code is treated as a read-only page.
+// We never click a payment action and we do not submit credentials.  Triple A
+// has used more than one page layout, so the parser deliberately relies on
+// visible text and labels instead of brittle CSS selectors.
+
+const WATER_TIMEOUT_MS = 30000;
+const WATER_WORKERS = 3;
+const WATER_SCRAPE_CRON = '0 * * * *';
+
+function normalizeBillText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseCopAmount(raw) {
+  let value = String(raw || '').replace(/[^0-9,.-]/g, '').replace(/-/g, '');
+  if (!value) return null;
+
+  if (value.includes(',') && value.includes('.')) {
+    // Colombian format: 123.456,78.  The invoice values we display are COP,
+    // so cents are discarded after normalizing the thousands separator.
+    value = value.replace(/\./g, '').replace(',', '.');
+  } else if (value.includes(',')) {
+    const parts = value.split(',');
+    value = parts[parts.length - 1].length === 2 ? `${parts.slice(0, -1).join('')}.${parts[parts.length - 1]}` : parts.join('');
+  } else if (value.includes('.')) {
+    value = value.replace(/\./g, '');
+  }
+
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.round(amount) : null;
+}
+
+function extractWaterAmount(text) {
+  const labeled = text.match(/(?:saldo|deuda|total\s+(?:a\s+)?pagar|valor\s+(?:a\s+)?pagar|importe|monto)[^$0-9]{0,50}(?:\$\s*|COP\s*)?([0-9][0-9.,]*)\s*(?:COP|pesos)?/i);
+  const labeledAmount = parseCopAmount(labeled?.[1]);
+  if (labeledAmount !== null) return labeledAmount;
+
+  const matches = [...text.matchAll(/(?:\$\s*|COP\s*)([0-9][0-9.,]*)\s*(?:COP|pesos)?/gi)]
+    .map(match => parseCopAmount(match[1]))
+    .filter(amount => amount !== null);
+  return matches.length ? Math.max(...matches) : null;
+}
+
+function extractWaterInvoice(text) {
+  const matches = [...text.matchAll(/(?:factura|recibo)\s*(?:n(?:umero|o\.?|ro\.?)\s*)?[:#-]?\s*([A-Z0-9][A-Z0-9/-]{3,})/gi)];
+  const value = matches.map(match => match[1]).find(candidate => !/^(pendiente|pagada?|vencida?)$/i.test(candidate));
+  return value || null;
+}
+
+function extractWaterPeriod(text) {
+  const match = text.match(/(?:periodo|per[ií]odo|mes\s+facturado|ciclo)[^0-9]{0,20}((?:20\d{2}[-/]\d{1,2})|(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+20\d{2})/i);
+  return match?.[1] || null;
+}
+
+function parseWaterBillPage(pageText) {
+  const text = normalizeBillText(pageText);
+  const normalized = text.toLowerCase();
+  const captcha = /captcha|recaptcha|verificacion en dos pasos|codigo de verificacion|no soy un robot/.test(normalized);
+  const accessWall = /iniciar sesion|iniciar sesión|usuario|contrasena|contraseña|login/.test(normalized) &&
+    !/factura|saldo|deuda|pago/.test(normalized);
+  const amount = extractWaterAmount(text);
+  const noDebtText = normalized.replace(/sin deuda|no hay deuda|sin saldo pendiente/g, '');
+  const pending = /pendiente|por pagar|vencid[ao]|no pagad[ao]|deuda/.test(noDebtText);
+  const paid = /pagad[ao]|al dia|cancelad[ao]|sin deuda|no hay deuda|saldo\s*\$?\s*0\b/.test(normalized);
+
+  let status = 'unknown';
+  let error = null;
+  if (captcha) {
+    status = 'captcha';
+    error = 'El portal de Triple A requiere CAPTCHA o verificación manual.';
+  } else if (accessWall) {
+    status = 'error';
+    error = 'El enlace de Triple A requiere autenticación.';
+  } else if (amount !== null && amount > 0) {
+    status = 'pending';
+  } else if (amount === 0 || (paid && !pending)) {
+    status = 'paid';
+  } else if (pending) {
+    status = 'pending';
+  }
+
+  return {
+    status,
+    deudaCOP: amount,
+    factura: extractWaterInvoice(text),
+    periodo: extractWaterPeriod(text),
+    error,
+  };
+}
+
+function waterTarget(apartment) {
+  const url = String(apartment?.waterPaymentUrl || '').trim();
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+  } catch {
+    return null;
+  }
+  return { apartmentId: apartment.id, apartment: apartment.name, waterPaymentUrl: url, waterPaymentCode: apartment.waterPaymentCode || null };
+}
+
+function waterRecord(target, parsed, checkedAt = new Date().toISOString()) {
+  return {
+    provider: 'Triple A',
+    service: 'water',
+    apartmentId: target.apartmentId,
+    apartment: target.apartment,
+    waterPaymentUrl: target.waterPaymentUrl,
+    waterPaymentCode: target.waterPaymentCode,
+    status: parsed.status,
+    deudaCOP: parsed.deudaCOP,
+    numFacturas: parsed.status === 'pending' ? 1 : 0,
+    factura: parsed.factura || null,
+    periodo: parsed.periodo || null,
+    error: parsed.error || null,
+    checkedAt,
+    scrapedAt: checkedAt,
+  };
+}
+
+function waterNavigationError(target, error, checkedAt = new Date().toISOString()) {
+  const message = String(error?.message || error || 'Error desconocido al consultar Triple A');
+  const status = /timeout|timed out|tard[oó].*demasiado/i.test(message) ? 'timeout' : 'error';
+  return waterRecord(target, { status, deudaCOP: null, error: message }, checkedAt);
+}
+
+async function scrapeWaterBills(apartments = db?.apartments || [], browserFactory = launchBrowser) {
+  const targets = (apartments || []).map(waterTarget).filter(Boolean);
+  if (!targets.length) {
+    lastWaterScrapeError = null;
+    console.log('[TRIPLE A] No hay URLs QR de agua configuradas.');
+    return [];
+  }
+
+  let browser;
+  const results = new Array(targets.length);
+  try {
+    lastWaterScrapeError = null;
+    console.log(`[TRIPLE A] Consultando ${targets.length} enlace(s) QR de agua...`);
+    browser = await browserFactory();
+    let nextIndex = 0;
+    const worker = async () => {
+      while (true) {
+        const index = nextIndex++;
+        if (index >= targets.length) return;
+        const target = targets[index];
+        const checkedAt = new Date().toISOString();
+        let page;
+        try {
+          page = await browser.newPage();
+          page.setDefaultNavigationTimeout?.(WATER_TIMEOUT_MS);
+          const response = await page.goto(target.waterPaymentUrl, { waitUntil: 'networkidle2', timeout: WATER_TIMEOUT_MS });
+          if (response && response.status() >= 400) throw new Error(`El portal respondió HTTP ${response.status()}`);
+          await sleep(1200);
+          const pageText = await page.evaluate(() => document.body?.innerText || document.documentElement?.innerText || '');
+          if (!pageText.trim()) throw new Error('El enlace de Triple A no devolvió contenido visible.');
+          const parsed = parseWaterBillPage(pageText);
+          if (parsed.status === 'unknown') parsed.error = 'No se pudo identificar el estado de la factura en el portal.';
+          results[index] = waterRecord(target, parsed, checkedAt);
+          console.log(`[TRIPLE A] ${target.apartment || target.apartmentId}: ${parsed.status}${parsed.deudaCOP !== null ? ` ($${parsed.deudaCOP.toLocaleString('es-CO')})` : ''}`);
+        } catch (error) {
+          results[index] = waterNavigationError(target, error, checkedAt);
+          lastWaterScrapeError = error.message;
+          console.error(`[TRIPLE A] ${target.apartment || target.apartmentId}: ${error.message}`);
+        } finally {
+          if (page) await page.close().catch(() => {});
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(WATER_WORKERS, targets.length) }, worker));
+  } catch (error) {
+    lastWaterScrapeError = error.message;
+    console.error('[TRIPLE A] SCRAPER ERROR:', error.message);
+    for (let index = 0; index < targets.length; index++) {
+      if (!results[index]) results[index] = waterNavigationError(targets[index], error);
+    }
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+  }
+
+  return results.filter(Boolean);
 }
 
 // ── AIR-E SCRAPER ──────────────────────────────────────────────────────────
@@ -288,31 +483,98 @@ async function scrapeAirE() {
 // ── SCHEDULER ──────────────────────────────────────────────────────────────
 
 let cronJob = null;
+let waterCronJob = null;
 let bootTimer = null;
+let waterBootTimer = null;
+let airEScrapePromise = null;
+let waterScrapePromise = null;
 
 function runScrapeOnce(reason) {
-  console.log(`[SERVICES] Running scrape (${reason})...`);
-  return scrapeAirE()
-    .then((results) => {
-      if (db && saveData) persistResults(results);
+  if (airEScrapePromise) {
+    console.log('[SERVICES] Air-e scrape already running; skipping overlapping run.');
+    return airEScrapePromise;
+  }
+  airEScrapePromise = (async () => {
+    console.log(`[SERVICES] Running Air-e scrape (${reason})...`);
+    try {
+      const results = await scrapeAirE();
+      if (db && saveData && results.length) persistResults(results);
       return results;
-    })
-    .catch((e) => console.error('[SERVICES] Scrape error:', e.message));
+    } catch (e) {
+      console.error('[SERVICES] Air-e scrape error:', e.message);
+      return [];
+    } finally {
+      airEScrapePromise = null;
+    }
+  })();
+  return airEScrapePromise;
+}
+
+function persistWaterResults(results) {
+  if (!db || !results?.length) return;
+  if (!Array.isArray(db.utilityRecords)) db.utilityRecords = [];
+
+  for (const result of results) {
+    const idx = db.utilityRecords.findIndex(record =>
+      record.provider === 'Triple A' && record.service === 'water' &&
+      (Number(record.apartmentId) === Number(result.apartmentId) || record.apartment === result.apartment)
+    );
+    if (idx >= 0) db.utilityRecords[idx] = { ...db.utilityRecords[idx], ...result };
+    else db.utilityRecords.push(result);
+  }
+  saveData?.();
+  console.log(`[SERVICES] Persisted ${results.length} Triple A water record(s).`);
+}
+
+function runWaterScrapeOnce(reason) {
+  if (waterScrapePromise) {
+    console.log('[SERVICES] Triple A water scrape already running; skipping overlapping run.');
+    return waterScrapePromise;
+  }
+  waterScrapePromise = (async () => {
+    console.log(`[SERVICES] Running Triple A water scrape (${reason})...`);
+    try {
+      const results = await scrapeWaterBills();
+      if (db && saveData && results.length) persistWaterResults(results);
+      return results;
+    } catch (e) {
+      console.error('[SERVICES] Triple A water scrape error:', e.message);
+      return [];
+    } finally {
+      waterScrapePromise = null;
+    }
+  })();
+  return waterScrapePromise;
 }
 
 function startScheduler() {
-  if (cronJob) return;
-  const intervalHours = Math.max(1, Number(process.env.SERVICES_SCRAPE_INTERVAL_HOURS || 24));
-  console.log(`[SERVICES] Starting scheduler (every ${intervalHours}h + on boot)...`);
+  if (cronJob || waterCronJob) return;
+  const intervalHours = Math.max(1, Math.floor(Number(process.env.SERVICES_SCRAPE_INTERVAL_HOURS || 24)));
+  const timezone = process.env.SERVICES_TIMEZONE || 'America/Bogota';
+  console.log(`[SERVICES] Starting scheduler (Triple A every hour; Air-e every ${intervalHours}h; timezone ${timezone})...`);
 
   // Scrape shortly after boot so every deploy refreshes the debt data even
   // though Render free instances sleep between requests (cron alone would
   // never fire while the instance is asleep).
-  bootTimer = setTimeout(() => runScrapeOnce('boot'), 60 * 1000);
+  waterBootTimer = setTimeout(() => runWaterScrapeOnce('boot'), 60 * 1000);
+  if (waterBootTimer.unref) waterBootTimer.unref();
+  bootTimer = setTimeout(() => runScrapeOnce('boot'), 120 * 1000);
   if (bootTimer.unref) bootTimer.unref();
 
   // node-cron fires on the hour while the instance is awake.
-  cronJob = cron.schedule(`0 */${intervalHours} * * *`, () => runScrapeOnce('schedule'));
+  waterCronJob = cron.schedule(WATER_SCRAPE_CRON, () => runWaterScrapeOnce('schedule'), { timezone });
+  cronJob = cron.schedule(`0 */${intervalHours} * * *`, () => runScrapeOnce('schedule'), { timezone });
+}
+
+function stopScheduler() {
+  cronJob?.stop();
+  waterCronJob?.stop();
+  cronJob = null;
+  waterCronJob = null;
+  if (bootTimer) clearTimeout(bootTimer);
+  if (waterBootTimer) clearTimeout(waterBootTimer);
+  bootTimer = null;
+  waterBootTimer = null;
 }
 
 function persistResults(results) {
@@ -340,6 +602,15 @@ function persistResults(results) {
 module.exports = {
   init,
   scrapeAirE,
+  scrapeWaterBills,
+  parseWaterBillPage,
+  waterNavigationError,
+  persistWaterResults,
+  runWaterScrapeOnce,
   startScheduler,
+  stopScheduler,
   AIR_E_NIC_MAP,
+  WATER_SCRAPE_CRON,
+  getLastScrapeError,
+  getLastWaterScrapeError,
 };
