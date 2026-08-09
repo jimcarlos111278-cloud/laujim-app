@@ -170,8 +170,8 @@
     "semantic_hash": "df8481c2a365eb0e981dcc791222efd1"
   },
   "package.json": {
-    "mtime": 1785969884.3371127,
-    "ast_hash": "a1cbdb2eccbc16ca06012d272cf1c480",
+    "mtime": 1786309780.163597,
+    "ast_hash": "9f39d7140ec3a62886fdbe37d82aaa94",
     "semantic_hash": ""
   },
   "public/app-version.json": {
@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786303641.4251308,
-    "ast_hash": "7f516a163b8fb6d6cfe9b5606e7ba217",
+    "mtime": 1786309780.132241,
+    "ast_hash": "094c4ac23dc3770b07117bfc56cd57a4",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -500,8 +500,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1786305189.0845814,
-    "ast_hash": "6cb3193cb596807f5be2e08ef799f2e5",
+    "mtime": 1786309780.1856146,
+    "ast_hash": "66ef258ccf97153d0ce9cc3c6100c7aa",
     "semantic_hash": ""
   },
   "capacitor-build.md": {
@@ -760,8 +760,8 @@
     "semantic_hash": ""
   },
   "scripts/setup-graphify-hooks.cjs": {
-    "mtime": 1785969896.841095,
-    "ast_hash": "6c718f25f8bd153e14a2fe28257e5531",
+    "mtime": 1786309780.1552012,
+    "ast_hash": "0d675f15eac521ade4180efc7c2dbf4c",
     "semantic_hash": ""
   },
   "_head_server.cjs": {
@@ -797,6 +797,21 @@
   "scripts/test-water-scraper.cjs": {
     "mtime": 1786308150.458728,
     "ast_hash": "d9c3cd519cb0c56dfe8b98996f330a26",
+    "semantic_hash": ""
+  },
+  "hooks/pre-push": {
+    "mtime": 1786309780.1531882,
+    "ast_hash": "6defeb77201a5dcdc8ceeb31cfdd53a3",
+    "semantic_hash": ""
+  },
+  "scripts/sync-aiven-before-push.cjs": {
+    "mtime": 1786309780.151178,
+    "ast_hash": "35621c3747330e28970820ada667fd7a",
+    "semantic_hash": ""
+  },
+  ".opencode/agents/build.md": {
+    "mtime": 1786311248.240878,
+    "ast_hash": "b37d057cd359098e107212889ff0a3d5",
     "semantic_hash": ""
   }
 }

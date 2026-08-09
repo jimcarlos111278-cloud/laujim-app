@@ -1166,6 +1166,7 @@ async function handleCloudInbound(message) {
 
 // ─── PostgreSQL persistence ───
 let pgPool = null;
+let pgSaveChain = Promise.resolve();
 
 async function initPostgres() {
   // Blueprint-managed DATABASE_URL can still point at a deleted Render
@@ -1208,17 +1209,36 @@ async function loadFromPostgres() {
 async function saveToPostgres() {
   if (!pgPool) return;
   const now = new Date().toISOString();
-  await pgPool.query(
-    'INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
-    ['database', JSON.stringify(db)]
-  );
-  // A separate meta row records when the snapshot was written so the startup
-  // logic can tell which source (Aiven vs. local file) is newer and never let
-  // a stale local snapshot overwrite a live Aiven store.
-  await pgPool.query(
-    'INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
-    ['database_meta', JSON.stringify({ updatedAt: now })]
-  );
+  const client = await pgPool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      'INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+      ['database', JSON.stringify(db)]
+    );
+    // Keep the data and its timestamp in one transaction. A deploy must never
+    // observe a database row from one save and metadata from another.
+    await client.query(
+      'INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+      ['database_meta', JSON.stringify({ updatedAt: now })]
+    );
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+function queuePostgresSave() {
+  // Serialize writes so a burst of page edits cannot finish out of order and
+  // leave Aiven with an older snapshot than the last change in memory.
+  pgSaveChain = pgSaveChain
+    .catch(() => {})
+    .then(() => saveToPostgres())
+    .catch(error => console.error('PG save error:', error.message));
+  return pgSaveChain;
 }
 
 function loadData() {
@@ -1250,17 +1270,6 @@ function recalcNextId() {
   });
 }
 
-// Newest modification time among the local snapshot files, or null when none
-// exist. Used at startup to decide whether the local snapshot is newer than
-// the Aiven store before seeding it.
-function localSnapshotUpdatedAt() {
-  let latest = 0;
-  for (const file of [DATA_FILE, BACKUP_FILE]) {
-    try { latest = Math.max(latest, fs.statSync(file).mtimeMs); } catch {}
-  }
-  return latest > 0 ? new Date(latest).toISOString() : null;
-}
-
 let dataVersion = Date.now();
 
 function saveData() {
@@ -1269,7 +1278,7 @@ function saveData() {
   fs.writeFileSync(DATA_FILE, json, 'utf-8');
   fs.writeFileSync(BACKUP_FILE, json, 'utf-8');
   if (pgPool) {
-    saveToPostgres().catch(e => console.error('PG save error:', e.message));
+    queuePostgresSave();
   }
 }
 
@@ -2516,22 +2525,12 @@ app.use((req, res) => {
       if (await initPostgres()) {
         const pgData = await loadFromPostgres();
         if (pgData?.data) {
-          // Prefer the newest source. Aiven is the durable store, but a local
-          // snapshot written after the last Aiven save (e.g. file-mode edits)
-          // must win instead of being discarded.
-          const localAt = localSnapshotUpdatedAt();
-          const pgAt = pgData.updatedAt || null;
-          const localIsNewer = localAt && (!pgAt || new Date(localAt).getTime() > new Date(pgAt).getTime());
-          if (localIsNewer) {
-            loadData();
-            recalcNextId();
-            console.log('Local snapshot is newer than Aiven; using local data.');
-            try { await saveToPostgres(); } catch (e) { console.error('PG save error:', e.message); }
-          } else {
-            db = pgData.data;
-            recalcNextId();
-            console.log('Data loaded from PostgreSQL');
-          }
+          // Aiven is the durable source of truth. File mtimes are not reliable
+          // after a Render checkout: a stale tracked JSON gets a fresh mtime
+          // and would otherwise overwrite newer production data on every deploy.
+          db = pgData.data;
+          recalcNextId();
+          console.log('Data loaded from PostgreSQL (Aiven is source of truth)');
           loaded = true;
         }
       }

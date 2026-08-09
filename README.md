@@ -642,7 +642,9 @@ startServer()
   └─► saveData(): escribe JSON file + fire-and-forget saveToPostgres()
 ```
 
-Cada `saveData()` escribe tanto en `data/database.json` como en PostgreSQL (fire-and-forget, no bloquea). Al arrancar, PostgreSQL tiene prioridad sobre el archivo JSON.
+Cada `saveData()` escribe tanto en `data/database.json` como en PostgreSQL. Las escrituras a PostgreSQL se serializan y se confirman en una transacción para que el último estado no quede detrás de una escritura anterior. Al arrancar, PostgreSQL/Aiven siempre tiene prioridad sobre el archivo JSON; el timestamp del checkout no puede hacer que un snapshot viejo reemplace los datos durables.
+
+Antes de cada push ejecuta `npm run sync:aiven:pre-push`. El comando verifica la conexión Aiven y sincroniza el archivo local solo si cambió intencionalmente; si no hay `AIVEN_DATABASE_URL` o la verificación falla, el push debe detenerse. También puede instalarse el hook automático con `node scripts/setup-graphify-hooks.cjs`.
 
 ### Configuración SSL
 

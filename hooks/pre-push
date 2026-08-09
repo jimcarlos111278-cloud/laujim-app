@@ -1,0 +1,5 @@
+#!/bin/sh
+# Nunca subas código sin verificar/sincronizar el estado durable de Aiven.
+set -eu
+
+node scripts/sync-aiven-before-push.cjs
