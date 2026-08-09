@@ -281,7 +281,11 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
         try {
           page = await browser.newPage();
           page.setDefaultNavigationTimeout?.(WATER_TIMEOUT_MS);
-          const response = await page.goto(target.waterPaymentUrl, { waitUntil: 'networkidle2', timeout: WATER_TIMEOUT_MS });
+          // Triple A keeps analytics/long-running requests open, so waiting for
+          // networkidle2 makes every valid QR URL hit the 30s timeout. The
+          // invoice content is available after the document is parsed; do not
+          // make the result depend on the whole network becoming idle.
+          const response = await page.goto(target.waterPaymentUrl, { waitUntil: 'domcontentloaded', timeout: WATER_TIMEOUT_MS });
           if (response && response.status() >= 400) throw new Error(`El portal respondió HTTP ${response.status()}`);
           await sleep(1200);
           const pageText = await page.evaluate(() => document.body?.innerText || document.documentElement?.innerText || '');

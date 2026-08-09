@@ -20,12 +20,13 @@ function testParserStates() {
 
 async function testBrowserAndPersistence() {
   const pages = [];
+  let navigationOptions = null;
   const fakeBrowser = {
     async newPage() {
       const page = {
         url: '',
         setDefaultNavigationTimeout() {},
-        async goto(url) { this.url = url; return { status: () => 200 }; },
+        async goto(url, options) { this.url = url; navigationOptions = options; return { status: () => 200 }; },
         async evaluate() { return 'Factura pagada. Saldo: $0. Periodo 2026-08'; },
         async close() { pages.push(this.url); },
       };
@@ -39,6 +40,7 @@ async function testBrowserAndPersistence() {
   assert.equal(results.length, 1);
   assert.equal(results[0].status, 'paid');
   assert.equal(results[0].apartmentId, 1);
+  assert.equal(navigationOptions.waitUntil, 'domcontentloaded');
   assert.equal(pages.length, 1);
   assert.equal(fakeBrowser.closed, true);
 
