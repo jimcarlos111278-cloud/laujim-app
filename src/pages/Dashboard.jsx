@@ -417,7 +417,7 @@ async function handleSyncReminders() {
             Ya deberían estar pagos — {currentMonthLabel}
           </h3>
           <SortHeader />
-          <div className="space-y-2 sm:hidden">
+<div className="space-y-2 sm:hidden">
             {sortedOverdue.map(a => <DuePaymentCard key={a.id} apartment={a} overdue />)}
           </div>
           <div className="hidden space-y-2 sm:block">
@@ -425,44 +425,49 @@ async function handleSyncReminders() {
               const isPaid = a.paidThisPeriod;
               const payment = a.periodPayment;
               return (
-                <div key={a.id} className={`flex items-center justify-between p-3 rounded-lg text-sm transition-colors ${isPaid ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
-                  <div className="flex items-center gap-3 flex-1">
-                    <Link to={`/apartments/${a.id}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
-                    {isPaid ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
-                        <CheckCircle2 className="w-3 h-3" /> Pagado {payment ? formatShortDate(payment.date) : ''}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">
-                        <XCircle className="w-3 h-3" /> Atrasado
-                      </span>
-                    )}
+                <div key={a.id} className={`p-3 rounded-lg text-sm transition-colors ${isPaid ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Link to={`/apartments/${a.id}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
+                      {isPaid ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
+                          <CheckCircle2 className="w-3 h-3" /> Pagado {payment ? formatShortDate(payment.date) : ''}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                          <XCircle className="w-3 h-3" /> Atrasado
+                        </span>
+                      )}
+                    </div>
+                    <span className="shrink-0 font-medium text-gray-700 dark:text-gray-200">{formatCurrency(a.rent)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)} · {formatCurrency(a.rent)}</span>
-                    {a.tenant?.phone && (
-                      <>
-                        <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
-                          WhatsApp
-                        </a>
-                        <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                          Llamar
-                        </a>
-                      </>
-                    )}
-                    {isPaid && payment && (
-                      <button onClick={() => setConfirmDelete(payment)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar pago">
-                        <Trash2 className="w-3.5 h-3.5" />
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-black/5 pt-2 dark:border-white/10">
+                    <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)}</span>
+                    <div className="flex items-center gap-2">
+                      {a.tenant?.phone && (
+                        <>
+                          <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                            WhatsApp
+                          </a>
+                          <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                            Llamar
+                          </a>
+                        </>
+                      )}
+                      {isPaid && payment && (
+                        <button onClick={() => setConfirmDelete(payment)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar pago">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {!isPaid && (
+                        <button onClick={() => openPayModal(a)} className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                          Pagar
+                        </button>
+                      )}
+                      <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
+                        <AlertOctagon className="w-3 h-3" /> Imprevistos
                       </button>
-                    )}
-                    {!isPaid && (
-                      <button onClick={() => openPayModal(a)} className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
-                        Pagar
-                      </button>
-                    )}
-                    <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
-                      <AlertOctagon className="w-3 h-3" /> Imprevistos
-                    </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -481,32 +486,38 @@ async function handleSyncReminders() {
           <div className="space-y-2 sm:hidden">
             {sortedThisMonth.map(a => <DuePaymentCard key={a.id} apartment={a} />)}
           </div>
-          <div className="hidden space-y-2 sm:block">
+<div className="hidden space-y-2 sm:block">
             {sortedThisMonth.map(a => (
-              <div key={a.id} className={`flex items-center justify-between p-3 rounded-lg text-sm transition-colors ${a.daysLeft <= 1 ? 'bg-red-50' : a.daysLeft <= 5 ? 'bg-amber-50' : 'bg-gray-50'}`}>
-                <Link to={`/apartments/${a.id}`} className="flex-1 font-medium text-gray-900 hover:underline">{a.name}</Link>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => addCalendarReminder(a.name, a.paymentDueDay)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Recordatorio">
-                    <Bell className="w-3.5 h-3.5" />
-                  </button>
-                  {a.tenant?.phone && (
-                    <>
-                      <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
-                        WhatsApp
-                      </a>
-                      <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                        Llamar
-                      </a>
-                    </>
-                  )}
-                  <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)}</span>
-                  <span className="font-medium text-gray-700">{formatCurrency(a.rent)}</span>
-                  <button onClick={() => openPayModal(a)} className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-                    Pagar
-                  </button>
-                  <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
-                    <AlertOctagon className="w-3 h-3" /> Imprevistos
-                  </button>
+              <div key={a.id} className={`p-3 rounded-lg text-sm transition-colors ${a.daysLeft <= 1 ? 'bg-red-50' : a.daysLeft <= 5 ? 'bg-amber-50' : 'bg-gray-50'}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <Link to={`/apartments/${a.id}`} className="min-w-0 font-medium text-gray-900 hover:underline">{a.name}</Link>
+                  <span className="shrink-0 font-medium text-gray-700 dark:text-gray-200">{formatCurrency(a.rent)}</span>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-black/5 pt-2 dark:border-white/10">
+                  <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <Bell className="w-3.5 h-3.5" /> {formatRelativeDueDate(a.paymentDueDay)}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => addCalendarReminder(a.name, a.paymentDueDay)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Recordatorio">
+                      <Bell className="w-3.5 h-3.5" />
+                    </button>
+                    {a.tenant?.phone && (
+                      <>
+                        <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                          WhatsApp
+                        </a>
+                        <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                          Llamar
+                        </a>
+                      </>
+                    )}
+                    <button onClick={() => openPayModal(a)} className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                      Pagar
+                    </button>
+                    <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
+                      <AlertOctagon className="w-3 h-3" /> Imprevistos
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -605,15 +616,30 @@ async function handleSyncReminders() {
       <Modal open={!!showPay && payStep === 'period'} onClose={() => { setShowPay(null); setPayStep('period'); }} title={`Pago — ${showPay?.name || ''}`}>
         <div className="space-y-3">
           <p className="text-sm text-gray-600">¿A qué período corresponde este pago?</p>
-          <button onClick={() => handlePeriodSelect(getCurrentPeriod())} className="w-full p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700 font-medium hover:bg-blue-100 transition-colors text-left">
-            <CalendarCheck className="w-5 h-5 mb-1" />
-            Mes actual: {currentMonthLabel}
-            <p className="text-xs text-blue-500 font-normal mt-0.5">Vence día {showPay?.paymentDueDay} — {formatCurrency(showPay?.rent || 0)}</p>
-          </button>
-          <button onClick={() => handlePeriodSelect(nextPeriod(getCurrentPeriod()))} className="w-full p-4 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-700 font-medium hover:bg-purple-100 transition-colors text-left">
-            <CalendarCheck className="w-5 h-5 mb-1" />
-            Próximo mes: {nextMonthLabel}
-            <p className="text-xs text-purple-500 font-normal mt-0.5">Vence día {showPay?.paymentDueDay} — {formatCurrency(showPay?.rent || 0)}</p>
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50 p-2">
+            <button type="button" onClick={() => setPayPeriod(prevPeriod(payPeriod))} className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-800 transition-colors" aria-label="Mes anterior"><ChevronLeft className="w-5 h-5" /></button>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-gray-900 capitalize">{getPeriodLabel(payPeriod)}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Vence día {showPay?.paymentDueDay} — {formatCurrency(showPay?.rent || 0)}</p>
+            </div>
+            <button type="button" onClick={() => setPayPeriod(nextPeriod(payPeriod))} className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-800 transition-colors" aria-label="Mes siguiente"><ChevronRight className="w-5 h-5" /></button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => handlePeriodSelect(getCurrentPeriod())} className="flex-1 min-w-[120px] p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700 font-medium hover:bg-blue-100 transition-colors text-left">
+              <CalendarCheck className="w-4 h-4 mb-1" />
+              Mes actual
+            </button>
+            <button onClick={() => handlePeriodSelect(prevPeriod(getCurrentPeriod()))} className="flex-1 min-w-[120px] p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-medium hover:bg-red-100 transition-colors text-left">
+              <CalendarCheck className="w-4 h-4 mb-1" />
+              Mes anterior
+            </button>
+            <button onClick={() => handlePeriodSelect(nextPeriod(getCurrentPeriod()))} className="flex-1 min-w-[120px] p-3 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-700 font-medium hover:bg-purple-100 transition-colors text-left">
+              <CalendarCheck className="w-4 h-4 mb-1" />
+              Próximo mes
+            </button>
+          </div>
+          <button onClick={() => handlePeriodSelect(payPeriod)} className="w-full p-3 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors">
+            Continuar con {getPeriodLabel(payPeriod)}
           </button>
         </div>
       </Modal>

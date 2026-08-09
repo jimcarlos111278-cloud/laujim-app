@@ -861,6 +861,137 @@ function isCloudAdminPhone(phone) {
   return cloudAdminPhones().some(admin => samePhone(admin, phone));
 }
 
+// Interactive buttons only work inside the 24-hour customer service window.
+// The admin always writes first, so the window is open when this runs.
+async function sendCloudAdminMenu(phone) {
+  try {
+    await sendCloudInteractiveButtons(phone, '🤖 Menú de administración — elige una opción:', [
+      { id: 'menu_morosos', title: '📋 Morosos' },
+      { id: 'menu_validar', title: '⏳ Validar pagos' },
+      { id: 'menu_servicios', title: '💧 Servicios' },
+    ]);
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] admin menu error:', error.message);
+    await sendCloudText(phone, '🤖 Comandos admin:\n• "cobros" / "deuda" / "morosos" → reporte de pagos\n• "validar" → comprobantes pendientes\n• "servicios" → referencias de pago de servicios\n• "APROBAR <apto>" / "RECHAZAR <apto>" → validar un pago');
+  }
+}
+
+// Payment references (NIC, póliza, contrato) and payment links for a given
+// apartment, used by the "Servicios" admin flow.
+async function sendCloudServicesInfo(phone, aptRef) {
+  const ref = String(aptRef || '').trim();
+  const digits = ref.replace(/\D/g, '');
+  const apartment = (db.apartments || []).find(a =>
+    String(a.name).toLowerCase() === ref.toLowerCase() ||
+    String(a.id) === ref ||
+    (digits && String(a.name).replace(/\D/g, '') === digits)
+  );
+  if (!apartment) {
+    await sendCloudText(phone, `No encontré el apartamento "${ref}". Escribe solo el número (ej: 101).`);
+    return;
+  }
+  const lines = [
+    `🏢 Apartamento ${apartment.name}`,
+    '',
+    `⚡ Energía (Air-e)`,
+    `   NIC: ${apartment.nic || apartment.electricityPaymentCode || '—'}`,
+    apartment.electricityPaymentUrl ? `   Pago: ${apartment.electricityPaymentUrl}` : '',
+    '',
+    `💧 Agua (Triple A)`,
+    `   N° Póliza: ${apartment.waterPaymentCode || '—'}`,
+    apartment.waterPaymentUrl ? `   Pago: ${apartment.waterPaymentUrl}` : '',
+    '',
+    `🔥 Gas (Gases del Caribe)`,
+    `   N° Contrato: ${apartment.gasPaymentCode || '—'}`,
+    apartment.gasPaymentUrl ? `   Pago: ${apartment.gasPaymentUrl}` : '',
+  ].filter(Boolean).join('\n');
+  await sendCloudText(phone, lines);
+}
+
+async function handleCloudAdminMessage(phone, message) {
+  const type = message.type || 'unknown';
+  const interactive = cloudInteractiveReply(message);
+  const rawText = type === 'text' ? String(message.text?.body || '').trim() : '';
+  const buttonId = String(interactive?.id || '');
+  const text = rawText || String(interactive?.title || '').trim();
+  if (!text && !buttonId) return;
+
+  // Multi-step flow: waiting for the apartment number after "Servicios".
+  const state = getCloudAuthState(phone);
+  if (state?.step === 'admin_apt') {
+    clearCloudAuthState(phone);
+    saveData();
+    await sendCloudServicesInfo(phone, text);
+    return;
+  }
+
+  const approveMatch = text.match(/^aprob(?:ar)?\s+(.+)$/i);
+  const rejectMatch = text.match(/^rechaz(?:ar)?\s+(.+)$/i);
+  if (approveMatch || rejectMatch) {
+    const ref = (approveMatch || rejectMatch)[1].trim();
+    const apartment = (db.apartments || []).find(a => String(a.name).toLowerCase() === ref.toLowerCase() || String(a.id) === ref);
+    if (!apartment) {
+      await sendCloudText(phone, `No encontré el apartamento "${ref}".`);
+      return;
+    }
+    const payment = (db.payments || []).find(p => Number(p.apartmentId) === Number(apartment.id) && p.status === 'pending_validation');
+    if (!payment) {
+      await sendCloudText(phone, `El apartamento ${apartment.name} no tiene comprobantes pendientes de validación.`);
+      return;
+    }
+    const tenant = (db.tenants || []).find(item => Number(item.id) === Number(payment.tenantId));
+    const periodLabel = cloudPeriodLabel(paymentPeriod(payment));
+    if (approveMatch) {
+      approveCloudPayment(payment, payment.amount, 'Admin WhatsApp');
+      if (tenant?.phone) {
+        try { await sendCloudText(tenant.phone, `✅ Tu pago de ${periodLabel} fue confirmado. ¡Gracias!`); }
+        catch (error) { console.error('[WHATSAPP CLOUD] admin approve tenant notice error:', error.message); }
+      }
+      await sendCloudText(phone, `✅ Pago de ${apartment.name} (${periodLabel}) aprobado.`);
+    } else {
+      rejectCloudPayment(payment, 'Rechazado desde WhatsApp', 'Admin WhatsApp');
+      if (tenant?.phone) {
+        try { await sendCloudText(tenant.phone, `❌ Tu comprobante de ${periodLabel} fue rechazado. Envía uno nuevo por favor.`); }
+        catch (error) { console.error('[WHATSAPP CLOUD] tenant reject notice error:', error.message); }
+      }
+      await sendCloudText(phone, `❌ Pago de ${apartment.name} (${periodLabel}) rechazado.`);
+    }
+    return;
+  }
+
+  // Button routing by ID (robust) with text-command fallback.
+  if (buttonId === 'menu_morosos' || /^(cobros|deuda|canon|morosos|reporte)$/i.test(text)) {
+    await sendCloudText(phone, buildAdminDebtReport());
+    return;
+  }
+
+  if (buttonId === 'menu_validar' || /^(validar|validaciones|pendientes)$/i.test(text)) {
+    const pending = (db.payments || []).filter(p => p.status === 'pending_validation');
+    if (!pending.length) {
+      await sendCloudText(phone, '✅ No hay comprobantes pendientes de validación.');
+      return;
+    }
+    const lines = pending.map(p => {
+      const apartment = (db.apartments || []).find(a => Number(a.id) === Number(p.apartmentId));
+      const tenant = (db.tenants || []).find(item => Number(item.id) === Number(p.tenantId));
+      const aptName = apartment?.name || `Apto ${p.apartmentId}`;
+      return `⏳ ${aptName} - ${tenant?.name || 'Inquilino'} - $${Number(p.amount || 0).toLocaleString('es-CO')} (${cloudPeriodLabel(paymentPeriod(p))})\n   Responde: APROBAR ${aptName} o RECHAZAR ${aptName}`;
+    });
+    await sendCloudText(phone, `📋 Comprobantes en validación (${pending.length}):\n\n${lines.join('\n')}`);
+    return;
+  }
+
+  if (buttonId === 'menu_servicios' || /^servicios$/i.test(text)) {
+    setCloudAuthState(phone, { step: 'admin_apt', expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString(), attempts: 0 });
+    saveData();
+    await sendCloudText(phone, '🏢 Escribe el número del apartamento (ej: 101) para ver sus referencias de pago de servicios (NIC, póliza, contrato).');
+    return;
+  }
+
+  // "menu", "ayuda", "inicio" or any unrecognized message → show the buttons.
+  await sendCloudAdminMenu(phone);
+}
+
 // Morosos: occupied apartments without a collected rent payment for the
 // current or previous month. Pending-validations count as morosos but are
 // flagged so the admin knows to review them. "Próximos a vencer": due within
@@ -908,70 +1039,6 @@ function buildAdminDebtReport() {
   if (!morosos.length && !proximos.length) lines.push('\n✅ Todos los apartamentos están al día.');
   if (pendingCount) lines.push(`\n💡 ${pendingCount} comprobante(s) esperando validación. Responde VALIDAR para revisarlos.`);
   return lines.join('\n');
-}
-
-async function handleCloudAdminMessage(phone, message) {
-  const type = message.type || 'unknown';
-  const interactive = cloudInteractiveReply(message);
-  const text = type === 'text' ? String(message.text?.body || '').trim() : String(interactive?.title || '').trim();
-  if (!text) return;
-
-  const approveMatch = text.match(/^aprob(?:ar)?\s+(.+)$/i);
-  const rejectMatch = text.match(/^rechaz(?:ar)?\s+(.+)$/i);
-  if (approveMatch || rejectMatch) {
-    const ref = (approveMatch || rejectMatch)[1].trim();
-    const apartment = (db.apartments || []).find(a => String(a.name).toLowerCase() === ref.toLowerCase() || String(a.id) === ref);
-    if (!apartment) {
-      await sendCloudText(phone, `No encontré el apartamento "${ref}".`);
-      return;
-    }
-    const payment = (db.payments || []).find(p => Number(p.apartmentId) === Number(apartment.id) && p.status === 'pending_validation');
-    if (!payment) {
-      await sendCloudText(phone, `El apartamento ${apartment.name} no tiene comprobantes pendientes de validación.`);
-      return;
-    }
-    const tenant = (db.tenants || []).find(item => Number(item.id) === Number(payment.tenantId));
-    const periodLabel = cloudPeriodLabel(paymentPeriod(payment));
-    if (approveMatch) {
-      approveCloudPayment(payment, payment.amount, 'Admin WhatsApp');
-      if (tenant?.phone) {
-        try { await sendCloudText(tenant.phone, `✅ Tu pago de ${periodLabel} fue confirmado. ¡Gracias!`); }
-        catch (error) { console.error('[WHATSAPP CLOUD] admin approve tenant notice error:', error.message); }
-      }
-      await sendCloudText(phone, `✅ Pago de ${apartment.name} (${periodLabel}) aprobado.`);
-    } else {
-      rejectCloudPayment(payment, 'Rechazado desde WhatsApp', 'Admin WhatsApp');
-      if (tenant?.phone) {
-        try { await sendCloudText(tenant.phone, `❌ Tu comprobante de ${periodLabel} fue rechazado. Envía uno nuevo por favor.`); }
-        catch (error) { console.error('[WHATSAPP CLOUD] tenant reject notice error:', error.message); }
-      }
-      await sendCloudText(phone, `❌ Pago de ${apartment.name} (${periodLabel}) rechazado.`);
-    }
-    return;
-  }
-
-  if (/validar|validaciones|pendientes/i.test(text)) {
-    const pending = (db.payments || []).filter(p => p.status === 'pending_validation');
-    if (!pending.length) {
-      await sendCloudText(phone, '✅ No hay comprobantes pendientes de validación.');
-      return;
-    }
-    const lines = pending.map(p => {
-      const apartment = (db.apartments || []).find(a => Number(a.id) === Number(p.apartmentId));
-      const tenant = (db.tenants || []).find(item => Number(item.id) === Number(p.tenantId));
-      const aptName = apartment?.name || `Apto ${p.apartmentId}`;
-      return `⏳ ${aptName} - ${tenant?.name || 'Inquilino'} - $${Number(p.amount || 0).toLocaleString('es-CO')} (${cloudPeriodLabel(paymentPeriod(p))})\n   Responde: APROBAR ${aptName} o RECHAZAR ${aptName}`;
-    });
-    await sendCloudText(phone, `📋 Comprobantes en validación (${pending.length}):\n\n${lines.join('\n')}`);
-    return;
-  }
-
-  if (/cobros|deuda|canon|morosos|reporte/i.test(text)) {
-    await sendCloudText(phone, buildAdminDebtReport());
-    return;
-  }
-
-  await sendCloudText(phone, '🤖 Comandos admin:\n• "cobros" / "deuda" / "morosos" → reporte de pagos\n• "validar" → comprobantes pendientes\n• "APROBAR <apto>" / "RECHAZAR <apto>" → validar un pago');
 }
 
 async function handleCloudInbound(message) {
@@ -1129,18 +1196,28 @@ async function initPostgres() {
 
 async function loadFromPostgres() {
   if (!pgPool) return null;
-  const result = await pgPool.query('SELECT value FROM store WHERE key = $1', ['database']);
-  if (result.rows.length > 0) {
-    return result.rows[0].value;
-  }
-  return null;
+  const result = await pgPool.query('SELECT key, value FROM store WHERE key IN ($1, $2)', ['database', 'database_meta']);
+  const rows = result.rows || [];
+  const dataRow = rows.find(row => row.key === 'database');
+  if (!dataRow) return null;
+  let updatedAt = null;
+  try { updatedAt = rows.find(row => row.key === 'database_meta')?.value?.updatedAt || null; } catch {}
+  return { data: dataRow.value, updatedAt };
 }
 
 async function saveToPostgres() {
   if (!pgPool) return;
+  const now = new Date().toISOString();
   await pgPool.query(
     'INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
     ['database', JSON.stringify(db)]
+  );
+  // A separate meta row records when the snapshot was written so the startup
+  // logic can tell which source (Aiven vs. local file) is newer and never let
+  // a stale local snapshot overwrite a live Aiven store.
+  await pgPool.query(
+    'INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+    ['database_meta', JSON.stringify({ updatedAt: now })]
   );
 }
 
@@ -1171,6 +1248,17 @@ function recalcNextId() {
       nextId[key] = 1;
     }
   });
+}
+
+// Newest modification time among the local snapshot files, or null when none
+// exist. Used at startup to decide whether the local snapshot is newer than
+// the Aiven store before seeding it.
+function localSnapshotUpdatedAt() {
+  let latest = 0;
+  for (const file of [DATA_FILE, BACKUP_FILE]) {
+    try { latest = Math.max(latest, fs.statSync(file).mtimeMs); } catch {}
+  }
+  return latest > 0 ? new Date(latest).toISOString() : null;
 }
 
 let dataVersion = Date.now();
@@ -2396,10 +2484,23 @@ app.use((req, res) => {
     try {
       if (await initPostgres()) {
         const pgData = await loadFromPostgres();
-        if (pgData) {
-          db = pgData;
-          recalcNextId();
-          console.log('Data loaded from PostgreSQL');
+        if (pgData?.data) {
+          // Prefer the newest source. Aiven is the durable store, but a local
+          // snapshot written after the last Aiven save (e.g. file-mode edits)
+          // must win instead of being discarded.
+          const localAt = localSnapshotUpdatedAt();
+          const pgAt = pgData.updatedAt || null;
+          const localIsNewer = localAt && (!pgAt || new Date(localAt).getTime() > new Date(pgAt).getTime());
+          if (localIsNewer) {
+            loadData();
+            recalcNextId();
+            console.log('Local snapshot is newer than Aiven; using local data.');
+            try { await saveToPostgres(); } catch (e) { console.error('PG save error:', e.message); }
+          } else {
+            db = pgData.data;
+            recalcNextId();
+            console.log('Data loaded from PostgreSQL');
+          }
           loaded = true;
         }
       }

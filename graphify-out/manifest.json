@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786154555.14106,
-    "ast_hash": "3a322e6968aba0d41532d24bd6ff47e4",
+    "mtime": 1786253813.4370787,
+    "ast_hash": "3a6e204aa5f06ca13c68f5be8cf8f028",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -335,8 +335,8 @@
     "semantic_hash": "1d3986ee6d1aace4367655cce52bc161"
   },
   "src/pages/Dashboard.jsx": {
-    "mtime": 1786154771.4138205,
-    "ast_hash": "82c51a5ec5fe0bfab5d80b248eace1f2",
+    "mtime": 1786254195.477226,
+    "ast_hash": "1ee3aa0e779b36aac7e1ee04fbb37509",
     "semantic_hash": ""
   },
   "src/pages/Login.jsx": {
