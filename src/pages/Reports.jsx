@@ -23,13 +23,16 @@ export default function Reports() {
   }
 
   // A submitted WhatsApp receipt is not income until it has been approved.
-  const paymentsThisYear = payments.filter(p => p.status !== 'pending_validation' && p.status !== 'rejected' && p.date && p.date.startsWith(String(year)));
+  // Income is attributed to the period the rent covers (p.period), falling
+  // back to the receipt date for legacy payments without a period.
+  const payPeriodOf = p => p.period || p.date;
+  const paymentsThisYear = payments.filter(p => p.status !== 'pending_validation' && p.status !== 'rejected' && payPeriodOf(p) && payPeriodOf(p).startsWith(String(year)));
   const expensesThisYear = expenses.filter(e => e.date && e.date.startsWith(String(year)));
 
   const monthlyIncome = Array.from({length: 12}, (_, i) => {
     const m = String(i + 1).padStart(2, '0');
-    const total = paymentsThisYear.filter(p => p.date?.substring(5, 7) === m && p.type === 'rent').reduce((s, p) => s + (p.amount || 0), 0);
-    const count = paymentsThisYear.filter(p => p.date?.substring(5, 7) === m && p.type === 'rent').length;
+    const total = paymentsThisYear.filter(p => payPeriodOf(p)?.substring(5, 7) === m && p.type === 'rent').reduce((s, p) => s + (p.amount || 0), 0);
+    const count = paymentsThisYear.filter(p => payPeriodOf(p)?.substring(5, 7) === m && p.type === 'rent').length;
     return { month: getMonthName(i + 1), income: total, count };
   });
 
@@ -49,7 +52,7 @@ export default function Reports() {
 
   const monthlyDelay = Array.from({length: 12}, (_, i) => {
     const m = String(i + 1).padStart(2, '0');
-    const monthPayments = paymentsThisYear.filter(p => p.date?.substring(5, 7) === m && p.type === 'rent');
+    const monthPayments = paymentsThisYear.filter(p => payPeriodOf(p)?.substring(5, 7) === m && p.type === 'rent');
     const tempDate = new Date(year, i, 1);
     const monthName = tempDate.toLocaleString('es-CO', { month: 'short' });
 
@@ -58,8 +61,12 @@ export default function Reports() {
     monthPayments.forEach(p => {
       const apt = apartments.find(a => a.id === p.apartmentId);
       if (apt && apt.paymentDueDay) {
+        // Delay is measured against the due date of the period the payment
+        // covers, so a July payment received in August counts as late for July.
+        const [py, pm] = payPeriodOf(p).split('-').map(Number);
+        const dueDate = new Date(py, pm - 1, apt.paymentDueDay);
         const payDate = new Date(p.date);
-        const delay = Math.max(0, payDate.getDate() - apt.paymentDueDay);
+        const delay = Math.max(0, Math.round((payDate - dueDate) / (1000 * 60 * 60 * 24)));
         totalDelayDays += delay;
         paymentCount++;
       }
@@ -228,7 +235,10 @@ export default function Reports() {
                 {apartments.filter(a => a.status === 'occupied').map(apt => {
                   const aptPayments = paymentsThisYear.filter(p => p.apartmentId === apt.id && p.type === 'rent');
                   const totalDelay = aptPayments.reduce((s, p) => {
-                    const delay = Math.max(0, new Date(p.date).getDate() - (apt.paymentDueDay || 15));
+                    const [py, pm] = payPeriodOf(p).split('-').map(Number);
+                    const dueDate = new Date(py, pm - 1, apt.paymentDueDay || 15);
+                    const payDate = new Date(p.date);
+                    const delay = Math.max(0, Math.round((payDate - dueDate) / (1000 * 60 * 60 * 24)));
                     return s + delay;
                   }, 0);
                   const avgDelay = aptPayments.length > 0 ? Math.round(totalDelay / aptPayments.length) : 0;

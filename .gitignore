@@ -55,6 +55,9 @@ sessions/
 # Contiene credenciales de la base Aiven - no subir
 restore-aiven.cjs
 
+# Credenciales locales del admin (repo público) - solo en el graph local
+credenciales-admin.md
+
 # Graphify - cache y backups regenerables (el reporte y graph.json si se versionan)
 graphify-out/cache/
 graphify-out/*/

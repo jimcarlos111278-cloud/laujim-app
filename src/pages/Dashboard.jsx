@@ -44,14 +44,16 @@ const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
       .map(contract => [Number(contract.apartmentId), contract]));
     // A tenant associated from the Inquilinos screen is a valid occupancy even
     // without a formal contract. Contracts only override the rent value.
-    const occupiedApts = apartments.filter(apartment =>
-      tenantsByApartment.has(Number(apartment.id)) || contractsByApartment.has(Number(apartment.id)));
+const occupiedApts = apartments.filter(apartment =>
+      apartment.status !== 'vacant' && (tenantsByApartment.has(Number(apartment.id)) || contractsByApartment.has(Number(apartment.id))));
     const occupied = occupiedApts.length;
     const vacantApts = apartments.filter(apartment => !occupiedApts.some(occupiedApartment => Number(occupiedApartment.id) === Number(apartment.id)));
     const vacant = vacantApts.length;
+    // The apartment's configured rent is the source of truth for expected
+    // income. A stale contract must not inflate the total beyond the
+    // apartments' own rents (Potencial Total).
     const expectedIncome = occupiedApts.reduce((sum, apartment) => {
-      const contract = contractsByApartment.get(Number(apartment.id));
-      return sum + Number(contract?.monthlyRent || apartment.monthlyRent || 0);
+      return sum + Number(apartment.monthlyRent || 0);
     }, 0);
     const maxPotentialIncome = apartments.reduce((sum, a) => sum + (a.monthlyRent || 0), 0);
 
@@ -59,10 +61,11 @@ const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
     const currentDay = now.getDate();
     const currentPeriod = getCurrentPeriod();
 
-    // Payment period tells us which rent is covered; date tells us when cash was received.
-    // Revenue widgets and monthly reports must group by receipt date.
+// Payment period tells us which rent is covered; date tells us when cash was received.
+    // Collection widgets group by the period the payment covers, so a payment
+    // for July received in August still counts toward July's collection.
     const paidForCurrentPeriod = approvedPayments.filter(p => p.type === 'rent' && p.period === currentPeriod);
-    const paymentsReceivedInSelectedMonth = approvedPayments.filter(p => p.type === 'rent' && p.date?.slice(0, 7) === collectionPeriod);
+    const paymentsReceivedInSelectedMonth = approvedPayments.filter(p => p.type === 'rent' && (p.period || p.date?.slice(0, 7)) === collectionPeriod);
     const collectedThisMonth = paymentsReceivedInSelectedMonth.reduce((sum, p) => sum + (p.amount || 0), 0);
     const paidApartmentIds = new Set(paidForCurrentPeriod.map(payment => Number(payment.apartmentId)));
     const pendingPayments = occupiedApts.filter(apartment => !paidApartmentIds.has(Number(apartment.id))).length;
@@ -123,9 +126,9 @@ const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
   function handlePayOnTime() {
     const apt = showPay;
     if (!apt) return;
-    const targetDate = new Date();
-    targetDate.setDate(apt.paymentDueDay);
-    if (targetDate > new Date()) targetDate.setMonth(targetDate.getMonth() - 1);
+    // The due date belongs to the selected period, not the current month.
+    const [y, m] = payPeriod.split('-').map(Number);
+    const targetDate = new Date(y, m - 1, apt.paymentDueDay);
     setPayForm({ ...payForm, date: targetDate.toISOString().split('T')[0] });
     setPayStep('confirm');
   }
@@ -310,7 +313,7 @@ async function handleSyncReminders() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Recolectado</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatCurrency(stats.collectedIncome)}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Pagos recibidos en {collectionPeriodLabel}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Pagos del período {collectionPeriodLabel}</p>
             </div>
             <div className="p-2.5 rounded-lg bg-c-50 text-c-500"><TrendingUp className="w-5 h-5" /></div>
           </div>

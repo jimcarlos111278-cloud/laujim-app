@@ -335,8 +335,8 @@
     "semantic_hash": "1d3986ee6d1aace4367655cce52bc161"
   },
   "src/pages/Dashboard.jsx": {
-    "mtime": 1786254195.477226,
-    "ast_hash": "1ee3aa0e779b36aac7e1ee04fbb37509",
+    "mtime": 1786256356.8742654,
+    "ast_hash": "c08e263cf566c99c2889519d5c81bfcf",
     "semantic_hash": ""
   },
   "src/pages/Login.jsx": {
@@ -370,9 +370,9 @@
     "semantic_hash": "de18f151ccb7081781cba4e6aa706313"
   },
   "src/pages/Reports.jsx": {
-    "mtime": 1785657828.0381367,
-    "ast_hash": "06d210c608488e3ab874d98741af56d5",
-    "semantic_hash": "06d210c608488e3ab874d98741af56d5"
+    "mtime": 1786256420.5183299,
+    "ast_hash": "12068a4fc3218054307e3dd05aceaf3c",
+    "semantic_hash": ""
   },
   "src/pages/Settings.jsx": {
     "mtime": 1786154801.6290562,
@@ -780,13 +780,13 @@
     "semantic_hash": ""
   },
   ".tmp/cdp-driver.cjs": {
-    "mtime": 1786046604.03846,
-    "ast_hash": "9b75376ee272e1e245270ecc57d85179",
+    "mtime": 1786256020.2327456,
+    "ast_hash": "64293c63a23b70a6ae9587e7bafdb727",
     "semantic_hash": ""
   },
   ".tmp/cdp-driver.mjs": {
-    "mtime": 1786022724.9861948,
-    "ast_hash": "95354cc7fa8df40c03028afd6cf5b123",
+    "mtime": 1786256022.8157403,
+    "ast_hash": "8d77d7a22e1d6c1607a70f8ff51feea6",
     "semantic_hash": ""
   },
   "scripts/_scrape-diagnostic.cjs": {

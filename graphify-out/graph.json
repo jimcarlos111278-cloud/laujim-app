@@ -121,8 +121,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "ref_react",
-      "community": 40,
-      "community_name": "react",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "react"
     },
     {
@@ -203,10 +203,22 @@
       "norm_label": "puppeteer"
     },
     {
-      "label": "main()",
+      "label": "getBrowserWs()",
       "file_type": "code",
       "source_file": ".tmp/cdp-driver.cjs",
       "source_location": "L12",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tmp_cdp_driver_cjs_tmp_cdp_driver_getbrowserws",
+      "community": 72,
+      "community_name": "cdp-driver.cjs",
+      "norm_label": "getbrowserws()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L20",
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_cdp_driver_cjs_tmp_cdp_driver_main",
@@ -218,7 +230,7 @@
       "label": "findAppPage()",
       "file_type": "code",
       "source_file": ".tmp/cdp-driver.cjs",
-      "source_location": "L63",
+      "source_location": "L72",
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_cdp_driver_cjs_tmp_cdp_driver_findapppage",
@@ -238,10 +250,22 @@
       "norm_label": "cdp-driver.mjs"
     },
     {
-      "label": "main()",
+      "label": "getBrowserWs()",
       "file_type": "code",
       "source_file": ".tmp/cdp-driver.mjs",
       "source_location": "L12",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tmp_cdp_driver_mjs_tmp_cdp_driver_getbrowserws",
+      "community": 74,
+      "community_name": "cdp-driver.mjs",
+      "norm_label": "getbrowserws()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": ".tmp/cdp-driver.mjs",
+      "source_location": "L20",
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_cdp_driver_mjs_tmp_cdp_driver_main",
@@ -253,7 +277,7 @@
       "label": "findAppPage()",
       "file_type": "code",
       "source_file": ".tmp/cdp-driver.mjs",
-      "source_location": "L60",
+      "source_location": "L69",
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_cdp_driver_mjs_tmp_cdp_driver_findapppage",
@@ -3877,8 +3901,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "package_dependencies_aws_sdk_client_s3",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 109,
+      "community_name": "@aws-sdk/client-s3",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -3888,8 +3912,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "aws_sdk_client_s3",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 109,
+      "community_name": "@aws-sdk/client-s3",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -3943,7 +3967,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 64,
+      "community": 110,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -3954,7 +3978,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 64,
+      "community": 110,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -4075,8 +4099,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "package_dependencies_cors",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 111,
+      "community_name": "cors",
       "norm_label": "cors"
     },
     {
@@ -4086,8 +4110,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "cors",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 111,
+      "community_name": "cors",
       "norm_label": "cors"
     },
     {
@@ -4097,8 +4121,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "package_dependencies_dexie",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 112,
+      "community_name": "dexie",
       "norm_label": "dexie"
     },
     {
@@ -4108,8 +4132,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "dexie",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 112,
+      "community_name": "dexie",
       "norm_label": "dexie"
     },
     {
@@ -4119,8 +4143,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "package_dependencies_express",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 113,
+      "community_name": "express",
       "norm_label": "express"
     },
     {
@@ -4130,8 +4154,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "express",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 113,
+      "community_name": "express",
       "norm_label": "express"
     },
     {
@@ -4163,8 +4187,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "package_dependencies_jspdf",
-      "community": 109,
-      "community_name": "jspdf",
+      "community": 24,
+      "community_name": "contractGenerator.js",
       "norm_label": "jspdf"
     },
     {
@@ -4174,8 +4198,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "jspdf",
-      "community": 109,
-      "community_name": "jspdf",
+      "community": 24,
+      "community_name": "contractGenerator.js",
       "norm_label": "jspdf"
     },
     {
@@ -4185,8 +4209,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "package_dependencies_jsqr",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "jsqr",
       "norm_label": "jsqr"
     },
     {
@@ -4196,8 +4220,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "jsqr",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "jsqr",
       "norm_label": "jsqr"
     },
     {
@@ -4317,8 +4341,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "package_dependencies_puppeteer_core",
-      "community": 117,
-      "community_name": "puppeteer-core",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "puppeteer-core"
     },
     {
@@ -4328,8 +4352,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "puppeteer_core",
-      "community": 117,
-      "community_name": "puppeteer-core",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "puppeteer-core"
     },
     {
@@ -4339,8 +4363,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "package_dependencies_qrcode",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 114,
+      "community_name": "qrcode",
       "norm_label": "qrcode"
     },
     {
@@ -4350,8 +4374,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "qrcode",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 114,
+      "community_name": "qrcode",
       "norm_label": "qrcode"
     },
     {
@@ -4361,8 +4385,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "package_dependencies_react",
-      "community": 110,
-      "community_name": "react",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "react"
     },
     {
@@ -4372,8 +4396,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "react",
-      "community": 110,
-      "community_name": "react",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "react"
     },
     {
@@ -4405,8 +4429,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "package_dependencies_react_router_dom",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "react-router-dom",
       "norm_label": "react-router-dom"
     },
     {
@@ -4416,8 +4440,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "react_router_dom",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "react-router-dom",
       "norm_label": "react-router-dom"
     },
     {
@@ -7319,7 +7343,7 @@
       "_origin": "ast",
       "id": "src_app_app",
       "community": 40,
-      "community_name": "react",
+      "community_name": "ErrorBoundary",
       "norm_label": "app()"
     },
     {
@@ -7365,8 +7389,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_getserverversion",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "getBase",
       "norm_label": "getserverversion()"
     },
     {
@@ -7460,8 +7484,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopcloudpolling",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "stopcloudpolling()"
     },
     {
@@ -7532,7 +7556,7 @@
       "_origin": "ast",
       "id": "src_api_api",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "api"
     },
     {
@@ -7543,7 +7567,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary",
       "community": 40,
-      "community_name": "react",
+      "community_name": "ErrorBoundary",
       "norm_label": "errorboundary.jsx"
     },
     {
@@ -7556,7 +7580,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary",
       "community": 40,
-      "community_name": "react",
+      "community_name": "ErrorBoundary",
       "norm_label": "errorboundary"
     },
     {
@@ -7568,7 +7592,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_constructor",
       "community": 40,
-      "community_name": "react",
+      "community_name": "ErrorBoundary",
       "norm_label": ".constructor()"
     },
     {
@@ -7580,7 +7604,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_getderivedstatefromerror",
       "community": 40,
-      "community_name": "react",
+      "community_name": "ErrorBoundary",
       "norm_label": ".getderivedstatefromerror()"
     },
     {
@@ -7592,7 +7616,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_componentdidcatch",
       "community": 40,
-      "community_name": "react",
+      "community_name": "ErrorBoundary",
       "norm_label": ".componentdidcatch()"
     },
     {
@@ -7604,7 +7628,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_render",
       "community": 40,
-      "community_name": "react",
+      "community_name": "ErrorBoundary",
       "norm_label": ".render()"
     },
     {
@@ -7649,7 +7673,7 @@
       "_origin": "ast",
       "id": "src_components_modal",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "modal.jsx"
     },
     {
@@ -7661,7 +7685,7 @@
       "_origin": "ast",
       "id": "src_components_modal_modal",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "modal()"
     },
     {
@@ -7962,7 +7986,7 @@
       "_origin": "ast",
       "id": "src_main",
       "community": 40,
-      "community_name": "react",
+      "community_name": "ErrorBoundary",
       "norm_label": "main.jsx"
     },
     {
@@ -7974,7 +7998,7 @@
       "_origin": "ast",
       "id": "src_main_boot",
       "community": 40,
-      "community_name": "react",
+      "community_name": "ErrorBoundary",
       "norm_label": "boot()"
     },
     {
@@ -8052,7 +8076,7 @@
       "_origin": "ast",
       "id": "src_pages_apartments",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "apartments.jsx"
     },
     {
@@ -8063,8 +8087,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartments_apartments",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 19,
+      "community_name": "api",
       "norm_label": "apartments()"
     },
     {
@@ -8075,7 +8099,7 @@
       "_origin": "ast",
       "id": "src_pages_chat",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "chat.jsx"
     },
     {
@@ -8087,7 +8111,7 @@
       "_origin": "ast",
       "id": "src_pages_chat_chat",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "chat()"
     },
     {
@@ -8121,7 +8145,7 @@
       "_origin": "ast",
       "id": "src_pages_contracts",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "contracts.jsx"
     },
     {
@@ -8133,7 +8157,7 @@
       "_origin": "ast",
       "id": "src_pages_contracts_contracts",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "contracts()"
     },
     {
@@ -8166,7 +8190,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "login.jsx"
     },
@@ -8178,7 +8202,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "login()"
     },
@@ -8213,7 +8237,7 @@
       "_origin": "ast",
       "id": "src_pages_payments",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "payments.jsx"
     },
     {
@@ -8235,8 +8259,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_predial",
-      "community": 40,
-      "community_name": "react",
+      "community": 22,
+      "community_name": "Predial.jsx",
       "norm_label": "predial.jsx"
     },
     {
@@ -8246,8 +8270,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
-      "community": 40,
-      "community_name": "react",
+      "community": 22,
+      "community_name": "Predial.jsx",
       "norm_label": "ref_map"
     },
     {
@@ -8258,8 +8282,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
-      "community": 40,
-      "community_name": "react",
+      "community": 22,
+      "community_name": "Predial.jsx",
       "norm_label": "lookupref()"
     },
     {
@@ -8270,8 +8294,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
-      "community": 40,
-      "community_name": "react",
+      "community": 22,
+      "community_name": "Predial.jsx",
       "norm_label": "getpredialurl()"
     },
     {
@@ -8282,8 +8306,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_predial",
-      "community": 40,
-      "community_name": "react",
+      "community": 22,
+      "community_name": "Predial.jsx",
       "norm_label": "predial()"
     },
     {
@@ -8432,7 +8456,7 @@
       "_origin": "ast",
       "id": "src_pages_tenants",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "tenants.jsx"
     },
     {
@@ -8444,7 +8468,7 @@
       "_origin": "ast",
       "id": "src_pages_tenants_tenants",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "tenants()"
     },
     {
@@ -8454,8 +8478,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_utilities",
-      "community": 19,
-      "community_name": "Utilities.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "utilities.jsx"
     },
     {
@@ -8465,8 +8489,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_pages_utilities_services",
-      "community": 19,
-      "community_name": "Utilities.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "services"
     },
     {
@@ -8477,8 +8501,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_timeago",
-      "community": 19,
-      "community_name": "Utilities.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "timeago()"
     },
     {
@@ -8488,8 +8512,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_pages_utilities_portals",
-      "community": 19,
-      "community_name": "Utilities.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "portals"
     },
     {
@@ -8500,8 +8524,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_qrviewcontent",
-      "community": 19,
-      "community_name": "Utilities.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "qrviewcontent()"
     },
     {
@@ -8523,8 +8547,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "whatsappcontacts.jsx"
     },
     {
@@ -8535,8 +8559,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts_whatsappcontacts",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "whatsappcontacts()"
     },
     {
@@ -8546,8 +8570,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappinbox",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "whatsappinbox.jsx"
     },
     {
@@ -8558,8 +8582,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_cloudrequest",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "cloudrequest()"
     },
     {
@@ -8570,8 +8594,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_formatdate",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "formatdate()"
     },
     {
@@ -8582,8 +8606,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediaicon",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "mediaicon()"
     },
     {
@@ -8594,8 +8618,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediamessage",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "mediamessage()"
     },
     {
@@ -8606,8 +8630,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_whatsappinbox",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "whatsappinbox()"
     },
     {
@@ -8617,7 +8641,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_auth",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "auth.js"
     },
@@ -8630,7 +8654,7 @@
       "_origin": "ast",
       "id": "src_utils_auth_getauth",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "getauth()"
     },
     {
@@ -8641,7 +8665,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_setauth",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "setauth()"
     },
@@ -8653,7 +8677,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_clearauth",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "clearauth()"
     },
@@ -8665,7 +8689,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_isadmin",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "isadmin()"
     },
@@ -8677,8 +8701,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_istenant",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 18,
+      "community_name": "getBase",
       "norm_label": "istenant()"
     },
     {
@@ -8689,8 +8713,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_gettenantapartmentid",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 18,
+      "community_name": "getBase",
       "norm_label": "gettenantapartmentid()"
     },
     {
@@ -8701,7 +8725,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_requireauth",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "requireauth()"
     },
@@ -8713,7 +8737,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_login",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "login()"
     },
@@ -8725,7 +8749,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_loginadmin",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "loginadmin()"
     },
@@ -8737,7 +8761,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_logintenant",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "logintenant()"
     },
@@ -9011,7 +9035,7 @@
       "_origin": "ast",
       "id": "src_utils_chat",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "chat.js"
     },
     {
@@ -9022,7 +9046,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_lastcheck",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "lastcheck"
     },
     {
@@ -9034,7 +9058,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_sendmessage",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "sendmessage()"
     },
     {
@@ -9046,7 +9070,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_sendheartbeat",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "sendheartbeat()"
     },
     {
@@ -9058,7 +9082,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_fetchpresence",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "fetchpresence()"
     },
     {
@@ -9070,7 +9094,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_pollnewmessages",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "pollnewmessages()"
     },
     {
@@ -9082,7 +9106,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_startchatpoll",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "startchatpoll()"
     },
     {
@@ -9094,7 +9118,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_stopchatpoll",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "stopchatpoll()"
     },
     {
@@ -9106,7 +9130,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_startheartbeat",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "startheartbeat()"
     },
     {
@@ -9118,7 +9142,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_stopheartbeat",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "stopheartbeat()"
     },
     {
@@ -9130,7 +9154,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_startpresencepoll",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "startpresencepoll()"
     },
     {
@@ -9142,7 +9166,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_stoppresencepoll",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "stoppresencepoll()"
     },
     {
@@ -9154,7 +9178,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_getstatuslabel",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "getstatuslabel()"
     },
     {
@@ -9166,7 +9190,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_getroommessages",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "getroommessages()"
     },
     {
@@ -9178,7 +9202,7 @@
       "_origin": "ast",
       "id": "src_utils_chat_getallrooms",
       "community": 18,
-      "community_name": "chat.js",
+      "community_name": "getBase",
       "norm_label": "getallrooms()"
     },
     {
@@ -9258,8 +9282,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_utils_config_auth_token",
-      "community": 22,
-      "community_name": "getBase",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "auth_token"
     },
     {
@@ -9270,7 +9294,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_setapitoken",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "setapitoken()"
     },
@@ -9294,7 +9318,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_getbase",
-      "community": 22,
+      "community": 18,
       "community_name": "getBase",
       "norm_label": "getbase()"
     },
@@ -9917,8 +9941,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_notifications",
-      "community": 15,
-      "community_name": "App.jsx",
+      "community": 94,
+      "community_name": "notifications.js",
       "norm_label": "notifications.js"
     },
     {
@@ -9929,8 +9953,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_requestnotificationpermission",
-      "community": 15,
-      "community_name": "App.jsx",
+      "community": 94,
+      "community_name": "notifications.js",
       "norm_label": "requestnotificationpermission()"
     },
     {
@@ -9941,8 +9965,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notify",
-      "community": 15,
-      "community_name": "App.jsx",
+      "community": 94,
+      "community_name": "notifications.js",
       "norm_label": "notify()"
     },
     {
@@ -9953,8 +9977,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notifypaymentreminder",
-      "community": 15,
-      "community_name": "App.jsx",
+      "community": 94,
+      "community_name": "notifications.js",
       "norm_label": "notifypaymentreminder()"
     },
     {
@@ -10140,7 +10164,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "viewmode.js"
     },
     {
@@ -10152,7 +10176,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode_getviewmode",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "getviewmode()"
     },
     {
@@ -10164,7 +10188,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode_setviewmode",
       "community": 19,
-      "community_name": "Utilities.jsx",
+      "community_name": "api",
       "norm_label": "setviewmode()"
     },
     {
@@ -13643,7 +13667,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".tmp/cdp-driver.cjs",
-      "source_location": "L63",
+      "source_location": "L72",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tmp_cdp_driver_cjs_tmp_cdp_driver",
@@ -13655,6 +13679,17 @@
       "confidence": "EXTRACTED",
       "source_file": ".tmp/cdp-driver.cjs",
       "source_location": "L12",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_cjs_tmp_cdp_driver",
+      "target": "tmp_cdp_driver_cjs_tmp_cdp_driver_getbrowserws",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tmp_cdp_driver_cjs_tmp_cdp_driver",
@@ -13677,7 +13712,19 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": ".tmp/cdp-driver.cjs",
-      "source_location": "L33",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_cjs_tmp_cdp_driver_main",
+      "target": "tmp_cdp_driver_cjs_tmp_cdp_driver_getbrowserws",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.cjs",
+      "source_location": "L42",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tmp_cdp_driver_cjs_tmp_cdp_driver_main",
@@ -13688,7 +13735,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".tmp/cdp-driver.mjs",
-      "source_location": "L60",
+      "source_location": "L69",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tmp_cdp_driver_mjs_tmp_cdp_driver",
@@ -13703,6 +13750,17 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tmp_cdp_driver_mjs_tmp_cdp_driver",
+      "target": "tmp_cdp_driver_mjs_tmp_cdp_driver_getbrowserws",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.mjs",
+      "source_location": "L20",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_mjs_tmp_cdp_driver",
       "target": "tmp_cdp_driver_mjs_tmp_cdp_driver_main",
       "confidence_score": 1.0
     },
@@ -13711,7 +13769,19 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": ".tmp/cdp-driver.mjs",
-      "source_location": "L33",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tmp_cdp_driver_mjs_tmp_cdp_driver_main",
+      "target": "tmp_cdp_driver_mjs_tmp_cdp_driver_getbrowserws",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": ".tmp/cdp-driver.mjs",
+      "source_location": "L42",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tmp_cdp_driver_mjs_tmp_cdp_driver_main",
@@ -30527,7 +30597,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L501",
+      "source_location": "L504",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -30539,7 +30609,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L306",
+      "source_location": "L309",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -30551,7 +30621,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L445",
+      "source_location": "L448",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -30563,7 +30633,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L434",
+      "source_location": "L437",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -30587,7 +30657,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L198",
+      "source_location": "L201",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -30599,7 +30669,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L320",
+      "source_location": "L323",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -30611,7 +30681,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L318",
+      "source_location": "L321",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_dashboard",
@@ -31379,7 +31449,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Reports.jsx",
-      "source_location": "L116",
+      "source_location": "L123",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_reports_reports",
@@ -31391,7 +31461,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Reports.jsx",
-      "source_location": "L83",
+      "source_location": "L90",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_reports_reports",
@@ -31403,7 +31473,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Reports.jsx",
-      "source_location": "L33",
+      "source_location": "L36",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_reports_reports",
@@ -37836,5 +37906,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "e38220be1212ebbaac971a7355f8317752c8f985"
+  "built_at_commit": "bb1e674a0725ec8548c7bc97fd77a150cb5bc6c4"
 }
