@@ -21,6 +21,10 @@ function testParserStates() {
   assert.equal(pendingWithDecimals.status, 'pending');
   assert.equal(pendingWithDecimals.deudaCOP, 45600);
 
+  const pendingFromApi = scraper.parseWaterBillPage('{"status":"pending","amountDue":"$ 77.777","invoiceTotal":"COP 77.777"}');
+  assert.equal(pendingFromApi.status, 'pending');
+  assert.equal(pendingFromApi.deudaCOP, 77777);
+
   assert.equal(scraper.parseWaterBillPage('Verificación CAPTCHA requerida').status, 'captcha');
   assert.equal(scraper.parseWaterBillPage('El portal requiere usuario y contraseña').status, 'error');
   assert.equal(scraper.waterNavigationError({ apartmentId: 1, apartment: '101', waterPaymentUrl: 'https://example.test' }, new Error('Navigation timeout exceeded')).status, 'timeout');
@@ -29,13 +33,19 @@ function testParserStates() {
 async function testBrowserAndPersistence() {
   const pages = [];
   let navigationOptions = null;
+  let evaluateCalls = 0;
   const fakeBrowser = {
     async newPage() {
       const page = {
         url: '',
         setDefaultNavigationTimeout() {},
         async goto(url, options) { this.url = url; navigationOptions = options; return { status: () => 200 }; },
-        async evaluate() { return 'Factura pagada. Saldo: $0. Periodo 2026-08'; },
+        async evaluate() {
+          evaluateCalls += 1;
+          return evaluateCalls === 1
+            ? 'Cargando factura...'
+            : 'Factura pagada. Saldo: $0. Periodo 2026-08';
+        },
         async close() { pages.push(this.url); },
       };
       return page;
@@ -49,6 +59,8 @@ async function testBrowserAndPersistence() {
   assert.equal(results[0].status, 'paid');
   assert.equal(results[0].apartmentId, 1);
   assert.equal(navigationOptions.waitUntil, 'domcontentloaded');
+  assert.equal(navigationOptions.timeout, 180000);
+  assert.ok(evaluateCalls >= 2, 'the scraper should wait for delayed invoice content');
   assert.equal(pages.length, 1);
   assert.equal(fakeBrowser.closed, true);
 

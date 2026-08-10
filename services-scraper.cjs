@@ -130,7 +130,11 @@ async function waitAndType(page, selector, text) {
 // has used more than one page layout, so the parser deliberately relies on
 // visible text and labels instead of brittle CSS selectors.
 
-const WATER_TIMEOUT_MS = 30000;
+// Triple A can take 1–2 minutes to finish rendering the debt after the QR
+// page starts loading. Keep one deadline for the navigation and the dynamic
+// invoice content so a slow page gets a chance to return the actual amount.
+const WATER_TIMEOUT_MS = 180000;
+const WATER_POLL_INTERVAL_MS = 2000;
 const WATER_WORKERS = 3;
 const WATER_SCRAPE_CRON = '0 * * * *';
 
@@ -163,7 +167,7 @@ function parseCopAmount(raw) {
 
 function extractWaterAmount(text) {
   const amountToken = '[0-9][0-9.,]*(?:\\s+[0-9][0-9.,]*)?';
-  const label = /(?:saldo(?:\s+(?:pendiente|por\s+pagar|total))?|deuda(?:\s+total)?|total(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|valor(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|importe|monto|factura\s+(?:pendiente|por\s+pagar|vencida)|recibo\s+(?:pendiente|por\s+pagar|vencido))/gi;
+  const label = /(?:saldo(?:\s+(?:pendiente|por\s+pagar|total))?|deuda(?:\s+total)?|total(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|valor(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|importe|monto|amount(?:\s+due)?|balance|debt|invoice(?:\s+total)?|total(?:to|\s+to)\s*pay|factura\s+(?:pendiente|por\s+pagar|vencida)|recibo\s+(?:pendiente|por\s+pagar|vencido))/gi;
   const labeled = new RegExp(`${label.source}[^$0-9]{0,80}(?:\\$\\s*|COP\\s*)?(${amountToken})\\s*(?:COP|pesos)?`, 'gi');
   const labeledAmounts = [...String(text || '').matchAll(labeled)]
     .map(match => parseCopAmount(match[1]))
@@ -265,6 +269,63 @@ function waterNavigationError(target, error, checkedAt = new Date().toISOString(
   return waterRecord(target, { status, deudaCOP: null, error: message }, checkedAt);
 }
 
+async function readWaterFrameText(frame) {
+  try {
+    return await frame.evaluate(() => {
+      const roots = [document];
+      for (let index = 0; index < roots.length; index++) {
+        const root = roots[index];
+        for (const element of root.querySelectorAll?.('*') || []) {
+          if (element.shadowRoot) roots.push(element.shadowRoot);
+        }
+      }
+      const values = [];
+      for (const root of roots) {
+        values.push(root.body?.innerText || root.documentElement?.innerText || '');
+        for (const element of root.querySelectorAll?.('input:not([type="password"]), textarea, select, [aria-label], [title]') || []) {
+          const style = window.getComputedStyle(element);
+          if (style.display === 'none' || style.visibility === 'hidden' || !element.getClientRects().length) continue;
+          values.push(element.getAttribute('aria-label'), element.getAttribute('title'));
+          if ('value' in element) values.push(element.value);
+        }
+      }
+      return [...new Set(values.filter(Boolean))].join(' ').trim();
+    });
+  } catch {
+    return '';
+  }
+}
+
+function waterResultReady(parsed) {
+  return parsed.status === 'paid' ||
+    parsed.status === 'captcha' ||
+    parsed.status === 'error' ||
+    (parsed.status === 'pending' && parsed.deudaCOP !== null);
+}
+
+async function readWaterPageText(page, responseBodies, pendingResponses) {
+  await Promise.allSettled([...pendingResponses]);
+  const frames = typeof page.frames === 'function' ? page.frames() : [page];
+  const frameTexts = await Promise.all(frames.map(readWaterFrameText));
+  return [...frameTexts, ...responseBodies].filter(Boolean).join(' ').trim();
+}
+
+async function waitForWaterBill(page, responseBodies, pendingResponses, deadline) {
+  let latest = { status: 'unknown', deudaCOP: null, factura: null, periodo: null, error: null };
+
+  while (true) {
+    const pageText = await readWaterPageText(page, responseBodies, pendingResponses);
+    if (pageText) {
+      latest = parseWaterBillPage(pageText);
+      if (waterResultReady(latest)) return latest;
+    }
+
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return latest;
+    await sleep(Math.min(WATER_POLL_INTERVAL_MS, remaining));
+  }
+}
+
 async function scrapeWaterBills(apartments = db?.apartments || [], browserFactory = launchBrowser) {
   const targets = (apartments || []).map(waterTarget).filter(Boolean);
   if (!targets.length) {
@@ -290,33 +351,41 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
         try {
           page = await browser.newPage();
           page.setDefaultNavigationTimeout?.(WATER_TIMEOUT_MS);
+          const responseBodies = [];
+          const pendingResponses = new Set();
+          const captureResponse = response => {
+            const type = response.request().resourceType();
+            const contentType = response.headers()['content-type'] || '';
+            if (!['xhr', 'fetch', 'document'].includes(type) || !/json|text|html/i.test(contentType)) return;
+            const pending = response.text()
+              .then(body => {
+                if (body && /factura|saldo|deuda|total|valor|monto|amount|balance|debt|cop|\$/i.test(body)) {
+                  responseBodies.push(body.slice(0, 100000));
+                }
+              })
+              .catch(() => {});
+            pendingResponses.add(pending);
+            pending.finally(() => pendingResponses.delete(pending));
+          };
+          const canCaptureResponses = typeof page.on === 'function' && typeof page.off === 'function';
+          if (canCaptureResponses) page.on('response', captureResponse);
           // Triple A keeps analytics/long-running requests open, so waiting for
-          // networkidle2 makes every valid QR URL hit the 30s timeout. The
-          // invoice content is available after the document is parsed; do not
-          // make the result depend on the whole network becoming idle.
-          const response = await page.goto(target.waterPaymentUrl, { waitUntil: 'domcontentloaded', timeout: WATER_TIMEOUT_MS });
-          if (response && response.status() >= 400) throw new Error(`El portal respondió HTTP ${response.status()}`);
-          await sleep(1200);
-          const pageText = await page.evaluate(() => {
-            const visible = element => {
-              const style = window.getComputedStyle(element);
-              return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
-            };
-            const bodyText = document.body?.innerText || document.documentElement?.innerText || '';
-            const labelsAndValues = [...document.querySelectorAll('input:not([type="password"]), textarea, select, [aria-label], [title]')]
-              .filter(visible)
-              .flatMap(element => [
-                element.getAttribute('aria-label'),
-                element.getAttribute('title'),
-                'value' in element ? element.value : '',
-              ])
-              .filter(Boolean)
-              .join(' ');
-            return `${bodyText} ${labelsAndValues}`.trim();
+          // networkidle2 is unreliable. Wait for the document, then poll the
+          // rendered frames/API responses until the debt or a terminal state is
+          // available, without making the result depend on the whole network
+          // becoming idle.
+          const deadline = Date.now() + WATER_TIMEOUT_MS;
+          const response = await page.goto(target.waterPaymentUrl, {
+            waitUntil: 'domcontentloaded',
+            timeout: WATER_TIMEOUT_MS,
           });
-          if (!pageText.trim()) throw new Error('El enlace de Triple A no devolvió contenido visible.');
-          const parsed = parseWaterBillPage(pageText);
-          if (parsed.status === 'unknown') parsed.error = 'No se pudo identificar el estado de la factura en el portal.';
+          if (response && response.status() >= 400) throw new Error(`El portal respondió HTTP ${response.status()}`);
+          await sleep(2200);
+          const parsed = await waitForWaterBill(page, responseBodies, pendingResponses, deadline);
+          if (canCaptureResponses) page.off('response', captureResponse);
+          if (!waterResultReady(parsed)) {
+            throw new Error(`Triple A timeout: no mostró el valor de la deuda después de ${WATER_TIMEOUT_MS / 1000} segundos.`);
+          }
           results[index] = waterRecord(target, parsed, checkedAt);
           console.log(`[TRIPLE A] ${target.apartment || target.apartmentId}: ${parsed.status}${parsed.deudaCOP !== null ? ` ($${parsed.deudaCOP.toLocaleString('es-CO')})` : ''}`);
         } catch (error) {
