@@ -32,7 +32,6 @@ const LINUX_CHROME_CANDIDATES = [
 const FULL_CHROME_ENABLED = /^(1|true|yes|full)$/i.test(
   process.env.RENDER_FULL_CHROME || process.env.BROWSER_MODE || '',
 );
-const BROWSER_RUNTIME_LABEL = FULL_CHROME_ENABLED ? 'full Chrome + Xvfb' : 'sparticuz Chromium';
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -42,8 +41,8 @@ function firstExistingPath(candidates) {
   return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || null;
 }
 
-async function resolveChromium(profileName = 'services') {
-  if (FULL_CHROME_ENABLED) {
+async function resolveChromium(profileName = 'services', useFullChrome = FULL_CHROME_ENABLED) {
+  if (useFullChrome) {
     if (!IS_WINDOWS && !process.env.DISPLAY) {
       throw new Error('Full Chrome requires DISPLAY. Start Render with Xvfb (for example, xvfb-run).');
     }
@@ -151,8 +150,8 @@ function getAirECredentials() {
 
 // ── BROWSER LAUNCH (Render-compatible) ─────────────────────────────────────
 
-async function launchBrowser(profileName = 'services') {
-  const cfg = await resolveChromium(profileName);
+async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHROME_ENABLED) {
+  const cfg = await resolveChromium(profileName, useFullChrome);
   return await puppeteer.launch({
     args: cfg.args,
     defaultViewport: { width: 1366, height: 768 },
@@ -639,9 +638,9 @@ async function scrapeAirE() {
 
   try {
     lastScrapeError = null;
-    console.log(`[AIR-E] Launching browser (${BROWSER_RUNTIME_LABEL})...`);
+    console.log(`[AIR-E] Launching browser (sparticuz Chromium)...`);
     const creds = getAirECredentials();
-    browser = await launchBrowser('air-e');
+    browser = await launchBrowser('air-e', false);
     const page = await browser.newPage();
     await page.setViewport({ width: 1366, height: 768 });
 
