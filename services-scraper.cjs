@@ -695,7 +695,7 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
 //     `Documento/Get?cd_Contrato=...` and reveals the contract UUID.
 //  3. Re-call the same internal API directly (page.fetch) with a large pageSize
 //     so all invoices for all NICs arrive in a single response.
-//  4. Group by NIC, keep only unpaid/partial invoices, sum the debt.
+//  4. Group by NIC, keep only unpaid/partial entries, and read Deuda Total.
 //
 // `cd_Contrato` is a stable, per-account UUID. We read it from the page's own
 // request instead of hardcoding it, so it survives account/contract changes.
@@ -703,6 +703,60 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
 const AIR_E_GET_ENDPOINT =
   'https://portal.air-e.com/DesktopModules/GatewayOficinaVirtual.Maestro.MisFacturas/API/Documento/Get';
 const AIR_E_CONTRATO_RE = /cd_Contrato=([0-9A-Fa-f-]{36})/i;
+
+function parseAirEAmount(value) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? Math.round(value) : null;
+  }
+  if (value === null || value === undefined || value === '') return null;
+
+  const text = String(value).trim();
+  // API responses commonly use an integer string, but accept a conventional
+  // decimal string before falling back to the Colombian currency parser.
+  if (/^\d+(?:\.\d{1,2})?$/.test(text)) {
+    const amount = Number(text);
+    if (Number.isFinite(amount)) return Math.round(amount);
+  }
+  return parseCopAmount(text);
+}
+
+function aggregateAirEInvoices(items) {
+  const grouped = {};
+
+  for (const invoice of Array.isArray(items) ? items : []) {
+    const nic = String(invoice?.cd_Poliza || '').trim();
+    if (!nic) continue;
+
+    const status = String(invoice.cd_EstadosPagoDocumento || 'PAGADO').toUpperCase();
+    if (status === 'PAGADO' || status === 'PAGADA') continue;
+
+    const group = grouped[nic] || { totalValues: [], balanceValues: [] };
+    const totalDebt = parseAirEAmount(
+      invoice.amt_DeudaTotal ?? invoice.deudaTotal ?? invoice.DeudaTotal,
+    );
+    const balance = parseAirEAmount(
+      invoice.amt_SaldoConsulta ?? invoice.saldoConsulta ?? invoice.SaldoConsulta,
+    );
+
+    if (totalDebt !== null) group.totalValues.push(totalDebt);
+    else if (balance !== null) group.balanceValues.push(balance);
+    grouped[nic] = group;
+  }
+
+  return Object.fromEntries(Object.entries(grouped).map(([nic, group]) => {
+    const hasTotalField = group.totalValues.length > 0;
+    const debt = hasTotalField
+      // Deuda Total is often repeated once per invoice; use it once per NIC.
+      ? Math.max(...group.totalValues)
+      // Older responses may omit Deuda Total; sum the per-invoice balance as a
+      // compatibility fallback so the apartment still gets a useful result.
+      : group.balanceValues.reduce((sum, amount) => sum + amount, 0);
+    return [nic, {
+      debt,
+      source: hasTotalField ? 'Deuda Total' : 'SaldoConsulta',
+    }];
+  }));
+}
 
 async function scrapeAirE() {
   const results = [];
@@ -806,7 +860,10 @@ async function scrapeAirE() {
       return [];
     }
 
-    // 3. Pull EVERY invoice for all NICs in one call.
+    // 3. Pull the account data for all NICs in one call. The response contains
+    // Deuda Total per invoice/NIC; the aggregation below uses that field as
+    // the authoritative value and only falls back to SaldoConsulta when the
+    // portal omits it.
     const invoices = await page.evaluate(async (endpoint, contrato) => {
       const url = `${endpoint}?cd_Contrato=${encodeURIComponent(contrato)}&pageIndex=1&pageSize=1000`;
       const res = await fetch(url, {
@@ -815,7 +872,7 @@ async function scrapeAirE() {
       });
       if (!res.ok) return { ok: false, status: res.status };
       const json = await res.json();
-      return { ok: true, items: json.items || [], total: json.totalItemCount };
+      return { ok: true, items: json.items || [] };
     }, AIR_E_GET_ENDPOINT, cdContrato);
 
     if (!invoices.ok) {
@@ -824,39 +881,28 @@ async function scrapeAirE() {
       console.error('[AIR-E]', msg);
       return [];
     }
-    console.log(`[AIR-E] Got ${invoices.total} invoices in one call.`);
+    console.log('[AIR-E] Deuda Total recibida para todos los NIC en una sola consulta.');
 
-    // 3. Group invoices by NIC (cd_Poliza). Keep only unpaid/partial ones and
-    //    report the MAXIMUM single-invoice debt (the value the Air-e portal
-    //    highlights), not the sum of every pending invoice.
-    const byNic = {};
-    for (const inv of invoices.items) {
-      const nic = (inv.cd_Poliza || '').trim();
-      if (!nic) continue;
-      const pending = (inv.cd_EstadosPagoDocumento || 'PAGADO').toUpperCase() !== 'PAGADO';
-      const debt = Number(inv.amt_SaldoConsulta || inv.amt_DeudaTotal || 0);
-      if (!byNic[nic]) byNic[nic] = { debt: 0, count: 0 };
-      if (pending) {
-        byNic[nic].debt = Math.max(byNic[nic].debt, debt);
-        byNic[nic].count += 1;
-      }
-    }
+    const byNic = aggregateAirEInvoices(invoices.items);
 
     // 4. Emit one record per NIC mapped to its apartment.
     for (const nic of Object.keys(AIR_E_NIC_MAP)) {
       const aptoName = AIR_E_NIC_MAP[nic];
-      const agg = byNic[nic] || { debt: 0, count: 0 };
+      const agg = byNic[nic] || { debt: 0, source: 'Deuda Total' };
       const debtText = agg.debt > 0
-        ? `La deuda del NIC es $${agg.debt.toLocaleString('es-CO')} correspondiente a ${agg.count} factura${agg.count === 1 ? '' : 's'}.`
-        : `La deuda del NIC es $0 correspondiente a 0 facturas.`;
-      console.log(`[AIR-E]   NIC ${nic} → ${aptoName}: deuda $${agg.debt.toLocaleString('es-CO')} (${agg.count} facturas)`);
+        ? `Deuda Total del NIC: $${agg.debt.toLocaleString('es-CO')}.`
+        : 'Deuda Total del NIC: $0 (al día).';
+      console.log(`[AIR-E]   NIC ${nic} → ${aptoName}: Deuda Total $${agg.debt.toLocaleString('es-CO')} [${agg.source}]`);
 
       results.push({
         provider: 'Air-e',
         nic,
         apartment: aptoName,
         deudaCOP: agg.debt,
-        numFacturas: agg.count,
+        deudaTotalCOP: agg.debt,
+        deudaLabel: 'Deuda Total',
+        status: agg.debt > 0 ? 'pending' : 'paid',
+        numFacturas: null,
         deudaText: debtText,
         scrapedAt: new Date().toISOString(),
       });
@@ -952,9 +998,9 @@ function runWaterScrapeOnce(reason) {
 
 function startScheduler() {
   if (cronJob || waterCronJob) return;
-  const intervalHours = Math.max(1, Math.floor(Number(process.env.SERVICES_SCRAPE_INTERVAL_HOURS || 24)));
+  const intervalHours = Math.max(1, Math.floor(Number(process.env.SERVICES_SCRAPE_INTERVAL_HOURS || 12)));
   const timezone = process.env.SERVICES_TIMEZONE || 'America/Bogota';
-  console.log(`[SERVICES] Starting scheduler (Triple A every hour; Air-e every ${intervalHours}h; timezone ${timezone})...`);
+  console.log(`[SERVICES] Starting scheduler (Triple A every hour; Air-e Deuda Total every ${intervalHours}h; timezone ${timezone})...`);
 
   // Scrape shortly after boot so every deploy refreshes the debt data even
   // though Render free instances sleep between requests (cron alone would
@@ -1010,6 +1056,7 @@ module.exports = {
   scrapeWaterBills,
   parseCopAmount,
   extractWaterAmount,
+  aggregateAirEInvoices,
   parseWaterBillPage,
   waterNavigationError,
   persistWaterResults,

@@ -843,14 +843,21 @@ function buildDebtReply(contact) {
     if (!record) return `${label}: sin datos de consulta.`;
     const debt = utilityDebtAmount(record);
     const facturas = Number(record.numFacturas) || (record.status === 'pending' ? 1 : 0);
+    const isTotalDebt = record.provider === 'Air-e' || record.deudaLabel === 'Deuda Total';
     const checkedAt = record.checkedAt || record.scrapedAt || record.updatedAt;
     const when = checkedAt && !Number.isNaN(new Date(checkedAt).getTime())
       ? ` Datos del ${new Date(checkedAt).toLocaleString('es-CO', { dateStyle: 'short' })}.`
       : '';
     if (debt !== null && debt > 0) {
+      if (isTotalDebt) {
+        return `${label}: Deuda Total de $${debt.toLocaleString('es-CO')}.${when}`;
+      }
       return `${label}: deuda de $${debt.toLocaleString('es-CO')}, correspondiente a ${facturas} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'}.${when}`;
     }
     if (record.status === 'pending') {
+      if (isTotalDebt) {
+        return `${label}: Deuda Total pendiente; el portal no informó el valor.${when}`;
+      }
       return `${label}: hay ${facturas || 1} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'}, pero el portal no informó el valor.${when}`;
     }
     if (record.status === 'paid' || debt === 0) return `${label}: ${paidText}${when}`;

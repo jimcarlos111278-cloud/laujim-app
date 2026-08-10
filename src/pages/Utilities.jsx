@@ -415,7 +415,7 @@ export default function Utilities() {
                       {svc === 'electricity' && debts[apt.id]?.electricity && (
                         <p className={`text-xs font-semibold mt-1 ${debts[apt.id].electricity.deudaCOP > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                           {debts[apt.id].electricity.deudaCOP > 0
-                            ? <>Deuda: <span className="font-bold">${Number(debts[apt.id].electricity.deudaCOP).toLocaleString('es-CO')}</span> · {debts[apt.id].electricity.numFacturas} {debts[apt.id].electricity.numFacturas === 1 ? 'factura' : 'facturas'}</>
+                            ? <>Deuda Total: <span className="font-bold">${Number(debts[apt.id].electricity.deudaCOP).toLocaleString('es-CO')}</span></>
                             : 'Al día · Sin deuda'}
                           <span className="text-gray-400 dark:text-gray-500 font-normal"> · datos {timeAgo(debts[apt.id].electricity.actualizado)}</span>
                         </p>

@@ -1,16 +1,16 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-10)
 
 ## Corpus Check
-- 120 files · ~139,806 words
+- 120 files · ~140,029 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1228 nodes · 2244 edges · 128 communities (96 shown, 32 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 24 edges (avg confidence: 0.53)
+- 1230 nodes · 2249 edges · 134 communities (101 shown, 33 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 25 edges (avg confidence: 0.52)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3e9295ee`
+- Built from commit: `73bdd051`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -50,7 +50,7 @@
 - scripts
 - scripts
 - backup.js
-- Notificaciones
+- scrapeWaterBills
 - @capacitor/share
 - getR2Client
 - opencode.json
@@ -123,10 +123,16 @@
 - @capacitor/core
 - lucide-react
 - Utilities.jsx
-- @capacitor/cli
+- test-water-scraper.cjs
 - @capacitor/local-notifications
 - @capacitor/filesystem
+- parseWaterBillPage
 - @capacitor-mlkit/barcode-scanning
+- scrapeAirE
+- _scrape-diagnostic.cjs
+- runScrapeOnce
+- Arquitectura del Sistema
+- @capacitor/cli
 - docker-start-render.sh
 
 ## God Nodes (most connected - your core abstractions)
@@ -156,7 +162,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (128 total, 32 thin omitted)
+## Communities (134 total, 33 thin omitted)
 
 ### Community 0 - "getBase"
 Cohesion: 0.18
@@ -251,8 +257,8 @@ Cohesion: 0.27
 Nodes (18): AdminRoute(), ProtectedRoute(), Chat(), getAuth(), fetchPresence(), getAllRooms(), getRoomMessages(), getStatusLabel() (+10 more)
 
 ### Community 23 - "services-scraper.cjs"
-Cohesion: 0.05
-Nodes (53): db, fs, path, scraper, assert, scraper, AIR_E_NIC_MAP, AIR_E_URLS (+45 more)
+Cohesion: 0.10
+Nodes (16): AIR_E_NIC_MAP, AIR_E_URLS, BROWSERLESS_REGION, BROWSERLESS_SOLVE_CAPTCHAS, BROWSERLESS_TOKEN, BROWSERLESS_WS_ENDPOINT, CHROME_CANDIDATES, cron (+8 more)
 
 ### Community 24 - "contractGenerator.js"
 Cohesion: 0.14
@@ -294,9 +300,9 @@ Nodes (29): oxlint, devDependencies, oxlint, @types/react, @types/react-dom, vit
 Cohesion: 0.20
 Nodes (9): backupDir, dataDir, __dirname, dst, files, now, root, src (+1 more)
 
-### Community 35 - "Notificaciones"
-Cohesion: 0.67
-Nodes (3): Notificaciones, Notificaciones del Navegador (`src/utils/notifications.js`), Notificaciones Locales APK (`src/utils/localNotifications.js`)
+### Community 35 - "scrapeWaterBills"
+Cohesion: 0.27
+Nodes (12): closeWaterBrowser(), closeWaterResource(), inspectWaterPage(), scrapeWaterBills(), sleep(), submitWaterQueryIfReady(), waitForWaterBill(), waitForWaterTurnstile() (+4 more)
 
 ### Community 37 - "getR2Client"
 Cohesion: 0.42
@@ -324,7 +330,7 @@ Nodes (5): Intent, Override, RespondViaMessageService, IBinder, Service
 
 ### Community 46 - "Gestión de Apartamentos — Laujim APP"
 Cohesion: 0.14
-Nodes (13): Arquitectura del Sistema, Estructura del Proyecto, Flujo de Datos, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial (+5 more)
+Nodes (13): Estructura del Proyecto, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial, Notificaciones, Notificaciones del Navegador (`src/utils/notifications.js`) (+5 more)
 
 ### Community 48 - "generate-version.js"
 Cohesion: 0.29
@@ -482,20 +488,40 @@ Nodes (4): Login Admin, Login Inquilino, Sesión, Sistema de Autenticación
 Cohesion: 0.36
 Nodes (7): PORTALS, services, timeAgo(), Utilities(), waterBillClass(), waterBillLabel(), waterBillMeta()
 
+### Community 126 - "parseWaterBillPage"
+Cohesion: 0.25
+Nodes (8): aggregateAirEInvoices(), extractWaterAmount(), extractWaterInvoice(), extractWaterPeriod(), normalizeBillText(), parseAirEAmount(), parseCopAmount(), parseWaterBillPage()
+
+### Community 128 - "scrapeAirE"
+Cohesion: 0.29
+Nodes (8): BROWSERLESS_PROFILES, browserlessEndpointFor(), firstExistingPath(), getAirECredentials(), launchBrowser(), resolveChromium(), scrapeAirE(), waitAndType()
+
+### Community 129 - "_scrape-diagnostic.cjs"
+Cohesion: 0.40
+Nodes (4): db, fs, path, scraper
+
+### Community 130 - "runScrapeOnce"
+Cohesion: 0.40
+Nodes (5): persistResults(), persistWaterResults(), runScrapeOnce(), runWaterScrapeOnce(), startScheduler()
+
+### Community 131 - "Arquitectura del Sistema"
+Cohesion: 0.67
+Nodes (3): Arquitectura del Sistema, Flujo de Datos, Viewport y Layout Adaptativo
+
 ## Knowledge Gaps
 - **457 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES`, `$schema`, `oxc` (+452 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **32 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **33 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `contractGenerator.js`, `scripts`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `cors`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`, `@capacitor/cli`, `@capacitor/local-notifications`, `@capacitor/filesystem`, `@capacitor-mlkit/barcode-scanning`?**
+- **Why does `dependencies` connect `dependencies` to `@capacitor/cli`, `contractGenerator.js`, `scripts`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `cors`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`, `@capacitor/local-notifications`, `@capacitor/filesystem`, `@capacitor-mlkit/barcode-scanning`?**
   _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **Why does `jspdf` connect `contractGenerator.js` to `dependencies`, `ApartmentDetail.jsx`?**
   _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Why does `generateApartmentPDF()` connect `ApartmentDetail.jsx` to `contractGenerator.js`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
 - **What connects `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES` to the rest of the system?**
   _457 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ApartmentDetail.jsx` be split into smaller, more focused modules?**
