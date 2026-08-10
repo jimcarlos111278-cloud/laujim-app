@@ -164,8 +164,8 @@ async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHRO
 
 // ── HELPERS ─────────────────────────────────────────────────────────────────
 
-async function waitAndType(page, selector, text) {
-  await page.waitForSelector(selector, { visible: true, timeout: 10000 });
+async function waitAndType(page, selector, text, timeout = 45000) {
+  await page.waitForSelector(selector, { visible: true, timeout });
   await page.click(selector);
   await page.evaluate((s) => { const el = document.querySelector(s); if (el) el.value = ''; }, selector);
   await page.type(selector, text, { delay: 50 });
@@ -865,11 +865,13 @@ function startScheduler() {
 
   // Scrape shortly after boot so every deploy refreshes the debt data even
   // though Render free instances sleep between requests (cron alone would
-  // never fire while the instance is asleep).
-  waterBootTimer = setTimeout(() => runWaterScrapeOnce('boot'), 60 * 1000);
-  if (waterBootTimer.unref) waterBootTimer.unref();
-  bootTimer = setTimeout(() => runScrapeOnce('boot'), 120 * 1000);
+  // never fire while the instance is asleep). Start Air-e first because it
+  // uses one authenticated browser; Triple A then runs behind the shared
+  // browser lock and cannot compete for the free instance's memory.
+  bootTimer = setTimeout(() => runScrapeOnce('boot'), 60 * 1000);
   if (bootTimer.unref) bootTimer.unref();
+  waterBootTimer = setTimeout(() => runWaterScrapeOnce('boot'), 120 * 1000);
+  if (waterBootTimer.unref) waterBootTimer.unref();
 
   // node-cron fires on the hour while the instance is awake.
   waterCronJob = cron.schedule(WATER_SCRAPE_CRON, () => runWaterScrapeOnce('schedule'), { timezone });
