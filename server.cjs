@@ -833,6 +833,45 @@ function isDebtQuery(text) {
   return DEBT_QUERY_RE.test(String(text || '').trim());
 }
 
+// Shared service-record helpers must live outside startServer(). The WhatsApp
+// admin handlers are declared before startServer and use the same records as
+// the HTTP utility endpoints.
+function latestUtilityRecord(provider, apartment) {
+  const records = (db.utilityRecords || []).filter(record =>
+    record.provider === provider &&
+    (Number(record.apartmentId) === Number(apartment?.id) || record.apartment === apartment?.name)
+  );
+  return records.sort((a, b) => new Date(b.checkedAt || b.scrapedAt || b.updatedAt || 0) - new Date(a.checkedAt || a.scrapedAt || a.updatedAt || 0))[0] || null;
+}
+
+function utilityDebtAmount(record) {
+  if (!record) return null;
+  const fields = ['deudaCOP', 'amountCOP', 'valorCOP', 'totalCOP', 'deuda', 'amount', 'valor', 'total'];
+  for (const field of fields) {
+    if (record[field] === null || record[field] === undefined || record[field] === '') continue;
+    const amount = typeof servicesScraper.parseCopAmount === 'function'
+      ? servicesScraper.parseCopAmount(record[field])
+      : Number(record[field]);
+    if (amount !== null && Number.isFinite(amount)) return amount;
+  }
+  return null;
+}
+
+function utilityPaymentView(record) {
+  if (!record) return null;
+  const checkedAt = record.checkedAt || record.scrapedAt || record.updatedAt || null;
+  return {
+    status: record.status || 'unknown',
+    deudaCOP: utilityDebtAmount(record),
+    numFacturas: Number(record.numFacturas) || (record.status === 'pending' ? 1 : 0),
+    factura: record.factura || record.invoiceNumber || null,
+    periodo: record.periodo || record.period || null,
+    actualizado: checkedAt,
+    checkedAt,
+    error: record.error || null,
+  };
+}
+
 function buildDebtReply(contact) {
   const aptId = Number(contact.apartmentId);
   const apt = (db.apartments || []).find(a => Number(a.id) === aptId);
@@ -2234,49 +2273,6 @@ app.get('/api/public/apartments/:id', (req, res) => {
     ],
   });
 });
-
-// ── SERVICIOS PÚBLICOS (Air-e, Triple A, Gases del Caribe) ──
-const SERVICES_CONFIG = {
-  water:      { id: 'water', name: 'Agua', provider: 'Triple A', url: 'https://portal.aaa.com.co/polizas' },
-  gas:        { id: 'gas', name: 'Gas', provider: 'Gases del Caribe', url: 'https://www.gascaribe.com/' },
-  electricity:{ id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List' },
-};
-
-function latestUtilityRecord(provider, apartment) {
-  const records = (db.utilityRecords || []).filter(record =>
-    record.provider === provider &&
-    (Number(record.apartmentId) === Number(apartment?.id) || record.apartment === apartment?.name)
-  );
-  return records.sort((a, b) => new Date(b.checkedAt || b.scrapedAt || b.updatedAt || 0) - new Date(a.checkedAt || a.scrapedAt || a.updatedAt || 0))[0] || null;
-}
-
-function utilityDebtAmount(record) {
-  if (!record) return null;
-  const fields = ['deudaCOP', 'amountCOP', 'valorCOP', 'totalCOP', 'deuda', 'amount', 'valor', 'total'];
-  for (const field of fields) {
-    if (record[field] === null || record[field] === undefined || record[field] === '') continue;
-    const amount = typeof servicesScraper.parseCopAmount === 'function'
-      ? servicesScraper.parseCopAmount(record[field])
-      : Number(record[field]);
-    if (amount !== null && Number.isFinite(amount)) return amount;
-  }
-  return null;
-}
-
-function utilityPaymentView(record) {
-  if (!record) return null;
-  const checkedAt = record.checkedAt || record.scrapedAt || record.updatedAt || null;
-  return {
-    status: record.status || 'unknown',
-    deudaCOP: utilityDebtAmount(record),
-    numFacturas: Number(record.numFacturas) || (record.status === 'pending' ? 1 : 0),
-    factura: record.factura || record.invoiceNumber || null,
-    periodo: record.periodo || record.period || null,
-    actualizado: checkedAt,
-    checkedAt,
-    error: record.error || null,
-  };
-}
 
 // Get all utility records for an apartment (admin)
 app.get('/api/services/utility-records/:apartmentId', (req, res) => {
