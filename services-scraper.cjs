@@ -130,11 +130,13 @@ async function waitAndType(page, selector, text) {
 // has used more than one page layout, so the parser deliberately relies on
 // visible text and labels instead of brittle CSS selectors.
 
-// Give each QR page 30 seconds to render the debt. A fresh page is opened
-// once when that attempt returns no usable value; this recovers from stale
-// connections without allowing one target to keep the hourly run alive.
-const WATER_TIMEOUT_MS = 30000;
+// Give each QR page up to three minutes to render the debt. A fresh page is
+// opened once when that attempt returns no usable value. Turnstile is handled
+// differently: it is detected quickly and the page can be reopened up to four
+// total attempts in case the challenge was only transient.
+const WATER_TIMEOUT_MS = 180000;
 const WATER_MAX_ATTEMPTS = 2;
+const WATER_CAPTCHA_MAX_ATTEMPTS = 4;
 const WATER_POLL_INTERVAL_MS = 2000;
 const WATER_RESPONSE_TIMEOUT_MS = 5000;
 const WATER_CLOSE_TIMEOUT_MS = 10000;
@@ -433,7 +435,7 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
         const checkedAt = new Date().toISOString();
         let completed = false;
         let attempt = 0;
-        while (!completed && attempt < WATER_MAX_ATTEMPTS) {
+        while (!completed && attempt < WATER_CAPTCHA_MAX_ATTEMPTS) {
           attempt += 1;
           let page;
           try {
@@ -478,15 +480,30 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
           const query = await submitWaterQueryIfReady(page, pageState);
           if (query.captcha) {
             const parsed = { status: 'captcha', deudaCOP: null, error: query.error };
-            results[index] = waterRecord(target, parsed, checkedAt);
             lastWaterScrapeError = query.error;
-            console.warn(`[TRIPLE A] ${target.apartment || target.apartmentId}: captcha (Turnstile requerido)`);
-            completed = true;
+            if (attempt < WATER_CAPTCHA_MAX_ATTEMPTS) {
+              console.warn(`[TRIPLE A] ${target.apartment || target.apartmentId}: captcha (Turnstile requerido); reiniciando pagina (intento ${attempt + 1}/${WATER_CAPTCHA_MAX_ATTEMPTS}).`);
+            } else {
+              results[index] = waterRecord(target, parsed, checkedAt);
+              console.warn(`[TRIPLE A] ${target.apartment || target.apartmentId}: captcha (Turnstile requerido), agotados ${WATER_CAPTCHA_MAX_ATTEMPTS} intentos.`);
+              completed = true;
+            }
             continue;
           }
 
           const parsed = await waitForWaterBill(page, responseBodies, deadline);
           if (canCaptureResponses) page.off('response', captureResponse);
+          if (parsed.status === 'captcha') {
+            lastWaterScrapeError = parsed.error || WATER_CAPTCHA_ERROR;
+            if (attempt < WATER_CAPTCHA_MAX_ATTEMPTS) {
+              console.warn(`[TRIPLE A] ${target.apartment || target.apartmentId}: captcha (Turnstile requerido); reiniciando pagina (intento ${attempt + 1}/${WATER_CAPTCHA_MAX_ATTEMPTS}).`);
+            } else {
+              results[index] = waterRecord(target, parsed, checkedAt);
+              console.warn(`[TRIPLE A] ${target.apartment || target.apartmentId}: captcha (Turnstile requerido), agotados ${WATER_CAPTCHA_MAX_ATTEMPTS} intentos.`);
+              completed = true;
+            }
+            continue;
+          }
           if (!waterResultReady(parsed)) {
             throw new Error(`Triple A timeout: no mostró el valor de la deuda después de ${WATER_TIMEOUT_MS / 1000} segundos.`);
           }
@@ -498,9 +515,14 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
           completed = true;
         } catch (error) {
           lastWaterScrapeError = error.message;
-          const shouldRetry = attempt < WATER_MAX_ATTEMPTS && !/captcha|turnstile|verification/i.test(String(error.message || ''));
+          const isCaptcha = /captcha|turnstile|verification/i.test(String(error.message || ''));
+          const maxAttempts = isCaptcha ? WATER_CAPTCHA_MAX_ATTEMPTS : WATER_MAX_ATTEMPTS;
+          const shouldRetry = attempt < maxAttempts;
           if (shouldRetry) {
-            console.warn(`[TRIPLE A] ${target.apartment || target.apartmentId}: sin valor despues de ${WATER_TIMEOUT_MS / 1000}s; reiniciando pagina (intento ${attempt + 1}/${WATER_MAX_ATTEMPTS}).`);
+            const reason = isCaptcha
+              ? 'captcha (Turnstile requerido)'
+              : `sin valor despues de ${WATER_TIMEOUT_MS / 1000}s`;
+            console.warn(`[TRIPLE A] ${target.apartment || target.apartmentId}: ${reason}; reiniciando pagina (intento ${attempt + 1}/${maxAttempts}).`);
           } else {
             results[index] = waterNavigationError(target, error, checkedAt);
             console.error(`[TRIPLE A] ${target.apartment || target.apartmentId}: ${error.message}`);

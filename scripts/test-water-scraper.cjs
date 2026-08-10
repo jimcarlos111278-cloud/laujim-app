@@ -62,7 +62,7 @@ async function testBrowserAndPersistence() {
   assert.equal(results[0].status, 'paid');
   assert.equal(results[0].apartmentId, 1);
   assert.equal(navigationOptions.waitUntil, 'domcontentloaded');
-  assert.equal(navigationOptions.timeout, 30000);
+  assert.equal(navigationOptions.timeout, 180000);
   assert.ok(evaluateCalls >= 2, 'the scraper should wait for delayed invoice content');
   assert.equal(pages.length, 1);
   assert.equal(fakeBrowser.closed, true);
@@ -108,8 +108,42 @@ async function testReloadAfterTimeout() {
   assert.equal(results[0].status, 'paid');
 }
 
+async function testTurnstileRetriesFourTimes() {
+  let pagesCreated = 0;
+  const fakeBrowser = {
+    async newPage() {
+      pagesCreated += 1;
+      return {
+        setDefaultNavigationTimeout() {},
+        async goto() { return { status: () => 200 }; },
+        async evaluate() {
+          return {
+            hasTurnstile: true,
+            turnstileToken: '',
+            hasCaptchaText: true,
+            hasBillingResult: false,
+            hasSubmit: true,
+            submitDisabled: true,
+            hasPaymentNumber: true,
+          };
+        },
+        async close() {},
+      };
+    },
+    async close() {},
+  };
+
+  const results = await scraper.scrapeWaterBills(
+    [{ id: 1, name: '101', waterPaymentUrl: 'https://example.test/101' }],
+    async () => fakeBrowser,
+  );
+  assert.equal(pagesCreated, 4, 'Turnstile should allow four total page attempts');
+  assert.equal(results[0].status, 'captcha');
+}
+
 testParserStates();
 testBrowserAndPersistence()
   .then(testReloadAfterTimeout)
+  .then(testTurnstileRetriesFourTimes)
   .then(() => console.log('Water scraper checks passed.'))
   .catch(error => { console.error(error); process.exitCode = 1; });
