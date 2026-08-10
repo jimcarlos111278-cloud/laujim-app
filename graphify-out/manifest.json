@@ -235,13 +235,13 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786383444.3391583,
-    "ast_hash": "678665d7fa4f4f4899ffc3d7a46c8880",
+    "mtime": 1786395112.5679243,
+    "ast_hash": "930965f1a04de7d1e61f2c1f390148b0",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1786383456.3238022,
-    "ast_hash": "440065df12f660c3c8c227a9eb0205d1",
+    "mtime": 1786396844.7483025,
+    "ast_hash": "0ce31094648ea18e28420b86caa39273",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
@@ -310,9 +310,9 @@
     "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
   },
   "src/pages/ApartmentDetail.jsx": {
-    "mtime": 1785967683.9937007,
-    "ast_hash": "e0b4ad835262f9e2fb56d81a5448a497",
-    "semantic_hash": "e0b4ad835262f9e2fb56d81a5448a497"
+    "mtime": 1786397535.7610562,
+    "ast_hash": "5dd5999ee3699f7335c24267ba63ecc5",
+    "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
     "mtime": 1785293991.048328,
@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "src/pages/Settings.jsx": {
-    "mtime": 1786154801.6290562,
-    "ast_hash": "44c0b89a019976b2bf0f9aef261904b5",
+    "mtime": 1786397531.1030302,
+    "ast_hash": "6490b82cb8b08c94ee618d2ef0a4d59f",
     "semantic_hash": ""
   },
   "src/pages/ShareApartments.jsx": {
@@ -400,9 +400,9 @@
     "semantic_hash": "d82b1206738f525a8b4abefc271ec0bf"
   },
   "src/pages/WhatsAppInbox.jsx": {
-    "mtime": 1785686571.0516887,
-    "ast_hash": "1096d97d4fdc63ea4c10b1844964c178",
-    "semantic_hash": "1096d97d4fdc63ea4c10b1844964c178"
+    "mtime": 1786394773.886552,
+    "ast_hash": "90cdcbe19ac415a444ecf2bec6e2d006",
+    "semantic_hash": ""
   },
   "src/utils/auth.js": {
     "mtime": 1785997827.3526518,
@@ -580,8 +580,8 @@
     "semantic_hash": ""
   },
   "render.yaml": {
-    "mtime": 1786383410.2204857,
-    "ast_hash": "c9fd88419dbb8ba3232bb0d465af0591",
+    "mtime": 1786397513.231377,
+    "ast_hash": "1f56f6209b4974fa1c0c5b86cf47f7ee",
     "semantic_hash": ""
   },
   "IMG_4307.jpeg": {
@@ -822,6 +822,16 @@
   "docker-start-render.sh": {
     "mtime": 1786374037.8115976,
     "ast_hash": "e5102c456c61ed2730771d853e481116",
+    "semantic_hash": ""
+  },
+  "docs/whatsapp-cobro-canon-servicios.md": {
+    "mtime": 1786398289.7536106,
+    "ast_hash": "7a150e73a10a1a0463c788fa267ad359",
+    "semantic_hash": ""
+  },
+  "docs/whatsapp-plantillas.md": {
+    "mtime": 1786398289.7467844,
+    "ast_hash": "5a62ad871ac1ddff2fa021a8c3f43398",
     "semantic_hash": ""
   }
 }

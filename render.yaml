@@ -26,7 +26,7 @@ services:
         value: production-sfo
       # Browserless can solve Turnstile on the water QR flow; this consumes units.
       - key: BROWSERLESS_PROFILES
-        value: air-e,water
+        value: air-e,water,gas
       - key: BROWSERLESS_STEALTH
         value: "true"
       - key: BROWSERLESS_SOLVE_CAPTCHAS
@@ -66,3 +66,7 @@ services:
         sync: false
       - key: WHATSAPP_GRAPH_VERSION
         sync: false
+      - key: WHATSAPP_GREETING_TEMPLATE
+        value: saludo_inquilino
+      - key: WHATSAPP_PAYMENT_REMINDER_TEMPLATE
+        value: cobro_canon_servicios

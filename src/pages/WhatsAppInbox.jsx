@@ -284,7 +284,7 @@ export default function WhatsAppInbox() {
                 <p className="mb-2 text-xs text-violet-900 dark:text-violet-200">Plantillas de WhatsApp (también funcionan fuera de la ventana de 24 horas).</p>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" disabled={!!templateSending} onClick={() => sendTemplate('greeting')} className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{templateSending === 'greeting' ? 'Enviando…' : 'Hola, ¿cómo estás?'}</button>
-                  <button type="button" disabled={!!templateSending} onClick={() => sendTemplate('payment_reminder')} className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-800 disabled:opacity-50 dark:border-violet-800 dark:bg-gray-800 dark:text-violet-200">{templateSending === 'payment_reminder' ? 'Enviando…' : 'Recordatorio de pago'}</button>
+                  <button type="button" disabled={!!templateSending} onClick={() => sendTemplate('payment_reminder')} className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-800 disabled:opacity-50 dark:border-violet-800 dark:bg-gray-800 dark:text-violet-200">{templateSending === 'payment_reminder' ? 'Enviando…' : 'Cobro + servicios'}</button>
                 </div>
                 <p className="mt-2 text-[11px] text-violet-700 dark:text-violet-300">Meta debe aprobarlas antes de que se puedan entregar.</p>
               </div>}

@@ -14,6 +14,46 @@ import ThemeSelector from '../components/ThemeSelector';
 import { clearAuth, getAuth } from '../utils/auth';
 import { getAuthorizedSmsMessages, getCallScreeningStatus, requestCallScreeningRole, requestProtectedSmsRole, setCallScreeningEnabled, setAllowCallsFromContacts, syncAuthorizedCallerNumbers } from '../utils/callScreening';
 
+const DEFAULT_WA_SERVICES_TEMPLATE = `Hola {nombre} 👋
+
+Te saluda la administración de apartamentos Laujim.
+
+🏠 Apartamento: {apto}
+
+⚡ Air-e — Deuda Total: {deuda_aire}
+NIC: {nic_aire}
+💳 Pago Air-e: {link_aire}
+
+💧 Triple A — Deuda Total: {deuda_agua}
+Póliza: {poliza_agua}
+💳 Pago Triple A: {link_triplea}
+
+🔥 Gases del Caribe — Deuda Total: {deuda_gas}
+Contrato: {contrato_gas}
+💳 Pago Gases: {link_gases}
+
+Puedes responder por este mismo medio si necesitas ayuda. ¡Gracias!`;
+
+const DEFAULT_WA_REMINDER_TEMPLATE = `Hola {nombre} 👋
+
+Te saluda la administración de apartamentos Laujim.
+
+🏠 Apartamento: {apto}
+📊 Canon de {periodo}: {valor_canon}
+📅 Vencimiento: {fecha_vencimiento}
+📌 Estado: {estado_canon}
+
+⚡ Air-e — Deuda Total: {deuda_aire}
+💧 Triple A — Deuda Total: {deuda_agua}
+🔥 Gases del Caribe — Deuda Total: {deuda_gas}
+
+💳 Enlaces de pago:
+⚡ Air-e: {link_aire}
+💧 Triple A: {link_triplea}
+🔥 Gases del Caribe: {link_gases}
+
+Cuando realices el pago del canon, responde adjuntando el comprobante para validarlo. ¡Gracias!`;
+
 export default function Settings() {
   const navigate = useNavigate();
   const auth = getAuth();
@@ -28,7 +68,7 @@ export default function Settings() {
   const [waTemplates, setWaTemplates] = useState({ services: '', reminder: '' });
   const [waSaving, setWaSaving] = useState(false);
   const [waSaved, setWaSaved] = useState(false);
-  const [waTemplateNames, setWaTemplateNames] = useState({ name1: 'Servicios públicos', name2: 'Recordatorio de pago' });
+  const [waTemplateNames, setWaTemplateNames] = useState({ name1: 'Servicios y deudas', name2: 'Cobro de canon y servicios' });
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState(false);
   const [callScreening, setCallScreening] = useState(null);
@@ -291,19 +331,25 @@ export default function Settings() {
         }
       })
       .catch(() => {});
-    const getVal = (k, def) => s.find(x => x.key === k)?.value || def;
+    const getVal = (k, def) => {
+      const saved = s.find(x => x.key === k)?.value;
+      if (saved) return saved;
+      if (k === 'whatsapp_template_services') return DEFAULT_WA_SERVICES_TEMPLATE;
+      if (k === 'whatsapp_template_reminder') return DEFAULT_WA_REMINDER_TEMPLATE;
+      return def;
+    };
     setWaConfig({ apiToken: getVal('whatsapp_api_token', ''), phoneNumberId: getVal('whatsapp_phone_number_id', ''), verifyToken: getVal('whatsapp_verify_token', 'laujim_whatsapp_verify') });
     try {
       const parsed = JSON.parse(getVal('whatsapp_admin_phones', '[]'));
       setAdminPhones(Array.isArray(parsed) ? parsed : []);
     } catch { setAdminPhones([]); }
     const svc = getVal('whatsapp_template_services', '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Sabemos que es fácil perder la información de pago de los servicios, por eso te compartimos los enlaces directos:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\n📌 También puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar esta información y contactarnos por el chat directo.\n👉 https://laujim-app.onrender.com/login\n\n¡Gracias!');
-    const rem = getVal('whatsapp_template_reminder', '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Te recordamos que el canon de {valor_canon} vence el {dia_vencimiento}.\n\n📌 Sabemos que es fácil perder la información de pago. Puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar tus pagos y contactarnos por el chat directo.\n👉 https://laujim-app.onrender.com/login\n\n¡Gracias!');
+    const rem = getVal('whatsapp_template_reminder', 'Hola {nombre} 👋\n\nTe saluda la administración de Laujim.\n\n🏠 Apartamento: {apto}\n📊 Canon de {periodo}: {valor_canon}\n📅 Vencimiento: {fecha_vencimiento}\n📌 Estado: {estado_canon}\n\n⚡ Air-e — Deuda Total: {deuda_aire}\n💧 Triple A — Deuda Total: {deuda_agua}\n🔥 Gases del Caribe — Deuda Total: {deuda_gas}\n\n💳 Enlaces de pago:\n⚡ {link_aire}\n💧 {link_triplea}\n🔥 {link_gases}\n\nCuando realices el pago del canon, responde adjuntando el comprobante para validarlo. ¡Gracias!');
     setWaTemplates({ services: svc, reminder: rem });
     localStorage.setItem('wa_template_services', svc);
     localStorage.setItem('wa_template_reminder', rem);
-    const n1 = getVal('whatsapp_template_name1', 'Servicios públicos');
-    const n2 = getVal('whatsapp_template_name2', 'Recordatorio de pago');
+    const n1 = getVal('whatsapp_template_name1', 'Servicios y deudas');
+    const n2 = getVal('whatsapp_template_name2', 'Cobro de canon y servicios');
     setWaTemplateNames({ name1: n1, name2: n2 });
     localStorage.setItem('wa_template_name1', n1);
     localStorage.setItem('wa_template_name2', n2);
@@ -540,7 +586,7 @@ export default function Settings() {
         </div>
 
         {/* WhatsApp API Config */}
-        <div className="hidden" aria-hidden="true">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp API</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Configuración para el bot de auto-respuesta y envío de mensajes.</p>
           <div className="space-y-3">
@@ -569,20 +615,21 @@ export default function Settings() {
         {/* WhatsApp Templates */}
         <div className="hidden" aria-hidden="true">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Plantillas WhatsApp</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Personaliza los mensajes que se envían desde los botones de WhatsApp.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Edita los mensajes manuales que se abren en WhatsApp. Las plantillas Cloud aprobadas se envían desde la bandeja y desde el bot.</p>
+          <p className="mb-4 rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:bg-violet-950/30 dark:text-violet-200">Plantillas Cloud pendientes en Meta: <code>saludo_inquilino</code> y <code>cobro_canon_servicios</code>. Deben existir y estar aprobadas con el mismo nombre y variables.</p>
           <div className="space-y-4">
             <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de la plantilla</label>
               <input type="text" value={waTemplateNames.name1} onChange={e => setWaTemplateNames({...waTemplateNames, name1: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-3" placeholder="Ej: Servicios públicos" />
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje</label>
-              <p className="text-xs text-gray-400 mb-1">Placeholders: {'{nombre}'}, {'{apto}'}, {'{link_aire}'}, {'{link_triplea}'}, {'{link_gases}'}</p>
+              <p className="text-xs text-gray-400 mb-1">Variables: {'{nombre}'}, {'{apto}'}, {'{deuda_aire}'}, {'{deuda_agua}'}, {'{deuda_gas}'}, {'{nic_aire}'}, {'{poliza_agua}'}, {'{contrato_gas}'}, {'{link_aire}'}, {'{link_triplea}'}, {'{link_gases}'}</p>
               <textarea value={waTemplates.services} onChange={e => setWaTemplates({...waTemplates, services: e.target.value})} rows={5} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-xs" />
             </div>
             <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de la plantilla</label>
               <input type="text" value={waTemplateNames.name2} onChange={e => setWaTemplateNames({...waTemplateNames, name2: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-3" placeholder="Ej: Recordatorio de pago" />
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje</label>
-              <p className="text-xs text-gray-400 mb-1">Placeholders: {'{nombre}'}, {'{apto}'}, {'{valor_canon}'}, {'{dia_vencimiento}'}</p>
+              <p className="text-xs text-gray-400 mb-1">Variables: {'{nombre}'}, {'{apto}'}, {'{periodo}'}, {'{valor_canon}'}, {'{fecha_vencimiento}'}, {'{estado_canon}'}, {'{deuda_aire}'}, {'{deuda_agua}'}, {'{deuda_gas}'}, {'{link_aire}'}, {'{link_triplea}'}, {'{link_gases}'}</p>
               <textarea value={waTemplates.reminder} onChange={e => setWaTemplates({...waTemplates, reminder: e.target.value})} rows={5} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-xs" />
             </div>
             <button onClick={handleSaveTemplates} disabled={waSaving} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium">

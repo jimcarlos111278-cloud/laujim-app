@@ -21,6 +21,66 @@ const utilityWebsites = {
   electricity: { name: 'Air-e', url: 'https://portal.air-e.com/Pagar#/List' },
 };
 
+const DEFAULT_WA_SERVICES_TEMPLATE = `Hola {nombre} 👋
+
+Te saluda la administración de apartamentos Laujim.
+
+🏠 Apartamento: {apto}
+
+⚡ Air-e — Deuda Total: {deuda_aire}
+NIC: {nic_aire}
+💳 Pago Air-e: {link_aire}
+
+💧 Triple A — Deuda Total: {deuda_agua}
+Póliza: {poliza_agua}
+💳 Pago Triple A: {link_triplea}
+
+🔥 Gases del Caribe — Deuda Total: {deuda_gas}
+Contrato: {contrato_gas}
+💳 Pago Gases: {link_gases}
+
+Puedes responder por este mismo medio si necesitas ayuda. ¡Gracias!`;
+
+const DEFAULT_WA_REMINDER_TEMPLATE = `Hola {nombre} 👋
+
+Te saluda la administración de apartamentos Laujim.
+
+🏠 Apartamento: {apto}
+📊 Canon de {periodo}: {valor_canon}
+📅 Vencimiento: {fecha_vencimiento}
+📌 Estado: {estado_canon}
+
+⚡ Air-e — Deuda Total: {deuda_aire}
+💧 Triple A — Deuda Total: {deuda_agua}
+🔥 Gases del Caribe — Deuda Total: {deuda_gas}
+
+💳 Enlaces de pago:
+⚡ Air-e: {link_aire}
+💧 Triple A: {link_triplea}
+🔥 Gases del Caribe: {link_gases}
+
+Cuando realices el pago del canon, responde adjuntando el comprobante para validarlo. ¡Gracias!`;
+
+function latestUtilityRecord(records, service) {
+  return [...(records || [])]
+    .filter(record => record?.service === service)
+    .sort((left, right) => new Date(right.checkedAt || right.scrapedAt || right.updatedAt || 0).getTime() -
+      new Date(left.checkedAt || left.scrapedAt || left.updatedAt || 0).getTime())[0] || null;
+}
+
+function utilityDebtText(record) {
+  const raw = record?.deudaTotalCOP ?? record?.deudaCOP;
+  const debt = typeof raw === 'number' ? raw : Number(String(raw ?? '').replace(/[^0-9,.-]/g, '').replace(/\./g, '').replace(',', '.'));
+  if (Number.isFinite(debt)) return `$${Math.max(0, Math.round(debt)).toLocaleString('es-CO')}${debt === 0 ? ' · Al día' : ''}`;
+  if (record?.status === 'paid') return '$0 · Al día';
+  return 'Sin dato confirmado';
+}
+
+function expandWhatsAppTemplate(template, values) {
+  return Object.entries(values).reduce((message, [key, value]) =>
+    message.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value ?? '')), String(template || ''));
+}
+
 export default function ApartmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -405,16 +465,57 @@ export default function ApartmentDetail() {
     window.open('https://wa.me/57' + num, '_blank');
   }
 
-  async function handleWhatsAppReminder() {
+  function whatsappServiceTemplateValues() {
+    const records = {
+      electricity: latestUtilityRecord(utilityRecords, 'electricity'),
+      water: latestUtilityRecord(utilityRecords, 'water'),
+      gas: latestUtilityRecord(utilityRecords, 'gas'),
+    };
+    const links = {
+      electricity: apt?.electricityPaymentUrl || (apt?.electricityPaymentCode || apt?.nic
+        ? `https://portal.air-e.com/Pagar#/User/${encodeURIComponent(apt.electricityPaymentCode || apt.nic)}/NUMEROCONTRATO`
+        : 'No configurado'),
+      water: apt?.waterPaymentUrl || 'https://portal.aaa.com.co/pagos-usuario',
+      gas: apt?.gasPaymentUrl || 'https://portal.gascaribe.com/payments',
+    };
+    return {
+      deuda_aire: utilityDebtText(records.electricity),
+      deuda_agua: utilityDebtText(records.water),
+      deuda_gas: utilityDebtText(records.gas),
+      nic_aire: apt?.electricityPaymentCode || apt?.nic || 'No configurado',
+      poliza_agua: apt?.waterPaymentCode || records.water?.waterPaymentCode || 'No configurada',
+      contrato_gas: apt?.gasPaymentCode || records.gas?.gasPaymentCode || 'No configurado',
+      link_aire: links.electricity,
+      link_triplea: links.water,
+      link_gases: links.gas,
+    };
+  }
+
+  function handleWhatsAppReminder() {
     if (!tenant || !tenant.phone) { alert('El inquilino no tiene teléfono registrado'); return; }
     const num = tenant.phone.replace(/[^0-9]/g, '');
     const fullNum = num.startsWith('57') ? num : '57' + num;
-    const template = localStorage.getItem('wa_template_reminder') || '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Te recordamos que el canon de {valor_canon} vence el {dia_vencimiento}.\n\n📌 Sabemos que es fácil perder la información de pago. Puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar tus pagos y contactarnos por el chat directo.\n👉 https://laujim-app.onrender.com/login\n\n¡Gracias!';
-    const msg = template
-      .replace(/{nombre}/g, tenant.name || '')
-      .replace(/{apto}/g, apt?.name || '')
-      .replace(/{valor_canon}/g, (apt?.monthlyRent || 0).toLocaleString('es-CO'))
-      .replace(/{dia_vencimiento}/g, String(apt?.paymentDueDay || 5));
+    const period = getCurrentPeriod();
+    const [year, month] = period.split('-').map(Number);
+    const dueDay = Math.min(31, Math.max(1, Number(apt?.paymentDueDay) || 5));
+    const lastDay = new Date(year, month, 0).getDate();
+    const dueDate = new Date(year, month - 1, Math.min(dueDay, lastDay));
+    const today = new Date();
+    const alreadyPaid = payments.some(payment => String(payment.period || payment.date || '').slice(0, 7) === period &&
+      payment.type === 'rent' && payment.status !== 'pending_validation' && payment.status !== 'rejected');
+    const pendingProof = payments.some(payment => String(payment.period || payment.date || '').slice(0, 7) === period &&
+      payment.type === 'rent' && payment.status === 'pending_validation');
+    const estado = alreadyPaid ? 'Pagado' : pendingProof ? 'Comprobante pendiente de validación' : dueDate < today ? 'Vencido' : 'Pendiente';
+    const template = localStorage.getItem('wa_template_reminder') || DEFAULT_WA_REMINDER_TEMPLATE;
+    const msg = expandWhatsAppTemplate(template, {
+      nombre: tenant.name || '',
+      apto: apt?.name || '',
+      periodo: getPeriodLabel(period),
+      valor_canon: Number(contract?.monthlyRent || apt?.monthlyRent || 0).toLocaleString('es-CO'),
+      fecha_vencimiento: dueDate.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
+      estado_canon: estado,
+      ...whatsappServiceTemplateValues(),
+    });
     window.open(`https://wa.me/${fullNum}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
@@ -422,13 +523,12 @@ export default function ApartmentDetail() {
     if (!tenant || !tenant.phone) { alert('El inquilino no tiene teléfono registrado'); return; }
     const num = tenant.phone.replace(/[^0-9]/g, '');
     const fullNum = num.startsWith('57') ? num : '57' + num;
-    const template = localStorage.getItem('wa_template_services') || '👋 ¡Hola {nombre}!\n\nTe habla la administración de la inmobiliaria. Sabemos que es fácil perder la información de pago de los servicios, por eso te compartimos los enlaces directos:\n\n🌬️ Aire: {link_aire}\n💧 Triple A: {link_triplea}\n🔥 Gases: {link_gases}\n\n📌 También puedes ingresar a nuestro sistema con tu apartamento {apto} y tu cédula para consultar esta información y contactarnos por el chat directo.\n👉 https://laujim-app.onrender.com/login\n\n¡Gracias!';
-    const msg = template
-      .replace(/{nombre}/g, tenant.name || '')
-      .replace(/{apto}/g, apt?.name || '')
-      .replace(/{link_aire}/g, apt?.electricityPaymentUrl || 'https://portal.air-e.com/Pagar#/List')
-      .replace(/{link_triplea}/g, apt?.waterPaymentUrl || 'https://portal.aaa.com.co/pagos')
-      .replace(/{link_gases}/g, apt?.gasPaymentUrl || 'https://portal.gascaribe.com/login');
+    const template = localStorage.getItem('wa_template_services') || DEFAULT_WA_SERVICES_TEMPLATE;
+    const msg = expandWhatsAppTemplate(template, {
+      nombre: tenant.name || '',
+      apto: apt?.name || '',
+      ...whatsappServiceTemplateValues(),
+    });
     window.open(`https://wa.me/${fullNum}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
@@ -1279,8 +1379,8 @@ export default function ApartmentDetail() {
             <div><p className="text-sm font-medium text-gray-900">Enviar mensaje</p><p className="text-xs text-gray-400">Chat directo de WhatsApp</p></div>
           </button>
           {(() => {
-            const n1 = localStorage.getItem('wa_template_name1') || 'Servicios públicos';
-            const n2 = localStorage.getItem('wa_template_name2') || 'Recordatorio de pago';
+            const n1 = localStorage.getItem('wa_template_name1') || 'Servicios y deudas';
+            const n2 = localStorage.getItem('wa_template_name2') || 'Cobro de canon y servicios';
             return <>
               <button onClick={() => { setShowWaModal(false); handleWhatsAppServices(); }} className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-left">
                 <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center"><Globe className="w-5 h-5 text-blue-600" /></div>
