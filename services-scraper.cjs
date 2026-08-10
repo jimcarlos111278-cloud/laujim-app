@@ -638,16 +638,19 @@ async function scrapeAirE() {
 
   try {
     lastScrapeError = null;
-    console.log(`[AIR-E] Launching browser (sparticuz Chromium)...`);
+    const useFullChrome = FULL_CHROME_ENABLED;
+    console.log(`[AIR-E] Launching browser (${useFullChrome ? 'full Chrome + Xvfb' : 'serverless Chromium'})...`);
     const creds = getAirECredentials();
-    browser = await launchBrowser('air-e', false);
+    // Air-e serves an incomplete login shell to headless Chromium on Render.
+    // The Docker deployment provides a real Chrome display through Xvfb, so
+    // use it there while retaining the lightweight local fallback on Windows.
+    browser = await launchBrowser('air-e', useFullChrome);
     const page = await browser.newPage();
     await page.setViewport({ width: 1366, height: 768 });
 
     // 1. Login (no OTP on the portal anymore).
     console.log('[AIR-E] Navigating to login...');
-    await page.goto(AIR_E_URLS.login, { waitUntil: 'networkidle2', timeout: 30000 });
-    await sleep(2000);
+    await page.goto(AIR_E_URLS.login, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     await waitAndType(page, 'input[name*="txtUsername"], input[name*="Login$"]', creds.email);
     await waitAndType(page, 'input[name*="txtPassword"]', creds.password);

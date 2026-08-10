@@ -191,8 +191,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "ref_react",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "react"
     },
     {
@@ -4042,8 +4042,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "package_dependencies_aws_sdk_client_s3",
-      "community": 44,
-      "community_name": "@aws-sdk/client-s3",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -4053,8 +4053,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "aws_sdk_client_s3",
-      "community": 44,
-      "community_name": "@aws-sdk/client-s3",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -4108,8 +4108,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 130,
+      "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -4119,8 +4119,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 130,
+      "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -7897,7 +7897,7 @@
       "label": "runScrapeOnce()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L791",
+      "source_location": "L794",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_runscrapeonce",
@@ -7909,7 +7909,7 @@
       "label": "persistWaterResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L812",
+      "source_location": "L815",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_persistwaterresults",
@@ -7921,7 +7921,7 @@
       "label": "runWaterScrapeOnce()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L828",
+      "source_location": "L831",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_runwaterscrapeonce",
@@ -7933,7 +7933,7 @@
       "label": "startScheduler()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L849",
+      "source_location": "L852",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_startscheduler",
@@ -7945,7 +7945,7 @@
       "label": "stopScheduler()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L868",
+      "source_location": "L871",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_stopscheduler",
@@ -7957,7 +7957,7 @@
       "label": "persistResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L879",
+      "source_location": "L882",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_persistresults",
@@ -7994,7 +7994,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "app.jsx"
     },
@@ -8042,7 +8042,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_appcontent",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "appcontent()"
     },
@@ -8102,7 +8102,7 @@
       "_origin": "ast",
       "id": "src_api_getserverversion",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "getserverversion()"
     },
     {
@@ -8114,7 +8114,7 @@
       "_origin": "ast",
       "id": "src_api_uploadfile",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "uploadfile()"
     },
     {
@@ -8267,8 +8267,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "src_api_api",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "api"
     },
     {
@@ -8351,7 +8351,7 @@
       "_origin": "ast",
       "id": "src_components_layout",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "layout.jsx"
     },
     {
@@ -8362,7 +8362,7 @@
       "_origin": "ast",
       "id": "src_components_layout_navitems",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "navitems"
     },
     {
@@ -8374,7 +8374,7 @@
       "_origin": "ast",
       "id": "src_components_layout_layout",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "layout()"
     },
     {
@@ -8384,8 +8384,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_modal",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "modal.jsx"
     },
     {
@@ -8396,8 +8396,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_modal_modal",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "modal()"
     },
     {
@@ -8535,7 +8535,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "versionbanner.jsx"
     },
     {
@@ -8547,7 +8547,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner_versionisnewer",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "versionisnewer()"
     },
     {
@@ -8559,7 +8559,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner_versionbanner",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "versionbanner()"
     },
     {
@@ -8787,8 +8787,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_apartments",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "apartments.jsx"
     },
     {
@@ -8833,7 +8833,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contractgenerator",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator.jsx"
     },
@@ -8845,7 +8845,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contractgenerator_contractgenerator",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator()"
     },
@@ -8856,8 +8856,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contracts",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "contracts.jsx"
     },
     {
@@ -8948,8 +8948,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_payments",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "payments.jsx"
     },
     {
@@ -8972,7 +8972,7 @@
       "_origin": "ast",
       "id": "src_pages_predial",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "predial.jsx"
     },
     {
@@ -8983,7 +8983,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "ref_map"
     },
     {
@@ -8995,7 +8995,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "lookupref()"
     },
     {
@@ -9007,7 +9007,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "getpredialurl()"
     },
     {
@@ -9019,7 +9019,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_predial",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "predial()"
     },
     {
@@ -9030,7 +9030,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartment.jsx"
     },
     {
@@ -9041,7 +9041,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_serviceicons",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "serviceicons"
     },
     {
@@ -9053,7 +9053,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_publicapartment",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartment()"
     },
     {
@@ -9065,7 +9065,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_info",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "info()"
     },
     {
@@ -9076,7 +9076,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartments",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartments.jsx"
     },
     {
@@ -9088,7 +9088,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartments_publicapartments",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartments()"
     },
     {
@@ -9134,7 +9134,7 @@
       "_origin": "ast",
       "id": "src_pages_settings_settings",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "settings()"
     },
     {
@@ -9144,7 +9144,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_shareapartments",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "shareapartments.jsx"
     },
@@ -9156,7 +9156,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_shareapartments_shareapartments",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "shareapartments()"
     },
@@ -9167,8 +9167,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_tenants",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "tenants.jsx"
     },
     {
@@ -9191,7 +9191,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "utilities.jsx"
     },
     {
@@ -9202,7 +9202,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_services",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "services"
     },
     {
@@ -9214,7 +9214,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_timeago",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "timeago()"
     },
     {
@@ -9226,7 +9226,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_waterbilllabel",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbilllabel()"
     },
     {
@@ -9238,7 +9238,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillclass",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbillclass()"
     },
     {
@@ -9250,7 +9250,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillmeta",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbillmeta()"
     },
     {
@@ -9261,7 +9261,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_portals",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "portals"
     },
     {
@@ -9273,7 +9273,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_qrviewcontent",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "qrviewcontent()"
     },
     {
@@ -9285,7 +9285,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_utilities",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "utilities()"
     },
     {
@@ -9296,7 +9296,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappcontacts.jsx"
     },
     {
@@ -9308,7 +9308,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts_whatsappcontacts",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappcontacts()"
     },
     {
@@ -9319,7 +9319,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappinbox.jsx"
     },
     {
@@ -9331,7 +9331,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_cloudrequest",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "cloudrequest()"
     },
     {
@@ -9343,7 +9343,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_formatdate",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "formatdate()"
     },
     {
@@ -9355,7 +9355,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediaicon",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "mediaicon()"
     },
     {
@@ -9367,7 +9367,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediamessage",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "mediamessage()"
     },
     {
@@ -9379,7 +9379,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_whatsappinbox",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappinbox()"
     },
     {
@@ -10008,7 +10008,7 @@
       "_origin": "ast",
       "id": "src_utils_config",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "config.js"
     },
     {
@@ -10020,7 +10020,7 @@
       "_origin": "ast",
       "id": "src_utils_config_storedtoken",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "storedtoken()"
     },
     {
@@ -10031,7 +10031,7 @@
       "_origin": "ast",
       "id": "src_utils_config_auth_token",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "auth_token"
     },
     {
@@ -10055,7 +10055,7 @@
       "_origin": "ast",
       "id": "src_utils_config_iscapacitor",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "iscapacitor()"
     },
     {
@@ -10067,7 +10067,7 @@
       "_origin": "ast",
       "id": "src_utils_config_getbase",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "getbase()"
     },
     {
@@ -10079,7 +10079,7 @@
       "_origin": "ast",
       "id": "src_utils_config_getrawbase",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "getrawbase()"
     },
     {
@@ -10091,7 +10091,7 @@
       "_origin": "ast",
       "id": "src_utils_config_photourl",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "photourl()"
     },
     {
@@ -10345,7 +10345,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "generate-apartments-html.js"
     },
@@ -10357,7 +10357,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_fetchasbase64",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "fetchasbase64()"
     },
@@ -10369,7 +10369,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_buildapartmentshtml",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "buildapartmentshtml()"
     },
@@ -10690,7 +10690,7 @@
       "_origin": "ast",
       "id": "src_utils_notifications",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "notifications.js"
     },
     {
@@ -10702,7 +10702,7 @@
       "_origin": "ast",
       "id": "src_utils_notifications_requestnotificationpermission",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "requestnotificationpermission()"
     },
     {
@@ -10714,7 +10714,7 @@
       "_origin": "ast",
       "id": "src_utils_notifications_notify",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "notify()"
     },
     {
@@ -10726,7 +10726,7 @@
       "_origin": "ast",
       "id": "src_utils_notifications_notifypaymentreminder",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "notifypaymentreminder()"
     },
     {
@@ -10772,7 +10772,7 @@
       "_origin": "ast",
       "id": "src_utils_sync",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "sync.js"
     },
     {
@@ -10784,7 +10784,7 @@
       "_origin": "ast",
       "id": "src_utils_sync_isserveravailable",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "isserveravailable()"
     },
     {
@@ -13090,8 +13090,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 44,
+      "community_name": "@capacitor/android",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_android"
     },
@@ -13101,8 +13101,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 44,
+      "community_name": "@capacitor/android",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_android"
     },
@@ -13244,8 +13244,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 130,
-      "community_name": "dexie",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "dexie",
       "id": "backups_pre_whatsapp_bot_package_dependencies_dexie"
     },
@@ -13255,8 +13255,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 130,
-      "community_name": "dexie",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "dexie",
       "id": "backups_pre_whatsapp_bot_package_json_dexie"
     },
@@ -27492,7 +27492,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L906",
+      "source_location": "L909",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27570,7 +27570,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L915",
+      "source_location": "L918",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27582,7 +27582,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L916",
+      "source_location": "L919",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27594,7 +27594,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L902",
+      "source_location": "L905",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27661,7 +27661,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L905",
+      "source_location": "L908",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27673,7 +27673,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L907",
+      "source_location": "L910",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27696,7 +27696,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L879",
+      "source_location": "L882",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27707,7 +27707,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L909",
+      "source_location": "L912",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27763,7 +27763,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L791",
+      "source_location": "L794",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27774,7 +27774,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L910",
+      "source_location": "L913",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27786,7 +27786,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L903",
+      "source_location": "L906",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27798,7 +27798,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L904",
+      "source_location": "L907",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27821,7 +27821,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L911",
+      "source_location": "L914",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27833,7 +27833,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L912",
+      "source_location": "L915",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27889,7 +27889,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L908",
+      "source_location": "L911",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27947,7 +27947,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L650",
+      "source_location": "L672",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -28019,7 +28019,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L642",
+      "source_location": "L643",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -28031,7 +28031,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L643",
+      "source_location": "L647",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -28043,7 +28043,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L652",
+      "source_location": "L655",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -28319,7 +28319,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L836",
+      "source_location": "L839",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runwaterscrapeonce",
@@ -28331,7 +28331,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L799",
+      "source_location": "L802",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runscrapeonce",
@@ -28343,7 +28343,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L800",
+      "source_location": "L803",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runscrapeonce",
@@ -28355,7 +28355,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L860",
+      "source_location": "L863",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -28367,7 +28367,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L837",
+      "source_location": "L840",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runwaterscrapeonce",
@@ -28379,7 +28379,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L858",
+      "source_location": "L861",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -39840,5 +39840,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "a534a24dab6edf758ff4cd287dfa09d4c5bc764e"
+  "built_at_commit": "af33c83b8cc8b3db312ca3de1f399f32036e1b5a"
 }
