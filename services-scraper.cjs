@@ -165,10 +165,27 @@ async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHRO
 // ── HELPERS ─────────────────────────────────────────────────────────────────
 
 async function waitAndType(page, selector, text, timeout = 45000) {
-  await page.waitForSelector(selector, { visible: true, timeout });
-  await page.click(selector);
-  await page.evaluate((s) => { const el = document.querySelector(s); if (el) el.value = ''; }, selector);
-  await page.type(selector, text, { delay: 50 });
+  try {
+    await page.waitForSelector(selector, { visible: true, timeout });
+    await page.click(selector);
+    await page.evaluate((s) => { const el = document.querySelector(s); if (el) el.value = ''; }, selector);
+    await page.type(selector, text, { delay: 50 });
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      url: location.href,
+      title: document.title,
+      readyState: document.readyState,
+      inputs: [...document.querySelectorAll('input')].slice(0, 20).map(input => ({
+        type: input.type,
+        id: input.id,
+        name: input.name,
+        visible: !!(input.offsetWidth || input.offsetHeight || input.getClientRects().length),
+      })),
+      bodyText: (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 1600),
+    })).catch(() => ({ url: page.url(), title: 'unavailable' }));
+    console.error('[AIR-E] Login page diagnostic:', JSON.stringify(state));
+    throw error;
+  }
 }
 
 // ── TRIPLE A WATER BILL SCRAPER ─────────────────────────────────────────────

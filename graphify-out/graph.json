@@ -191,8 +191,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "ref_react",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "react"
     },
     {
@@ -4042,8 +4042,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "package_dependencies_aws_sdk_client_s3",
-      "community": 126,
-      "community_name": "@aws-sdk/client-s3",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -4053,8 +4053,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "aws_sdk_client_s3",
-      "community": 126,
-      "community_name": "@aws-sdk/client-s3",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -4064,8 +4064,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_mlkit_barcode_scanning",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 127,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning"
     },
     {
@@ -4075,8 +4075,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "capacitor_mlkit_barcode_scanning",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 127,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning"
     },
     {
@@ -7657,7 +7657,7 @@
       "label": "normalizeBillText()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L196",
+      "source_location": "L213",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_normalizebilltext",
@@ -7669,7 +7669,7 @@
       "label": "parseCopAmount()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L204",
+      "source_location": "L221",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_parsecopamount",
@@ -7681,7 +7681,7 @@
       "label": "extractWaterAmount()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L223",
+      "source_location": "L240",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_extractwateramount",
@@ -7693,7 +7693,7 @@
       "label": "extractWaterInvoice()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L249",
+      "source_location": "L266",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_extractwaterinvoice",
@@ -7705,7 +7705,7 @@
       "label": "extractWaterPeriod()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L255",
+      "source_location": "L272",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_extractwaterperiod",
@@ -7717,7 +7717,7 @@
       "label": "parseWaterBillPage()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L260",
+      "source_location": "L277",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_parsewaterbillpage",
@@ -7729,7 +7729,7 @@
       "label": "waterTarget()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L296",
+      "source_location": "L313",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_watertarget",
@@ -7741,7 +7741,7 @@
       "label": "waterRecord()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L308",
+      "source_location": "L325",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_waterrecord",
@@ -7753,7 +7753,7 @@
       "label": "waterNavigationError()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L327",
+      "source_location": "L344",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_waternavigationerror",
@@ -7765,7 +7765,7 @@
       "label": "readWaterFrameText()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L333",
+      "source_location": "L350",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_readwaterframetext",
@@ -7777,7 +7777,7 @@
       "label": "waterResultReady()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L360",
+      "source_location": "L377",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_waterresultready",
@@ -7789,7 +7789,7 @@
       "label": "inspectWaterPage()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L367",
+      "source_location": "L384",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_inspectwaterpage",
@@ -7801,7 +7801,7 @@
       "label": "submitWaterQueryIfReady()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L395",
+      "source_location": "L412",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_submitwaterqueryifready",
@@ -7813,7 +7813,7 @@
       "label": "waitForWaterTurnstile()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L417",
+      "source_location": "L434",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_waitforwaterturnstile",
@@ -7825,7 +7825,7 @@
       "label": "closeWaterResource()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L432",
+      "source_location": "L449",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_closewaterresource",
@@ -7837,7 +7837,7 @@
       "label": "closeWaterBrowser()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L443",
+      "source_location": "L460",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_closewaterbrowser",
@@ -7849,7 +7849,7 @@
       "label": "readWaterPageText()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L452",
+      "source_location": "L469",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_readwaterpagetext",
@@ -7861,7 +7861,7 @@
       "label": "waitForWaterBill()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L458",
+      "source_location": "L475",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_waitforwaterbill",
@@ -7873,7 +7873,7 @@
       "label": "scrapeWaterBills()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L479",
+      "source_location": "L496",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_scrapewaterbills",
@@ -7885,7 +7885,7 @@
       "label": "scrapeAirE()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L635",
+      "source_location": "L652",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_scrapeaire",
@@ -7897,7 +7897,7 @@
       "label": "runScrapeOnce()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L794",
+      "source_location": "L811",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_runscrapeonce",
@@ -7909,7 +7909,7 @@
       "label": "persistWaterResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L819",
+      "source_location": "L836",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_persistwaterresults",
@@ -7921,7 +7921,7 @@
       "label": "runWaterScrapeOnce()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L835",
+      "source_location": "L852",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_runwaterscrapeonce",
@@ -7933,7 +7933,7 @@
       "label": "startScheduler()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L860",
+      "source_location": "L877",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_startscheduler",
@@ -7945,7 +7945,7 @@
       "label": "stopScheduler()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L881",
+      "source_location": "L898",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_stopscheduler",
@@ -7957,7 +7957,7 @@
       "label": "persistResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L892",
+      "source_location": "L909",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_persistresults",
@@ -7994,7 +7994,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "app.jsx"
     },
@@ -8042,7 +8042,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_appcontent",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "appcontent()"
     },
@@ -8102,7 +8102,7 @@
       "_origin": "ast",
       "id": "src_api_getserverversion",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "getserverversion()"
     },
     {
@@ -8114,7 +8114,7 @@
       "_origin": "ast",
       "id": "src_api_uploadfile",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "uploadfile()"
     },
     {
@@ -8267,8 +8267,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "src_api_api",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "api"
     },
     {
@@ -8351,7 +8351,7 @@
       "_origin": "ast",
       "id": "src_components_layout",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "layout.jsx"
     },
     {
@@ -8362,7 +8362,7 @@
       "_origin": "ast",
       "id": "src_components_layout_navitems",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "navitems"
     },
     {
@@ -8374,7 +8374,7 @@
       "_origin": "ast",
       "id": "src_components_layout_layout",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "layout()"
     },
     {
@@ -8384,8 +8384,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_modal",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "modal.jsx"
     },
     {
@@ -8396,8 +8396,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_modal_modal",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "modal()"
     },
     {
@@ -8535,7 +8535,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "versionbanner.jsx"
     },
     {
@@ -8547,7 +8547,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner_versionisnewer",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "versionisnewer()"
     },
     {
@@ -8559,7 +8559,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner_versionbanner",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "versionbanner()"
     },
     {
@@ -8787,8 +8787,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_apartments",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "apartments.jsx"
     },
     {
@@ -8833,7 +8833,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contractgenerator",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator.jsx"
     },
@@ -8845,7 +8845,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contractgenerator_contractgenerator",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator()"
     },
@@ -8856,8 +8856,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contracts",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "contracts.jsx"
     },
     {
@@ -8948,8 +8948,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_payments",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "payments.jsx"
     },
     {
@@ -8972,7 +8972,7 @@
       "_origin": "ast",
       "id": "src_pages_predial",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "predial.jsx"
     },
     {
@@ -8983,7 +8983,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "ref_map"
     },
     {
@@ -8995,7 +8995,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "lookupref()"
     },
     {
@@ -9007,7 +9007,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "getpredialurl()"
     },
     {
@@ -9019,7 +9019,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_predial",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "predial()"
     },
     {
@@ -9030,7 +9030,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartment.jsx"
     },
     {
@@ -9041,7 +9041,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_serviceicons",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "serviceicons"
     },
     {
@@ -9053,7 +9053,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_publicapartment",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartment()"
     },
     {
@@ -9065,7 +9065,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_info",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "info()"
     },
     {
@@ -9076,7 +9076,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartments",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartments.jsx"
     },
     {
@@ -9088,7 +9088,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartments_publicapartments",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartments()"
     },
     {
@@ -9134,7 +9134,7 @@
       "_origin": "ast",
       "id": "src_pages_settings_settings",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "settings()"
     },
     {
@@ -9144,7 +9144,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_shareapartments",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "shareapartments.jsx"
     },
@@ -9156,7 +9156,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_shareapartments_shareapartments",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "shareapartments()"
     },
@@ -9167,8 +9167,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_tenants",
-      "community": 122,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "tenants.jsx"
     },
     {
@@ -9191,7 +9191,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "utilities.jsx"
     },
     {
@@ -9202,7 +9202,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_services",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "services"
     },
     {
@@ -9214,7 +9214,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_timeago",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "timeago()"
     },
     {
@@ -9226,7 +9226,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_waterbilllabel",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbilllabel()"
     },
     {
@@ -9238,7 +9238,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillclass",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbillclass()"
     },
     {
@@ -9250,7 +9250,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillmeta",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbillmeta()"
     },
     {
@@ -9261,7 +9261,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_portals",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "portals"
     },
     {
@@ -9273,7 +9273,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_qrviewcontent",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "qrviewcontent()"
     },
     {
@@ -9285,7 +9285,7 @@
       "_origin": "ast",
       "id": "src_pages_utilities_utilities",
       "community": 122,
-      "community_name": "react",
+      "community_name": "Utilities.jsx",
       "norm_label": "utilities()"
     },
     {
@@ -9296,7 +9296,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappcontacts.jsx"
     },
     {
@@ -9308,7 +9308,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts_whatsappcontacts",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappcontacts()"
     },
     {
@@ -9319,7 +9319,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappinbox.jsx"
     },
     {
@@ -9331,7 +9331,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_cloudrequest",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "cloudrequest()"
     },
     {
@@ -9343,7 +9343,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_formatdate",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "formatdate()"
     },
     {
@@ -9355,7 +9355,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediaicon",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "mediaicon()"
     },
     {
@@ -9367,7 +9367,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediamessage",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "mediamessage()"
     },
     {
@@ -9379,7 +9379,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_whatsappinbox",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappinbox()"
     },
     {
@@ -10008,7 +10008,7 @@
       "_origin": "ast",
       "id": "src_utils_config",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "config.js"
     },
     {
@@ -10020,7 +10020,7 @@
       "_origin": "ast",
       "id": "src_utils_config_storedtoken",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "storedtoken()"
     },
     {
@@ -10031,7 +10031,7 @@
       "_origin": "ast",
       "id": "src_utils_config_auth_token",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "auth_token"
     },
     {
@@ -10055,7 +10055,7 @@
       "_origin": "ast",
       "id": "src_utils_config_iscapacitor",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "iscapacitor()"
     },
     {
@@ -10067,7 +10067,7 @@
       "_origin": "ast",
       "id": "src_utils_config_getbase",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "getbase()"
     },
     {
@@ -10079,7 +10079,7 @@
       "_origin": "ast",
       "id": "src_utils_config_getrawbase",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "getrawbase()"
     },
     {
@@ -10091,7 +10091,7 @@
       "_origin": "ast",
       "id": "src_utils_config_photourl",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "photourl()"
     },
     {
@@ -10345,7 +10345,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "generate-apartments-html.js"
     },
@@ -10357,7 +10357,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_fetchasbase64",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "fetchasbase64()"
     },
@@ -10369,7 +10369,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_buildapartmentshtml",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "buildapartmentshtml()"
     },
@@ -10690,7 +10690,7 @@
       "_origin": "ast",
       "id": "src_utils_notifications",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "notifications.js"
     },
     {
@@ -10702,7 +10702,7 @@
       "_origin": "ast",
       "id": "src_utils_notifications_requestnotificationpermission",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "requestnotificationpermission()"
     },
     {
@@ -10714,7 +10714,7 @@
       "_origin": "ast",
       "id": "src_utils_notifications_notify",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "notify()"
     },
     {
@@ -10726,7 +10726,7 @@
       "_origin": "ast",
       "id": "src_utils_notifications_notifypaymentreminder",
       "community": 18,
-      "community_name": "Predial.jsx",
+      "community_name": "App.jsx",
       "norm_label": "notifypaymentreminder()"
     },
     {
@@ -10772,7 +10772,7 @@
       "_origin": "ast",
       "id": "src_utils_sync",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "sync.js"
     },
     {
@@ -10784,7 +10784,7 @@
       "_origin": "ast",
       "id": "src_utils_sync_isserveravailable",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "isserveravailable()"
     },
     {
@@ -13068,8 +13068,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 126,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_mlkit_barcode_scanning"
     },
@@ -13079,8 +13079,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 126,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_mlkit_barcode_scanning"
     },
@@ -13134,8 +13134,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 127,
-      "community_name": "@capacitor/core",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/core",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_core"
     },
@@ -13145,8 +13145,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 127,
-      "community_name": "@capacitor/core",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/core",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_core"
     },
@@ -27459,7 +27459,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L443",
+      "source_location": "L460",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27470,7 +27470,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L432",
+      "source_location": "L449",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27492,7 +27492,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L919",
+      "source_location": "L936",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27504,7 +27504,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L249",
+      "source_location": "L266",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27515,7 +27515,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L255",
+      "source_location": "L272",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27570,7 +27570,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L928",
+      "source_location": "L945",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27582,7 +27582,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L929",
+      "source_location": "L946",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27594,7 +27594,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L915",
+      "source_location": "L932",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27606,7 +27606,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L367",
+      "source_location": "L384",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27639,7 +27639,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L196",
+      "source_location": "L213",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27661,7 +27661,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L918",
+      "source_location": "L935",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27673,7 +27673,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L920",
+      "source_location": "L937",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27696,7 +27696,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L892",
+      "source_location": "L909",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27707,7 +27707,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L922",
+      "source_location": "L939",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27730,7 +27730,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L333",
+      "source_location": "L350",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27741,7 +27741,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L452",
+      "source_location": "L469",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27763,7 +27763,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L794",
+      "source_location": "L811",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27774,7 +27774,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L923",
+      "source_location": "L940",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27786,7 +27786,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L916",
+      "source_location": "L933",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27798,7 +27798,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L917",
+      "source_location": "L934",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27821,7 +27821,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L924",
+      "source_location": "L941",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27833,7 +27833,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L925",
+      "source_location": "L942",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27845,7 +27845,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L395",
+      "source_location": "L412",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27867,7 +27867,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L458",
+      "source_location": "L475",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27878,7 +27878,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L417",
+      "source_location": "L434",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27889,7 +27889,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L921",
+      "source_location": "L938",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -27901,7 +27901,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L308",
+      "source_location": "L325",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27912,7 +27912,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L360",
+      "source_location": "L377",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27923,7 +27923,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L296",
+      "source_location": "L313",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -27935,7 +27935,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L439",
+      "source_location": "L456",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_closewaterresource",
@@ -27947,7 +27947,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L672",
+      "source_location": "L689",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -27959,7 +27959,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L520",
+      "source_location": "L537",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -27971,7 +27971,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L475",
+      "source_location": "L492",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waitforwaterbill",
@@ -27983,7 +27983,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L425",
+      "source_location": "L442",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waitforwaterturnstile",
@@ -28019,7 +28019,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L643",
+      "source_location": "L660",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -28031,7 +28031,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L647",
+      "source_location": "L664",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -28043,7 +28043,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L655",
+      "source_location": "L672",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -28055,7 +28055,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L261",
+      "source_location": "L278",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_parsewaterbillpage",
@@ -28067,7 +28067,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L228",
+      "source_location": "L245",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_extractwateramount",
@@ -28079,7 +28079,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L266",
+      "source_location": "L283",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_parsewaterbillpage",
@@ -28091,7 +28091,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L290",
+      "source_location": "L307",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_parsewaterbillpage",
@@ -28103,7 +28103,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L291",
+      "source_location": "L308",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_parsewaterbillpage",
@@ -28115,7 +28115,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L469",
+      "source_location": "L486",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waitforwaterbill",
@@ -28127,7 +28127,7 @@
       "context": "argument",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L480",
+      "source_location": "L497",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -28139,7 +28139,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L551",
+      "source_location": "L568",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -28151,7 +28151,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L330",
+      "source_location": "L347",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waternavigationerror",
@@ -28163,7 +28163,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L591",
+      "source_location": "L608",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -28175,7 +28175,7 @@
       "context": "argument",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L454",
+      "source_location": "L471",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_readwaterpagetext",
@@ -28187,7 +28187,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L571",
+      "source_location": "L588",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -28199,7 +28199,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L470",
+      "source_location": "L487",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waitforwaterbill",
@@ -28211,7 +28211,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L462",
+      "source_location": "L479",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waitforwaterbill",
@@ -28223,7 +28223,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L418",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waitforwaterturnstile",
@@ -28235,7 +28235,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L544",
+      "source_location": "L561",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -28247,7 +28247,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L543",
+      "source_location": "L560",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -28259,7 +28259,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L444",
+      "source_location": "L461",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_closewaterbrowser",
@@ -28271,7 +28271,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L596",
+      "source_location": "L613",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -28283,7 +28283,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L609",
+      "source_location": "L626",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -28295,7 +28295,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L467",
+      "source_location": "L484",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waitforwaterbill",
@@ -28307,7 +28307,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L558",
+      "source_location": "L575",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapewaterbills",
@@ -28319,7 +28319,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L847",
+      "source_location": "L864",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runwaterscrapeonce",
@@ -28331,7 +28331,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L806",
+      "source_location": "L823",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runscrapeonce",
@@ -28343,7 +28343,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L807",
+      "source_location": "L824",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runscrapeonce",
@@ -28355,7 +28355,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L871",
+      "source_location": "L888",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -28367,7 +28367,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L848",
+      "source_location": "L865",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runwaterscrapeonce",
@@ -28379,7 +28379,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L873",
+      "source_location": "L890",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -39840,5 +39840,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "eb0b8c2b4d0a326f2f98b992dd0a1b4f8075d061"
+  "built_at_commit": "dc4a56228472011cdbf3a9de0367062b58cefdbf"
 }
