@@ -17,6 +17,18 @@ services:
         value: /usr/bin/chromium
       - key: RENDER_CHROME_PROFILE_DIR
         value: /tmp/laujim-chrome-profiles
+      # Optional remote-browser failover. Keep the token only in Render.
+      - key: BROWSERLESS_TOKEN
+        sync: false
+      - key: BROWSERLESS_WS_ENDPOINT
+        sync: false
+      - key: BROWSERLESS_REGION
+        value: production-sfo
+      # Start with Air-e; add "water" after validating the remote session.
+      - key: BROWSERLESS_PROFILES
+        value: air-e
+      - key: BROWSERLESS_STEALTH
+        value: "true"
       # Configure both values in the Render dashboard; never commit them.
       - key: ADMIN_USERNAME
         sync: false

@@ -32,6 +32,13 @@ const LINUX_CHROME_CANDIDATES = [
 const FULL_CHROME_ENABLED = /^(1|true|yes|full)$/i.test(
   process.env.RENDER_FULL_CHROME || process.env.BROWSER_MODE || '',
 );
+const BROWSERLESS_TOKEN = String(process.env.BROWSERLESS_TOKEN || '').trim();
+const BROWSERLESS_WS_ENDPOINT = String(process.env.BROWSERLESS_WS_ENDPOINT || '').trim();
+const BROWSERLESS_REGION = String(process.env.BROWSERLESS_REGION || 'production-sfo').trim();
+const BROWSERLESS_PROFILES = String(process.env.BROWSERLESS_PROFILES || 'air-e')
+  .split(',')
+  .map((profile) => profile.trim().toLowerCase())
+  .filter(Boolean);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -150,7 +157,46 @@ function getAirECredentials() {
 
 // ── BROWSER LAUNCH (Render-compatible) ─────────────────────────────────────
 
+function browserlessEndpointFor(profileName) {
+  const profile = String(profileName || '').trim().toLowerCase();
+  if (!BROWSERLESS_PROFILES.includes(profile)) return null;
+  if (!BROWSERLESS_TOKEN && !BROWSERLESS_WS_ENDPOINT) return null;
+
+  try {
+    const endpoint = new URL(BROWSERLESS_WS_ENDPOINT || `wss://${BROWSERLESS_REGION}.browserless.io`);
+    if (BROWSERLESS_TOKEN && !endpoint.searchParams.has('token')) {
+      endpoint.searchParams.set('token', BROWSERLESS_TOKEN);
+    }
+    if (/^(1|true|yes)$/i.test(process.env.BROWSERLESS_STEALTH || '')) {
+      endpoint.searchParams.set('stealth', 'true');
+    }
+    const proxy = String(process.env.BROWSERLESS_PROXY || '').trim();
+    if (proxy && !endpoint.searchParams.has('proxy')) endpoint.searchParams.set('proxy', proxy);
+    const proxyCountry = String(process.env.BROWSERLESS_PROXY_COUNTRY || '').trim();
+    if (proxyCountry && !endpoint.searchParams.has('proxyCountry')) {
+      endpoint.searchParams.set('proxyCountry', proxyCountry);
+    }
+    return endpoint.toString();
+  } catch {
+    return null;
+  }
+}
+
 async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHROME_ENABLED) {
+  const browserlessEndpoint = browserlessEndpointFor(profileName);
+  if (browserlessEndpoint) {
+    console.log(`[BROWSERLESS] Connecting remote browser for ${profileName}...`);
+    try {
+      return await puppeteer.connect({
+        browserWSEndpoint: browserlessEndpoint,
+        protocolTimeout: 60000,
+      });
+    } catch (error) {
+      // Keep the local Render browser as a safe fallback if Browserless is unavailable.
+      console.error('[BROWSERLESS] Connection failed; falling back to local browser:', error.message);
+    }
+  }
+
   const cfg = await resolveChromium(profileName, useFullChrome);
   return await puppeteer.launch({
     args: cfg.args,
@@ -656,7 +702,11 @@ async function scrapeAirE() {
   try {
     lastScrapeError = null;
     const useFullChrome = FULL_CHROME_ENABLED;
-    console.log(`[AIR-E] Launching browser (${useFullChrome ? 'full Chrome + Xvfb' : 'serverless Chromium'})...`);
+    const browserless = Boolean(browserlessEndpointFor('air-e'));
+    const runtime = browserless
+      ? 'Browserless remoto'
+      : useFullChrome ? 'full Chrome + Xvfb' : 'serverless Chromium';
+    console.log(`[AIR-E] Launching browser (${runtime})...`);
     const creds = getAirECredentials();
     // Air-e serves an incomplete login shell to headless Chromium on Render.
     // The Docker deployment provides a real Chrome display through Xvfb, so
@@ -668,6 +718,19 @@ async function scrapeAirE() {
     // 1. Login (no OTP on the portal anymore).
     console.log('[AIR-E] Navigating to login...');
     await page.goto(AIR_E_URLS.login, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+    const edgeBlocked = await page.evaluate(() => {
+      const text = (document.body?.innerText || '').replace(/\s+/g, ' ');
+      return /(?:service unavailable|the request is blocked|request is blocked)/i.test(text);
+    }).catch(() => false);
+    if (edgeBlocked) {
+      const msg = browserless
+        ? 'Air-e bloqueó también la sesión de Browserless antes del login.'
+        : 'Air-e bloqueó la IP de Render antes del login (Azure Front Door). Se requiere Browserless o un egreso autorizado.';
+      lastScrapeError = msg;
+      console.error('[AIR-E]', msg);
+      return [];
+    }
 
     await waitAndType(page, 'input[name*="txtUsername"], input[name*="Login$"]', creds.email);
     await waitAndType(page, 'input[name*="txtPassword"]', creds.password);
