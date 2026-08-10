@@ -1189,8 +1189,7 @@ async function handleCloudAdminMessage(phone, message) {
   }
 
   if (buttonId === 'services_by_apartment' || /^(por\s+apartamento|manual|individual)$/i.test(text)) {
-    await sendCloudText(phone, '🏢 Escribe el número del apartamento (ej: 101) para consultar sus servicios y cuánto debe. Escribe SALIR para volver.');
-    await sendCloudServicesMenu(phone, '💧 Servicios — elige otra opción o escribe el número del apartamento:');
+    await sendCloudServicesMenu(phone, '🏢 Escribe el número del apartamento (ej: 101) para consultar sus servicios y cuánto debe.\n\nElige otra opción o escribe SALIR para volver:');
     setCloudServicesStep(phone, 'admin_service_apt');
     return;
   }
@@ -1233,53 +1232,96 @@ async function handleCloudAdminMessage(phone, message) {
   await sendCloudAdminMenu(phone);
 }
 
-// Morosos: occupied apartments without a collected rent payment for the
-// current or previous month. Pending-validations count as morosos but are
-// flagged so the admin knows to review them. "Próximos a vencer": due within
-// the next 5 days.
+function cloudCalendarDate(period, day) {
+  const [year, month] = String(period).slice(0, 7).split('-').map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month - 1, Math.min(Math.max(1, Number(day) || 1), lastDay), 17));
+}
+
+function cloudDateKey(date) {
+  return colombiaDate(date);
+}
+
+function cloudFormatDayMonth(date) {
+  return new Intl.DateTimeFormat('es-CO', {
+    timeZone: 'America/Bogota', day: 'numeric', month: 'long',
+  }).format(date);
+}
+
+function cloudCapitalise(text) {
+  const value = String(text || '');
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+}
+
+function cloudPaymentDate(payment, fallbackDate) {
+  const raw = payment?.date || payment?.paidAt || payment?.approvedAt || payment?.updatedAt || payment?.createdAt;
+  if (!raw) return fallbackDate;
+  const rawText = String(raw);
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime()) && !/^\d{4}-\d{2}-\d{2}$/.test(rawText)) return fallbackDate;
+  const key = /^\d{4}-\d{2}-\d{2}$/.test(rawText) ? rawText : cloudDateKey(parsed);
+  return cloudCalendarDate(key, Number(key.slice(8, 10)));
+}
+
+// Reporte de cobros con fechas completas y tres estados visibles para el
+// administrador: vencidos, próximos vencimientos y pagos realizados.
 function buildAdminDebtReport() {
   const today = colombiaDate();
   const currentPeriod = today.slice(0, 7);
-  const [year, month] = currentPeriod.split('-').map(Number);
-  const prev = new Date(Date.UTC(year, month - 1, 1));
-  const prevPeriod = `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}`;
-  const periods = [currentPeriod, prevPeriod];
-  const now = new Date();
-  const morosos = [];
-  const proximos = [];
+  const todayDate = cloudCalendarDate(today, Number(today.slice(8, 10)));
+  const overdue = [];
+  const upcoming = [];
+  const paid = [];
   let pendingCount = 0;
 
   for (const apartment of db.apartments || []) {
     if (apartment.status !== 'occupied') continue;
     const contract = activeContractForApartment(apartment.id);
-    const tenant = contract && (db.tenants || []).find(item => Number(item.id) === Number(contract.tenantId));
     const rent = Number(contract?.monthlyRent || apartment?.monthlyRent || 0);
     const dueDay = Math.min(31, Math.max(1, Number(apartment.paymentDueDay) || 5));
     const payments = (db.payments || []).filter(payment => Number(payment.apartmentId) === Number(apartment.id) &&
-      payment.type === 'rent' && periods.includes(paymentPeriod(payment)));
-    const pending = payments.some(p => p.status === 'pending_validation');
-    const collected = payments.some(p => paymentCountsAsCollected(p));
-    const dueAt = new Date(now.getFullYear(), now.getMonth(), dueDay);
-    const daysLeft = Math.round((dueAt - now) / (1000 * 60 * 60 * 24));
-    const label = `🏠 ${apartment.name}${tenant?.name ? ` - ${tenant.name}` : ''}${rent ? ` - $${rent.toLocaleString('es-CO')}` : ''}`;
+      payment.type === 'rent' && paymentPeriod(payment) === currentPeriod);
+    const pendingPayment = payments.find(payment => payment.status === 'pending_validation');
+    const collectedPayment = payments.find(payment => paymentCountsAsCollected(payment));
+    const dueAt = cloudCalendarDate(currentPeriod, dueDay);
+    const daysLeft = Math.round((dueAt - todayDate) / (1000 * 60 * 60 * 24));
+    const amount = rent ? `$${rent.toLocaleString('es-CO')}` : '$—';
+    if (pendingPayment) pendingCount++;
 
-    if (pending) {
-      pendingCount++;
-      morosos.push(`${label} - ⏳ comprobante en validación`);
-    } else if (!collected) {
-      const state = daysLeft < 0 ? 'VENCIDO' : daysLeft <= 5 ? `vence en ${daysLeft} día(s)` : `vence día ${dueDay}`;
-      morosos.push(`${label} - ${state}`);
-    } else if (daysLeft >= 0 && daysLeft <= 5) {
-      proximos.push(`${label} - vence en ${daysLeft} día(s)`);
+    if (collectedPayment) {
+      paid.push({ apartment, amount, paidAt: cloudPaymentDate(collectedPayment, todayDate) });
+    } else if (daysLeft < 0) {
+      overdue.push({ apartment, amount, dueAt, daysLate: Math.abs(daysLeft), pending: !!pendingPayment });
+    } else {
+      upcoming.push({ apartment, amount, dueAt, daysLeft, pending: !!pendingPayment });
     }
   }
 
-  const lines = [`📊 Reporte de cobros - ${cloudPeriodLabel(currentPeriod)}`];
-  if (morosos.length) lines.push(`\n🔴 SIN PAGO (${morosos.length}):\n${morosos.join('\n')}`);
-  if (proximos.length) lines.push(`\n🟡 PRÓXIMOS A VENCER (${proximos.length}):\n${proximos.join('\n')}`);
-  if (!morosos.length && !proximos.length) lines.push('\n✅ Todos los apartamentos están al día.');
-  if (pendingCount) lines.push(`\n💡 ${pendingCount} comprobante(s) esperando validación. Responde VALIDAR para revisarlos.`);
-  return lines.join('\n');
+  const overdueLines = overdue.map(item => {
+    const pending = item.pending ? ' · ⏳ comprobante en validación' : '';
+    return `🏠 *${item.apartment.name}* — ${item.amount} — *Venció el ${cloudFormatDayMonth(item.dueAt)} · hace ${item.daysLate} días*${pending}`;
+  });
+  const upcomingLines = upcoming.map(item => {
+    const dateLabel = cloudFormatDayMonth(item.dueAt);
+    const when = item.daysLeft === 0
+      ? `Vence hoy, ${dateLabel}`
+      : item.daysLeft === 1
+        ? `Vence mañana, ${dateLabel}`
+        : `Vencerá en ${item.daysLeft} días, el ${dateLabel}`;
+    const pending = item.pending ? ' · ⏳ comprobante en validación' : '';
+    return `🏠 *${item.apartment.name}* — ${item.amount} — *${when}*${pending}`;
+  });
+  const paidLines = paid.map(item =>
+    `🏠 *${item.apartment.name}* — ${item.amount} — *Pagó el ${cloudFormatDayMonth(item.paidAt)} · al día*`
+  );
+  const sections = [
+    overdueLines.length ? `🔴 *PAGOS VENCIDOS (${overdueLines.length}):*\n\n${overdueLines.join('\n')}` : '',
+    upcomingLines.length ? `🟡 *PRÓXIMOS VENCIMIENTOS (${upcomingLines.length}):*\n\n${upcomingLines.join('\n')}` : '',
+    paidLines.length ? `🟢 *PAGOS REALIZADOS (${paidLines.length}):*\n\n${paidLines.join('\n')}` : '',
+  ].filter(Boolean);
+  if (!sections.length) sections.push('✅ Todos los apartamentos están al día.');
+  if (pendingCount) sections.push(`💡 ${pendingCount} comprobante(s) están en validación.`);
+  return [`📊 *Reporte de cobros — ${cloudCapitalise(cloudPeriodLabel(currentPeriod))}*`, sections.join('\n\n━━━━━━━━━━━━━━━━━━━━\n\n')].join('\n\n');
 }
 
 async function handleCloudInbound(message) {
