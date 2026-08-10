@@ -254,7 +254,7 @@ async function waitAndType(page, selector, text, timeout = 45000) {
 const WATER_TIMEOUT_MS = 180000;
 const WATER_MAX_ATTEMPTS = 2;
 const WATER_CAPTCHA_MAX_ATTEMPTS = 4;
-const WATER_TURNSTILE_WAIT_MS = 20000;
+const WATER_TURNSTILE_WAIT_MS = BROWSERLESS_SOLVE_CAPTCHAS ? 30000 : 20000;
 const WATER_POLL_INTERVAL_MS = 2000;
 const WATER_RESPONSE_TIMEOUT_MS = 5000;
 const WATER_CLOSE_TIMEOUT_MS = 10000;
@@ -485,15 +485,18 @@ async function submitWaterQueryIfReady(page, state) {
 
 async function waitForWaterTurnstile(page, deadline) {
   let state = await inspectWaterPage(page);
+  const browserlessSolvePending = BROWSERLESS_SOLVE_CAPTCHAS && state &&
+    state.hasTurnstile && !state.turnstileToken && !state.hasBillingResult;
   const invisibleTurnstilePending = state && state.hasTurnstile &&
     !state.turnstileToken && !state.hasBillingResult && !state.hasCaptchaText;
-  if (!invisibleTurnstilePending) return state;
+  if (!invisibleTurnstilePending && !browserlessSolvePending) return state;
 
   const turnstileDeadline = Math.min(deadline, Date.now() + WATER_TURNSTILE_WAIT_MS);
   while (Date.now() < turnstileDeadline) {
     await sleep(Math.min(WATER_POLL_INTERVAL_MS, turnstileDeadline - Date.now()));
     state = await inspectWaterPage(page);
-    if (!state || state.turnstileToken || state.hasBillingResult || state.hasCaptchaText) return state;
+    if (!state || state.turnstileToken || state.hasBillingResult) return state;
+    if (!browserlessSolvePending && state.hasCaptchaText) return state;
   }
   return state;
 }
