@@ -24,10 +24,12 @@ services:
         sync: false
       - key: BROWSERLESS_REGION
         value: production-sfo
-      # Start with Air-e; add "water" after validating the remote session.
+      # Browserless can solve Turnstile on the water QR flow; this consumes units.
       - key: BROWSERLESS_PROFILES
-        value: air-e
+        value: air-e,water
       - key: BROWSERLESS_STEALTH
+        value: "true"
+      - key: BROWSERLESS_SOLVE_CAPTCHAS
         value: "true"
       # Configure both values in the Render dashboard; never commit them.
       - key: ADMIN_USERNAME

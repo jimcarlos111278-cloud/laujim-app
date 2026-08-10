@@ -39,6 +39,9 @@ const BROWSERLESS_PROFILES = String(process.env.BROWSERLESS_PROFILES || 'air-e')
   .split(',')
   .map((profile) => profile.trim().toLowerCase())
   .filter(Boolean);
+const BROWSERLESS_SOLVE_CAPTCHAS = /^(1|true|yes)$/i.test(
+  process.env.BROWSERLESS_SOLVE_CAPTCHAS || '',
+);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -169,6 +172,9 @@ function browserlessEndpointFor(profileName) {
     }
     if (/^(1|true|yes)$/i.test(process.env.BROWSERLESS_STEALTH || '')) {
       endpoint.searchParams.set('stealth', 'true');
+    }
+    if (BROWSERLESS_SOLVE_CAPTCHAS) {
+      endpoint.searchParams.set('solveCaptchas', 'true');
     }
     const proxy = String(process.env.BROWSERLESS_PROXY || '').trim();
     if (proxy && !endpoint.searchParams.has('proxy')) endpoint.searchParams.set('proxy', proxy);

@@ -1,21 +1,21 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-10)
 
 ## Corpus Check
-- 120 files · ~139,763 words
+- 120 files · ~139,784 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1227 nodes · 2243 edges · 125 communities (93 shown, 32 thin omitted)
+- 1228 nodes · 2244 edges · 128 communities (96 shown, 32 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 24 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `97e5a62f`
+- Built from commit: `35faadfb`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- Predial.jsx
+- getBase
 - ApartmentDetail.jsx
 - .status
 - server.cjs
@@ -30,10 +30,10 @@
 - handleCloudInbound
 - .messages
 - content-facebook.js
-- App.jsx
+- config.js
 - handleCloudInbound
 - saveData
-- react
+- App.jsx
 - chrome-cdp.js
 - getR2Client
 - 5. ESPECIFICACIÓN DE INTEGRACIÓN (LO QUE CODEX DEBE CONSTRUIR)
@@ -50,7 +50,7 @@
 - scripts
 - scripts
 - backup.js
-- @capacitor/cli
+- @aws-sdk/client-s3
 - @capacitor/share
 - getR2Client
 - opencode.json
@@ -59,6 +59,7 @@
 - tailwindcss
 - .oxlintrc.json
 - add-passwords.js
+- ThemeSelector.jsx
 - RespondViaMessageService.java
 - Gestión de Apartamentos — Laujim APP
 - ffmpeg-static
@@ -83,6 +84,7 @@
 - Extensión de Chrome — Llenar Laujim
 - recharts
 - @tailwindcss/vite
+- notifications.js
 - Plan — Cámaras + Timbre QR + Integración Laujim APP
 - react-dom
 - cdp-driver.cjs
@@ -121,6 +123,7 @@
 - @capacitor/core
 - lucide-react
 - Utilities.jsx
+- Notificaciones
 - @capacitor/local-notifications
 - @capacitor/filesystem
 - @capacitor-mlkit/barcode-scanning
@@ -143,25 +146,25 @@
   src/utils/pdf.js → package.json
 - `generateContractPDF()` --references--> `jspdf`  [EXTRACTED]
   src/utils/contractGenerator.js → package.json
-- `getServerVersion()` --calls--> `getBase()`  [EXTRACTED]
-  src/api.js → src/utils/config.js
 - `ProtectedRoute()` --calls--> `getAuth()`  [EXTRACTED]
   src/App.jsx → src/utils/auth.js
 - `AdminRoute()` --calls--> `getAuth()`  [EXTRACTED]
+  src/App.jsx → src/utils/auth.js
+- `PrivateApp()` --calls--> `getAuth()`  [EXTRACTED]
   src/App.jsx → src/utils/auth.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (125 total, 32 thin omitted)
+## Communities (128 total, 32 thin omitted)
 
-### Community 0 - "Predial.jsx"
-Cohesion: 0.60
-Nodes (4): getPredialUrl(), lookupRef(), Predial(), REF_MAP
+### Community 0 - "getBase"
+Cohesion: 0.18
+Nodes (12): getServerVersion(), Layout(), navItems, PublicApartments(), WhatsAppContacts(), cloudRequest(), formatDate(), MediaMessage() (+4 more)
 
 ### Community 1 - "ApartmentDetail.jsx"
-Cohesion: 0.12
-Nodes (28): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), serviceColors (+20 more)
+Cohesion: 0.13
+Nodes (27): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), serviceColors (+19 more)
 
 ### Community 2 - ".status"
 Cohesion: 0.11
@@ -189,7 +192,7 @@ Nodes (21): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudG
 
 ### Community 8 - "dependencies"
 Cohesion: 0.29
-Nodes (7): @aws-sdk/client-s3, @capacitor/android, dependencies, @aws-sdk/client-s3, @capacitor/android, react, react
+Nodes (7): @capacitor/android, @capacitor/cli, dependencies, @capacitor/android, @capacitor/cli, react, react
 
 ### Community 9 - "saveData"
 Cohesion: 0.24
@@ -201,7 +204,7 @@ Nodes (43): dependencies, @capacitor/android, @capacitor/cli, @capacitor/core, @
 
 ### Community 11 - "api.js"
 Cohesion: 0.14
-Nodes (20): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), getServerVersion(), refreshAllFromServer(), serverReq(), startDataVersionPolling() (+12 more)
+Nodes (22): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), refreshAllFromServer(), serverReq(), startCloudPolling(), startDataVersionPolling() (+14 more)
 
 ### Community 12 - "handleCloudInbound"
 Cohesion: 0.22
@@ -215,9 +218,9 @@ Nodes (13): AuthorizedMmsReceiver, Context, Intent, Override, AuthorizedSmsRecei
 Cohesion: 0.25
 Nodes (22): activate(), autoFill(), checkAndRun(), chooseDropdown(), fillAndConfirmAddress(), fillAndConfirmAddressReliable(), findAndSet(), findDropdown() (+14 more)
 
-### Community 15 - "App.jsx"
-Cohesion: 0.12
-Nodes (23): uploadFile(), Layout(), navItems, VersionBanner(), versionIsNewer(), ContractGenerator(), PublicApartment(), serviceIcons (+15 more)
+### Community 15 - "config.js"
+Cohesion: 0.19
+Nodes (11): uploadFile(), VersionBanner(), versionIsNewer(), PublicApartment(), serviceIcons, ShareApartments(), getRawBase(), isCapacitor() (+3 more)
 
 ### Community 16 - "handleCloudInbound"
 Cohesion: 0.16
@@ -227,9 +230,9 @@ Nodes (29): authorizedCloudContact(), blockCloudUser(), buildDebtReply(), clearC
 Cohesion: 0.27
 Nodes (10): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getAuthSession(), pruneAuthSessions(), queuePostgresSave(), removeAuthSession(), saveData() (+2 more)
 
-### Community 18 - "react"
-Cohesion: 0.42
-Nodes (6): react, api, Modal(), Contracts(), Tenants(), getViewMode()
+### Community 18 - "App.jsx"
+Cohesion: 0.27
+Nodes (9): react, api, Modal(), Apartments(), ContractGenerator(), getPredialUrl(), lookupRef(), Predial() (+1 more)
 
 ### Community 19 - "chrome-cdp.js"
 Cohesion: 0.53
@@ -249,7 +252,7 @@ Nodes (18): AdminRoute(), ProtectedRoute(), Chat(), getAuth(), fetchPresence(), 
 
 ### Community 23 - "services-scraper.cjs"
 Cohesion: 0.05
-Nodes (52): db, fs, path, scraper, assert, scraper, AIR_E_NIC_MAP, AIR_E_URLS (+44 more)
+Nodes (53): db, fs, path, scraper, assert, scraper, AIR_E_NIC_MAP, AIR_E_URLS (+45 more)
 
 ### Community 24 - "contractGenerator.js"
 Cohesion: 0.14
@@ -307,13 +310,17 @@ Nodes (7): plugins, rules, react/only-export-components, react/rules-of-hooks, $
 Cohesion: 0.25
 Nodes (6): db, dbCjsPath, dbPath, __dirname, root, seedCopy
 
+### Community 44 - "ThemeSelector.jsx"
+Cohesion: 0.32
+Nodes (11): iconMap, ThemeSelector(), applyTheme(), getTheme(), getThemeInfo(), initTheme(), loadThemeFromServer(), setTheme() (+3 more)
+
 ### Community 45 - "RespondViaMessageService.java"
 Cohesion: 0.43
 Nodes (5): Intent, Override, RespondViaMessageService, IBinder, Service
 
 ### Community 46 - "Gestión de Apartamentos — Laujim APP"
-Cohesion: 0.12
-Nodes (16): Arquitectura del Sistema, Estructura del Proyecto, Flujo de Datos, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial (+8 more)
+Cohesion: 0.14
+Nodes (13): Arquitectura del Sistema, Estructura del Proyecto, Flujo de Datos, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial (+5 more)
 
 ### Community 48 - "generate-version.js"
 Cohesion: 0.29
@@ -376,12 +383,16 @@ Cohesion: 0.83
 Nodes (3): gradlew script, die(), warn()
 
 ### Community 64 - "auth.js"
-Cohesion: 0.21
-Nodes (14): startCloudPolling(), stopCloudPolling(), Login(), clearAuth(), getTenantApartmentId(), isAdmin(), isTenant(), login() (+6 more)
+Cohesion: 0.20
+Nodes (15): Contracts(), Login(), Tenants(), clearAuth(), getTenantApartmentId(), isAdmin(), isTenant(), login() (+7 more)
 
 ### Community 66 - "Extensión de Chrome — Llenar Laujim"
 Cohesion: 0.12
 Nodes (16): Arquitectura, Backup de referencia, Configuración actual de dropdowns (v1.4.5), Extensión de Chrome — Llenar Laujim, Flujo de `chooseDropdown` (v1.4.5), Gestión de anuncios, Instalación, La app no carga en el navegador (+8 more)
+
+### Community 69 - "notifications.js"
+Cohesion: 0.67
+Nodes (3): notify(), notifyPaymentReminder(), requestNotificationPermission()
 
 ### Community 70 - "Plan — Cámaras + Timbre QR + Integración Laujim APP"
 Cohesion: 0.18
@@ -420,8 +431,8 @@ Cohesion: 0.33
 Nodes (6): API REST Completa, Editor API (auth Basic: admin/admin123), Endpoints de Antecedentes (Policía), Endpoints de Archivos, Endpoints Generales, Endpoints Genéricos (CRUD Automático)
 
 ### Community 98 - "Settings.jsx"
-Cohesion: 0.09
-Nodes (43): PrivateApp(), iconMap, ThemeSelector(), Settings(), addCalendarReminder(), downloadICS(), fmtDate(), generateAllPaymentReminders() (+35 more)
+Cohesion: 0.15
+Nodes (28): Settings(), addCalendarReminder(), downloadICS(), fmtDate(), generateAllPaymentReminders(), generateICS(), getStoredUIDs(), nextDueDate() (+20 more)
 
 ### Community 99 - "Convertir a APK con Capacitor"
 Cohesion: 0.40
@@ -467,24 +478,28 @@ Nodes (4): Login Admin, Login Inquilino, Sesión, Sistema de Autenticación
 Cohesion: 0.36
 Nodes (7): PORTALS, services, timeAgo(), Utilities(), waterBillClass(), waterBillLabel(), waterBillMeta()
 
+### Community 123 - "Notificaciones"
+Cohesion: 0.67
+Nodes (3): Notificaciones, Notificaciones del Navegador (`src/utils/notifications.js`), Notificaciones Locales APK (`src/utils/localNotifications.js`)
+
 ## Knowledge Gaps
-- **456 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES`, `$schema`, `oxc` (+451 more)
+- **457 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES`, `$schema`, `oxc` (+452 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **32 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `contractGenerator.js`, `scripts`, `@capacitor/cli`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `cors`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`, `@capacitor/local-notifications`, `@capacitor/filesystem`, `@capacitor-mlkit/barcode-scanning`?**
+- **Why does `dependencies` connect `dependencies` to `contractGenerator.js`, `scripts`, `@aws-sdk/client-s3`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `cors`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`, `@capacitor/local-notifications`, `@capacitor/filesystem`, `@capacitor-mlkit/barcode-scanning`?**
   _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **Why does `jspdf` connect `contractGenerator.js` to `dependencies`, `ApartmentDetail.jsx`?**
   _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Why does `generateApartmentPDF()` connect `ApartmentDetail.jsx` to `contractGenerator.js`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
 - **What connects `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES` to the rest of the system?**
-  _456 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _457 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ApartmentDetail.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.12195121951219512 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.12682926829268293 - nodes in this community are weakly interconnected._
 - **Should `.status` be split into smaller, more focused modules?**
   _Cohesion score 0.10904255319148937 - nodes in this community are weakly interconnected._
 - **Should `server.cjs` be split into smaller, more focused modules?**
