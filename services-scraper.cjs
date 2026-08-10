@@ -32,7 +32,14 @@ const LINUX_CHROME_CANDIDATES = [
 const FULL_CHROME_ENABLED = /^(1|true|yes|full)$/i.test(
   process.env.RENDER_FULL_CHROME || process.env.BROWSER_MODE || '',
 );
-const BROWSERLESS_TOKEN = String(process.env.BROWSERLESS_TOKEN || '').trim();
+// Prefer one Browserless account/token per provider so a quota or auth issue
+// in one portal cannot consume or disable the other services. Keep the legacy
+// token as a backwards-compatible fallback for existing Render deployments.
+const BROWSERLESS_TOKENS = {
+  'air-e': String(process.env.BROWSERLESS_TOKEN_AIR_E || process.env.BROWSERLESS_TOKEN || '').trim(),
+  water: String(process.env.BROWSERLESS_TOKEN_WATER || process.env.BROWSERLESS_TOKEN || '').trim(),
+  gas: String(process.env.BROWSERLESS_TOKEN_GAS || process.env.BROWSERLESS_TOKEN || '').trim(),
+};
 const BROWSERLESS_WS_ENDPOINT = String(process.env.BROWSERLESS_WS_ENDPOINT || '').trim();
 const BROWSERLESS_REGION = String(process.env.BROWSERLESS_REGION || 'production-sfo').trim();
 const BROWSERLESS_PROFILES = String(process.env.BROWSERLESS_PROFILES || 'air-e,water,gas')
@@ -227,12 +234,15 @@ function getPortalCredentials(provider) {
 function browserlessEndpointFor(profileName) {
   const profile = String(profileName || '').trim().toLowerCase();
   if (!BROWSERLESS_PROFILES.includes(profile)) return null;
-  if (!BROWSERLESS_TOKEN && !BROWSERLESS_WS_ENDPOINT) return null;
+  const profileToken = BROWSERLESS_TOKENS[profile] || '';
+  if (!profileToken && !BROWSERLESS_WS_ENDPOINT) return null;
 
   try {
     const endpoint = new URL(BROWSERLESS_WS_ENDPOINT || `wss://${BROWSERLESS_REGION}.browserless.io`);
-    if (BROWSERLESS_TOKEN && !endpoint.searchParams.has('token')) {
-      endpoint.searchParams.set('token', BROWSERLESS_TOKEN);
+    if (profileToken) {
+      // Replace a token embedded in a legacy endpoint so each provider really
+      // uses its own account instead of silently sharing the old key.
+      endpoint.searchParams.set('token', profileToken);
     }
     if (/^(1|true|yes)$/i.test(process.env.BROWSERLESS_STEALTH || '')) {
       endpoint.searchParams.set('stealth', 'true');

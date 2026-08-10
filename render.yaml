@@ -17,7 +17,16 @@ services:
         value: /usr/bin/chromium
       - key: RENDER_CHROME_PROFILE_DIR
         value: /tmp/laujim-chrome-profiles
-      # Optional remote-browser failover. Keep the token only in Render.
+      # Optional remote-browser failover. Use one Browserless account per
+      # provider; enter the values only in Render, never in Git.
+      - key: BROWSERLESS_TOKEN_AIR_E
+        sync: false
+      - key: BROWSERLESS_TOKEN_WATER
+        sync: false
+      - key: BROWSERLESS_TOKEN_GAS
+        sync: false
+      # Legacy fallback for older deployments; leave empty once the three
+      # provider-specific tokens are configured.
       - key: BROWSERLESS_TOKEN
         sync: false
       - key: BROWSERLESS_WS_ENDPOINT
