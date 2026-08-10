@@ -13,6 +13,14 @@ function testParserStates() {
   assert.equal(pending.deudaCOP, 123456);
   assert.equal(pending.factura, 'AAA-12345');
 
+  const pendingWithoutSymbol = scraper.parseWaterBillPage('Factura pendiente. Valor total de la factura: 98.765 COP. Periodo agosto 2026');
+  assert.equal(pendingWithoutSymbol.status, 'pending');
+  assert.equal(pendingWithoutSymbol.deudaCOP, 98765);
+
+  const pendingWithDecimals = scraper.parseWaterBillPage('Factura pendiente. Total a pagar $ 45.600,00');
+  assert.equal(pendingWithDecimals.status, 'pending');
+  assert.equal(pendingWithDecimals.deudaCOP, 45600);
+
   assert.equal(scraper.parseWaterBillPage('Verificación CAPTCHA requerida').status, 'captcha');
   assert.equal(scraper.parseWaterBillPage('El portal requiere usuario y contraseña').status, 'error');
   assert.equal(scraper.waterNavigationError({ apartmentId: 1, apartment: '101', waterPaymentUrl: 'https://example.test' }, new Error('Navigation timeout exceeded')).status, 'timeout');

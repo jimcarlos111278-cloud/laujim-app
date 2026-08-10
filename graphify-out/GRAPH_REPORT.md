@@ -1,16 +1,16 @@
-# Graph Report - Proyecto Laujim APP fix  (2026-08-09)
+# Graph Report - Proyecto Laujim APP fix  (2026-08-10)
 
 ## Corpus Check
-- 118 files · ~136,951 words
+- 118 files · ~137,348 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
 - 1197 nodes · 2193 edges · 122 communities (91 shown, 31 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 18 edges (avg confidence: 0.53)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 20 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6213fe2f`
+- Built from commit: `231974c3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -79,7 +79,7 @@
 - darkMode.js
 - ExampleUnitTest.java
 - gradlew
-- @aws-sdk/client-s3
+- @capacitor/cli
 - clipboard.js
 - Extensión de Chrome — Llenar Laujim
 - recharts
@@ -186,7 +186,7 @@ Nodes (21): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudG
 
 ### Community 8 - "dependencies"
 Cohesion: 0.29
-Nodes (7): @capacitor/android, @capacitor/cli, dependencies, @capacitor/android, @capacitor/cli, react, react
+Nodes (7): @aws-sdk/client-s3, @capacitor/android, dependencies, @aws-sdk/client-s3, @capacitor/android, react, react
 
 ### Community 9 - "saveData"
 Cohesion: 0.24
@@ -464,7 +464,7 @@ Nodes (4): Login Admin, Login Inquilino, Sesión, Sistema de Autenticación
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `contractGenerator.js`, `scripts`, `@capacitor/filesystem`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `@aws-sdk/client-s3`, `recharts`, `@tailwindcss/vite`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `cors`, `@capacitor/local-notifications`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`?**
+- **Why does `dependencies` connect `dependencies` to `contractGenerator.js`, `scripts`, `@capacitor/filesystem`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `@capacitor/cli`, `recharts`, `@tailwindcss/vite`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `cors`, `@capacitor/local-notifications`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`?**
   _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **Why does `jspdf` connect `contractGenerator.js` to `dependencies`, `ApartmentDetail.jsx`?**
   _High betweenness centrality (0.028) - this node is a cross-community bridge._

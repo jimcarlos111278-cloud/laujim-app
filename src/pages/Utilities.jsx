@@ -34,10 +34,9 @@ function timeAgo(iso) {
 
 function waterBillLabel(bill) {
   if (!bill) return '';
-  if (bill.status === 'pending') {
-    if (Number(bill.deudaCOP) > 0) return `Deuda: $${Number(bill.deudaCOP).toLocaleString('es-CO')}`;
-    return 'Factura pendiente';
-  }
+  const debt = Number(bill.deudaCOP);
+  if (Number.isFinite(debt) && debt > 0) return `Deuda: $${debt.toLocaleString('es-CO')}`;
+  if (bill.status === 'pending') return 'Factura pendiente · valor no informado';
   if (bill.status === 'paid') return 'Al día · Sin deuda';
   if (bill.status === 'captcha') return 'Requiere verificación manual';
   if (bill.status === 'timeout') return 'Consulta agotó el tiempo';

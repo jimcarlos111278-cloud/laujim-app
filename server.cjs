@@ -830,20 +830,38 @@ function buildDebtReply(contact) {
   const aptId = Number(contact.apartmentId);
   const apt = (db.apartments || []).find(a => Number(a.id) === aptId);
   const nic = apt?.electricityPaymentCode || apt?.nic || '';
-  const records = (db.utilityRecords || [])
+  const electricityRecords = (db.utilityRecords || [])
     .filter(r => r.provider === 'Air-e' && (r.nic === nic || (apt && r.apartment === apt.name)))
     .sort((a, b) => (b.scrapedAt || '').localeCompare(a.scrapedAt || ''));
-  const latest = records[0];
-  if (!latest) {
+  const electricity = electricityRecords[0] || null;
+  const water = latestUtilityRecord('Triple A', apt);
+  if (!electricity && !water) {
     return 'No tengo datos de tu deuda de servicios en este momento. Si acabas de sincronizar, espera unos minutos y vuelve a preguntar.';
   }
-  const debt = Number(latest.deudaCOP || 0);
-  const facturas = Number(latest.numFacturas || 0);
-  const when = latest.scrapedAt ? new Date(latest.scrapedAt).toLocaleString('es-CO', { dateStyle: 'short' }) : '';
-  if (debt <= 0) {
-    return `Tu deuda de energía (Air-e) está al día 🎉 (0 facturas pendientes). Datos del ${when}.`;
-  }
-  return `Tu deuda de energía (Air-e) es de $${debt.toLocaleString('es-CO')}, correspondiente a ${facturas} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'} (valor máximo de factura). Datos del ${when}.`;
+
+  const utilityLine = (label, record, paidText) => {
+    if (!record) return `${label}: sin datos de consulta.`;
+    const debt = utilityDebtAmount(record);
+    const facturas = Number(record.numFacturas) || (record.status === 'pending' ? 1 : 0);
+    const checkedAt = record.checkedAt || record.scrapedAt || record.updatedAt;
+    const when = checkedAt && !Number.isNaN(new Date(checkedAt).getTime())
+      ? ` Datos del ${new Date(checkedAt).toLocaleString('es-CO', { dateStyle: 'short' })}.`
+      : '';
+    if (debt !== null && debt > 0) {
+      return `${label}: deuda de $${debt.toLocaleString('es-CO')}, correspondiente a ${facturas} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'}.${when}`;
+    }
+    if (record.status === 'pending') {
+      return `${label}: hay ${facturas || 1} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'}, pero el portal no informó el valor.${when}`;
+    }
+    if (record.status === 'paid' || debt === 0) return `${label}: ${paidText}${when}`;
+    return `${label}: no fue posible confirmar el valor en la última consulta.${when}`;
+  };
+
+  return [
+    '📋 Estado de servicios:',
+    utilityLine('⚡ Energía (Air-e)', electricity, 'está al día 🎉 (0 facturas pendientes).'),
+    utilityLine('💧 Agua (Triple A)', water, 'está al día 🎉 (0 facturas pendientes).'),
+  ].join('\n');
 }
 
 // ── WhatsApp admins (configured in Settings, stored in db.settings) ────────
@@ -890,6 +908,17 @@ async function sendCloudServicesInfo(phone, aptRef) {
     await sendCloudText(phone, `No encontré el apartamento "${ref}". Escribe solo el número (ej: 101).`);
     return;
   }
+  const water = latestUtilityRecord('Triple A', apartment);
+  const waterDebt = utilityDebtAmount(water);
+  const waterStatus = !water
+    ? 'Sin datos de consulta'
+    : waterDebt !== null && waterDebt > 0
+      ? `Deuda: $${waterDebt.toLocaleString('es-CO')} (${Number(water.numFacturas) || 1} factura${Number(water.numFacturas) === 1 ? '' : 's'} pendiente${Number(water.numFacturas) === 1 ? '' : 's'})`
+      : water.status === 'paid' || waterDebt === 0
+        ? 'Al día · Sin deuda'
+        : water.status === 'pending'
+          ? 'Factura pendiente · valor no informado por el portal'
+          : 'Consulta sin valor confirmado';
   const lines = [
     `🏢 Apartamento ${apartment.name}`,
     '',
@@ -899,6 +928,7 @@ async function sendCloudServicesInfo(phone, aptRef) {
     '',
     `💧 Agua (Triple A)`,
     `   N° Póliza: ${apartment.waterPaymentCode || '—'}`,
+    `   ${waterStatus}`,
     apartment.waterPaymentUrl ? `   Pago: ${apartment.waterPaymentUrl}` : '',
     '',
     `🔥 Gas (Gases del Caribe)`,
@@ -1524,13 +1554,26 @@ function latestUtilityRecord(provider, apartment) {
   return records.sort((a, b) => new Date(b.checkedAt || b.scrapedAt || b.updatedAt || 0) - new Date(a.checkedAt || a.scrapedAt || a.updatedAt || 0))[0] || null;
 }
 
+function utilityDebtAmount(record) {
+  if (!record) return null;
+  const fields = ['deudaCOP', 'amountCOP', 'valorCOP', 'totalCOP', 'deuda', 'amount', 'valor', 'total'];
+  for (const field of fields) {
+    if (record[field] === null || record[field] === undefined || record[field] === '') continue;
+    const amount = typeof servicesScraper.parseCopAmount === 'function'
+      ? servicesScraper.parseCopAmount(record[field])
+      : Number(record[field]);
+    if (amount !== null && Number.isFinite(amount)) return amount;
+  }
+  return null;
+}
+
 function utilityPaymentView(record) {
   if (!record) return null;
   const checkedAt = record.checkedAt || record.scrapedAt || record.updatedAt || null;
   return {
     status: record.status || 'unknown',
-    deudaCOP: record.deudaCOP === null || record.deudaCOP === undefined ? null : Number(record.deudaCOP) || 0,
-    numFacturas: Number(record.numFacturas) || 0,
+    deudaCOP: utilityDebtAmount(record),
+    numFacturas: Number(record.numFacturas) || (record.status === 'pending' ? 1 : 0),
     factura: record.factura || record.invoiceNumber || null,
     periodo: record.periodo || record.period || null,
     actualizado: checkedAt,

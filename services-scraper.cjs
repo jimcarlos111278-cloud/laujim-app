@@ -143,7 +143,7 @@ function normalizeBillText(value) {
 }
 
 function parseCopAmount(raw) {
-  let value = String(raw || '').replace(/[^0-9,.-]/g, '').replace(/-/g, '');
+  let value = String(raw ?? '').replace(/[^0-9,.-]/g, '').replace(/-/g, '');
   if (!value) return null;
 
   if (value.includes(',') && value.includes('.')) {
@@ -162,14 +162,23 @@ function parseCopAmount(raw) {
 }
 
 function extractWaterAmount(text) {
-  const labeled = text.match(/(?:saldo|deuda|total\s+(?:a\s+)?pagar|valor\s+(?:a\s+)?pagar|importe|monto)[^$0-9]{0,50}(?:\$\s*|COP\s*)?([0-9][0-9.,]*)\s*(?:COP|pesos)?/i);
-  const labeledAmount = parseCopAmount(labeled?.[1]);
-  if (labeledAmount !== null) return labeledAmount;
-
-  const matches = [...text.matchAll(/(?:\$\s*|COP\s*)([0-9][0-9.,]*)\s*(?:COP|pesos)?/gi)]
+  const amountToken = '[0-9][0-9.,]*(?:\\s+[0-9][0-9.,]*)?';
+  const label = /(?:saldo(?:\s+(?:pendiente|por\s+pagar|total))?|deuda(?:\s+total)?|total(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|valor(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|importe|monto|factura\s+(?:pendiente|por\s+pagar|vencida)|recibo\s+(?:pendiente|por\s+pagar|vencido))/gi;
+  const labeled = new RegExp(`${label.source}[^$0-9]{0,80}(?:\\$\\s*|COP\\s*)?(${amountToken})\\s*(?:COP|pesos)?`, 'gi');
+  const labeledAmounts = [...String(text || '').matchAll(labeled)]
     .map(match => parseCopAmount(match[1]))
     .filter(amount => amount !== null);
-  return matches.length ? Math.max(...matches) : null;
+  if (labeledAmounts.length) return Math.max(...labeledAmounts);
+
+  // Some Triple A layouts render the currency after the number, while others
+  // put the amount in an input/aria label without a preceding "$".
+  const currencyAmounts = [
+    ...String(text || '').matchAll(new RegExp(`(?:\\$\\s*|COP\\s*)(${amountToken})\\s*(?:COP|pesos)?`, 'gi')),
+    ...String(text || '').matchAll(new RegExp(`(${amountToken})\\s*(?:COP|pesos)`, 'gi')),
+  ]
+    .map(match => parseCopAmount(match[1]))
+    .filter(amount => amount !== null);
+  return currencyAmounts.length ? Math.max(...currencyAmounts) : null;
 }
 
 function extractWaterInvoice(text) {
@@ -288,7 +297,23 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
           const response = await page.goto(target.waterPaymentUrl, { waitUntil: 'domcontentloaded', timeout: WATER_TIMEOUT_MS });
           if (response && response.status() >= 400) throw new Error(`El portal respondió HTTP ${response.status()}`);
           await sleep(1200);
-          const pageText = await page.evaluate(() => document.body?.innerText || document.documentElement?.innerText || '');
+          const pageText = await page.evaluate(() => {
+            const visible = element => {
+              const style = window.getComputedStyle(element);
+              return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+            };
+            const bodyText = document.body?.innerText || document.documentElement?.innerText || '';
+            const labelsAndValues = [...document.querySelectorAll('input:not([type="password"]), textarea, select, [aria-label], [title]')]
+              .filter(visible)
+              .flatMap(element => [
+                element.getAttribute('aria-label'),
+                element.getAttribute('title'),
+                'value' in element ? element.value : '',
+              ])
+              .filter(Boolean)
+              .join(' ');
+            return `${bodyText} ${labelsAndValues}`.trim();
+          });
           if (!pageText.trim()) throw new Error('El enlace de Triple A no devolvió contenido visible.');
           const parsed = parseWaterBillPage(pageText);
           if (parsed.status === 'unknown') parsed.error = 'No se pudo identificar el estado de la factura en el portal.';
@@ -607,6 +632,8 @@ module.exports = {
   init,
   scrapeAirE,
   scrapeWaterBills,
+  parseCopAmount,
+  extractWaterAmount,
   parseWaterBillPage,
   waterNavigationError,
   persistWaterResults,
