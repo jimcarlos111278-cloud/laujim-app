@@ -130,13 +130,17 @@ async function waitAndType(page, selector, text) {
 // has used more than one page layout, so the parser deliberately relies on
 // visible text and labels instead of brittle CSS selectors.
 
-// Triple A can take 1–2 minutes to finish rendering the debt after the QR
-// page starts loading. Keep one deadline for the navigation and the dynamic
-// invoice content so a slow page gets a chance to return the actual amount.
-const WATER_TIMEOUT_MS = 180000;
+// Give each QR page 30 seconds to render the debt. A fresh page is opened
+// once when that attempt returns no usable value; this recovers from stale
+// connections without allowing one target to keep the hourly run alive.
+const WATER_TIMEOUT_MS = 30000;
+const WATER_MAX_ATTEMPTS = 2;
 const WATER_POLL_INTERVAL_MS = 2000;
+const WATER_RESPONSE_TIMEOUT_MS = 5000;
+const WATER_CLOSE_TIMEOUT_MS = 10000;
 const WATER_WORKERS = 3;
 const WATER_SCRAPE_CRON = '0 * * * *';
+const WATER_CAPTCHA_ERROR = 'Triple A exige completar la verificación de Cloudflare Turnstile. El valor no se puede consultar automáticamente desde Render; abre el enlace en un navegador y completa la verificación manual.';
 
 function normalizeBillText(value) {
   return String(value || '')
@@ -167,7 +171,7 @@ function parseCopAmount(raw) {
 
 function extractWaterAmount(text) {
   const amountToken = '[0-9][0-9.,]*(?:\\s+[0-9][0-9.,]*)?';
-  const label = /(?:saldo(?:\s+(?:pendiente|por\s+pagar|total))?|deuda(?:\s+total)?|total(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|valor(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|importe|monto|amount(?:\s+due)?|balance|debt|invoice(?:\s+total)?|total(?:to|\s+to)\s*pay|factura\s+(?:pendiente|por\s+pagar|vencida)|recibo\s+(?:pendiente|por\s+pagar|vencido))/gi;
+  const label = /(?:saldo(?:\s+(?:pendiente|por\s+pagar|total))?|deuda\b(?:\s+total)?|total(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|valor(?:\s+(?:(?:a|por)\s+)?pagar|\s+factura)?|importe|monto|amount(?:\s+due)?|balance|debt|invoice(?:\s+total)?|total(?:to|\s+to)\s*pay|factura\s+(?:pendiente|por\s+pagar|vencida)|recibo\s+(?:pendiente|por\s+pagar|vencido))/gi;
   const labeled = new RegExp(`${label.source}[^$0-9]{0,80}(?:\\$\\s*|COP\\s*)?(${amountToken})\\s*(?:COP|pesos)?`, 'gi');
   const labeledAmounts = [...String(text || '').matchAll(labeled)]
     .map(match => parseCopAmount(match[1]))
@@ -182,6 +186,12 @@ function extractWaterAmount(text) {
   ]
     .map(match => parseCopAmount(match[1]))
     .filter(amount => amount !== null);
+
+  // Do not treat an arbitrary "$5" from the portal shell or a framework
+  // payload as an invoice amount.  A fallback amount is only valid when the
+  // surrounding page contains a concrete billing marker.
+  const hasBillingContext = /(?:factura|recibo|saldo)\b|(?:deuda|pago|total|valor)\s+(?:pendiente|por\s+pagar|a\s+pagar|total|factura)|amount\s+due|invoice/i.test(text);
+  if (!hasBillingContext) return null;
   return currencyAmounts.length ? Math.max(...currencyAmounts) : null;
 }
 
@@ -204,7 +214,7 @@ function parseWaterBillPage(pageText) {
     !/factura|saldo|deuda|pago/.test(normalized);
   const amount = extractWaterAmount(text);
   const noDebtText = normalized.replace(/sin deuda|no hay deuda|sin saldo pendiente/g, '');
-  const pending = /pendiente|por pagar|vencid[ao]|no pagad[ao]|deuda/.test(noDebtText);
+  const pending = /(?:factura|recibo|saldo|pago)\s+(?:pendiente|por\s+pagar|vencid[ao]|no\s+pagad[ao])|(?:deuda|saldo)\s+(?:pendiente|por\s+pagar|total)|(?:status|estado)\s*["':=]+\s*(?:pending|in_debt)|\b(?:pending|in_debt)\b/.test(noDebtText);
   const paid = /pagad[ao]|al dia|cancelad[ao]|sin deuda|no hay deuda|saldo\s*\$?\s*0\b/.test(normalized);
 
   let status = 'unknown';
@@ -303,18 +313,92 @@ function waterResultReady(parsed) {
     (parsed.status === 'pending' && parsed.deudaCOP !== null);
 }
 
-async function readWaterPageText(page, responseBodies, pendingResponses) {
-  await Promise.allSettled([...pendingResponses]);
+async function inspectWaterPage(page) {
+  if (!page || typeof page.evaluate !== 'function') return null;
+  try {
+    const state = await page.evaluate(() => {
+      const bodyText = document.body?.innerText || document.documentElement?.innerText || '';
+      const tokenInput = document.querySelector('input[name="cf-turnstile-response"]');
+      const turnstileNode = document.querySelector(
+        '.cf-turnstile, iframe[src*="challenges.cloudflare.com"], [id*="cf-chl-widget"]'
+      );
+      const submit = document.querySelector('form button[type="submit"], button[type="submit"]');
+      const paymentInput = document.querySelector('input[name="paymentNumber"], input[type="number"]');
+      const hasBillingResult = /(?:factura|recibo)\s+(?:n(?:u|ú)mero|pendiente|pagad[ao]|vencid[ao])|(?:saldo|deuda|total|valor|monto)\s*(?:pendiente|por\s+pagar|a\s+pagar|:|\$)/i.test(bodyText);
+      return {
+        hasTurnstile: Boolean(tokenInput || turnstileNode),
+        turnstileToken: tokenInput?.value || '',
+        hasCaptchaText: /captcha|turnstile|recaptcha|verificaci[oó]n en dos pasos|no soy un robot/i.test(bodyText),
+        hasBillingResult,
+        hasSubmit: Boolean(submit),
+        submitDisabled: submit ? Boolean(submit.disabled) : false,
+        hasPaymentNumber: Boolean(paymentInput?.value),
+      };
+    });
+    return state && typeof state === 'object' ? state : null;
+  } catch {
+    return null;
+  }
+}
+
+async function submitWaterQueryIfReady(page, state) {
+  if (!state || state.hasBillingResult) return { submitted: false, captcha: false };
+  if ((state.hasTurnstile || state.hasCaptchaText) && !state.turnstileToken) {
+    return { submitted: false, captcha: true, error: WATER_CAPTCHA_ERROR };
+  }
+  if (!state.hasSubmit || !state.hasPaymentNumber || state.submitDisabled || typeof page?.evaluate !== 'function') {
+    return { submitted: false, captcha: false };
+  }
+
+  try {
+    const submitted = await page.evaluate(() => {
+      const submit = document.querySelector('form button[type="submit"], button[type="submit"]');
+      if (!submit || submit.disabled) return false;
+      submit.click();
+      return true;
+    });
+    return { submitted: Boolean(submitted), captcha: false };
+  } catch {
+    return { submitted: false, captcha: false };
+  }
+}
+
+async function closeWaterResource(resource) {
+  if (!resource || typeof resource.close !== 'function') return;
+  let closed = false;
+  const closePromise = Promise.resolve()
+    .then(() => resource.close())
+    .then(() => { closed = true; })
+    .catch(() => {});
+  await Promise.race([closePromise, sleep(WATER_CLOSE_TIMEOUT_MS)]);
+  return closed;
+}
+
+async function closeWaterBrowser(browser) {
+  const closed = await closeWaterResource(browser);
+  if (closed || typeof browser?.process !== 'function') return;
+  try {
+    const child = browser.process();
+    if (child && !child.killed) child.kill('SIGKILL');
+  } catch {}
+}
+
+async function readWaterPageText(page, responseBodies) {
   const frames = typeof page.frames === 'function' ? page.frames() : [page];
   const frameTexts = await Promise.all(frames.map(readWaterFrameText));
   return [...frameTexts, ...responseBodies].filter(Boolean).join(' ').trim();
 }
 
-async function waitForWaterBill(page, responseBodies, pendingResponses, deadline) {
+async function waitForWaterBill(page, responseBodies, deadline) {
   let latest = { status: 'unknown', deudaCOP: null, factura: null, periodo: null, error: null };
 
   while (true) {
-    const pageText = await readWaterPageText(page, responseBodies, pendingResponses);
+    const state = await inspectWaterPage(page);
+    if (state && (state.hasTurnstile || state.hasCaptchaText) && !state.turnstileToken && !state.hasBillingResult) {
+      return { ...latest, status: 'captcha', error: WATER_CAPTCHA_ERROR };
+    }
+
+    const pageText = await readWaterPageText(page, responseBodies);
     if (pageText) {
       latest = parseWaterBillPage(pageText);
       if (waterResultReady(latest)) return latest;
@@ -347,25 +431,34 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
         if (index >= targets.length) return;
         const target = targets[index];
         const checkedAt = new Date().toISOString();
-        let page;
-        try {
+        let completed = false;
+        let attempt = 0;
+        while (!completed && attempt < WATER_MAX_ATTEMPTS) {
+          attempt += 1;
+          let page;
+          try {
           page = await browser.newPage();
           page.setDefaultNavigationTimeout?.(WATER_TIMEOUT_MS);
           const responseBodies = [];
-          const pendingResponses = new Set();
           const captureResponse = response => {
             const type = response.request().resourceType();
             const contentType = response.headers()['content-type'] || '';
-            if (!['xhr', 'fetch', 'document'].includes(type) || !/json|text|html/i.test(contentType)) return;
-            const pending = response.text()
+            const responseUrl = response.url();
+            // The document contains the Next.js shell and unrelated numeric
+            // strings. Only retain billing-related XHR/fetch bodies, and do
+            // not let a long-running analytics response block a scrape.
+            if (!['xhr', 'fetch'].includes(type) || !/json|text|html/i.test(contentType)) return;
+            if (!/payment|factur|saldo|deuda|invoice|amount|balance|coupon|poliza|pago/i.test(responseUrl) && !/json/i.test(contentType)) return;
+            Promise.race([
+              response.text(),
+              sleep(WATER_RESPONSE_TIMEOUT_MS).then(() => ''),
+            ])
               .then(body => {
-                if (body && /factura|saldo|deuda|total|valor|monto|amount|balance|debt|cop|\$/i.test(body)) {
+                if (body && /factura|saldo|deuda|total|valor|monto|amount|balance|debt|invoice|pendingValue|amountDue|invoiceTotal/i.test(body)) {
                   responseBodies.push(body.slice(0, 100000));
                 }
               })
               .catch(() => {});
-            pendingResponses.add(pending);
-            pending.finally(() => pendingResponses.delete(pending));
           };
           const canCaptureResponses = typeof page.on === 'function' && typeof page.off === 'function';
           if (canCaptureResponses) page.on('response', captureResponse);
@@ -381,19 +474,41 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
           });
           if (response && response.status() >= 400) throw new Error(`El portal respondió HTTP ${response.status()}`);
           await sleep(2200);
-          const parsed = await waitForWaterBill(page, responseBodies, pendingResponses, deadline);
+          const pageState = await inspectWaterPage(page);
+          const query = await submitWaterQueryIfReady(page, pageState);
+          if (query.captcha) {
+            const parsed = { status: 'captcha', deudaCOP: null, error: query.error };
+            results[index] = waterRecord(target, parsed, checkedAt);
+            lastWaterScrapeError = query.error;
+            console.warn(`[TRIPLE A] ${target.apartment || target.apartmentId}: captcha (Turnstile requerido)`);
+            completed = true;
+            continue;
+          }
+
+          const parsed = await waitForWaterBill(page, responseBodies, deadline);
           if (canCaptureResponses) page.off('response', captureResponse);
           if (!waterResultReady(parsed)) {
             throw new Error(`Triple A timeout: no mostró el valor de la deuda después de ${WATER_TIMEOUT_MS / 1000} segundos.`);
           }
           results[index] = waterRecord(target, parsed, checkedAt);
-          console.log(`[TRIPLE A] ${target.apartment || target.apartmentId}: ${parsed.status}${parsed.deudaCOP !== null ? ` ($${parsed.deudaCOP.toLocaleString('es-CO')})` : ''}`);
+          const suffix = parsed.status === 'captcha'
+            ? ' (Turnstile requerido)'
+            : parsed.deudaCOP !== null ? ` ($${parsed.deudaCOP.toLocaleString('es-CO')})` : '';
+          console.log(`[TRIPLE A] ${target.apartment || target.apartmentId}: ${parsed.status}${suffix}`);
+          completed = true;
         } catch (error) {
-          results[index] = waterNavigationError(target, error, checkedAt);
           lastWaterScrapeError = error.message;
-          console.error(`[TRIPLE A] ${target.apartment || target.apartmentId}: ${error.message}`);
+          const shouldRetry = attempt < WATER_MAX_ATTEMPTS && !/captcha|turnstile|verification/i.test(String(error.message || ''));
+          if (shouldRetry) {
+            console.warn(`[TRIPLE A] ${target.apartment || target.apartmentId}: sin valor despues de ${WATER_TIMEOUT_MS / 1000}s; reiniciando pagina (intento ${attempt + 1}/${WATER_MAX_ATTEMPTS}).`);
+          } else {
+            results[index] = waterNavigationError(target, error, checkedAt);
+            console.error(`[TRIPLE A] ${target.apartment || target.apartmentId}: ${error.message}`);
+            completed = true;
+          }
         } finally {
-          if (page) await page.close().catch(() => {});
+          if (page) await closeWaterResource(page);
+        }
         }
       }
     };
@@ -405,7 +520,7 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
       if (!results[index]) results[index] = waterNavigationError(targets[index], error);
     }
   } finally {
-    if (browser) await browser.close().catch(() => {});
+    if (browser) await closeWaterBrowser(browser);
   }
 
   return results.filter(Boolean);

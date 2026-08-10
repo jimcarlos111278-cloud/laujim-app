@@ -27,6 +27,9 @@ function testParserStates() {
 
   assert.equal(scraper.parseWaterBillPage('Verificación CAPTCHA requerida').status, 'captcha');
   assert.equal(scraper.parseWaterBillPage('El portal requiere usuario y contraseña').status, 'error');
+  const portalShell = 'Pagos. Aqui podras realizar el pago de tus documentos. Consultar tus deudas. Numero de Cupon 3489242196.';
+  assert.equal(scraper.parseWaterBillPage(portalShell).status, 'unknown');
+  assert.equal(scraper.parseWaterBillPage(portalShell).deudaCOP, null);
   assert.equal(scraper.waterNavigationError({ apartmentId: 1, apartment: '101', waterPaymentUrl: 'https://example.test' }, new Error('Navigation timeout exceeded')).status, 'timeout');
 }
 
@@ -59,7 +62,7 @@ async function testBrowserAndPersistence() {
   assert.equal(results[0].status, 'paid');
   assert.equal(results[0].apartmentId, 1);
   assert.equal(navigationOptions.waitUntil, 'domcontentloaded');
-  assert.equal(navigationOptions.timeout, 180000);
+  assert.equal(navigationOptions.timeout, 30000);
   assert.ok(evaluateCalls >= 2, 'the scraper should wait for delayed invoice content');
   assert.equal(pages.length, 1);
   assert.equal(fakeBrowser.closed, true);
@@ -79,7 +82,34 @@ async function testBrowserAndPersistence() {
   assert.equal(saves, 2);
 }
 
+async function testReloadAfterTimeout() {
+  let pagesCreated = 0;
+  const fakeBrowser = {
+    async newPage() {
+      const pageNumber = ++pagesCreated;
+      return {
+        setDefaultNavigationTimeout() {},
+        async goto() {
+          if (pageNumber === 1) throw new Error('Navigation timeout exceeded');
+          return { status: () => 200 };
+        },
+        async evaluate() { return 'Factura pagada. Saldo: $0. Periodo 2026-08'; },
+        async close() {},
+      };
+    },
+    async close() {},
+  };
+
+  const results = await scraper.scrapeWaterBills(
+    [{ id: 1, name: '101', waterPaymentUrl: 'https://example.test/101' }],
+    async () => fakeBrowser,
+  );
+  assert.equal(pagesCreated, 2, 'the scraper should reopen a page after a timeout');
+  assert.equal(results[0].status, 'paid');
+}
+
 testParserStates();
 testBrowserAndPersistence()
+  .then(testReloadAfterTimeout)
   .then(() => console.log('Water scraper checks passed.'))
   .catch(error => { console.error(error); process.exitCode = 1; });
