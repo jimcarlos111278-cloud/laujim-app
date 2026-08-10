@@ -10,9 +10,13 @@ xvfb_pid=$!
 
 sleep 1
 if ! kill -0 "${xvfb_pid}" 2>/dev/null; then
-  echo "[BOOT] Xvfb failed to start:"
-  cat "${xvfb_log}" || true
-  exit 1
+  if grep -q "Server is already active for display" "${xvfb_log}" 2>/dev/null; then
+    echo "[BOOT] Xvfb already active on ${display}; reusing it."
+  else
+    echo "[BOOT] Xvfb failed to start:"
+    cat "${xvfb_log}" || true
+    exit 1
+  fi
 fi
 
 echo "[BOOT] Xvfb ready; starting Laujim..."

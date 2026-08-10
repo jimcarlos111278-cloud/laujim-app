@@ -1,7 +1,7 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-10)
 
 ## Corpus Check
-- 120 files · ~139,280 words
+- 120 files · ~139,341 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `af33c83b`
+- Built from commit: `ea9a4d32`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -59,7 +59,7 @@
 - tailwindcss
 - .oxlintrc.json
 - add-passwords.js
-- @capacitor/android
+- Notificaciones
 - RespondViaMessageService.java
 - Gestión de Apartamentos — Laujim APP
 - ffmpeg-static
@@ -126,11 +126,11 @@
 - pre-whatsapp-bot/package.json
 - @capacitor/local-notifications
 - @capacitor/filesystem
-- Arquitectura del Sistema
+- @aws-sdk/client-s3
 - @capacitor/core
 - @capacitor-mlkit/barcode-scanning
 - cors
-- @capacitor/cli
+- dexie
 - jspdf
 - jsqr
 - lucide-react
@@ -204,7 +204,7 @@ Nodes (21): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudG
 
 ### Community 8 - "dependencies"
 Cohesion: 0.29
-Nodes (7): @aws-sdk/client-s3, @capacitor/android, dependencies, @aws-sdk/client-s3, @capacitor/android, react, react
+Nodes (7): @capacitor/android, @capacitor/cli, dependencies, @capacitor/android, @capacitor/cli, react, react
 
 ### Community 9 - "saveData"
 Cohesion: 0.24
@@ -212,7 +212,7 @@ Nodes (11): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getA
 
 ### Community 10 - "dependencies"
 Cohesion: 0.11
-Nodes (19): dependencies, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, dexie, express, pg, qrcode (+11 more)
+Nodes (19): dependencies, @capacitor/android, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, express, pg, qrcode (+11 more)
 
 ### Community 11 - "api.js"
 Cohesion: 0.14
@@ -326,13 +326,17 @@ Nodes (7): plugins, rules, react/only-export-components, react/rules-of-hooks, $
 Cohesion: 0.25
 Nodes (6): db, dbCjsPath, dbPath, __dirname, root, seedCopy
 
+### Community 44 - "Notificaciones"
+Cohesion: 0.67
+Nodes (3): Notificaciones, Notificaciones del Navegador (`src/utils/notifications.js`), Notificaciones Locales APK (`src/utils/localNotifications.js`)
+
 ### Community 45 - "RespondViaMessageService.java"
 Cohesion: 0.43
 Nodes (5): Intent, Override, RespondViaMessageService, IBinder, Service
 
 ### Community 46 - "Gestión de Apartamentos — Laujim APP"
 Cohesion: 0.14
-Nodes (13): Estructura del Proyecto, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial, Notificaciones, Notificaciones del Navegador (`src/utils/notifications.js`) (+5 more)
+Nodes (13): Arquitectura del Sistema, Estructura del Proyecto, Flujo de Datos, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial (+5 more)
 
 ### Community 48 - "generate-version.js"
 Cohesion: 0.29
@@ -490,10 +494,6 @@ Nodes (7): PORTALS, services, timeAgo(), Utilities(), waterBillClass(), waterBil
 Cohesion: 0.29
 Nodes (6): engines, node, name, private, type, version
 
-### Community 126 - "Arquitectura del Sistema"
-Cohesion: 0.67
-Nodes (3): Arquitectura del Sistema, Flujo de Datos, Viewport y Layout Adaptativo
-
 ## Knowledge Gaps
 - **453 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES`, `$schema`, `oxc` (+448 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -502,7 +502,7 @@ Nodes (3): Arquitectura del Sistema, Flujo de Datos, Viewport y Layout Adaptativ
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `@capacitor/cli`, `contractGenerator.js`, `scripts`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `cors`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`, `@capacitor/local-notifications`, `@capacitor/filesystem`?**
+- **Why does `dependencies` connect `dependencies` to `contractGenerator.js`, `scripts`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `@capacitor-mlkit/barcode-scanning`, `react-dom`, `cors`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`, `@capacitor/local-notifications`, `@capacitor/filesystem`, `@aws-sdk/client-s3`?**
   _High betweenness centrality (0.030) - this node is a cross-community bridge._
 - **Why does `jspdf` connect `contractGenerator.js` to `dependencies`, `ApartmentDetail.jsx`?**
   _High betweenness centrality (0.028) - this node is a cross-community bridge._

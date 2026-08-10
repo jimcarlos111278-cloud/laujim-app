@@ -240,8 +240,8 @@
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1786373595.2397323,
-    "ast_hash": "2381e19f2866955cbd39dc681aa94796",
+    "mtime": 1786374037.8090897,
+    "ast_hash": "20a34971f603aa19e4f7311ff211a484",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
@@ -820,8 +820,8 @@
     "semantic_hash": ""
   },
   "docker-start-render.sh": {
-    "mtime": 1786372499.7467842,
-    "ast_hash": "aacbaf6836a16e4ed3af24ad26dfdabb",
+    "mtime": 1786374037.8115976,
+    "ast_hash": "e5102c456c61ed2730771d853e481116",
     "semantic_hash": ""
   }
 }

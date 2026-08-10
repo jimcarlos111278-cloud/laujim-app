@@ -797,6 +797,10 @@ function runScrapeOnce(reason) {
     return airEScrapePromise;
   }
   airEScrapePromise = (async () => {
+    if (waterScrapePromise) {
+      console.log('[SERVICES] Air-e waiting for Triple A to finish before opening Chrome.');
+      await waterScrapePromise.catch(() => {});
+    }
     console.log(`[SERVICES] Running Air-e scrape (${reason})...`);
     try {
       const results = await scrapeAirE();
@@ -834,6 +838,10 @@ function runWaterScrapeOnce(reason) {
     return waterScrapePromise;
   }
   waterScrapePromise = (async () => {
+    if (airEScrapePromise) {
+      console.log('[SERVICES] Triple A waiting for Air-e to finish before opening browsers.');
+      await airEScrapePromise.catch(() => {});
+    }
     console.log(`[SERVICES] Running Triple A water scrape (${reason})...`);
     try {
       const results = await scrapeWaterBills();
