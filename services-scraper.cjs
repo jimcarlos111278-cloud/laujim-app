@@ -774,9 +774,13 @@ async function scrapeAirE() {
     console.log('[AIR-E] Current URL:', currentUrl);
 
     // 2. Land on the listado so the Angular module issues Document/Get.
-    if (!currentUrl.includes('Mis-Facturas')) {
-      await page.goto(AIR_E_URLS.listado, { waitUntil: 'networkidle2', timeout: 30000 });
+    // The login redirect can already leave us on Mis-Facturas before the
+    // response listener is attached. Reload the module whenever the contract
+    // was not captured during login so the request is observable.
+    if (!cdContrato) {
+      await page.goto(AIR_E_URLS.listado, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await sleep(2500);
+      console.log('[AIR-E] Current URL after loading invoices:', page.url());
     }
 
     // Give the module a moment to fire the request if the same page was reused.

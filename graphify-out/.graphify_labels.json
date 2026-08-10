@@ -34,6 +34,7 @@
   "32": "scripts",
   "33": "scripts",
   "34": "backup.js",
+  "35": "@capacitor/cli",
   "36": "@capacitor/share",
   "37": "getR2Client",
   "38": "opencode.json",
@@ -122,6 +123,5 @@
   "124": "@capacitor/local-notifications",
   "125": "@capacitor/filesystem",
   "127": "@capacitor-mlkit/barcode-scanning",
-  "128": "@capacitor/cli",
   "139": "docker-start-render.sh"
 }
