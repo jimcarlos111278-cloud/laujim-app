@@ -4042,8 +4042,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "package_dependencies_aws_sdk_client_s3",
-      "community": 35,
-      "community_name": "@aws-sdk/client-s3",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -4053,8 +4053,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "aws_sdk_client_s3",
-      "community": 35,
-      "community_name": "@aws-sdk/client-s3",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@aws-sdk/client-s3"
     },
     {
@@ -4108,8 +4108,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 123,
+      "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -4119,8 +4119,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 123,
+      "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -11728,7 +11728,7 @@
       "source_location": "L900",
       "_origin": "ast",
       "id": "readme_notificaciones",
-      "community": 123,
+      "community": 35,
       "community_name": "Notificaciones",
       "norm_label": "notificaciones"
     },
@@ -11739,7 +11739,7 @@
       "source_location": "L902",
       "_origin": "ast",
       "id": "readme_notificaciones_del_navegador_src_utils_notifications_js",
-      "community": 123,
+      "community": 35,
       "community_name": "Notificaciones",
       "norm_label": "notificaciones del navegador (`src/utils/notifications.js`)"
     },
@@ -11750,7 +11750,7 @@
       "source_location": "L912",
       "_origin": "ast",
       "id": "readme_notificaciones_locales_apk_src_utils_localnotifications_js",
-      "community": 123,
+      "community": 35,
       "community_name": "Notificaciones",
       "norm_label": "notificaciones locales apk (`src/utils/localnotifications.js`)"
     },
@@ -40009,5 +40009,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "35faadfbc2e12c7449fa8cd2e497a3e9f2c09ada"
+  "built_at_commit": "501f8a949da0771143d777176340846c5b3251c4"
 }

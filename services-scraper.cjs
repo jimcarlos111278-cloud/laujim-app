@@ -558,7 +558,7 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
   try {
     lastWaterScrapeError = null;
     console.log(`[TRIPLE A] Consultando ${targets.length} enlace(s) QR de agua...`);
-    browser = await browserFactory('triple-a');
+    browser = await browserFactory('water');
     let nextIndex = 0;
     const worker = async () => {
       while (true) {

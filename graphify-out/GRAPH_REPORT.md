@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `35faadfb`
+- Built from commit: `501f8a94`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -50,7 +50,7 @@
 - scripts
 - scripts
 - backup.js
-- @aws-sdk/client-s3
+- Notificaciones
 - @capacitor/share
 - getR2Client
 - opencode.json
@@ -123,7 +123,7 @@
 - @capacitor/core
 - lucide-react
 - Utilities.jsx
-- Notificaciones
+- @capacitor/cli
 - @capacitor/local-notifications
 - @capacitor/filesystem
 - @capacitor-mlkit/barcode-scanning
@@ -192,7 +192,7 @@ Nodes (21): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudG
 
 ### Community 8 - "dependencies"
 Cohesion: 0.29
-Nodes (7): @capacitor/android, @capacitor/cli, dependencies, @capacitor/android, @capacitor/cli, react, react
+Nodes (7): @aws-sdk/client-s3, @capacitor/android, dependencies, @aws-sdk/client-s3, @capacitor/android, react, react
 
 ### Community 9 - "saveData"
 Cohesion: 0.24
@@ -293,6 +293,10 @@ Nodes (29): oxlint, devDependencies, oxlint, @types/react, @types/react-dom, vit
 ### Community 34 - "backup.js"
 Cohesion: 0.20
 Nodes (9): backupDir, dataDir, __dirname, dst, files, now, root, src (+1 more)
+
+### Community 35 - "Notificaciones"
+Cohesion: 0.67
+Nodes (3): Notificaciones, Notificaciones del Navegador (`src/utils/notifications.js`), Notificaciones Locales APK (`src/utils/localNotifications.js`)
 
 ### Community 37 - "getR2Client"
 Cohesion: 0.42
@@ -478,10 +482,6 @@ Nodes (4): Login Admin, Login Inquilino, Sesión, Sistema de Autenticación
 Cohesion: 0.36
 Nodes (7): PORTALS, services, timeAgo(), Utilities(), waterBillClass(), waterBillLabel(), waterBillMeta()
 
-### Community 123 - "Notificaciones"
-Cohesion: 0.67
-Nodes (3): Notificaciones, Notificaciones del Navegador (`src/utils/notifications.js`), Notificaciones Locales APK (`src/utils/localNotifications.js`)
-
 ## Knowledge Gaps
 - **457 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES`, `$schema`, `oxc` (+452 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -490,7 +490,7 @@ Nodes (3): Notificaciones, Notificaciones del Navegador (`src/utils/notification
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `contractGenerator.js`, `scripts`, `@aws-sdk/client-s3`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `cors`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`, `@capacitor/local-notifications`, `@capacitor/filesystem`, `@capacitor-mlkit/barcode-scanning`?**
+- **Why does `dependencies` connect `dependencies` to `contractGenerator.js`, `scripts`, `@capacitor/share`, `node-cron`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `cors`, `dexie`, `puppeteer-core`, `express`, `jsqr`, `qrcode`, `multer`, `pg`, `react-router-dom`, `@sparticuz/chromium`, `@capacitor/core`, `lucide-react`, `@capacitor/cli`, `@capacitor/local-notifications`, `@capacitor/filesystem`, `@capacitor-mlkit/barcode-scanning`?**
   _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **Why does `jspdf` connect `contractGenerator.js` to `dependencies`, `ApartmentDetail.jsx`?**
   _High betweenness centrality (0.028) - this node is a cross-community bridge._
