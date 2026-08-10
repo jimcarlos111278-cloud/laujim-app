@@ -275,7 +275,7 @@ function tenantBelongsToApartment(tenant, apartmentId) {
 }
 
 function ensureCloudCollections() {
-  for (const name of ['whatsappContacts', 'whatsappConversations', 'whatsappMessages', 'whatsappAuthStates', 'whatsappBlockedUsers', 'whatsappProcessedMessages', 'paymentReminderLogs']) {
+  for (const name of ['whatsappContacts', 'whatsappConversations', 'whatsappMessages', 'whatsappAuthStates', 'whatsappAdminSessions', 'whatsappBlockedUsers', 'whatsappProcessedMessages', 'paymentReminderLogs']) {
     if (!Array.isArray(db[name])) db[name] = [];
     if (!nextId[name]) nextId[name] = db[name].reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
   }
@@ -886,23 +886,221 @@ function isCloudAdminPhone(phone) {
   return cloudAdminPhones().some(admin => samePhone(admin, phone));
 }
 
+function getCloudAdminSession(phone) {
+  ensureCloudCollections();
+  const normalized = normalizePhone(phone);
+  let session = db.whatsappAdminSessions.find(item => samePhone(item.phone, normalized));
+  if (!session) {
+    session = {
+      id: nextId.whatsappAdminSessions++,
+      phone: normalized,
+      greetedAt: null,
+      updatedAt: new Date().toISOString(),
+    };
+    db.whatsappAdminSessions.push(session);
+  }
+  return session;
+}
+
+function cloudAdminGreeting(date = new Date()) {
+  const hourPart = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Bogota',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date).find(part => part.type === 'hour');
+  const hour = Number(hourPart?.value || 0);
+  const greeting = hour >= 5 && hour < 12
+    ? 'Buenos días'
+    : hour >= 12 && hour < 19
+      ? 'Buenas tardes'
+      : 'Buenas noches';
+  return `${greeting}, administrador. Bienvenido al sistema de administración de apartamentos Laujim. ¿Cómo te puedo ayudar?`;
+}
+
+async function greetCloudAdminOnce(phone) {
+  const session = getCloudAdminSession(phone);
+  if (session.greetedAt) return;
+  await sendCloudText(phone, cloudAdminGreeting());
+  session.greetedAt = new Date().toISOString();
+  session.updatedAt = session.greetedAt;
+  saveData();
+}
+
+function isCloudExitCommand(text) {
+  return /^(?:salir|salida|cancelar|cancel|terminar|fin|cerrar|menu\s+principal|inicio)$/i.test(String(text || '').trim());
+}
+
 // Interactive buttons only work inside the 24-hour customer service window.
 // The admin always writes first, so the window is open when this runs.
 async function sendCloudAdminMenu(phone) {
   try {
-    await sendCloudInteractiveButtons(phone, '🤖 Menú de administración — elige una opción:', [
+    await sendCloudInteractiveButtons(phone, '🤖 Menú de administración — elige una opción. Escribe SALIR para cerrar:', [
       { id: 'menu_morosos', title: '📋 Morosos' },
       { id: 'menu_validar', title: '⏳ Validar pagos' },
       { id: 'menu_servicios', title: '💧 Servicios' },
     ]);
   } catch (error) {
     console.error('[WHATSAPP CLOUD] admin menu error:', error.message);
-    await sendCloudText(phone, '🤖 Comandos admin:\n• "cobros" / "deuda" / "morosos" → reporte de pagos\n• "validar" → comprobantes pendientes\n• "servicios" → referencias de pago de servicios\n• "APROBAR <apto>" / "RECHAZAR <apto>" → validar un pago');
+    await sendCloudText(phone, '🤖 Comandos admin:\n• "cobros" / "deuda" / "morosos" → reporte de pagos\n• "validar" → comprobantes pendientes\n• "servicios" → consulta de servicios\n• "APROBAR <apto>" / "RECHAZAR <apto>" → validar un pago\n• "SALIR" → cerrar');
   }
 }
 
-// Payment references (NIC, póliza, contrato) and payment links for a given
-// apartment, used by the "Servicios" admin flow.
+function cloudServiceState(record, provider) {
+  if (!record) return { label: 'Sin datos de consulta', debt: null, known: false, hasDebt: false };
+  const debt = utilityDebtAmount(record);
+  if (debt !== null && debt > 0) {
+    return {
+      label: provider === 'Air-e'
+        ? `Deuda Total: $${debt.toLocaleString('es-CO')}`
+        : `Deuda: $${debt.toLocaleString('es-CO')}`,
+      debt,
+      known: true,
+      hasDebt: true,
+    };
+  }
+  if (record.status === 'paid' || debt === 0) {
+    return { label: 'Al día · Sin deuda', debt: debt ?? 0, known: true, hasDebt: false };
+  }
+  if (record.status === 'pending') {
+    return {
+      label: provider === 'Air-e'
+        ? 'Deuda Total pendiente · valor no informado'
+        : 'Factura pendiente · valor no informado',
+      debt,
+      known: false,
+      hasDebt: false,
+    };
+  }
+  if (record.status === 'captcha') return { label: 'Requiere verificación manual', debt, known: false, hasDebt: false };
+  if (record.status === 'timeout') return { label: 'Consulta agotó el tiempo', debt, known: false, hasDebt: false };
+  return { label: 'Consulta sin valor confirmado', debt, known: false, hasDebt: false };
+}
+
+function cloudApartmentServices(apartment) {
+  const electricity = latestUtilityRecord('Air-e', apartment);
+  const water = latestUtilityRecord('Triple A', apartment);
+  const gas = latestUtilityRecord('Gases del Caribe', apartment);
+  return {
+    apartment,
+    records: { electricity, water, gas },
+    states: {
+      electricity: cloudServiceState(electricity, 'Air-e'),
+      water: cloudServiceState(water, 'Triple A'),
+      gas: cloudServiceState(gas, 'Gases del Caribe'),
+    },
+  };
+}
+
+function setCloudServicesStep(phone, step) {
+  setCloudAuthState(phone, {
+    step,
+    expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString(),
+    attempts: 0,
+  });
+  saveData();
+}
+
+async function sendCloudServicesMenu(phone, body = '💧 Servicios — elige una opción. Escribe SALIR para volver al menú principal:') {
+  setCloudServicesStep(phone, 'admin_services_menu');
+  try {
+    await sendCloudInteractiveButtons(phone, body, [
+      { id: 'services_all', title: '📊 Todos los aptos' },
+      { id: 'services_by_apartment', title: '🏠 Por apartamento' },
+    ]);
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] services menu error:', error.message);
+    await sendCloudText(phone, `${body}\n• "todos" → información de todos los apartamentos\n• "por apartamento" → consulta manual\n• "SALIR" → menú principal`);
+  }
+}
+
+function splitCloudText(body, maxLength = 3600) {
+  const paragraphs = String(body || '').split(/\n{2,}/);
+  const chunks = [];
+  let current = '';
+  for (const paragraph of paragraphs) {
+    const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
+    if (current && candidate.length > maxLength) {
+      chunks.push(current);
+      current = paragraph;
+    } else if (paragraph.length > maxLength) {
+      if (current) chunks.push(current);
+      for (let index = 0; index < paragraph.length; index += maxLength) {
+        chunks.push(paragraph.slice(index, index + maxLength));
+      }
+      current = '';
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks.length ? chunks : [''];
+}
+
+async function sendCloudTextChunks(phone, body) {
+  for (const chunk of splitCloudText(body)) await sendCloudText(phone, chunk);
+}
+
+function cloudApartmentServicesLine(summary) {
+  const { apartment, states } = summary;
+  const references = [
+    apartment.nic || apartment.electricityPaymentCode ? `NIC ${apartment.nic || apartment.electricityPaymentCode}` : '',
+    apartment.waterPaymentCode ? `Póliza ${apartment.waterPaymentCode}` : '',
+    apartment.gasPaymentCode ? `Contrato ${apartment.gasPaymentCode}` : '',
+  ].filter(Boolean).join(' · ');
+  return [
+    `🏠 *${apartment.name}*`,
+    `⚡ ${states.electricity.label} · 💧 ${states.water.label} · 🔥 ${states.gas.label}`,
+    references ? `   ${references}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+function buildCloudGlobalServicesReport() {
+  const summaries = (db.apartments || [])
+    .map(cloudApartmentServices)
+    .sort((left, right) => String(left.apartment.name).localeCompare(String(right.apartment.name), 'es', { numeric: true }));
+  const debt = summaries.filter(summary => Object.values(summary.states).some(state => state.hasDebt));
+  const pending = summaries.filter(summary => !debt.includes(summary) && Object.values(summary.states).some(state => !state.known));
+  const paid = summaries.filter(summary => !debt.includes(summary) && !pending.includes(summary));
+  const period = cloudPeriodLabel(colombiaDate().slice(0, 7));
+  const section = (title, entries) => entries.length
+    ? [`${title} (${entries.length}):`, ...entries.map(cloudApartmentServicesLine)].join('\n\n')
+    : '';
+  return [
+    `📊 *Reporte global de servicios — ${period}*`,
+    section('🔴 *DEUDAS CONFIRMADAS*', debt),
+    section('🟡 *PENDIENTES / SIN DATOS*', pending),
+    section('🟢 *AL DÍA*', paid),
+    '━━━━━━━━━━━━━━━━━━━━',
+    'Los valores de Air-e corresponden a *Deuda Total*. Las consultas sin datos pueden revisarse manualmente por apartamento.',
+  ].filter(Boolean).join('\n\n');
+}
+
+function buildCloudApartmentServicesInfo(apartment) {
+  const summary = cloudApartmentServices(apartment);
+  const { records, states } = summary;
+  return [
+    `🏢 *Apartamento ${apartment.name}*`,
+    '',
+    '*⚡ Energía (Air-e)*',
+    `   NIC: ${apartment.nic || apartment.electricityPaymentCode || '—'}`,
+    `   ${states.electricity.label}`,
+    records.electricity?.scrapedAt ? `   Actualizado: ${new Date(records.electricity.scrapedAt).toLocaleString('es-CO')}` : '',
+    apartment.electricityPaymentUrl ? `   Pago: ${apartment.electricityPaymentUrl}` : '',
+    '',
+    '*💧 Agua (Triple A)*',
+    `   N° Póliza: ${apartment.waterPaymentCode || '—'}`,
+    `   ${states.water.label}`,
+    records.water?.checkedAt ? `   Actualizado: ${new Date(records.water.checkedAt).toLocaleString('es-CO')}` : '',
+    apartment.waterPaymentUrl ? `   Pago: ${apartment.waterPaymentUrl}` : '',
+    '',
+    '*🔥 Gas (Gases del Caribe)*',
+    `   N° Contrato: ${apartment.gasPaymentCode || '—'}`,
+    `   ${states.gas.label}`,
+    apartment.gasPaymentUrl ? `   Pago: ${apartment.gasPaymentUrl}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+// Payment references, current service debts and payment links for one apartment.
 async function sendCloudServicesInfo(phone, aptRef) {
   const ref = String(aptRef || '').trim();
   const digits = ref.replace(/\D/g, '');
@@ -913,52 +1111,38 @@ async function sendCloudServicesInfo(phone, aptRef) {
   );
   if (!apartment) {
     await sendCloudText(phone, `No encontré el apartamento "${ref}". Escribe solo el número (ej: 101).`);
-    return;
+    await sendCloudServicesMenu(phone, '💧 Servicios — el número no fue encontrado. Elige otra opción o escribe SALIR:');
+    setCloudServicesStep(phone, 'admin_service_apt');
+    return false;
   }
-  const water = latestUtilityRecord('Triple A', apartment);
-  const waterDebt = utilityDebtAmount(water);
-  const waterStatus = !water
-    ? 'Sin datos de consulta'
-    : waterDebt !== null && waterDebt > 0
-      ? `Deuda: $${waterDebt.toLocaleString('es-CO')} (${Number(water.numFacturas) || 1} factura${Number(water.numFacturas) === 1 ? '' : 's'} pendiente${Number(water.numFacturas) === 1 ? '' : 's'})`
-      : water.status === 'paid' || waterDebt === 0
-        ? 'Al día · Sin deuda'
-        : water.status === 'pending'
-          ? 'Factura pendiente · valor no informado por el portal'
-          : 'Consulta sin valor confirmado';
-  const lines = [
-    `🏢 Apartamento ${apartment.name}`,
-    '',
-    `⚡ Energía (Air-e)`,
-    `   NIC: ${apartment.nic || apartment.electricityPaymentCode || '—'}`,
-    apartment.electricityPaymentUrl ? `   Pago: ${apartment.electricityPaymentUrl}` : '',
-    '',
-    `💧 Agua (Triple A)`,
-    `   N° Póliza: ${apartment.waterPaymentCode || '—'}`,
-    `   ${waterStatus}`,
-    apartment.waterPaymentUrl ? `   Pago: ${apartment.waterPaymentUrl}` : '',
-    '',
-    `🔥 Gas (Gases del Caribe)`,
-    `   N° Contrato: ${apartment.gasPaymentCode || '—'}`,
-    apartment.gasPaymentUrl ? `   Pago: ${apartment.gasPaymentUrl}` : '',
-  ].filter(Boolean).join('\n');
-  await sendCloudText(phone, lines);
+  await sendCloudText(phone, buildCloudApartmentServicesInfo(apartment));
+  await sendCloudServicesMenu(phone);
+  return true;
+}
+
+async function sendCloudGlobalServices(phone) {
+  await sendCloudTextChunks(phone, buildCloudGlobalServicesReport());
+  await sendCloudServicesMenu(phone);
 }
 
 async function handleCloudAdminMessage(phone, message) {
+  await greetCloudAdminOnce(phone);
   const type = message.type || 'unknown';
   const interactive = cloudInteractiveReply(message);
   const rawText = type === 'text' ? String(message.text?.body || '').trim() : '';
   const buttonId = String(interactive?.id || '');
   const text = rawText || String(interactive?.title || '').trim();
-  if (!text && !buttonId) return;
+  if (!text && !buttonId) {
+    await sendCloudAdminMenu(phone);
+    return;
+  }
 
-  // Multi-step flow: waiting for the apartment number after "Servicios".
   const state = getCloudAuthState(phone);
-  if (state?.step === 'admin_apt') {
+  if (isCloudExitCommand(text) || buttonId === 'services_exit') {
     clearCloudAuthState(phone);
     saveData();
-    await sendCloudServicesInfo(phone, text);
+    await sendCloudText(phone, '👋 Saliste de la sección actual.');
+    await sendCloudAdminMenu(phone);
     return;
   }
 
@@ -969,11 +1153,13 @@ async function handleCloudAdminMessage(phone, message) {
     const apartment = (db.apartments || []).find(a => String(a.name).toLowerCase() === ref.toLowerCase() || String(a.id) === ref);
     if (!apartment) {
       await sendCloudText(phone, `No encontré el apartamento "${ref}".`);
+      await sendCloudAdminMenu(phone);
       return;
     }
     const payment = (db.payments || []).find(p => Number(p.apartmentId) === Number(apartment.id) && p.status === 'pending_validation');
     if (!payment) {
       await sendCloudText(phone, `El apartamento ${apartment.name} no tiene comprobantes pendientes de validación.`);
+      await sendCloudAdminMenu(phone);
       return;
     }
     const tenant = (db.tenants || []).find(item => Number(item.id) === Number(payment.tenantId));
@@ -993,12 +1179,36 @@ async function handleCloudAdminMessage(phone, message) {
       }
       await sendCloudText(phone, `❌ Pago de ${apartment.name} (${periodLabel}) rechazado.`);
     }
+    await sendCloudAdminMenu(phone);
     return;
   }
 
-  // Button routing by ID (robust) with text-command fallback.
+  if (buttonId === 'services_all' || /^(todos|global|general|todos\s+los\s+apartamentos)$/i.test(text)) {
+    await sendCloudGlobalServices(phone);
+    return;
+  }
+
+  if (buttonId === 'services_by_apartment' || /^(por\s+apartamento|manual|individual)$/i.test(text)) {
+    await sendCloudText(phone, '🏢 Escribe el número del apartamento (ej: 101) para consultar sus servicios y cuánto debe. Escribe SALIR para volver.');
+    await sendCloudServicesMenu(phone, '💧 Servicios — elige otra opción o escribe el número del apartamento:');
+    setCloudServicesStep(phone, 'admin_service_apt');
+    return;
+  }
+
+  if (buttonId === 'menu_servicios' || /^servicios$/i.test(text)) {
+    await sendCloudServicesMenu(phone);
+    return;
+  }
+
+  if (state?.step === 'admin_service_apt' || state?.step === 'admin_apt' ||
+      (state?.step === 'admin_services_menu' && /^\d+$/.test(text))) {
+    await sendCloudServicesInfo(phone, text);
+    return;
+  }
+
   if (buttonId === 'menu_morosos' || /^(cobros|deuda|canon|morosos|reporte)$/i.test(text)) {
     await sendCloudText(phone, buildAdminDebtReport());
+    await sendCloudAdminMenu(phone);
     return;
   }
 
@@ -1006,6 +1216,7 @@ async function handleCloudAdminMessage(phone, message) {
     const pending = (db.payments || []).filter(p => p.status === 'pending_validation');
     if (!pending.length) {
       await sendCloudText(phone, '✅ No hay comprobantes pendientes de validación.');
+      await sendCloudAdminMenu(phone);
       return;
     }
     const lines = pending.map(p => {
@@ -1015,17 +1226,10 @@ async function handleCloudAdminMessage(phone, message) {
       return `⏳ ${aptName} - ${tenant?.name || 'Inquilino'} - $${Number(p.amount || 0).toLocaleString('es-CO')} (${cloudPeriodLabel(paymentPeriod(p))})\n   Responde: APROBAR ${aptName} o RECHAZAR ${aptName}`;
     });
     await sendCloudText(phone, `📋 Comprobantes en validación (${pending.length}):\n\n${lines.join('\n')}`);
+    await sendCloudAdminMenu(phone);
     return;
   }
 
-  if (buttonId === 'menu_servicios' || /^servicios$/i.test(text)) {
-    setCloudAuthState(phone, { step: 'admin_apt', expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString(), attempts: 0 });
-    saveData();
-    await sendCloudText(phone, '🏢 Escribe el número del apartamento (ej: 101) para ver sus referencias de pago de servicios (NIC, póliza, contrato).');
-    return;
-  }
-
-  // "menu", "ayuda", "inicio" or any unrecognized message → show the buttons.
   await sendCloudAdminMenu(phone);
 }
 
@@ -2618,4 +2822,12 @@ app.use((req, res) => {
   })();
 }
 
-startServer();
+if (require.main === module) startServer();
+
+module.exports = {
+  buildCloudGlobalServicesReport,
+  buildCloudApartmentServicesInfo,
+  cloudAdminGreeting,
+  cloudServiceState,
+  splitCloudText,
+};
