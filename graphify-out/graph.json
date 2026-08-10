@@ -192,7 +192,7 @@
       "_origin": "ast",
       "id": "ref_react",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "react"
     },
     {
@@ -2861,6 +2861,36 @@
       "community": 5,
       "community_name": "_head_server.cjs",
       "norm_label": "initial_data"
+    },
+    {
+      "label": "docker-start-render.sh",
+      "file_type": "code",
+      "source_file": "docker-start-render.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "docker_start_render",
+      "community": 139,
+      "community_name": "docker-start-render.sh",
+      "norm_label": "docker-start-render.sh"
+    },
+    {
+      "label": "docker-start-render.sh script",
+      "file_type": "code",
+      "source_file": "docker-start-render.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "docker_start_render_sh__entry",
+      "community": 139,
+      "community_name": "docker-start-render.sh",
+      "norm_label": "docker-start-render.sh script"
     },
     {
       "label": "exportar-backup.ps1",
@@ -7964,7 +7994,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "app.jsx"
     },
@@ -8000,8 +8030,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_privateapp",
-      "community": 15,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "privateapp()"
     },
     {
@@ -8012,7 +8042,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_appcontent",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "appcontent()"
     },
@@ -8072,7 +8102,7 @@
       "_origin": "ast",
       "id": "src_api_getserverversion",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "getserverversion()"
     },
     {
@@ -8084,7 +8114,7 @@
       "_origin": "ast",
       "id": "src_api_uploadfile",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "uploadfile()"
     },
     {
@@ -8106,8 +8136,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_refreshallfromserver",
-      "community": 15,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "refreshallfromserver()"
     },
     {
@@ -8142,8 +8172,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopdataversionpolling",
-      "community": 64,
-      "community_name": "auth.js",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "stopdataversionpolling()"
     },
     {
@@ -8154,8 +8184,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_startcloudpolling",
-      "community": 15,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "startcloudpolling()"
     },
     {
@@ -8166,8 +8196,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopcloudpolling",
-      "community": 64,
-      "community_name": "auth.js",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "stopcloudpolling()"
     },
     {
@@ -8238,7 +8268,7 @@
       "_origin": "ast",
       "id": "src_api_api",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "api"
     },
     {
@@ -8320,8 +8350,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout",
-      "community": 35,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "getBase",
       "norm_label": "layout.jsx"
     },
     {
@@ -8331,8 +8361,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_layout_navitems",
-      "community": 35,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "getBase",
       "norm_label": "navitems"
     },
     {
@@ -8343,8 +8373,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_layout_layout",
-      "community": 35,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "getBase",
       "norm_label": "layout()"
     },
     {
@@ -8355,7 +8385,7 @@
       "_origin": "ast",
       "id": "src_components_modal",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "modal.jsx"
     },
     {
@@ -8367,7 +8397,7 @@
       "_origin": "ast",
       "id": "src_components_modal_modal",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "modal()"
     },
     {
@@ -8505,7 +8535,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "versionbanner.jsx"
     },
     {
@@ -8517,7 +8547,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner_versionisnewer",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "versionisnewer()"
     },
     {
@@ -8529,7 +8559,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner_versionbanner",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "versionbanner()"
     },
     {
@@ -8608,8 +8638,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_db_database_initdb",
-      "community": 15,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "initdb()"
     },
     {
@@ -8758,7 +8788,7 @@
       "_origin": "ast",
       "id": "src_pages_apartments",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "apartments.jsx"
     },
     {
@@ -8769,8 +8799,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartments_apartments",
-      "community": 15,
-      "community_name": "App.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "apartments()"
     },
     {
@@ -8803,7 +8833,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contractgenerator",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator.jsx"
     },
@@ -8815,7 +8845,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contractgenerator_contractgenerator",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "contractgenerator()"
     },
@@ -8827,7 +8857,7 @@
       "_origin": "ast",
       "id": "src_pages_contracts",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "contracts.jsx"
     },
     {
@@ -8919,7 +8949,7 @@
       "_origin": "ast",
       "id": "src_pages_payments",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "payments.jsx"
     },
     {
@@ -8942,7 +8972,7 @@
       "_origin": "ast",
       "id": "src_pages_predial",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "predial.jsx"
     },
     {
@@ -8953,7 +8983,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "ref_map"
     },
     {
@@ -8965,7 +8995,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "lookupref()"
     },
     {
@@ -8977,7 +9007,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "getpredialurl()"
     },
     {
@@ -8989,7 +9019,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_predial",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "predial()"
     },
     {
@@ -9000,7 +9030,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartment.jsx"
     },
     {
@@ -9011,7 +9041,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_serviceicons",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "serviceicons"
     },
     {
@@ -9023,7 +9053,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_publicapartment",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartment()"
     },
     {
@@ -9035,7 +9065,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_info",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "info()"
     },
     {
@@ -9046,7 +9076,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartments",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartments.jsx"
     },
     {
@@ -9058,7 +9088,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartments_publicapartments",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "publicapartments()"
     },
     {
@@ -9091,7 +9121,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_settings",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "settings.jsx"
     },
@@ -9103,8 +9133,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_settings_settings",
-      "community": 35,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "getBase",
       "norm_label": "settings()"
     },
     {
@@ -9114,7 +9144,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_shareapartments",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "shareapartments.jsx"
     },
@@ -9126,7 +9156,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_shareapartments_shareapartments",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "shareapartments()"
     },
@@ -9138,7 +9168,7 @@
       "_origin": "ast",
       "id": "src_pages_tenants",
       "community": 18,
-      "community_name": "react",
+      "community_name": "App.jsx",
       "norm_label": "tenants.jsx"
     },
     {
@@ -9160,8 +9190,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_utilities",
-      "community": 18,
-      "community_name": "react",
+      "community": 122,
+      "community_name": "Utilities.jsx",
       "norm_label": "utilities.jsx"
     },
     {
@@ -9171,8 +9201,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_pages_utilities_services",
-      "community": 18,
-      "community_name": "react",
+      "community": 122,
+      "community_name": "Utilities.jsx",
       "norm_label": "services"
     },
     {
@@ -9183,8 +9213,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_timeago",
-      "community": 18,
-      "community_name": "react",
+      "community": 122,
+      "community_name": "Utilities.jsx",
       "norm_label": "timeago()"
     },
     {
@@ -9195,8 +9225,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_waterbilllabel",
-      "community": 18,
-      "community_name": "react",
+      "community": 122,
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbilllabel()"
     },
     {
@@ -9207,8 +9237,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillclass",
-      "community": 18,
-      "community_name": "react",
+      "community": 122,
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbillclass()"
     },
     {
@@ -9219,8 +9249,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillmeta",
-      "community": 18,
-      "community_name": "react",
+      "community": 122,
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbillmeta()"
     },
     {
@@ -9230,8 +9260,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_pages_utilities_portals",
-      "community": 18,
-      "community_name": "react",
+      "community": 122,
+      "community_name": "Utilities.jsx",
       "norm_label": "portals"
     },
     {
@@ -9242,8 +9272,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_qrviewcontent",
-      "community": 18,
-      "community_name": "react",
+      "community": 122,
+      "community_name": "Utilities.jsx",
       "norm_label": "qrviewcontent()"
     },
     {
@@ -9254,8 +9284,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_utilities",
-      "community": 18,
-      "community_name": "react",
+      "community": 122,
+      "community_name": "Utilities.jsx",
       "norm_label": "utilities()"
     },
     {
@@ -9266,7 +9296,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappcontacts.jsx"
     },
     {
@@ -9278,7 +9308,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts_whatsappcontacts",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappcontacts()"
     },
     {
@@ -9289,7 +9319,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappinbox.jsx"
     },
     {
@@ -9301,7 +9331,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_cloudrequest",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "cloudrequest()"
     },
     {
@@ -9313,7 +9343,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_formatdate",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "formatdate()"
     },
     {
@@ -9325,7 +9355,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediaicon",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "mediaicon()"
     },
     {
@@ -9337,7 +9367,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediamessage",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "mediamessage()"
     },
     {
@@ -9349,7 +9379,7 @@
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_whatsappinbox",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "whatsappinbox()"
     },
     {
@@ -9407,8 +9437,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_isadmin",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 64,
+      "community_name": "auth.js",
       "norm_label": "isadmin()"
     },
     {
@@ -9443,8 +9473,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_requireauth",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 64,
+      "community_name": "auth.js",
       "norm_label": "requireauth()"
     },
     {
@@ -9490,8 +9520,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_calendar",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "calendar.js"
     },
     {
@@ -9502,8 +9532,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_uidforapt",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "uidforapt()"
     },
     {
@@ -9514,8 +9544,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_getstoreduids",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "getstoreduids()"
     },
     {
@@ -9526,8 +9556,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_savestoreduids",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "savestoreduids()"
     },
     {
@@ -9538,8 +9568,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_fmtdate",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -9550,8 +9580,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_nextduedate",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "nextduedate()"
     },
     {
@@ -9562,8 +9592,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateics",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "generateics()"
     },
     {
@@ -9574,8 +9604,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_downloadics",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "downloadics()"
     },
     {
@@ -9586,8 +9616,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_addcalendarreminder",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "addcalendarreminder()"
     },
     {
@@ -9598,8 +9628,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateallpaymentreminders",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "generateallpaymentreminders()"
     },
     {
@@ -9610,8 +9640,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_syncandgeneratereminders",
-      "community": 122,
-      "community_name": "calendar.js",
+      "community": 98,
+      "community_name": "Settings.jsx",
       "norm_label": "syncandgeneratereminders()"
     },
     {
@@ -9622,7 +9652,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "callscreening.js"
     },
     {
@@ -9634,7 +9664,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_nativeandroid",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "nativeandroid()"
     },
     {
@@ -9646,7 +9676,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_callerscreeningplugin",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "callerscreeningplugin()"
     },
     {
@@ -9658,7 +9688,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_normalizedphone",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "normalizedphone()"
     },
     {
@@ -9670,7 +9700,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_getcallscreeningstatus",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "getcallscreeningstatus()"
     },
     {
@@ -9682,7 +9712,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_syncauthorizedcallernumbers",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "syncauthorizedcallernumbers()"
     },
     {
@@ -9694,7 +9724,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_requestcallscreeningrole",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "requestcallscreeningrole()"
     },
     {
@@ -9706,7 +9736,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_setcallscreeningenabled",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "setcallscreeningenabled()"
     },
     {
@@ -9718,7 +9748,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_setallowcallsfromcontacts",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "setallowcallsfromcontacts()"
     },
     {
@@ -9730,7 +9760,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_requestprotectedsmsrole",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "requestprotectedsmsrole()"
     },
     {
@@ -9742,7 +9772,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_getauthorizedsmsmessages",
       "community": 98,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "getauthorizedsmsmessages()"
     },
     {
@@ -9978,7 +10008,7 @@
       "_origin": "ast",
       "id": "src_utils_config",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "config.js"
     },
     {
@@ -9990,7 +10020,7 @@
       "_origin": "ast",
       "id": "src_utils_config_storedtoken",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "storedtoken()"
     },
     {
@@ -10001,7 +10031,7 @@
       "_origin": "ast",
       "id": "src_utils_config_auth_token",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "auth_token"
     },
     {
@@ -10025,7 +10055,7 @@
       "_origin": "ast",
       "id": "src_utils_config_iscapacitor",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "iscapacitor()"
     },
     {
@@ -10037,7 +10067,7 @@
       "_origin": "ast",
       "id": "src_utils_config_getbase",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "getbase()"
     },
     {
@@ -10049,7 +10079,7 @@
       "_origin": "ast",
       "id": "src_utils_config_getrawbase",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "getrawbase()"
     },
     {
@@ -10061,7 +10091,7 @@
       "_origin": "ast",
       "id": "src_utils_config_photourl",
       "community": 15,
-      "community_name": "App.jsx",
+      "community_name": "getBase",
       "norm_label": "photourl()"
     },
     {
@@ -10315,7 +10345,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "generate-apartments-html.js"
     },
@@ -10327,7 +10357,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_fetchasbase64",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "fetchasbase64()"
     },
@@ -10339,7 +10369,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_buildapartmentshtml",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "buildapartmentshtml()"
     },
@@ -10553,7 +10583,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_localnotifications",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "localnotifications.js"
     },
@@ -10565,7 +10595,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_getnotifconfig",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "getnotifconfig()"
     },
@@ -10577,7 +10607,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_savenotifconfig",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "savenotifconfig()"
     },
@@ -10589,7 +10619,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_schedulepaymentreminders",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "schedulepaymentreminders()"
     },
@@ -10601,7 +10631,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_cancelallnotifications",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "cancelallnotifications()"
     },
@@ -10612,7 +10642,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "marketplacebookmarklet.js"
     },
@@ -10624,7 +10654,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet_generatebookmarkletcode",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "generatebookmarkletcode()"
     },
@@ -10636,7 +10666,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet_generatemarketplacejson",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "generatemarketplacejson()"
     },
@@ -10648,7 +10678,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet_generatemarketplacejsonstring",
-      "community": 35,
+      "community": 98,
       "community_name": "Settings.jsx",
       "norm_label": "generatemarketplacejsonstring()"
     },
@@ -10659,8 +10689,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_notifications",
-      "community": 35,
-      "community_name": "Settings.jsx",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "notifications.js"
     },
     {
@@ -10671,7 +10701,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_requestnotificationpermission",
-      "community": 15,
+      "community": 18,
       "community_name": "App.jsx",
       "norm_label": "requestnotificationpermission()"
     },
@@ -10683,8 +10713,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notify",
-      "community": 35,
-      "community_name": "Settings.jsx",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "notify()"
     },
     {
@@ -10695,8 +10725,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notifypaymentreminder",
-      "community": 35,
-      "community_name": "Settings.jsx",
+      "community": 18,
+      "community_name": "App.jsx",
       "norm_label": "notifypaymentreminder()"
     },
     {
@@ -10741,8 +10771,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_sync",
-      "community": 35,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "getBase",
       "norm_label": "sync.js"
     },
     {
@@ -10753,8 +10783,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_sync_isserveravailable",
-      "community": 35,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "getBase",
       "norm_label": "isserveravailable()"
     },
     {
@@ -10971,8 +11001,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "readme_arquitectura_del_sistema",
-      "community": 46,
-      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
+      "community": 126,
+      "community_name": "Arquitectura del Sistema",
       "norm_label": "arquitectura del sistema"
     },
     {
@@ -10982,8 +11012,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "readme_flujo_de_datos",
-      "community": 46,
-      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
+      "community": 126,
+      "community_name": "Arquitectura del Sistema",
       "norm_label": "flujo de datos"
     },
     {
@@ -10993,8 +11023,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "readme_viewport_y_layout_adaptativo",
-      "community": 46,
-      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
+      "community": 126,
+      "community_name": "Arquitectura del Sistema",
       "norm_label": "viewport y layout adaptativo"
     },
     {
@@ -11631,8 +11661,8 @@
       "source_location": "L900",
       "_origin": "ast",
       "id": "readme_notificaciones",
-      "community": 123,
-      "community_name": "Notificaciones",
+      "community": 46,
+      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
       "norm_label": "notificaciones"
     },
     {
@@ -11642,8 +11672,8 @@
       "source_location": "L902",
       "_origin": "ast",
       "id": "readme_notificaciones_del_navegador_src_utils_notifications_js",
-      "community": 123,
-      "community_name": "Notificaciones",
+      "community": 46,
+      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
       "norm_label": "notificaciones del navegador (`src/utils/notifications.js`)"
     },
     {
@@ -11653,8 +11683,8 @@
       "source_location": "L912",
       "_origin": "ast",
       "id": "readme_notificaciones_locales_apk_src_utils_localnotifications_js",
-      "community": 123,
-      "community_name": "Notificaciones",
+      "community": 46,
+      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
       "norm_label": "notificaciones locales apk (`src/utils/localnotifications.js`)"
     },
     {
@@ -12840,8 +12870,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 32,
-      "community_name": "scripts",
+      "community": 123,
+      "community_name": "pre-whatsapp-bot/package.json",
       "norm_label": "pre-whatsapp-bot/package.json",
       "id": "backups_pre_whatsapp_bot_package"
     },
@@ -12851,8 +12881,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L2",
       "_origin": "ast",
-      "community": 32,
-      "community_name": "scripts",
+      "community": 123,
+      "community_name": "pre-whatsapp-bot/package.json",
       "norm_label": "name",
       "id": "backups_pre_whatsapp_bot_package_name"
     },
@@ -12862,8 +12892,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 32,
-      "community_name": "scripts",
+      "community": 123,
+      "community_name": "pre-whatsapp-bot/package.json",
       "norm_label": "private",
       "id": "backups_pre_whatsapp_bot_package_private"
     },
@@ -12873,8 +12903,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 32,
-      "community_name": "scripts",
+      "community": 123,
+      "community_name": "pre-whatsapp-bot/package.json",
       "norm_label": "version",
       "id": "backups_pre_whatsapp_bot_package_version"
     },
@@ -12884,8 +12914,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 32,
-      "community_name": "scripts",
+      "community": 123,
+      "community_name": "pre-whatsapp-bot/package.json",
       "norm_label": "type",
       "id": "backups_pre_whatsapp_bot_package_type"
     },
@@ -12895,8 +12925,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 32,
-      "community_name": "scripts",
+      "community": 123,
+      "community_name": "pre-whatsapp-bot/package.json",
       "norm_label": "engines",
       "id": "backups_pre_whatsapp_bot_package_engines"
     },
@@ -12906,8 +12936,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 32,
-      "community_name": "scripts",
+      "community": 123,
+      "community_name": "pre-whatsapp-bot/package.json",
       "norm_label": "node",
       "id": "backups_pre_whatsapp_bot_package_engines_node"
     },
@@ -12917,7 +12947,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "scripts",
       "id": "backups_pre_whatsapp_bot_package_scripts"
@@ -12928,7 +12958,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "start",
       "id": "backups_pre_whatsapp_bot_package_scripts_start"
@@ -12939,7 +12969,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "dev",
       "id": "backups_pre_whatsapp_bot_package_scripts_dev"
@@ -12950,7 +12980,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "build",
       "id": "backups_pre_whatsapp_bot_package_scripts_build"
@@ -12961,7 +12991,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "build-apk",
       "id": "backups_pre_whatsapp_bot_package_scripts_build_apk"
@@ -12972,7 +13002,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "lint",
       "id": "backups_pre_whatsapp_bot_package_scripts_lint"
@@ -12983,7 +13013,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "preview",
       "id": "backups_pre_whatsapp_bot_package_scripts_preview"
@@ -12994,7 +13024,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "network",
       "id": "backups_pre_whatsapp_bot_package_scripts_network"
@@ -13005,7 +13035,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "backup",
       "id": "backups_pre_whatsapp_bot_package_scripts_backup"
@@ -13016,7 +13046,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 32,
+      "community": 35,
       "community_name": "scripts",
       "norm_label": "sync-seed",
       "id": "backups_pre_whatsapp_bot_package_scripts_sync_seed"
@@ -13038,8 +13068,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 128,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_mlkit_barcode_scanning"
     },
@@ -13049,8 +13079,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 128,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_mlkit_barcode_scanning"
     },
@@ -13104,8 +13134,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 127,
+      "community_name": "@capacitor/core",
       "norm_label": "@capacitor/core",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_core"
     },
@@ -13115,8 +13145,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 127,
+      "community_name": "@capacitor/core",
       "norm_label": "@capacitor/core",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_core"
     },
@@ -13170,8 +13200,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 138,
+      "community_name": "@tailwindcss/vite",
       "norm_label": "@tailwindcss/vite",
       "id": "backups_pre_whatsapp_bot_package_dependencies_tailwindcss_vite"
     },
@@ -13181,8 +13211,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 138,
+      "community_name": "@tailwindcss/vite",
       "norm_label": "@tailwindcss/vite",
       "id": "backups_pre_whatsapp_bot_package_json_tailwindcss_vite"
     },
@@ -13192,8 +13222,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 129,
+      "community_name": "cors",
       "norm_label": "cors",
       "id": "backups_pre_whatsapp_bot_package_dependencies_cors"
     },
@@ -13203,8 +13233,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 129,
+      "community_name": "cors",
       "norm_label": "cors",
       "id": "backups_pre_whatsapp_bot_package_json_cors"
     },
@@ -13214,8 +13244,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 130,
+      "community_name": "dexie",
       "norm_label": "dexie",
       "id": "backups_pre_whatsapp_bot_package_dependencies_dexie"
     },
@@ -13225,8 +13255,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 130,
+      "community_name": "dexie",
       "norm_label": "dexie",
       "id": "backups_pre_whatsapp_bot_package_json_dexie"
     },
@@ -13258,8 +13288,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L31",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 131,
+      "community_name": "jspdf",
       "norm_label": "jspdf",
       "id": "backups_pre_whatsapp_bot_package_dependencies_jspdf"
     },
@@ -13269,8 +13299,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L31",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 131,
+      "community_name": "jspdf",
       "norm_label": "jspdf",
       "id": "backups_pre_whatsapp_bot_package_json_jspdf"
     },
@@ -13280,8 +13310,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 132,
+      "community_name": "jsqr",
       "norm_label": "jsqr",
       "id": "backups_pre_whatsapp_bot_package_dependencies_jsqr"
     },
@@ -13291,8 +13321,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 132,
+      "community_name": "jsqr",
       "norm_label": "jsqr",
       "id": "backups_pre_whatsapp_bot_package_json_jsqr"
     },
@@ -13302,8 +13332,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 133,
+      "community_name": "lucide-react",
       "norm_label": "lucide-react",
       "id": "backups_pre_whatsapp_bot_package_dependencies_lucide_react"
     },
@@ -13313,8 +13343,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 133,
+      "community_name": "lucide-react",
       "norm_label": "lucide-react",
       "id": "backups_pre_whatsapp_bot_package_json_lucide_react"
     },
@@ -13324,8 +13354,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 134,
+      "community_name": "multer",
       "norm_label": "multer",
       "id": "backups_pre_whatsapp_bot_package_dependencies_multer"
     },
@@ -13335,8 +13365,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 134,
+      "community_name": "multer",
       "norm_label": "multer",
       "id": "backups_pre_whatsapp_bot_package_json_multer"
     },
@@ -13412,8 +13442,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 135,
+      "community_name": "react-dom",
       "norm_label": "react-dom",
       "id": "backups_pre_whatsapp_bot_package_dependencies_react_dom"
     },
@@ -13423,8 +13453,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 135,
+      "community_name": "react-dom",
       "norm_label": "react-dom",
       "id": "backups_pre_whatsapp_bot_package_json_react_dom"
     },
@@ -13434,8 +13464,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L39",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 136,
+      "community_name": "react-router-dom",
       "norm_label": "react-router-dom",
       "id": "backups_pre_whatsapp_bot_package_dependencies_react_router_dom"
     },
@@ -13445,8 +13475,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L39",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 136,
+      "community_name": "react-router-dom",
       "norm_label": "react-router-dom",
       "id": "backups_pre_whatsapp_bot_package_json_react_router_dom"
     },
@@ -13456,8 +13486,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L40",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 137,
+      "community_name": "recharts",
       "norm_label": "recharts",
       "id": "backups_pre_whatsapp_bot_package_dependencies_recharts"
     },
@@ -13467,8 +13497,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L40",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 137,
+      "community_name": "recharts",
       "norm_label": "recharts",
       "id": "backups_pre_whatsapp_bot_package_json_recharts"
     },
@@ -13501,7 +13531,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "devdependencies",
       "id": "backups_pre_whatsapp_bot_package_devdependencies"
     },
@@ -13512,7 +13542,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@types/react",
       "id": "backups_pre_whatsapp_bot_package_devdependencies_types_react"
     },
@@ -13523,7 +13553,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@types/react",
       "id": "backups_pre_whatsapp_bot_package_json_types_react"
     },
@@ -13534,7 +13564,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@types/react-dom",
       "id": "backups_pre_whatsapp_bot_package_devdependencies_types_react_dom"
     },
@@ -13545,7 +13575,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@types/react-dom",
       "id": "backups_pre_whatsapp_bot_package_json_types_react_dom"
     },
@@ -13556,7 +13586,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@vitejs/plugin-react",
       "id": "backups_pre_whatsapp_bot_package_devdependencies_vitejs_plugin_react"
     },
@@ -13567,7 +13597,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "@vitejs/plugin-react",
       "id": "backups_pre_whatsapp_bot_package_json_vitejs_plugin_react"
     },
@@ -13578,7 +13608,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "oxlint",
       "id": "backups_pre_whatsapp_bot_package_devdependencies_oxlint"
     },
@@ -13589,7 +13619,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "oxlint",
       "id": "backups_pre_whatsapp_bot_package_json_oxlint"
     },
@@ -13600,7 +13630,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "vite",
       "id": "backups_pre_whatsapp_bot_package_devdependencies_vite"
     },
@@ -13611,7 +13641,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "community": 32,
-      "community_name": "scripts",
+      "community_name": "devDependencies",
       "norm_label": "vite",
       "id": "backups_pre_whatsapp_bot_package_json_vite"
     },
@@ -20199,6 +20229,17 @@
       "_origin": "ast",
       "source": "server",
       "target": "db_initial_data",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker-start-render.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "docker_start_render",
+      "target": "docker_start_render_sh__entry",
       "confidence_score": 1.0
     },
     {
@@ -39799,5 +39840,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "d5c793d35ec2957fedb8b44a7bde7e6e37aaaa38"
+  "built_at_commit": "5a6b9d50a115b2e1eca3b819e22c071b8740a13f"
 }

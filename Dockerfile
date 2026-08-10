@@ -25,11 +25,12 @@ RUN npm ci --include=dev
 COPY . .
 RUN npm run build
 
-RUN mkdir -p /tmp/laujim-chrome-profiles \
+RUN chmod 755 /app/docker-start-render.sh \
+  && mkdir -p /tmp/laujim-chrome-profiles \
   && chown -R node:node /app /tmp/laujim-chrome-profiles
 USER node
 
 EXPOSE 10000
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["xvfb-run", "--server-num=99", "--server-args=-screen 0 1366x768x24 -ac", "npm", "start"]
+CMD ["/app/docker-start-render.sh"]

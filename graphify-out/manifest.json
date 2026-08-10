@@ -818,5 +818,10 @@
     "mtime": 1786348080.0885584,
     "ast_hash": "18aab32d0f7213f42c41ea5ce1830c79",
     "semantic_hash": ""
+  },
+  "docker-start-render.sh": {
+    "mtime": 1786372499.7467842,
+    "ast_hash": "aacbaf6836a16e4ed3af24ad26dfdabb",
+    "semantic_hash": ""
   }
 }
