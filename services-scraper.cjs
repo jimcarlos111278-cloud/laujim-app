@@ -2,10 +2,13 @@
  * services-scraper.cjs
  *
  * Automated checker for public service bills (Air-e, Triple A, Gases del Caribe).
- * Uses puppeteer-core + @sparticuz/chromium (lightweight Chromium for Render).
+ * Uses puppeteer-core with either a full Chrome/Chromium runtime (Render Docker)
+ * or @sparticuz/chromium as the serverless fallback.
  */
 
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const puppeteer = require('puppeteer-core');
 const cron = require('node-cron');
 
@@ -19,12 +22,56 @@ const CHROME_CANDIDATES = [
   'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
 ];
+const LINUX_CHROME_CANDIDATES = [
+  process.env.CHROME_EXECUTABLE_PATH,
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/usr/bin/google-chrome',
+  '/usr/bin/google-chrome-stable',
+];
+const FULL_CHROME_ENABLED = /^(1|true|yes|full)$/i.test(
+  process.env.RENDER_FULL_CHROME || process.env.BROWSER_MODE || '',
+);
+const BROWSER_RUNTIME_LABEL = FULL_CHROME_ENABLED ? 'full Chrome + Xvfb' : 'sparticuz Chromium';
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function resolveChromium() {
+function firstExistingPath(candidates) {
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || null;
+}
+
+async function resolveChromium(profileName = 'services') {
+  if (FULL_CHROME_ENABLED) {
+    if (!IS_WINDOWS && !process.env.DISPLAY) {
+      throw new Error('Full Chrome requires DISPLAY. Start Render with Xvfb (for example, xvfb-run).');
+    }
+
+    const executablePath = firstExistingPath(IS_WINDOWS ? CHROME_CANDIDATES : LINUX_CHROME_CANDIDATES);
+    if (!executablePath) {
+      throw new Error('Full Chrome is enabled but no Chromium/Chrome executable was found in the runtime image.');
+    }
+
+    const profileRoot = process.env.RENDER_CHROME_PROFILE_DIR || path.join(os.tmpdir(), 'laujim-chrome-profiles');
+    const userDataDir = path.join(profileRoot, profileName);
+    fs.mkdirSync(userDataDir, { recursive: true });
+
+    return {
+      executablePath,
+      userDataDir,
+      headless: false,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--window-size=1366,768',
+        '--no-first-run',
+        '--no-default-browser-check',
+      ],
+    };
+  }
+
   // Local dev on Windows: use an installed browser (sparticuz's binary is Linux-only).
   if (IS_WINDOWS) {
     for (const p of CHROME_CANDIDATES) {
@@ -104,13 +151,15 @@ function getAirECredentials() {
 
 // ── BROWSER LAUNCH (Render-compatible) ─────────────────────────────────────
 
-async function launchBrowser() {
-  const cfg = await resolveChromium();
+async function launchBrowser(profileName = 'services') {
+  const cfg = await resolveChromium(profileName);
   return await puppeteer.launch({
     args: cfg.args,
     defaultViewport: { width: 1366, height: 768 },
     executablePath: cfg.executablePath,
     headless: cfg.headless,
+    protocolTimeout: 60000,
+    ...(cfg.userDataDir ? { userDataDir: cfg.userDataDir } : {}),
   });
 }
 
@@ -137,6 +186,7 @@ async function waitAndType(page, selector, text) {
 const WATER_TIMEOUT_MS = 180000;
 const WATER_MAX_ATTEMPTS = 2;
 const WATER_CAPTCHA_MAX_ATTEMPTS = 4;
+const WATER_TURNSTILE_WAIT_MS = 20000;
 const WATER_POLL_INTERVAL_MS = 2000;
 const WATER_RESPONSE_TIMEOUT_MS = 5000;
 const WATER_CLOSE_TIMEOUT_MS = 10000;
@@ -365,6 +415,21 @@ async function submitWaterQueryIfReady(page, state) {
   }
 }
 
+async function waitForWaterTurnstile(page, deadline) {
+  let state = await inspectWaterPage(page);
+  const invisibleTurnstilePending = state && state.hasTurnstile &&
+    !state.turnstileToken && !state.hasBillingResult && !state.hasCaptchaText;
+  if (!invisibleTurnstilePending) return state;
+
+  const turnstileDeadline = Math.min(deadline, Date.now() + WATER_TURNSTILE_WAIT_MS);
+  while (Date.now() < turnstileDeadline) {
+    await sleep(Math.min(WATER_POLL_INTERVAL_MS, turnstileDeadline - Date.now()));
+    state = await inspectWaterPage(page);
+    if (!state || state.turnstileToken || state.hasBillingResult || state.hasCaptchaText) return state;
+  }
+  return state;
+}
+
 async function closeWaterResource(resource) {
   if (!resource || typeof resource.close !== 'function') return;
   let closed = false;
@@ -425,7 +490,7 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
   try {
     lastWaterScrapeError = null;
     console.log(`[TRIPLE A] Consultando ${targets.length} enlace(s) QR de agua...`);
-    browser = await browserFactory();
+    browser = await browserFactory('triple-a');
     let nextIndex = 0;
     const worker = async () => {
       while (true) {
@@ -476,7 +541,7 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
           });
           if (response && response.status() >= 400) throw new Error(`El portal respondió HTTP ${response.status()}`);
           await sleep(2200);
-          const pageState = await inspectWaterPage(page);
+          const pageState = await waitForWaterTurnstile(page, deadline);
           const query = await submitWaterQueryIfReady(page, pageState);
           if (query.captcha) {
             const parsed = { status: 'captcha', deudaCOP: null, error: query.error };
@@ -574,9 +639,9 @@ async function scrapeAirE() {
 
   try {
     lastScrapeError = null;
-    console.log('[AIR-E] Launching browser (sparticuz chromium)...');
+    console.log(`[AIR-E] Launching browser (${BROWSER_RUNTIME_LABEL})...`);
     const creds = getAirECredentials();
-    browser = await launchBrowser();
+    browser = await launchBrowser('air-e');
     const page = await browser.newPage();
     await page.setViewport({ width: 1366, height: 768 });
 

@@ -108,6 +108,54 @@ async function testReloadAfterTimeout() {
   assert.equal(results[0].status, 'paid');
 }
 
+async function testInvisibleTurnstileWaitsForToken() {
+  let evaluateCalls = 0;
+  const fakeBrowser = {
+    async newPage() {
+      return {
+        setDefaultNavigationTimeout() {},
+        async goto() { return { status: () => 200 }; },
+        async evaluate() {
+          evaluateCalls += 1;
+          if (evaluateCalls === 1) {
+            return {
+              hasTurnstile: true,
+              turnstileToken: '',
+              hasCaptchaText: false,
+              hasBillingResult: false,
+              hasSubmit: true,
+              submitDisabled: true,
+              hasPaymentNumber: true,
+            };
+          }
+          if (evaluateCalls === 2) {
+            return {
+              hasTurnstile: true,
+              turnstileToken: 'automatic-token',
+              hasCaptchaText: false,
+              hasBillingResult: false,
+              hasSubmit: true,
+              submitDisabled: false,
+              hasPaymentNumber: true,
+            };
+          }
+          if (evaluateCalls === 3) return true;
+          return 'Factura pagada. Saldo: $0. Periodo 2026-08';
+        },
+        async close() {},
+      };
+    },
+    async close() {},
+  };
+
+  const results = await scraper.scrapeWaterBills(
+    [{ id: 1, name: '101', waterPaymentUrl: 'https://example.test/101' }],
+    async () => fakeBrowser,
+  );
+  assert.equal(results[0].status, 'paid', 'an invisible Turnstile token should be accepted when it appears automatically');
+  assert.ok(evaluateCalls >= 4, 'the scraper should poll for the automatic Turnstile token');
+}
+
 async function testTurnstileRetriesFourTimes() {
   let pagesCreated = 0;
   const fakeBrowser = {
@@ -144,6 +192,7 @@ async function testTurnstileRetriesFourTimes() {
 testParserStates();
 testBrowserAndPersistence()
   .then(testReloadAfterTimeout)
+  .then(testInvisibleTurnstileWaitsForToken)
   .then(testTurnstileRetriesFourTimes)
   .then(() => console.log('Water scraper checks passed.'))
   .catch(error => { console.error(error); process.exitCode = 1; });
