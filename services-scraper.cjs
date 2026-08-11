@@ -49,6 +49,17 @@ const BROWSERLESS_PROFILES = String(process.env.BROWSERLESS_PROFILES || 'air-e,w
 const BROWSERLESS_SOLVE_CAPTCHAS = /^(1|true|yes)$/i.test(
   process.env.BROWSERLESS_SOLVE_CAPTCHAS || (Object.values(BROWSERLESS_TOKENS).some(Boolean) ? 'true' : ''),
 );
+// Browserless documents the stealth route as the most reliable way to avoid
+// triggering bot challenges before a portal form is rendered. Use it by
+// default whenever a remote token is configured; an explicit false keeps the
+// old base route available for diagnostics.
+const BROWSERLESS_STEALTH = !/^(0|false|no)$/i.test(
+  process.env.BROWSERLESS_STEALTH || (Object.values(BROWSERLESS_TOKENS).some(Boolean) ? 'true' : ''),
+);
+const BROWSERLESS_TIMEOUT_MS = Math.max(
+  60000,
+  Number(process.env.BROWSERLESS_TIMEOUT_MS || 300000) || 300000,
+);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -130,7 +141,7 @@ const GAS_PORTAL_URLS = {
 const GAS_API_BASE = 'https://pagosweb-production-api.innovacion-gascaribe.com';
 const PORTAL_AUTH_TIMEOUT_MS = 180000;
 const PORTAL_DATA_TIMEOUT_MS = 90000;
-const PORTAL_LOGIN_ATTEMPTS = 2;
+const PORTAL_LOGIN_ATTEMPTS = 3;
 const PORTAL_AUTH_SETTLE_TIMEOUT_MS = 60000;
 const PORTAL_DATA_ATTEMPTS = 2;
 const PORTAL_DATA_RETRY_DELAY_MS = 2500;
@@ -248,12 +259,13 @@ function browserlessEndpointFor(profileName) {
       // uses its own account instead of silently sharing the old key.
       endpoint.searchParams.set('token', profileToken);
     }
-    if (/^(1|true|yes)$/i.test(process.env.BROWSERLESS_STEALTH || '')) {
-      endpoint.searchParams.set('stealth', 'true');
+    if (BROWSERLESS_STEALTH && !/\/stealth\/?$/i.test(endpoint.pathname)) {
+      endpoint.pathname = `${endpoint.pathname.replace(/\/+$/, '')}/stealth`;
     }
     if (BROWSERLESS_SOLVE_CAPTCHAS) {
       endpoint.searchParams.set('solveCaptchas', 'true');
     }
+    endpoint.searchParams.set('timeout', String(BROWSERLESS_TIMEOUT_MS));
     const proxy = String(process.env.BROWSERLESS_PROXY || '').trim();
     if (proxy && !endpoint.searchParams.has('proxy')) endpoint.searchParams.set('proxy', proxy);
     const proxyCountry = String(process.env.BROWSERLESS_PROXY_COUNTRY || '').trim();
@@ -293,6 +305,65 @@ async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHRO
 }
 
 // ── HELPERS ─────────────────────────────────────────────────────────────────
+
+// Browserless exposes CAPTCHA lifecycle events through CDP. Automatic
+// solving is enabled in the connection URL, but explicitly triggering the
+// solver when an event arrives also covers forms that submit immediately
+// after a Turnstile iframe is injected.
+async function attachBrowserlessCaptchaSolver(page, provider) {
+  if (!BROWSERLESS_SOLVE_CAPTCHAS || typeof page?.createCDPSession !== 'function') return null;
+  const cdp = await page.createCDPSession().catch(() => null);
+  if (!cdp || typeof cdp.on !== 'function') return null;
+  const state = { status: '', solved: false };
+  const onFound = event => {
+    state.status = String(event?.status || 'found');
+    console.log(`[${provider}] Browserless CAPTCHA: ${state.status}.`);
+    if (state.status !== 'found' || typeof cdp.send !== 'function') return;
+    cdp.send('Browserless.solveCaptcha')
+      .then(result => {
+        state.solved = Boolean(result?.solved);
+        console.log(`[${provider}] Browserless CAPTCHA solver: ${state.solved ? 'resuelto' : 'sin confirmacion'}.`);
+      })
+      .catch(error => console.warn(`[${provider}] Browserless CAPTCHA solver error: ${error.message}`));
+  };
+  const onSolved = () => {
+    state.status = 'solved';
+    state.solved = true;
+    console.log(`[${provider}] Browserless CAPTCHA: resuelto automaticamente.`);
+  };
+  cdp.on('Browserless.captchaFound', onFound);
+  cdp.on('Browserless.captchaAutoSolved', onSolved);
+  return {
+    state,
+    async waitForActivity(timeout = 5000) {
+      const deadline = Date.now() + timeout;
+      while (!state.status && Date.now() < deadline) await sleep(250);
+      return state;
+    },
+    async close() {
+      cdp.off?.('Browserless.captchaFound', onFound);
+      cdp.off?.('Browserless.captchaAutoSolved', onSolved);
+      await cdp.detach?.().catch?.(() => {});
+    },
+  };
+}
+
+async function gotoPortalPage(page, url, options = {}, provider = 'Portal') {
+  const { attempts = 2, retryDelayMs = 2000, ...gotoOptions } = options || {};
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await page.goto(url, gotoOptions);
+    } catch (error) {
+      lastError = error;
+      const retryable = /frame detached|target closed|execution context was destroyed|navigation timeout/i.test(String(error?.message || error));
+      if (!retryable || attempt >= attempts) throw error;
+      console.warn(`[${provider}] Navegacion inestable; reintentando (${attempt + 1}/${attempts}): ${error.message}`);
+      await sleep(retryDelayMs);
+    }
+  }
+  throw lastError || new Error(`No se pudo abrir ${url}.`);
+}
 
 async function waitAndType(page, selector, text, timeout = 45000) {
   try {
@@ -745,7 +816,11 @@ async function portalLoginDiagnostic(page) {
     })).catch(() => ({ unavailable: true }));
     frames.push({ url: safeUrl, ...state });
   }
-  return { frames };
+  return {
+    pageUrl: await page?.url?.().catch?.(() => '') || '',
+    pageTitle: await page?.title?.().catch?.(() => '') || '',
+    frames,
+  };
 }
 
 async function waitForPortalAuthCompletion(page, passwordSelectors, timeout = PORTAL_AUTH_SETTLE_TIMEOUT_MS) {
@@ -765,6 +840,7 @@ async function loginPortalPage(page, {
   passwordSelectors,
   submitSelectors,
   turnstileError,
+  captchaSolver = null,
   loginAttempts = PORTAL_LOGIN_ATTEMPTS,
 }) {
   const initialPasswordHandle = await visibleHandle(page, passwordSelectors, 15000);
@@ -776,8 +852,8 @@ async function loginPortalPage(page, {
 
   for (let attempt = 1; attempt <= loginAttempts; attempt += 1) {
     try {
-      await typeVisibleField(page, emailSelectors, username, 10000);
-      await typeVisibleField(page, passwordSelectors, password, 10000);
+      await typeVisibleField(page, emailSelectors, username, 30000);
+      await typeVisibleField(page, passwordSelectors, password, 30000);
     } catch (error) {
       const diagnostic = await portalLoginDiagnostic(page);
       console.error(`[${provider}] DiagnÃ³stico de formulario (intento ${attempt}):`, JSON.stringify(diagnostic));
@@ -790,6 +866,7 @@ async function loginPortalPage(page, {
       }
       throw error;
     }
+    if (captchaSolver) await captchaSolver.waitForActivity(5000);
     const challenge = await waitForPortalTurnstile(page, 30000);
     if (challenge?.hasTurnstile && !challenge.turnstileToken) {
       throw new Error(turnstileError);
@@ -808,6 +885,17 @@ async function loginPortalPage(page, {
       waitForPortalAuthCompletion(page, passwordSelectors, PORTAL_AUTH_SETTLE_TIMEOUT_MS),
     ]);
     if (completed || !(await visibleSelectorExists(page, passwordSelectors))) return true;
+
+    const failedLoginDiagnostic = await portalLoginDiagnostic(page);
+    console.warn(`[${provider}] Login no confirmado (intento ${attempt}):`, JSON.stringify(failedLoginDiagnostic));
+    const sameFormHandle = attempt < loginAttempts
+      ? await visibleHandle(page, emailSelectors, 1500)
+      : null;
+    if (sameFormHandle) {
+      try { await sameFormHandle.dispose(); } catch {}
+      console.warn(`[${provider}] El formulario sigue disponible; se reintenta sin recargar.`);
+      continue;
+    }
 
     if (attempt < loginAttempts) {
       console.warn(`[${provider}] El portal no confirmó el inicio de sesión; recargando (intento ${attempt + 1}/${loginAttempts}).`);
@@ -1004,6 +1092,7 @@ async function scrapeTripleAAccount() {
   let page;
   let subscriptionPayload = null;
   let captureSubscriptions;
+  let captchaSolver;
   try {
     lastWaterScrapeError = null;
     const credentials = getPortalCredentials('triple-a');
@@ -1012,6 +1101,7 @@ async function scrapeTripleAAccount() {
     browser = await launchBrowser('water');
     page = await browser.newPage();
     page.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
+    captchaSolver = await attachBrowserlessCaptchaSolver(page, 'Triple A');
 
     captureSubscriptions = response => {
       if (!/\/bff\/subscriptions(?:[/?#]|$)/i.test(response.url())) return;
@@ -1024,10 +1114,10 @@ async function scrapeTripleAAccount() {
     };
     page.on?.('response', captureSubscriptions);
 
-    await page.goto(TRIPLE_A_URLS.login, {
+    await gotoPortalPage(page, TRIPLE_A_URLS.login, {
       waitUntil: 'domcontentloaded',
       timeout: PORTAL_AUTH_TIMEOUT_MS,
-    });
+    }, 'Triple A');
 
     const tripleEmailSelectors = [
       'input[name="email" i]',
@@ -1053,6 +1143,7 @@ async function scrapeTripleAAccount() {
       emailSelectors: tripleEmailSelectors,
       passwordSelectors: triplePasswordSelectors,
       submitSelectors: ['button[type="submit"]', 'button'],
+      captchaSolver,
       turnstileError: 'Triple A mantiene Turnstile visible después de esperar a Browserless.',
     });
     if (!authenticatedByLogin) {
@@ -1064,10 +1155,10 @@ async function scrapeTripleAAccount() {
       throw new Error('Triple A no completó el inicio de sesión.');
     }
 
-    await page.goto(TRIPLE_A_URLS.policies, {
+    await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
       waitUntil: 'domcontentloaded',
       timeout: PORTAL_AUTH_TIMEOUT_MS,
-    });
+    }, 'Triple A');
     const dataDeadline = Date.now() + PORTAL_DATA_TIMEOUT_MS;
     while (!subscriptionPayload && Date.now() < dataDeadline) await sleep(1000);
 
@@ -1132,6 +1223,7 @@ async function scrapeTripleAAccount() {
     return [];
   } finally {
     if (page && captureSubscriptions) page.off?.('response', captureSubscriptions);
+    if (captchaSolver) await captchaSolver.close();
     if (browser) await closeWaterBrowser(browser);
   }
 }
@@ -1493,6 +1585,7 @@ async function scrapeGasAccount() {
   let authHeader = null;
   let captureContracts;
   let captureAuth;
+  let captchaSolver;
   try {
     lastGasScrapeError = null;
     const credentials = getPortalCredentials('gascaribe');
@@ -1501,6 +1594,7 @@ async function scrapeGasAccount() {
     browser = await launchBrowser('gas');
     page = await browser.newPage();
     page.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
+    captchaSolver = await attachBrowserlessCaptchaSolver(page, 'Gases del Caribe');
 
     captureAuth = request => {
       const requestUrl = request.url();
@@ -1527,10 +1621,10 @@ async function scrapeGasAccount() {
     page.on?.('request', captureAuth);
     page.on?.('response', captureContracts);
 
-    await page.goto(GAS_PORTAL_URLS.login, {
+    await gotoPortalPage(page, GAS_PORTAL_URLS.login, {
       waitUntil: 'domcontentloaded',
       timeout: PORTAL_AUTH_TIMEOUT_MS,
-    });
+    }, 'Gases del Caribe');
 
     const emailSelectors = [
       'input[type="email"]',
@@ -1552,6 +1646,7 @@ async function scrapeGasAccount() {
     ];
     const authenticatedByLogin = await loginPortalPage(page, {
       provider: 'Gases del Caribe',
+      captchaSolver,
       username: credentials.username,
       password: credentials.password,
       emailSelectors,
@@ -1567,10 +1662,10 @@ async function scrapeGasAccount() {
       throw new Error('Gases del Caribe no completó el inicio de sesión.');
     }
 
-    await page.goto(GAS_PORTAL_URLS.contracts, {
+    await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
       waitUntil: 'domcontentloaded',
       timeout: PORTAL_AUTH_TIMEOUT_MS,
-    });
+    }, 'Gases del Caribe');
     const dataDeadline = Date.now() + PORTAL_DATA_TIMEOUT_MS;
     while (!contractsPayload && Date.now() < dataDeadline) await sleep(1000);
     for (let attempt = 1; !contractsPayload && attempt <= PORTAL_DATA_ATTEMPTS; attempt += 1) {
@@ -1663,6 +1758,7 @@ async function scrapeGasAccount() {
   } finally {
     if (page && captureAuth) page.off?.('request', captureAuth);
     if (page && captureContracts) page.off?.('response', captureContracts);
+    if (captchaSolver) await captchaSolver.close();
     if (browser) await closeWaterBrowser(browser);
   }
 }
@@ -1746,6 +1842,7 @@ function aggregateAirEInvoices(items) {
 async function scrapeAirE() {
   const results = [];
   let browser;
+  let captchaSolver;
 
   try {
     lastScrapeError = null;
@@ -1762,10 +1859,11 @@ async function scrapeAirE() {
     browser = await launchBrowser('air-e', useFullChrome);
     const page = await browser.newPage();
     await page.setViewport({ width: 1366, height: 768 });
+    captchaSolver = await attachBrowserlessCaptchaSolver(page, 'Air-e');
 
     // 1. Login (no OTP on the portal anymore).
     console.log('[AIR-E] Navigating to login...');
-    await page.goto(AIR_E_URLS.login, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await gotoPortalPage(page, AIR_E_URLS.login, { waitUntil: 'domcontentloaded', timeout: 60000 }, 'Air-e');
 
     const edgeBlocked = await page.evaluate(() => {
       const text = (document.body?.innerText || '').replace(/\s+/g, ' ');
@@ -1833,7 +1931,7 @@ async function scrapeAirE() {
     // response listener is attached. Reload the module whenever the contract
     // was not captured during login so the request is observable.
     if (!cdContrato) {
-      await page.goto(AIR_E_URLS.listado, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await gotoPortalPage(page, AIR_E_URLS.listado, { waitUntil: 'domcontentloaded', timeout: 30000 }, 'Air-e');
       await sleep(2500);
       console.log('[AIR-E] Current URL after loading invoices:', page.url());
     }
@@ -1910,6 +2008,7 @@ async function scrapeAirE() {
     lastScrapeError = e.message;
     console.error('[AIR-E] SCRAPER ERROR:', e.message);
   } finally {
+    if (captchaSolver) await captchaSolver.close();
     if (browser) {
       await browser.close().catch(() => {});
       console.log('[AIR-E] Browser closed.');
