@@ -244,7 +244,7 @@ function getPortalCredentials(provider) {
 
 // ── BROWSER LAUNCH (Render-compatible) ─────────────────────────────────────
 
-function browserlessEndpointFor(profileName) {
+function browserlessEndpointFor(profileName, { stealth = BROWSERLESS_STEALTH } = {}) {
   const profile = String(profileName || '').trim().toLowerCase();
   if (!BROWSERLESS_PROFILES.includes(profile)) return null;
   const profileToken = BROWSERLESS_TOKENS[profile] || '';
@@ -257,7 +257,7 @@ function browserlessEndpointFor(profileName) {
       // uses its own account instead of silently sharing the old key.
       endpoint.searchParams.set('token', profileToken);
     }
-    if (BROWSERLESS_STEALTH && !/\/stealth\/?$/i.test(endpoint.pathname)) {
+    if (stealth && !/\/stealth\/?$/i.test(endpoint.pathname)) {
       endpoint.pathname = `${endpoint.pathname.replace(/\/+$/, '')}/stealth`;
     }
     if (BROWSERLESS_SOLVE_CAPTCHAS) {
@@ -278,18 +278,36 @@ function browserlessEndpointFor(profileName) {
   }
 }
 
+// Some Browserless accounts accept the standard BaaS route but reject the
+// stealth route. Keep the same provider token and try the standard route
+// before falling back to the local browser; the scraper remains portal-only.
+function browserlessEndpointCandidates(profileName) {
+  const candidates = [];
+  const preferred = browserlessEndpointFor(profileName, { stealth: BROWSERLESS_STEALTH });
+  if (preferred) candidates.push(preferred);
+  if (BROWSERLESS_STEALTH) {
+    const standard = browserlessEndpointFor(profileName, { stealth: false });
+    if (standard && !candidates.includes(standard)) candidates.push(standard);
+  }
+  return candidates;
+}
+
 async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHROME_ENABLED) {
-  const browserlessEndpoint = browserlessEndpointFor(profileName);
-  if (browserlessEndpoint) {
-    console.log(`[BROWSERLESS] Connecting remote browser for ${profileName}...`);
+  const browserlessEndpoints = browserlessEndpointCandidates(profileName);
+  for (let index = 0; index < browserlessEndpoints.length; index += 1) {
+    const browserlessEndpoint = browserlessEndpoints[index];
+    const route = /\/stealth(?:\/?$)/i.test(browserlessEndpoint) ? 'stealth' : 'standard';
+    console.log(`[BROWSERLESS] Connecting remote browser for ${profileName} (${route})...`);
     try {
       return await puppeteer.connect({
         browserWSEndpoint: browserlessEndpoint,
         protocolTimeout: 60000,
       });
     } catch (error) {
-      // Keep the local Render browser as a safe fallback if Browserless is unavailable.
-      console.error('[BROWSERLESS] Connection failed; falling back to local browser:', error.message);
+      const next = index + 1 < browserlessEndpoints.length
+        ? 'trying the standard route'
+        : 'falling back to local browser';
+      console.error(`[BROWSERLESS] ${profileName} ${route} connection failed; ${next}:`, error.message);
     }
   }
 
@@ -1039,7 +1057,7 @@ async function fetchPortalJson(page, url, headers = {}) {
   if (typeof page?.evaluate !== 'function') return { status: 0, body: '', error: 'Página sin contexto JavaScript.' };
   return page.evaluate(async ({ requestUrl, requestHeaders }) => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
+    const timer = setTimeout(() => controller.abort(), 90000);
     try {
       const response = await fetch(requestUrl, {
         credentials: 'include',
@@ -1138,9 +1156,14 @@ async function submitPortalLoginForm(page, {
   emailSelectors,
   passwordSelectors,
   authState,
+  prepareSubmit = null,
 }) {
   await typeVisibleField(page, emailSelectors, username, 30000);
   await typeVisibleField(page, passwordSelectors, password, 30000);
+
+  if (typeof prepareSubmit === 'function') {
+    await prepareSubmit();
+  }
 
   let submitted = false;
   for (let attempt = 1; attempt <= 2 && !submitted; attempt += 1) {
@@ -1165,9 +1188,11 @@ async function submitPortalLoginForm(page, {
   }
   if (!submitted) throw new Error(`No se pudo enviar el formulario de inicio de sesiÃ³n de ${provider}.`);
 
+  console.log(`[${provider}] Formulario enviado; esperando la respuesta del portal.`);
   const deadline = Date.now() + PORTAL_AUTH_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (authState?.done) {
+      console.log(`[${provider}] Respuesta de login recibida: HTTP ${authState.status || 'sin respuesta'}; ok=${Boolean(authState.ok)}.`);
       if (!authState.ok) throw new Error(`${provider} rechazÃ³ el inicio de sesiÃ³n (HTTP ${authState.status || 'sin respuesta'}).`);
       return true;
     }
@@ -1364,10 +1389,12 @@ async function scrapeTripleAAccount() {
           const payload = parsePortalResponseBody(body) || {};
           authState.done = true;
           authState.ok = response.status() >= 200 && response.status() < 300 && !payload.error;
+          console.log(`[TRIPLE A] Respuesta de login: HTTP ${response.status()}; ok=${Boolean(authState.ok)}; campos=${Object.keys(payload).slice(0, 8).join(',') || 'sin cuerpo'}.`);
         })
         .catch(() => {
           authState.done = true;
           authState.ok = response.status() >= 200 && response.status() < 300;
+          console.log(`[TRIPLE A] Respuesta de login: HTTP ${response.status()}; ok=${Boolean(authState.ok)}; cuerpo no legible.`);
         });
     };
     page.on?.('response', captureSubscriptions);
@@ -1405,6 +1432,12 @@ async function scrapeTripleAAccount() {
         emailSelectors: tripleEmailSelectors,
         passwordSelectors: triplePasswordSelectors,
         authState,
+        prepareSubmit: async () => {
+          const executed = await executePortalTurnstile(page);
+          if (executed) console.log('[TRIPLE A] Turnstile preparado antes de enviar el formulario.');
+          if (captchaSolver) await captchaSolver.waitForSolved(60000);
+          await sleep(500);
+        },
       });
     } catch (error) {
       loginError = error;
@@ -1413,6 +1446,22 @@ async function scrapeTripleAAccount() {
     if (!authenticatedByLogin) {
       console.log('[TRIPLE A] La sesión ya estaba autenticada; se reutiliza el portal global.');
     }
+
+    // Let NextAuth mount the protected route once so its BFF request runs in
+    // the authenticated browser context. A direct fetch from a stale login
+    // document can otherwise remain pending indefinitely.
+    if (authenticatedByLogin) {
+      await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
+        waitUntil: 'domcontentloaded',
+        timeout: PORTAL_AUTH_TIMEOUT_MS,
+      }, 'Triple A').catch(error => {
+        console.warn('[TRIPLE A] No se pudo abrir la vista protegida; se continuará con la consulta autenticada:', error.message);
+      });
+      await sleep(1500);
+    }
+    let tripleWorkUrl = 'desconocida';
+    try { tripleWorkUrl = page.url(); } catch {}
+    console.log(`[TRIPLE A] Sesión lista; URL de trabajo: ${tripleWorkUrl}.`);
 
     // If the React page did not issue the request again (for example after a
     // cached navigation), ask the same authenticated browser session directly.
@@ -1425,7 +1474,7 @@ async function scrapeTripleAAccount() {
       if (direct.status >= 200 && direct.status < 300) {
         subscriptionPayload = parsePortalResponseBody(direct.body);
       } else if (attempt === PORTAL_DATA_ATTEMPTS) {
-        throw new Error(`Triple A rechazó la consulta global (HTTP ${direct.status || 'sin respuesta'}).`);
+        throw new Error(`Triple A rechazó la consulta global (HTTP ${direct.status || 'sin respuesta'}${direct.error ? `: ${direct.error}` : ''}).`);
       }
     }
 
@@ -1886,10 +1935,12 @@ async function scrapeGasAccount() {
           if (!authHeader && token) authHeader = /^Bearer\s/i.test(String(token)) ? String(token) : `Bearer ${token}`;
           authState.done = true;
           authState.ok = response.status() >= 200 && response.status() < 300;
+          console.log(`[GAS] Respuesta de login: HTTP ${response.status()}; ok=${Boolean(authState.ok)}; token=${Boolean(token)}; campos=${Object.keys(payload).slice(0, 8).join(',') || 'sin cuerpo'}.`);
         })
         .catch(() => {
           authState.done = true;
           authState.ok = response.status() >= 200 && response.status() < 300;
+          console.log(`[GAS] Respuesta de login: HTTP ${response.status()}; ok=${Boolean(authState.ok)}; cuerpo no legible.`);
         });
     };
     page.on?.('request', captureAuth);
@@ -1929,6 +1980,12 @@ async function scrapeGasAccount() {
         emailSelectors,
         passwordSelectors,
         authState,
+        prepareSubmit: async () => {
+          const executed = await executePortalTurnstile(page);
+          if (executed) console.log('[GAS] Turnstile preparado antes de enviar el formulario.');
+          if (captchaSolver) await captchaSolver.waitForSolved(60000);
+          await sleep(500);
+        },
       });
       authenticatedByLogin = true;
     } catch (error) {
@@ -1939,6 +1996,19 @@ async function scrapeGasAccount() {
       console.log('[GAS] Se probarÃ¡ la sesiÃ³n existente del portal global.');
     }
 
+    if (authenticatedByLogin) {
+      await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
+        waitUntil: 'domcontentloaded',
+        timeout: PORTAL_AUTH_TIMEOUT_MS,
+      }, 'Gases del Caribe').catch(error => {
+        console.warn('[GAS] No se pudo abrir la vista protegida; se continuará con la consulta autenticada:', error.message);
+      });
+      await sleep(1500);
+    }
+    let gasWorkUrl = 'desconocida';
+    try { gasWorkUrl = page.url(); } catch {}
+    console.log(`[GAS] Sesión lista; URL de trabajo: ${gasWorkUrl}.`);
+
     for (let attempt = 1; !contractsPayload && attempt <= PORTAL_DATA_ATTEMPTS; attempt += 1) {
       if (attempt > 1) {
         console.warn(`[GAS] La lista global no llegó; reintentando la consulta autenticada (${attempt}/${PORTAL_DATA_ATTEMPTS}).`);
@@ -1948,7 +2018,7 @@ async function scrapeGasAccount() {
       if (direct.status >= 200 && direct.status < 300) {
         contractsPayload = parsePortalResponseBody(direct.body);
       } else if (attempt === PORTAL_DATA_ATTEMPTS) {
-        throw new Error(`Gases del Caribe rechazó la consulta global (HTTP ${direct.status || 'sin respuesta'}).`);
+        throw new Error(`Gases del Caribe rechazó la consulta global (HTTP ${direct.status || 'sin respuesta'}${direct.error ? `: ${direct.error}` : ''}).`);
       }
     }
     if (!contractsPayload) throw new Error('No se recibió la lista global de contratos de Gases del Caribe.');
