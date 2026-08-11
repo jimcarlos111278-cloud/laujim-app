@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786479390.698592,
-    "ast_hash": "90ec537e1879c314992118037af35a97",
+    "mtime": 1786491519.4682832,
+    "ast_hash": "ce87a40549430090d3d8b27c7eea0778",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,13 +235,13 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786487689.7473273,
-    "ast_hash": "74c28d2e88f9a49055cf375321538085",
+    "mtime": 1786491278.1696854,
+    "ast_hash": "5b0c81a0b22cf29496b86eb7994c6a24",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1786434305.5660748,
-    "ast_hash": "4a1607307146edbf2a6239418b3bd8b0",
+    "mtime": 1786489389.2266858,
+    "ast_hash": "b534f65c815e0c9853ed25f18c2539b5",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "src/pages/ScraperWorker.jsx": {
-    "mtime": 1786434351.0918615,
-    "ast_hash": "55103b1ccb40a77e05475456c59ca3b6",
+    "mtime": 1786491037.6580544,
+    "ast_hash": "a20f0ff87eb9f810a5d30204ed3b6813",
     "semantic_hash": ""
   },
   "src/utils/portableWorker.js": {
@@ -855,18 +855,18 @@
     "semantic_hash": ""
   },
   "docs/scraper-worker.md": {
-    "mtime": 1786434053.7473774,
-    "ast_hash": "d83438da0f373d38d1b2e3fd14c888c6",
+    "mtime": 1786489303.694396,
+    "ast_hash": "aab95ddfb04c684281da0b686e142030",
     "semantic_hash": ""
   },
   "portable-worker.config.example.json": {
-    "mtime": 1786434305.569073,
-    "ast_hash": "daaed24f66c8c4a6371ca5f258b689aa",
+    "mtime": 1786489299.1921856,
+    "ast_hash": "49a8ab849014186e6ea1988c518aecbf",
     "semantic_hash": ""
   },
   "scripts/portable-worker.cjs": {
-    "mtime": 1786488327.6890686,
-    "ast_hash": "6ea547968edbf5894c96c632c08737e8",
+    "mtime": 1786489313.0196645,
+    "ast_hash": "7ca0e0e71161e94527cdc53160578265",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarm.java": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1786488063.462613,
-    "ast_hash": "418b2a922d656724914db321827d0b0d",
+    "mtime": 1786491556.7058382,
+    "ast_hash": "671fb21b7749da0c0caff1db817685ad",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1786485060.0916686,
-    "ast_hash": "9579ff5a241465a8a10fd1c6b5c2b1d2",
+    "mtime": 1786491290.891905,
+    "ast_hash": "a63fd3f132eb884c1eef2a39f863ee4e",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
@@ -927,6 +927,11 @@
   ".tmp/gradle-off-onedrive.init.gradle": {
     "mtime": 1786479105.296134,
     "ast_hash": "3320cbb5302c454e73db756e46d9fc51",
+    "semantic_hash": ""
+  },
+  ".tmp/run-pc-worker-aiven.cjs": {
+    "mtime": 1786489299.199128,
+    "ast_hash": "01a90b8bae286f6d31b63f26fc63870a",
     "semantic_hash": ""
   }
 }

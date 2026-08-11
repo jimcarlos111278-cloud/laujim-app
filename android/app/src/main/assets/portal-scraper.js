@@ -198,8 +198,8 @@
     }, extra || {});
   }
 
-  function needsLogin(provider, message) {
-    return { state: 'needs_login', provider, message: message || 'Inicia sesión en el portal desde la app Laujim.', results: [] };
+  function needsLogin(provider, message, extra) {
+    return Object.assign({ state: 'needs_login', provider, message: message || 'Inicia sesión en el portal desde la app Laujim.', results: [] }, extra || {});
   }
 
   async function json(url, options) {
@@ -221,6 +221,8 @@
       let payload = null;
       try { payload = JSON.parse(body); } catch {}
       return { status: response.status, ok: response.ok, payload, body };
+    } catch (error) {
+      return { status: 0, ok: false, payload: null, body: '', error: String(error && error.message || error || 'Failed to fetch') };
     } finally { clearTimeout(timer); }
   }
 
@@ -292,7 +294,7 @@
 
   async function runAirE(config) {
     const state = loginState();
-    if (state.password) return needsLogin('air-e', 'Air-e solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.');
+    if (state.password) return needsLogin('air-e', 'Air-e solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
     await wait(1800);
     let contract = null;
     for (let attempt = 0; attempt < 12 && !contract; attempt += 1) {
@@ -301,9 +303,9 @@
       contract = found && found[1];
       if (!contract) await wait(1000);
     }
-    if (!contract) return { state: 'error', provider: 'air-e', message: 'Air-e no mostró el contrato autenticado. Abre Listado de Facturas en el portal y vuelve a ejecutar.', results: [] };
+    if (!contract) return { state: 'error', provider: 'air-e', stage: 'discover_contract', message: 'Air-e no mostró el contrato autenticado. Abre Listado de Facturas en el portal y vuelve a ejecutar.', results: [] };
     const response = await json(`${AIR_E_ENDPOINT}?cd_Contrato=${encodeURIComponent(contract)}&pageIndex=1&pageSize=1000`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    if (!response.ok) return needsLogin('air-e', `Air-e rechazó la consulta (HTTP ${response.status}). Inicia sesión nuevamente desde la app.`);
+    if (!response.ok) return needsLogin('air-e', `Air-e rechazó la consulta (HTTP ${response.status}). Inicia sesión nuevamente desde la app.`, { stage: 'fetch_invoices', httpStatus: response.status, fetchError: response.error || null });
     const items = Array.isArray(response.payload && response.payload.items) ? response.payload.items : list(response.payload, ['items', 'documents', 'invoices']);
     const grouped = {};
     items.forEach(invoice => {
@@ -327,21 +329,21 @@
         deudaText: debt > 0 ? `Deuda Total del NIC: $${debt.toLocaleString('es-CO')}.` : 'Deuda Total del NIC: $0 (al día).',
       });
     });
-    return { state: 'ok', provider: 'air-e', results };
+    return { state: 'ok', provider: 'air-e', stage: 'fetch_invoices', records: results.length, results };
   }
 
   async function runWater(config) {
     const state = loginState();
-    if (state.password) return needsLogin('water', 'Triple A solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.');
-    if (state.challenge) return { state: 'needs_verification', provider: 'water', message: 'Triple A muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+    if (state.password) return needsLogin('water', 'Triple A solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
+    if (state.challenge) return { state: 'needs_verification', provider: 'water', stage: 'turnstile', message: 'Triple A muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
     const token = storedToken();
     const response = await jsonWithAuthFallback('/bff/subscriptions', token, {
       headers: { 'X-Requested-With': 'XMLHttpRequest', 'x-app-version': 'unknown' },
     });
-    if (response.status === 401 || response.status === 403) return needsLogin('water', `Triple A rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`);
-    if (!response.ok) return { state: 'error', provider: 'water', message: `Triple A rechazó la consulta (HTTP ${response.status}).`, results: [] };
+    if (response.status === 401 || response.status === 403) return needsLogin('water', `Triple A rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`, { stage: 'fetch_subscriptions', httpStatus: response.status, fetchError: response.error || null });
+    if (!response.ok) return { state: 'error', provider: 'water', stage: 'fetch_subscriptions', httpStatus: response.status, fetchError: response.error || null, message: `Triple A rechazó la consulta (HTTP ${response.status}).`, results: [] };
     const subscriptions = list(response.payload, ['subscriptions', 'policies', 'items']);
-    if (!subscriptions.length) return { state: 'error', provider: 'water', message: 'Triple A aceptó la sesión, pero no devolvió pólizas o suscripciones.', results: [] };
+    if (!subscriptions.length) return { state: 'error', provider: 'water', stage: 'parse_subscriptions', message: 'Triple A aceptó la sesión, pero no devolvió pólizas o suscripciones.', results: [] };
     const results = [];
     const used = new Set();
     for (const subscription of subscriptions) {
@@ -361,22 +363,22 @@
         periodo: field(subscription, ['invoiceDate', 'billingPeriod', 'periodo']) || null,
       }));
     }
-    if (!results.length) return { state: 'error', provider: 'water', message: 'Triple A devolvió pólizas, pero ninguna coincidió con los apartamentos configurados.', results: [] };
+    if (!results.length) return { state: 'error', provider: 'water', stage: 'match_subscriptions', subscriptionCount: subscriptions.length, message: 'Triple A devolvió pólizas, pero ninguna coincidió con los apartamentos configurados.', results: [] };
     return { state: 'ok', provider: 'water', results };
   }
 
   async function runGas(config) {
     const state = loginState();
-    if (state.password) return needsLogin('gas', 'Gases del Caribe solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.');
-    if (state.challenge) return { state: 'needs_verification', provider: 'gas', message: 'Gases del Caribe muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+    if (state.password) return needsLogin('gas', 'Gases del Caribe solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
+    if (state.challenge) return { state: 'needs_verification', provider: 'gas', stage: 'turnstile', message: 'Gases del Caribe muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
     const token = storedToken();
     const response = await jsonWithAuthFallback(`${GAS_API}/contracts`, token, { credentials: 'omit' });
-    if (response.status === 401 || response.status === 403) return needsLogin('gas', `Gases del Caribe rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`);
-    if (!response.ok) return { state: 'error', provider: 'gas', message: `Gases del Caribe rechazó la consulta (HTTP ${response.status}).`, results: [] };
+    if (response.status === 401 || response.status === 403) return needsLogin('gas', `Gases del Caribe rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`, { stage: 'fetch_contracts', httpStatus: response.status, fetchError: response.error || null });
+    if (!response.ok) return { state: 'error', provider: 'gas', stage: 'fetch_contracts', httpStatus: response.status, fetchError: response.error || null, message: `Gases del Caribe rechazó la consulta (HTTP ${response.status}).`, results: [] };
     const payloadToken = field(response.payload, ['token', 'appToken', 'accessToken', 'authorization']);
     const auth = String(payloadToken || token || '').trim();
     const contracts = list(response.payload, ['contracts', 'items']);
-    if (!contracts.length) return { state: 'error', provider: 'gas', message: 'Gases del Caribe aceptó la sesión, pero no devolvió contratos.', results: [] };
+    if (!contracts.length) return { state: 'error', provider: 'gas', stage: 'parse_contracts', contractCount: 0, message: 'Gases del Caribe aceptó la sesión, pero no devolvió contratos.', results: [] };
     const results = [];
     const used = new Set();
     let invoiceFailures = 0;
@@ -384,6 +386,8 @@
     let unmatchedContracts = 0;
     let missingContractIds = 0;
     const invoiceFailureDetails = [];
+    let firstInvoiceStatus = 0;
+    let firstInvoiceError = '';
     for (const contract of contracts) {
       const target = bestTargetMatch(config.apartments || [], contract, 'gas', used);
       if (!target) {
@@ -401,6 +405,8 @@
       const invoiceResponse = await jsonWithAuthFallback(`${GAS_API}/invoices/${encodeURIComponent(contractId)}`, auth, { credentials: 'omit' });
       if (!invoiceResponse.ok) {
         invoiceFailures += 1;
+        if (!firstInvoiceStatus) firstInvoiceStatus = Number(invoiceResponse.status) || 0;
+        if (!firstInvoiceError) firstInvoiceError = invoiceResponse.error || '';
         const detail = responseDetail(invoiceResponse);
         invoiceFailureDetails.push(`${invoiceResponse.status ? `HTTP ${invoiceResponse.status}` : 'sin respuesta del endpoint de facturas'}${detail ? `: ${detail}` : ''}`);
         continue;
@@ -428,12 +434,23 @@
         periodo: field(unpaid[0] && unpaid[0].invoice, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
       }));
     }
+    const gasDiagnostics = {
+      stage: invoiceFailures || missingContractIds ? 'fetch_invoices' : (unmatchedContracts ? 'match_contracts' : 'parse_invoices'),
+      contractCount: contracts.length,
+      matchedContracts,
+      unmatchedContracts,
+      invoiceFailures,
+      missingContractIds,
+      httpStatus: firstInvoiceStatus || undefined,
+      fetchError: firstInvoiceError || undefined,
+    };
     if (!results.length && matchedContracts > 0 && (invoiceFailures > 0 || missingContractIds > 0)) {
       const details = [...new Set(invoiceFailureDetails)].slice(0, 3).join(', ');
       const suffix = details ? ` Detalle: ${details}.` : '';
       return {
         state: 'error',
         provider: 'gas',
+        ...gasDiagnostics,
         message: `Gases del Caribe asociÃ³ ${matchedContracts} contrato(s) con apartamentos, pero no pudo consultar sus facturas (${invoiceFailures} fallo(s), ${missingContractIds} sin identificador).${suffix}`,
         results: [],
       };
@@ -442,23 +459,25 @@
       return {
         state: 'error',
         provider: 'gas',
+        ...gasDiagnostics,
         message: `Gases del Caribe devolviÃ³ ${contracts.length} contrato(s), pero ninguno coincidiÃ³ con los apartamentos configurados (${unmatchedContracts} sin asociar).`,
         results: [],
       };
     }
     if (!results.length) {
       const reason = invoiceFailures ? ` No se pudieron consultar ${invoiceFailures} contrato(s).` : '';
-      return { state: 'error', provider: 'gas', message: `Gases del Caribe devolvió contratos, pero ninguno coincidió con los apartamentos configurados.${reason}`, results: [] };
+      return { state: 'error', provider: 'gas', ...gasDiagnostics, message: `Gases del Caribe devolvió contratos, pero ninguno coincidió con los apartamentos configurados.${reason}`, results: [] };
     }
     if (invoiceFailures || missingContractIds || unmatchedContracts) {
       return {
         state: 'warning',
         provider: 'gas',
+        ...gasDiagnostics,
         message: `Gases del Caribe obtuvo ${results.length} apartamento(s); quedaron ${invoiceFailures + missingContractIds} contrato(s) sin factura y ${unmatchedContracts} sin asociar.`,
         results,
       };
     }
-    return { state: 'ok', provider: 'gas', results };
+    return { state: 'ok', provider: 'gas', ...gasDiagnostics, results };
   }
 
   async function run(provider, config) {
@@ -468,7 +487,7 @@
       if (provider === 'gas') return await runGas(config || {});
       return { state: 'error', provider, message: 'Servicio no soportado.', results: [] };
     } catch (error) {
-      return { state: 'error', provider, message: error && error.message || 'Error local del portal.', results: [] };
+      return { state: 'error', provider, stage: 'runner', fetchError: error && error.message || null, message: error && error.message || 'Error local del portal.', results: [] };
     }
   }
 

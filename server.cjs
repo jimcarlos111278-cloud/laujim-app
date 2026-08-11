@@ -2318,7 +2318,7 @@ function loadData() {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
-  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs', 'utilityRecords', 'scraperWorkers'].forEach(k => { if (!db[k]) db[k] = []; });
+  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs', 'utilityRecords', 'scraperWorkers', 'scraperLogs'].forEach(k => { if (!db[k]) db[k] = []; });
   if (pruneAuthSessions()) console.log('Expired authentication sessions removed');
   recalcNextId();
 }
@@ -2663,6 +2663,87 @@ function ensurePortableWorkerCollection() {
   return db.scraperWorkers;
 }
 
+// A worker run has two different failure surfaces: the local WebView can
+// reach a portal but fail inside its authenticated fetch, and Render can
+// receive fewer records than the phone produced. Keep both views in one
+// durable, redacted stream so the administrator can tell those cases apart.
+const SCRAPER_LOG_LIMIT = 600;
+
+function ensureScraperLogCollection() {
+  if (!Array.isArray(db.scraperLogs)) db.scraperLogs = [];
+  return db.scraperLogs;
+}
+
+function safeScraperLogIso(value, fallback = new Date().toISOString()) {
+  const date = new Date(value || '');
+  return Number.isNaN(date.getTime()) ? fallback : date.toISOString();
+}
+
+function sanitizeScraperLogDetails(details) {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return null;
+  const result = {};
+  const blocked = /token|password|secret|cookie|authorization|credential|session|jwt|body|payload|raw.?invoice|invoice(data|payload|body|token)/i;
+  Object.entries(details).slice(0, 16).forEach(([rawKey, rawValue]) => {
+    const key = String(rawKey || '').trim().slice(0, 60);
+    if (!key || blocked.test(key)) return;
+    if (rawValue === null || typeof rawValue === 'boolean' || typeof rawValue === 'number') {
+      result[key] = rawValue;
+      return;
+    }
+    if (typeof rawValue === 'string') result[key] = rawValue.replace(/\s+/g, ' ').trim().slice(0, 240);
+    else if (Array.isArray(rawValue)) result[key] = rawValue.slice(0, 12).map(value => String(value).slice(0, 120));
+  });
+  return Object.keys(result).length ? result : null;
+}
+
+function appendScraperLog(input = {}, { persist = true } = {}) {
+  const logs = ensureScraperLogCollection();
+  const now = new Date().toISOString();
+  const level = ['debug', 'info', 'success', 'warn', 'error'].includes(String(input.level || '').toLowerCase())
+    ? String(input.level).toLowerCase()
+    : 'info';
+  const numberOrNull = value => {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? Math.round(number) : null;
+  };
+  const log = {
+    id: nextId.scraperLogs || 1,
+    source: input.source === 'app' ? 'app' : 'render',
+    deviceId: workerProtocol.normalizeWorkerId(input.deviceId) || null,
+    runId: String(input.runId || '').trim().slice(0, 120) || null,
+    provider: String(input.provider || '').trim().slice(0, 80) || null,
+    stage: String(input.stage || 'general').trim().slice(0, 80),
+    level,
+    message: String(input.message || '').replace(/\s+/g, ' ').trim().slice(0, 500) || 'Evento sin mensaje.',
+    httpStatus: numberOrNull(input.httpStatus),
+    durationMs: numberOrNull(input.durationMs),
+    records: numberOrNull(input.records),
+    received: numberOrNull(input.received),
+    accepted: numberOrNull(input.accepted),
+    persisted: numberOrNull(input.persisted),
+    rejected: numberOrNull(input.rejected),
+    eventAt: safeScraperLogIso(input.eventAt || input.createdAt, now),
+    createdAt: now,
+    details: sanitizeScraperLogDetails(input.details),
+  };
+  nextId.scraperLogs = log.id + 1;
+  logs.unshift(log);
+  if (logs.length > SCRAPER_LOG_LIMIT) logs.splice(SCRAPER_LOG_LIMIT);
+  if (persist) saveData();
+  return log;
+}
+
+function scraperLogSummary() {
+  const logs = ensureScraperLogCollection();
+  return {
+    total: logs.length,
+    render: logs.filter(log => log.source === 'render').length,
+    app: logs.filter(log => log.source === 'app').length,
+    latestRenderAt: logs.find(log => log.source === 'render')?.createdAt || null,
+    latestAppAt: logs.find(log => log.source === 'app')?.createdAt || null,
+  };
+}
+
 function savedPortableWorkerSchedule() {
   const setting = (db.settings || []).find(item => item.key === 'portable_worker_schedule');
   if (!setting) return null;
@@ -2796,7 +2877,15 @@ let portableWorkerRunState = {
 };
 
 app.post('/worker/v1/register', requirePortableWorker, (req, res) => {
+  const registerStartedAt = Date.now();
   const record = upsertPortableWorker(req.body || {});
+  appendScraperLog({
+    source: 'render', deviceId: record?.deviceId || req.body?.deviceId, stage: 'register',
+    level: record ? 'success' : 'error',
+    message: record ? `Worker ${record.deviceId} registrado en Render.` : 'Render rechazó el registro del worker.',
+    durationMs: Date.now() - registerStartedAt,
+    details: record ? { platform: record.platform, runtime: record.runtime, appVersion: record.appVersion, providers: record.providers } : null,
+  });
   if (!record) return res.status(400).json({ error: 'deviceId inválido' });
   res.json({ ok: true, protocolVersion: workerProtocol.WORKER_PROTOCOL_VERSION, deviceId: record.deviceId, replacedExisting: req.body?.replaceExisting === true });
 });
@@ -2804,6 +2893,10 @@ app.post('/worker/v1/register', requirePortableWorker, (req, res) => {
 app.post('/worker/v1/heartbeat', requirePortableWorker, (req, res) => {
   const body = { ...(req.body || {}), active: true };
   const record = upsertPortableWorker(body);
+  appendScraperLog({
+    source: 'render', deviceId: record?.deviceId || body.deviceId, stage: 'heartbeat', level: 'info',
+    message: record ? `Heartbeat recibido de ${record.deviceId}.` : 'Render rechazó el heartbeat del worker.',
+  });
   if (!record) return res.status(400).json({ error: 'deviceId inválido' });
   res.json({ ok: true, deviceId: record.deviceId, serverTime: new Date().toISOString() });
 });
@@ -2811,6 +2904,11 @@ app.post('/worker/v1/heartbeat', requirePortableWorker, (req, res) => {
 app.get('/worker/v1/config', requirePortableWorker, (req, res) => {
   const deviceId = workerProtocol.normalizeWorkerId(req.headers['x-worker-id'] || req.query.deviceId);
   const schedule = workerScheduleConfig();
+  appendScraperLog({
+    source: 'render', deviceId, stage: 'config', level: 'success',
+    message: `Configuración entregada a ${deviceId || 'worker sin identificar'}.`,
+    details: { apartments: portableWorkerApartments().length, providers: schedule.providers, executionMode: schedule.executionMode },
+  });
   res.json({
     ok: true,
     protocolVersion: workerProtocol.WORKER_PROTOCOL_VERSION,
@@ -2826,6 +2924,47 @@ app.get('/worker/v1/config', requirePortableWorker, (req, res) => {
     apartments: portableWorkerApartments(),
     serverTime: new Date().toISOString(),
   });
+});
+
+// The phone/PC sends only stage metadata here. Portal tokens, cookies, raw
+// responses and invoice payloads are intentionally excluded from persistence
+// by sanitizeScraperLogDetails().
+app.post('/worker/v1/events', requirePortableWorker, (req, res) => {
+  const body = req.body || {};
+  const deviceId = workerProtocol.normalizeWorkerId(body.deviceId || req.headers['x-worker-id']);
+  if (!deviceId) return res.status(400).json({ error: 'deviceId inválido' });
+  const rawEvents = Array.isArray(body.events) ? body.events.slice(0, 60) : [];
+  if (!rawEvents.length) return res.status(400).json({ error: 'No se recibieron eventos de diagnóstico.' });
+  let persisted = 0;
+  rawEvents.forEach(event => {
+    if (!event || typeof event !== 'object' || Array.isArray(event)) return;
+    appendScraperLog({
+      source: 'app',
+      deviceId,
+      runId: body.runId || event.runId,
+      provider: event.provider,
+      stage: event.stage,
+      level: event.level,
+      message: event.message,
+      httpStatus: event.httpStatus,
+      durationMs: event.durationMs,
+      records: event.records,
+      received: event.received,
+      accepted: event.accepted,
+      persisted: event.persisted,
+      rejected: event.rejected,
+      eventAt: event.eventAt || event.createdAt,
+      details: event.details,
+    }, { persist: false });
+    persisted += 1;
+  });
+  appendScraperLog({
+    source: 'render', deviceId, runId: body.runId, stage: 'events_received', level: 'info',
+    message: `Render recibió ${persisted} evento(s) de diagnóstico desde la app.`,
+    details: { eventCount: persisted },
+  }, { persist: false });
+  saveData();
+  res.json({ ok: true, deviceId, runId: String(body.runId || '').slice(0, 120) || null, received: rawEvents.length, persisted, serverTime: new Date().toISOString() });
 });
 
 // Android foreground workers use this endpoint as a lightweight trigger. The
@@ -2956,6 +3095,12 @@ app.post('/worker/v1/results', requirePortableWorker, (req, res) => {
   const inspection = workerProtocol.inspectWorkerResults(body, { deviceId });
   const records = inspection.records;
   if (!records.length) {
+    appendScraperLog({
+      source: 'render', deviceId, runId: body.runId, stage: 'results_inspection', level: 'error',
+      message: 'Render no aceptó ningún resultado enviado por el worker.',
+      received: inspection.received, accepted: 0, rejected: inspection.rejected.length,
+      details: { acceptedByProvider: inspection.acceptedByProvider, rejectedByProvider: inspection.rejectedByProvider, truncated: inspection.truncated },
+    });
     console.warn(`[WORKER RESULTS] ${deviceId}: received=${inspection.received}, accepted=0, rejected=${inspection.rejected.length}.`, inspection.rejected.slice(0, 12));
     return res.status(400).json({
       error: 'No se recibieron resultados válidos',
@@ -2985,6 +3130,13 @@ app.post('/worker/v1/results', requirePortableWorker, (req, res) => {
     `persisted=${persisted}, rejected=${inspection.rejected.length}, ` +
     `acceptedByProvider=${JSON.stringify(inspection.acceptedByProvider)}`,
   );
+  appendScraperLog({
+    source: 'render', deviceId, runId: body.runId, stage: 'results_receipt',
+    level: inspection.rejected.length ? 'warn' : 'success',
+    message: `Render procesó ${inspection.received} resultado(s): ${inspection.accepted} aceptados y ${persisted} persistidos.`,
+    received: inspection.received, accepted: inspection.accepted, persisted, rejected: inspection.rejected.length,
+    details: { acceptedByProvider: inspection.acceptedByProvider, rejectedByProvider: inspection.rejectedByProvider, truncated: inspection.truncated },
+  });
   res.json({
     ok: true,
     deviceId,
@@ -3004,6 +3156,25 @@ app.get('/api/scraper/workers', (req, res) => {
   res.json({
     enabled: portableWorkerEnabled(),
     workers: ensurePortableWorkerCollection().map(worker => ({ ...worker })),
+  });
+});
+
+app.get('/api/scraper/logs', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const requestedLimit = Number(req.query.limit || 160);
+  const limit = Number.isFinite(requestedLimit) ? Math.min(300, Math.max(1, Math.floor(requestedLimit))) : 160;
+  const source = ['render', 'app'].includes(String(req.query.source || '').toLowerCase())
+    ? String(req.query.source).toLowerCase()
+    : null;
+  const deviceId = workerProtocol.normalizeWorkerId(req.query.deviceId);
+  const logs = ensureScraperLogCollection()
+    .filter(log => (!source || log.source === source) && (!deviceId || log.deviceId === deviceId))
+    .slice(0, limit);
+  res.json({
+    ok: true,
+    serverTime: new Date().toISOString(),
+    summary: scraperLogSummary(),
+    logs,
   });
 });
 

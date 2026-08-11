@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Activity,
   AlertTriangle,
   CheckCircle2,
   Clock3,
@@ -50,6 +51,52 @@ function formatSchedule(schedule) {
   return `Cada ${schedule.intervalHours} h desde las ${schedule.startAt} (${schedule.timezone}) · ${providers} · ejecución ${mode}`;
 }
 
+function formatLogTime(value) {
+  const date = new Date(value || '');
+  if (Number.isNaN(date.getTime())) return 'sin hora';
+  return new Intl.DateTimeFormat('es-CO', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).format(date);
+}
+
+function logLevelClass(level) {
+  if (level === 'error') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+  if (level === 'warn') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+  if (level === 'success') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+  return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+}
+
+function LogList({ logs, emptyText }) {
+  if (!logs.length) return <p className="rounded-lg border border-dashed border-gray-300 p-4 text-xs text-gray-500 dark:border-gray-600 dark:text-gray-400">{emptyText}</p>;
+  return (
+    <div className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
+      {logs.map(log => (
+        <div key={log.id} className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs dark:border-gray-700 dark:bg-gray-900/60">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full px-2 py-0.5 font-semibold uppercase ${logLevelClass(log.level)}`}>{log.level || 'info'}</span>
+            <span className="font-semibold text-gray-700 dark:text-gray-200">{log.provider || 'Worker'}</span>
+            <span className="rounded bg-white px-1.5 py-0.5 text-gray-500 shadow-sm dark:bg-gray-800 dark:text-gray-400">{log.stage || 'general'}</span>
+            {log.httpStatus !== null && log.httpStatus !== undefined && <span className="font-mono text-gray-500">HTTP {log.httpStatus}</span>}
+            <span className="ml-auto text-gray-400">{formatLogTime(log.eventAt || log.createdAt)}</span>
+          </div>
+          <p className="mt-2 text-gray-700 dark:text-gray-300">{log.message}</p>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-gray-500 dark:text-gray-400">
+            {log.deviceId && <span>dispositivo: {log.deviceId}</span>}
+            {log.runId && <span>ejecución: {log.runId}</span>}
+            {log.records !== null && log.records !== undefined && <span>registros: {log.records}</span>}
+            {log.received !== null && log.received !== undefined && <span>recibidos: {log.received}</span>}
+            {log.accepted !== null && log.accepted !== undefined && <span>aceptados: {log.accepted}</span>}
+            {log.persisted !== null && log.persisted !== undefined && <span>persistidos: {log.persisted}</span>}
+            {log.rejected !== null && log.rejected !== undefined && <span>rechazados: {log.rejected}</span>}
+            {log.durationMs !== null && log.durationMs !== undefined && <span>duración: {log.durationMs} ms</span>}
+          </div>
+          {log.details && <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded bg-white p-2 text-[11px] text-gray-500 dark:bg-gray-800 dark:text-gray-400">{JSON.stringify(log.details)}</pre>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ScraperWorker() {
   const [settings, setSettings] = useState(() => getPortableWorkerSettings());
   const [config, setConfig] = useState(null);
@@ -62,6 +109,8 @@ export default function ScraperWorker() {
   const [scheduleMessage, setScheduleMessage] = useState(null);
   const [nativeStatus, setNativeStatus] = useState(null);
   const [nativeBusy, setNativeBusy] = useState(false);
+  const [diagnostics, setDiagnostics] = useState({ logs: [], summary: { render: 0, app: 0 } });
+  const [diagnosticsBusy, setDiagnosticsBusy] = useState(false);
 
   const deviceIcon = useMemo(() => settings.platform.includes('android') ? Smartphone : Laptop, [settings.platform]);
 
@@ -96,6 +145,35 @@ export default function ScraperWorker() {
       .then(status => { if (!cancelled) setNativeStatus(status); })
       .catch(() => {});
     return () => { cancelled = true; };
+  }, []);
+
+  async function loadDiagnostics(showError = false) {
+    if (showError) setDiagnosticsBusy(true);
+    try {
+      const response = await fetch(getBase() + '/scraper/logs?limit=180', { headers: { 'x-auth-token': AUTH_TOKEN } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+      setDiagnostics({ logs: Array.isArray(payload.logs) ? payload.logs : [], summary: payload.summary || { render: 0, app: 0 } });
+    } catch (error) {
+      if (showError) setMessage({ type: 'error', text: `No se pudieron cargar los logs: ${error.message}` });
+    } finally {
+      if (showError) setDiagnosticsBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      fetch(getBase() + '/scraper/logs?limit=180', { headers: { 'x-auth-token': AUTH_TOKEN } })
+        .then(response => response.ok ? response.json() : Promise.reject(new Error('logs no disponibles')))
+        .then(payload => {
+          if (!cancelled) setDiagnostics({ logs: Array.isArray(payload.logs) ? payload.logs : [], summary: payload.summary || { render: 0, app: 0 } });
+        })
+        .catch(() => {});
+    };
+    refresh();
+    const interval = setInterval(refresh, 10 * 1000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   function updateField(field, value) {
@@ -438,6 +516,37 @@ export default function ScraperWorker() {
           <span className="text-xs text-gray-500">Actual: {formatSchedule(scheduleForm)}</span>
         </div>
         {scheduleMessage && <div className={`mt-3 rounded-lg p-3 text-sm ${scheduleMessage.type === 'success' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'}`}>{scheduleMessage.text}</div>}
+      </section>
+
+      <section className="rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm dark:border-indigo-900/50 dark:bg-indigo-900/20">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-indigo-100 p-2 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"><Activity className="h-5 w-5" /></div>
+            <div>
+              <h2 className="font-semibold text-gray-900 dark:text-white">Diagnóstico de ejecuciones</h2>
+              <p className="text-xs text-gray-600 dark:text-gray-300">Render registra lo que recibió; la app registra lo que ocurrió dentro del WebView. Se actualiza cada 10 segundos y nunca muestra tokens, cookies ni facturas completas.</p>
+            </div>
+          </div>
+          <button onClick={() => loadDiagnostics(true)} disabled={diagnosticsBusy} className="inline-flex items-center gap-2 self-start rounded-lg border border-indigo-300 px-3 py-2 text-xs font-medium text-indigo-800 hover:bg-indigo-100 disabled:opacity-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-900/40">
+            {diagnosticsBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Actualizar logs
+          </button>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border border-indigo-200 bg-white/80 p-3 dark:border-indigo-800/60 dark:bg-gray-900/40">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div><p className="font-semibold text-gray-800 dark:text-gray-100">Perspectiva Render</p><p className="text-[11px] text-gray-500 dark:text-gray-400">Conexión, configuración y recepción</p></div>
+              <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">{diagnostics.summary?.render || 0}</span>
+            </div>
+            <LogList logs={(diagnostics.logs || []).filter(log => log.source === 'render')} emptyText="Render aún no ha registrado eventos." />
+          </div>
+          <div className="rounded-lg border border-indigo-200 bg-white/80 p-3 dark:border-indigo-800/60 dark:bg-gray-900/40">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div><p className="font-semibold text-gray-800 dark:text-gray-100">Perspectiva app / WebView</p><p className="text-[11px] text-gray-500 dark:text-gray-400">Turnstile, fetch del portal y envío</p></div>
+              <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">{diagnostics.summary?.app || 0}</span>
+            </div>
+            <LogList logs={(diagnostics.logs || []).filter(log => log.source === 'app')} emptyText="La APK todavía no ha enviado eventos. Ejecuta una prueba para llenarlos." />
+          </div>
+        </div>
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">

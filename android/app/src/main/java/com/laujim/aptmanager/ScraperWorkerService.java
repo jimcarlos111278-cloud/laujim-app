@@ -139,10 +139,15 @@ public class ScraperWorkerService extends Service {
 
     private void runLocalScrape(int startId) {
         int nextHours = ScraperWorkerStore.intervalHours(this);
+        String server = "";
+        String token = "";
+        String deviceId = "";
+        String runId = "android-local-" + UUID.randomUUID();
+        List<JSONObject> diagnosticEvents = new ArrayList<>();
         try {
-            String server = trimServer(ScraperWorkerStore.serverUrl(this));
-            String token = ScraperWorkerStore.token(this);
-            String deviceId = ScraperWorkerStore.deviceId(this);
+            server = trimServer(ScraperWorkerStore.serverUrl(this));
+            token = ScraperWorkerStore.token(this);
+            deviceId = ScraperWorkerStore.deviceId(this);
             if (server.isEmpty() || token.isEmpty() || deviceId.isEmpty()) {
                 throw new IllegalStateException("Falta configurar URL, token o dispositivo.");
             }
@@ -151,8 +156,13 @@ public class ScraperWorkerService extends Service {
             }
 
             ScraperWorkerStore.setRunState(this, "connecting", "");
+            addAppEvent(diagnosticEvents, null, "run_started", "info", "La app inició una ejecución local.", -1, 0, 0, null);
+            flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
             updateNotification("Conectando con Laujim…", null);
+            long configStartedAt = System.currentTimeMillis();
             HttpResult configResult = request(server + "/worker/v1/config", "GET", token, deviceId, null);
+            addAppEvent(diagnosticEvents, null, "config_fetch", configResult.status >= 200 && configResult.status < 300 ? "success" : "error", "Respuesta de configuración de Render.", configResult.status, configStartedAt, 0, null);
+            flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
             if (configResult.status < 200 || configResult.status >= 300) {
                 throw new IllegalStateException("Render respondió HTTP " + configResult.status + ".");
             }
@@ -164,6 +174,8 @@ public class ScraperWorkerService extends Service {
             }
 
             registerLocalWorker(server, token, deviceId, schedule == null ? null : schedule.optJSONArray("providers"));
+            addAppEvent(diagnosticEvents, null, "register", "success", "La app quedó registrada como worker.", 200, 0, 0, null);
+            flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
             JSONArray providers = schedule == null ? new JSONArray().put("air-e").put("water").put("gas") : schedule.optJSONArray("providers");
             if (providers == null || providers.length() == 0) providers = new JSONArray().put("air-e").put("water").put("gas");
             List<JSONObject> results = new ArrayList<>();
@@ -175,6 +187,9 @@ public class ScraperWorkerService extends Service {
                 ScraperWorkerStore.setCurrentProvider(this, provider);
                 updateNotification("Consultando " + providerLabel(provider) + " en el teléfono…", provider);
                 ScraperWorkerStore.setRunState(this, "running-" + provider, "");
+                long providerStartedAt = System.currentTimeMillis();
+                addAppEvent(diagnosticEvents, provider, "portal_start", "info", "Inició navegación y evaluación del portal.", -1, providerStartedAt, 0, null);
+                flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
                 JSONObject outcome;
                 try {
                     outcome = runProvider(provider, config);
@@ -209,6 +224,19 @@ public class ScraperWorkerService extends Service {
                         if (record != null) results.add(record);
                     }
                 }
+                JSONObject outcomeDetails = diagnosticDetails(outcome);
+                addAppEvent(
+                    diagnosticEvents,
+                    provider,
+                    outcome.optString("stage", "portal_result"),
+                    "ok".equals(state) ? "success" : ("warning".equals(state) || "needs_verification".equals(state) ? "warn" : "error"),
+                    outcome.optString("message", "El portal terminó sin mensaje."),
+                    outcome.has("httpStatus") ? outcome.optInt("httpStatus", -1) : -1,
+                    providerStartedAt,
+                    providerResults == null ? 0 : providerResults.length(),
+                    outcomeDetails
+                );
+                flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
                 if (!"ok".equals(state) && firstIssue == null) {
                     firstIssue = outcome.optString("message", "El portal no devolvió datos.");
                     updateNotification(firstIssue, provider);
@@ -218,22 +246,32 @@ public class ScraperWorkerService extends Service {
             if (!results.isEmpty()) {
                 JSONObject body = new JSONObject()
                     .put("deviceId", deviceId)
-                    .put("runId", "android-local-" + UUID.randomUUID())
+                    .put("runId", runId)
                     .put("capturedAt", new java.util.Date().toInstant().toString())
                     .put("results", new JSONArray(results));
+                addAppEvent(diagnosticEvents, null, "results_prepare", "info", "La app prepara los resultados locales para Render.", -1, 0, results.size(), null);
+                flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
+                long resultsStartedAt = System.currentTimeMillis();
                 HttpResult pushed = request(server + "/worker/v1/results", "POST", token, deviceId, body.toString());
+                JSONObject receiptDetails = parseReceiptDetails(pushed.body);
+                addAppEvent(diagnosticEvents, null, "results_upload", pushed.status >= 200 && pushed.status < 300 ? "success" : "error", pushed.status >= 200 && pushed.status < 300 ? serverReceiptMessage(pushed, results) : "Render rechazó la entrega de resultados.", pushed.status, resultsStartedAt, results.size(), receiptDetails);
+                flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
                 if (pushed.status < 200 || pushed.status >= 300) throw new IllegalStateException("No se pudieron enviar los resultados (HTTP " + pushed.status + ").");
                 ScraperWorkerStore.setRunState(this, firstIssue == null ? "completed" : "completed-with-warning", firstIssue == null ? "" : firstIssue);
                 updateNotification(serverReceiptMessage(pushed, results), null);
             } else {
-                request(server + "/worker/v1/heartbeat", "POST", token, deviceId,
+                HttpResult heartbeat = request(server + "/worker/v1/heartbeat", "POST", token, deviceId,
                     new JSONObject().put("deviceId", deviceId).put("platform", "android").put("runtime", "laujim-local-webview").toString());
+                addAppEvent(diagnosticEvents, null, "results_upload", heartbeat.status >= 200 && heartbeat.status < 300 ? "warn" : "error", "No hubo resultados para enviar; se envió heartbeat a Render.", heartbeat.status, 0, 0, null);
+                flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
                 String issue = firstIssue == null ? "No hubo resultados confirmados en esta ejecución." : firstIssue;
                 ScraperWorkerStore.setRunState(this, "needs-attention", issue);
                 updateNotification(issue, null);
             }
         } catch (Exception error) {
             String message = error.getMessage() == null ? "Error local desconocido" : error.getMessage();
+            addAppEvent(diagnosticEvents, null, "run_error", "error", message, -1, 0, 0, null);
+            flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
             ScraperWorkerStore.setRunState(this, "error", message);
             updateNotification("Error del scraper local: " + message, null);
         } finally {
@@ -248,12 +286,68 @@ public class ScraperWorkerService extends Service {
         }
     }
 
+    private void addAppEvent(List<JSONObject> events, String provider, String stage, String level, String message, int httpStatus, long startedAt, int records, JSONObject details) {
+        if (events == null) return;
+        try {
+            JSONObject event = new JSONObject()
+                .put("provider", provider == null ? JSONObject.NULL : provider)
+                .put("stage", stage == null || stage.trim().isEmpty() ? "general" : stage)
+                .put("level", level == null || level.trim().isEmpty() ? "info" : level)
+                .put("message", message == null ? "Evento sin mensaje." : message)
+                .put("eventAt", new java.util.Date().toInstant().toString());
+            if (httpStatus >= 0) event.put("httpStatus", httpStatus);
+            if (startedAt > 0) event.put("durationMs", Math.max(0, System.currentTimeMillis() - startedAt));
+            if (records >= 0) event.put("records", records);
+            if (details != null && details.length() > 0) event.put("details", details);
+            events.add(event);
+        } catch (JSONException ignored) {
+        }
+    }
+
+    private void flushAppEvents(String server, String token, String deviceId, String runId, List<JSONObject> events) {
+        if (events == null || events.isEmpty() || server == null || server.isEmpty() || token == null || token.isEmpty() || deviceId == null || deviceId.isEmpty()) return;
+        JSONArray batch = new JSONArray();
+        for (JSONObject event : events) batch.put(event);
+        events.clear();
+        try {
+            request(server + "/worker/v1/events", "POST", token, deviceId,
+                new JSONObject().put("deviceId", deviceId).put("runId", runId).put("events", batch).toString());
+        } catch (Exception ignored) {
+            // Diagnostics must never stop the portal scrape. The native status
+            // and final result upload remain the source of truth if this call
+            // is temporarily unavailable.
+        }
+    }
+
+    private JSONObject diagnosticDetails(JSONObject outcome) {
+        if (outcome == null) return null;
+        JSONObject details = new JSONObject();
+        String[] keys = {"state", "stage", "contractCount", "matchedContracts", "unmatchedContracts", "invoiceFailures", "missingContractIds", "fetchError"};
+        for (String key : keys) {
+            if (!outcome.has(key)) continue;
+            try { details.put(key, outcome.opt(key)); } catch (JSONException ignored) { }
+        }
+        return details.length() == 0 ? null : details;
+    }
+
+    private JSONObject parseReceiptDetails(String body) {
+        try {
+            JSONObject receipt = parseObject(body);
+            JSONObject details = new JSONObject();
+            String[] keys = {"received", "accepted", "persisted", "rejectedCount", "truncated"};
+            for (String key : keys) if (receipt.has(key)) details.put(key, receipt.opt(key));
+            return details.length() == 0 ? null : details;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private void registerLocalWorker(String server, String token, String deviceId, JSONArray scheduleProviders) throws Exception {
         JSONObject registration = new JSONObject()
             .put("deviceId", deviceId)
             .put("platform", "android")
             .put("runtime", "laujim-local-webview")
-            .put("appVersion", "local-webview-1")
+            .put("appVersion", "1.0.12")
             .put("providers", scheduleProviders == null ? new JSONArray() : scheduleProviders)
             .put("replaceExisting", false);
         HttpResult result = request(server + "/worker/v1/register", "POST", token, deviceId, registration.toString());
