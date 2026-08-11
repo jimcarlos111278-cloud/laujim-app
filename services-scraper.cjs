@@ -1999,6 +1999,7 @@ function gasRecord(target, parsed, checkedAt = new Date().toISOString()) {
 async function scrapeGasAccount() {
   let browser;
   let page;
+  let dataPage;
   let contractsPayload = null;
   let authHeader = null;
   let captureContracts;
@@ -2068,6 +2069,17 @@ async function scrapeGasAccount() {
       timeout: PORTAL_AUTH_TIMEOUT_MS,
     }, 'Gases del Caribe');
 
+    // Keep a second tab open before submitting the React/Turnstile form. The
+    // portal can detach the login frame during the redirect; this spare tab
+    // preserves the Browserless session and shares the authenticated cookies.
+    dataPage = await browser.newPage().catch(() => null);
+    if (dataPage) {
+      dataPage.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
+      dataPage.on?.('request', captureAuth);
+      dataPage.on?.('response', captureContracts);
+      console.log('[GAS] Página de trabajo preparada antes del login.');
+    }
+
     const emailSelectors = [
       'input[type="email"]',
       'input[name="email" i]',
@@ -2116,6 +2128,27 @@ async function scrapeGasAccount() {
     }
     if (!authenticatedByLogin) {
       console.log('[GAS] Se probarÃ¡ la sesiÃ³n existente del portal global.');
+    }
+
+    if (authenticatedByLogin) {
+      if (dataPage) {
+        const loginPage = page;
+        page = dataPage;
+        dataPage = null;
+        await loginPage?.close?.().catch?.(() => {});
+        console.log('[GAS] Se cambiÃ³ a la pÃ¡gina de trabajo conservando la sesiÃ³n autenticada.');
+      } else {
+        try {
+          const replacement = await recreatePortalPage(browser, page, captchaSolver, 'Gases del Caribe');
+          page = replacement.page;
+          captchaSolver = replacement.captchaSolver;
+          page.on?.('request', captureAuth);
+          page.on?.('response', captureContracts);
+          console.log('[GAS] Se creÃ³ una pÃ¡gina nueva conservando la sesiÃ³n autenticada.');
+        } catch (error) {
+          console.warn('[GAS] No se pudo recrear la pÃ¡gina autenticada; se continuarÃ¡ con la actual:', error.message);
+        }
+      }
     }
 
     if (authenticatedByLogin) {
@@ -2219,6 +2252,10 @@ async function scrapeGasAccount() {
     console.error('[GAS] Portal global error:', error.message);
     return [];
   } finally {
+    if (dataPage && captureAuth) dataPage.off?.('request', captureAuth);
+    if (dataPage && captureContracts) dataPage.off?.('response', captureContracts);
+    if (dataPage && captureLoginResponse) dataPage.off?.('response', captureLoginResponse);
+    if (dataPage) await closeWaterResource(dataPage);
     if (page && captureAuth) page.off?.('request', captureAuth);
     if (page && captureContracts) page.off?.('response', captureContracts);
     if (page && captureLoginResponse) page.off?.('response', captureLoginResponse);
