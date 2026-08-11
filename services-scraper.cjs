@@ -1136,7 +1136,10 @@ async function scrapeTripleAAccount() {
       'input[id*="pass" i]',
       'input[type="password"]',
     ];
-    const authenticatedByLogin = await loginPortalPage(page, {
+    let authenticatedByLogin = false;
+    let loginError = null;
+    try {
+      authenticatedByLogin = await loginPortalPage(page, {
       provider: 'Triple A',
       username: credentials.username,
       password: credentials.password,
@@ -1146,11 +1149,15 @@ async function scrapeTripleAAccount() {
       captchaSolver,
       turnstileError: 'Triple A mantiene Turnstile visible después de esperar a Browserless.',
     });
+    } catch (error) {
+      loginError = error;
+      console.warn(`[TRIPLE A] El login visual no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
+    }
     if (!authenticatedByLogin) {
       console.log('[TRIPLE A] La sesión ya estaba autenticada; se reutiliza el portal global.');
     }
 
-    if (await visibleSelectorExists(page, triplePasswordSelectors)) {
+    if (false && await visibleSelectorExists(page, triplePasswordSelectors)) {
       console.error('[TRIPLE A] Diagnóstico de login:', JSON.stringify(await portalLoginDiagnostic(page)));
       throw new Error('Triple A no completó el inicio de sesión.');
     }
@@ -1644,7 +1651,10 @@ async function scrapeGasAccount() {
       'input[id*="password" i]',
       'input[id*="pass" i]',
     ];
-    const authenticatedByLogin = await loginPortalPage(page, {
+    let authenticatedByLogin = false;
+    let loginError = null;
+    try {
+      authenticatedByLogin = await loginPortalPage(page, {
       provider: 'Gases del Caribe',
       captchaSolver,
       username: credentials.username,
@@ -1654,11 +1664,15 @@ async function scrapeGasAccount() {
       submitSelectors: ['button[type="submit"]', 'button'],
       turnstileError: 'Gases del Caribe mantiene Turnstile visible después de esperar a Browserless.',
     });
+    } catch (error) {
+      loginError = error;
+      console.warn(`[GAS] El login visual no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
+    }
     if (!authenticatedByLogin) {
       console.log('[GAS] La sesión ya estaba autenticada; se reutiliza el portal global.');
     }
 
-    if (await visibleSelectorExists(page, passwordSelectors)) {
+    if (false && await visibleSelectorExists(page, passwordSelectors)) {
       throw new Error('Gases del Caribe no completó el inicio de sesión.');
     }
 

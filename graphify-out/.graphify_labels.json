@@ -34,9 +34,11 @@
   "32": "devDependencies",
   "33": "scripts",
   "34": "backup.js",
-  "35": "@capacitor/cli",
+  "35": "@capacitor/core",
   "36": "@capacitor/share",
+  "37": "@capacitor/android",
   "38": "opencode.json",
+  "39": "@capacitor/cli",
   "41": "tailwindcss",
   "42": ".oxlintrc.json",
   "43": "add-passwords.js",
@@ -121,7 +123,6 @@
   "123": "test-water-scraper.cjs",
   "124": "@capacitor/local-notifications",
   "125": "@capacitor/filesystem",
-  "126": "@capacitor-mlkit/barcode-scanning",
   "127": "@capacitor/core",
   "128": "Plantillas de WhatsApp Cloud de Laujim",
   "129": "_scrape-diagnostic.cjs",
@@ -139,6 +140,5 @@
   "142": "recharts",
   "143": "@tailwindcss/vite",
   "144": "@capacitor-mlkit/barcode-scanning",
-  "145": "Arquitectura del Sistema",
-  "146": "jsqr"
+  "145": "Arquitectura del Sistema"
 }

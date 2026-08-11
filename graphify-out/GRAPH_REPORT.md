@@ -1,7 +1,7 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-10)
 
 ## Corpus Check
-- 122 files · ~149,956 words
+- 122 files · ~150,023 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f84d0baf`
+- Built from commit: `8b946cc1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -50,9 +50,11 @@
 - devDependencies
 - scripts
 - backup.js
-- @capacitor/cli
+- @capacitor/core
 - @capacitor/share
+- @capacitor/android
 - opencode.json
+- @capacitor/cli
 - tailwindcss
 - .oxlintrc.json
 - add-passwords.js
@@ -122,7 +124,6 @@
 - test-water-scraper.cjs
 - @capacitor/local-notifications
 - @capacitor/filesystem
-- @capacitor-mlkit/barcode-scanning
 - @capacitor/core
 - Plantillas de WhatsApp Cloud de Laujim
 - _scrape-diagnostic.cjs
@@ -141,7 +142,6 @@
 - @tailwindcss/vite
 - @capacitor-mlkit/barcode-scanning
 - Arquitectura del Sistema
-- jsqr
 
 ## God Nodes (most connected - your core abstractions)
 1. `startServer()` - 48 edges
@@ -174,7 +174,7 @@
 
 ### Community 0 - "handleCloudAdminMessage"
 Cohesion: 0.32
-Nodes (24): cloudApartmentsForFloor(), cloudFindApartment(), cloudListSections(), failCloudAuthentication(), greetCloudAdminOnce(), handleCloudAdminMessage(), occupiedCloudApartments(), saveData() (+16 more)
+Nodes (24): clearCloudAuthState(), cloudApartmentsForFloor(), cloudFindApartment(), cloudListSections(), failCloudAuthentication(), handleCloudAdminMessage(), occupiedCloudApartments(), saveData() (+16 more)
 
 ### Community 1 - "ApartmentDetail.jsx"
 Cohesion: 0.07
@@ -186,7 +186,7 @@ Nodes (16): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, Authorized
 
 ### Community 3 - "server.cjs"
 Cohesion: 0.05
-Nodes (56): app, BACKUP_DIR, BACKUP_FILE, buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), buildDebtReply() (+48 more)
+Nodes (55): app, BACKUP_DIR, BACKUP_FILE, buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), buildDebtReply() (+47 more)
 
 ### Community 4 - "pre-whatsapp-bot/server.cjs"
 Cohesion: 0.08
@@ -206,7 +206,7 @@ Nodes (21): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudG
 
 ### Community 8 - "dependencies"
 Cohesion: 0.12
-Nodes (17): @aws-sdk/client-s3, @capacitor/android, @capacitor/core, cors, dexie, express, dependencies, @aws-sdk/client-s3 (+9 more)
+Nodes (17): @aws-sdk/client-s3, @capacitor/android, cors, dexie, express, jsqr, dependencies, @aws-sdk/client-s3 (+9 more)
 
 ### Community 9 - "saveData"
 Cohesion: 0.24
@@ -214,7 +214,7 @@ Nodes (11): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getA
 
 ### Community 10 - "dependencies"
 Cohesion: 0.11
-Nodes (19): dependencies, @capacitor/android, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, express, pg, qrcode (+11 more)
+Nodes (19): dependencies, @capacitor/cli, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share, express, pg, qrcode (+11 more)
 
 ### Community 11 - "api.js"
 Cohesion: 0.09
@@ -237,8 +237,8 @@ Cohesion: 0.32
 Nodes (11): iconMap, ThemeSelector(), applyTheme(), getTheme(), getThemeInfo(), initTheme(), loadThemeFromServer(), setTheme() (+3 more)
 
 ### Community 16 - "handleCloudInbound"
-Cohesion: 0.12
-Nodes (32): addCloudMessage(), archiveCloudInboundMedia(), authorizedCloudContact(), blockCloudUser(), clearCloudAuthState(), cloudAdminPhones(), cloudApiRequest(), cloudInboundMedia() (+24 more)
+Cohesion: 0.11
+Nodes (33): addCloudMessage(), archiveCloudInboundMedia(), authorizedCloudContact(), blockCloudUser(), cloudAdminGreeting(), cloudAdminPhones(), cloudApiRequest(), cloudInboundMedia() (+25 more)
 
 ### Community 17 - "scripts"
 Cohesion: 0.20
@@ -532,7 +532,7 @@ Nodes (3): Arquitectura del Sistema, Flujo de Datos, Viewport y Layout Adaptativ
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `node-cron`, `@capacitor-mlkit/barcode-scanning`, `jsqr`, `scripts`, `@capacitor/cli`, `@capacitor/share`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `puppeteer-core`, `jspdf`, `react`, `multer`, `pg`, `@sparticuz/chromium`, `lucide-react`, `@capacitor/local-notifications`, `@capacitor/filesystem`?**
+- **Why does `dependencies` connect `dependencies` to `node-cron`, `@capacitor-mlkit/barcode-scanning`, `scripts`, `@capacitor/core`, `@capacitor/share`, `@capacitor/cli`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `puppeteer-core`, `jspdf`, `react`, `multer`, `pg`, `@sparticuz/chromium`, `lucide-react`, `@capacitor/local-notifications`, `@capacitor/filesystem`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Why does `jspdf` connect `jspdf` to `dependencies`, `contractGenerator.js`, `ApartmentDetail.jsx`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
@@ -545,4 +545,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `.status` be split into smaller, more focused modules?**
   _Cohesion score 0.10904255319148937 - nodes in this community are weakly interconnected._
 - **Should `server.cjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.05012531328320802 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0512987012987013 - nodes in this community are weakly interconnected._
