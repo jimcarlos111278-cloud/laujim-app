@@ -15,9 +15,9 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1784351671.9223952,
-    "ast_hash": "0b584ae03285f487bbf3fbfb9cdcdd9d",
-    "semantic_hash": "0b584ae03285f487bbf3fbfb9cdcdd9d"
+    "mtime": 1786488376.41104,
+    "ast_hash": "fc9c5badb287687e458fe18205ad16a5",
+    "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
     "mtime": 1785660578.9938948,
@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786478764.0001748,
-    "ast_hash": "f0c0c898191ab7fbc772afadc5202f31",
+    "mtime": 1786487689.7473273,
+    "ast_hash": "74c28d2e88f9a49055cf375321538085",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -850,8 +850,8 @@
     "semantic_hash": ""
   },
   "worker-protocol.cjs": {
-    "mtime": 1786426003.7675743,
-    "ast_hash": "55f34fde49dba3df6b64f5575d8697ee",
+    "mtime": 1786487667.5167527,
+    "ast_hash": "8bce2e7ec838c1a3a7a2528df75e590d",
     "semantic_hash": ""
   },
   "docs/scraper-worker.md": {
@@ -865,8 +865,8 @@
     "semantic_hash": ""
   },
   "scripts/portable-worker.cjs": {
-    "mtime": 1786434305.5670698,
-    "ast_hash": "ebc465313be11878816305eecf1fa30a",
+    "mtime": 1786488327.6890686,
+    "ast_hash": "6ea547968edbf5894c96c632c08737e8",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarm.java": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1786485045.6983745,
-    "ast_hash": "91aa9f40b4569efaa0205cfe088a5331",
+    "mtime": 1786488063.462613,
+    "ast_hash": "418b2a922d656724914db321827d0b0d",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {

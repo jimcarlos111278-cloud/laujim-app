@@ -224,7 +224,7 @@ public class ScraperWorkerService extends Service {
                 HttpResult pushed = request(server + "/worker/v1/results", "POST", token, deviceId, body.toString());
                 if (pushed.status < 200 || pushed.status >= 300) throw new IllegalStateException("No se pudieron enviar los resultados (HTTP " + pushed.status + ").");
                 ScraperWorkerStore.setRunState(this, firstIssue == null ? "completed" : "completed-with-warning", firstIssue == null ? "" : firstIssue);
-                updateNotification("Listo: " + results.size() + " resultado(s) locales enviados a Laujim.", null);
+                updateNotification(serverReceiptMessage(pushed, results), null);
             } else {
                 request(server + "/worker/v1/heartbeat", "POST", token, deviceId,
                     new JSONObject().put("deviceId", deviceId).put("platform", "android").put("runtime", "laujim-local-webview").toString());
@@ -392,6 +392,47 @@ public class ScraperWorkerService extends Service {
 
     private String quote(String value) {
         return JSONObject.quote(value == null ? "" : value);
+    }
+
+    private String serverReceiptMessage(HttpResult pushed, List<JSONObject> localResults) {
+        int localIssues = 0;
+        for (JSONObject result : localResults) {
+            String status = result == null ? "" : result.optString("status", "");
+            if ("error".equalsIgnoreCase(status) || "captcha".equalsIgnoreCase(status) || "timeout".equalsIgnoreCase(status)) {
+                localIssues += 1;
+            }
+        }
+        try {
+            JSONObject receipt = parseObject(pushed.body);
+            int received = receipt.optInt("received", localResults.size());
+            int accepted = receipt.optInt("accepted", received);
+            int persisted = receipt.optInt("persisted", accepted);
+            int rejected = receipt.optInt("rejectedCount", Math.max(0, received - accepted));
+            StringBuilder message = new StringBuilder()
+                .append("Servidor: ").append(received)
+                .append(" recibidos, ").append(accepted)
+                .append(" aceptados, ").append(persisted)
+                .append(" persistidos");
+            JSONObject byProvider = receipt.optJSONObject("acceptedByProvider");
+            if (byProvider != null && byProvider.length() > 0) {
+                message.append(" (");
+                java.util.Iterator<String> keys = byProvider.keys();
+                boolean first = true;
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    if (!first) message.append(", ");
+                    message.append(key).append(":").append(byProvider.optInt(key, 0));
+                    first = false;
+                }
+                message.append(")");
+            }
+            if (rejected > 0) message.append(" · rechazados: ").append(rejected);
+            if (localIssues > 0) message.append(" · errores de portal: ").append(localIssues);
+            return message.toString();
+        } catch (Exception ignored) {
+            return "Servidor: recibidos " + localResults.size() + " resultado(s) locales." +
+                (localIssues > 0 ? " Errores de portal: " + localIssues + "." : "");
+        }
     }
 
     private HttpResult request(String url, String method, String token, String deviceId, String body) throws Exception {

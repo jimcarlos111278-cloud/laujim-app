@@ -106,9 +106,69 @@ function sanitizeWorkerResult(raw, { deviceId = null, now = new Date().toISOStri
 }
 
 function normalizeWorkerResults(body, options = {}) {
-  const records = Array.isArray(body) ? body : body?.results || body?.records;
-  if (!Array.isArray(records)) return [];
-  return records.map(item => sanitizeWorkerResult(item, options)).filter(Boolean).slice(0, 200);
+  return inspectWorkerResults(body, options).records;
+}
+
+function providerCount(records) {
+  return records.reduce((counts, record) => {
+    const key = text(record?.provider || record?.service, 80) || '<sin proveedor>';
+    counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+// Keep the normalizer strict, but expose enough non-sensitive diagnostics to
+// explain why a phone/PC says it sent N records while the server accepts fewer.
+// Do not include credentials, tokens, raw portal payloads, or debt values here.
+function inspectWorkerResults(body, options = {}) {
+  const rawRecords = Array.isArray(body) ? body : body?.results || body?.records;
+  if (!Array.isArray(rawRecords)) {
+    return {
+      records: [],
+      received: 0,
+      accepted: 0,
+      rejected: [{ index: null, reason: 'results_no_es_un_arreglo' }],
+      acceptedByProvider: {},
+      rejectedByProvider: {},
+      truncated: 0,
+    };
+  }
+
+  const accepted = [];
+  const rejected = [];
+  const limited = rawRecords.slice(0, 200);
+  limited.forEach((item, index) => {
+    const sanitized = sanitizeWorkerResult(item, options);
+    if (sanitized) {
+      accepted.push(sanitized);
+      return;
+    }
+
+    let reason = 'registro_invalido';
+    let provider = null;
+    let service = null;
+    let apartment = null;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      reason = 'registro_no_es_un_objeto';
+    } else {
+      provider = text(item.provider, 80) || null;
+      service = text(item.service, 40) || null;
+      apartment = text(item.apartment || item.apartmentName, 80) || null;
+      if (!normalizeProvider(item.provider, item.service)) reason = 'proveedor_o_servicio_no_reconocido';
+      else if (normalizeInteger(item.apartmentId) === null && !apartment) reason = 'apartamento_sin_id_ni_nombre';
+    }
+    rejected.push({ index, provider, service, apartment, reason });
+  });
+
+  return {
+    records: accepted,
+    received: rawRecords.length,
+    accepted: accepted.length,
+    rejected,
+    acceptedByProvider: providerCount(accepted),
+    rejectedByProvider: providerCount(rejected),
+    truncated: Math.max(0, rawRecords.length - limited.length),
+  };
 }
 
 function safeTokenEquals(provided, expected) {
@@ -124,5 +184,6 @@ module.exports = {
   normalizeAmount,
   sanitizeWorkerResult,
   normalizeWorkerResults,
+  inspectWorkerResults,
   safeTokenEquals,
 };

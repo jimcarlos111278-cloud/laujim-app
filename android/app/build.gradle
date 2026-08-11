@@ -7,7 +7,9 @@ android {
         applicationId "com.laujim.aptmanager"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode = (int) (System.currentTimeMillis() / 1000)
+        // Keep debug APK upgrades monotonic even when the build machine clock
+        // is behind a previously distributed APK.
+        versionCode = Math.max((int) (System.currentTimeMillis() / 1000), 1786486000)
         versionName = "1.0." + new java.text.SimpleDateFormat("yyyyMMdd-HHmm").format(new java.util.Date())
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

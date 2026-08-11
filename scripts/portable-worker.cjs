@@ -12,10 +12,20 @@ const ROOT = path.resolve(__dirname, '..');
 const configPath = path.resolve(process.env.PORTABLE_WORKER_CONFIG || path.join(ROOT, 'portable-worker.config.json'));
 
 function readConfig() {
-  if (!fs.existsSync(configPath)) {
-    throw new Error(`Falta ${configPath}. Copia portable-worker.config.example.json y completa sus valores.`);
+  let parsed;
+  const inlineConfig = String(process.env.PORTABLE_WORKER_CONFIG_JSON || '').trim();
+  if (inlineConfig) {
+    try {
+      parsed = JSON.parse(inlineConfig);
+    } catch {
+      throw new Error('PORTABLE_WORKER_CONFIG_JSON no contiene JSON válido.');
+    }
+  } else {
+    if (!fs.existsSync(configPath)) {
+      throw new Error(`Falta ${configPath}. Copia portable-worker.config.example.json y completa sus valores.`);
+    }
+    parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   }
-  const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   const serverUrl = String(parsed.serverUrl || '').trim().replace(/\/+$/, '').replace(/\/api$/i, '');
   const workerToken = String(parsed.workerToken || '').trim();
   const deviceId = String(parsed.deviceId || 'pc-laujim-01').trim();

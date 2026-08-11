@@ -2953,8 +2953,21 @@ app.post('/worker/v1/results', requirePortableWorker, (req, res) => {
   const body = req.body || {};
   const deviceId = workerProtocol.normalizeWorkerId(body.deviceId || req.headers['x-worker-id']);
   if (!deviceId) return res.status(400).json({ error: 'deviceId inválido' });
-  const records = workerProtocol.normalizeWorkerResults(body, { deviceId });
-  if (!records.length) return res.status(400).json({ error: 'No se recibieron resultados válidos' });
+  const inspection = workerProtocol.inspectWorkerResults(body, { deviceId });
+  const records = inspection.records;
+  if (!records.length) {
+    console.warn(`[WORKER RESULTS] ${deviceId}: received=${inspection.received}, accepted=0, rejected=${inspection.rejected.length}.`, inspection.rejected.slice(0, 12));
+    return res.status(400).json({
+      error: 'No se recibieron resultados válidos',
+      received: inspection.received,
+      accepted: 0,
+      persisted: 0,
+      rejectedCount: inspection.rejected.length,
+      rejected: inspection.rejected.slice(0, 50),
+      acceptedByProvider: inspection.acceptedByProvider,
+      rejectedByProvider: inspection.rejectedByProvider,
+    });
+  }
   const persisted = mergePortableWorkerRecords(records);
   const worker = ensurePortableWorkerCollection().find(item => item.deviceId === deviceId) || upsertPortableWorker({ deviceId });
   if (worker) {
@@ -2962,10 +2975,29 @@ app.post('/worker/v1/results', requirePortableWorker, (req, res) => {
     worker.lastRunAt = body.capturedAt || worker.lastSeenAt;
     worker.lastRunId = String(body.runId || '').slice(0, 120) || null;
     worker.lastResultCount = persisted;
-    worker.lastError = null;
+    worker.lastError = inspection.rejected.length
+      ? `Se recibieron ${inspection.received} registro(s), se aceptaron ${inspection.accepted} y se rechazaron ${inspection.rejected.length}.`
+      : null;
     saveData();
   }
-  res.json({ ok: true, deviceId, persisted, serverTime: new Date().toISOString() });
+  console.log(
+    `[WORKER RESULTS] ${deviceId}: received=${inspection.received}, accepted=${inspection.accepted}, ` +
+    `persisted=${persisted}, rejected=${inspection.rejected.length}, ` +
+    `acceptedByProvider=${JSON.stringify(inspection.acceptedByProvider)}`,
+  );
+  res.json({
+    ok: true,
+    deviceId,
+    received: inspection.received,
+    accepted: inspection.accepted,
+    persisted,
+    rejectedCount: inspection.rejected.length,
+    rejected: inspection.rejected.slice(0, 50),
+    acceptedByProvider: inspection.acceptedByProvider,
+    rejectedByProvider: inspection.rejectedByProvider,
+    truncated: inspection.truncated,
+    serverTime: new Date().toISOString(),
+  });
 });
 
 app.get('/api/scraper/workers', (req, res) => {
