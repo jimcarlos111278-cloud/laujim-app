@@ -72,6 +72,17 @@
     return undefined;
   }
 
+  function topLevelField(value, names) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    const entries = Object.entries(value);
+    for (const name of names || []) {
+      const wanted = clean(name).replace(/ /g, '');
+      const match = entries.find(([key, child]) => clean(key).replace(/ /g, '') === wanted && child !== null && child !== undefined && child !== '');
+      if (match) return match[1];
+    }
+    return field(value, names);
+  }
+
   function list(value, keys, depth, seen) {
     if (Array.isArray(value)) return value;
     if (!value || typeof value !== 'object' || (depth || 0) > 6) return [];
@@ -234,6 +245,16 @@
     return response;
   }
 
+  function responseDetail(response) {
+    try {
+      const payload = response && response.body ? JSON.parse(response.body) : null;
+      const detail = field(payload, ['message', 'error', 'detail', 'title', 'reason']);
+      return detail ? String(detail).replace(/\s+/g, ' ').trim().slice(0, 120) : '';
+    } catch {
+      return '';
+    }
+  }
+
   function storedToken() {
     const nativeToken = String(window.__LaujimNativeAuthorization || '').trim();
     if (nativeToken) return nativeToken;
@@ -370,7 +391,9 @@
         continue;
       }
       matchedContracts += 1;
-      const contractId = field(contract, ['contractId', 'contractNumber', 'id', 'number']);
+      // Gascaribe's own frontend calls /invoices/{contract.id}. Prefer the
+      // top-level id before human-facing contract numbers or nested ids.
+      const contractId = topLevelField(contract, ['id', 'contractId', 'contractNumber', 'number']);
       if (!contractId) {
         missingContractIds += 1;
         continue;
@@ -378,7 +401,8 @@
       const invoiceResponse = await jsonWithAuthFallback(`${GAS_API}/invoices/${encodeURIComponent(contractId)}`, auth, { credentials: 'omit' });
       if (!invoiceResponse.ok) {
         invoiceFailures += 1;
-        invoiceFailureDetails.push(invoiceResponse.status ? `HTTP ${invoiceResponse.status}` : 'sin respuesta del endpoint de facturas');
+        const detail = responseDetail(invoiceResponse);
+        invoiceFailureDetails.push(`${invoiceResponse.status ? `HTTP ${invoiceResponse.status}` : 'sin respuesta del endpoint de facturas'}${detail ? `: ${detail}` : ''}`);
         continue;
       }
       const invoices = list(invoiceResponse.payload, ['invoices', 'items']);

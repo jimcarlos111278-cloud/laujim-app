@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -59,6 +60,7 @@ public class ScraperWorkerService extends Service {
     private static final int READ_TIMEOUT_MS = 35_000;
     // Keep the portal window open for the requested three-minute allowance.
     private static final long WEBVIEW_TIMEOUT_MS = 180_000L;
+    private static final String AUTH_CAPTURE_SCRIPT = "(function(){if(window.__LaujimAuthHookInstalled)return;window.__LaujimAuthHookInstalled=true;const send=function(value){try{if(value&&window.LaujimAndroidBridge&&typeof window.LaujimAndroidBridge.captureAuthorization==='function')window.LaujimAndroidBridge.captureAuthorization(String(value));}catch(e){}};const read=function(headers){if(!headers)return '';try{if(typeof headers.get==='function')return headers.get('Authorization')||headers.get('authorization')||'';if(Array.isArray(headers)){for(const item of headers){if(item&&String(item[0]).toLowerCase()==='authorization')return item[1]||'';}}for(const key of Object.keys(headers)){if(key.toLowerCase()==='authorization')return headers[key]||'';}}catch(e){}return '';};const originalFetch=window.fetch;if(typeof originalFetch==='function')window.fetch=function(input,init){send(read(init&&init.headers)||read(input&&input.headers));return originalFetch.apply(this,arguments);};try{const proto=XMLHttpRequest.prototype;const originalSet=proto.setRequestHeader;proto.setRequestHeader=function(name,value){if(String(name||'').toLowerCase()==='authorization')send(value);return originalSet.apply(this,arguments);};}catch(e){}})();";
 
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -97,6 +99,11 @@ public class ScraperWorkerService extends Service {
         webView.addJavascriptInterface(new JavascriptResultBridge(), "LaujimAndroidBridge");
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                installAuthorizationHook(view);
+            }
+
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 captureAuthorization(
@@ -272,6 +279,14 @@ public class ScraperWorkerService extends Service {
                 return;
             }
         }
+    }
+
+    private void installAuthorizationHook(WebView view) {
+        if (view == null) return;
+        mainHandler.post(() -> {
+            try { view.evaluateJavascript(AUTH_CAPTURE_SCRIPT, ignored -> { }); }
+            catch (Exception ignored) { }
+        });
     }
 
     private JSONArray failureRecords(String provider, JSONObject config, JSONObject outcome, String message) throws JSONException {
@@ -479,6 +494,11 @@ public class ScraperWorkerService extends Service {
     @Override public IBinder onBind(Intent intent) { return null; }
 
     private final class JavascriptResultBridge {
+        @JavascriptInterface
+        public void captureAuthorization(String value) {
+            if (value != null && !value.trim().isEmpty()) nativeAuthorization = value.trim();
+        }
+
         @JavascriptInterface
         public void resolve(String value) {
             CompletableFuture<String> pending;
