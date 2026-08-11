@@ -1357,6 +1357,7 @@ function tripleARecord(target, subscription, checkedAt = new Date().toISOString(
 async function scrapeTripleAAccount() {
   let browser;
   let page;
+  let dataPage;
   let subscriptionPayload = null;
   let captureSubscriptions;
   let captureAuthResponse;
@@ -1405,6 +1406,16 @@ async function scrapeTripleAAccount() {
       timeout: PORTAL_AUTH_TIMEOUT_MS,
     }, 'Triple A');
 
+    // Keep a second tab alive before submitting the React form. Some
+    // Browserless sessions detach the login frame during the NextAuth redirect;
+    // an already-open tab preserves the remote connection and shares cookies.
+    dataPage = await browser.newPage().catch(() => null);
+    if (dataPage) {
+      dataPage.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
+      dataPage.on?.('response', captureSubscriptions);
+      console.log('[TRIPLE A] Página de trabajo preparada antes del login.');
+    }
+
     const tripleEmailSelectors = [
       'input[name="email" i]',
       'input[id*="email" i]',
@@ -1451,6 +1462,13 @@ async function scrapeTripleAAccount() {
     // the authenticated browser context. A direct fetch from a stale login
     // document can otherwise remain pending indefinitely.
     if (authenticatedByLogin) {
+      if (dataPage) {
+        const loginPage = page;
+        page = dataPage;
+        dataPage = null;
+        await loginPage?.close?.().catch?.(() => {});
+        console.log('[TRIPLE A] Se cambiÃ³ a la pÃ¡gina de trabajo conservando la sesiÃ³n autenticada.');
+      } else {
       try {
         const replacement = await recreatePortalPage(browser, page, captchaSolver, 'Triple A');
         page = replacement.page;
@@ -1460,6 +1478,7 @@ async function scrapeTripleAAccount() {
         console.log('[TRIPLE A] Se creó una página nueva conservando la sesión autenticada.');
       } catch (error) {
         console.warn('[TRIPLE A] No se pudo recrear la página autenticada; se continuará con la actual:', error.message);
+      }
       }
       await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
         waitUntil: 'domcontentloaded',
@@ -1533,6 +1552,8 @@ async function scrapeTripleAAccount() {
     console.error('[TRIPLE A] Portal global error:', error.message);
     return [];
   } finally {
+    if (dataPage && captureSubscriptions) dataPage.off?.('response', captureSubscriptions);
+    if (dataPage) await closeWaterResource(dataPage);
     if (page && captureSubscriptions) page.off?.('response', captureSubscriptions);
     if (page && captureAuthResponse) page.off?.('response', captureAuthResponse);
     if (captchaSolver) await captchaSolver.close();
