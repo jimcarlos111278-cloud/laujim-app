@@ -1,7 +1,7 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-11)
 
 ## Corpus Check
-- 140 files · ~164,393 words
+- 140 files · ~164,405 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0ea02d9f`
+- Built from commit: `5ddcc76e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -133,7 +133,7 @@
 - node-cron
 - portable-worker.cjs
 - Plantilla de WhatsApp: cobro_canon_servicios
-- @capacitor/android
+- @capacitor-mlkit/barcode-scanning
 - dexie
 - jspdf
 - jsqr
@@ -221,7 +221,7 @@ Nodes (11): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getA
 
 ### Community 10 - "dependencies"
 Cohesion: 0.11
-Nodes (19): dependencies, @capacitor/cli, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share, express, pg, qrcode (+11 more)
+Nodes (19): dependencies, @capacitor/android, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, express, pg, qrcode (+11 more)
 
 ### Community 11 - "api.js"
 Cohesion: 0.11

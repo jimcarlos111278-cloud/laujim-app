@@ -16940,8 +16940,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 133,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_mlkit_barcode_scanning"
     },
@@ -16951,8 +16951,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 133,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_mlkit_barcode_scanning"
     },
@@ -16962,8 +16962,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 133,
-      "community_name": "@capacitor/android",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_android"
     },
@@ -16973,8 +16973,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 133,
-      "community_name": "@capacitor/android",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_android"
     },
@@ -54246,5 +54246,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "0ea02d9ffc20bbf7df5ec918783a4f242a3c4998"
+  "built_at_commit": "5ddcc76ec278c14e5308d7fa5af91259ee6d8a46"
 }

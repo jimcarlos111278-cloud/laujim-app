@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1786474985.84902,
-    "ast_hash": "d01ed7e35d670124d960d670d16b603f",
+    "mtime": 1786476546.3911147,
+    "ast_hash": "aad00b7c106c5842dae970964d860e3b",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {

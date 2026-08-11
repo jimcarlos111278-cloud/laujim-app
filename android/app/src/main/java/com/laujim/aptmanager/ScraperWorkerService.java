@@ -234,7 +234,7 @@ public class ScraperWorkerService extends Service {
             javascriptResult = result;
         }
         String configJson = config.toString();
-        String expression = "(async()=>{try{const outcome=await window.LaujimLocalPortalScraper.run(" + quote(provider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(provider) + ",message:String(e&&e.message||e),results:[]}));}})();";
+        String expression = "(async()=>{try{" + runnerScript + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');const outcome=await window.LaujimLocalPortalScraper.run(" + quote(provider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(provider) + ",message:String(e&&e.message||e),results:[]}));}})();";
         mainHandler.postDelayed(() -> {
             if (webView == null) {
                 result.completeExceptionally(new IllegalStateException("WebView local no inicializado."));
