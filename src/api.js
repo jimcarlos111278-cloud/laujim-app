@@ -12,7 +12,13 @@ async function serverReq(method, collection, id, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(url, opts);
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const message = await res.text();
+    const error = new Error(message || `Server responded with ${res.status}`);
+    error.status = res.status;
+    error.url = url;
+    throw error;
+  }
   return res.json();
 }
 
@@ -37,19 +43,43 @@ function uploadFile(url, file, extra) {
 
 const CLOUD_COLLECTIONS = ['apartments', 'tenants', 'contracts', 'payments', 'expenses', 'utilityPayments', 'vacancies', 'familyMembers', 'settings', 'passwords', 'photos'];
 
+let lastCloudSyncStatus = {
+  ok: false,
+  status: null,
+  error: null,
+  failedCollections: [],
+  completedAt: null,
+};
+
+export function getCloudSyncStatus() {
+  return { ...lastCloudSyncStatus, failedCollections: [...lastCloudSyncStatus.failedCollections] };
+}
+
 export async function refreshAllFromServer() {
-  let ok = true;
+  const failures = [];
   for (const col of CLOUD_COLLECTIONS) {
     try {
       const serverData = await serverReq('GET', col);
       if (Array.isArray(serverData)) {
         setCollectionData(col, serverData);
+      } else {
+        const error = new Error('El servidor devolvió una colección inválida');
+        error.status = 502;
+        throw error;
       }
     } catch (e) {
-      ok = false;
+      failures.push({ collection: col, status: e.status || null, message: e.message || 'Error de sincronización' });
     }
   }
-  return ok;
+  const firstFailure = failures[0] || null;
+  lastCloudSyncStatus = {
+    ok: failures.length === 0,
+    status: firstFailure?.status || null,
+    error: firstFailure?.message || null,
+    failedCollections: failures.map(item => item.collection),
+    completedAt: new Date().toISOString(),
+  };
+  return lastCloudSyncStatus.ok;
 }
 
 // ─── Data version polling: reload page when data changes on server ───

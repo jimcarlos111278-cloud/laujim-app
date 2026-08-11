@@ -25,10 +25,11 @@ import PublicApartment from './pages/PublicApartment';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
 import { requestNotificationPermission } from './utils/notifications';
-import { api, refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
+import { api, getCloudSyncStatus, refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
 import { initTheme, loadThemeFromServer } from './utils/theme';
-import { getAuth } from './utils/auth';
+import { clearAuth, getAuth } from './utils/auth';
 import { syncAuthorizedCallerNumbers } from './utils/callScreening';
+import { clearAppData } from './utils/resetApp';
 
 function ProtectedRoute({ children }) {
   const auth = getAuth();
@@ -45,6 +46,7 @@ function AdminRoute({ children }) {
 
 function PrivateApp() {
   const [loading, setLoading] = useState(true);
+  const [cloudError, setCloudError] = useState('');
 
   useEffect(() => {
     try { initDB(); } catch (e) { console.error('DB init error:', e); }
@@ -60,19 +62,36 @@ function PrivateApp() {
     };
     // Fetch ALL data from server on startup (cloud-first)
     (async function startup() {
+      let cloudSyncOk = false;
       for (let i = 0; i < 3; i++) {
         try {
-          const ok = await refreshAllFromServer();
-          if (ok) { break; }
+          cloudSyncOk = await refreshAllFromServer();
+          if (cloudSyncOk) break;
         } catch (e) { console.warn('Cloud startup attempt ' + (i+1) + ' failed'); }
         if (i < 2) await new Promise(r => setTimeout(r, 5000));
       }
-      await syncCallScreening();
+      const syncStatus = getCloudSyncStatus();
+      if (!cloudSyncOk && (syncStatus.status === 401 || syncStatus.status === 403)) {
+        // A session can expire while the SPA stays open. Do not leave the user
+        // inside an apparently valid dashboard backed by empty client arrays.
+        clearAuth();
+        window.location.replace('/login?reason=session-expired');
+        return;
+      }
+      if (!cloudSyncOk) {
+        setCloudError(syncStatus.status === 503
+          ? 'Render está activo, pero la base de datos todavía no está lista o no responde.'
+          : 'No se pudieron sincronizar los datos de la base de datos.');
+      } else {
+        await syncCallScreening();
+      }
       setLoading(false);
-      // Start polling for changes from other PCs
-      startCloudPolling(15000);
-      // Auto-reload cuando otro cliente hace cambios
-      startDataVersionPolling(3000);
+      if (cloudSyncOk) {
+        // Start polling for changes from other PCs
+        startCloudPolling(15000);
+        // Auto-reload cuando otro cliente hace cambios
+        startDataVersionPolling(3000);
+      }
       // Load theme preference from server
       try { await loadThemeFromServer(); } catch (e) { /* ignore */ }
     })();
@@ -92,6 +111,24 @@ function PrivateApp() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-c-500 mx-auto mb-4" />
           <p className="text-gray-500">Cargando datos del servidor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (cloudError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
+        <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-6 text-center shadow-lg dark:border-amber-800 dark:bg-gray-800">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">!</div>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">No se cargaron los apartamentos</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{cloudError}</p>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">No mostraremos 0 apartamentos como si la base estuviera vacía.</p>
+          <div className="mt-5 flex justify-center gap-2">
+            <button onClick={async () => { clearAuth(); await clearAppData(); window.location.replace('/login?reset=1'); }} className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30">Borrar datos</button>
+            <button onClick={() => window.location.reload()} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Reintentar conexión</button>
+            <button onClick={() => { clearAuth(); window.location.replace('/login'); }} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Iniciar sesión de nuevo</button>
+          </div>
         </div>
       </div>
     );

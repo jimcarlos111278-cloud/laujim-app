@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
 import { clearAuth } from '../utils/auth';
+import { clearAppData } from '../utils/resetApp';
 import ThemeSelector from './ThemeSelector';
 
 const navItems = [
@@ -35,12 +36,23 @@ export default function Layout({ children }) {
     return Math.max(0.85, Math.min(typeof window !== 'undefined' && window.innerWidth < 640 ? 1.15 : 2, saved));
   });
 const [installPrompt, setInstallPrompt] = useState(null);
+  const [clearingAppData, setClearingAppData] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   function handleLogout() {
     clearAuth();
     navigate('/login', { replace: true });
+  }
+
+  async function handleClearAppData() {
+    if (clearingAppData) return;
+    const confirmed = window.confirm('Se borrarán las cookies y los datos locales de esta app en este dispositivo. No se borrará la base de datos de Render. ¿Continuar?');
+    if (!confirmed) return;
+    setClearingAppData(true);
+    clearAuth();
+    await clearAppData();
+    window.location.replace('/login?reset=1');
   }
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
@@ -134,6 +146,9 @@ const [installPrompt, setInstallPrompt] = useState(null);
             {connected === true && <><Cloud className="w-3.5 h-3.5 text-green-500" /><span className="text-green-600">En línea</span></>}
             {connected === false && <><CloudOff className="w-3.5 h-3.5 text-red-500" /><span className="text-red-500">Sin conexión</span></>}
           </div>
+          <button onClick={handleClearAppData} disabled={clearingAppData} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-amber-600 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30 disabled:opacity-60 transition-colors" title="Borra cookies y datos locales de esta app">
+            <Trash2 className="w-3.5 h-3.5" /> {clearingAppData ? 'Limpiando...' : 'Borrar datos locales'}
+          </button>
           <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors">
             <LogOut className="w-4 h-4" /> Cerrar sesión
           </button>

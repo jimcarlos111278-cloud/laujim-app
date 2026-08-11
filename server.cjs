@@ -18,6 +18,14 @@ const app = express();
 const PORT = process.env.PORT || 1011;
 const SESSION_TTL_MS = Math.max(1, Number(process.env.SESSION_TTL_HOURS || 12)) * 60 * 60 * 1000;
 let requestCount = 0;
+// Private API requests must not run against the INITIAL_DATA object while the
+// durable store is still loading. Otherwise a deploy can briefly create a
+// valid-looking session backed by an empty database and the UI ends up showing
+// "0 apartments" until the next reload.
+let databaseReady = false;
+let databaseState = 'starting';
+let databaseError = null;
+let databaseLoadedAt = null;
 
 process.on('uncaughtException', (err) => { console.error('UNCAUGHT:', err.message, err.stack); });
 process.on('unhandledRejection', (reason) => { console.error('UNHANDLED:', reason); });
@@ -33,8 +41,16 @@ app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody =
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) requestCount++;
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
-    req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook';
+    req.path === '/api/ready' || req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook';
   if (req.path.startsWith('/api/') && !isPublicApi) {
+    if (!databaseReady) {
+      return res.status(503).json({
+        error: databaseState === 'error'
+          ? 'La base de datos no está disponible en este momento.'
+          : 'La base de datos todavía está iniciando. Intenta de nuevo en unos segundos.',
+        databaseState,
+      });
+    }
     const session = getAuthSession(req.headers['x-auth-token']);
     if (!session) {
       return res.status(401).json({ error: 'No autorizado' });
@@ -2454,11 +2470,32 @@ app.get('/api/version', (req, res) => {
   }
 });
 
+// Readiness is intentionally public so the login screen and deployment checks
+// can distinguish a real database outage from an expired admin session.
+app.get('/api/ready', (req, res) => {
+  const payload = {
+    ok: databaseReady,
+    state: databaseState,
+    postgres: Boolean(pgPool),
+    loadedAt: databaseLoadedAt,
+    apartments: databaseReady ? (Array.isArray(db.apartments) ? db.apartments.length : 0) : null,
+  };
+  if (!databaseReady && databaseState === 'error') payload.error = 'La base de datos no está disponible en este momento.';
+  res.status(databaseReady ? 200 : 503).json(payload);
+});
+
 app.get('/api/data/all', (req, res) => {
   res.json(JSON.parse(JSON.stringify(db)));
 });
 
 app.post('/api/login', (req, res) => {
+  if (!databaseReady) {
+    return res.status(503).json({
+      error: databaseState === 'error'
+        ? 'La base de datos no está disponible en este momento.'
+        : 'La base de datos todavía está iniciando. Intenta de nuevo en unos segundos.',
+    });
+  }
   const { username, password } = req.body || {};
   const adminUsername = process.env.ADMIN_USERNAME || '';
   const adminPassword = process.env.ADMIN_PASSWORD || '';
@@ -3842,6 +3879,8 @@ app.use((req, res) => {
 
   (async () => {
     let loaded = false;
+    const hasConfiguredDatabase = Boolean(process.env.AIVEN_DATABASE_URL || process.env.DATABASE_URL);
+    databaseState = hasConfiguredDatabase ? 'connecting' : 'file-mode';
     try {
       if (await initPostgres()) {
         const pgData = await loadFromPostgres();
@@ -3853,12 +3892,23 @@ app.use((req, res) => {
           recalcNextId();
           console.log('Data loaded from PostgreSQL (Aiven is source of truth)');
           loaded = true;
+          databaseState = 'postgresql';
         }
       }
     } catch (e) {
-      console.error('PostgreSQL init failed, using JSON file:', e.message);
+      databaseError = e.message;
+      databaseState = 'error';
+      console.error('PostgreSQL init failed:', e.message);
     }
     if (!loaded) {
+      // When production has a database configured, never silently serve the
+      // initial/local snapshot after a connection failure. That is what made
+      // the dashboard look like it had lost all apartments.
+      if (hasConfiguredDatabase && !pgPool) {
+        databaseReady = false;
+        console.error('Server not ready - PostgreSQL is configured but unavailable.');
+        return;
+      }
       loadData();
       if (pgPool) {
         // Seed Aiven from the local snapshot ONLY when it actually contains
@@ -3871,9 +3921,14 @@ app.use((req, res) => {
         } else {
           console.log('Aiven store empty and no local data to seed; starting fresh.');
         }
+        databaseState = 'postgresql';
+      } else {
+        databaseState = 'file-mode';
       }
     }
-    console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode'));
+    databaseReady = true;
+    databaseLoadedAt = new Date().toISOString();
+    console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode') + `; apartments: ${Array.isArray(db.apartments) ? db.apartments.length : 0}`);
 
     // Check when the service starts and then once an hour. The log prevents a
     // deployment restart from sending the same scheduled reminder twice.
