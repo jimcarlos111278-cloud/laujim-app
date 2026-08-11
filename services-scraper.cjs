@@ -1131,6 +1131,53 @@ async function executePortalTurnstile(page) {
   }).catch(() => false);
 }
 
+async function submitPortalLoginForm(page, {
+  provider,
+  username,
+  password,
+  emailSelectors,
+  passwordSelectors,
+  authState,
+}) {
+  await typeVisibleField(page, emailSelectors, username, 30000);
+  await typeVisibleField(page, passwordSelectors, password, 30000);
+
+  let submitted = false;
+  for (let attempt = 1; attempt <= 2 && !submitted; attempt += 1) {
+    try {
+      submitted = await page.evaluate(() => {
+        const form = document.querySelector('form');
+        if (form) {
+          if (typeof form.requestSubmit === 'function') form.requestSubmit();
+          else form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+          return true;
+        }
+        const button = [...document.querySelectorAll('button, input[type="submit"]')]
+          .find(element => !element.disabled && (element.type === 'submit' || /iniciar|ingresar|login|entrar/i.test(element.innerText || element.value || '')));
+        if (!button) return false;
+        button.click();
+        return true;
+      });
+    } catch (error) {
+      if (attempt >= 2 || !/detached|execution context|target closed/i.test(String(error?.message || error))) throw error;
+      await sleep(1500);
+    }
+  }
+  if (!submitted) throw new Error(`No se pudo enviar el formulario de inicio de sesiÃ³n de ${provider}.`);
+
+  const deadline = Date.now() + PORTAL_AUTH_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (authState?.done) {
+      if (!authState.ok) throw new Error(`${provider} rechazÃ³ el inicio de sesiÃ³n (HTTP ${authState.status || 'sin respuesta'}).`);
+      return true;
+    }
+    if (!(await visibleSelectorExists(page, passwordSelectors))) return true;
+    await sleep(1000);
+  }
+  if (authState?.ok) return true;
+  throw new Error(`${provider} no confirmÃ³ el inicio de sesiÃ³n dentro del tiempo permitido.`);
+}
+
 async function loginTripleAWithPortalApi(page, credentials, captchaSolver) {
   await executePortalTurnstile(page);
   if (captchaSolver) await captchaSolver.waitForSolved(60000);
@@ -1287,7 +1334,9 @@ async function scrapeTripleAAccount() {
   let page;
   let subscriptionPayload = null;
   let captureSubscriptions;
+  let captureAuthResponse;
   let captchaSolver;
+  const authState = { done: false, ok: false, status: 0 };
   try {
     lastWaterScrapeError = null;
     const credentials = getPortalCredentials('triple-a');
@@ -1307,7 +1356,22 @@ async function scrapeTripleAAccount() {
         })
         .catch(() => {});
     };
+    captureAuthResponse = response => {
+      if (!/\/api\/auth\/callback\/credentials(?:[/?#]|$)/i.test(response.url())) return;
+      authState.status = response.status();
+      responseTextWithTimeout(response, PORTAL_RESPONSE_TIMEOUT_MS)
+        .then(body => {
+          const payload = parsePortalResponseBody(body) || {};
+          authState.done = true;
+          authState.ok = response.status() >= 200 && response.status() < 300 && !payload.error;
+        })
+        .catch(() => {
+          authState.done = true;
+          authState.ok = response.status() >= 200 && response.status() < 300;
+        });
+    };
     page.on?.('response', captureSubscriptions);
+    page.on?.('response', captureAuthResponse);
 
     await gotoPortalPage(page, TRIPLE_A_URLS.login, {
       waitUntil: 'domcontentloaded',
@@ -1334,7 +1398,14 @@ async function scrapeTripleAAccount() {
     let authenticatedByLogin = false;
     let loginError = null;
     try {
-      authenticatedByLogin = await loginTripleAWithPortalApi(page, credentials, captchaSolver);
+      authenticatedByLogin = await submitPortalLoginForm(page, {
+        provider: 'Triple A',
+        username: credentials.username,
+        password: credentials.password,
+        emailSelectors: tripleEmailSelectors,
+        passwordSelectors: triplePasswordSelectors,
+        authState,
+      });
     } catch (error) {
       loginError = error;
       console.warn(`[TRIPLE A] El login visual no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
@@ -1404,6 +1475,7 @@ async function scrapeTripleAAccount() {
     return [];
   } finally {
     if (page && captureSubscriptions) page.off?.('response', captureSubscriptions);
+    if (page && captureAuthResponse) page.off?.('response', captureAuthResponse);
     if (captchaSolver) await captchaSolver.close();
     if (browser) await closeWaterBrowser(browser);
   }
@@ -1766,7 +1838,9 @@ async function scrapeGasAccount() {
   let authHeader = null;
   let captureContracts;
   let captureAuth;
+  let captureLoginResponse;
   let captchaSolver;
+  const authState = { done: false, ok: false, status: 0 };
   try {
     lastGasScrapeError = null;
     const credentials = getPortalCredentials('gascaribe');
@@ -1799,8 +1873,28 @@ async function scrapeGasAccount() {
         })
         .catch(() => {});
     };
+    captureLoginResponse = response => {
+      const responseUrl = response.url();
+      let pathname = '';
+      try { pathname = new URL(responseUrl).pathname; } catch {}
+      if (!/pagosweb-production-api\.innovacion-gascaribe\.com/i.test(responseUrl) || !/\/login\/?$/i.test(pathname)) return;
+      authState.status = response.status();
+      responseTextWithTimeout(response, GAS_RESPONSE_TIMEOUT_MS)
+        .then(body => {
+          const payload = parsePortalResponseBody(body) || {};
+          const token = portalFieldValue(payload, ['token', 'appToken', 'accessToken', 'authorization', 'jwt']);
+          if (!authHeader && token) authHeader = /^Bearer\s/i.test(String(token)) ? String(token) : `Bearer ${token}`;
+          authState.done = true;
+          authState.ok = response.status() >= 200 && response.status() < 300;
+        })
+        .catch(() => {
+          authState.done = true;
+          authState.ok = response.status() >= 200 && response.status() < 300;
+        });
+    };
     page.on?.('request', captureAuth);
     page.on?.('response', captureContracts);
+    page.on?.('response', captureLoginResponse);
 
     await gotoPortalPage(page, GAS_PORTAL_URLS.login, {
       waitUntil: 'domcontentloaded',
@@ -1828,10 +1922,14 @@ async function scrapeGasAccount() {
     let authenticatedByLogin = false;
     let loginError = null;
     try {
-      // The public portal client posts this exact login request. Using it
-      // directly avoids the stale React button/Turnstile iframe transition.
-      const loginResult = await loginGasWithPortalApi(page, credentials, captchaSolver);
-      authHeader = loginResult.authHeader || authHeader;
+      await submitPortalLoginForm(page, {
+        provider: 'Gases del Caribe',
+        username: credentials.username,
+        password: credentials.password,
+        emailSelectors,
+        passwordSelectors,
+        authState,
+      });
       authenticatedByLogin = true;
     } catch (error) {
       loginError = error;
@@ -1931,6 +2029,7 @@ async function scrapeGasAccount() {
   } finally {
     if (page && captureAuth) page.off?.('request', captureAuth);
     if (page && captureContracts) page.off?.('response', captureContracts);
+    if (page && captureLoginResponse) page.off?.('response', captureLoginResponse);
     if (captchaSolver) await captchaSolver.close();
     if (browser) await closeWaterBrowser(browser);
   }
