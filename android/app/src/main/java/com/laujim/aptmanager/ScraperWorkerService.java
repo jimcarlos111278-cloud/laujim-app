@@ -17,6 +17,8 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 
 import androidx.core.app.NotificationCompat;
 
@@ -66,6 +68,9 @@ public class ScraperWorkerService extends Service {
     private final Object javascriptResultLock = new Object();
     private CompletableFuture<String> javascriptResult;
     private String runnerScript;
+    // Provider portals keep bearer tokens in JavaScript memory. Capture the
+    // authorization header inside this phone WebView for the local runner.
+    private volatile String nativeAuthorization = "";
 
     @Override
     public void onCreate() {
@@ -92,6 +97,15 @@ public class ScraperWorkerService extends Service {
         webView.addJavascriptInterface(new JavascriptResultBridge(), "LaujimAndroidBridge");
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                captureAuthorization(
+                    request == null || request.getUrl() == null ? null : request.getUrl().toString(),
+                    request == null ? null : request.getRequestHeaders()
+                );
+                return super.shouldInterceptRequest(view, request);
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 CompletableFuture<Boolean> ready = pageReady;
@@ -150,6 +164,7 @@ public class ScraperWorkerService extends Service {
             for (int index = 0; index < providers.length(); index += 1) {
                 String provider = providers.optString(index, "").trim().toLowerCase();
                 if (!provider.equals("air-e") && !provider.equals("water") && !provider.equals("gas")) continue;
+                nativeAuthorization = "";
                 ScraperWorkerStore.setCurrentProvider(this, provider);
                 updateNotification("Consultando " + providerLabel(provider) + " en el teléfono…", provider);
                 ScraperWorkerStore.setRunState(this, "running-" + provider, "");
@@ -244,6 +259,21 @@ public class ScraperWorkerService extends Service {
         return outcome == null ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.") : outcome;
     }
 
+    private void captureAuthorization(String url, java.util.Map<String, String> headers) {
+        if (url == null || headers == null) return;
+        String lowerUrl = url.toLowerCase();
+        if (!lowerUrl.contains("portal.aaa.com.co")
+            && !lowerUrl.contains("gascaribe")
+            && !lowerUrl.contains("innovacion-gascaribe.com")) return;
+        for (java.util.Map.Entry<String, String> entry : headers.entrySet()) {
+            if (entry.getKey() != null && "authorization".equalsIgnoreCase(entry.getKey())
+                && entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+                nativeAuthorization = entry.getValue().trim();
+                return;
+            }
+        }
+    }
+
     private JSONArray failureRecords(String provider, JSONObject config, JSONObject outcome, String message) throws JSONException {
         JSONArray records = new JSONArray();
         JSONArray apartments = config == null ? null : config.optJSONArray("apartments");
@@ -300,7 +330,8 @@ public class ScraperWorkerService extends Service {
             javascriptResult = result;
         }
         String configJson = config.toString();
-        String expression = "(async()=>{try{" + runnerScript + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');const outcome=await window.LaujimLocalPortalScraper.run(" + quote(provider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(provider) + ",message:String(e&&e.message||e),results:[]}));}})();";
+        String nativeAuthorizationJson = quote(nativeAuthorization);
+        String expression = "(async()=>{try{window.__LaujimNativeAuthorization=" + nativeAuthorizationJson + ";" + runnerScript + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');const outcome=await window.LaujimLocalPortalScraper.run(" + quote(provider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(provider) + ",message:String(e&&e.message||e),results:[]}));}})();";
         mainHandler.postDelayed(() -> {
             if (webView == null) {
                 result.completeExceptionally(new IllegalStateException("WebView local no inicializado."));

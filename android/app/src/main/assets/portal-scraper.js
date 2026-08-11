@@ -25,7 +25,9 @@
 
   function apartmentNumber(value) {
     const text = String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, ' ');
-    const explicit = text.match(/(?:apto|apartamento|unidad|unit|inmueble)\s*#?\s*([1-9]\d{2})\b/i);
+    const floorUnit = text.match(/\b([1-5])\s*[-/]\s*(\d{1,2})\b/);
+    if (floorUnit) return `${floorUnit[1]}${String(floorUnit[2]).padStart(2, '0')}`;
+    const explicit = text.match(/(?:ap|apto|apartamento|unidad|unit|inmueble|casa)\s*#?\s*([1-9]\d{2})\b/i);
     if (explicit) return explicit[1];
     const exact = text.trim().match(/^([1-9]\d{2})$/);
     if (exact) return exact[1];
@@ -110,15 +112,37 @@
     return result;
   }
 
-  function targetMatch(target, record, provider) {
+  function targetMatchScore(target, record, provider) {
     const values = allStrings(record).map(value => ({ raw: value, normalized: clean(value), digits: digits(value) }));
     const code = provider === 'air-e' ? target.electricityPaymentCode : provider === 'water' ? target.waterPaymentCode : target.gasPaymentCode;
     const codeDigits = digits(code);
-    if (codeDigits && values.some(value => value.digits === codeDigits)) return true;
     const number = apartmentNumber(target.name);
-    if (number && values.some(value => apartmentNumber(value.raw) === number)) return true;
     const name = clean(target.name);
-    return !!name && values.some(value => value.normalized === name);
+    const codeMatch = !!codeDigits && values.some(value => value.digits === codeDigits);
+    const numberMatch = !!number && values.some(value => apartmentNumber(value.raw) === number);
+    const nameMatch = !!name && values.some(value => value.normalized === name);
+
+    // The portal's apartment label is authoritative. Payment codes can be
+    // stale or reassigned; using them first caused AP 401 to be stored under
+    // apartment 203 when both records shared an old policy number.
+    if (nameMatch) return 300;
+    if (numberMatch) return 200;
+    if (codeMatch) return 100;
+    return 0;
+  }
+
+  function bestTargetMatch(apartments, record, provider, used) {
+    let best = null;
+    let bestScore = 0;
+    for (const target of apartments || []) {
+      if (used && used.has(String(target.id || target.name))) continue;
+      const score = targetMatchScore(target, record, provider);
+      if (score > bestScore) {
+        best = target;
+        bestScore = score;
+      }
+    }
+    return best;
   }
 
   function parseAmount(value) {
@@ -211,6 +235,8 @@
   }
 
   function storedToken() {
+    const nativeToken = String(window.__LaujimNativeAuthorization || '').trim();
+    if (nativeToken) return nativeToken;
     const candidates = [];
     for (const store of [localStorage, typeof sessionStorage !== 'undefined' ? sessionStorage : null]) {
       if (!store) continue;
@@ -289,7 +315,7 @@
     if (state.challenge) return { state: 'needs_verification', provider: 'water', message: 'Triple A muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
     const token = storedToken();
     const response = await jsonWithAuthFallback('/bff/subscriptions', token, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'x-app-version': 'unknown' },
     });
     if (response.status === 401 || response.status === 403) return needsLogin('water', `Triple A rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`);
     if (!response.ok) return { state: 'error', provider: 'water', message: `Triple A rechazó la consulta (HTTP ${response.status}).`, results: [] };
@@ -298,7 +324,7 @@
     const results = [];
     const used = new Set();
     for (const subscription of subscriptions) {
-      const target = (config.apartments || []).find(item => !used.has(String(item.id || item.name)) && targetMatch(item, subscription, 'water'));
+      const target = bestTargetMatch(config.apartments || [], subscription, 'water', used);
       if (!target) continue;
       used.add(String(target.id || target.name));
       const rawAmount = field(subscription, ['pendingValue', 'pendingAmount', 'debt', 'deudaTotal', 'totalDebt', 'amountDue', 'totalDue', 'balanceDue', 'saldoTotal', 'saldoPendiente', 'total', 'amount', 'balance', 'saldo']);
@@ -333,14 +359,26 @@
     const results = [];
     const used = new Set();
     let invoiceFailures = 0;
+    let matchedContracts = 0;
+    let unmatchedContracts = 0;
+    let missingContractIds = 0;
+    const invoiceFailureDetails = [];
     for (const contract of contracts) {
-      const target = (config.apartments || []).find(item => !used.has(String(item.id || item.name)) && targetMatch(item, contract, 'gas'));
-      if (!target) continue;
+      const target = bestTargetMatch(config.apartments || [], contract, 'gas', used);
+      if (!target) {
+        unmatchedContracts += 1;
+        continue;
+      }
+      matchedContracts += 1;
       const contractId = field(contract, ['contractId', 'contractNumber', 'id', 'number']);
-      if (!contractId) continue;
+      if (!contractId) {
+        missingContractIds += 1;
+        continue;
+      }
       const invoiceResponse = await jsonWithAuthFallback(`${GAS_API}/invoices/${encodeURIComponent(contractId)}`, auth, { credentials: 'omit' });
       if (!invoiceResponse.ok) {
         invoiceFailures += 1;
+        invoiceFailureDetails.push(invoiceResponse.status ? `HTTP ${invoiceResponse.status}` : 'sin respuesta del endpoint de facturas');
         continue;
       }
       const invoices = list(invoiceResponse.payload, ['invoices', 'items']);
@@ -366,9 +404,35 @@
         periodo: field(unpaid[0] && unpaid[0].invoice, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
       }));
     }
+    if (!results.length && matchedContracts > 0 && (invoiceFailures > 0 || missingContractIds > 0)) {
+      const details = [...new Set(invoiceFailureDetails)].slice(0, 3).join(', ');
+      const suffix = details ? ` Detalle: ${details}.` : '';
+      return {
+        state: 'error',
+        provider: 'gas',
+        message: `Gases del Caribe asociÃ³ ${matchedContracts} contrato(s) con apartamentos, pero no pudo consultar sus facturas (${invoiceFailures} fallo(s), ${missingContractIds} sin identificador).${suffix}`,
+        results: [],
+      };
+    }
+    if (!results.length && matchedContracts === 0) {
+      return {
+        state: 'error',
+        provider: 'gas',
+        message: `Gases del Caribe devolviÃ³ ${contracts.length} contrato(s), pero ninguno coincidiÃ³ con los apartamentos configurados (${unmatchedContracts} sin asociar).`,
+        results: [],
+      };
+    }
     if (!results.length) {
       const reason = invoiceFailures ? ` No se pudieron consultar ${invoiceFailures} contrato(s).` : '';
       return { state: 'error', provider: 'gas', message: `Gases del Caribe devolvió contratos, pero ninguno coincidió con los apartamentos configurados.${reason}`, results: [] };
+    }
+    if (invoiceFailures || missingContractIds || unmatchedContracts) {
+      return {
+        state: 'warning',
+        provider: 'gas',
+        message: `Gases del Caribe obtuvo ${results.length} apartamento(s); quedaron ${invoiceFailures + missingContractIds} contrato(s) sin factura y ${unmatchedContracts} sin asociar.`,
+        results,
+      };
     }
     return { state: 'ok', provider: 'gas', results };
   }

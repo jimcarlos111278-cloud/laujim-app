@@ -1,16 +1,16 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-11)
 
 ## Corpus Check
-- 141 files · ~165,074 words
+- 141 files · ~165,488 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1556 nodes · 3144 edges · 152 communities (111 shown, 41 thin omitted)
+- 1558 nodes · 3147 edges · 152 communities (111 shown, 41 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 54 edges (avg confidence: 0.52)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ec15911c`
+- Built from commit: `5901026e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -117,7 +117,7 @@
 - jspdf
 - react
 - @capacitor/core
-- pg
+- @capacitor/android
 - multer
 - @sparticuz/chromium
 - Worker portatil de servicios
@@ -133,7 +133,7 @@
 - node-cron
 - portable-worker.cjs
 - Plantilla de WhatsApp: cobro_canon_servicios
-- @capacitor-mlkit/barcode-scanning
+- jsqr
 - dexie
 - jspdf
 - jsqr
@@ -158,8 +158,8 @@
 3. `getBase()` - 35 edges
 4. `handleCloudAdminMessage()` - 33 edges
 5. `handleCloudInbound()` - 29 edges
-6. `react` - 27 edges
-7. `ScraperWorkerService` - 27 edges
+6. `ScraperWorkerService` - 28 edges
+7. `react` - 27 edges
 8. `scrapeGasAccount()` - 27 edges
 9. `saveData()` - 26 edges
 10. `handleCloudInbound()` - 25 edges
@@ -191,7 +191,7 @@ Nodes (37): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), Payment
 
 ### Community 2 - ".status"
 Cohesion: 0.11
-Nodes (16): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, AuthorizedCallerScreeningService (+8 more)
+Nodes (15): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, AuthorizedCallerScreeningService (+7 more)
 
 ### Community 3 - "server.cjs"
 Cohesion: 0.05
@@ -215,7 +215,7 @@ Nodes (21): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudG
 
 ### Community 8 - "dependencies"
 Cohesion: 0.12
-Nodes (17): @aws-sdk/client-s3, @capacitor/android, cors, dexie, express, jsqr, dependencies, @aws-sdk/client-s3 (+9 more)
+Nodes (17): @aws-sdk/client-s3, @capacitor/android, cors, dexie, express, dependencies, @aws-sdk/client-s3, @capacitor/android (+9 more)
 
 ### Community 9 - "saveData"
 Cohesion: 0.24
@@ -223,7 +223,7 @@ Nodes (11): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getA
 
 ### Community 10 - "dependencies"
 Cohesion: 0.11
-Nodes (19): dependencies, @capacitor/android, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, express, pg, qrcode (+11 more)
+Nodes (19): dependencies, @capacitor/cli, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share, express, pg, qrcode (+11 more)
 
 ### Community 11 - "api.js"
 Cohesion: 0.14
@@ -234,8 +234,8 @@ Cohesion: 0.22
 Nodes (21): addCloudMessage(), authorizedCloudContact(), blockCloudUser(), clearCloudAuthState(), cloudInboundMedia(), cloudInteractiveReply(), ensureCloudCollections(), failCloudAuthentication() (+13 more)
 
 ### Community 13 - "BroadcastReceiver"
-Cohesion: 0.10
-Nodes (21): AuthorizedMmsReceiver, Context, Intent, Override, AuthorizedSmsReceiver, Context, Intent, Override (+13 more)
+Cohesion: 0.12
+Nodes (17): AuthorizedMmsReceiver, Context, Intent, Override, AuthorizedSmsReceiver, Context, Intent, Override (+9 more)
 
 ### Community 14 - "content-facebook.js"
 Cohesion: 0.25
@@ -326,8 +326,8 @@ Cohesion: 0.50
 Nodes (3): plugin, $schema, .opencode/plugins/graphify.js
 
 ### Community 39 - "portal-scraper.js"
-Cohesion: 0.25
-Nodes (20): allStrings(), apartmentNumber(), authorizationVariants(), clean(), digits(), field(), json(), jsonWithAuthFallback() (+12 more)
+Cohesion: 0.24
+Nodes (21): allStrings(), apartmentNumber(), authorizationVariants(), bestTargetMatch(), clean(), digits(), field(), json() (+13 more)
 
 ### Community 40 - "react"
 Cohesion: 0.23
@@ -414,8 +414,8 @@ Cohesion: 0.83
 Nodes (3): gradlew script, die(), warn()
 
 ### Community 64 - "ScraperWorkerService"
-Cohesion: 0.06
-Nodes (28): IBinder, Intent, Override, RespondViaMessageService, Context, ScraperWorkerAlarm, CapacitorPlugin, JSObject (+20 more)
+Cohesion: 0.05
+Nodes (33): AuthorizedSmsStore, Context, JSONArray, SharedPreferences, IBinder, Intent, Override, RespondViaMessageService (+25 more)
 
 ### Community 66 - "Extensión de Chrome — Llenar Laujim"
 Cohesion: 0.12
@@ -534,7 +534,7 @@ Cohesion: 0.18
 Nodes (12): BROWSERLESS_PROFILES, browserlessEndpointCandidates(), browserlessEndpointFor(), configuredAirETargets(), contractFromAirEResources(), firstExistingPath(), getAirECredentials(), gotoPortalPage() (+4 more)
 
 ### Community 127 - "PortalBrowserActivity"
-Cohesion: 0.30
+Cohesion: 0.27
 Nodes (6): Activity, Bundle, Override, WebView, PortalBrowserActivity, TextView
 
 ### Community 128 - "Plantillas de WhatsApp Cloud de Laujim"
@@ -569,17 +569,17 @@ Nodes (10): callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreenin
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
+- **Why does `dependencies` connect `dependencies` to `node-cron`, `jsqr`, `@capacitor-mlkit/barcode-scanning`, `@capacitor/cli`, `scripts`, `@capacitor/core`, `@capacitor/share`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `@capacitor/filesystem`, `puppeteer-core`, `jspdf`, `react`, `multer`, `@sparticuz/chromium`, `lucide-react`, `@capacitor/local-notifications`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **Why does `jspdf` connect `jspdf` to `dependencies`, `contractGenerator.js`, `ApartmentDetail.jsx`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `dependencies` connect `dependencies` to `node-cron`, `@capacitor-mlkit/barcode-scanning`, `@capacitor/cli`, `scripts`, `@capacitor/core`, `@capacitor/share`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `@capacitor/filesystem`, `puppeteer-core`, `jspdf`, `react`, `pg`, `multer`, `@sparticuz/chromium`, `lucide-react`, `@capacitor/local-notifications`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `generateApartmentPDF()` connect `ApartmentDetail.jsx` to `jspdf`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `portalFieldValue()` connect `scrapeGasAccount` to `matchPortalApartmentForService`, `portal-scraper.js`, `services-scraper.cjs`?**
   _High betweenness centrality (0.012) - this node is a cross-community bridge._
 - **What connects `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES` to the rest of the system?**
   _496 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ApartmentDetail.jsx` be split into smaller, more focused modules?**
   _Cohesion score 0.08701298701298701 - nodes in this community are weakly interconnected._
 - **Should `.status` be split into smaller, more focused modules?**
-  _Cohesion score 0.10904255319148937 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11193339500462535 - nodes in this community are weakly interconnected._
 - **Should `server.cjs` be split into smaller, more focused modules?**
   _Cohesion score 0.05142857142857143 - nodes in this community are weakly interconnected._
