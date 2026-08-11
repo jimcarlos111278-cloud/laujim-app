@@ -369,11 +369,14 @@ async function gotoPortalPage(page, url, options = {}, provider = 'Portal') {
 }
 
 async function recreatePortalPage(browser, oldPage, oldCaptchaSolver, provider) {
-  if (oldCaptchaSolver) await oldCaptchaSolver.close().catch(() => {});
-  await oldPage?.close?.().catch(() => {});
+  // Create the replacement first. Browserless may close the remote session
+  // when the last page is closed while Turnstile is replacing its iframe.
+  // Opening first preserves the browser connection and its cookies.
   const page = await browser.newPage();
   page.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
   const captchaSolver = await attachBrowserlessCaptchaSolver(page, provider);
+  if (oldCaptchaSolver) await oldCaptchaSolver.close().catch(() => {});
+  await oldPage?.close?.().catch(() => {});
   return { page, captchaSolver };
 }
 
@@ -1051,6 +1054,148 @@ async function fetchPortalJson(page, url, headers = {}) {
   }));
 }
 
+async function requestPortalJson(page, url, {
+  method = 'GET',
+  headers = {},
+  body = null,
+} = {}) {
+  if (typeof page?.evaluate !== 'function') return { status: 0, body: '', error: 'PÃ¡gina sin contexto JavaScript.' };
+  return page.evaluate(async ({ requestUrl, requestMethod, requestHeaders, requestBody }) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(requestUrl, {
+        method: requestMethod,
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+          ...(requestBody ? { 'Content-Type': 'application/json' } : {}),
+          ...requestHeaders,
+        },
+        ...(requestBody ? { body: JSON.stringify(requestBody) } : {}),
+        signal: controller.signal,
+      });
+      return { status: response.status, body: await response.text() };
+    } finally {
+      clearTimeout(timer);
+    }
+  }, {
+    requestUrl: url,
+    requestMethod: method,
+    requestHeaders: headers,
+    requestBody: body,
+  }).catch(error => ({ status: 0, body: '', error: error.message }));
+}
+
+async function readPortalTurnstileToken(page) {
+  if (typeof page?.evaluate !== 'function') return '';
+  return page.evaluate(() => {
+    const input = [...document.querySelectorAll('input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]')]
+      .find(element => String(element.value || element.textContent || '').trim());
+    if (input) return String(input.value || input.textContent || '').trim();
+    try {
+      const value = window.turnstile?.getResponse?.();
+      return typeof value === 'string' ? value.trim() : '';
+    } catch {
+      return '';
+    }
+  }).catch(() => '');
+}
+
+async function loginTripleAWithPortalApi(page, credentials, captchaSolver) {
+  if (captchaSolver) await captchaSolver.waitForSolved(60000);
+  const challenge = await waitForPortalTurnstile(page, 60000);
+  if (challenge?.hasTurnstile && !challenge.turnstileToken) {
+    throw new Error('Triple A mantiene Turnstile visible despuÃ©s de esperar a Browserless.');
+  }
+
+  let lastResult = null;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const token = await readPortalTurnstileToken(page);
+    if (!token) {
+      if (captchaSolver) await captchaSolver.waitForSolved(30000);
+      await sleep(1000);
+      continue;
+    }
+    const result = await page.evaluate(async ({ email, password, recaptchaToken }) => {
+      const csrfResponse = await fetch('/api/auth/csrf', { credentials: 'include' });
+      const csrfPayload = await csrfResponse.json().catch(() => ({}));
+      const form = new URLSearchParams({
+        csrfToken: String(csrfPayload.csrfToken || ''),
+        callbackUrl: '/inicio',
+        json: 'true',
+        email: String(email || ''),
+        password: String(password || ''),
+        recaptchaToken: String(recaptchaToken || ''),
+      });
+      const response = await fetch('/api/auth/callback/credentials', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form,
+      });
+      const payload = await response.json().catch(() => ({}));
+      return {
+        status: response.status,
+        ok: response.ok && payload?.error == null,
+        error: payload?.error || null,
+        hasCsrf: Boolean(csrfPayload.csrfToken),
+        hasUrl: Boolean(payload?.url),
+      };
+    }, {
+      email: credentials.username,
+      password: credentials.password,
+      recaptchaToken: token,
+    }).catch(error => ({ status: 0, ok: false, error: error.message }));
+    lastResult = result;
+    console.log(`[TRIPLE A] Login API intento ${attempt}: HTTP ${result.status || 'sin respuesta'}; sesiÃ³n ${result.ok ? 'aceptada' : 'no confirmada'}.`);
+    if (result.ok) return true;
+    await sleep(1500);
+  }
+  throw new Error(`Triple A rechazÃ³ el inicio de sesiÃ³n por API (HTTP ${lastResult?.status || 'sin respuesta'}${lastResult?.error ? `: ${lastResult.error}` : ''}).`);
+}
+
+async function loginGasWithPortalApi(page, credentials, captchaSolver) {
+  if (captchaSolver) await captchaSolver.waitForSolved(60000);
+  const challenge = await waitForPortalTurnstile(page, 60000);
+  if (challenge?.hasTurnstile && !challenge.turnstileToken) {
+    throw new Error('Gases del Caribe mantiene Turnstile visible despuÃ©s de esperar a Browserless.');
+  }
+  let token = await readPortalTurnstileToken(page);
+  if (!token && captchaSolver) {
+    await captchaSolver.waitForSolved(30000);
+    token = await readPortalTurnstileToken(page);
+  }
+  if (!token) throw new Error('Gases del Caribe no entregÃ³ el token de Turnstile.');
+
+  const loginResponse = await page.evaluate(async ({ apiUrl, email, password, captchaToken }) => {
+    const url = `${apiUrl}/login?g-recaptcha-response=${encodeURIComponent(captchaToken)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    return { status: response.status, body: await response.text() };
+  }, {
+    apiUrl: GAS_API_BASE,
+    email: credentials.username,
+    password: credentials.password,
+    captchaToken: token,
+  }).catch(error => ({ status: 0, body: '', error: error.message }));
+
+  const payload = parsePortalResponseBody(loginResponse.body);
+  const tokenValue = portalFieldValue(payload, ['token', 'accessToken', 'authorization', 'jwt']);
+  const authHeader = tokenValue
+    ? (/^Bearer\s/i.test(String(tokenValue)) ? String(tokenValue) : `Bearer ${tokenValue}`)
+    : null;
+  console.log(`[GAS] Login API: HTTP ${loginResponse.status || 'sin respuesta'}; sesiÃ³n ${loginResponse.status >= 200 && loginResponse.status < 300 ? 'aceptada' : 'no confirmada'}.`);
+  if (loginResponse.status < 200 || loginResponse.status >= 300) {
+    throw new Error(`Gases del Caribe rechazÃ³ el inicio de sesiÃ³n por API (HTTP ${loginResponse.status || 'sin respuesta'}).`);
+  }
+  return { payload, authHeader };
+}
+
 function tripleAStatusValue(subscription) {
   const raw = portalFieldValue(subscription, ['status', 'state', 'paymentStatus']);
   if (raw && typeof raw === 'object') {
@@ -1155,16 +1300,7 @@ async function scrapeTripleAAccount() {
     let authenticatedByLogin = false;
     let loginError = null;
     try {
-      authenticatedByLogin = await loginPortalPage(page, {
-      provider: 'Triple A',
-      username: credentials.username,
-      password: credentials.password,
-      emailSelectors: tripleEmailSelectors,
-      passwordSelectors: triplePasswordSelectors,
-      submitSelectors: ['button[type="submit"]', 'button'],
-      captchaSolver,
-      turnstileError: 'Triple A mantiene Turnstile visible después de esperar a Browserless.',
-    });
+      authenticatedByLogin = await loginTripleAWithPortalApi(page, credentials, captchaSolver);
     } catch (error) {
       loginError = error;
       console.warn(`[TRIPLE A] El login visual no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
@@ -1172,31 +1308,6 @@ async function scrapeTripleAAccount() {
     if (!authenticatedByLogin) {
       console.log('[TRIPLE A] La sesión ya estaba autenticada; se reutiliza el portal global.');
     }
-
-    if (false && await visibleSelectorExists(page, triplePasswordSelectors)) {
-      console.error('[TRIPLE A] Diagnóstico de login:', JSON.stringify(await portalLoginDiagnostic(page)));
-      throw new Error('Triple A no completó el inicio de sesión.');
-    }
-
-    try {
-      await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
-        waitUntil: 'domcontentloaded',
-        timeout: PORTAL_AUTH_TIMEOUT_MS,
-      }, 'Triple A');
-    } catch (error) {
-      if (!/detached|target closed|execution context/i.test(String(error?.message || error))) throw error;
-      console.warn(`[TRIPLE A] Se reinicia la pestaÃ±a tras el reto de seguridad: ${error.message}`);
-      const recovered = await recreatePortalPage(browser, page, captchaSolver, 'Triple A');
-      page = recovered.page;
-      captchaSolver = recovered.captchaSolver;
-      page.on?.('response', captureSubscriptions);
-      await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
-        waitUntil: 'domcontentloaded',
-        timeout: PORTAL_AUTH_TIMEOUT_MS,
-      }, 'Triple A');
-    }
-    const dataDeadline = Date.now() + PORTAL_DATA_TIMEOUT_MS;
-    while (!subscriptionPayload && Date.now() < dataDeadline) await sleep(1000);
 
     // If the React page did not issue the request again (for example after a
     // cached navigation), ask the same authenticated browser session directly.
@@ -1683,54 +1794,25 @@ async function scrapeGasAccount() {
     let authenticatedByLogin = false;
     let loginError = null;
     try {
-      authenticatedByLogin = await loginPortalPage(page, {
-      provider: 'Gases del Caribe',
-      captchaSolver,
-      username: credentials.username,
-      password: credentials.password,
-      emailSelectors,
-      passwordSelectors,
-      submitSelectors: ['button[type="submit"]', 'button'],
-      turnstileError: 'Gases del Caribe mantiene Turnstile visible después de esperar a Browserless.',
-    });
+      // The public portal client posts this exact login request. Using it
+      // directly avoids the stale React button/Turnstile iframe transition.
+      const loginResult = await loginGasWithPortalApi(page, credentials, captchaSolver);
+      authHeader = loginResult.authHeader || authHeader;
+      authenticatedByLogin = true;
     } catch (error) {
       loginError = error;
-      console.warn(`[GAS] El login visual no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
+      console.warn(`[GAS] El login API no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
     }
     if (!authenticatedByLogin) {
-      console.log('[GAS] La sesión ya estaba autenticada; se reutiliza el portal global.');
+      console.log('[GAS] Se probarÃ¡ la sesiÃ³n existente del portal global.');
     }
 
-    if (false && await visibleSelectorExists(page, passwordSelectors)) {
-      throw new Error('Gases del Caribe no completó el inicio de sesión.');
-    }
-
-    try {
-      await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
-        waitUntil: 'domcontentloaded',
-        timeout: PORTAL_AUTH_TIMEOUT_MS,
-      }, 'Gases del Caribe');
-    } catch (error) {
-      if (!/detached|target closed|execution context/i.test(String(error?.message || error))) throw error;
-      console.warn(`[GAS] Se reinicia la pestaÃ±a tras el reto de seguridad: ${error.message}`);
-      const recovered = await recreatePortalPage(browser, page, captchaSolver, 'Gases del Caribe');
-      page = recovered.page;
-      captchaSolver = recovered.captchaSolver;
-      page.on?.('request', captureAuth);
-      page.on?.('response', captureContracts);
-      await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
-        waitUntil: 'domcontentloaded',
-        timeout: PORTAL_AUTH_TIMEOUT_MS,
-      }, 'Gases del Caribe');
-    }
-    const dataDeadline = Date.now() + PORTAL_DATA_TIMEOUT_MS;
-    while (!contractsPayload && Date.now() < dataDeadline) await sleep(1000);
     for (let attempt = 1; !contractsPayload && attempt <= PORTAL_DATA_ATTEMPTS; attempt += 1) {
       if (attempt > 1) {
         console.warn(`[GAS] La lista global no llegó; reintentando la consulta autenticada (${attempt}/${PORTAL_DATA_ATTEMPTS}).`);
         await sleep(PORTAL_DATA_RETRY_DELAY_MS);
       }
-      const direct = await fetchPortalJson(page, `${GAS_API_BASE}/contracts`);
+      const direct = await fetchPortalJson(page, `${GAS_API_BASE}/contracts`, authHeader ? { Authorization: authHeader } : {});
       if (direct.status >= 200 && direct.status < 300) {
         contractsPayload = parsePortalResponseBody(direct.body);
       } else if (attempt === PORTAL_DATA_ATTEMPTS) {
@@ -1747,7 +1829,7 @@ async function scrapeGasAccount() {
     if (!contracts.length) {
       for (let attempt = 1; attempt <= PORTAL_DATA_ATTEMPTS && !contracts.length; attempt += 1) {
         if (attempt > 1) await sleep(PORTAL_DATA_RETRY_DELAY_MS);
-        const direct = await fetchPortalJson(page, `${GAS_API_BASE}/contracts`);
+        const direct = await fetchPortalJson(page, `${GAS_API_BASE}/contracts`, authHeader ? { Authorization: authHeader } : {});
         if (direct.status < 200 || direct.status >= 300) continue;
         const retryPayload = parsePortalResponseBody(direct.body);
         const retryContracts = unwrapPortalList(retryPayload, ['contracts', 'items']);
