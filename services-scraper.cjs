@@ -1451,6 +1451,16 @@ async function scrapeTripleAAccount() {
     // the authenticated browser context. A direct fetch from a stale login
     // document can otherwise remain pending indefinitely.
     if (authenticatedByLogin) {
+      try {
+        const replacement = await recreatePortalPage(browser, page, captchaSolver, 'Triple A');
+        page = replacement.page;
+        captchaSolver = replacement.captchaSolver;
+        page.on?.('response', captureSubscriptions);
+        page.on?.('response', captureAuthResponse);
+        console.log('[TRIPLE A] Se creó una página nueva conservando la sesión autenticada.');
+      } catch (error) {
+        console.warn('[TRIPLE A] No se pudo recrear la página autenticada; se continuará con la actual:', error.message);
+      }
       await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
         waitUntil: 'domcontentloaded',
         timeout: PORTAL_AUTH_TIMEOUT_MS,
