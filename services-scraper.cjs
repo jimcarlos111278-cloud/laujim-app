@@ -318,7 +318,10 @@ async function attachBrowserlessCaptchaSolver(page, provider) {
   const onFound = event => {
     state.status = String(event?.status || 'found');
     console.log(`[${provider}] Browserless CAPTCHA: ${state.status}.`);
-    if (state.status !== 'found' || typeof cdp.send !== 'function') return;
+    if (state.status === 'solved' || typeof cdp.send !== 'function') return;
+    // Some Browserless accounts emit `solving` without completing the
+    // automatic command. Sending the documented solve command again is
+    // idempotent and wakes that challenge without touching the portal form.
     cdp.send('Browserless.solveCaptcha')
       .then(result => {
         state.solved = Boolean(result?.solved);
@@ -1152,6 +1155,7 @@ async function loginTripleAWithPortalApi(page, credentials, captchaSolver) {
     if (result.ok) return true;
     await sleep(1500);
   }
+  if (!lastResult) throw new Error('Triple A no entregÃ³ un token de Turnstile vÃ¡lido para iniciar sesiÃ³n.');
   throw new Error(`Triple A rechazÃ³ el inicio de sesiÃ³n por API (HTTP ${lastResult?.status || 'sin respuesta'}${lastResult?.error ? `: ${lastResult.error}` : ''}).`);
 }
 
