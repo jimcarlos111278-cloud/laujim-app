@@ -49,6 +49,12 @@ const BROWSERLESS_PROFILES = String(process.env.BROWSERLESS_PROFILES || 'air-e,w
 const BROWSERLESS_SOLVE_CAPTCHAS = /^(1|true|yes)$/i.test(
   process.env.BROWSERLESS_SOLVE_CAPTCHAS || (Object.values(BROWSERLESS_TOKENS).some(Boolean) ? 'true' : ''),
 );
+// If one provider-specific Browserless account is invalid/exhausted, use a
+// configured sibling account as a remote-browser failover. This is still the
+// same portal flow; it never falls back to a payment QR or public link.
+const BROWSERLESS_CROSS_PROVIDER_FAILOVER = !/^(0|false|no)$/i.test(
+  process.env.BROWSERLESS_CROSS_PROVIDER_FAILOVER || 'true',
+);
 // Browserless documents the stealth route as an option for sites that need a
 // stronger fingerprint. Keep the proven base route by default because some
 // current accounts reject /stealth with HTTP 400; Render can opt in with
@@ -244,10 +250,13 @@ function getPortalCredentials(provider) {
 
 // ── BROWSER LAUNCH (Render-compatible) ─────────────────────────────────────
 
-function browserlessEndpointFor(profileName, { stealth = BROWSERLESS_STEALTH } = {}) {
+function browserlessEndpointFor(profileName, {
+  stealth = BROWSERLESS_STEALTH,
+  tokenOverride = null,
+} = {}) {
   const profile = String(profileName || '').trim().toLowerCase();
   if (!BROWSERLESS_PROFILES.includes(profile)) return null;
-  const profileToken = BROWSERLESS_TOKENS[profile] || '';
+  const profileToken = tokenOverride || BROWSERLESS_TOKENS[profile] || '';
   if (!profileToken && !BROWSERLESS_WS_ENDPOINT) return null;
 
   try {
@@ -282,12 +291,43 @@ function browserlessEndpointFor(profileName, { stealth = BROWSERLESS_STEALTH } =
 // stealth route. Keep the same provider token and try the standard route
 // before falling back to the local browser; the scraper remains portal-only.
 function browserlessEndpointCandidates(profileName) {
+  const profile = String(profileName || '').trim().toLowerCase();
+  const providerEnvNames = {
+    'air-e': 'BROWSERLESS_TOKEN_AIR_E',
+    water: 'BROWSERLESS_TOKEN_WATER',
+    gas: 'BROWSERLESS_TOKEN_GAS',
+  };
+  const tokenSources = [];
+  const seenTokens = new Set();
+  const addToken = (source, token) => {
+    const value = String(token || '').trim();
+    if (!value || seenTokens.has(value)) return;
+    seenTokens.add(value);
+    tokenSources.push({ source, token: value });
+  };
+
+  addToken(profile, process.env[providerEnvNames[profile]]);
+  if (BROWSERLESS_CROSS_PROVIDER_FAILOVER) {
+    for (const sibling of ['water', 'air-e', 'gas']) {
+      if (sibling === profile) continue;
+      addToken(sibling, process.env[providerEnvNames[sibling]]);
+    }
+  }
+  addToken('legacy', process.env.BROWSERLESS_TOKEN);
+
   const candidates = [];
-  const preferred = browserlessEndpointFor(profileName, { stealth: BROWSERLESS_STEALTH });
-  if (preferred) candidates.push(preferred);
-  if (BROWSERLESS_STEALTH) {
-    const standard = browserlessEndpointFor(profileName, { stealth: false });
-    if (standard && !candidates.includes(standard)) candidates.push(standard);
+  const routeModes = [BROWSERLESS_STEALTH];
+  if (BROWSERLESS_STEALTH) routeModes.push(false);
+  for (const { source, token } of tokenSources) {
+    for (const stealth of routeModes) {
+      const endpoint = browserlessEndpointFor(profile, { stealth, tokenOverride: token });
+      if (!endpoint || candidates.some(candidate => candidate.endpoint === endpoint)) continue;
+      candidates.push({
+        endpoint,
+        source,
+        route: stealth ? 'stealth' : 'standard',
+      });
+    }
   }
   return candidates;
 }
@@ -295,9 +335,9 @@ function browserlessEndpointCandidates(profileName) {
 async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHROME_ENABLED) {
   const browserlessEndpoints = browserlessEndpointCandidates(profileName);
   for (let index = 0; index < browserlessEndpoints.length; index += 1) {
-    const browserlessEndpoint = browserlessEndpoints[index];
-    const route = /\/stealth(?:\/?$)/i.test(browserlessEndpoint) ? 'stealth' : 'standard';
-    console.log(`[BROWSERLESS] Connecting remote browser for ${profileName} (${route})...`);
+    const candidate = browserlessEndpoints[index];
+    const browserlessEndpoint = candidate.endpoint;
+    console.log(`[BROWSERLESS] Connecting remote browser for ${profileName} (${candidate.source} token, ${candidate.route})...`);
     try {
       return await puppeteer.connect({
         browserWSEndpoint: browserlessEndpoint,
@@ -305,9 +345,9 @@ async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHRO
       });
     } catch (error) {
       const next = index + 1 < browserlessEndpoints.length
-        ? 'trying the standard route'
+        ? `trying ${browserlessEndpoints[index + 1].source} token/${browserlessEndpoints[index + 1].route}`
         : 'falling back to local browser';
-      console.error(`[BROWSERLESS] ${profileName} ${route} connection failed; ${next}:`, error.message);
+      console.error(`[BROWSERLESS] ${profileName} ${candidate.source} token/${candidate.route} connection failed; ${next}:`, error.message);
     }
   }
 
@@ -1366,7 +1406,7 @@ async function scrapeTripleAAccount() {
   try {
     lastWaterScrapeError = null;
     const credentials = getPortalCredentials('triple-a');
-    const browserless = Boolean(browserlessEndpointFor('water'));
+    const browserless = browserlessEndpointCandidates('water').length > 0;
     console.log(`[TRIPLE A] Portal global: iniciando sesión (${browserless ? 'Browserless remoto' : 'Chromium local'}).`);
     browser = await launchBrowser('water');
     page = await browser.newPage();
@@ -1444,7 +1484,13 @@ async function scrapeTripleAAccount() {
         passwordSelectors: triplePasswordSelectors,
         authState,
         prepareSubmit: async () => {
-          const executed = await executePortalTurnstile(page);
+          const executed = await executePortalTurnstile(page).catch(error => {
+            if (/detached|execution context|target closed|connection closed/i.test(String(error?.message || error))) {
+              console.warn('[TRIPLE A] Turnstile cambió el contexto; se esperará el estado del navegador.');
+              return false;
+            }
+            throw error;
+          });
           if (executed) console.log('[TRIPLE A] Turnstile preparado antes de enviar el formulario.');
           if (captchaSolver) await captchaSolver.waitForSolved(60000);
           await sleep(500);
@@ -1453,6 +1499,45 @@ async function scrapeTripleAAccount() {
     } catch (error) {
       loginError = error;
       console.warn(`[TRIPLE A] El login visual no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
+    }
+    if (!authenticatedByLogin && loginError && /detached|execution context|target closed|connection closed|captcha|turnstile|HTTP (?:401|422)/i.test(String(loginError.message || loginError))) {
+      for (let retry = 2; retry <= PORTAL_LOGIN_ATTEMPTS && !authenticatedByLogin; retry += 1) {
+        try {
+          const oldPage = page;
+          const oldSolver = captchaSolver;
+          const retryPage = await browser.newPage();
+          retryPage.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
+          retryPage.on?.('response', captureSubscriptions);
+          retryPage.on?.('response', captureAuthResponse);
+          page = retryPage;
+          captchaSolver = await attachBrowserlessCaptchaSolver(page, 'Triple A');
+          if (oldSolver) await oldSolver.close().catch(() => {});
+          await oldPage?.close?.().catch?.(() => {});
+          authState.done = false;
+          authState.ok = false;
+          authState.status = 0;
+          await gotoPortalPage(page, TRIPLE_A_URLS.login, {
+            waitUntil: 'domcontentloaded',
+            timeout: PORTAL_AUTH_TIMEOUT_MS,
+          }, 'Triple A');
+          authenticatedByLogin = await submitPortalLoginForm(page, {
+            provider: 'Triple A',
+            username: credentials.username,
+            password: credentials.password,
+            emailSelectors: tripleEmailSelectors,
+            passwordSelectors: triplePasswordSelectors,
+            authState,
+            prepareSubmit: async () => {
+              await executePortalTurnstile(page);
+              if (captchaSolver) await captchaSolver.waitForSolved(60000);
+              await sleep(500);
+            },
+          });
+        } catch (error) {
+          loginError = error;
+          console.warn(`[TRIPLE A] Reintento de login ${retry}/${PORTAL_LOGIN_ATTEMPTS}: ${error.message}`);
+        }
+      }
     }
     if (!authenticatedByLogin) {
       console.log('[TRIPLE A] La sesión ya estaba autenticada; se reutiliza el portal global.');
@@ -1924,7 +2009,7 @@ async function scrapeGasAccount() {
   try {
     lastGasScrapeError = null;
     const credentials = getPortalCredentials('gascaribe');
-    const browserless = Boolean(browserlessEndpointFor('gas'));
+    const browserless = browserlessEndpointCandidates('gas').length > 0;
     console.log(`[GAS] Portal global: iniciando sesión (${browserless ? 'Browserless remoto' : 'Chromium local'}).`);
     browser = await launchBrowser('gas');
     page = await browser.newPage();
@@ -2012,7 +2097,13 @@ async function scrapeGasAccount() {
         passwordSelectors,
         authState,
         prepareSubmit: async () => {
-          const executed = await executePortalTurnstile(page);
+          const executed = await executePortalTurnstile(page).catch(error => {
+            if (/detached|execution context|target closed|connection closed/i.test(String(error?.message || error))) {
+              console.warn('[GAS] Turnstile cambió el contexto; se esperará el estado del navegador.');
+              return false;
+            }
+            throw error;
+          });
           if (executed) console.log('[GAS] Turnstile preparado antes de enviar el formulario.');
           if (captchaSolver) await captchaSolver.waitForSolved(60000);
           await sleep(500);
@@ -2231,7 +2322,7 @@ async function scrapeAirE() {
   try {
     lastScrapeError = null;
     const useFullChrome = FULL_CHROME_ENABLED;
-    const browserless = Boolean(browserlessEndpointFor('air-e'));
+    const browserless = browserlessEndpointCandidates('air-e').length > 0;
     const runtime = browserless
       ? 'Browserless remoto'
       : useFullChrome ? 'full Chrome + Xvfb' : 'serverless Chromium';
@@ -2426,7 +2517,12 @@ function runScrapeOnce(reason) {
     }
     console.log(`[SERVICES] Running Air-e scrape (${reason})...`);
     try {
-      const results = await scrapeAirE();
+      let results = await scrapeAirE();
+      if (!results.length && isTransientPortalRunError(lastScrapeError)) {
+        console.warn('[SERVICES] Air-e tuvo un error transitorio de navegador; reintentando el portal una vez.');
+        await sleep(PORTAL_DATA_RETRY_DELAY_MS);
+        results = await scrapeAirE();
+      }
       if (db && saveData && results.length) persistResults(results);
       return results;
     } catch (e) {
@@ -2509,6 +2605,12 @@ function completePortalResults(service, globalResults, runError) {
   return results;
 }
 
+function isTransientPortalRunError(message) {
+  return /target closed|connection closed|detached frame|execution context|failed to fetch|protocol error/i.test(
+    String(message || ''),
+  );
+}
+
 function runWaterScrapeOnce(reason) {
   if (waterScrapePromise) {
     console.log('[SERVICES] Triple A water scrape already running; skipping overlapping run.');
@@ -2521,7 +2623,12 @@ function runWaterScrapeOnce(reason) {
     }
     console.log(`[SERVICES] Running Triple A water scrape (${reason})...`);
     try {
-      const globalResults = await scrapeTripleAAccount();
+      let globalResults = await scrapeTripleAAccount();
+      if (!globalResults.length && isTransientPortalRunError(lastWaterScrapeError)) {
+        console.warn('[SERVICES] Triple A tuvo un error transitorio de navegador; reintentando el portal una vez.');
+        await sleep(PORTAL_DATA_RETRY_DELAY_MS);
+        globalResults = await scrapeTripleAAccount();
+      }
       // Portal-only by design: every configured apartment must come from the
       // authenticated global account. Missing records are persisted as errors
       // for this run so a previous QR amount cannot look current.
@@ -2564,7 +2671,12 @@ function runGasScrapeOnce(reason) {
     if (waterScrapePromise) await waterScrapePromise.catch(() => {});
     console.log(`[SERVICES] Running Gases del Caribe scrape (${reason})...`);
     try {
-      const globalResults = await scrapeGasAccount();
+      let globalResults = await scrapeGasAccount();
+      if (!globalResults.length && isTransientPortalRunError(lastGasScrapeError)) {
+        console.warn('[SERVICES] Gases del Caribe tuvo un error transitorio de navegador; reintentando el portal una vez.');
+        await sleep(PORTAL_DATA_RETRY_DELAY_MS);
+        globalResults = await scrapeGasAccount();
+      }
       // Portal-only by design: do not consult public payment links when an
       // account is absent or a contract cannot be matched.
       const results = completePortalResults('gas', globalResults, lastGasScrapeError);

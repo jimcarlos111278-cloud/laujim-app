@@ -33,9 +33,11 @@ services:
         sync: false
       - key: BROWSERLESS_REGION
         value: production-sfo
-      # Browserless can solve Turnstile on the water QR flow; this consumes units.
+      # Browserless solves Turnstile on the authenticated provider portals.
       - key: BROWSERLESS_PROFILES
         value: air-e,water,gas
+      - key: BROWSERLESS_CROSS_PROVIDER_FAILOVER
+        value: "true"
       - key: BROWSERLESS_STEALTH
         value: "true"
       - key: BROWSERLESS_SOLVE_CAPTCHAS
