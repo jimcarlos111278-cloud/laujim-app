@@ -1474,8 +1474,18 @@ async function scrapeTripleAAccount() {
       'input[type="password"]',
     ];
     let authenticatedByLogin = false;
+    let authenticatedByApi = false;
     let loginError = null;
     try {
+      authenticatedByLogin = await loginTripleAWithPortalApi(page, credentials, captchaSolver);
+      authenticatedByApi = authenticatedByLogin;
+      if (authenticatedByApi) console.log('[TRIPLE A] Login API oficial confirmado; se conservara la misma sesion para consultar polizas.');
+    } catch (error) {
+      loginError = error;
+      console.warn(`[TRIPLE A] El login API no se confirmo; se probara el formulario del portal: ${error.message}`);
+    }
+    if (!authenticatedByApi) {
+      try {
       authenticatedByLogin = await submitPortalLoginForm(page, {
         provider: 'Triple A',
         username: credentials.username,
@@ -1499,6 +1509,7 @@ async function scrapeTripleAAccount() {
     } catch (error) {
       loginError = error;
       console.warn(`[TRIPLE A] El login visual no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
+    }
     }
     if (!authenticatedByLogin && loginError && /detached|execution context|target closed|connection closed|captcha|turnstile|HTTP (?:401|422)/i.test(String(loginError.message || loginError))) {
       for (let retry = 2; retry <= PORTAL_LOGIN_ATTEMPTS && !authenticatedByLogin; retry += 1) {
@@ -1546,7 +1557,7 @@ async function scrapeTripleAAccount() {
     // Let NextAuth mount the protected route once so its BFF request runs in
     // the authenticated browser context. A direct fetch from a stale login
     // document can otherwise remain pending indefinitely.
-    if (authenticatedByLogin) {
+    if (authenticatedByLogin && !authenticatedByApi) {
       if (dataPage) {
         const loginPage = page;
         page = dataPage;
@@ -2099,9 +2110,21 @@ async function scrapeGasAccount() {
       'input[id*="pass" i]',
     ];
     let authenticatedByLogin = false;
+    let authenticatedByApi = false;
     let loginError = null;
     try {
-      await submitPortalLoginForm(page, {
+      const apiLogin = await loginGasWithPortalApi(page, credentials, captchaSolver);
+      authHeader = apiLogin.authHeader || authHeader;
+      authenticatedByLogin = true;
+      authenticatedByApi = true;
+      console.log('[GAS] Login API oficial confirmado; se conservara la misma sesion para consultar contratos.');
+    } catch (error) {
+      loginError = error;
+      console.warn(`[GAS] El login API no se confirmo; se probara el formulario del portal: ${error.message}`);
+    }
+    if (!authenticatedByApi) {
+      try {
+        await submitPortalLoginForm(page, {
         provider: 'Gases del Caribe',
         username: credentials.username,
         password: credentials.password,
@@ -2130,11 +2153,12 @@ async function scrapeGasAccount() {
       console.log('[GAS] Se probarÃ¡ la sesiÃ³n existente del portal global.');
     }
 
+    }
     // A detached login frame does not necessarily mean the session was lost:
     // Browserless can close the React login document after setting the
     // authenticated cookie. Try the spare page for transient browser errors
     // before declaring the portal unavailable.
-    const canUseSparePage = Boolean(dataPage) && (
+    const canUseSparePage = !authenticatedByApi && Boolean(dataPage) && (
       authenticatedByLogin || (loginError && isTransientPortalRunError(loginError.message))
     );
     if (canUseSparePage) {
@@ -2158,7 +2182,7 @@ async function scrapeGasAccount() {
       }
     }
 
-    if (authenticatedByLogin || canUseSparePage) {
+    if (!authenticatedByApi && (authenticatedByLogin || canUseSparePage)) {
       await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
         waitUntil: 'domcontentloaded',
         timeout: PORTAL_AUTH_TIMEOUT_MS,
