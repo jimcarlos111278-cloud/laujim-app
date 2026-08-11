@@ -192,7 +192,7 @@
       "_origin": "ast",
       "id": "ref_react",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "react"
     },
     {
@@ -1858,10 +1858,34 @@
       "norm_label": "json()"
     },
     {
-      "label": "storedToken()",
+      "label": "authorizationVariants()",
       "file_type": "code",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
       "source_location": "L182",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "android_app_src_main_assets_portal_scraper_authorizationvariants",
+      "community": 39,
+      "community_name": "portal-scraper.js",
+      "norm_label": "authorizationvariants()"
+    },
+    {
+      "label": "jsonWithAuthFallback()",
+      "file_type": "code",
+      "source_file": "android/app/src/main/assets/portal-scraper.js",
+      "source_location": "L189",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "android_app_src_main_assets_portal_scraper_jsonwithauthfallback",
+      "community": 39,
+      "community_name": "portal-scraper.js",
+      "norm_label": "jsonwithauthfallback()"
+    },
+    {
+      "label": "storedToken()",
+      "file_type": "code",
+      "source_file": "android/app/src/main/assets/portal-scraper.js",
+      "source_location": "L203",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_assets_portal_scraper_storedtoken",
@@ -1873,7 +1897,7 @@
       "label": "runAirE()",
       "file_type": "code",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L206",
+      "source_location": "L236",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_assets_portal_scraper_runaire",
@@ -1885,7 +1909,7 @@
       "label": "runWater()",
       "file_type": "code",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L246",
+      "source_location": "L276",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_assets_portal_scraper_runwater",
@@ -1897,7 +1921,7 @@
       "label": "runGas()",
       "file_type": "code",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L279",
+      "source_location": "L311",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_assets_portal_scraper_rungas",
@@ -1909,7 +1933,7 @@
       "label": "run()",
       "file_type": "code",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L326",
+      "source_location": "L366",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_assets_portal_scraper_run",
@@ -1948,8 +1972,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "plugin",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 2,
+      "community_name": ".status",
       "norm_label": "plugin"
     },
     {
@@ -3586,7 +3610,7 @@
       "label": ".registerLocalWorker()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L203",
+      "source_location": "L213",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_registerlocalworker",
@@ -3609,7 +3633,7 @@
       "label": ".runProvider()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L215",
+      "source_location": "L225",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_runprovider",
@@ -3629,10 +3653,22 @@
       "norm_label": "jsonobject"
     },
     {
+      "label": ".failureRecords()",
+      "file_type": "code",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
+      "source_location": "L231",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_failurerecords",
+      "community": 64,
+      "community_name": "ScraperWorkerService",
+      "norm_label": ".failurerecords()"
+    },
+    {
       "label": ".loadAndEvaluate()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L221",
+      "source_location": "L271",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_loadandevaluate",
@@ -3644,7 +3680,7 @@
       "label": ".parseJsJson()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L273",
+      "source_location": "L323",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_parsejsjson",
@@ -3656,7 +3692,7 @@
       "label": ".quote()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L281",
+      "source_location": "L331",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_quote",
@@ -3668,7 +3704,7 @@
       "label": ".request()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L285",
+      "source_location": "L335",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_request",
@@ -3680,7 +3716,7 @@
       "label": ".readBody()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L305",
+      "source_location": "L355",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_readbody",
@@ -3692,7 +3728,7 @@
       "label": ".readAsset()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L315",
+      "source_location": "L365",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_readasset",
@@ -3704,7 +3740,7 @@
       "label": ".parseObject()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L324",
+      "source_location": "L374",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_parseobject",
@@ -3716,7 +3752,7 @@
       "label": ".trimServer()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L326",
+      "source_location": "L376",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_trimserver",
@@ -3728,7 +3764,7 @@
       "label": ".providerLabel()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L333",
+      "source_location": "L383",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_providerlabel",
@@ -3740,7 +3776,7 @@
       "label": ".notification()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L339",
+      "source_location": "L389",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_notification",
@@ -3763,7 +3799,7 @@
       "label": ".updateNotification()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L355",
+      "source_location": "L405",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_updatenotification",
@@ -3775,7 +3811,7 @@
       "label": ".createNotificationChannel()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L360",
+      "source_location": "L410",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_createnotificationchannel",
@@ -3787,7 +3823,7 @@
       "label": ".onDestroy()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L369",
+      "source_location": "L419",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_ondestroy",
@@ -3799,7 +3835,7 @@
       "label": ".onBind()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L382",
+      "source_location": "L432",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_onbind",
@@ -3822,7 +3858,7 @@
       "label": "JavascriptResultBridge",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L384",
+      "source_location": "L434",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
@@ -3835,7 +3871,7 @@
       "label": ".resolve()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L385",
+      "source_location": "L435",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge_resolve",
@@ -3858,7 +3894,7 @@
       "label": "HttpResult",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L395",
+      "source_location": "L445",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
@@ -3871,7 +3907,7 @@
       "label": ".HttpResult()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L398",
+      "source_location": "L448",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_httpresult_httpresult",
@@ -5604,7 +5640,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 145,
+      "community": 147,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -5615,7 +5651,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 145,
+      "community": 147,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -5648,8 +5684,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_filesystem",
-      "community": 125,
-      "community_name": "@capacitor/filesystem",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/filesystem"
     },
     {
@@ -5659,8 +5695,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "capacitor_filesystem",
-      "community": 125,
-      "community_name": "@capacitor/filesystem",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/filesystem"
     },
     {
@@ -5846,8 +5882,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "package_dependencies_jsqr",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 145,
+      "community_name": "jsqr",
       "norm_label": "jsqr"
     },
     {
@@ -5857,8 +5893,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "jsqr",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 145,
+      "community_name": "jsqr",
       "norm_label": "jsqr"
     },
     {
@@ -11138,7 +11174,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app",
-      "community": 40,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "app.jsx"
     },
@@ -11174,8 +11210,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_privateapp",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "privateapp()"
     },
     {
@@ -11186,7 +11222,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_appcontent",
-      "community": 40,
+      "community": 15,
       "community_name": "App.jsx",
       "norm_label": "appcontent()"
     },
@@ -11245,8 +11281,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_getserverversion",
-      "community": 122,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "getserverversion()"
     },
     {
@@ -11291,8 +11327,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_getcloudsyncstatus",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "getcloudsyncstatus()"
     },
     {
@@ -11303,8 +11339,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_refreshallfromserver",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "refreshallfromserver()"
     },
     {
@@ -11327,8 +11363,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_startdataversionpolling",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "startdataversionpolling()"
     },
     {
@@ -11339,8 +11375,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopdataversionpolling",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "stopdataversionpolling()"
     },
     {
@@ -11351,8 +11387,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_startcloudpolling",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "startcloudpolling()"
     },
     {
@@ -11363,8 +11399,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopcloudpolling",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "stopcloudpolling()"
     },
     {
@@ -11435,7 +11471,7 @@
       "_origin": "ast",
       "id": "src_api_api",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "api"
     },
     {
@@ -11518,7 +11554,7 @@
       "_origin": "ast",
       "id": "src_components_layout",
       "community": 15,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "layout.jsx"
     },
     {
@@ -11529,7 +11565,7 @@
       "_origin": "ast",
       "id": "src_components_layout_navitems",
       "community": 15,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "navitems"
     },
     {
@@ -11541,7 +11577,7 @@
       "_origin": "ast",
       "id": "src_components_layout_layout",
       "community": 15,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "layout()"
     },
     {
@@ -11552,7 +11588,7 @@
       "_origin": "ast",
       "id": "src_components_modal",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "modal.jsx"
     },
     {
@@ -11564,7 +11600,7 @@
       "_origin": "ast",
       "id": "src_components_modal_modal",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "modal()"
     },
     {
@@ -11667,7 +11703,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_themeselector",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "themeselector.jsx"
     },
@@ -11678,7 +11714,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_themeselector_iconmap",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "iconmap"
     },
@@ -11690,7 +11726,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_themeselector_themeselector",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "themeselector()"
     },
@@ -11702,7 +11738,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "versionbanner.jsx"
     },
     {
@@ -11714,7 +11750,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner_versionisnewer",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "versionisnewer()"
     },
     {
@@ -11726,7 +11762,7 @@
       "_origin": "ast",
       "id": "src_components_versionbanner_versionbanner",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "versionbanner()"
     },
     {
@@ -11805,8 +11841,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_db_database_initdb",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "initdb()"
     },
     {
@@ -11991,7 +12027,7 @@
       "_origin": "ast",
       "id": "src_pages_apartments",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "apartments.jsx"
     },
     {
@@ -12002,8 +12038,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartments_apartments",
-      "community": 40,
-      "community_name": "App.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "apartments()"
     },
     {
@@ -12037,7 +12073,7 @@
       "_origin": "ast",
       "id": "src_pages_contractgenerator",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "contractgenerator.jsx"
     },
     {
@@ -12049,7 +12085,7 @@
       "_origin": "ast",
       "id": "src_pages_contractgenerator_contractgenerator",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "contractgenerator()"
     },
     {
@@ -12060,7 +12096,7 @@
       "_origin": "ast",
       "id": "src_pages_contracts",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "contracts.jsx"
     },
     {
@@ -12072,7 +12108,7 @@
       "_origin": "ast",
       "id": "src_pages_contracts_contracts",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "contracts()"
     },
     {
@@ -12105,8 +12141,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "login.jsx"
     },
     {
@@ -12117,8 +12153,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 40,
-      "community_name": "App.jsx",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "login()"
     },
     {
@@ -12128,8 +12164,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_miapto",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "miapto.jsx"
     },
     {
@@ -12140,8 +12176,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_miapto_miapto",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "miapto()"
     },
     {
@@ -12152,7 +12188,7 @@
       "_origin": "ast",
       "id": "src_pages_payments",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "payments.jsx"
     },
     {
@@ -12163,8 +12199,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_payments_payments",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 40,
+      "community_name": "react",
       "norm_label": "payments()"
     },
     {
@@ -12175,7 +12211,7 @@
       "_origin": "ast",
       "id": "src_pages_predial",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "predial.jsx"
     },
     {
@@ -12186,7 +12222,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "ref_map"
     },
     {
@@ -12198,7 +12234,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "lookupref()"
     },
     {
@@ -12210,7 +12246,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "getpredialurl()"
     },
     {
@@ -12222,7 +12258,7 @@
       "_origin": "ast",
       "id": "src_pages_predial_predial",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "predial()"
     },
     {
@@ -12233,7 +12269,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "publicapartment.jsx"
     },
     {
@@ -12244,7 +12280,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_serviceicons",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "serviceicons"
     },
     {
@@ -12256,7 +12292,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_publicapartment",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "publicapartment()"
     },
     {
@@ -12268,7 +12304,7 @@
       "_origin": "ast",
       "id": "src_pages_publicapartment_info",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "info()"
     },
     {
@@ -12278,7 +12314,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_publicapartments",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "publicapartments.jsx"
     },
@@ -12290,7 +12326,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_publicapartments_publicapartments",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "publicapartments()"
     },
@@ -12370,8 +12406,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_settings",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "settings.jsx"
     },
     {
@@ -12382,8 +12418,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_settings_settings",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "settings()"
     },
     {
@@ -12394,7 +12430,7 @@
       "_origin": "ast",
       "id": "src_pages_shareapartments",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "shareapartments.jsx"
     },
     {
@@ -12406,7 +12442,7 @@
       "_origin": "ast",
       "id": "src_pages_shareapartments_shareapartments",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "shareapartments()"
     },
     {
@@ -12417,7 +12453,7 @@
       "_origin": "ast",
       "id": "src_pages_tenants",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "tenants.jsx"
     },
     {
@@ -12429,7 +12465,7 @@
       "_origin": "ast",
       "id": "src_pages_tenants_tenants",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "tenants()"
     },
     {
@@ -12532,7 +12568,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "whatsappcontacts.jsx"
     },
@@ -12544,7 +12580,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts_whatsappcontacts",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "whatsappcontacts()"
     },
@@ -12555,7 +12591,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappinbox",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "whatsappinbox.jsx"
     },
@@ -12567,7 +12603,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_cloudrequest",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "cloudrequest()"
     },
@@ -12579,7 +12615,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_formatdate",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "formatdate()"
     },
@@ -12591,7 +12627,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediaicon",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "mediaicon()"
     },
@@ -12603,7 +12639,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediamessage",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "mediamessage()"
     },
@@ -12615,7 +12651,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_whatsappinbox",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "whatsappinbox()"
     },
@@ -12744,8 +12780,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_auth",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "auth.js"
     },
     {
@@ -12768,8 +12804,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_setauth",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "setauth()"
     },
     {
@@ -12780,8 +12816,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_clearauth",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "clearauth()"
     },
     {
@@ -12792,8 +12828,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_isadmin",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "isadmin()"
     },
     {
@@ -12804,8 +12840,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_istenant",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "istenant()"
     },
     {
@@ -12816,8 +12852,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_gettenantapartmentid",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "gettenantapartmentid()"
     },
     {
@@ -12828,8 +12864,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_requireauth",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "requireauth()"
     },
     {
@@ -12840,8 +12876,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_login",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "login()"
     },
     {
@@ -12852,8 +12888,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_loginadmin",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "loginadmin()"
     },
     {
@@ -12864,8 +12900,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_logintenant",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "logintenant()"
     },
     {
@@ -12875,8 +12911,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_calendar",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "calendar.js"
     },
     {
@@ -12887,8 +12923,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_uidforapt",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "uidforapt()"
     },
     {
@@ -12899,8 +12935,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_getstoreduids",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "getstoreduids()"
     },
     {
@@ -12911,8 +12947,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_savestoreduids",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "savestoreduids()"
     },
     {
@@ -12923,8 +12959,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_fmtdate",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "fmtdate()"
     },
     {
@@ -12935,8 +12971,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_nextduedate",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "nextduedate()"
     },
     {
@@ -12947,8 +12983,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateics",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "generateics()"
     },
     {
@@ -12959,8 +12995,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_downloadics",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "downloadics()"
     },
     {
@@ -12971,8 +13007,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_addcalendarreminder",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "addcalendarreminder()"
     },
     {
@@ -12983,8 +13019,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateallpaymentreminders",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "generateallpaymentreminders()"
     },
     {
@@ -12995,8 +13031,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_syncandgeneratereminders",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 125,
+      "community_name": "calendar.js",
       "norm_label": "syncandgeneratereminders()"
     },
     {
@@ -13006,8 +13042,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_callscreening",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "callscreening.js"
     },
     {
@@ -13018,8 +13054,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_nativeandroid",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "nativeandroid()"
     },
     {
@@ -13030,8 +13066,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_callerscreeningplugin",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "callerscreeningplugin()"
     },
     {
@@ -13042,8 +13078,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_normalizedphone",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "normalizedphone()"
     },
     {
@@ -13054,8 +13090,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_getcallscreeningstatus",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "getcallscreeningstatus()"
     },
     {
@@ -13066,8 +13102,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_syncauthorizedcallernumbers",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "syncauthorizedcallernumbers()"
     },
     {
@@ -13078,8 +13114,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_requestcallscreeningrole",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "requestcallscreeningrole()"
     },
     {
@@ -13090,8 +13126,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_setcallscreeningenabled",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "setcallscreeningenabled()"
     },
     {
@@ -13102,8 +13138,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_setallowcallsfromcontacts",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "setallowcallsfromcontacts()"
     },
     {
@@ -13114,8 +13150,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_requestprotectedsmsrole",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "requestprotectedsmsrole()"
     },
     {
@@ -13126,8 +13162,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_getauthorizedsmsmessages",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 146,
+      "community_name": "callScreening.js",
       "norm_label": "getauthorizedsmsmessages()"
     },
     {
@@ -13363,7 +13399,7 @@
       "_origin": "ast",
       "id": "src_utils_config",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "config.js"
     },
     {
@@ -13375,7 +13411,7 @@
       "_origin": "ast",
       "id": "src_utils_config_storedtoken",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "storedtoken()"
     },
     {
@@ -13385,7 +13421,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_utils_config_auth_token",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "auth_token"
     },
@@ -13397,8 +13433,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_setapitoken",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "setapitoken()"
     },
     {
@@ -13410,7 +13446,7 @@
       "_origin": "ast",
       "id": "src_utils_config_iscapacitor",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "iscapacitor()"
     },
     {
@@ -13421,7 +13457,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_getbase",
-      "community": 122,
+      "community": 98,
       "community_name": "getBase",
       "norm_label": "getbase()"
     },
@@ -13434,7 +13470,7 @@
       "_origin": "ast",
       "id": "src_utils_config_getrawbase",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "getrawbase()"
     },
     {
@@ -13446,7 +13482,7 @@
       "_origin": "ast",
       "id": "src_utils_config_photourl",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "photourl()"
     },
     {
@@ -13701,7 +13737,7 @@
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "generate-apartments-html.js"
     },
     {
@@ -13713,7 +13749,7 @@
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_fetchasbase64",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "fetchasbase64()"
     },
     {
@@ -13725,7 +13761,7 @@
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_buildapartmentshtml",
       "community": 122,
-      "community_name": "getBase",
+      "community_name": "config.js",
       "norm_label": "buildapartmentshtml()"
     },
     {
@@ -13771,8 +13807,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatshortdate",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 40,
+      "community_name": "react",
       "norm_label": "formatshortdate()"
     },
     {
@@ -13927,8 +13963,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatrelativeduedate",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 98,
+      "community_name": "getBase",
       "norm_label": "formatrelativeduedate()"
     },
     {
@@ -13938,8 +13974,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_localnotifications",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "localnotifications.js"
     },
     {
@@ -13950,8 +13986,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_getnotifconfig",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "getnotifconfig()"
     },
     {
@@ -13962,8 +13998,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_savenotifconfig",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "savenotifconfig()"
     },
     {
@@ -13974,8 +14010,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_schedulepaymentreminders",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "schedulepaymentreminders()"
     },
     {
@@ -13986,8 +14022,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_cancelallnotifications",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "cancelallnotifications()"
     },
     {
@@ -13997,8 +14033,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "marketplacebookmarklet.js"
     },
     {
@@ -14009,8 +14045,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet_generatebookmarkletcode",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "generatebookmarkletcode()"
     },
     {
@@ -14021,8 +14057,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet_generatemarketplacejson",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "generatemarketplacejson()"
     },
     {
@@ -14033,8 +14069,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet_generatemarketplacejsonstring",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "generatemarketplacejsonstring()"
     },
     {
@@ -14044,8 +14080,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_notifications",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "notifications.js"
     },
     {
@@ -14056,8 +14092,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_requestnotificationpermission",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "requestnotificationpermission()"
     },
     {
@@ -14068,8 +14104,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notify",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "notify()"
     },
     {
@@ -14080,8 +14116,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notifypaymentreminder",
-      "community": 45,
-      "community_name": "Settings.jsx",
+      "community": 15,
+      "community_name": "App.jsx",
       "norm_label": "notifypaymentreminder()"
     },
     {
@@ -14270,7 +14306,7 @@
       "_origin": "ast",
       "id": "src_utils_resetapp",
       "community": 15,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "resetapp.js"
     },
     {
@@ -14282,7 +14318,7 @@
       "_origin": "ast",
       "id": "src_utils_resetapp_clearappdata",
       "community": 15,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "clearappdata()"
     },
     {
@@ -14293,7 +14329,7 @@
       "_origin": "ast",
       "id": "src_utils_sync",
       "community": 15,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "sync.js"
     },
     {
@@ -14305,7 +14341,7 @@
       "_origin": "ast",
       "id": "src_utils_sync_isserveravailable",
       "community": 15,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "isserveravailable()"
     },
     {
@@ -14315,7 +14351,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_theme",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "theme.js"
     },
@@ -14326,7 +14362,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_utils_theme_themes",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "themes"
     },
@@ -14337,7 +14373,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_utils_theme_thememap",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "thememap"
     },
@@ -14349,7 +14385,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_gettheme",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "gettheme()"
     },
@@ -14361,7 +14397,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_getthemeinfo",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "getthemeinfo()"
     },
@@ -14373,7 +14409,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_settheme",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "settheme()"
     },
@@ -14385,7 +14421,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_inittheme",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "inittheme()"
     },
@@ -14397,7 +14433,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_applytheme",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "applytheme()"
     },
@@ -14409,7 +14445,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_syncthemetoserver",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "syncthemetoserver()"
     },
@@ -14421,7 +14457,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_theme_loadthemefromserver",
-      "community": 98,
+      "community": 45,
       "community_name": "ThemeSelector.jsx",
       "norm_label": "loadthemefromserver()"
     },
@@ -14433,7 +14469,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "viewmode.js"
     },
     {
@@ -14445,7 +14481,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode_getviewmode",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "getviewmode()"
     },
     {
@@ -14457,7 +14493,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode_setviewmode",
       "community": 40,
-      "community_name": "App.jsx",
+      "community_name": "react",
       "norm_label": "setviewmode()"
     },
     {
@@ -21883,6 +21919,17 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
+      "source_location": "L182",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_assets_portal_scraper",
+      "target": "android_app_src_main_assets_portal_scraper_authorizationvariants",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/assets/portal-scraper.js",
       "source_location": "L18",
       "weight": 1.0,
       "_origin": "ast",
@@ -21921,6 +21968,17 @@
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper",
       "target": "android_app_src_main_assets_portal_scraper_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/assets/portal-scraper.js",
+      "source_location": "L189",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_assets_portal_scraper",
+      "target": "android_app_src_main_assets_portal_scraper_jsonwithauthfallback",
       "confidence_score": 1.0
     },
     {
@@ -21982,7 +22040,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L326",
+      "source_location": "L366",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper",
@@ -21993,7 +22051,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L206",
+      "source_location": "L236",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper",
@@ -22004,7 +22062,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L279",
+      "source_location": "L311",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper",
@@ -22015,7 +22073,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L246",
+      "source_location": "L276",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper",
@@ -22037,7 +22095,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L182",
+      "source_location": "L203",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper",
@@ -22155,7 +22213,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L207",
+      "source_location": "L237",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runaire",
@@ -22167,7 +22225,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L280",
+      "source_location": "L312",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_rungas",
@@ -22179,7 +22237,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L247",
+      "source_location": "L277",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runwater",
@@ -22191,7 +22249,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L225",
+      "source_location": "L255",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runaire",
@@ -22203,7 +22261,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L288",
+      "source_location": "L319",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_rungas",
@@ -22215,7 +22273,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L263",
+      "source_location": "L294",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runwater",
@@ -22227,7 +22285,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L198",
+      "source_location": "L218",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_storedtoken",
@@ -22263,7 +22321,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L294",
+      "source_location": "L327",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_rungas",
@@ -22275,7 +22333,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L260",
+      "source_location": "L291",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runwater",
@@ -22287,7 +22345,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L225",
+      "source_location": "L255",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runaire",
@@ -22299,7 +22357,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L303",
+      "source_location": "L339",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_rungas",
@@ -22311,7 +22369,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L264",
+      "source_location": "L295",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runwater",
@@ -22323,7 +22381,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L269",
+      "source_location": "L300",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runwater",
@@ -22335,11 +22393,47 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L235",
+      "source_location": "L265",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runaire",
       "target": "android_app_src_main_assets_portal_scraper_resultbase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/assets/portal-scraper.js",
+      "source_location": "L349",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_assets_portal_scraper_rungas",
+      "target": "android_app_src_main_assets_portal_scraper_resultbase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/assets/portal-scraper.js",
+      "source_location": "L298",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_assets_portal_scraper_runwater",
+      "target": "android_app_src_main_assets_portal_scraper_resultbase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/assets/portal-scraper.js",
+      "source_location": "L238",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_assets_portal_scraper_runaire",
+      "target": "android_app_src_main_assets_portal_scraper_needslogin",
       "confidence_score": 1.0
     },
     {
@@ -22351,7 +22445,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_rungas",
-      "target": "android_app_src_main_assets_portal_scraper_resultbase",
+      "target": "android_app_src_main_assets_portal_scraper_needslogin",
       "confidence_score": 1.0
     },
     {
@@ -22359,22 +22453,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L267",
+      "source_location": "L278",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runwater",
-      "target": "android_app_src_main_assets_portal_scraper_resultbase",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L208",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "android_app_src_main_assets_portal_scraper_runaire",
       "target": "android_app_src_main_assets_portal_scraper_needslogin",
       "confidence_score": 1.0
     },
@@ -22383,11 +22465,11 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L281",
+      "source_location": "L192",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "android_app_src_main_assets_portal_scraper_rungas",
-      "target": "android_app_src_main_assets_portal_scraper_needslogin",
+      "source": "android_app_src_main_assets_portal_scraper_jsonwithauthfallback",
+      "target": "android_app_src_main_assets_portal_scraper_json",
       "confidence_score": 1.0
     },
     {
@@ -22398,18 +22480,6 @@
       "source_location": "L248",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "android_app_src_main_assets_portal_scraper_runwater",
-      "target": "android_app_src_main_assets_portal_scraper_needslogin",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L218",
-      "weight": 1.0,
-      "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runaire",
       "target": "android_app_src_main_assets_portal_scraper_json",
       "confidence_score": 1.0
@@ -22419,11 +22489,23 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L285",
+      "source_location": "L194",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_assets_portal_scraper_jsonwithauthfallback",
+      "target": "android_app_src_main_assets_portal_scraper_authorizationvariants",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/assets/portal-scraper.js",
+      "source_location": "L316",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_rungas",
-      "target": "android_app_src_main_assets_portal_scraper_json",
+      "target": "android_app_src_main_assets_portal_scraper_jsonwithauthfallback",
       "confidence_score": 1.0
     },
     {
@@ -22431,11 +22513,11 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L253",
+      "source_location": "L281",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runwater",
-      "target": "android_app_src_main_assets_portal_scraper_json",
+      "target": "android_app_src_main_assets_portal_scraper_jsonwithauthfallback",
       "confidence_score": 1.0
     },
     {
@@ -22443,7 +22525,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L283",
+      "source_location": "L315",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_rungas",
@@ -22455,7 +22537,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L251",
+      "source_location": "L280",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_runwater",
@@ -22467,7 +22549,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L328",
+      "source_location": "L368",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_run",
@@ -22479,7 +22561,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L329",
+      "source_location": "L369",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_run",
@@ -22491,7 +22573,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/assets/portal-scraper.js",
-      "source_location": "L330",
+      "source_location": "L370",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_assets_portal_scraper_run",
@@ -24986,7 +25068,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L216",
+      "source_location": "L226",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_runprovider",
@@ -25325,7 +25407,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L194",
+      "source_location": "L204",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_runlocalscrape",
@@ -26209,7 +26291,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L395",
+      "source_location": "L445",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26232,7 +26314,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L384",
+      "source_location": "L434",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26254,7 +26336,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L360",
+      "source_location": "L410",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26265,7 +26347,18 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L221",
+      "source_location": "L231",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_failurerecords",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
+      "source_location": "L271",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26276,7 +26369,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L339",
+      "source_location": "L389",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26287,7 +26380,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L382",
+      "source_location": "L432",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26309,7 +26402,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L369",
+      "source_location": "L419",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26331,7 +26424,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L273",
+      "source_location": "L323",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26342,7 +26435,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L324",
+      "source_location": "L374",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26353,7 +26446,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L333",
+      "source_location": "L383",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26364,7 +26457,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L281",
+      "source_location": "L331",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26375,7 +26468,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L315",
+      "source_location": "L365",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26386,7 +26479,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L305",
+      "source_location": "L355",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26397,7 +26490,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L203",
+      "source_location": "L213",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26408,7 +26501,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L285",
+      "source_location": "L335",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26430,7 +26523,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L215",
+      "source_location": "L225",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26441,7 +26534,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L326",
+      "source_location": "L376",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26452,7 +26545,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L355",
+      "source_location": "L405",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice",
@@ -26535,7 +26628,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L382",
+      "source_location": "L432",
       "weight": 1.0,
       "context": "attribute",
       "_origin": "ast",
@@ -26547,7 +26640,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L369",
+      "source_location": "L419",
       "weight": 1.0,
       "context": "attribute",
       "_origin": "ast",
@@ -26644,7 +26737,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L340",
+      "source_location": "L390",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_notification",
@@ -26655,7 +26748,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L382",
+      "source_location": "L432",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -26673,6 +26766,18 @@
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_runlocalscrape",
       "target": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_jsonarray",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
+      "source_location": "L168",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_runlocalscrape",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_failurerecords",
       "confidence_score": 1.0
     },
     {
@@ -26789,7 +26894,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L194",
+      "source_location": "L204",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_runlocalscrape",
@@ -26872,7 +26977,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L171",
+      "source_location": "L181",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_runlocalscrape",
@@ -26884,7 +26989,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L203",
+      "source_location": "L213",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_registerlocalworker",
@@ -26896,7 +27001,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L211",
+      "source_location": "L221",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_registerlocalworker",
@@ -26908,7 +27013,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L204",
+      "source_location": "L214",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_registerlocalworker",
@@ -26916,11 +27021,23 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "references",
+      "context": "return_type",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
+      "source_location": "L231",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_failurerecords",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_jsonarray",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L217",
+      "source_location": "L227",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_runprovider",
@@ -26932,7 +27049,7 @@
       "context": "return_type",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L215",
+      "source_location": "L225",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_runprovider",
@@ -26941,9 +27058,21 @@
     },
     {
       "relation": "references",
+      "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L221",
+      "source_location": "L231",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_failurerecords",
+      "target": "jsonobject",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
+      "source_location": "L271",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -26955,7 +27084,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L273",
+      "source_location": "L323",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -26968,7 +27097,7 @@
       "context": "return_type",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L324",
+      "source_location": "L374",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_parseobject",
@@ -26980,7 +27109,19 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L254",
+      "source_location": "L240",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_failurerecords",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_providerlabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
+      "source_location": "L304",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_loadandevaluate",
@@ -26992,7 +27133,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L229",
+      "source_location": "L279",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_loadandevaluate",
@@ -27004,7 +27145,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L237",
+      "source_location": "L287",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_loadandevaluate",
@@ -27015,7 +27156,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L285",
+      "source_location": "L335",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -27028,7 +27169,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L302",
+      "source_location": "L352",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_request",
@@ -27040,7 +27181,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L300",
+      "source_location": "L350",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_request",
@@ -27051,7 +27192,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L339",
+      "source_location": "L389",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -27064,7 +27205,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L357",
+      "source_location": "L407",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_updatenotification",
@@ -27075,7 +27216,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L382",
+      "source_location": "L432",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -27087,7 +27228,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L385",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge",
@@ -27098,7 +27239,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L385",
+      "source_location": "L435",
       "weight": 1.0,
       "context": "attribute",
       "_origin": "ast",
@@ -27110,7 +27251,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
-      "source_location": "L398",
+      "source_location": "L448",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_httpresult",
@@ -54246,5 +54387,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "5ddcc76ec278c14e5308d7fa5af91259ee6d8a46"
+  "built_at_commit": "37cf52e675a07ec2eefe80b3365b993c3bb27fa0"
 }

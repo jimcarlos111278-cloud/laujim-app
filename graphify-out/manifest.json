@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1786476546.3911147,
-    "ast_hash": "aad00b7c106c5842dae970964d860e3b",
+    "mtime": 1786477680.3401768,
+    "ast_hash": "9fa5a9bcae956d5464ab692e3d92d93b",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1786434509.8904457,
-    "ast_hash": "9156bab2a3be232f4dc8c4418ff2b31a",
+    "mtime": 1786477654.548747,
+    "ast_hash": "48f0fdb6749a3909abec58d77fd25155",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {

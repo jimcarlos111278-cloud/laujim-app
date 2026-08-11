@@ -179,6 +179,27 @@
     } finally { clearTimeout(timer); }
   }
 
+  function authorizationVariants(token) {
+    const value = String(token || '').trim().replace(/^['"]|['"]$/g, '');
+    if (!value) return [];
+    const bare = value.replace(/^(?:Bearer|Token)\s+/i, '').trim();
+    return [...new Set([value, bare, `Bearer ${bare}`, `Token ${bare}`].filter(Boolean))];
+  }
+
+  async function jsonWithAuthFallback(url, token, options) {
+    const base = options || {};
+    const baseHeaders = Object.assign({}, base.headers || {});
+    let response = await json(url, Object.assign({}, base, { headers: baseHeaders }));
+    if (![401, 403].includes(response.status)) return response;
+    for (const authorization of authorizationVariants(token)) {
+      response = await json(url, Object.assign({}, base, {
+        headers: Object.assign({}, baseHeaders, { Authorization: authorization }),
+      }));
+      if (![401, 403].includes(response.status)) break;
+    }
+    return response;
+  }
+
   function storedToken() {
     const candidates = [];
     for (const store of [localStorage, typeof sessionStorage !== 'undefined' ? sessionStorage : null]) {
@@ -187,7 +208,16 @@
         for (let index = 0; index < store.length; index += 1) {
           const key = store.key(index);
           const value = store.getItem(key);
-          if (value && /token|access|auth|jwt/i.test(key || '')) candidates.push(value);
+          if (!value) continue;
+          if (/token|access|auth|jwt/i.test(key || '') || /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value)) {
+            candidates.push(value);
+            continue;
+          }
+          try {
+            const parsed = JSON.parse(value);
+            const nested = field(parsed, ['accessToken', 'access_token', 'token', 'authorization', 'jwt']);
+            if (nested) candidates.push(String(nested));
+          } catch {}
         }
       } catch {
       }
@@ -247,13 +277,14 @@
     const state = loginState();
     if (state.password) return needsLogin('water', 'Triple A solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.');
     if (state.challenge) return { state: 'needs_verification', provider: 'water', message: 'Triple A muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
-    const headers = {};
     const token = storedToken();
-    if (token) headers.Authorization = /^Bearer\s/i.test(token) ? token : `Bearer ${token}`;
-    const response = await json('/bff/subscriptions', { headers });
+    const response = await jsonWithAuthFallback('/bff/subscriptions', token, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
     if (response.status === 401 || response.status === 403) return needsLogin('water', `Triple A rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`);
     if (!response.ok) return { state: 'error', provider: 'water', message: `Triple A rechazó la consulta (HTTP ${response.status}).`, results: [] };
     const subscriptions = list(response.payload, ['subscriptions', 'policies', 'items']);
+    if (!subscriptions.length) return { state: 'error', provider: 'water', message: 'Triple A aceptó la sesión, pero no devolvió pólizas o suscripciones.', results: [] };
     const results = [];
     const used = new Set();
     for (const subscription of subscriptions) {
@@ -273,6 +304,7 @@
         periodo: field(subscription, ['invoiceDate', 'billingPeriod', 'periodo']) || null,
       }));
     }
+    if (!results.length) return { state: 'error', provider: 'water', message: 'Triple A devolvió pólizas, pero ninguna coincidió con los apartamentos configurados.', results: [] };
     return { state: 'ok', provider: 'water', results };
   }
 
@@ -281,22 +313,26 @@
     if (state.password) return needsLogin('gas', 'Gases del Caribe solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.');
     if (state.challenge) return { state: 'needs_verification', provider: 'gas', message: 'Gases del Caribe muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
     const token = storedToken();
-    const headers = token ? { Authorization: token } : {};
-    const response = await json(`${GAS_API}/contracts`, { headers });
+    const response = await jsonWithAuthFallback(`${GAS_API}/contracts`, token);
     if (response.status === 401 || response.status === 403) return needsLogin('gas', `Gases del Caribe rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`);
     if (!response.ok) return { state: 'error', provider: 'gas', message: `Gases del Caribe rechazó la consulta (HTTP ${response.status}).`, results: [] };
     const payloadToken = field(response.payload, ['token', 'appToken', 'accessToken', 'authorization']);
     const auth = String(payloadToken || token || '').trim();
     const contracts = list(response.payload, ['contracts', 'items']);
+    if (!contracts.length) return { state: 'error', provider: 'gas', message: 'Gases del Caribe aceptó la sesión, pero no devolvió contratos.', results: [] };
     const results = [];
     const used = new Set();
+    let invoiceFailures = 0;
     for (const contract of contracts) {
       const target = (config.apartments || []).find(item => !used.has(String(item.id || item.name)) && targetMatch(item, contract, 'gas'));
       if (!target) continue;
       const contractId = field(contract, ['contractId', 'contractNumber', 'id', 'number']);
       if (!contractId) continue;
-      const invoiceResponse = await json(`${GAS_API}/invoices/${encodeURIComponent(contractId)}`, { headers: auth ? { Authorization: auth } : {} });
-      if (!invoiceResponse.ok) continue;
+      const invoiceResponse = await jsonWithAuthFallback(`${GAS_API}/invoices/${encodeURIComponent(contractId)}`, auth);
+      if (!invoiceResponse.ok) {
+        invoiceFailures += 1;
+        continue;
+      }
       const invoices = list(invoiceResponse.payload, ['invoices', 'items']);
       const unpaid = [];
       invoices.forEach(invoice => {
@@ -319,6 +355,10 @@
         factura: field(unpaid[0] && unpaid[0].invoice, ['id', 'invoiceNumber', 'factura']) || null,
         periodo: field(unpaid[0] && unpaid[0].invoice, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
       }));
+    }
+    if (!results.length) {
+      const reason = invoiceFailures ? ` No se pudieron consultar ${invoiceFailures} contrato(s).` : '';
+      return { state: 'error', provider: 'gas', message: `Gases del Caribe devolvió contratos, pero ninguno coincidió con los apartamentos configurados.${reason}`, results: [] };
     }
     return { state: 'ok', provider: 'gas', results };
   }

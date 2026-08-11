@@ -161,6 +161,16 @@ public class ScraperWorkerService extends Service {
                         if (record != null) results.add(record);
                     }
                 }
+                if (providerResults == null || providerResults.length() == 0) {
+                    String noDataMessage = outcome.optString("message", "El portal no devolvió datos confirmados.");
+                    if (firstIssue == null) firstIssue = noDataMessage;
+                    updateNotification(noDataMessage, provider);
+                    JSONArray failureRecords = failureRecords(provider, config, outcome, noDataMessage);
+                    for (int item = 0; item < failureRecords.length(); item += 1) {
+                        JSONObject record = failureRecords.optJSONObject(item);
+                        if (record != null) results.add(record);
+                    }
+                }
                 if (!"ok".equals(state) && firstIssue == null) {
                     firstIssue = outcome.optString("message", "El portal no devolvió datos.");
                     updateNotification(firstIssue, provider);
@@ -216,6 +226,46 @@ public class ScraperWorkerService extends Service {
         String url = PortalBrowserActivity.portalUrl(provider);
         JSONObject outcome = loadAndEvaluate(provider, url, config);
         return outcome == null ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.") : outcome;
+    }
+
+    private JSONArray failureRecords(String provider, JSONObject config, JSONObject outcome, String message) throws JSONException {
+        JSONArray records = new JSONArray();
+        JSONArray apartments = config == null ? null : config.optJSONArray("apartments");
+        if (apartments == null) return records;
+        String normalizedMessage = String.valueOf(message == null ? "" : message);
+        String state = outcome == null ? "error" : outcome.optString("state", "error");
+        String status = "needs_verification".equals(state) || normalizedMessage.matches("(?is).*captcha|turnstile|verificaci[oó]n.*")
+            ? "captcha"
+            : normalizedMessage.matches("(?is).*timeout|tiempo.*") ? "timeout" : "error";
+        String providerName = providerLabel(provider);
+        String service = "air-e".equals(provider) ? "electricity" : "water".equals(provider) ? "water" : "gas";
+        for (int index = 0; index < apartments.length(); index += 1) {
+            JSONObject apartment = apartments.optJSONObject(index);
+            if (apartment == null) continue;
+            JSONObject record = new JSONObject()
+                .put("provider", providerName)
+                .put("service", service)
+                .put("apartmentId", apartment.opt("id"))
+                .put("apartment", apartment.optString("name", ""))
+                .put("status", status)
+                .put("deudaCOP", JSONObject.NULL)
+                .put("deudaTotalCOP", JSONObject.NULL)
+                .put("deudaLabel", "Deuda Total")
+                .put("error", normalizedMessage)
+                .put("checkedAt", new java.util.Date().toInstant().toString())
+                .put("scrapedAt", new java.util.Date().toInstant().toString());
+            if ("air-e".equals(provider)) {
+                record.put("nic", apartment.optString("electricityPaymentCode", ""));
+            } else if ("water".equals(provider)) {
+                record.put("waterPaymentCode", apartment.optString("waterPaymentCode", ""));
+                record.put("waterPaymentUrl", "https://portal.aaa.com.co/polizas");
+            } else {
+                record.put("gasPaymentCode", apartment.optString("gasPaymentCode", ""));
+                record.put("gasPaymentUrl", "https://portal.gascaribe.com/payments");
+            }
+            records.put(record);
+        }
+        return records;
     }
 
     private JSONObject loadAndEvaluate(String provider, String url, JSONObject config) throws Exception {
