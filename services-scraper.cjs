@@ -2579,17 +2579,24 @@ let waterBootTimer = null;
 let airEScrapePromise = null;
 let waterScrapePromise = null;
 let gasScrapePromise = null;
+let serviceBrowserQueue = Promise.resolve();
+
+// All providers share the same limited browser/runtime budget. A single
+// queue avoids the mutual-wait deadlock that could occur when Render's
+// scheduler and a portable worker started different providers together.
+function enqueueServiceBrowserRun(task) {
+  const previous = serviceBrowserQueue;
+  let release;
+  serviceBrowserQueue = new Promise(resolve => { release = resolve; });
+  return previous.catch(() => {}).then(task).finally(() => release());
+}
 
 function runScrapeOnce(reason) {
   if (airEScrapePromise) {
     console.log('[SERVICES] Air-e scrape already running; skipping overlapping run.');
     return airEScrapePromise;
   }
-  airEScrapePromise = (async () => {
-    if (waterScrapePromise) {
-      console.log('[SERVICES] Air-e waiting for Triple A to finish before opening Chrome.');
-      await waterScrapePromise.catch(() => {});
-    }
+  airEScrapePromise = enqueueServiceBrowserRun(async () => {
     console.log(`[SERVICES] Running Air-e scrape (${reason})...`);
     try {
       let results = await scrapeAirE();
@@ -2691,11 +2698,7 @@ function runWaterScrapeOnce(reason) {
     console.log('[SERVICES] Triple A water scrape already running; skipping overlapping run.');
     return waterScrapePromise;
   }
-  waterScrapePromise = (async () => {
-    if (airEScrapePromise) {
-      console.log('[SERVICES] Triple A waiting for Air-e to finish before opening browsers.');
-      await airEScrapePromise.catch(() => {});
-    }
+  waterScrapePromise = enqueueServiceBrowserRun(async () => {
     console.log(`[SERVICES] Running Triple A water scrape (${reason})...`);
     try {
       let globalResults = await scrapeTripleAAccount();
@@ -2741,9 +2744,7 @@ function runGasScrapeOnce(reason) {
     console.log('[SERVICES] Gases del Caribe scrape already running; skipping overlapping run.');
     return gasScrapePromise;
   }
-  gasScrapePromise = (async () => {
-    if (airEScrapePromise) await airEScrapePromise.catch(() => {});
-    if (waterScrapePromise) await waterScrapePromise.catch(() => {});
+  gasScrapePromise = enqueueServiceBrowserRun(async () => {
     console.log(`[SERVICES] Running Gases del Caribe scrape (${reason})...`);
     try {
       let globalResults = await scrapeGasAccount();
@@ -2839,6 +2840,7 @@ module.exports = {
   parseGasBillPage,
   persistWaterResults,
   persistGasResults,
+  runScrapeOnce,
   runWaterScrapeOnce,
   runGasScrapeOnce,
   startScheduler,

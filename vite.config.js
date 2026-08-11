@@ -17,7 +17,6 @@ export default defineConfig({
   build: {
     cssMinify: true,
     rollupOptions: {
-      external: ['@capacitor/filesystem', '@capacitor/share', '@capacitor/core'],
       output: {
         entryFileNames: 'assets/app.[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',

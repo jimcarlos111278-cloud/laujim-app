@@ -2,22 +2,19 @@
 
 ## Objetivo
 
-El scraper de servicios no queda amarrado a Render, a Browserless ni a un
-equipo concreto. Un Android, un PC Windows o cualquier otro runtime puede
-abrir los portales con una sesión local y enviar únicamente resultados
-sanitizados a Laujim.
+El scraper de servicios no queda amarrado a un equipo concreto. Un PC Windows
+puede abrir los portales localmente; la APK Android funciona como coordinador
+en segundo plano y dispara en Render la misma consulta autenticada.
 
 ```text
-Android / PC / otro navegador
-        │  sesión y credenciales locales
-        │  HTTPS: resultados de Deuda Total
-        ▼
-Render: /worker/v1/* ── PostgreSQL/Aiven ── Bot y panel
+Android APK ── HTTPS: dispara consulta ──┐
+PC Windows ── navegador local ───────────┼─ Render: scrapers ── PostgreSQL/Aiven ── Bot
+                                         └─ Browserless / portales autenticados
 ```
 
 El worker nunca recibe `DATABASE_URL`, contraseñas de Aiven ni el token de
-WhatsApp. Las credenciales de los portales se quedan en el dispositivo y la
-base central conserva solo los valores obtenidos.
+WhatsApp. La APK tampoco copia credenciales de portales: Render usa las
+credenciales cifradas y Browserless configurados para ejecutar los scrapers.
 
 ## Contrato HTTP
 
@@ -82,6 +79,21 @@ Content-Type: application/json
 El servidor acepta también `Air-e` y `Gases del Caribe`, normaliza el formato
 `Deuda Total`, elimina campos no permitidos y actualiza `utilityRecords`.
 
+Disparar una consulta desde Android:
+
+```http
+POST /worker/v1/run
+X-Worker-Token: <SCRAPER_WORKER_TOKEN>
+X-Worker-Id: android-laujim-01
+Content-Type: application/json
+
+{"deviceId":"android-laujim-01","platform":"android","runtime":"laujim-apk","providers":["air-e","water","gas"]}
+```
+
+La respuesta `202` significa que Render aceptó el trabajo; los resultados se
+guardan cuando terminan los scrapers. `GET /worker/v1/run-status` permite ver
+el último estado del proceso.
+
 ## Configuración de Render
 
 Crear estas variables de entorno:
@@ -109,32 +121,34 @@ El celular necesita:
 
 1. Android con internet estable y espacio para la APK.
 2. Laujim instalada y el worker habilitado.
-3. Inicio de sesión manual una vez en Triple A, Air-e y Gases del Caribe.
+3. Registrar el dispositivo desde `Worker scraper` usando el token privado.
 4. Permiso de notificaciones y exclusión de la app de optimización de batería.
 5. Preferiblemente cargador conectado durante las consultas.
 
-El worker Android debe ejecutar el navegador visible o un WebView persistente,
-conservar su propia sesión y enviar los resultados al contrato anterior. Si
-Turnstile pide interacción, la APK debe notificarlo y dejar la resolución al
-administrador; no debe intentar falsificar el token.
+La APK mantiene un servicio Android en primer plano y despierta según la
+frecuencia guardada en Laujim. El servicio dispara el trabajo remoto; el
+navegador y Turnstile se ejecutan en el entorno de Render/Browserless que ya
+conoce los portales. Si un portal requiere intervención manual, se conserva el
+estado de error para revisarlo desde el panel o el PC worker.
 
 ## Cambiar de dispositivo
 
 1. Instalar el mismo worker en el nuevo Android o PC.
 2. Configurar la URL de Render y el token del worker.
 3. Registrar el nuevo `deviceId` con `replaceExisting: true`.
-4. Iniciar sesión en los portales en el nuevo dispositivo.
-5. Verificar el último `heartbeat` y la fecha `scrapedAt` en Laujim.
+4. Pulsar `Iniciar worker Android` o ejecutar el runner de Windows.
+5. Verificar el último `heartbeat`, estado del worker y fecha `scrapedAt` en Laujim.
 
 No se cambia el bot, el formato de WhatsApp ni la base de datos.
 
 ## Estado de los ejecutores
 
-La pantalla `Worker scraper` ya estÃ¡ disponible dentro de la app y la APK
-compilada se genera en `dist/app-debug.apk`. Esa pantalla registra el
-dispositivo y valida la conexiÃ³n; el ejecutor Android en segundo plano queda
-como una capa nativa posterior, porque Android aplica restricciones propias a
-la baterÃ­a y a los navegadores en segundo plano.
+La pantalla `Worker scraper` ya está disponible dentro de la app y la APK
+compilada incluye un servicio Android en primer plano. Al activar el worker,
+la APK registra el dispositivo, consulta la frecuencia remota y dispara
+`/worker/v1/run` ahora y en cada intervalo. Android puede retrasar una alarma
+si el fabricante aplica restricciones agresivas; por eso se recomienda quitar
+la optimización de batería y mantener el teléfono cargando.
 
 En Windows ya estÃ¡ disponible el runner local. Copia
 `portable-worker.config.example.json` como `portable-worker.config.json`,

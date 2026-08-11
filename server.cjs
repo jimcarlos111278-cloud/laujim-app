@@ -2715,6 +2715,17 @@ function mergePortableWorkerRecords(records) {
   return persisted;
 }
 
+let portableWorkerRunPromise = null;
+let portableWorkerRunState = {
+  runId: null,
+  status: 'idle',
+  startedAt: null,
+  finishedAt: null,
+  providers: [],
+  results: {},
+  error: null,
+};
+
 app.post('/worker/v1/register', requirePortableWorker, (req, res) => {
   const record = upsertPortableWorker(req.body || {});
   if (!record) return res.status(400).json({ error: 'deviceId inválido' });
@@ -2745,6 +2756,88 @@ app.get('/worker/v1/config', requirePortableWorker, (req, res) => {
     apartments: portableWorkerApartments(),
     serverTime: new Date().toISOString(),
   });
+});
+
+// Android foreground workers use this endpoint as a lightweight trigger. The
+// actual portal browser stays on Render, where the existing Browserless
+// session, credentials and portal-specific scrapers are already configured.
+// The worker never receives portal passwords and a second trigger cannot open
+// overlapping browser sessions.
+app.post('/worker/v1/run', requirePortableWorker, (req, res) => {
+  const deviceId = workerProtocol.normalizeWorkerId(req.body?.deviceId || req.headers['x-worker-id']);
+  if (!deviceId) return res.status(400).json({ error: 'deviceId inválido' });
+  if (portableWorkerRunPromise) {
+    return res.status(202).json({
+      ok: true,
+      alreadyRunning: true,
+      runId: portableWorkerRunState.runId,
+      status: portableWorkerRunState.status,
+    });
+  }
+
+  const configured = workerScheduleConfig();
+  const requestedProviders = Array.isArray(req.body?.providers)
+    ? req.body.providers.map(value => String(value).trim().toLowerCase())
+    : configured.providers;
+  const providers = [...new Set(requestedProviders.filter(value => ['air-e', 'water', 'gas'].includes(value)))];
+  if (!providers.length) return res.status(400).json({ error: 'No hay servicios habilitados para ejecutar.' });
+
+  const runId = String(req.body?.runId || `android-${Date.now()}`).slice(0, 120);
+  const startedAt = new Date().toISOString();
+  portableWorkerRunState = {
+    runId,
+    status: 'running',
+    startedAt,
+    finishedAt: null,
+    providers,
+    results: {},
+    error: null,
+    deviceId,
+  };
+  upsertPortableWorker({
+    deviceId,
+    platform: req.body?.platform || 'android',
+    runtime: req.body?.runtime || 'laujim-apk',
+    appVersion: req.body?.appVersion,
+    providers,
+    active: true,
+  });
+
+  portableWorkerRunPromise = (async () => {
+    for (const provider of providers) {
+      try {
+        let results = [];
+        if (provider === 'air-e') results = await servicesScraper.runScrapeOnce(`worker:${deviceId}`);
+        if (provider === 'water') results = await servicesScraper.runWaterScrapeOnce(`worker:${deviceId}`);
+        if (provider === 'gas') results = await servicesScraper.runGasScrapeOnce(`worker:${deviceId}`);
+        portableWorkerRunState.results[provider] = Array.isArray(results) ? results.length : 0;
+      } catch (error) {
+        portableWorkerRunState.results[provider] = 0;
+        portableWorkerRunState.error = error.message;
+        console.error(`[PORTABLE WORKER] ${provider} trigger error:`, error.message);
+      }
+    }
+    portableWorkerRunState.status = 'completed';
+    portableWorkerRunState.finishedAt = new Date().toISOString();
+    const worker = ensurePortableWorkerCollection().find(item => item.deviceId === deviceId);
+    if (worker) {
+      worker.lastSeenAt = portableWorkerRunState.finishedAt;
+      worker.lastRunAt = portableWorkerRunState.finishedAt;
+      worker.lastRunId = runId;
+      worker.lastResultCount = Object.values(portableWorkerRunState.results).reduce((sum, value) => sum + Number(value || 0), 0);
+      worker.lastError = portableWorkerRunState.error || null;
+      saveData();
+    }
+    return portableWorkerRunState;
+  })().finally(() => {
+    portableWorkerRunPromise = null;
+  });
+
+  res.status(202).json({ ok: true, runId, status: 'running', providers, serverTime: startedAt });
+});
+
+app.get('/worker/v1/run-status', requirePortableWorker, (req, res) => {
+  res.json({ ok: true, run: portableWorkerRunState });
 });
 
 app.get('/api/scraper/schedule', (req, res) => {

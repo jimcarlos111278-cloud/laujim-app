@@ -20,7 +20,16 @@ import {
   registerPortableWorker,
   savePortableWorkerSettings,
 } from '../utils/portableWorker';
+import {
+  configureAndroidScraperWorker,
+  getAndroidScraperWorkerStatus,
+  runAndroidScraperWorkerNow,
+  startAndroidScraperWorker,
+  stopAndroidScraperWorker,
+  supportsAndroidScraperWorker,
+} from '../utils/androidScraperWorker';
 import { AUTH_TOKEN, getBase } from '../utils/config';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 const DEFAULT_SCHEDULE = {
   intervalHours: 12,
@@ -47,6 +56,8 @@ export default function ScraperWorker() {
   const [scheduleForm, setScheduleForm] = useState(DEFAULT_SCHEDULE);
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [scheduleMessage, setScheduleMessage] = useState(null);
+  const [nativeStatus, setNativeStatus] = useState(null);
+  const [nativeBusy, setNativeBusy] = useState(false);
 
   const deviceIcon = useMemo(() => settings.platform.includes('android') ? Smartphone : Laptop, [settings.platform]);
 
@@ -70,6 +81,15 @@ export default function ScraperWorker() {
       .then(payload => {
         if (!cancelled && payload.schedule) setScheduleForm({ ...DEFAULT_SCHEDULE, ...payload.schedule });
       })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!supportsAndroidScraperWorker()) return undefined;
+    let cancelled = false;
+    getAndroidScraperWorkerStatus()
+      .then(status => { if (!cancelled) setNativeStatus(status); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -143,16 +163,85 @@ export default function ScraperWorker() {
       await registerPortableWorker(current, replaceExisting);
       const result = await fetchPortableWorkerConfig(current);
       setConfig(result);
+      let nativeMessage = '';
+      if (supportsAndroidScraperWorker()) {
+        try {
+          await LocalNotifications.requestPermissions().catch(() => {});
+          await configureAndroidScraperWorker({
+            serverUrl: current.serverUrl,
+            token: current.token,
+            deviceId: current.deviceId,
+            intervalHours: Number(result.schedule?.intervalHours || scheduleForm.intervalHours || 12),
+          });
+          const status = await startAndroidScraperWorker();
+          setNativeStatus(status);
+          nativeMessage = ' La APK inició la consulta automática en segundo plano.';
+        } catch (error) {
+          nativeMessage = ` El dispositivo quedó registrado, pero no se pudo iniciar el worker Android: ${error.message}`;
+        }
+      }
       setMessage({
-        type: 'success',
+        type: nativeMessage.includes('no se pudo') ? 'error' : 'success',
         text: replaceExisting
-          ? 'Este dispositivo quedó activo. Los workers anteriores quedaron inactivos.'
-          : 'Este dispositivo quedó registrado como worker.',
+          ? `Este dispositivo quedó activo. Los workers anteriores quedaron inactivos.${nativeMessage}`
+          : `Este dispositivo quedó registrado como worker.${nativeMessage}`,
       });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'No se pudo registrar el dispositivo.' });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleNativeStart() {
+    if (!supportsAndroidScraperWorker()) return;
+    if (!settings.token) {
+      setMessage({ type: 'error', text: 'Configura el token del worker antes de iniciar la APK.' });
+      return;
+    }
+    setNativeBusy(true); setMessage(null);
+    try {
+      const current = savePortableWorkerSettings(settings);
+      await LocalNotifications.requestPermissions().catch(() => {});
+      await configureAndroidScraperWorker({
+        serverUrl: current.serverUrl,
+        token: current.token,
+        deviceId: current.deviceId,
+        intervalHours: Number(scheduleForm.intervalHours || 12),
+      });
+      const status = await startAndroidScraperWorker();
+      setNativeStatus(status);
+      setMessage({ type: 'success', text: 'Worker Android iniciado. La consulta se ejecutará ahora y repetirá según la frecuencia guardada.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'No se pudo iniciar el worker Android.' });
+    } finally {
+      setNativeBusy(false);
+    }
+  }
+
+  async function handleNativeStop() {
+    setNativeBusy(true); setMessage(null);
+    try {
+      const status = await stopAndroidScraperWorker();
+      setNativeStatus(status);
+      setMessage({ type: 'success', text: 'Worker Android detenido. No se ejecutarán nuevas consultas desde este dispositivo.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'No se pudo detener el worker Android.' });
+    } finally {
+      setNativeBusy(false);
+    }
+  }
+
+  async function handleNativeRunNow() {
+    setNativeBusy(true); setMessage(null);
+    try {
+      const status = await runAndroidScraperWorkerNow();
+      setNativeStatus(status);
+      setMessage({ type: 'success', text: 'Consulta Android enviada a Render. Revisa los servicios cuando termine el portal.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'No se pudo iniciar la consulta.' });
+    } finally {
+      setNativeBusy(false);
     }
   }
 
@@ -247,6 +336,34 @@ export default function ScraperWorker() {
         )}
       </section>
 
+      {supportsAndroidScraperWorker() && (
+        <section className="rounded-xl border border-green-200 bg-green-50 p-5 shadow-sm dark:border-green-900/50 dark:bg-green-900/20">
+          <div className="mb-3 flex items-start gap-3">
+            <div className="rounded-lg bg-green-100 p-2 text-green-700 dark:bg-green-900/40 dark:text-green-300"><Smartphone className="h-5 w-5" /></div>
+            <div>
+              <h2 className="font-semibold text-gray-900 dark:text-white">Ejecución automática en Android</h2>
+              <p className="text-xs text-gray-600 dark:text-gray-300">La APK mantiene el servicio activo y dispara en Render los scrapers autenticados de Air-e, Triple A y Gases del Caribe. Las contraseñas no se copian al celular.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {nativeStatus?.enabled ? (
+              <button onClick={handleNativeStop} disabled={nativeBusy} className="inline-flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/30">
+                {nativeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />} Detener worker Android
+              </button>
+            ) : (
+              <button onClick={handleNativeStart} disabled={nativeBusy} className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
+                {nativeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Iniciar worker Android
+              </button>
+            )}
+            <button onClick={handleNativeRunNow} disabled={nativeBusy || !settings.token} className="inline-flex items-center gap-2 rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-800 hover:bg-green-100 disabled:opacity-50 dark:border-green-800 dark:text-green-200 dark:hover:bg-green-900/30">
+              <RefreshCw className="h-4 w-4" /> Ejecutar ahora
+            </button>
+            <span className="text-xs text-gray-600 dark:text-gray-300">Estado: {nativeStatus?.lastState || 'sin iniciar'}{nativeStatus?.lastRunAt ? ` · ${nativeStatus.lastRunAt}` : ''}</span>
+          </div>
+          {nativeStatus?.lastError && <p className="mt-3 rounded-lg bg-red-100 p-3 text-xs text-red-800 dark:bg-red-900/30 dark:text-red-200">Último error: {nativeStatus.lastError}</p>}
+        </section>
+      )}
+
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-4 flex items-start gap-3">
           <div className="rounded-lg bg-violet-100 p-2 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"><Clock3 className="h-5 w-5" /></div>
@@ -312,7 +429,7 @@ export default function ScraperWorker() {
 
       <div className="flex items-start gap-2 rounded-xl bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
-        <p><strong>Qué necesitarás en el celular:</strong> APK instalada, internet estable, notificaciones permitidas, batería sin optimización para Laujim y cargador durante la ventana de consulta. El inicio de sesión de cada portal se hace una vez en ese dispositivo. El runner ejecutor listo actualmente es el de Windows; esta pantalla deja preparado el cambio de equipo mientras se termina el ejecutor Android nativo.</p>
+        <p><strong>Qué necesitarás en el celular:</strong> APK instalada, internet estable, notificaciones permitidas, batería sin optimización para Laujim y preferiblemente cargador durante la ventana de consulta. La APK ejecuta la consulta en Render, donde están las sesiones, credenciales y Browserless de los portales; no necesitas iniciar sesión tres veces en el celular.</p>
       </div>
     </div>
   );
