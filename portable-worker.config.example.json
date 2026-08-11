@@ -1,0 +1,21 @@
+{
+  "serverUrl": "https://laujim-app.onrender.com",
+  "workerToken": "PEGA_AQUI_EL_SCRAPER_WORKER_TOKEN_DE_RENDER",
+  "deviceId": "pc-laujim-01",
+  "replaceExisting": true,
+  "chromeProfileDir": "C:/Users/TU_USUARIO/.laujim-chrome-profiles",
+  "portalCredentials": {
+    "air-e": {
+      "username": "correo-o-usuario-air-e",
+      "password": "CONTRASENA_AIR_E"
+    },
+    "triple-a": {
+      "username": "correo-triple-a",
+      "password": "CONTRASENA_TRIPLE_A"
+    },
+    "gascaribe": {
+      "username": "correo-gases",
+      "password": "CONTRASENA_GASES"
+    }
+  }
+}

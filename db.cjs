@@ -20,6 +20,7 @@ const INITIAL_DATA = {
   leads: [],
   authSessions: [],
   paymentReminderLogs: [],
+  scraperWorkers: [],
 };
 
 module.exports = { INITIAL_DATA };

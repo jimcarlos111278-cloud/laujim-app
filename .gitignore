@@ -32,7 +32,7 @@ android/local.properties
 
 # APK files
 app-debug.apk
-public/app-debug.apk
+!public/app-debug.apk
 
 # Photos / uploads
 uploads/photos/*
@@ -51,6 +51,8 @@ Proyecto Laujim APP - Render/
 
 # Puppeteer / Chrome session data
 sessions/
+portable-worker.config.json
+portable-worker-profile/
 
 # Contiene credenciales de la base Aiven - no subir
 restore-aiven.cjs

@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const os = require('os');
 const { Pool } = require('pg');
 const servicesScraper = require('./services-scraper.cjs');
+const workerProtocol = require('./worker-protocol.cjs');
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const ffmpegPath = require('ffmpeg-static');
 
@@ -23,7 +24,10 @@ process.on('unhandledRejection', (reason) => { console.error('UNHANDLED:', reaso
 
 app.get('/health', (req, res) => res.send('ok'));
 
-app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type', 'x-auth-token'] }));
+app.use(cors({
+  exposedHeaders: ['x-auth-token'],
+  allowedHeaders: ['Content-Type', 'x-auth-token', 'x-worker-token', 'x-worker-id'],
+}));
 app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 app.use((req, res, next) => {
@@ -2296,7 +2300,7 @@ function loadData() {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
-  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs', 'utilityRecords'].forEach(k => { if (!db[k]) db[k] = []; });
+  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs', 'utilityRecords', 'scraperWorkers'].forEach(k => { if (!db[k]) db[k] = []; });
   if (pruneAuthSessions()) console.log('Expired authentication sessions removed');
   recalcNextId();
 }
@@ -2592,6 +2596,210 @@ app.get('/api/utility-status', (req, res) => {
     };
   });
   res.json(status);
+});
+
+// ── Portable scraper workers ────────────────────────────────────────────────
+// A phone, PC, or another browser host can collect portal data without
+// exposing an inbound port. The worker authenticates with one shared token,
+// pulls a non-secret configuration, and pushes sanitized utility records back
+// to this process. Portal passwords and browser sessions stay on the worker.
+function portableWorkerEnabled() {
+  return /^(1|true|yes)$/i.test(String(process.env.SCRAPER_WORKER_ENABLED || ''));
+}
+
+function portableWorkerTokenValid(req) {
+  const expected = String(process.env.SCRAPER_WORKER_TOKEN || '').trim();
+  const provided = String(req.headers['x-worker-token'] || '').trim();
+  return Boolean(expected && workerProtocol.safeTokenEquals(provided, expected));
+}
+
+function requirePortableWorker(req, res, next) {
+  if (!portableWorkerEnabled()) return res.status(503).json({ error: 'Worker portátil no habilitado' });
+  if (!portableWorkerTokenValid(req)) return res.status(401).json({ error: 'Worker no autorizado' });
+  next();
+}
+
+function ensurePortableWorkerCollection() {
+  if (!Array.isArray(db.scraperWorkers)) db.scraperWorkers = [];
+  return db.scraperWorkers;
+}
+
+function savedPortableWorkerSchedule() {
+  const setting = (db.settings || []).find(item => item.key === 'portable_worker_schedule');
+  if (!setting) return null;
+  try {
+    const parsed = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function workerScheduleConfig() {
+  const saved = savedPortableWorkerSchedule();
+  const requestedInterval = Number(
+    saved?.intervalHours ?? process.env.PORTABLE_WORKER_INTERVAL_HOURS ?? process.env.SERVICES_SCRAPE_INTERVAL_HOURS ?? 12,
+  );
+  const intervalHours = Number.isFinite(requestedInterval)
+    ? Math.min(168, Math.max(1, Math.floor(requestedInterval)))
+    : 12;
+  const configuredStart = String(saved?.startAt || process.env.PORTABLE_WORKER_START_AT || '07:00');
+  const startAt = /^([01]\d|2[0-3]):[0-5]\d$/.test(configuredStart) ? configuredStart : '07:00';
+  const timezone = String(saved?.timezone || process.env.PORTABLE_WORKER_TIMEZONE || process.env.SERVICES_TIMEZONE || 'America/Bogota').slice(0, 80);
+  const configuredProviders = Array.isArray(saved?.providers) ? saved.providers.join(',') : saved?.providers;
+  const providers = String(configuredProviders || process.env.PORTABLE_WORKER_PROVIDERS || 'air-e,water,gas')
+    .split(',').map(value => value.trim().toLowerCase()).filter(value => ['air-e', 'water', 'gas'].includes(value));
+  return { intervalHours, startAt, timezone, providers: [...new Set(providers)], source: saved ? 'app' : 'env' };
+}
+
+function portableWorkerApartments() {
+  return (db.apartments || []).map(apt => ({
+    id: apt.id,
+    name: apt.name,
+    floor: apt.floor || String(apt.name || '').slice(0, 1) || null,
+    waterPaymentCode: apt.waterPaymentCode || null,
+    gasPaymentCode: apt.gasPaymentCode || null,
+    electricityPaymentCode: apt.electricityPaymentCode || apt.nic || null,
+  }));
+}
+
+function upsertPortableWorker(body = {}) {
+  const workers = ensurePortableWorkerCollection();
+  const deviceId = workerProtocol.normalizeWorkerId(body.deviceId);
+  if (!deviceId) return null;
+  const now = new Date().toISOString();
+  if (body.replaceExisting === true) {
+    workers.forEach(worker => {
+      if (worker.deviceId !== deviceId) worker.active = false;
+    });
+  }
+  const existing = workers.find(worker => worker.deviceId === deviceId);
+  const record = {
+    deviceId,
+    platform: String(body.platform || existing?.platform || 'unknown').slice(0, 40),
+    runtime: String(body.runtime || existing?.runtime || 'unknown').slice(0, 80),
+    appVersion: String(body.appVersion || existing?.appVersion || '').slice(0, 80) || null,
+    providers: Array.isArray(body.providers) ? body.providers.map(String).slice(0, 10) : (existing?.providers || []),
+    active: body.active !== false,
+    registeredAt: existing?.registeredAt || now,
+    lastSeenAt: now,
+    lastRunAt: existing?.lastRunAt || null,
+    lastRunId: existing?.lastRunId || null,
+    lastResultCount: Number(existing?.lastResultCount) || 0,
+    lastError: existing?.lastError || null,
+  };
+  if (existing) Object.assign(existing, record);
+  else workers.push(record);
+  saveData();
+  return record;
+}
+
+function mergePortableWorkerRecords(records) {
+  if (!Array.isArray(db.utilityRecords)) db.utilityRecords = [];
+  let persisted = 0;
+  for (const result of records) {
+    const sameApartment = record => (
+      (result.apartmentId !== null && result.apartmentId !== undefined && Number(record.apartmentId) === Number(result.apartmentId)) ||
+      (result.apartment && String(record.apartment || '').trim() === String(result.apartment).trim())
+    );
+    const index = db.utilityRecords.findIndex(record => {
+      if (record.provider !== result.provider) return false;
+      if (result.provider === 'Air-e' && result.nic && record.nic) return String(record.nic) === String(result.nic);
+      return sameApartment(record);
+    });
+    if (index >= 0) db.utilityRecords[index] = { ...db.utilityRecords[index], ...result };
+    else db.utilityRecords.push(result);
+    persisted += 1;
+  }
+  if (persisted) saveData();
+  return persisted;
+}
+
+app.post('/worker/v1/register', requirePortableWorker, (req, res) => {
+  const record = upsertPortableWorker(req.body || {});
+  if (!record) return res.status(400).json({ error: 'deviceId inválido' });
+  res.json({ ok: true, protocolVersion: workerProtocol.WORKER_PROTOCOL_VERSION, deviceId: record.deviceId, replacedExisting: req.body?.replaceExisting === true });
+});
+
+app.post('/worker/v1/heartbeat', requirePortableWorker, (req, res) => {
+  const body = { ...(req.body || {}), active: true };
+  const record = upsertPortableWorker(body);
+  if (!record) return res.status(400).json({ error: 'deviceId inválido' });
+  res.json({ ok: true, deviceId: record.deviceId, serverTime: new Date().toISOString() });
+});
+
+app.get('/worker/v1/config', requirePortableWorker, (req, res) => {
+  const deviceId = workerProtocol.normalizeWorkerId(req.headers['x-worker-id'] || req.query.deviceId);
+  const schedule = workerScheduleConfig();
+  res.json({
+    ok: true,
+    protocolVersion: workerProtocol.WORKER_PROTOCOL_VERSION,
+    enabled: true,
+    deviceId,
+    schedule,
+    portals: {
+      water: 'https://portal.aaa.com.co/polizas',
+      electricity: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List',
+      gas: 'https://www.gascaribe.com/',
+    },
+    apartments: portableWorkerApartments(),
+    serverTime: new Date().toISOString(),
+  });
+});
+
+app.get('/api/scraper/schedule', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  res.json({ ok: true, schedule: workerScheduleConfig() });
+});
+
+app.put('/api/scraper/schedule', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const body = req.body || {};
+  const intervalHours = Math.min(168, Math.max(1, Math.floor(Number(body.intervalHours))));
+  const startAt = String(body.startAt || '07:00').trim();
+  const timezone = String(body.timezone || 'America/Bogota').trim().slice(0, 80);
+  const providers = [...new Set((Array.isArray(body.providers) ? body.providers : [])
+    .map(value => String(value).trim().toLowerCase())
+    .filter(value => ['air-e', 'water', 'gas'].includes(value)))];
+  if (!Number.isFinite(intervalHours) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(startAt) || !timezone || !providers.length) {
+    return res.status(400).json({ error: 'Frecuencia, hora, zona horaria y al menos un servicio son obligatorios.' });
+  }
+  const value = JSON.stringify({ intervalHours, startAt, timezone, providers });
+  const existing = (db.settings || []).find(item => item.key === 'portable_worker_schedule');
+  if (existing) existing.value = value;
+  else {
+    if (!Array.isArray(db.settings)) db.settings = [];
+    db.settings.push({ id: nextId.settings || 1, key: 'portable_worker_schedule', value });
+    nextId.settings = (nextId.settings || 1) + 1;
+  }
+  saveData();
+  res.json({ ok: true, schedule: workerScheduleConfig() });
+});
+
+app.post('/worker/v1/results', requirePortableWorker, (req, res) => {
+  const body = req.body || {};
+  const deviceId = workerProtocol.normalizeWorkerId(body.deviceId || req.headers['x-worker-id']);
+  if (!deviceId) return res.status(400).json({ error: 'deviceId inválido' });
+  const records = workerProtocol.normalizeWorkerResults(body, { deviceId });
+  if (!records.length) return res.status(400).json({ error: 'No se recibieron resultados válidos' });
+  const persisted = mergePortableWorkerRecords(records);
+  const worker = ensurePortableWorkerCollection().find(item => item.deviceId === deviceId) || upsertPortableWorker({ deviceId });
+  if (worker) {
+    worker.lastSeenAt = new Date().toISOString();
+    worker.lastRunAt = body.capturedAt || worker.lastSeenAt;
+    worker.lastRunId = String(body.runId || '').slice(0, 120) || null;
+    worker.lastResultCount = persisted;
+    worker.lastError = null;
+    saveData();
+  }
+  res.json({ ok: true, deviceId, persisted, serverTime: new Date().toISOString() });
+});
+
+app.get('/api/scraper/workers', (req, res) => {
+  res.json({
+    enabled: portableWorkerEnabled(),
+    workers: ensurePortableWorkerCollection().map(worker => ({ ...worker })),
+  });
 });
 
 // Trigger Air-e scrape manually (admin only, via auth)
@@ -3505,9 +3713,15 @@ app.get('/', (req, res) => {
   });
 });
 
-// APKs are published as GitHub Release assets so deployments stay light while
-// the stable in-app URL always points to the most recent Android installer.
+// Prefer the APK bundled by the web build. Keep the GitHub release as a
+// fallback for older deployments that do not yet contain the public asset.
 app.get('/app-debug.apk', (req, res) => {
+  const localApk = path.join(__dirname, 'dist', 'app-debug.apk');
+  if (fs.existsSync(localApk)) {
+    return res.download(localApk, 'laujim-app-debug.apk', {
+      headers: { 'Content-Type': 'application/vnd.android.package-archive' },
+    });
+  }
   res.redirect(302, 'https://github.com/jimcarlos111278-cloud/laujim-app/releases/latest/download/app-debug.apk');
 });
 

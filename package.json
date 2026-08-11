@@ -13,6 +13,7 @@
     "dev": "npm run graphify && vite",
     "build": "npm run graphify && vite build && node scripts/generate-version.js && node scripts/fix-html.js",
     "build-apk": "npm run build && npx cap copy android && cd android && gradlew.bat assembleDebug && cd .. && node scripts/copy-apk.js",
+    "portable-worker": "node scripts/portable-worker.cjs",
     "lint": "oxlint",
     "preview": "vite preview",
     "network": "vite --host",

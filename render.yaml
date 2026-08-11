@@ -51,6 +51,19 @@ services:
         value: "12"
       - key: SERVICES_SCRAPE_INTERVAL_HOURS
         value: "12"
+      # Portable worker (Android/PC). The token remains dashboard-only.
+      - key: SCRAPER_WORKER_ENABLED
+        value: "true"
+      - key: SCRAPER_WORKER_TOKEN
+        sync: false
+      - key: PORTABLE_WORKER_INTERVAL_HOURS
+        value: "12"
+      - key: PORTABLE_WORKER_START_AT
+        value: "07:00"
+      - key: PORTABLE_WORKER_TIMEZONE
+        value: America/Bogota
+      - key: PORTABLE_WORKER_PROVIDERS
+        value: air-e,water,gas
       - key: DATABASE_URL
         # The production database is Aiven. Keep its private URL only in the
         # Render dashboard; the old Render database was deleted/expired.
