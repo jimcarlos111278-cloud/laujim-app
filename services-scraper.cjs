@@ -335,9 +335,12 @@ async function attachBrowserlessCaptchaSolver(page, provider) {
   cdp.on('Browserless.captchaAutoSolved', onSolved);
   return {
     state,
-    async waitForActivity(timeout = 5000) {
-      const deadline = Date.now() + timeout;
-      while (!state.status && Date.now() < deadline) await sleep(250);
+    async waitForSolved(timeout = 45000) {
+      const activityDeadline = Date.now() + Math.min(5000, timeout);
+      while (!state.status && Date.now() < activityDeadline) await sleep(250);
+      if (!state.status || state.status === 'solved') return state;
+      const deadline = Date.now() + Math.max(0, timeout - 5000);
+      while (state.status !== 'solved' && Date.now() < deadline) await sleep(250);
       return state;
     },
     async close() {
@@ -363,6 +366,15 @@ async function gotoPortalPage(page, url, options = {}, provider = 'Portal') {
     }
   }
   throw lastError || new Error(`No se pudo abrir ${url}.`);
+}
+
+async function recreatePortalPage(browser, oldPage, oldCaptchaSolver, provider) {
+  if (oldCaptchaSolver) await oldCaptchaSolver.close().catch(() => {});
+  await oldPage?.close?.().catch(() => {});
+  const page = await browser.newPage();
+  page.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
+  const captchaSolver = await attachBrowserlessCaptchaSolver(page, provider);
+  return { page, captchaSolver };
 }
 
 async function waitAndType(page, selector, text, timeout = 45000) {
@@ -866,8 +878,8 @@ async function loginPortalPage(page, {
       }
       throw error;
     }
-    if (captchaSolver) await captchaSolver.waitForActivity(5000);
-    const challenge = await waitForPortalTurnstile(page, 30000);
+    if (captchaSolver) await captchaSolver.waitForSolved(45000);
+    const challenge = await waitForPortalTurnstile(page, 60000);
     if (challenge?.hasTurnstile && !challenge.turnstileToken) {
       throw new Error(turnstileError);
     }
@@ -893,6 +905,10 @@ async function loginPortalPage(page, {
       : null;
     if (sameFormHandle) {
       try { await sameFormHandle.dispose(); } catch {}
+      if (captchaSolver?.state?.status === 'solved') {
+        console.warn(`[${provider}] Turnstile ya fue resuelto; se probarÃ¡ la sesiÃ³n mediante la ruta protegida.`);
+        return false;
+      }
       console.warn(`[${provider}] El formulario sigue disponible; se reintenta sin recargar.`);
       continue;
     }
@@ -1162,10 +1178,23 @@ async function scrapeTripleAAccount() {
       throw new Error('Triple A no completó el inicio de sesión.');
     }
 
-    await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
-      waitUntil: 'domcontentloaded',
-      timeout: PORTAL_AUTH_TIMEOUT_MS,
-    }, 'Triple A');
+    try {
+      await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
+        waitUntil: 'domcontentloaded',
+        timeout: PORTAL_AUTH_TIMEOUT_MS,
+      }, 'Triple A');
+    } catch (error) {
+      if (!/detached|target closed|execution context/i.test(String(error?.message || error))) throw error;
+      console.warn(`[TRIPLE A] Se reinicia la pestaÃ±a tras el reto de seguridad: ${error.message}`);
+      const recovered = await recreatePortalPage(browser, page, captchaSolver, 'Triple A');
+      page = recovered.page;
+      captchaSolver = recovered.captchaSolver;
+      page.on?.('response', captureSubscriptions);
+      await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
+        waitUntil: 'domcontentloaded',
+        timeout: PORTAL_AUTH_TIMEOUT_MS,
+      }, 'Triple A');
+    }
     const dataDeadline = Date.now() + PORTAL_DATA_TIMEOUT_MS;
     while (!subscriptionPayload && Date.now() < dataDeadline) await sleep(1000);
 
@@ -1676,10 +1705,24 @@ async function scrapeGasAccount() {
       throw new Error('Gases del Caribe no completó el inicio de sesión.');
     }
 
-    await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
-      waitUntil: 'domcontentloaded',
-      timeout: PORTAL_AUTH_TIMEOUT_MS,
-    }, 'Gases del Caribe');
+    try {
+      await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
+        waitUntil: 'domcontentloaded',
+        timeout: PORTAL_AUTH_TIMEOUT_MS,
+      }, 'Gases del Caribe');
+    } catch (error) {
+      if (!/detached|target closed|execution context/i.test(String(error?.message || error))) throw error;
+      console.warn(`[GAS] Se reinicia la pestaÃ±a tras el reto de seguridad: ${error.message}`);
+      const recovered = await recreatePortalPage(browser, page, captchaSolver, 'Gases del Caribe');
+      page = recovered.page;
+      captchaSolver = recovered.captchaSolver;
+      page.on?.('request', captureAuth);
+      page.on?.('response', captureContracts);
+      await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
+        waitUntil: 'domcontentloaded',
+        timeout: PORTAL_AUTH_TIMEOUT_MS,
+      }, 'Gases del Caribe');
+    }
     const dataDeadline = Date.now() + PORTAL_DATA_TIMEOUT_MS;
     while (!contractsPayload && Date.now() < dataDeadline) await sleep(1000);
     for (let attempt = 1; !contractsPayload && attempt <= PORTAL_DATA_ATTEMPTS; attempt += 1) {
@@ -1798,6 +1841,17 @@ async function scrapeGasAccount() {
 const AIR_E_GET_ENDPOINT =
   'https://portal.air-e.com/DesktopModules/GatewayOficinaVirtual.Maestro.MisFacturas/API/Documento/Get';
 const AIR_E_CONTRATO_RE = /cd_Contrato=([0-9A-Fa-f-]{36})/i;
+
+async function contractFromAirEResources(page) {
+  if (typeof page?.evaluate !== 'function') return null;
+  return page.evaluate((pattern) => {
+    for (const entry of performance.getEntriesByType('resource')) {
+      const match = new RegExp(pattern, 'i').exec(entry.name || '');
+      if (match?.[1]) return match[1];
+    }
+    return null;
+  }, AIR_E_CONTRATO_RE.source).catch(() => null);
+}
 
 function parseAirEAmount(value) {
   if (typeof value === 'number') {
@@ -1952,7 +2006,9 @@ async function scrapeAirE() {
 
     // Give the module a moment to fire the request if the same page was reused.
     const listenStart = Date.now();
-    while (!cdContrato && Date.now() - listenStart < 10000) {
+    while (!cdContrato && Date.now() - listenStart < 30000) {
+      cdContrato = await contractFromAirEResources(page);
+      if (cdContrato) break;
       await sleep(500);
     }
     page.off('response', onResponse);
