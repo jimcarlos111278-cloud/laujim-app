@@ -1251,48 +1251,43 @@ async function loginTripleAWithPortalApi(page, credentials, captchaSolver) {
     throw new Error('Triple A mantiene Turnstile visible despuÃ©s de esperar a Browserless.');
   }
 
+  const appVersion = await page.evaluate(() =>
+    document.querySelector('meta[name="version-info"]')?.getAttribute('content') || 'unknown'
+  ).catch(() => 'unknown');
   let lastResult = null;
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
     const token = await readPortalTurnstileToken(page);
     if (!token) {
       await executePortalTurnstile(page);
       if (captchaSolver) await captchaSolver.waitForSolved(30000);
-      await sleep(1000);
+      await sleep(1500);
       continue;
     }
-    const result = await page.evaluate(async ({ email, password, recaptchaToken }) => {
-      const csrfResponse = await fetch('/api/auth/csrf', { credentials: 'include' });
-      const csrfPayload = await csrfResponse.json().catch(() => ({}));
-      const form = new URLSearchParams({
-        csrfToken: String(csrfPayload.csrfToken || ''),
-        callbackUrl: '/inicio',
-        json: 'true',
-        email: String(email || ''),
-        password: String(password || ''),
-        recaptchaToken: String(recaptchaToken || ''),
-      });
-      const response = await fetch('/api/auth/callback/credentials', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: form,
-      });
-      const payload = await response.json().catch(() => ({}));
-      return {
-        status: response.status,
-        ok: response.ok && payload?.error == null,
-        error: payload?.error || null,
-        hasCsrf: Boolean(csrfPayload.csrfToken),
-        hasUrl: Boolean(payload?.url),
-      };
-    }, {
-      email: credentials.username,
-      password: credentials.password,
-      recaptchaToken: token,
-    }).catch(error => ({ status: 0, ok: false, error: error.message }));
+    // Triple A's current frontend authenticates against its BFF. The old
+    // NextAuth callback is only an internal wrapper and returns 401 when it
+    // is called directly from the scraper.
+    const encodedPassword = Buffer.from(String(credentials.password || ''), 'utf8').toString('base64');
+    const result = await requestPortalJson(page, '/bff/auth/login', {
+      method: 'POST',
+      headers: { 'x-app-version': appVersion },
+      body: {
+        email: credentials.username,
+        password: encodedPassword,
+        recaptchaToken: token,
+      },
+    });
+    const payload = parsePortalResponseBody(result.body) || {};
+    const accessToken = portalFieldValue(payload, ['accessToken', 'access_token']);
+    const fallbackToken = portalFieldValue(payload, ['token', 'jwt']);
+    const tokenValue = accessToken || fallbackToken;
+    result.ok = result.status >= 200 && result.status < 300 && payload?.error == null;
+    result.authHeader = tokenValue
+      ? (/^(?:Bearer|Token)\s/i.test(String(tokenValue)) ? String(tokenValue) : `Bearer ${tokenValue}`)
+      : null;
+    result.hasToken = Boolean(tokenValue);
     lastResult = result;
-    console.log(`[TRIPLE A] Login API intento ${attempt}: HTTP ${result.status || 'sin respuesta'}; sesiÃ³n ${result.ok ? 'aceptada' : 'no confirmada'}.`);
-    if (result.ok) return true;
+    console.log(`[TRIPLE A] Login BFF intento ${attempt}: HTTP ${result.status || 'sin respuesta'}; sesiÃ³n ${result.ok ? 'aceptada' : 'no confirmada'}; token=${Boolean(result.hasToken)}.`);
+    if (result.ok) return { ok: true, authHeader: result.authHeader, payload };
     await sleep(1500);
   }
   if (!lastResult) throw new Error('Triple A no entregÃ³ un token de Turnstile vÃ¡lido para iniciar sesiÃ³n.');
@@ -1332,14 +1327,15 @@ async function loginGasWithPortalApi(page, credentials, captchaSolver) {
 
   const payload = parsePortalResponseBody(loginResponse.body);
   const tokenValue = portalFieldValue(payload, ['token', 'accessToken', 'authorization', 'jwt']);
-  const authHeader = tokenValue
-    ? (/^Bearer\s/i.test(String(tokenValue)) ? String(tokenValue) : `Bearer ${tokenValue}`)
-    : null;
+  // Gascaribe's own frontend sends the returned `data.token` verbatim in
+  // the Authorization header. It is not guaranteed to use the Bearer
+  // prefix, so adding one here can invalidate an otherwise valid session.
+  const authHeader = tokenValue ? String(tokenValue).trim() : null;
   console.log(`[GAS] Login API: HTTP ${loginResponse.status || 'sin respuesta'}; sesiÃ³n ${loginResponse.status >= 200 && loginResponse.status < 300 ? 'aceptada' : 'no confirmada'}.`);
   if (loginResponse.status < 200 || loginResponse.status >= 300) {
     throw new Error(`Gases del Caribe rechazÃ³ el inicio de sesiÃ³n por API (HTTP ${loginResponse.status || 'sin respuesta'}).`);
   }
-  return { payload, authHeader };
+  return { payload, authHeader, captchaToken: token };
 }
 
 function tripleAStatusValue(subscription) {
@@ -1399,6 +1395,7 @@ async function scrapeTripleAAccount() {
   let page;
   let dataPage;
   let subscriptionPayload = null;
+  let authHeader = null;
   let captureSubscriptions;
   let captureAuthResponse;
   let captchaSolver;
@@ -1477,7 +1474,9 @@ async function scrapeTripleAAccount() {
     let authenticatedByApi = false;
     let loginError = null;
     try {
-      authenticatedByLogin = await loginTripleAWithPortalApi(page, credentials, captchaSolver);
+      const apiLogin = await loginTripleAWithPortalApi(page, credentials, captchaSolver);
+      authHeader = apiLogin?.authHeader || null;
+      authenticatedByLogin = Boolean(apiLogin?.ok);
       authenticatedByApi = authenticatedByLogin;
       if (authenticatedByApi) console.log('[TRIPLE A] Login API oficial confirmado; se conservara la misma sesion para consultar polizas.');
     } catch (error) {
@@ -1595,7 +1594,7 @@ async function scrapeTripleAAccount() {
         console.warn(`[TRIPLE A] La lista global no llegó; reintentando la consulta autenticada (${attempt}/${PORTAL_DATA_ATTEMPTS}).`);
         await sleep(PORTAL_DATA_RETRY_DELAY_MS);
       }
-      const direct = await fetchPortalJson(page, '/bff/subscriptions');
+      const direct = await fetchPortalJson(page, '/bff/subscriptions', authHeader ? { Authorization: authHeader } : {});
       if (direct.status >= 200 && direct.status < 300) {
         subscriptionPayload = parsePortalResponseBody(direct.body);
       } else if (attempt === PORTAL_DATA_ATTEMPTS) {
@@ -1607,7 +1606,7 @@ async function scrapeTripleAAccount() {
     if (!subscriptions.length) {
       for (let attempt = 1; attempt <= PORTAL_DATA_ATTEMPTS && !subscriptions.length; attempt += 1) {
         if (attempt > 1) await sleep(PORTAL_DATA_RETRY_DELAY_MS);
-        const direct = await fetchPortalJson(page, '/bff/subscriptions');
+        const direct = await fetchPortalJson(page, '/bff/subscriptions', authHeader ? { Authorization: authHeader } : {});
         if (direct.status < 200 || direct.status >= 300) continue;
         const retryPayload = parsePortalResponseBody(direct.body);
         const retrySubscriptions = unwrapPortalList(retryPayload, ['subscriptions', 'policies', 'items']);
@@ -1967,7 +1966,11 @@ function gasInvoiceSummary(invoices) {
   const unpaid = [];
   for (const invoice of list) {
     const amount = parsePortalAmount(
-      portalFieldValue(invoice, ['couponValue', 'amountDue', 'totalToPay', 'total', 'deudaTotal', 'saldo']),
+      portalFieldValue(invoice, [
+        'pendingValue', 'pendingAmount', 'couponValue', 'amountDue', 'totalToPay',
+        'totalDebt', 'deudaTotal', 'invoiceValue', 'balanceDue', 'balance',
+        'saldo', 'debt', 'total', 'amount', 'value',
+      ]),
     );
     const paidValue = portalFieldValue(invoice, ['isPaid', 'paid', 'pagada', 'status']);
     const pendingValue = portalFieldValue(invoice, ['isPending', 'pending', 'pendiente', 'status']);
@@ -2013,6 +2016,7 @@ async function scrapeGasAccount() {
   let dataPage;
   let contractsPayload = null;
   let authHeader = null;
+  let gasCaptchaToken = '';
   let captureContracts;
   let captureAuth;
   let captureLoginResponse;
@@ -2060,7 +2064,7 @@ async function scrapeGasAccount() {
         .then(body => {
           const payload = parsePortalResponseBody(body) || {};
           const token = portalFieldValue(payload, ['token', 'appToken', 'accessToken', 'authorization', 'jwt']);
-          if (!authHeader && token) authHeader = /^Bearer\s/i.test(String(token)) ? String(token) : `Bearer ${token}`;
+          if (!authHeader && token) authHeader = String(token).trim();
           authState.done = true;
           authState.ok = response.status() >= 200 && response.status() < 300;
           console.log(`[GAS] Respuesta de login: HTTP ${response.status()}; ok=${Boolean(authState.ok)}; token=${Boolean(token)}; campos=${Object.keys(payload).slice(0, 8).join(',') || 'sin cuerpo'}.`);
@@ -2115,6 +2119,7 @@ async function scrapeGasAccount() {
     try {
       const apiLogin = await loginGasWithPortalApi(page, credentials, captchaSolver);
       authHeader = apiLogin.authHeader || authHeader;
+      gasCaptchaToken = apiLogin.captchaToken || '';
       authenticatedByLogin = true;
       authenticatedByApi = true;
       console.log('[GAS] Login API oficial confirmado; se conservara la misma sesion para consultar contratos.');
@@ -2141,10 +2146,12 @@ async function scrapeGasAccount() {
           });
           if (executed) console.log('[GAS] Turnstile preparado antes de enviar el formulario.');
           if (captchaSolver) await captchaSolver.waitForSolved(60000);
+          gasCaptchaToken = await readPortalTurnstileToken(page);
           await sleep(500);
         },
       });
       authenticatedByLogin = true;
+      gasCaptchaToken = await readPortalTurnstileToken(page);
     } catch (error) {
       loginError = error;
       console.warn(`[GAS] El login API no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
@@ -2210,7 +2217,7 @@ async function scrapeGasAccount() {
     if (!contractsPayload) throw new Error('No se recibió la lista global de contratos de Gases del Caribe.');
 
     const token = portalFieldValue(contractsPayload, ['token', 'appToken', 'accessToken', 'authorization']);
-    if (!authHeader && token) authHeader = /^Bearer\s/i.test(String(token)) ? String(token) : `Bearer ${token}`;
+    if (!authHeader && token) authHeader = String(token).trim();
     if (!authHeader) throw new Error('El portal de Gases del Caribe no entregó el token de consulta.');
 
     let contracts = unwrapPortalList(contractsPayload, ['contracts', 'items']);
@@ -2229,7 +2236,7 @@ async function scrapeGasAccount() {
     }
     const refreshedToken = portalFieldValue(contractsPayload, ['token', 'appToken', 'accessToken', 'authorization']);
     if (!authHeader && refreshedToken) {
-      authHeader = /^Bearer\s/i.test(String(refreshedToken)) ? String(refreshedToken) : `Bearer ${refreshedToken}`;
+      authHeader = String(refreshedToken).trim();
     }
     if (!authHeader) throw new Error('El portal de Gases del Caribe no entregó el token de consulta.');
     console.log('[GAS] Respuesta global:', JSON.stringify(portalPayloadDiagnostics(contractsPayload, contracts)));
@@ -2243,7 +2250,7 @@ async function scrapeGasAccount() {
       if (!contractId) continue;
       const invoiceResponse = await fetchPortalJson(
         page,
-        `${GAS_API_BASE}/invoices/${encodeURIComponent(contractId)}?g-recaptcha-response=-`,
+        `${GAS_API_BASE}/invoices/${encodeURIComponent(contractId)}${gasCaptchaToken ? `?g-recaptcha-response=${encodeURIComponent(gasCaptchaToken)}` : ''}`,
         { Authorization: authHeader },
       );
       if (invoiceResponse.status < 200 || invoiceResponse.status >= 300) {
