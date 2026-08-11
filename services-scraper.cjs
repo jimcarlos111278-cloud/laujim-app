@@ -49,16 +49,14 @@ const BROWSERLESS_PROFILES = String(process.env.BROWSERLESS_PROFILES || 'air-e,w
 const BROWSERLESS_SOLVE_CAPTCHAS = /^(1|true|yes)$/i.test(
   process.env.BROWSERLESS_SOLVE_CAPTCHAS || (Object.values(BROWSERLESS_TOKENS).some(Boolean) ? 'true' : ''),
 );
-// Browserless documents the stealth route as the most reliable way to avoid
-// triggering bot challenges before a portal form is rendered. Use it by
-// default whenever a remote token is configured; an explicit false keeps the
-// old base route available for diagnostics.
-const BROWSERLESS_STEALTH = !/^(0|false|no)$/i.test(
-  process.env.BROWSERLESS_STEALTH || (Object.values(BROWSERLESS_TOKENS).some(Boolean) ? 'true' : ''),
-);
+// Browserless documents the stealth route as an option for sites that need a
+// stronger fingerprint. Keep the proven base route by default because some
+// current accounts reject /stealth with HTTP 400; Render can opt in with
+// BROWSERLESS_STEALTH=true without a code change.
+const BROWSERLESS_STEALTH = /^(1|true|yes)$/i.test(process.env.BROWSERLESS_STEALTH || '');
 const BROWSERLESS_TIMEOUT_MS = Math.max(
-  60000,
-  Number(process.env.BROWSERLESS_TIMEOUT_MS || 300000) || 300000,
+  0,
+  Number(process.env.BROWSERLESS_TIMEOUT_MS || 0) || 0,
 );
 
 function sleep(ms) {
@@ -265,7 +263,9 @@ function browserlessEndpointFor(profileName) {
     if (BROWSERLESS_SOLVE_CAPTCHAS) {
       endpoint.searchParams.set('solveCaptchas', 'true');
     }
-    endpoint.searchParams.set('timeout', String(BROWSERLESS_TIMEOUT_MS));
+    if (BROWSERLESS_TIMEOUT_MS > 0) {
+      endpoint.searchParams.set('timeout', String(BROWSERLESS_TIMEOUT_MS));
+    }
     const proxy = String(process.env.BROWSERLESS_PROXY || '').trim();
     if (proxy && !endpoint.searchParams.has('proxy')) endpoint.searchParams.set('proxy', proxy);
     const proxyCountry = String(process.env.BROWSERLESS_PROXY_COUNTRY || '').trim();

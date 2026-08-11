@@ -191,8 +191,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "ref_react",
-      "community": 40,
-      "community_name": "react",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "react"
     },
     {
@@ -4108,7 +4108,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 146,
+      "community": 35,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -4119,7 +4119,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 146,
+      "community": 35,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -4130,8 +4130,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_core",
-      "community": 35,
-      "community_name": "@capacitor/core",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/core"
     },
     {
@@ -4141,8 +4141,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "capacitor_core",
-      "community": 35,
-      "community_name": "@capacitor/core",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/core"
     },
     {
@@ -4350,8 +4350,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "package_dependencies_jsqr",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 146,
+      "community_name": "jsqr",
       "norm_label": "jsqr"
     },
     {
@@ -4361,8 +4361,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "jsqr",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 146,
+      "community_name": "jsqr",
       "norm_label": "jsqr"
     },
     {
@@ -6654,8 +6654,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_clearcloudauthstate",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "clearcloudauthstate()"
     },
     {
@@ -7218,8 +7218,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudadmingreeting",
-      "community": 16,
-      "community_name": "handleCloudInbound",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudadmingreeting()"
     },
     {
@@ -7230,8 +7230,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_greetcloudadminonce",
-      "community": 16,
-      "community_name": "handleCloudInbound",
+      "community": 0,
+      "community_name": "handleCloudAdminMessage",
       "norm_label": "greetcloudadminonce()"
     },
     {
@@ -8225,10 +8225,21 @@
       "norm_label": "browserless_solve_captchas"
     },
     {
+      "label": "BROWSERLESS_STEALTH",
+      "file_type": "code",
+      "source_file": "services-scraper.cjs",
+      "source_location": "L56",
+      "_origin": "ast",
+      "id": "services_scraper_browserless_stealth",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
+      "norm_label": "browserless_stealth"
+    },
+    {
       "label": "BROWSERLESS_TIMEOUT_MS",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L59",
+      "source_location": "L57",
       "_origin": "ast",
       "id": "services_scraper_browserless_timeout_ms",
       "community": 23,
@@ -8239,7 +8250,7 @@
       "label": "sleep()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L64",
+      "source_location": "L62",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_sleep",
@@ -8251,7 +8262,7 @@
       "label": "firstExistingPath()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L68",
+      "source_location": "L66",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_firstexistingpath",
@@ -8263,7 +8274,7 @@
       "label": "resolveChromium()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L72",
+      "source_location": "L70",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_resolvechromium",
@@ -8275,7 +8286,7 @@
       "label": "AIR_E_URLS",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L124",
+      "source_location": "L122",
       "_origin": "ast",
       "id": "services_scraper_air_e_urls",
       "community": 23,
@@ -8286,7 +8297,7 @@
       "label": "TRIPLE_A_URLS",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L132",
+      "source_location": "L130",
       "_origin": "ast",
       "id": "services_scraper_triple_a_urls",
       "community": 23,
@@ -8297,7 +8308,7 @@
       "label": "GAS_PORTAL_URLS",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L136",
+      "source_location": "L134",
       "_origin": "ast",
       "id": "services_scraper_gas_portal_urls",
       "community": 23,
@@ -8308,7 +8319,7 @@
       "label": "AIR_E_NIC_MAP",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L151",
+      "source_location": "L149",
       "_origin": "ast",
       "id": "services_scraper_air_e_nic_map",
       "community": 23,
@@ -8319,7 +8330,7 @@
       "label": "configuredAirETargets()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L166",
+      "source_location": "L164",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_configuredairetargets",
@@ -8331,7 +8342,7 @@
       "label": "getLastScrapeError()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L200",
+      "source_location": "L198",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_getlastscrapeerror",
@@ -8343,7 +8354,7 @@
       "label": "getLastWaterScrapeError()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L204",
+      "source_location": "L202",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_getlastwaterscrapeerror",
@@ -8355,7 +8366,7 @@
       "label": "getLastGasScrapeError()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L208",
+      "source_location": "L206",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_getlastgasscrapeerror",
@@ -8367,7 +8378,7 @@
       "label": "init()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L212",
+      "source_location": "L210",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_init",
@@ -8379,7 +8390,7 @@
       "label": "getAirECredentials()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L219",
+      "source_location": "L217",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_getairecredentials",
@@ -8391,7 +8402,7 @@
       "label": "getPortalCredentials()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L235",
+      "source_location": "L233",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_getportalcredentials",
@@ -8403,7 +8414,7 @@
       "label": "browserlessEndpointFor()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L249",
+      "source_location": "L247",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_browserlessendpointfor",
@@ -9184,8 +9195,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_protectedroute",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "protectedroute()"
     },
     {
@@ -9196,8 +9207,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_adminroute",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "adminroute()"
     },
     {
@@ -9208,8 +9219,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_privateapp",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "privateapp()"
     },
     {
@@ -9232,8 +9243,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_app",
-      "community": 122,
-      "community_name": "ErrorBoundary",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "app()"
     },
     {
@@ -9314,8 +9325,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_refreshallfromserver",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "refreshallfromserver()"
     },
     {
@@ -9362,8 +9373,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_startcloudpolling",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "startcloudpolling()"
     },
     {
@@ -9374,8 +9385,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopcloudpolling",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "stopcloudpolling()"
     },
     {
@@ -9445,8 +9456,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "src_api_api",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "api"
     },
     {
@@ -9456,8 +9467,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_errorboundary",
-      "community": 122,
-      "community_name": "ErrorBoundary",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "errorboundary.jsx"
     },
     {
@@ -9470,7 +9481,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary",
       "community": 122,
-      "community_name": "ErrorBoundary",
+      "community_name": "Predial.jsx",
       "norm_label": "errorboundary"
     },
     {
@@ -9482,7 +9493,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_constructor",
       "community": 122,
-      "community_name": "ErrorBoundary",
+      "community_name": "Predial.jsx",
       "norm_label": ".constructor()"
     },
     {
@@ -9494,7 +9505,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_getderivedstatefromerror",
       "community": 122,
-      "community_name": "ErrorBoundary",
+      "community_name": "Predial.jsx",
       "norm_label": ".getderivedstatefromerror()"
     },
     {
@@ -9506,7 +9517,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_componentdidcatch",
       "community": 122,
-      "community_name": "ErrorBoundary",
+      "community_name": "Predial.jsx",
       "norm_label": ".componentdidcatch()"
     },
     {
@@ -9518,7 +9529,7 @@
       "_origin": "ast",
       "id": "src_components_errorboundary_errorboundary_render",
       "community": 122,
-      "community_name": "ErrorBoundary",
+      "community_name": "Predial.jsx",
       "norm_label": ".render()"
     },
     {
@@ -9528,8 +9539,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout",
-      "community": 98,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "layout.jsx"
     },
     {
@@ -9539,8 +9550,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_layout_navitems",
-      "community": 98,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "navitems"
     },
     {
@@ -9551,8 +9562,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_layout_layout",
-      "community": 98,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "layout()"
     },
     {
@@ -9562,8 +9573,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_modal",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "modal.jsx"
     },
     {
@@ -9574,8 +9585,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_modal_modal",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "modal()"
     },
     {
@@ -9655,8 +9666,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_statscard",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "statscard.jsx"
     },
     {
@@ -9667,8 +9678,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_statscard_statscard",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "statscard()"
     },
     {
@@ -9816,8 +9827,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_db_database_initdb",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "initdb()"
     },
     {
@@ -9875,8 +9886,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main",
-      "community": 122,
-      "community_name": "ErrorBoundary",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "main.jsx"
     },
     {
@@ -9887,8 +9898,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_main_boot",
-      "community": 122,
-      "community_name": "ErrorBoundary",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "boot()"
     },
     {
@@ -10001,8 +10012,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_apartments",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "apartments.jsx"
     },
     {
@@ -10013,8 +10024,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartments_apartments",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "apartments()"
     },
     {
@@ -10070,8 +10081,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contracts",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "contracts.jsx"
     },
     {
@@ -10082,8 +10093,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contracts_contracts",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "contracts()"
     },
     {
@@ -10093,8 +10104,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_dashboard",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "dashboard.jsx"
     },
     {
@@ -10116,8 +10127,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "login.jsx"
     },
     {
@@ -10128,8 +10139,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "login()"
     },
     {
@@ -10139,8 +10150,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_miapto",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "miapto.jsx"
     },
     {
@@ -10151,8 +10162,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_miapto_miapto",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "miapto()"
     },
     {
@@ -10162,8 +10173,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_payments",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "payments.jsx"
     },
     {
@@ -10174,8 +10185,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_payments_payments",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "payments()"
     },
     {
@@ -10185,7 +10196,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_predial",
-      "community": 131,
+      "community": 122,
       "community_name": "Predial.jsx",
       "norm_label": "predial.jsx"
     },
@@ -10196,7 +10207,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
-      "community": 131,
+      "community": 122,
       "community_name": "Predial.jsx",
       "norm_label": "ref_map"
     },
@@ -10208,7 +10219,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
-      "community": 131,
+      "community": 122,
       "community_name": "Predial.jsx",
       "norm_label": "lookupref()"
     },
@@ -10220,7 +10231,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
-      "community": 131,
+      "community": 122,
       "community_name": "Predial.jsx",
       "norm_label": "getpredialurl()"
     },
@@ -10232,7 +10243,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_predial",
-      "community": 131,
+      "community": 122,
       "community_name": "Predial.jsx",
       "norm_label": "predial()"
     },
@@ -10335,7 +10346,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_settings",
-      "community": 98,
+      "community": 117,
       "community_name": "Settings.jsx",
       "norm_label": "settings.jsx"
     },
@@ -10347,7 +10358,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_settings_settings",
-      "community": 98,
+      "community": 117,
       "community_name": "Settings.jsx",
       "norm_label": "settings()"
     },
@@ -10381,8 +10392,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_tenants",
-      "community": 40,
-      "community_name": "react",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "tenants.jsx"
     },
     {
@@ -10393,8 +10404,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_tenants_tenants",
-      "community": 40,
-      "community_name": "react",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "tenants()"
     },
     {
@@ -10509,8 +10520,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "whatsappcontacts.jsx"
     },
     {
@@ -10521,8 +10532,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts_whatsappcontacts",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "whatsappcontacts()"
     },
     {
@@ -10532,8 +10543,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappinbox",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "whatsappinbox.jsx"
     },
     {
@@ -10544,8 +10555,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_cloudrequest",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "cloudrequest()"
     },
     {
@@ -10556,8 +10567,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_formatdate",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "formatdate()"
     },
     {
@@ -10568,8 +10579,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediaicon",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "mediaicon()"
     },
     {
@@ -10580,8 +10591,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediamessage",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "mediamessage()"
     },
     {
@@ -10592,8 +10603,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_whatsappinbox",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "whatsappinbox()"
     },
     {
@@ -10603,8 +10614,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_auth",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "auth.js"
     },
     {
@@ -10627,8 +10638,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_setauth",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "setauth()"
     },
     {
@@ -10639,8 +10650,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_clearauth",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "clearauth()"
     },
     {
@@ -10651,8 +10662,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_isadmin",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "isadmin()"
     },
     {
@@ -10663,8 +10674,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_istenant",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 22,
+      "community_name": "chat.js",
       "norm_label": "istenant()"
     },
     {
@@ -10675,8 +10686,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_gettenantapartmentid",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 22,
+      "community_name": "chat.js",
       "norm_label": "gettenantapartmentid()"
     },
     {
@@ -10687,8 +10698,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_requireauth",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "requireauth()"
     },
     {
@@ -10699,8 +10710,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_login",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "login()"
     },
     {
@@ -10711,8 +10722,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_loginadmin",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "loginadmin()"
     },
     {
@@ -10723,8 +10734,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_logintenant",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "logintenant()"
     },
     {
@@ -10734,8 +10745,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_calendar",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "calendar.js"
     },
     {
@@ -10746,8 +10757,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_uidforapt",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "uidforapt()"
     },
     {
@@ -10758,8 +10769,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_getstoreduids",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getstoreduids()"
     },
     {
@@ -10770,8 +10781,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_savestoreduids",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "savestoreduids()"
     },
     {
@@ -10782,8 +10793,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_fmtdate",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -10794,8 +10805,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_nextduedate",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "nextduedate()"
     },
     {
@@ -10806,8 +10817,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateics",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generateics()"
     },
     {
@@ -10818,8 +10829,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_downloadics",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "downloadics()"
     },
     {
@@ -10830,8 +10841,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_addcalendarreminder",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "addcalendarreminder()"
     },
     {
@@ -10842,8 +10853,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateallpaymentreminders",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generateallpaymentreminders()"
     },
     {
@@ -10854,8 +10865,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_syncandgeneratereminders",
-      "community": 39,
-      "community_name": "calendar.js",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "syncandgeneratereminders()"
     },
     {
@@ -10866,7 +10877,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "callscreening.js"
     },
     {
@@ -10878,7 +10889,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_nativeandroid",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "nativeandroid()"
     },
     {
@@ -10890,7 +10901,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_callerscreeningplugin",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "callerscreeningplugin()"
     },
     {
@@ -10902,7 +10913,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_normalizedphone",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "normalizedphone()"
     },
     {
@@ -10914,7 +10925,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_getcallscreeningstatus",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "getcallscreeningstatus()"
     },
     {
@@ -10926,7 +10937,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_syncauthorizedcallernumbers",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "syncauthorizedcallernumbers()"
     },
     {
@@ -10938,7 +10949,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_requestcallscreeningrole",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "requestcallscreeningrole()"
     },
     {
@@ -10950,7 +10961,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_setcallscreeningenabled",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "setcallscreeningenabled()"
     },
     {
@@ -10962,7 +10973,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_setallowcallsfromcontacts",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "setallowcallsfromcontacts()"
     },
     {
@@ -10974,7 +10985,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_requestprotectedsmsrole",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "requestprotectedsmsrole()"
     },
     {
@@ -10986,7 +10997,7 @@
       "_origin": "ast",
       "id": "src_utils_callscreening_getauthorizedsmsmessages",
       "community": 117,
-      "community_name": "callScreening.js",
+      "community_name": "Settings.jsx",
       "norm_label": "getauthorizedsmsmessages()"
     },
     {
@@ -11244,8 +11255,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_utils_config_auth_token",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "auth_token"
     },
     {
@@ -11256,8 +11267,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_setapitoken",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "setapitoken()"
     },
     {
@@ -11280,8 +11291,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_getbase",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "getbase()"
     },
     {
@@ -11606,8 +11617,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatcurrency",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatcurrency()"
     },
     {
@@ -11630,8 +11641,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatshortdate",
-      "community": 40,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatshortdate()"
     },
     {
@@ -11786,8 +11797,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatrelativeduedate",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatrelativeduedate()"
     },
     {
@@ -11797,7 +11808,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_localnotifications",
-      "community": 98,
+      "community": 117,
       "community_name": "Settings.jsx",
       "norm_label": "localnotifications.js"
     },
@@ -11809,7 +11820,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_getnotifconfig",
-      "community": 98,
+      "community": 117,
       "community_name": "Settings.jsx",
       "norm_label": "getnotifconfig()"
     },
@@ -11821,7 +11832,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_savenotifconfig",
-      "community": 98,
+      "community": 117,
       "community_name": "Settings.jsx",
       "norm_label": "savenotifconfig()"
     },
@@ -11833,7 +11844,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_schedulepaymentreminders",
-      "community": 98,
+      "community": 117,
       "community_name": "Settings.jsx",
       "norm_label": "schedulepaymentreminders()"
     },
@@ -11845,7 +11856,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_localnotifications_cancelallnotifications",
-      "community": 98,
+      "community": 117,
       "community_name": "Settings.jsx",
       "norm_label": "cancelallnotifications()"
     },
@@ -11856,8 +11867,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet",
-      "community": 98,
-      "community_name": "Settings.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "marketplacebookmarklet.js"
     },
     {
@@ -11868,7 +11879,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet_generatebookmarkletcode",
-      "community": 98,
+      "community": 117,
       "community_name": "Settings.jsx",
       "norm_label": "generatebookmarkletcode()"
     },
@@ -11880,8 +11891,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet_generatemarketplacejson",
-      "community": 98,
-      "community_name": "Settings.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generatemarketplacejson()"
     },
     {
@@ -11892,8 +11903,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_marketplacebookmarklet_generatemarketplacejsonstring",
-      "community": 98,
-      "community_name": "Settings.jsx",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generatemarketplacejsonstring()"
     },
     {
@@ -11903,8 +11914,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_notifications",
-      "community": 40,
-      "community_name": "react",
+      "community": 117,
+      "community_name": "Settings.jsx",
       "norm_label": "notifications.js"
     },
     {
@@ -11915,8 +11926,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_requestnotificationpermission",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 117,
+      "community_name": "Settings.jsx",
       "norm_label": "requestnotificationpermission()"
     },
     {
@@ -11927,8 +11938,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notify",
-      "community": 40,
-      "community_name": "react",
+      "community": 117,
+      "community_name": "Settings.jsx",
       "norm_label": "notify()"
     },
     {
@@ -11939,8 +11950,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notifypaymentreminder",
-      "community": 40,
-      "community_name": "react",
+      "community": 117,
+      "community_name": "Settings.jsx",
       "norm_label": "notifypaymentreminder()"
     },
     {
@@ -11985,8 +11996,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_sync",
-      "community": 98,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "sync.js"
     },
     {
@@ -11997,8 +12008,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_sync_isserveravailable",
-      "community": 98,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "isserveravailable()"
     },
     {
@@ -12125,8 +12136,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_viewmode",
-      "community": 40,
-      "community_name": "react",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "viewmode.js"
     },
     {
@@ -12137,8 +12148,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_viewmode_getviewmode",
-      "community": 40,
-      "community_name": "react",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "getviewmode()"
     },
     {
@@ -12149,8 +12160,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_viewmode_setviewmode",
-      "community": 37,
-      "community_name": "getBase",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "setviewmode()"
     },
     {
@@ -31477,7 +31488,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L151",
+      "source_location": "L149",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31488,7 +31499,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L124",
+      "source_location": "L122",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31554,7 +31565,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L59",
+      "source_location": "L56",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "services_scraper",
+      "target": "services_scraper_browserless_stealth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services-scraper.cjs",
+      "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31587,7 +31609,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L249",
+      "source_location": "L247",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31653,7 +31675,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L166",
+      "source_location": "L164",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31743,7 +31765,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L68",
+      "source_location": "L66",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31776,7 +31798,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L136",
+      "source_location": "L134",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31810,7 +31832,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L219",
+      "source_location": "L217",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31857,7 +31879,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L235",
+      "source_location": "L233",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32226,7 +32248,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L72",
+      "source_location": "L70",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32330,7 +32352,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L64",
+      "source_location": "L62",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32365,7 +32387,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L132",
+      "source_location": "L130",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32477,7 +32499,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "services-scraper.cjs",
-      "source_location": "L251",
+      "source_location": "L249",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_browserlessendpointfor",
@@ -32608,7 +32630,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L78",
+      "source_location": "L76",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_resolvechromium",
@@ -45427,5 +45449,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "d82a254a45f124f891ca354ed56cc920848790b9"
+  "built_at_commit": "f84d0baf4015285a48bacfcdafe49d37447a084c"
 }
