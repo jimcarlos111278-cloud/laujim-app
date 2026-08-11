@@ -1,11 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { Zap, Droplets, Flame, Search, ExternalLink, QrCode, Scan, Image, ChevronLeft, ChevronRight, RefreshCw, MessageCircle } from 'lucide-react';
-import Modal from '../components/Modal';
+import { useState, useEffect } from 'react';
+import { Zap, Droplets, Flame, Search, ExternalLink, ChevronLeft, ChevronRight, RefreshCw, MessageCircle } from 'lucide-react';
 import { api } from '../api';
 import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod } from '../utils/helpers';
 import { getBase, AUTH_TOKEN } from '../utils/config';
-import QRCode from 'qrcode';
-import jsQR from 'jsqr';
 
 const services = {
   water: {
@@ -65,36 +62,12 @@ const PORTALS = [
   { key: 'gas', name: 'Gas', icon: Flame, url: 'https://portal.gascaribe.com/login' },
 ];
 
-function QrViewContent({ showQrModal, qrUrls, apartments, getUrl }) {
-  const [aptIdStr, svc] = showQrModal.split('-');
-  const apt = apartments.find(a => a.id === parseInt(aptIdStr));
-  const url = getUrl(apt, svc);
-  const s = services[svc];
-  return (
-    <div className="p-4 text-center">
-      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium mb-3 ${s?.badgeColor || ''}`}>
-        {s?.icon && <s.icon className="w-3.5 h-3.5" />}
-        {s?.name || svc}
-      </div>
-      <img src={qrUrls[showQrModal]} alt="QR de pago" className="mx-auto w-52 h-52 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700" />
-      {url && <p className="text-xs text-gray-400 mt-2 break-all bg-gray-50 dark:bg-gray-800 p-2 rounded-lg font-mono">{url}</p>}
-      {url && <button onClick={() => window.open(url, '_blank')} className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-medium rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm"><ExternalLink className="w-4 h-4" /> Abrir enlace de pago</button>}
-      <p className="text-xs text-gray-400 mt-2">Escanea con tu banco para pagar</p>
-    </div>
-  );
-}
-
 export default function Utilities() {
   const [apartments, setApartments] = useState([]);
   const [tenants, setTenants] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [search, setSearch] = useState('');
   const [period, setPeriod] = useState(getCurrentPeriod());
-  const [qrUrls, setQrUrls] = useState({});
-  const [showQrModal, setShowQrModal] = useState(null);
-  const [scanAptId, setScanAptId] = useState(null);
-  const [scanService, setScanService] = useState(null);
-  const [scanStatus, setScanStatus] = useState('');
   const [debts, setDebts] = useState({});
   const [syncingNow, setSyncingNow] = useState(false);
   const [syncNote, setSyncNote] = useState('');
@@ -102,15 +75,8 @@ export default function Utilities() {
   const [waterSyncNote, setWaterSyncNote] = useState('');
   const [gasSyncingNow, setGasSyncingNow] = useState(false);
   const [gasSyncNote, setGasSyncNote] = useState('');
-  const videoRef = useRef(null);
-  const scannerRef = useRef(null);
-  const scanTimerRef = useRef(null);
 
   useEffect(() => { load(); }, []);
-
-  useEffect(() => {
-    return () => { if (scanTimerRef.current) clearTimeout(scanTimerRef.current); if (videoRef.current?.srcObject) { videoRef.current.srcObject.getTracks().forEach(t => t.stop()); } };
-  }, []);
 
   async function load() {
     const [a, t, c] = await Promise.all([
@@ -255,13 +221,6 @@ export default function Utilities() {
     return apt.electricityPaymentUrl || '';
   }
 
-  async function generateQr(aptId, svc, url) {
-    try {
-      const dataUrl = await QRCode.toDataURL(url, { width: 160, margin: 1, color: { dark: '#1f2937', light: '#ffffff' } });
-      setQrUrls(prev => ({ ...prev, [aptId + '-' + svc]: dataUrl }));
-    } catch {}
-  }
-
   async function handleElectricityPay(apt) {
     if (!apt) return;
     if (apt.electricityPaymentUrl) { window.open(apt.electricityPaymentUrl, '_blank'); return; }
@@ -285,6 +244,7 @@ export default function Utilities() {
     window.open(url, '_blank');
   }
 
+  /* Legacy QR scanner removed: service links now come only from official portals.
   function handleScanQR(aptId, svc) {
     setScanAptId(aptId); setScanService(svc); setScanStatus('Iniciando cámara...');
     setTimeout(startScan, 100);
@@ -355,6 +315,7 @@ export default function Utilities() {
     } catch { alert('Error al procesar la imagen'); }
   }
 
+  */
   const filtered = apartments.filter(a => {
     if (!search) return true;
     const s = search.toLowerCase();
@@ -428,7 +389,6 @@ export default function Utilities() {
                 const Icon = s.icon;
                 const code = getCode(apt, svc);
                 const url = getUrl(apt, svc);
-                const qrKey = apt.id + '-' + svc;
                 return (
                   <div key={svc} className={`px-4 py-3 flex items-center gap-3 ${s.bgLight} dark:bg-transparent`}>
                     {/* Icon */}
@@ -469,22 +429,13 @@ export default function Utilities() {
                           <ExternalLink className="w-3 h-3" /> Pagar
                         </button>
                       ) : (
-                        <>
-                          {url ? (
-                            <>
-                              <button onClick={() => { if (!qrUrls[qrKey]) generateQr(apt.id, svc, url); setShowQrModal(qrKey); }} className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50 rounded-lg transition-colors">
-                                <QrCode className="w-3 h-3" /> QR
-                              </button>
-                              <button onClick={() => window.open(url, '_blank')} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm">
-                                <ExternalLink className="w-3 h-3" /> Pagar
-                              </button>
-                            </>
-                          ) : (
-                            <button onClick={() => handleScanQR(apt.id, svc)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-900/50 rounded-lg transition-colors">
-                              <Scan className="w-3 h-3" /> Escanear
-                            </button>
-                          )}
-                        </>
+                        url ? (
+                          <button onClick={() => window.open(url, '_blank')} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm">
+                            <ExternalLink className="w-3 h-3" /> Pagar
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-gray-400 dark:text-gray-500">Portal pendiente</span>
+                        )
                       )}
                     </div>
                   </div>
@@ -496,26 +447,6 @@ export default function Utilities() {
         {filtered.length === 0 && <p className="text-center text-gray-400 dark:text-gray-500 py-8">No se encontraron apartamentos</p>}
       </div>
 
-      {/* QR Scanner */}
-      <input ref={scannerRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} className="hidden" />
-      <Modal open={scanService !== null} onClose={() => { stopScan(); setScanAptId(null); setScanService(null); }} title={scanService ? `Escaneando QR - ${services[scanService]?.name}` : ''}>
-        <div className="p-4">
-          <div className="relative bg-black rounded-xl overflow-hidden mb-3" style={{ minHeight: 260 }}>
-            <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
-            {scanService !== null && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-44 h-44 border-2 border-emerald-400 rounded-xl opacity-70" /></div>}
-            {scanStatus && <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3"><p className="text-white text-xs text-center">{scanStatus}</p></div>}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => scannerRef.current?.click()} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm"><Image className="w-4 h-4" /> Subir foto</button>
-            <button onClick={() => { stopScan(); setScanAptId(null); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">Cancelar</button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* QR view */}
-      <Modal open={showQrModal !== null} onClose={() => setShowQrModal(null)} size="sm">
-        {showQrModal && qrUrls[showQrModal] && <QrViewContent showQrModal={showQrModal} qrUrls={qrUrls} apartments={apartments} getUrl={getUrl} />}
-      </Modal>
     </div>
   );
 }
