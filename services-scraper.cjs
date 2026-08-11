@@ -1105,7 +1105,34 @@ async function readPortalTurnstileToken(page) {
   }).catch(() => '');
 }
 
+async function executePortalTurnstile(page) {
+  if (typeof page?.evaluate !== 'function') return false;
+  return page.evaluate(() => {
+    const api = window.turnstile;
+    if (!api || typeof api.execute !== 'function') return false;
+    const hidden = document.querySelector('input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]');
+    const widgetId = hidden?.id?.replace(/_response$/, '') || null;
+    const candidates = [
+      widgetId,
+      ...[...document.querySelectorAll('[data-sitekey], .cf-turnstile')].map(element => element.id || element),
+    ].filter(Boolean);
+    for (const candidate of candidates) {
+      try {
+        api.execute(candidate);
+        return true;
+      } catch {}
+    }
+    try {
+      api.execute();
+      return true;
+    } catch {
+      return false;
+    }
+  }).catch(() => false);
+}
+
 async function loginTripleAWithPortalApi(page, credentials, captchaSolver) {
+  await executePortalTurnstile(page);
   if (captchaSolver) await captchaSolver.waitForSolved(60000);
   const challenge = await waitForPortalTurnstile(page, 60000);
   if (challenge?.hasTurnstile && !challenge.turnstileToken) {
@@ -1116,6 +1143,7 @@ async function loginTripleAWithPortalApi(page, credentials, captchaSolver) {
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const token = await readPortalTurnstileToken(page);
     if (!token) {
+      await executePortalTurnstile(page);
       if (captchaSolver) await captchaSolver.waitForSolved(30000);
       await sleep(1000);
       continue;
@@ -1160,6 +1188,7 @@ async function loginTripleAWithPortalApi(page, credentials, captchaSolver) {
 }
 
 async function loginGasWithPortalApi(page, credentials, captchaSolver) {
+  await executePortalTurnstile(page);
   if (captchaSolver) await captchaSolver.waitForSolved(60000);
   const challenge = await waitForPortalTurnstile(page, 60000);
   if (challenge?.hasTurnstile && !challenge.turnstileToken) {
@@ -1167,6 +1196,7 @@ async function loginGasWithPortalApi(page, credentials, captchaSolver) {
   }
   let token = await readPortalTurnstileToken(page);
   if (!token && captchaSolver) {
+    await executePortalTurnstile(page);
     await captchaSolver.waitForSolved(30000);
     token = await readPortalTurnstileToken(page);
   }
