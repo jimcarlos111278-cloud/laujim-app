@@ -30,3 +30,13 @@ export function getAndroidScraperWorkerStatus() {
   if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
   return NativeScraperWorker.getStatus();
 }
+
+export function openAndroidPortal(provider) {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
+  return NativeScraperWorker.openPortal({ provider });
+}
+
+export function clearAndroidPortalCookies() {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
+  return NativeScraperWorker.clearPortalCookies();
+}

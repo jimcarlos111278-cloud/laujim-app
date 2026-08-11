@@ -2686,7 +2686,37 @@ function workerScheduleConfig() {
   const configuredProviders = Array.isArray(saved?.providers) ? saved.providers.join(',') : saved?.providers;
   const providers = String(configuredProviders || process.env.PORTABLE_WORKER_PROVIDERS || 'air-e,water,gas')
     .split(',').map(value => value.trim().toLowerCase()).filter(value => ['air-e', 'water', 'gas'].includes(value));
-  return { intervalHours, startAt, timezone, providers: [...new Set(providers)], source: saved ? 'app' : 'env' };
+  const requestedMode = String(
+    saved?.executionMode || process.env.SERVICES_EXECUTION_MODE || process.env.PORTABLE_WORKER_EXECUTION_MODE || 'portable',
+  ).trim().toLowerCase();
+  const executionMode = ['portable', 'render'].includes(requestedMode) ? requestedMode : 'portable';
+  return { intervalHours, startAt, timezone, providers: [...new Set(providers)], executionMode, source: saved ? 'app' : 'env' };
+}
+
+// Browserless/Render is deliberately not the default anymore. The local
+// Android WebView or the local PC/VPS worker owns the authenticated browser.
+// Keep the Render scheduler available only when the administrator explicitly
+// selects executionMode=render from the app.
+function applyServiceExecutionMode() {
+  const mode = workerScheduleConfig().executionMode;
+  if (mode === 'render') {
+    servicesScraper.startScheduler();
+    console.log('[SERVICES] Execution mode: Render (requires a local/full browser runtime).');
+  } else {
+    servicesScraper.stopScheduler();
+    console.log('[SERVICES] Execution mode: portable/local device. Render scheduler disabled; no Browserless calls will be made.');
+  }
+  return mode;
+}
+
+function requireRenderScraperMode(res) {
+  const mode = workerScheduleConfig().executionMode;
+  if (mode === 'render') return false;
+  res.status(409).json({
+    error: 'El scraper de Render está desactivado. Ejecuta los portales desde el worker local del celular o PC/VPS.',
+    executionMode: mode,
+  });
+  return true;
 }
 
 function portableWorkerApartments() {
@@ -2785,6 +2815,7 @@ app.get('/worker/v1/config', requirePortableWorker, (req, res) => {
     enabled: true,
     deviceId,
     schedule,
+    executionMode: schedule.executionMode,
     portals: {
       water: 'https://portal.aaa.com.co/polizas',
       electricity: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List',
@@ -2813,6 +2844,12 @@ app.post('/worker/v1/run', requirePortableWorker, (req, res) => {
   }
 
   const configured = workerScheduleConfig();
+  if (configured.executionMode !== 'render') {
+    return res.status(409).json({
+      error: 'El servidor está en modo portable/local. La APK o el worker de PC debe ejecutar los portales y enviar /worker/v1/results.',
+      executionMode: configured.executionMode,
+    });
+  }
   const requestedProviders = Array.isArray(req.body?.providers)
     ? req.body.providers.map(value => String(value).trim().toLowerCase())
     : configured.providers;
@@ -2888,13 +2925,16 @@ app.put('/api/scraper/schedule', (req, res) => {
   const intervalHours = Math.min(168, Math.max(1, Math.floor(Number(body.intervalHours))));
   const startAt = String(body.startAt || '07:00').trim();
   const timezone = String(body.timezone || 'America/Bogota').trim().slice(0, 80);
+  const executionMode = ['portable', 'render'].includes(String(body.executionMode || '').trim().toLowerCase())
+    ? String(body.executionMode).trim().toLowerCase()
+    : workerScheduleConfig().executionMode;
   const providers = [...new Set((Array.isArray(body.providers) ? body.providers : [])
     .map(value => String(value).trim().toLowerCase())
     .filter(value => ['air-e', 'water', 'gas'].includes(value)))];
   if (!Number.isFinite(intervalHours) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(startAt) || !timezone || !providers.length) {
     return res.status(400).json({ error: 'Frecuencia, hora, zona horaria y al menos un servicio son obligatorios.' });
   }
-  const value = JSON.stringify({ intervalHours, startAt, timezone, providers });
+  const value = JSON.stringify({ intervalHours, startAt, timezone, providers, executionMode });
   const existing = (db.settings || []).find(item => item.key === 'portable_worker_schedule');
   if (existing) existing.value = value;
   else {
@@ -2903,6 +2943,7 @@ app.put('/api/scraper/schedule', (req, res) => {
     nextId.settings = (nextId.settings || 1) + 1;
   }
   saveData();
+  applyServiceExecutionMode();
   res.json({ ok: true, schedule: workerScheduleConfig() });
 });
 
@@ -2934,6 +2975,7 @@ app.get('/api/scraper/workers', (req, res) => {
 
 // Trigger Air-e scrape manually (admin only, via auth)
 app.post('/api/scrape-air-e', async (req, res) => {
+  if (requireRenderScraperMode(res)) return;
   try {
     res.json({ ok: true, message: 'Scrape iniciado. Los resultados se guardarán en utilityRecords.' });
     const results = await servicesScraper.scrapeAirE();
@@ -2960,11 +3002,13 @@ app.post('/api/scrape-air-e', async (req, res) => {
 // immediately; the hourly scheduler and this manual endpoint share the same
 // overlap guard inside services-scraper.cjs.
 app.post('/api/scrape-water', (req, res) => {
+  if (requireRenderScraperMode(res)) return;
   res.json({ ok: true, message: 'Consulta de agua iniciada. Los resultados se guardarán en utilityRecords.' });
   servicesScraper.runWaterScrapeOnce('manual').catch(error => console.error('[TRIPLE A MANUAL] Scrape error:', error.message));
 });
 
 app.post('/api/scrape-gas', (req, res) => {
+  if (requireRenderScraperMode(res)) return;
   res.json({ ok: true, message: 'Consulta de gas iniciada. Los resultados se guardarán en utilityRecords.' });
   servicesScraper.runGasScrapeOnce('manual').catch(error => console.error('[GAS MANUAL] Scrape error:', error.message));
 });
@@ -3937,9 +3981,10 @@ app.use((req, res) => {
       runPaymentReminders().catch(error => console.error('[WHATSAPP CLOUD] reminder run error:', error.message));
     }, 60 * 60 * 1000).unref();
 
-    // Init services scraper with DB reference and start 24h scheduler
+    // Init services scraper with DB reference. In portable mode the phone or
+    // PC/VPS owns the browser, so Render must not consume Browserless quota.
     servicesScraper.init(db, saveData);
-    servicesScraper.startScheduler();
+    applyServiceExecutionMode();
 
   })();
 }

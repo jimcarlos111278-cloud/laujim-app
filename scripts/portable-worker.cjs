@@ -27,12 +27,22 @@ function readConfig() {
 
 const config = readConfig();
 const chromeProfileDir = path.resolve(config.chromeProfileDir || path.join(os.homedir(), '.laujim-chrome-profiles'));
+const headless = config.headless === true || /^(1|true|yes)$/i.test(String(process.env.PORTABLE_WORKER_HEADLESS || ''));
 
 // These must be set before loading services-scraper.cjs because it reads the
 // browser mode and profile settings during module initialization.
-process.env.RENDER_FULL_CHROME = 'true';
-process.env.BROWSER_MODE = 'full';
+process.env.RENDER_FULL_CHROME = headless ? '' : 'true';
+process.env.BROWSER_MODE = headless ? 'headless' : 'full';
 process.env.RENDER_CHROME_PROFILE_DIR = chromeProfileDir;
+if (config.chromeExecutablePath) process.env.CHROME_EXECUTABLE_PATH = path.resolve(String(config.chromeExecutablePath));
+// This runner is local-only. Never spend Browserless quota when a PC/VPS is
+// selected as the active device.
+process.env.BROWSERLESS_PROFILES = '';
+process.env.BROWSERLESS_WS_ENDPOINT = '';
+delete process.env.BROWSERLESS_TOKEN;
+delete process.env.BROWSERLESS_TOKEN_AIR_E;
+delete process.env.BROWSERLESS_TOKEN_WATER;
+delete process.env.BROWSERLESS_TOKEN_GAS;
 
 const servicesScraper = require(path.join(ROOT, 'services-scraper.cjs'));
 
@@ -63,8 +73,8 @@ async function register() {
     method: 'POST',
     body: JSON.stringify({
       deviceId: config.deviceId,
-      platform: 'windows',
-      runtime: 'portable-worker-node',
+      platform: process.platform === 'win32' ? 'windows' : process.platform,
+      runtime: 'portable-worker-node-local-chrome',
       appVersion: '1.0.0',
       providers: ['air-e', 'water', 'gas'],
       replaceExisting: config.replaceExisting !== false,
@@ -143,7 +153,7 @@ async function runOnce(reason = 'schedule') {
 async function main() {
   const once = process.argv.includes('--once');
   await register();
-  console.log(`[PORTABLE WORKER] Registrado. Perfil Chrome: ${chromeProfileDir}`);
+  console.log(`[PORTABLE WORKER] Registrado. Perfil Chrome: ${chromeProfileDir}; headless=${headless}.`);
   await runOnce('boot');
   if (once) return;
 

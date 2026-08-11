@@ -27,6 +27,8 @@ import {
   startAndroidScraperWorker,
   stopAndroidScraperWorker,
   supportsAndroidScraperWorker,
+  openAndroidPortal,
+  clearAndroidPortalCookies,
 } from '../utils/androidScraperWorker';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -36,6 +38,7 @@ const DEFAULT_SCHEDULE = {
   startAt: '07:00',
   timezone: 'America/Bogota',
   providers: ['air-e', 'water', 'gas'],
+  executionMode: 'portable',
 };
 
 function formatSchedule(schedule) {
@@ -43,7 +46,8 @@ function formatSchedule(schedule) {
   const providers = Array.isArray(schedule.providers) && schedule.providers.length
     ? schedule.providers.join(', ')
     : 'sin servicios';
-  return `Cada ${schedule.intervalHours} h desde las ${schedule.startAt} (${schedule.timezone}) · ${providers}`;
+  const mode = schedule.executionMode === 'render' ? 'Render' : 'local';
+  return `Cada ${schedule.intervalHours} h desde las ${schedule.startAt} (${schedule.timezone}) · ${providers} · ejecución ${mode}`;
 }
 
 export default function ScraperWorker() {
@@ -237,11 +241,29 @@ export default function ScraperWorker() {
     try {
       const status = await runAndroidScraperWorkerNow();
       setNativeStatus(status);
-      setMessage({ type: 'success', text: 'Consulta Android enviada a Render. Revisa los servicios cuando termine el portal.' });
+      setMessage({ type: 'success', text: 'Consulta local iniciada en el teléfono. Revisa el estado cuando termine cada portal.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'No se pudo iniciar la consulta.' });
     } finally {
       setNativeBusy(false);
+    }
+  }
+
+  async function handleOpenPortal(provider) {
+    try {
+      await openAndroidPortal(provider);
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'No se pudo abrir el portal en el teléfono.' });
+    }
+  }
+
+  async function handleClearPortalCookies() {
+    try {
+      await clearAndroidPortalCookies();
+      setNativeStatus(await getAndroidScraperWorkerStatus());
+      setMessage({ type: 'success', text: 'Cookies y datos de sesión de los portales borrados en este teléfono.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'No se pudieron borrar las cookies de los portales.' });
     }
   }
 
@@ -267,7 +289,7 @@ export default function ScraperWorker() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Conecta un celular, un PC o el siguiente dispositivo sin cambiar el bot.</p>
         </div>
         <div className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-          <Cloud className="h-4 w-4" /> Controlado por Render
+          <Cloud className="h-4 w-4" /> {supportsAndroidScraperWorker() ? 'Portales locales en Android' : 'Worker portable'}
         </div>
       </div>
 
@@ -342,7 +364,7 @@ export default function ScraperWorker() {
             <div className="rounded-lg bg-green-100 p-2 text-green-700 dark:bg-green-900/40 dark:text-green-300"><Smartphone className="h-5 w-5" /></div>
             <div>
               <h2 className="font-semibold text-gray-900 dark:text-white">Ejecución automática en Android</h2>
-              <p className="text-xs text-gray-600 dark:text-gray-300">La APK mantiene el servicio activo y dispara en Render los scrapers autenticados de Air-e, Triple A y Gases del Caribe. Las contraseñas no se copian al celular.</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300">La APK consulta los tres portales desde el WebView nativo del teléfono y envía a Render únicamente los valores sanitizados. No usa Browserless ni otra integración de pago.</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -358,9 +380,19 @@ export default function ScraperWorker() {
             <button onClick={handleNativeRunNow} disabled={nativeBusy || !settings.token} className="inline-flex items-center gap-2 rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-800 hover:bg-green-100 disabled:opacity-50 dark:border-green-800 dark:text-green-200 dark:hover:bg-green-900/30">
               <RefreshCw className="h-4 w-4" /> Ejecutar ahora
             </button>
-            <span className="text-xs text-gray-600 dark:text-gray-300">Estado: {nativeStatus?.lastState || 'sin iniciar'}{nativeStatus?.lastRunAt ? ` · ${nativeStatus.lastRunAt}` : ''}</span>
+            <span className="text-xs text-gray-600 dark:text-gray-300">Estado: {nativeStatus?.lastState || 'sin iniciar'}{nativeStatus?.currentProvider ? ` · ${nativeStatus.currentProvider}` : ''}{nativeStatus?.lastRunAt ? ` · ${nativeStatus.lastRunAt}` : ''}</span>
           </div>
           {nativeStatus?.lastError && <p className="mt-3 rounded-lg bg-red-100 p-3 text-xs text-red-800 dark:bg-red-900/30 dark:text-red-200">Último error: {nativeStatus.lastError}</p>}
+          <div className="mt-4 rounded-lg border border-green-200 bg-white/70 p-3 dark:border-green-800/60 dark:bg-gray-900/40">
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">Primera configuración o verificación manual</p>
+            <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">Abre cada portal desde aquí, inicia sesión y completa Turnstile si aparece. La sesión queda en el teléfono para las siguientes ejecuciones.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[['air-e', '⚡ Abrir Air-e'], ['water', '💧 Abrir Triple A'], ['gas', '🔥 Abrir Gases']].map(([provider, label]) => (
+                <button key={provider} onClick={() => handleOpenPortal(provider)} className="rounded-lg border border-green-300 px-3 py-2 text-xs font-medium text-green-800 hover:bg-green-100 dark:border-green-800 dark:text-green-200 dark:hover:bg-green-900/30">{label}</button>
+              ))}
+              <button onClick={handleClearPortalCookies} className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Borrar cookies de portales</button>
+            </div>
+          </div>
         </section>
       )}
 
@@ -429,7 +461,7 @@ export default function ScraperWorker() {
 
       <div className="flex items-start gap-2 rounded-xl bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
-        <p><strong>Qué necesitarás en el celular:</strong> APK instalada, internet estable, notificaciones permitidas, batería sin optimización para Laujim y preferiblemente cargador durante la ventana de consulta. La APK ejecuta la consulta en Render, donde están las sesiones, credenciales y Browserless de los portales; no necesitas iniciar sesión tres veces en el celular.</p>
+        <p><strong>Qué necesitarás en el celular:</strong> APK instalada, internet estable, notificaciones permitidas y batería sin optimización para Laujim. El S23 ejecuta el navegador local; el cargador solo es recomendable durante una consulta larga. La primera vez debes iniciar sesión en cada portal desde los botones anteriores.</p>
       </div>
     </div>
   );

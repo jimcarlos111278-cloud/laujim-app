@@ -33,6 +33,12 @@
 
         </activity>
 
+        <activity
+            android:name=".PortalBrowserActivity"
+            android:label="Laujim · Portales"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <service
             android:name=".AuthorizedCallerScreeningService"
             android:permission="android.permission.BIND_SCREENING_SERVICE"

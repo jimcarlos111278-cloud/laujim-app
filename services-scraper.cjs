@@ -110,6 +110,17 @@ async function resolveChromium(profileName = 'services', useFullChrome = FULL_CH
     }
     throw new Error('No Chrome/Edge found on Windows. Install a browser to run the local scraper.');
   }
+  // A Linux PC/VPS may have its own Chromium/Chrome. Prefer it over the
+  // serverless Sparticuz binary so the portable worker remains independent of
+  // Browserless and can keep a normal persistent profile.
+  const localLinuxChrome = firstExistingPath(LINUX_CHROME_CANDIDATES);
+  if (localLinuxChrome) {
+    return {
+      executablePath: localLinuxChrome,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    };
+  }
   // Serverless / Linux: use sparticuz chromium (ESM-only since v149).
   // Load it with dynamic import() so it works from this CommonJS file
   // (require() of an ESM module throws ERR_REQUIRE_ESM on Node >= 22).

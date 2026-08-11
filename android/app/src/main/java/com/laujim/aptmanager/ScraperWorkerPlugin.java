@@ -61,6 +61,28 @@ public class ScraperWorkerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void openPortal(PluginCall call) {
+        String provider = call.getString("provider", "air-e");
+        Intent intent = new Intent(getContext(), PortalBrowserActivity.class)
+            .putExtra(PortalBrowserActivity.EXTRA_PROVIDER, provider)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (RuntimeException error) {
+            call.reject("No se pudo abrir el portal: " + error.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void clearPortalCookies(PluginCall call) {
+        android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
+        cookies.removeAllCookies(value -> cookies.flush());
+        android.webkit.WebStorage.getInstance().deleteAllData();
+        call.resolve(status());
+    }
+
+    @PluginMethod
     public void stop(PluginCall call) {
         ScraperWorkerStore.setEnabled(getContext(), false);
         ScraperWorkerAlarm.cancel(getContext());
@@ -80,6 +102,8 @@ public class ScraperWorkerPlugin extends Plugin {
         result.put("enabled", ScraperWorkerStore.enabled(context));
         result.put("intervalHours", ScraperWorkerStore.intervalHours(context));
         result.put("deviceId", ScraperWorkerStore.deviceId(context));
+        result.put("mode", ScraperWorkerStore.mode(context));
+        result.put("currentProvider", ScraperWorkerStore.currentProvider(context));
         result.put("lastState", ScraperWorkerStore.lastState(context));
         result.put("lastError", ScraperWorkerStore.lastError(context));
         result.put("lastRunAt", ScraperWorkerStore.lastRunAt(context));

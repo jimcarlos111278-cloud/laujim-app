@@ -1,20 +1,21 @@
-# Worker portátil de servicios
+# Worker portatil de servicios
 
 ## Objetivo
 
-El scraper de servicios no queda amarrado a un equipo concreto. Un PC Windows
-puede abrir los portales localmente; la APK Android funciona como coordinador
-en segundo plano y dispara en Render la misma consulta autenticada.
+El scraper no queda amarrado a un equipo. Un Android puede abrir los portales
+localmente con el WebView nativo; un PC o VPS puede hacerlo con Chromium/Chrome
+local. Render solo entrega configuracion, recibe resultados sanitizados y
+alimenta PostgreSQL y el bot.
 
 ```text
-Android APK ── HTTPS: dispara consulta ──┐
-PC Windows ── navegador local ───────────┼─ Render: scrapers ── PostgreSQL/Aiven ── Bot
-                                         └─ Browserless / portales autenticados
+Android APK -- WebView local -- HTTPS: resultados --\
+PC/VPS ----- Chromium local ---------------------> Render -- PostgreSQL -- Bot
+                                                   \-- portales autenticados
 ```
 
-El worker nunca recibe `DATABASE_URL`, contraseñas de Aiven ni el token de
-WhatsApp. La APK tampoco copia credenciales de portales: Render usa las
-credenciales cifradas y Browserless configurados para ejecutar los scrapers.
+El worker nunca recibe `DATABASE_URL`, contrasenas de Aiven ni el token de
+WhatsApp. En Android la sesion queda en el WebView de Laujim; en PC/VPS queda
+en el perfil local de Chromium. Las credenciales no se envian a Render.
 
 ## Contrato HTTP
 
@@ -33,25 +34,25 @@ Content-Type: application/json
 {
   "deviceId": "android-laujim-01",
   "platform": "android",
-  "runtime": "laujim-apk",
+  "runtime": "laujim-local-webview",
   "appVersion": "1.0.0",
   "providers": ["water", "air-e", "gas"],
   "replaceExisting": true
 }
 ```
 
-`replaceExisting: true` deja inactivos los demás dispositivos. Así se puede
-cambiar de celular a PC sin editar el bot ni migrar la base de datos.
+`replaceExisting: true` deja inactivos los demas dispositivos. Asi se puede
+cambiar de celular a PC/VPS sin editar el bot ni migrar la base de datos.
 
-Configuración sin secretos:
+Configuracion sin secretos:
 
 ```http
 GET /worker/v1/config
 X-Worker-Id: android-laujim-01
 ```
 
-El resultado incluye horarios, portales y apartamentos/códigos asociados,
-pero no incluye contraseñas.
+El resultado incluye horario, modo, portales y apartamentos/codigos asociados,
+pero no incluye contrasenas.
 
 Enviar resultados:
 
@@ -76,44 +77,33 @@ Content-Type: application/json
 }
 ```
 
-El servidor acepta también `Air-e` y `Gases del Caribe`, normaliza el formato
-`Deuda Total`, elimina campos no permitidos y actualiza `utilityRecords`.
+El servidor normaliza `Deuda Total`, elimina campos no permitidos y actualiza
+`utilityRecords`.
 
-Disparar una consulta desde Android:
+`POST /worker/v1/run` solo existe para el modo antiguo `render`. En el modo
+recomendado `portable` responde `409`, porque el dispositivo debe abrir el
+portal localmente y enviar `/worker/v1/results`.
 
-```http
-POST /worker/v1/run
-X-Worker-Token: <SCRAPER_WORKER_TOKEN>
-X-Worker-Id: android-laujim-01
-Content-Type: application/json
-
-{"deviceId":"android-laujim-01","platform":"android","runtime":"laujim-apk","providers":["air-e","water","gas"]}
-```
-
-La respuesta `202` significa que Render aceptó el trabajo; los resultados se
-guardan cuando terminan los scrapers. `GET /worker/v1/run-status` permite ver
-el último estado del proceso.
-
-## Configuración de Render
-
-Crear estas variables de entorno:
+## Configuracion de Render
 
 ```text
 SCRAPER_WORKER_ENABLED=true
 SCRAPER_WORKER_TOKEN=<token aleatorio largo>
+SERVICES_EXECUTION_MODE=portable
 PORTABLE_WORKER_INTERVAL_HOURS=12
 PORTABLE_WORKER_START_AT=07:00
 PORTABLE_WORKER_TIMEZONE=America/Bogota
 PORTABLE_WORKER_PROVIDERS=air-e,water,gas
 ```
 
-El token debe ser diferente de las credenciales de los portales y no debe
-entrar en Git ni en la APK publicada.
+`portable` es el modo sin Browserless. Render no inicia el scheduler de
+portales y no consume una integracion remota. El modo `render` queda disponible
+solo si el administrador lo selecciona expresamente y cuenta con un navegador
+local/full-browser en ese entorno.
 
-La frecuencia también se puede cambiar desde `Worker scraper` en la app. La
-selección se guarda como `portable_worker_schedule`; el siguiente `GET
-/worker/v1/config` entrega el nuevo intervalo al dispositivo sin modificar
-variables ni redeployar Render.
+La frecuencia tambien se puede cambiar desde `Worker scraper` en la app. La
+seleccion se guarda como `portable_worker_schedule`; el siguiente
+`GET /worker/v1/config` entrega el nuevo intervalo al dispositivo.
 
 ## Android
 
@@ -122,35 +112,22 @@ El celular necesita:
 1. Android con internet estable y espacio para la APK.
 2. Laujim instalada y el worker habilitado.
 3. Registrar el dispositivo desde `Worker scraper` usando el token privado.
-4. Permiso de notificaciones y exclusión de la app de optimización de batería.
-5. Preferiblemente cargador conectado durante las consultas.
+4. Permiso de notificaciones y exclusion de la app de optimizacion de bateria.
+5. Cargador recomendado durante una consulta larga, pero no obligatorio.
 
-La APK mantiene un servicio Android en primer plano y despierta según la
-frecuencia guardada en Laujim. El servicio dispara el trabajo remoto; el
-navegador y Turnstile se ejecutan en el entorno de Render/Browserless que ya
-conoce los portales. Si un portal requiere intervención manual, se conserva el
-estado de error para revisarlo desde el panel o el PC worker.
+La APK mantiene un servicio Android en primer plano y crea un WebView local.
+Los botones `Abrir Air-e`, `Abrir Triple A` y `Abrir Gases` permiten iniciar
+sesion o completar una verificacion humana. Las cookies quedan en el telefono
+y el worker las reutiliza en las siguientes ejecuciones. La app nunca intenta
+controlar Chrome, Brave o Internet de Samsung: usa su propio WebView para tener
+control de la sesion y del DOM.
 
-## Cambiar de dispositivo
+Si un portal vuelve a pedir login o Turnstile, la notificacion abre el portal
+correspondiente. La app no intenta saltarse el control de seguridad.
 
-1. Instalar el mismo worker en el nuevo Android o PC.
-2. Configurar la URL de Render y el token del worker.
-3. Registrar el nuevo `deviceId` con `replaceExisting: true`.
-4. Pulsar `Iniciar worker Android` o ejecutar el runner de Windows.
-5. Verificar el último `heartbeat`, estado del worker y fecha `scrapedAt` en Laujim.
+## PC o VPS
 
-No se cambia el bot, el formato de WhatsApp ni la base de datos.
-
-## Estado de los ejecutores
-
-La pantalla `Worker scraper` ya está disponible dentro de la app y la APK
-compilada incluye un servicio Android en primer plano. Al activar el worker,
-la APK registra el dispositivo, consulta la frecuencia remota y dispara
-`/worker/v1/run` ahora y en cada intervalo. Android puede retrasar una alarma
-si el fabricante aplica restricciones agresivas; por eso se recomienda quitar
-la optimización de batería y mantener el teléfono cargando.
-
-En Windows ya estÃ¡ disponible el runner local. Copia
+En Windows/Linux esta disponible el runner local. Copia
 `portable-worker.config.example.json` como `portable-worker.config.json`,
 completa el token de Render y las credenciales locales, y ejecuta:
 
@@ -158,10 +135,17 @@ completa el token de Render y las credenciales locales, y ejecuta:
 npm run portable-worker -- --once
 ```
 
-Para dejarlo programado, ejecuta `npm run portable-worker`. AbrirÃ¡ Chrome
-visible con un perfil persistente; si aparece Turnstile, se puede resolver
-manualmente y la sesiÃ³n queda guardada en ese PC.
+Para dejarlo programado, ejecuta `npm run portable-worker`. Usa un perfil local
+persistentemente autenticado y abre Chrome/Chromium en el equipo. El runner
+borra explicitamente las variables de Browserless para evitar consumo
+accidental.
 
-La APK compilada se copia a `public/app-debug.apk` y el endpoint
-`/app-debug.apk` la sirve directamente desde el web service; si una versiÃ³n
-antigua no contiene ese archivo, conserva el respaldo del release de GitHub.
+## Cambiar de dispositivo
+
+1. Instalar la misma APK o copiar el runner al nuevo equipo.
+2. Configurar URL de Render, token y un `deviceId` diferente.
+3. Registrar el nuevo dispositivo con `replaceExisting: true`.
+4. Iniciar el worker local.
+5. Verificar el ultimo heartbeat, el estado y `scrapedAt` en Laujim.
+
+No se cambia el bot, el formato de WhatsApp ni la base de datos.

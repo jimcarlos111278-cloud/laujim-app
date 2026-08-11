@@ -4,6 +4,8 @@
   "deviceId": "pc-laujim-01",
   "replaceExisting": true,
   "chromeProfileDir": "C:/Users/TU_USUARIO/.laujim-chrome-profiles",
+  "headless": false,
+  "chromeExecutablePath": "",
   "portalCredentials": {
     "air-e": {
       "username": "correo-o-usuario-air-e",

@@ -60,9 +60,9 @@
     "semantic_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45"
   },
   "android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
-    "mtime": 1785653825.586251,
-    "ast_hash": "697edc0dc5724e78f4ef8d65bbabaaf9",
-    "semantic_hash": "697edc0dc5724e78f4ef8d65bbabaaf9"
+    "mtime": 1786429238.439553,
+    "ast_hash": "f10e79b5e348d77686113382c8c9b306",
+    "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
     "mtime": 1785685896.783514,
@@ -125,8 +125,8 @@
     "semantic_hash": "9bd25f44f8255f4a9af580f3b89bc797"
   },
   "db.cjs": {
-    "mtime": 1786303617.0371745,
-    "ast_hash": "d299203f1045c982756a5c662b6d1b0e",
+    "mtime": 1786426007.0447834,
+    "ast_hash": "b61bed84e614b9f289df5529c18329ce",
     "semantic_hash": ""
   },
   "exportar-backup.ps1": {
@@ -170,14 +170,14 @@
     "semantic_hash": "df8481c2a365eb0e981dcc791222efd1"
   },
   "package.json": {
-    "mtime": 1786309780.163597,
-    "ast_hash": "9f39d7140ec3a62886fdbe37d82aaa94",
+    "mtime": 1786430185.5120635,
+    "ast_hash": "e5d1b199f2ef2ab5f88a71b464271ab7",
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1785686699.955258,
-    "ast_hash": "1455e21915cac03ac3c1ed67ec24ce35",
-    "semantic_hash": "1455e21915cac03ac3c1ed67ec24ce35"
+    "mtime": 1786430964.8378723,
+    "ast_hash": "90c5dffb4e93d2195f71a464ac87bdab",
+    "semantic_hash": ""
   },
   "public/manifest.json": {
     "mtime": 1784437087.071502,
@@ -200,9 +200,9 @@
     "semantic_hash": "71a67340b976e6da54a894c626095751"
   },
   "scripts/copy-apk.js": {
-    "mtime": 1784348575.8851767,
-    "ast_hash": "c07e32e22ffa50f97d6d225e2887c4cf",
-    "semantic_hash": "c07e32e22ffa50f97d6d225e2887c4cf"
+    "mtime": 1786427888.484678,
+    "ast_hash": "ee38c323f4c8561c2aa716a42f9b2e63",
+    "semantic_hash": ""
   },
   "scripts/deploy-snapshot.cjs": {
     "mtime": 1784651500.5076938,
@@ -235,13 +235,13 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786395112.5679243,
-    "ast_hash": "930965f1a04de7d1e61f2c1f390148b0",
+    "mtime": 1786434539.0044837,
+    "ast_hash": "ad974df6cbd7f32eec42a750ae8de061",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1786420934.8979285,
-    "ast_hash": "d0105e0273f97aa50e8829eda087a75a",
+    "mtime": 1786434305.5660748,
+    "ast_hash": "4a1607307146edbf2a6239418b3bd8b0",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
@@ -255,14 +255,14 @@
     "semantic_hash": "29cdee1095d1f60e9d9f4d8d4cec3bde"
   },
   "src/App.jsx": {
-    "mtime": 1785660513.76043,
-    "ast_hash": "8aac2e89d0be788314c2efcce0866139",
-    "semantic_hash": "8aac2e89d0be788314c2efcce0866139"
+    "mtime": 1786432167.416494,
+    "ast_hash": "b9b8aacc7f27db1209dccec7da637883",
+    "semantic_hash": ""
   },
   "src/api.js": {
-    "mtime": 1785653768.0828106,
-    "ast_hash": "5ef0cce193e2e347458613a4ee26aed5",
-    "semantic_hash": "5ef0cce193e2e347458613a4ee26aed5"
+    "mtime": 1786432035.3477938,
+    "ast_hash": "e986a8026c98e7f1fb7c5b26eccea693",
+    "semantic_hash": ""
   },
   "src/components/ErrorBoundary.jsx": {
     "mtime": 1784355580.7349665,
@@ -270,9 +270,9 @@
     "semantic_hash": "3d82f6b120b2a5ba30ebc89bd6d8f817"
   },
   "src/components/Layout.jsx": {
-    "mtime": 1785934338.9950995,
-    "ast_hash": "d0b97f999c85462ca50024f7053e90d5",
-    "semantic_hash": "d0b97f999c85462ca50024f7053e90d5"
+    "mtime": 1786432146.2417958,
+    "ast_hash": "4906e4bbf1fbcff834404723af740c85",
+    "semantic_hash": ""
   },
   "src/components/Modal.jsx": {
     "mtime": 1784437774.47363,
@@ -490,9 +490,9 @@
     "semantic_hash": "0d822670144449c21c88e7554b813c31"
   },
   "vite.config.js": {
-    "mtime": 1784524399.2378979,
-    "ast_hash": "de6d0ef60a41f82da6c930655fe7f731",
-    "semantic_hash": "de6d0ef60a41f82da6c930655fe7f731"
+    "mtime": 1786430835.474449,
+    "ast_hash": "4626ed2733792f84e976906a51492917",
+    "semantic_hash": ""
   },
   "scripts/graphify-update.cjs": {
     "mtime": 1786154973.5010493,
@@ -580,8 +580,8 @@
     "semantic_hash": ""
   },
   "render.yaml": {
-    "mtime": 1786413479.1492815,
-    "ast_hash": "36e4920b7250e5fe30ab1ac6e6b29bff",
+    "mtime": 1786434573.8091583,
+    "ast_hash": "ea74e8c7e7f1a1ed4ab30cbc607f051e",
     "semantic_hash": ""
   },
   "IMG_4307.jpeg": {
@@ -832,6 +832,96 @@
   "docs/whatsapp-plantillas.md": {
     "mtime": 1786398289.7467844,
     "ast_hash": "5a62ad871ac1ddff2fa021a8c3f43398",
+    "semantic_hash": ""
+  },
+  "scripts/test-worker-protocol.cjs": {
+    "mtime": 1786426107.032361,
+    "ast_hash": "8bba2b75a82a70d600c0545a03ead0ca",
+    "semantic_hash": ""
+  },
+  "src/pages/ScraperWorker.jsx": {
+    "mtime": 1786434351.0918615,
+    "ast_hash": "55103b1ccb40a77e05475456c59ca3b6",
+    "semantic_hash": ""
+  },
+  "src/utils/portableWorker.js": {
+    "mtime": 1786426436.2145195,
+    "ast_hash": "f70dbfeb40ca1e7f34725b96dc62c63b",
+    "semantic_hash": ""
+  },
+  "worker-protocol.cjs": {
+    "mtime": 1786426003.7675743,
+    "ast_hash": "55f34fde49dba3df6b64f5575d8697ee",
+    "semantic_hash": ""
+  },
+  "docs/scraper-worker.md": {
+    "mtime": 1786434053.7473774,
+    "ast_hash": "d83438da0f373d38d1b2e3fd14c888c6",
+    "semantic_hash": ""
+  },
+  "portable-worker.config.example.json": {
+    "mtime": 1786434305.569073,
+    "ast_hash": "daaed24f66c8c4a6371ca5f258b689aa",
+    "semantic_hash": ""
+  },
+  "scripts/portable-worker.cjs": {
+    "mtime": 1786434305.5670698,
+    "ast_hash": "ebc465313be11878816305eecf1fa30a",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarm.java": {
+    "mtime": 1786429238.4326172,
+    "ast_hash": "323345f3630fa4e153cf9a52cf26f241",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1786429238.4326172,
+    "ast_hash": "65c7805acca54f166437ed731449a5da",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786429238.4347908,
+    "ast_hash": "f7fb0e32442bd627c0db4e3091e66c59",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1786433882.886849,
+    "ast_hash": "342e6d0ff1a680598ad3f3f9144c191d",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1786434451.057711,
+    "ast_hash": "12c1f996b6d349bc5108a472f40b4fc6",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1786433882.8794012,
+    "ast_hash": "7dc60c11e832c7d89108f8ce4e58cbb2",
+    "semantic_hash": ""
+  },
+  "src/utils/androidScraperWorker.js": {
+    "mtime": 1786433916.1740913,
+    "ast_hash": "6b7f5d1729c8f94793fbdeeab71a5831",
+    "semantic_hash": ""
+  },
+  "scripts/prepare-capacitor-assets.js": {
+    "mtime": 1786430185.5120635,
+    "ast_hash": "5abe5ab9a75bfec41c905583db1b5695",
+    "semantic_hash": ""
+  },
+  "src/utils/resetApp.js": {
+    "mtime": 1786432127.4765718,
+    "ast_hash": "6809ff4ed6bf63738ad1fe1dbc759660",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1786434509.8904457,
+    "ast_hash": "9156bab2a3be232f4dc8c4418ff2b31a",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1786433882.886849,
+    "ast_hash": "269438b8a40b15b4d1589235c3464131",
     "semantic_hash": ""
   }
 }
