@@ -55,7 +55,8 @@ public class ScraperWorkerService extends Service {
     private static final int NOTIFICATION_ID = 31778;
     private static final int CONNECT_TIMEOUT_MS = 15_000;
     private static final int READ_TIMEOUT_MS = 35_000;
-    private static final long WEBVIEW_TIMEOUT_MS = 120_000L;
+    // Keep the portal window open for the requested three-minute allowance.
+    private static final long WEBVIEW_TIMEOUT_MS = 180_000L;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -152,7 +153,22 @@ public class ScraperWorkerService extends Service {
                 ScraperWorkerStore.setCurrentProvider(this, provider);
                 updateNotification("Consultando " + providerLabel(provider) + " en el teléfono…", provider);
                 ScraperWorkerStore.setRunState(this, "running-" + provider, "");
-                JSONObject outcome = runProvider(provider, config);
+                JSONObject outcome;
+                try {
+                    outcome = runProvider(provider, config);
+                } catch (Exception providerError) {
+                    String providerMessage = providerError.getMessage() == null
+                        ? "Error local desconocido del portal."
+                        : providerError.getMessage();
+                    // One portal must not abort the remaining providers. The
+                    // failure is converted into records below and the next
+                    // portal gets its own WebView attempt.
+                    outcome = new JSONObject()
+                        .put("state", "error")
+                        .put("provider", provider)
+                        .put("message", providerMessage)
+                        .put("results", new JSONArray());
+                }
                 String state = outcome.optString("state", "error");
                 JSONArray providerResults = outcome.optJSONArray("results");
                 if (providerResults != null) {
@@ -234,7 +250,7 @@ public class ScraperWorkerService extends Service {
         if (apartments == null) return records;
         String normalizedMessage = String.valueOf(message == null ? "" : message);
         String state = outcome == null ? "error" : outcome.optString("state", "error");
-        String status = "needs_verification".equals(state) || normalizedMessage.matches("(?is).*captcha|turnstile|verificaci[oó]n.*")
+        String status = "needs_verification".equals(state) || normalizedMessage.matches("(?is).*(captcha|turnstile|verificaci[oó]n).*")
             ? "captcha"
             : normalizedMessage.matches("(?is).*timeout|tiempo.*") ? "timeout" : "error";
         String providerName = providerLabel(provider);

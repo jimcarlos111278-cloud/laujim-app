@@ -976,7 +976,8 @@ function buildDebtReply(contact) {
     .sort((a, b) => (b.scrapedAt || '').localeCompare(a.scrapedAt || ''));
   const electricity = electricityRecords[0] || null;
   const water = latestUtilityRecord('Triple A', apt);
-  if (!electricity && !water) {
+  const gas = latestUtilityRecord('Gases del Caribe', apt);
+  if (!electricity && !water && !gas) {
     return 'No tengo datos de tu deuda de servicios en este momento. Si acabas de sincronizar, espera unos minutos y vuelve a preguntar.';
   }
 
@@ -1009,6 +1010,7 @@ function buildDebtReply(contact) {
     '📋 Estado de servicios:',
     utilityLine('⚡ Energía (Air-e)', electricity, 'está al día 🎉 (0 facturas pendientes).'),
     utilityLine('💧 Agua (Triple A)', water, 'está al día 🎉 (0 facturas pendientes).'),
+    utilityLine('🔥 Gas (Gases del Caribe)', gas, 'está al día 🎉 (0 facturas pendientes).'),
   ].join('\n');
 }
 
@@ -3052,7 +3054,11 @@ app.get('/api/public/utility-status/:apartmentId', (req, res) => {
         payment: electricityInfo,
       },
       water: { ...svcConfig.water, payCode: apt.waterPaymentCode || '', payment: utilityPaymentView(latestUtilityRecord('Triple A', apt)) },
-      gas: { ...svcConfig.gas, payCode: apt.gasPaymentCode || '' },
+      gas: {
+        ...svcConfig.gas,
+        payCode: apt.gasPaymentCode || '',
+        payment: utilityPaymentView(latestUtilityRecord('Gases del Caribe', apt)),
+      },
     },
   });
 });

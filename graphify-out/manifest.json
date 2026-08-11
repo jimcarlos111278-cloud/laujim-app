@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786430964.8378723,
-    "ast_hash": "90c5dffb4e93d2195f71a464ac87bdab",
+    "mtime": 1786479390.698592,
+    "ast_hash": "90ec537e1879c314992118037af35a97",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786434539.0044837,
-    "ast_hash": "ad974df6cbd7f32eec42a750ae8de061",
+    "mtime": 1786478764.0001748,
+    "ast_hash": "f0c0c898191ab7fbc772afadc5202f31",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -390,8 +390,8 @@
     "semantic_hash": "429688cf1006d5eb8b337df244be0c02"
   },
   "src/pages/Utilities.jsx": {
-    "mtime": 1786415646.477512,
-    "ast_hash": "494cf5b598f76aaf084b9abc49aed2fe",
+    "mtime": 1786478764.0032222,
+    "ast_hash": "c9577c1bd92841a596850f127f379e5c",
     "semantic_hash": ""
   },
   "src/pages/WhatsAppContacts.jsx": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1786477680.3401768,
-    "ast_hash": "9fa5a9bcae956d5464ab692e3d92d93b",
+    "mtime": 1786478764.0052328,
+    "ast_hash": "1fdc4e9b157a39e69a1eee1e0c79d956",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
@@ -922,6 +922,11 @@
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
     "mtime": 1786433882.886849,
     "ast_hash": "269438b8a40b15b4d1589235c3464131",
+    "semantic_hash": ""
+  },
+  ".tmp/gradle-off-onedrive.init.gradle": {
+    "mtime": 1786479105.296134,
+    "ast_hash": "3320cbb5302c454e73db756e46d9fc51",
     "semantic_hash": ""
   }
 }

@@ -21,12 +21,16 @@ const services = {
 
 function timeAgo(iso) {
   if (!iso) return 'sin datos';
-  const ms = Date.now() - new Date(iso).getTime();
+  const checkedAt = new Date(iso).getTime();
+  if (!Number.isFinite(checkedAt)) return 'sin datos';
+  const ms = Date.now() - checkedAt;
   if (ms < 0) return 'recién actualizado';
-  const h = Math.floor(ms / 3600000);
-  if (h < 1) return 'hace menos de 1 h';
-  if (h < 24) return `hace ${h} h`;
-  return `hace ${Math.floor(h / 24)} d`;
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 1) return 'hace menos de 1 minuto';
+  if (minutes < 60) return `hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  return `hace ${Math.floor(hours / 24)} d`;
 }
 
 function waterBillLabel(bill) {
@@ -96,7 +100,7 @@ export default function Utilities() {
         const electricity = data?.services?.electricity?.payment;
         const water = data?.services?.water?.payment;
         const gas = data?.services?.gas?.payment;
-        if (electricity || water || gas) entries[apt.id] = { electricity, water, gas };
+        entries[apt.id] = { electricity, water, gas };
       } catch {}
     }));
     setDebts(entries);
@@ -399,20 +403,19 @@ export default function Utilities() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{s.name}</p>
                       {code && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{s.codeLabel}: <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{code}</span></p>}
-                      {svc === 'water' && debts[apt.id]?.water && (
-                        <p className={`text-xs font-semibold mt-1 ${waterBillClass(debts[apt.id].water)}`}>
-                          {waterBillLabel(debts[apt.id].water)}
-                          {debts[apt.id].water.status === 'pending' && debts[apt.id].water.numFacturas > 0 && ` · ${debts[apt.id].water.numFacturas} ${debts[apt.id].water.numFacturas === 1 ? 'factura' : 'facturas'}`}
-                          {waterBillMeta(debts[apt.id].water) && <span className="text-gray-400 dark:text-gray-500 font-normal"> · {waterBillMeta(debts[apt.id].water)}</span>}
-                        </p>
-                      )}
-                      {svc === 'gas' && debts[apt.id]?.gas && (
-                        <p className={`text-xs font-semibold mt-1 ${waterBillClass(debts[apt.id].gas)}`}>
-                          {waterBillLabel(debts[apt.id].gas)}
-                          {debts[apt.id].gas.status === 'pending' && debts[apt.id].gas.numFacturas > 0 && ` · ${debts[apt.id].gas.numFacturas} ${debts[apt.id].gas.numFacturas === 1 ? 'factura' : 'facturas'}`}
-                          {waterBillMeta(debts[apt.id].gas) && <span className="text-gray-400 dark:text-gray-500 font-normal"> · {waterBillMeta(debts[apt.id].gas)}</span>}
-                        </p>
-                      )}
+                      {(svc === 'water' || svc === 'gas') && debts[apt.id] && (() => {
+                        const bill = debts[apt.id][svc];
+                        return (
+                          <>
+                            <p className={`text-xs font-semibold mt-1 ${waterBillClass(bill)}`} title={bill?.error || ''}>
+                              {bill ? waterBillLabel(bill) : 'Sin datos de consulta'}
+                              {bill?.status === 'pending' && bill.numFacturas > 0 && ` · ${bill.numFacturas} ${bill.numFacturas === 1 ? 'factura' : 'facturas'}`}
+                              <span className="text-gray-400 dark:text-gray-500 font-normal"> · {bill ? (waterBillMeta(bill) || `datos ${timeAgo(bill.actualizado)}`) : 'nunca sincronizado'}</span>
+                            </p>
+                            {bill?.error && <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate" title={bill.error}>Último error: {bill.error}</p>}
+                          </>
+                        );
+                      })()}
                       {svc === 'electricity' && debts[apt.id]?.electricity && (
                         <p className={`text-xs font-semibold mt-1 ${debts[apt.id].electricity.deudaCOP > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                           {debts[apt.id].electricity.deudaCOP > 0
