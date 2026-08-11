@@ -2613,7 +2613,7 @@ function runScrapeOnce(reason) {
     } finally {
       airEScrapePromise = null;
     }
-  })();
+  });
   return airEScrapePromise;
 }
 
@@ -2719,7 +2719,7 @@ function runWaterScrapeOnce(reason) {
     } finally {
       waterScrapePromise = null;
     }
-  })();
+  });
   return waterScrapePromise;
 }
 
@@ -2764,7 +2764,7 @@ function runGasScrapeOnce(reason) {
     } finally {
       gasScrapePromise = null;
     }
-  })();
+  });
   return gasScrapePromise;
 }
 
