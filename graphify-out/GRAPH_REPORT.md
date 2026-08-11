@@ -1,16 +1,16 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-11)
 
 ## Corpus Check
-- 140 files · ~164,202 words
+- 140 files · ~164,393 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1549 nodes · 3130 edges · 150 communities (110 shown, 40 thin omitted)
+- 1552 nodes · 3135 edges · 149 communities (108 shown, 41 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 54 edges (avg confidence: 0.52)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ef59b10b`
+- Built from commit: `0ea02d9f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,7 +30,7 @@
 - handleCloudInbound
 - BroadcastReceiver
 - content-facebook.js
-- getBase
+- Layout.jsx
 - handleCloudInbound
 - scripts
 - sleep
@@ -55,7 +55,7 @@
 - worker-protocol.cjs
 - opencode.json
 - portal-scraper.js
-- api
+- App.jsx
 - tailwindcss
 - .oxlintrc.json
 - add-passwords.js
@@ -99,7 +99,7 @@
 - Sistema de Temas (6 Temas Visuales)
 - Construir APK para Android
 - API REST Completa
-- @capacitor-mlkit/barcode-scanning
+- ThemeSelector.jsx
 - Convertir a APK con Capacitor
 - WhatsApp Business Platform — puesta en marcha
 - Base de Datos en Memoria
@@ -122,7 +122,7 @@
 - @sparticuz/chromium
 - Worker portatil de servicios
 - lucide-react
-- config.js
+- getBase
 - test-water-scraper.cjs
 - @capacitor/local-notifications
 - @capacitor/filesystem
@@ -133,7 +133,7 @@
 - node-cron
 - portable-worker.cjs
 - Plantilla de WhatsApp: cobro_canon_servicios
-- App.jsx
+- @capacitor/android
 - dexie
 - jspdf
 - jsqr
@@ -146,9 +146,8 @@
 - @tailwindcss/vite
 - @capacitor-mlkit/barcode-scanning
 - @capacitor/cli
-- Utilities.jsx
 - cors
-- react
+- ErrorBoundary
 - prepare-capacitor-assets.js
 
 ## God Nodes (most connected - your core abstractions)
@@ -159,9 +158,9 @@
 5. `handleCloudInbound()` - 29 edges
 6. `react` - 27 edges
 7. `scrapeGasAccount()` - 27 edges
-8. `saveData()` - 26 edges
-9. `handleCloudInbound()` - 25 edges
-10. `ScraperWorkerService` - 25 edges
+8. `ScraperWorkerService` - 26 edges
+9. `saveData()` - 26 edges
+10. `handleCloudInbound()` - 25 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `portalFieldValue()` --indirect_call--> `field()`  [INFERRED]
@@ -170,27 +169,27 @@
   src/utils/contractGenerator.js → package.json
 - `generateApartmentPDF()` --references--> `jspdf`  [EXTRACTED]
   src/utils/pdf.js → package.json
+- `uploadFile()` --calls--> `getRawBase()`  [EXTRACTED]
+  src/api.js → src/utils/config.js
 - `ProtectedRoute()` --calls--> `getAuth()`  [EXTRACTED]
-  src/App.jsx → src/utils/auth.js
-- `AdminRoute()` --calls--> `getAuth()`  [EXTRACTED]
   src/App.jsx → src/utils/auth.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (150 total, 40 thin omitted)
+## Communities (149 total, 41 thin omitted)
 
 ### Community 0 - "handleCloudAdminMessage"
 Cohesion: 0.36
 Nodes (22): cloudApartmentsForFloor(), cloudFindApartment(), cloudListSections(), handleCloudAdminMessage(), occupiedCloudApartments(), saveData(), sendCloudAdminMenu(), sendCloudIncidentAmountPrompt() (+14 more)
 
 ### Community 1 - "ApartmentDetail.jsx"
-Cohesion: 0.11
-Nodes (29): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), serviceColors (+21 more)
+Cohesion: 0.08
+Nodes (46): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), serviceColors (+38 more)
 
 ### Community 2 - ".status"
 Cohesion: 0.11
-Nodes (16): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, AuthorizedCallerScreeningService (+8 more)
+Nodes (15): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, AuthorizedCallerScreeningService (+7 more)
 
 ### Community 3 - "server.cjs"
 Cohesion: 0.05
@@ -222,11 +221,11 @@ Nodes (11): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getA
 
 ### Community 10 - "dependencies"
 Cohesion: 0.11
-Nodes (19): dependencies, @capacitor/android, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, express, pg, qrcode (+11 more)
+Nodes (19): dependencies, @capacitor/cli, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share, express, pg, qrcode (+11 more)
 
 ### Community 11 - "api.js"
-Cohesion: 0.14
-Nodes (18): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), getServerVersion(), lastCloudSyncStatus, serverReq(), updateItem() (+10 more)
+Cohesion: 0.11
+Nodes (31): CLOUD_COLLECTIONS, createItem(), deleteItem(), getCloudSyncStatus(), getDataVersion(), lastCloudSyncStatus, refreshAllFromServer(), serverReq() (+23 more)
 
 ### Community 12 - "handleCloudInbound"
 Cohesion: 0.22
@@ -240,9 +239,9 @@ Nodes (21): AuthorizedMmsReceiver, Context, Intent, Override, AuthorizedSmsRecei
 Cohesion: 0.25
 Nodes (22): activate(), autoFill(), checkAndRun(), chooseDropdown(), fillAndConfirmAddress(), fillAndConfirmAddressReliable(), findAndSet(), findDropdown() (+14 more)
 
-### Community 15 - "getBase"
-Cohesion: 0.15
-Nodes (21): stopCloudPolling(), stopDataVersionPolling(), Layout(), navItems, Login(), WhatsAppContacts(), cloudRequest(), formatDate() (+13 more)
+### Community 15 - "Layout.jsx"
+Cohesion: 0.43
+Nodes (4): Layout(), navItems, clearAppData(), isServerAvailable()
 
 ### Community 16 - "handleCloudInbound"
 Cohesion: 0.14
@@ -269,8 +268,8 @@ Cohesion: 0.07
 Nodes (27): 1.1 Identidad, 1.2 Stack (verificado en package.json + README), 1.3 Autenticación, 1.4 Colecciones existentes (13 núcleo), 1.5 Datos relevantes por apartamento, 1.6 Puntos de extensión existentes (patrones a imitar), 1. ESTADO ACTUAL DE LA APP, 2. LIMITACIONES DE HARDWARE / INFRAESTRUCTURA (CRÍTICAS) (+19 more)
 
 ### Community 22 - "chat.js"
-Cohesion: 0.33
-Nodes (16): Chat(), getAuth(), fetchPresence(), getAllRooms(), getRoomMessages(), getStatusLabel(), lastCheck, pollNewMessages() (+8 more)
+Cohesion: 0.21
+Nodes (22): AdminRoute(), ProtectedRoute(), Chat(), getAuth(), getTenantApartmentId(), isAdmin(), isTenant(), requireAuth() (+14 more)
 
 ### Community 23 - "services-scraper.cjs"
 Cohesion: 0.07
@@ -328,9 +327,9 @@ Nodes (3): plugin, $schema, .opencode/plugins/graphify.js
 Cohesion: 0.28
 Nodes (18): allStrings(), apartmentNumber(), clean(), digits(), field(), json(), loginState(), needsLogin() (+10 more)
 
-### Community 40 - "api"
-Cohesion: 0.31
-Nodes (7): api, Modal(), Apartments(), Contracts(), Tenants(), getViewMode(), setViewMode()
+### Community 40 - "App.jsx"
+Cohesion: 0.22
+Nodes (13): react, api, Modal(), Apartments(), Contracts(), Login(), getPredialUrl(), lookupRef() (+5 more)
 
 ### Community 42 - ".oxlintrc.json"
 Cohesion: 0.25
@@ -345,8 +344,8 @@ Cohesion: 0.23
 Nodes (23): DEFAULT_SCHEDULE, formatSchedule(), ScraperWorker(), clearAndroidPortalCookies(), configureAndroidScraperWorker(), getAndroidScraperWorkerStatus(), NativeScraperWorker, openAndroidPortal() (+15 more)
 
 ### Community 45 - "Settings.jsx"
-Cohesion: 0.10
-Nodes (39): iconMap, ThemeSelector(), Settings(), addCalendarReminder(), downloadICS(), fmtDate(), generateAllPaymentReminders(), generateICS() (+31 more)
+Cohesion: 0.23
+Nodes (19): Settings(), callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus(), nativeAndroid(), normalizedPhone(), requestCallScreeningRole(), requestProtectedSmsRole() (+11 more)
 
 ### Community 46 - "Gestión de Apartamentos — Laujim APP"
 Cohesion: 0.12
@@ -414,7 +413,7 @@ Nodes (3): gradlew script, die(), warn()
 
 ### Community 64 - "ScraperWorkerService"
 Cohesion: 0.06
-Nodes (26): IBinder, Intent, Override, RespondViaMessageService, Context, ScraperWorkerAlarm, CapacitorPlugin, JSObject (+18 more)
+Nodes (29): IBinder, Intent, Override, RespondViaMessageService, Context, ScraperWorkerAlarm, CapacitorPlugin, JSObject (+21 more)
 
 ### Community 66 - "Extensión de Chrome — Llenar Laujim"
 Cohesion: 0.12
@@ -463,6 +462,10 @@ Nodes (5): Alternativa sin Android Studio (solo CLI), Construir APK para Android
 ### Community 97 - "API REST Completa"
 Cohesion: 0.33
 Nodes (6): API REST Completa, Editor API (auth Basic: admin/admin123), Endpoints de Antecedentes (Policía), Endpoints de Archivos, Endpoints Generales, Endpoints Genéricos (CRUD Automático)
+
+### Community 98 - "ThemeSelector.jsx"
+Cohesion: 0.32
+Nodes (11): iconMap, ThemeSelector(), applyTheme(), getTheme(), getThemeInfo(), initTheme(), loadThemeFromServer(), setTheme() (+3 more)
 
 ### Community 99 - "Convertir a APK con Capacitor"
 Cohesion: 0.40
@@ -516,9 +519,9 @@ Nodes (10): apartmentNumberFrom(), configuredApartmentTargets(), logUnmatchedPor
 Cohesion: 0.25
 Nodes (7): Android, Cambiar de dispositivo, Configuracion de Render, Contrato HTTP, Objetivo, PC o VPS, Worker portatil de servicios
 
-### Community 122 - "config.js"
-Cohesion: 0.18
-Nodes (11): VersionBanner(), versionIsNewer(), ContractGenerator(), PublicApartment(), serviceIcons, ShareApartments(), getRawBase(), isCapacitor() (+3 more)
+### Community 122 - "getBase"
+Cohesion: 0.12
+Nodes (20): getServerVersion(), VersionBanner(), versionIsNewer(), ContractGenerator(), PublicApartment(), serviceIcons, PublicApartments(), ShareApartments() (+12 more)
 
 ### Community 123 - "test-water-scraper.cjs"
 Cohesion: 0.50
@@ -548,37 +551,25 @@ Nodes (16): applyRemoteConfig(), chromeProfileDir, config, configPath, fs, loadR
 Cohesion: 0.50
 Nodes (3): Cuerpo para Meta, Orden de variables, Plantilla de WhatsApp: `cobro_canon_servicios`
 
-### Community 133 - "App.jsx"
-Cohesion: 0.19
-Nodes (13): getCloudSyncStatus(), refreshAllFromServer(), startCloudPolling(), startDataVersionPolling(), AdminRoute(), PrivateApp(), ProtectedRoute(), initDB() (+5 more)
-
-### Community 146 - "Utilities.jsx"
-Cohesion: 0.43
-Nodes (7): PORTALS, services, timeAgo(), Utilities(), waterBillClass(), waterBillLabel(), waterBillMeta()
-
-### Community 150 - "react"
-Cohesion: 0.17
-Nodes (7): react, App(), ErrorBoundary, getPredialUrl(), lookupRef(), Predial(), REF_MAP
-
 ## Knowledge Gaps
 - **496 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES`, `$schema`, `oxc` (+491 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **40 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `dependencies` connect `dependencies` to `node-cron`, `@capacitor-mlkit/barcode-scanning`, `@capacitor/cli`, `scripts`, `@capacitor/core`, `@capacitor/share`, `tailwindcss`, `ffmpeg-static`, `recharts`, `@tailwindcss/vite`, `react-dom`, `puppeteer-core`, `jspdf`, `react`, `pg`, `multer`, `@sparticuz/chromium`, `lucide-react`, `@capacitor/local-notifications`, `@capacitor/filesystem`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **Why does `jspdf` connect `jspdf` to `dependencies`, `contractGenerator.js`, `ApartmentDetail.jsx`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **Why does `generateApartmentPDF()` connect `ApartmentDetail.jsx` to `jspdf`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `portalFieldValue()` connect `scrapeGasAccount` to `matchPortalApartmentForService`, `portal-scraper.js`, `services-scraper.cjs`?**
+  _High betweenness centrality (0.011) - this node is a cross-community bridge._
 - **What connects `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES` to the rest of the system?**
   _496 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ApartmentDetail.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.10628019323671498 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07505827505827506 - nodes in this community are weakly interconnected._
 - **Should `.status` be split into smaller, more focused modules?**
-  _Cohesion score 0.10904255319148937 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11193339500462535 - nodes in this community are weakly interconnected._
 - **Should `server.cjs` be split into smaller, more focused modules?**
   _Cohesion score 0.05142857142857143 - nodes in this community are weakly interconnected._

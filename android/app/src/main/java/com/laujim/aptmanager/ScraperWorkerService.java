@@ -13,6 +13,7 @@ import android.os.Looper;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -39,6 +40,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -60,6 +62,8 @@ public class ScraperWorkerService extends Service {
     private ExecutorService executor;
     private WebView webView;
     private CompletableFuture<Boolean> pageReady;
+    private final Object javascriptResultLock = new Object();
+    private CompletableFuture<String> javascriptResult;
     private String runnerScript;
 
     @Override
@@ -84,6 +88,7 @@ public class ScraperWorkerService extends Service {
         webView.setVisibility(View.INVISIBLE);
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
+        webView.addJavascriptInterface(new JavascriptResultBridge(), "LaujimAndroidBridge");
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -225,22 +230,50 @@ public class ScraperWorkerService extends Service {
         pageReady = null;
 
         CompletableFuture<String> result = new CompletableFuture<>();
+        synchronized (javascriptResultLock) {
+            javascriptResult = result;
+        }
         String configJson = config.toString();
-        String expression = "(async()=>{try{" + runnerScript + "return JSON.stringify(await window.LaujimLocalPortalScraper.run(" + quote(provider) + "," + configJson + "));}catch(e){return JSON.stringify({state:'error',provider:" + quote(provider) + ",message:String(e&&e.message||e),results:[]});}})()";
-        mainHandler.post(() -> {
-            if (webView == null) result.completeExceptionally(new IllegalStateException("WebView local no inicializado."));
-            else webView.evaluateJavascript(expression, result::complete);
-        });
+        String expression = "(async()=>{try{const outcome=await window.LaujimLocalPortalScraper.run(" + quote(provider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(provider) + ",message:String(e&&e.message||e),results:[]}));}})();";
+        mainHandler.postDelayed(() -> {
+            if (webView == null) {
+                result.completeExceptionally(new IllegalStateException("WebView local no inicializado."));
+                return;
+            }
+            try {
+                // evaluateJavascript does not reliably await an async Promise;
+                // the bridge above completes the future after the portal runner
+                // has actually finished.
+                webView.evaluateJavascript(expression, ignored -> { });
+            } catch (Exception error) {
+                result.completeExceptionally(error);
+            }
+        }, 1_000L);
         try {
             String encoded = result.get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            return parseJsJson(encoded);
-        } catch (Exception error) {
+            JSONObject parsed = parseJsJson(encoded);
+            if (parsed == null) throw new IllegalStateException("El WebView no devolvió una respuesta válida de " + providerLabel(provider) + ".");
+            return parsed;
+        } catch (TimeoutException error) {
             throw new IllegalStateException("Timeout ejecutando " + providerLabel(provider) + " en el teléfono.");
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Ejecución interrumpida en " + providerLabel(provider) + ".");
+        } catch (Exception error) {
+            Throwable cause = error.getCause() == null ? error : error.getCause();
+            String detail = cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
+            throw new IllegalStateException("No se pudo ejecutar " + providerLabel(provider) + ": " + detail);
+        } finally {
+            synchronized (javascriptResultLock) {
+                if (javascriptResult == result) javascriptResult = null;
+            }
         }
     }
 
     private JSONObject parseJsJson(String encoded) throws JSONException {
-        Object value = new JSONTokener(encoded == null ? "null" : encoded).nextValue();
+        String raw = encoded == null ? "" : encoded.trim();
+        if (raw.isEmpty() || "null".equals(raw) || "undefined".equals(raw)) return null;
+        Object value = new JSONTokener(raw).nextValue();
         if (value instanceof String) value = new JSONTokener((String) value).nextValue();
         return value instanceof JSONObject ? (JSONObject) value : null;
     }
@@ -347,6 +380,17 @@ public class ScraperWorkerService extends Service {
     }
 
     @Override public IBinder onBind(Intent intent) { return null; }
+
+    private final class JavascriptResultBridge {
+        @JavascriptInterface
+        public void resolve(String value) {
+            CompletableFuture<String> pending;
+            synchronized (javascriptResultLock) {
+                pending = javascriptResult;
+            }
+            if (pending != null && !pending.isDone()) pending.complete(value);
+        }
+    }
 
     private static final class HttpResult {
         final int status;
