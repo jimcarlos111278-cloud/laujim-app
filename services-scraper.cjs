@@ -47,7 +47,7 @@ const BROWSERLESS_PROFILES = String(process.env.BROWSERLESS_PROFILES || 'air-e,w
   .map((profile) => profile.trim().toLowerCase())
   .filter(Boolean);
 const BROWSERLESS_SOLVE_CAPTCHAS = /^(1|true|yes)$/i.test(
-  process.env.BROWSERLESS_SOLVE_CAPTCHAS || '',
+  process.env.BROWSERLESS_SOLVE_CAPTCHAS || (Object.values(BROWSERLESS_TOKENS).some(Boolean) ? 'true' : ''),
 );
 
 function sleep(ms) {
@@ -130,6 +130,10 @@ const GAS_PORTAL_URLS = {
 const GAS_API_BASE = 'https://pagosweb-production-api.innovacion-gascaribe.com';
 const PORTAL_AUTH_TIMEOUT_MS = 180000;
 const PORTAL_DATA_TIMEOUT_MS = 90000;
+const PORTAL_LOGIN_ATTEMPTS = 2;
+const PORTAL_AUTH_SETTLE_TIMEOUT_MS = 60000;
+const PORTAL_DATA_ATTEMPTS = 2;
+const PORTAL_DATA_RETRY_DELAY_MS = 2500;
 
 // Legacy fallback only. The source of truth is now db.apartments, so adding a
 // NIC in the admin UI is enough to include the apartment in the next scrape.
@@ -353,7 +357,12 @@ function normalizeDigits(value) {
 }
 
 function apartmentNumberFrom(value) {
-  const match = String(value || '').match(/\b([1-9]\d{2})\b/);
+  const text = String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, ' ');
+  const explicit = text.match(/(?:apto|apartamento|unidad|unit|inmueble|inmueble)\s*#?\s*([1-9]\d{2})\b/i);
+  if (explicit?.[1]) return explicit[1];
+  const exact = text.trim().match(/^([1-9]\d{2})$/);
+  if (exact?.[1]) return exact[1];
+  const match = text.match(/\b([1-9]\d{2})\b/);
   return match?.[1] || null;
 }
 
@@ -372,56 +381,99 @@ function configuredApartmentTargets(apartments = db?.apartments || []) {
 }
 
 function matchPortalApartment(targets, identifiers = []) {
-  const values = (Array.isArray(identifiers) ? identifiers : [identifiers])
-    .map(value => String(value || '').trim())
-    .filter(Boolean);
-  const digitValues = values.map(normalizeDigits).filter(Boolean);
-  const apartmentNumber = values.map(apartmentNumberFrom).find(Boolean) || null;
-
-  return (targets || []).find(target => {
-    const targetCode = normalizeDigits(target.waterPaymentCode || target.gasPaymentCode);
-    const targetNumber = target.apartmentNumber || apartmentNumberFrom(target.apartment);
-    return (targetCode && digitValues.includes(targetCode)) ||
-      (apartmentNumber && targetNumber === apartmentNumber);
-  }) || null;
+  return matchPortalApartmentForService(targets, identifiers, null);
 }
 
-// ── TRIPLE A WATER BILL SCRAPER ─────────────────────────────────────────────
-//
-// The URL saved from the apartment's QR code is treated as a read-only page.
-// We never click a payment action and we do not submit credentials.  Triple A
-// has used more than one page layout, so the parser deliberately relies on
-// visible text and labels instead of brittle CSS selectors.
+function normalizePortalText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
 
-// Give each QR page up to three minutes to render the debt. A fresh page is
-// opened once when that attempt returns no usable value. Turnstile is handled
-// differently: it is detected quickly and the page can be reopened up to four
-// total attempts in case the challenge was only transient.
-const WATER_TIMEOUT_MS = 180000;
-const WATER_MAX_ATTEMPTS = 2;
-const WATER_CAPTCHA_MAX_ATTEMPTS = 4;
-const WATER_TURNSTILE_WAIT_MS = BROWSERLESS_SOLVE_CAPTCHAS ? 30000 : 20000;
-const WATER_POLL_INTERVAL_MS = 2000;
-const WATER_RESPONSE_TIMEOUT_MS = 5000;
-const WATER_CLOSE_TIMEOUT_MS = 10000;
-// Browserless/Chromium can close the shared session when one long-running QR
-// page exhausts its deadline. Serializing the pages keeps one timeout from
-// turning the remaining apartments into "Connection closed" records.
-const WATER_WORKERS = 1;
+function portalIdentifierValues(value, key = '', depth = 0, output = []) {
+  if (value === null || value === undefined || depth > 4) return output;
+  if (['string', 'number', 'bigint'].includes(typeof value)) {
+    const text = String(value).trim();
+    const identifierKey = /(?:id|code|number|numero|policy|poliza|contract|contrato|subscription|suscripcion|account|cuenta|reference|referencia|alias|name|nombre|address|direccion|apto|apartamento|unit|unidad|property|inmueble|customer|cliente)/i.test(key);
+    if (text && (identifierKey || !key)) output.push(text);
+    return output;
+  }
+  if (Array.isArray(value)) {
+    value.forEach(item => portalIdentifierValues(item, key, depth + 1, output));
+    return output;
+  }
+  if (typeof value !== 'object') return output;
+  for (const [childKey, childValue] of Object.entries(value)) {
+    portalIdentifierValues(childValue, childKey, depth + 1, output);
+  }
+  return output;
+}
+
+function portalCodeValues(target, service) {
+  if (service === 'water') return [target?.waterPaymentCode];
+  if (service === 'gas') return [target?.gasPaymentCode];
+  return [target?.waterPaymentCode, target?.gasPaymentCode];
+}
+
+function matchPortalApartmentForService(targets, identifiers = [], service = null) {
+  const rawValues = (Array.isArray(identifiers) ? identifiers : [identifiers])
+    .flatMap(value => portalIdentifierValues(value))
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+  const values = [...new Set(rawValues)];
+  const normalizedValues = values.map(normalizePortalText).filter(Boolean);
+  const digitValues = values.map(normalizeDigits).filter(Boolean);
+
+  let best = null;
+  let bestScore = 0;
+  for (const target of targets || []) {
+    const targetCodeValues = portalCodeValues(target, service)
+      .map(normalizeDigits)
+      .filter(Boolean);
+    const targetTextCodes = portalCodeValues(target, service)
+      .map(normalizePortalText)
+      .filter(Boolean);
+    const targetNumber = target.apartmentNumber || apartmentNumberFrom(target.apartment);
+    const targetName = normalizePortalText(target.apartment);
+    let score = 0;
+
+    // Account/reference IDs are the strongest match. For gas we deliberately
+    // use gasPaymentCode only; the old generic matcher accidentally compared
+    // gas contracts against the water policy number first.
+    const codeMatch = targetCodeValues.some(code => digitValues.includes(code)) ||
+      targetTextCodes.some(code => normalizedValues.includes(code));
+    const apartmentMatch = targetNumber && values.some(value => apartmentNumberFrom(value) === targetNumber);
+    const nameMatch = targetName && normalizedValues.includes(targetName);
+    if (codeMatch) score = 100;
+    if (apartmentMatch) score = Math.max(score, codeMatch ? 150 : 50);
+    if (nameMatch) score = Math.max(score, codeMatch ? 160 : 60);
+
+    if (score > bestScore) {
+      best = target;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+// ── AUTHENTICATED PORTAL SCRAPERS ───────────────────────────────────────────
+//
+// The scheduled/manual service jobs use only the authenticated provider
+// portals. QR/payment URLs are intentionally not a data-source fallback.
+const PORTAL_RESPONSE_TIMEOUT_MS = 5000;
+const BROWSER_CLOSE_TIMEOUT_MS = 10000;
 const WATER_SCRAPE_CRON = '0 */12 * * *';
 const WATER_CAPTCHA_ERROR = 'Triple A exige completar la verificación de Cloudflare Turnstile. El valor no se puede consultar automáticamente desde Render; abre el enlace en un navegador y completa la verificación manual.';
 
 // Gases del Caribe uses the same kind of direct payment/consultation links
 // saved from the apartment QR. Keep the gas flow independent from Triple A so
 // one provider's Turnstile does not erase the results of the others.
-const GAS_TIMEOUT_MS = 180000;
-const GAS_MAX_ATTEMPTS = 2;
-const GAS_CAPTCHA_MAX_ATTEMPTS = 4;
-const GAS_POLL_INTERVAL_MS = 2000;
 const GAS_RESPONSE_TIMEOUT_MS = 5000;
 // Use the same isolation rule for the gas portal: one slow/blocked contract
 // must not terminate the session used by the remaining contracts.
-const GAS_WORKERS = 1;
 const GAS_CAPTCHA_ERROR = 'Gases del Caribe requiere verificaciÃ³n manual de Turnstile para consultar la deuda.';
 
 function normalizeBillText(value) {
@@ -524,78 +576,13 @@ function parseWaterBillPage(pageText) {
   };
 }
 
-function waterTarget(apartment) {
-  const url = String(apartment?.waterPaymentUrl || '').trim();
-  if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
-  } catch {
-    return null;
-  }
-  return { apartmentId: apartment.id, apartment: apartment.name, waterPaymentUrl: url, waterPaymentCode: apartment.waterPaymentCode || null };
-}
-
-function waterRecord(target, parsed, checkedAt = new Date().toISOString()) {
-  return {
-    provider: 'Triple A',
-    service: 'water',
-    apartmentId: target.apartmentId,
-    apartment: target.apartment,
-    waterPaymentUrl: target.waterPaymentUrl,
-    waterPaymentCode: target.waterPaymentCode,
-    status: parsed.status,
-    deudaCOP: parsed.deudaCOP,
-    deudaTotalCOP: parsed.deudaCOP,
-    deudaLabel: 'Deuda Total',
-    numFacturas: parsed.numFacturas ?? (parsed.status === 'pending' ? 1 : 0),
-    factura: parsed.factura || null,
-    periodo: parsed.periodo || null,
-    error: parsed.error || null,
-    checkedAt,
-    scrapedAt: checkedAt,
-  };
-}
-
+/* QR navigation error helper removed with the QR scraper.
 function waterNavigationError(target, error, checkedAt = new Date().toISOString()) {
   const message = String(error?.message || error || 'Error desconocido al consultar Triple A');
   const status = /timeout|timed out|tard[oó].*demasiado/i.test(message) ? 'timeout' : 'error';
   return waterRecord(target, { status, deudaCOP: null, error: message }, checkedAt);
 }
-
-async function readWaterFrameText(frame) {
-  try {
-    return await frame.evaluate(() => {
-      const roots = [document];
-      for (let index = 0; index < roots.length; index++) {
-        const root = roots[index];
-        for (const element of root.querySelectorAll?.('*') || []) {
-          if (element.shadowRoot) roots.push(element.shadowRoot);
-        }
-      }
-      const values = [];
-      for (const root of roots) {
-        values.push(root.body?.innerText || root.documentElement?.innerText || '');
-        for (const element of root.querySelectorAll?.('input:not([type="password"]), textarea, select, [aria-label], [title]') || []) {
-          const style = window.getComputedStyle(element);
-          if (style.display === 'none' || style.visibility === 'hidden' || !element.getClientRects().length) continue;
-          values.push(element.getAttribute('aria-label'), element.getAttribute('title'));
-          if ('value' in element) values.push(element.value);
-        }
-      }
-      return [...new Set(values.filter(Boolean))].join(' ').trim();
-    });
-  } catch {
-    return '';
-  }
-}
-
-function waterResultReady(parsed) {
-  return parsed.status === 'paid' ||
-    parsed.status === 'captcha' ||
-    parsed.status === 'error' ||
-    (parsed.status === 'pending' && parsed.deudaCOP !== null);
-}
+*/
 
 async function inspectWaterPage(page) {
   if (!page || typeof page.evaluate !== 'function') return null;
@@ -635,46 +622,6 @@ async function inspectWaterPage(page) {
   }
 }
 
-async function submitWaterQueryIfReady(page, state) {
-  if (!state || state.hasBillingResult) return { submitted: false, captcha: false };
-  if ((state.hasTurnstile || state.hasCaptchaText) && !state.turnstileToken) {
-    return { submitted: false, captcha: true, error: WATER_CAPTCHA_ERROR };
-  }
-  if (!state.hasSubmit || !state.hasPaymentNumber || state.submitDisabled || typeof page?.evaluate !== 'function') {
-    return { submitted: false, captcha: false };
-  }
-
-  try {
-    const submitted = await page.evaluate(() => {
-      const submit = document.querySelector('form button[type="submit"], button[type="submit"]');
-      if (!submit || submit.disabled) return false;
-      submit.click();
-      return true;
-    });
-    return { submitted: Boolean(submitted), captcha: false };
-  } catch {
-    return { submitted: false, captcha: false };
-  }
-}
-
-async function waitForWaterTurnstile(page, deadline) {
-  let state = await inspectWaterPage(page);
-  const browserlessSolvePending = BROWSERLESS_SOLVE_CAPTCHAS && state &&
-    state.hasTurnstile && !state.turnstileToken && !state.hasBillingResult;
-  const invisibleTurnstilePending = state && state.hasTurnstile &&
-    !state.turnstileToken && !state.hasBillingResult && !state.hasCaptchaText;
-  if (!invisibleTurnstilePending && !browserlessSolvePending) return state;
-
-  const turnstileDeadline = Math.min(deadline, Date.now() + WATER_TURNSTILE_WAIT_MS);
-  while (Date.now() < turnstileDeadline) {
-    await sleep(Math.min(WATER_POLL_INTERVAL_MS, turnstileDeadline - Date.now()));
-    state = await inspectWaterPage(page);
-    if (!state || state.turnstileToken || state.hasBillingResult) return state;
-    if (!browserlessSolvePending && state.hasCaptchaText) return state;
-  }
-  return state;
-}
-
 async function closeWaterResource(resource) {
   if (!resource || typeof resource.close !== 'function') return;
   let closed = false;
@@ -682,7 +629,7 @@ async function closeWaterResource(resource) {
     .then(() => resource.close())
     .then(() => { closed = true; })
     .catch(() => {});
-  await Promise.race([closePromise, sleep(WATER_CLOSE_TIMEOUT_MS)]);
+  await Promise.race([closePromise, sleep(BROWSER_CLOSE_TIMEOUT_MS)]);
   return closed;
 }
 
@@ -714,27 +661,149 @@ async function visibleSelectorExists(page, selector) {
   return true;
 }
 
+async function waitForPortalAuthCompletion(page, passwordSelectors, timeout = PORTAL_AUTH_SETTLE_TIMEOUT_MS) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (!(await visibleSelectorExists(page, passwordSelectors))) return true;
+    await sleep(Math.min(1000, Math.max(100, deadline - Date.now())));
+  }
+  return !(await visibleSelectorExists(page, passwordSelectors));
+}
+
+async function loginPortalPage(page, {
+  provider,
+  username,
+  password,
+  emailSelectors,
+  passwordSelectors,
+  submitSelectors,
+  turnstileError,
+  loginAttempts = PORTAL_LOGIN_ATTEMPTS,
+}) {
+  const hasPassword = await visibleSelectorExists(page, passwordSelectors);
+  if (!hasPassword) return false;
+
+  for (let attempt = 1; attempt <= loginAttempts; attempt += 1) {
+    await typeVisibleField(page, emailSelectors, username, 10000);
+    await typeVisibleField(page, passwordSelectors, password, 10000);
+    const challenge = await waitForPortalTurnstile(page, 30000);
+    if (challenge?.hasTurnstile && !challenge.turnstileToken) {
+      throw new Error(turnstileError);
+    }
+    const clicked = await clickVisibleButton(page, submitSelectors, 10000);
+    if (!clicked) throw new Error(`No se encontró el botón de inicio de sesión de ${provider}.`);
+
+    // A portal may navigate, update a SPA route, or leave the same document
+    // while its session cookie is being established. Accept all three as long
+    // as the visible password field disappears.
+    const navigation = typeof page.waitForNavigation === 'function'
+      ? page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: PORTAL_AUTH_SETTLE_TIMEOUT_MS }).catch(() => null)
+      : Promise.resolve(null);
+    const completed = await Promise.race([
+      navigation.then(() => waitForPortalAuthCompletion(page, passwordSelectors, 5000)),
+      waitForPortalAuthCompletion(page, passwordSelectors, PORTAL_AUTH_SETTLE_TIMEOUT_MS),
+    ]);
+    if (completed || !(await visibleSelectorExists(page, passwordSelectors))) return true;
+
+    if (attempt < loginAttempts) {
+      console.warn(`[${provider}] El portal no confirmó el inicio de sesión; recargando (intento ${attempt + 1}/${loginAttempts}).`);
+      if (typeof page.reload === 'function') {
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: PORTAL_AUTH_TIMEOUT_MS }).catch(() => {});
+      }
+    }
+  }
+
+  throw new Error(`${provider} no completó el inicio de sesión después de ${loginAttempts} intentos.`);
+}
+
 function parsePortalAmount(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? Math.round(value) : null;
   if (value === null || value === undefined || value === '') return null;
   return parseCopAmount(value);
 }
 
-function unwrapPortalList(payload, keys = []) {
-  if (Array.isArray(payload)) return payload;
-  for (const key of keys) {
-    if (Array.isArray(payload?.[key])) return payload[key];
+function portalFieldValue(value, fieldNames, depth = 0) {
+  if (!value || typeof value !== 'object' || depth > 5) return undefined;
+  const wanted = (fieldNames || []).map(field => normalizePortalText(field).replace(/ /g, ''));
+  const entries = Object.entries(value);
+  for (const wantedKey of wanted) {
+    const match = entries.find(([key, child]) =>
+      normalizePortalText(key).replace(/ /g, '') === wantedKey && child !== null && child !== undefined && child !== ''
+    );
+    if (match) return match[1];
   }
-  if (payload?.data && typeof payload.data === 'object') {
-    if (Array.isArray(payload.data)) return payload.data;
-    for (const key of keys) {
-      if (Array.isArray(payload.data?.[key])) return payload.data[key];
-    }
+  for (const child of Object.values(value)) {
+    const found = portalFieldValue(child, fieldNames, depth + 1);
+    if (found !== undefined) return found;
   }
-  return [];
+  return undefined;
 }
 
-async function responseTextWithTimeout(response, timeout = WATER_RESPONSE_TIMEOUT_MS) {
+function unwrapPortalList(payload, keys = []) {
+  const visited = new Set();
+  const find = (value, depth = 0) => {
+    if (Array.isArray(value)) return value;
+    if (!value || typeof value !== 'object' || depth > 5 || visited.has(value)) return [];
+    visited.add(value);
+
+    // Check the provider's known collection names at every wrapper level.
+    for (const key of keys) {
+      if (Array.isArray(value[key]) && value[key].length) return value[key];
+      if (value[key] && typeof value[key] === 'object') {
+        const nested = find(value[key], depth + 1);
+        if (nested.length) return nested;
+      }
+    }
+
+    // Portals commonly wrap the response in data/result/response/payload.
+    for (const key of ['data', 'result', 'response', 'payload', 'content']) {
+      const nested = find(value[key], depth + 1);
+      if (nested.length) return nested;
+    }
+
+    // Last resort: inspect nested objects, but only for an array of records so
+    // an unrelated numeric array cannot be mistaken for contracts/policies.
+    for (const child of Object.values(value)) {
+      const nested = find(child, depth + 1);
+      if (nested.length && nested.every(item => item && typeof item === 'object' && !Array.isArray(item))) return nested;
+    }
+    return [];
+  };
+  return find(payload);
+}
+
+function portalPayloadDiagnostics(payload, items) {
+  const root = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {};
+  const itemKeys = [...new Set((items || []).slice(0, 5).flatMap(item =>
+    item && typeof item === 'object' ? Object.keys(item) : []
+  ))].slice(0, 30);
+  return {
+    rootKeys: Object.keys(root).slice(0, 30),
+    itemCount: Array.isArray(items) ? items.length : 0,
+    itemKeys,
+  };
+}
+
+function portalDiagnosticReferences(item) {
+  const values = portalIdentifierValues(item)
+    .map(value => ({ raw: String(value), digits: normalizeDigits(value) }))
+    .filter(item => item.digits.length >= 3 && item.digits.length <= 24)
+    .map(item => item.digits);
+  return [...new Set(values)].slice(0, 12);
+}
+
+function logUnmatchedPortalItems(provider, items, service) {
+  for (const item of items || []) {
+    const refs = portalDiagnosticReferences(item);
+    if (refs.length) {
+      console.warn(`[${provider}] Registro global sin apartamento asociado (${service}): referencias=${refs.join(',')}`);
+    } else {
+      console.warn(`[${provider}] Registro global sin apartamento asociado (${service}): sin referencias numéricas reconocibles.`);
+    }
+  }
+}
+
+async function responseTextWithTimeout(response, timeout = PORTAL_RESPONSE_TIMEOUT_MS) {
   try {
     return await Promise.race([
       response.text(),
@@ -750,8 +819,30 @@ function parsePortalResponseBody(body) {
   try { return JSON.parse(body); } catch { return null; }
 }
 
+async function fetchPortalJson(page, url, headers = {}) {
+  if (typeof page?.evaluate !== 'function') return { status: 0, body: '', error: 'Página sin contexto JavaScript.' };
+  return page.evaluate(async ({ requestUrl, requestHeaders }) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(requestUrl, {
+        credentials: 'include',
+        headers: { Accept: 'application/json', ...requestHeaders },
+        signal: controller.signal,
+      });
+      return { status: response.status, body: await response.text() };
+    } finally {
+      clearTimeout(timer);
+    }
+  }, { requestUrl: url, requestHeaders: headers }).catch(error => ({
+    status: 0,
+    body: '',
+    error: error.message,
+  }));
+}
+
 function tripleAStatusValue(subscription) {
-  const raw = subscription?.status;
+  const raw = portalFieldValue(subscription, ['status', 'state', 'paymentStatus']);
   if (raw && typeof raw === 'object') {
     return String(raw.value || raw.code || raw.name || raw.status || raw.label || '').toLowerCase();
   }
@@ -761,16 +852,26 @@ function tripleAStatusValue(subscription) {
 function tripleARecord(target, subscription, checkedAt = new Date().toISOString()) {
   const statusValue = tripleAStatusValue(subscription);
   const amount = parsePortalAmount(
-    subscription?.pendingValue ?? subscription?.debt ?? subscription?.deudaTotal ?? subscription?.amountDue,
+    portalFieldValue(subscription, [
+      'pendingValue', 'pendingAmount', 'debt', 'deudaTotal', 'totalDebt',
+      'amountDue', 'totalDue', 'balanceDue', 'saldoTotal', 'saldoPendiente',
+      'total', 'amount', 'balance', 'saldo',
+    ]),
   );
-  const debtState = /pending|in_debt|expired|overdue|mora/.test(statusValue);
-  const paidState = /paid|al_day|up_to_date|sin_deuda/.test(statusValue);
+  const pendingValue = portalFieldValue(subscription, ['isPending', 'pending', 'pendiente']);
+  const paidValue = portalFieldValue(subscription, ['isPaid', 'paid', 'pagada']);
+  const debtState = /pending|in_debt|expired|overdue|mora/.test(statusValue) ||
+    pendingValue === true || /^(?:true|1|pending|pendiente|vencid[ao])$/i.test(String(pendingValue || ''));
+  const paidState = /paid|al_day|up_to_date|sin_deuda/.test(statusValue) ||
+    paidValue === true || /^(?:true|1|paid|pagad[ao]|al dia)$/i.test(String(paidValue || ''));
   const deudaCOP = amount === null ? (debtState ? null : 0) : Math.max(0, amount);
   const status = deudaCOP > 0 || (deudaCOP === null && debtState)
     ? 'pending'
     : paidState || deudaCOP === 0 ? 'paid' : 'unknown';
-  const subscriptionCode = subscription?.subscriptionExternalId ||
-    subscription?.externalId || subscription?.subscriptionId || subscription?.id || null;
+  const subscriptionCode = portalFieldValue(subscription, [
+    'subscriptionExternalId', 'externalId', 'subscriptionId', 'policyNumber',
+    'poliza', 'policy', 'id',
+  ]) || null;
 
   return {
     provider: 'Triple A',
@@ -784,8 +885,8 @@ function tripleARecord(target, subscription, checkedAt = new Date().toISOString(
     deudaTotalCOP: deudaCOP,
     deudaLabel: 'Deuda Total',
     numFacturas: null,
-    factura: subscription?.invoiceNumber || null,
-    periodo: subscription?.invoiceDate || null,
+    factura: portalFieldValue(subscription, ['invoiceNumber', 'invoiceId', 'factura']) || null,
+    periodo: portalFieldValue(subscription, ['invoiceDate', 'billingPeriod', 'periodo']) || null,
     error: null,
     checkedAt,
     scrapedAt: checkedAt,
@@ -808,7 +909,7 @@ async function scrapeTripleAAccount() {
 
     captureSubscriptions = response => {
       if (!/\/bff\/subscriptions(?:[/?#]|$)/i.test(response.url())) return;
-      responseTextWithTimeout(response, WATER_RESPONSE_TIMEOUT_MS)
+      responseTextWithTimeout(response, PORTAL_RESPONSE_TIMEOUT_MS)
         .then(body => {
           const parsed = parsePortalResponseBody(body);
           if (parsed) subscriptionPayload = parsed;
@@ -822,21 +923,16 @@ async function scrapeTripleAAccount() {
       timeout: PORTAL_AUTH_TIMEOUT_MS,
     });
 
-    const emailField = await visibleHandle(page, 'input[name="email"]', 8000);
-    const passwordField = await visibleHandle(page, 'input[name="password"]', 8000);
-    if (emailField && passwordField) {
-      try { await emailField.dispose(); } catch {}
-      try { await passwordField.dispose(); } catch {}
-      await typeVisibleField(page, 'input[name="email"]', credentials.username, 5000);
-      await typeVisibleField(page, 'input[name="password"]', credentials.password, 5000);
-      const challenge = await waitForPortalTurnstile(page, 30000);
-      if (challenge?.hasTurnstile && !challenge.turnstileToken) {
-        throw new Error('Triple A mantiene Turnstile visible después de esperar a Browserless.');
-      }
-      const clicked = await clickVisibleButton(page, 'button[type="submit"]', 10000);
-      if (!clicked) throw new Error('No se encontró el botón de inicio de sesión de Triple A.');
-      await sleep(5000);
-    } else {
+    const authenticatedByLogin = await loginPortalPage(page, {
+      provider: 'Triple A',
+      username: credentials.username,
+      password: credentials.password,
+      emailSelectors: ['input[name="email"]', 'input[type="email"]', 'input[autocomplete="username"]'],
+      passwordSelectors: ['input[name="password"]', 'input[type="password"]'],
+      submitSelectors: ['button[type="submit"]', 'button'],
+      turnstileError: 'Triple A mantiene Turnstile visible después de esperar a Browserless.',
+    });
+    if (!authenticatedByLogin) {
       console.log('[TRIPLE A] La sesión ya estaba autenticada; se reutiliza el portal global.');
     }
 
@@ -853,35 +949,39 @@ async function scrapeTripleAAccount() {
 
     // If the React page did not issue the request again (for example after a
     // cached navigation), ask the same authenticated browser session directly.
-    if (!subscriptionPayload) {
-      const direct = await page.evaluate(async () => {
-        const response = await fetch('/bff/subscriptions', {
-          credentials: 'include',
-          headers: { Accept: 'application/json' },
-        });
-        return { status: response.status, body: await response.text() };
-      });
+    for (let attempt = 1; !subscriptionPayload && attempt <= PORTAL_DATA_ATTEMPTS; attempt += 1) {
+      if (attempt > 1) {
+        console.warn(`[TRIPLE A] La lista global no llegó; reintentando la consulta autenticada (${attempt}/${PORTAL_DATA_ATTEMPTS}).`);
+        await sleep(PORTAL_DATA_RETRY_DELAY_MS);
+      }
+      const direct = await fetchPortalJson(page, '/bff/subscriptions');
       if (direct.status >= 200 && direct.status < 300) {
         subscriptionPayload = parsePortalResponseBody(direct.body);
-      } else {
-        throw new Error(`Triple A rechazó la consulta global (HTTP ${direct.status}).`);
+      } else if (attempt === PORTAL_DATA_ATTEMPTS) {
+        throw new Error(`Triple A rechazó la consulta global (HTTP ${direct.status || 'sin respuesta'}).`);
       }
     }
 
-    const subscriptions = unwrapPortalList(subscriptionPayload, ['subscriptions', 'policies', 'items']);
+    let subscriptions = unwrapPortalList(subscriptionPayload, ['subscriptions', 'policies', 'items']);
+    if (!subscriptions.length) {
+      for (let attempt = 1; attempt <= PORTAL_DATA_ATTEMPTS && !subscriptions.length; attempt += 1) {
+        if (attempt > 1) await sleep(PORTAL_DATA_RETRY_DELAY_MS);
+        const direct = await fetchPortalJson(page, '/bff/subscriptions');
+        if (direct.status < 200 || direct.status >= 300) continue;
+        const retryPayload = parsePortalResponseBody(direct.body);
+        const retrySubscriptions = unwrapPortalList(retryPayload, ['subscriptions', 'policies', 'items']);
+        if (retrySubscriptions.length) {
+          subscriptionPayload = retryPayload;
+          subscriptions = retrySubscriptions;
+        }
+      }
+    }
+    console.log('[TRIPLE A] Respuesta global:', JSON.stringify(portalPayloadDiagnostics(subscriptionPayload, subscriptions)));
     const targets = configuredApartmentTargets();
     const results = [];
     const seenApartments = new Set();
     for (const subscription of subscriptions) {
-      const target = matchPortalApartment(targets, [
-        subscription?.subscriptionExternalId,
-        subscription?.externalId,
-        subscription?.subscriptionId,
-        subscription?.name,
-        subscription?.alias,
-        subscription?.subscriptionAddress,
-        subscription?.id,
-      ]);
+      const target = matchPortalApartmentForService(targets, subscription, 'water');
       if (!target || seenApartments.has(String(target.apartmentId || target.apartment))) continue;
       seenApartments.add(String(target.apartmentId || target.apartment));
       const record = tripleARecord(target, subscription);
@@ -890,9 +990,14 @@ async function scrapeTripleAAccount() {
       console.log(`[TRIPLE A] Portal global ${target.apartment}: ${record.status} (${amount}).`);
     }
 
+    if (results.length < Math.min(targets.length, subscriptions.length)) {
+      logUnmatchedPortalItems('TRIPLE A', subscriptions.filter(subscription =>
+        !matchPortalApartmentForService(targets, subscription, 'water')
+      ), 'water');
+    }
     if (!results.length) {
       lastWaterScrapeError = 'Triple A autenticó el portal, pero no se pudo asociar ninguna póliza con los apartamentos configurados.';
-      console.warn('[TRIPLE A] Portal global no devolvió pólizas asociables; se usará el respaldo QR.');
+      console.warn('[TRIPLE A] Portal global no devolvió pólizas asociables; no se usará ningún respaldo por QR.');
     } else {
       console.log(`[TRIPLE A] Portal global: ${results.length} apartamento(s) con datos.`);
     }
@@ -907,33 +1012,7 @@ async function scrapeTripleAAccount() {
   }
 }
 
-async function readWaterPageText(page, responseBodies) {
-  const frames = typeof page.frames === 'function' ? page.frames() : [page];
-  const frameTexts = await Promise.all(frames.map(readWaterFrameText));
-  return [...frameTexts, ...responseBodies].filter(Boolean).join(' ').trim();
-}
-
-async function waitForWaterBill(page, responseBodies, deadline) {
-  let latest = { status: 'unknown', deudaCOP: null, factura: null, periodo: null, error: null };
-
-  while (true) {
-    const state = await inspectWaterPage(page);
-    if (state && (state.hasTurnstile || state.hasCaptchaText) && !state.turnstileToken && !state.hasBillingResult) {
-      return { ...latest, status: 'captcha', error: WATER_CAPTCHA_ERROR };
-    }
-
-    const pageText = await readWaterPageText(page, responseBodies);
-    if (pageText) {
-      latest = parseWaterBillPage(pageText);
-      if (waterResultReady(latest)) return latest;
-    }
-
-    const remaining = deadline - Date.now();
-    if (remaining <= 0) return latest;
-    await sleep(Math.min(WATER_POLL_INTERVAL_MS, remaining));
-  }
-}
-
+/* QR fallback removed: the water scraper is portal-only.
 async function scrapeWaterBills(apartments = db?.apartments || [], browserFactory = launchBrowser) {
   const targets = (apartments || []).map(waterTarget).filter(Boolean);
   if (!targets.length) {
@@ -1069,6 +1148,7 @@ async function scrapeWaterBills(apartments = db?.apartments || [], browserFactor
 
   return results.filter(Boolean);
 }
+*/
 
 function extractGasAmount(text) {
   const amountToken = '[0-9][0-9.,]*(?:\\s+[0-9][0-9.,]*)?';
@@ -1120,6 +1200,7 @@ function parseGasBillPage(pageText) {
   return { status, deudaCOP: amount, error };
 }
 
+/* Individual gas-link fallback removed: the gas scraper is portal-only.
 function gasTarget(apartment) {
   const paymentCode = String(apartment?.gasPaymentCode || '').trim();
   const url = String(apartment?.gasPaymentUrl || '').trim() ||
@@ -1234,16 +1315,19 @@ async function waitForGasBill(page, responseBodies, deadline) {
     await sleep(Math.min(GAS_POLL_INTERVAL_MS, remaining));
   }
 }
+*/
 
 function gasInvoiceSummary(invoices) {
   const list = Array.isArray(invoices) ? invoices : [];
   const unpaid = [];
   for (const invoice of list) {
     const amount = parsePortalAmount(
-      invoice?.couponValue ?? invoice?.amountDue ?? invoice?.totalToPay ?? invoice?.total,
+      portalFieldValue(invoice, ['couponValue', 'amountDue', 'totalToPay', 'total', 'deudaTotal', 'saldo']),
     );
-    const paid = invoice?.isPaid === true || /^true|1|paid$/i.test(String(invoice?.isPaid || ''));
-    const pending = invoice?.isPending === true || /^true|1|pending$/i.test(String(invoice?.isPending || ''));
+    const paidValue = portalFieldValue(invoice, ['isPaid', 'paid', 'pagada', 'status']);
+    const pendingValue = portalFieldValue(invoice, ['isPending', 'pending', 'pendiente', 'status']);
+    const paid = paidValue === true || /^(?:true|1|paid|pagad[ao]|cancelad[ao])$/i.test(String(paidValue || ''));
+    const pending = pendingValue === true || /^(?:true|1|pending|pendiente|vencid[ao]|overdue)$/i.test(String(pendingValue || ''));
     if (!paid && (pending || (amount !== null && amount > 0))) unpaid.push({ invoice, amount });
   }
   const knownAmounts = unpaid.map(item => item.amount).filter(amount => amount !== null);
@@ -1252,8 +1336,29 @@ function gasInvoiceSummary(invoices) {
     status: debt > 0 || (debt === null && unpaid.length) ? 'pending' : 'paid',
     deudaCOP: debt === null && !unpaid.length ? 0 : debt,
     numFacturas: unpaid.length,
-    factura: unpaid[0]?.invoice?.id || unpaid[0]?.invoice?.invoiceNumber || null,
-    expirationDate: unpaid[0]?.invoice?.expirationDate || null,
+    factura: portalFieldValue(unpaid[0]?.invoice, ['id', 'invoiceNumber', 'factura']) || null,
+    expirationDate: portalFieldValue(unpaid[0]?.invoice, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
+  };
+}
+
+function gasRecord(target, parsed, checkedAt = new Date().toISOString()) {
+  return {
+    provider: 'Gases del Caribe',
+    service: 'gas',
+    apartmentId: target.apartmentId,
+    apartment: target.apartment,
+    gasPaymentUrl: target.gasPaymentUrl,
+    gasPaymentCode: target.gasPaymentCode,
+    status: parsed.status,
+    deudaCOP: parsed.deudaCOP,
+    deudaTotalCOP: parsed.deudaCOP,
+    deudaLabel: 'Deuda Total',
+    numFacturas: parsed.numFacturas ?? (parsed.status === 'pending' ? 1 : 0),
+    factura: parsed.factura || null,
+    periodo: parsed.periodo || null,
+    error: parsed.error || null,
+    checkedAt,
+    scrapedAt: checkedAt,
   };
 }
 
@@ -1311,21 +1416,16 @@ async function scrapeGasAccount() {
       'input[type="text"]',
     ];
     const passwordSelectors = ['input[type="password"]', 'input[name="password"]'];
-    const emailField = await visibleHandle(page, emailSelectors, 8000);
-    const passwordField = await visibleHandle(page, passwordSelectors, 8000);
-    if (emailField && passwordField) {
-      try { await emailField.dispose(); } catch {}
-      try { await passwordField.dispose(); } catch {}
-      await typeVisibleField(page, emailSelectors, credentials.username, 5000);
-      await typeVisibleField(page, passwordSelectors, credentials.password, 5000);
-      const challenge = await waitForPortalTurnstile(page, 30000);
-      if (challenge?.hasTurnstile && !challenge.turnstileToken) {
-        throw new Error('Gases del Caribe mantiene Turnstile visible después de esperar a Browserless.');
-      }
-      const clicked = await clickVisibleButton(page, ['button[type="submit"]', 'button'], 10000);
-      if (!clicked) throw new Error('No se encontró el botón de inicio de sesión de Gases del Caribe.');
-      await sleep(5000);
-    } else {
+    const authenticatedByLogin = await loginPortalPage(page, {
+      provider: 'Gases del Caribe',
+      username: credentials.username,
+      password: credentials.password,
+      emailSelectors,
+      passwordSelectors,
+      submitSelectors: ['button[type="submit"]', 'button'],
+      turnstileError: 'Gases del Caribe mantiene Turnstile visible después de esperar a Browserless.',
+    });
+    if (!authenticatedByLogin) {
       console.log('[GAS] La sesión ya estaba autenticada; se reutiliza el portal global.');
     }
 
@@ -1339,35 +1439,57 @@ async function scrapeGasAccount() {
     });
     const dataDeadline = Date.now() + PORTAL_DATA_TIMEOUT_MS;
     while (!contractsPayload && Date.now() < dataDeadline) await sleep(1000);
+    for (let attempt = 1; !contractsPayload && attempt <= PORTAL_DATA_ATTEMPTS; attempt += 1) {
+      if (attempt > 1) {
+        console.warn(`[GAS] La lista global no llegó; reintentando la consulta autenticada (${attempt}/${PORTAL_DATA_ATTEMPTS}).`);
+        await sleep(PORTAL_DATA_RETRY_DELAY_MS);
+      }
+      const direct = await fetchPortalJson(page, `${GAS_API_BASE}/contracts`);
+      if (direct.status >= 200 && direct.status < 300) {
+        contractsPayload = parsePortalResponseBody(direct.body);
+      } else if (attempt === PORTAL_DATA_ATTEMPTS) {
+        throw new Error(`Gases del Caribe rechazó la consulta global (HTTP ${direct.status || 'sin respuesta'}).`);
+      }
+    }
     if (!contractsPayload) throw new Error('No se recibió la lista global de contratos de Gases del Caribe.');
 
-    const token = contractsPayload.token || contractsPayload.appToken ||
-      contractsPayload.data?.token || contractsPayload.data?.appToken;
+    const token = portalFieldValue(contractsPayload, ['token', 'appToken', 'accessToken', 'authorization']);
     if (!authHeader && token) authHeader = /^Bearer\s/i.test(String(token)) ? String(token) : `Bearer ${token}`;
     if (!authHeader) throw new Error('El portal de Gases del Caribe no entregó el token de consulta.');
 
-    const contracts = unwrapPortalList(contractsPayload, ['contracts', 'items']);
+    let contracts = unwrapPortalList(contractsPayload, ['contracts', 'items']);
+    if (!contracts.length) {
+      for (let attempt = 1; attempt <= PORTAL_DATA_ATTEMPTS && !contracts.length; attempt += 1) {
+        if (attempt > 1) await sleep(PORTAL_DATA_RETRY_DELAY_MS);
+        const direct = await fetchPortalJson(page, `${GAS_API_BASE}/contracts`);
+        if (direct.status < 200 || direct.status >= 300) continue;
+        const retryPayload = parsePortalResponseBody(direct.body);
+        const retryContracts = unwrapPortalList(retryPayload, ['contracts', 'items']);
+        if (retryContracts.length) {
+          contractsPayload = retryPayload;
+          contracts = retryContracts;
+        }
+      }
+    }
+    const refreshedToken = portalFieldValue(contractsPayload, ['token', 'appToken', 'accessToken', 'authorization']);
+    if (!authHeader && refreshedToken) {
+      authHeader = /^Bearer\s/i.test(String(refreshedToken)) ? String(refreshedToken) : `Bearer ${refreshedToken}`;
+    }
+    if (!authHeader) throw new Error('El portal de Gases del Caribe no entregó el token de consulta.');
+    console.log('[GAS] Respuesta global:', JSON.stringify(portalPayloadDiagnostics(contractsPayload, contracts)));
     const targets = configuredApartmentTargets();
     const results = [];
     const seenApartments = new Set();
     for (const contract of contracts) {
-      const target = matchPortalApartment(targets, [
-        contract?.id,
-        contract?.contractId,
-        contract?.alias,
-        contract?.address,
-      ]);
+      const target = matchPortalApartmentForService(targets, contract, 'gas');
       if (!target || seenApartments.has(String(target.apartmentId || target.apartment))) continue;
-      const contractId = contract?.id || contract?.contractId;
+      const contractId = portalFieldValue(contract, ['contractId', 'contractNumber', 'id', 'number']);
       if (!contractId) continue;
-      const invoiceResponse = await page.evaluate(async ({ apiBase, id, authorization }) => {
-        const url = `${apiBase}/invoices/${encodeURIComponent(id)}?g-recaptcha-response=-`;
-        const response = await fetch(url, {
-          credentials: 'include',
-          headers: { Accept: 'application/json', Authorization: authorization },
-        });
-        return { status: response.status, body: await response.text() };
-      }, { apiBase: GAS_API_BASE, id: contractId, authorization: authHeader });
+      const invoiceResponse = await fetchPortalJson(
+        page,
+        `${GAS_API_BASE}/invoices/${encodeURIComponent(contractId)}?g-recaptcha-response=-`,
+        { Authorization: authHeader },
+      );
       if (invoiceResponse.status < 200 || invoiceResponse.status >= 300) {
         throw new Error(`Gases del Caribe rechazó el contrato ${contractId} (HTTP ${invoiceResponse.status}).`);
       }
@@ -1388,9 +1510,14 @@ async function scrapeGasAccount() {
       console.log(`[GAS] Portal global ${target.apartment}: ${record.status} (${amount}).`);
     }
 
+    if (results.length < Math.min(targets.length, contracts.length)) {
+      logUnmatchedPortalItems('GAS', contracts.filter(contract =>
+        !matchPortalApartmentForService(targets, contract, 'gas')
+      ), 'gas');
+    }
     if (!results.length) {
       lastGasScrapeError = 'Gases del Caribe autenticó el portal, pero no se pudo asociar ningún contrato con los apartamentos configurados.';
-      console.warn('[GAS] Portal global no devolvió contratos asociables; se usará el respaldo individual.');
+      console.warn('[GAS] Portal global no devolvió contratos asociables; no se usará ningún respaldo individual.');
     } else {
       console.log(`[GAS] Portal global: ${results.length} apartamento(s) con datos.`);
     }
@@ -1406,123 +1533,8 @@ async function scrapeGasAccount() {
   }
 }
 
-async function scrapeGasBills(apartments = db?.apartments || [], browserFactory = launchBrowser) {
-  const targets = (apartments || []).map(gasTarget).filter(Boolean);
-  if (!targets.length) {
-    lastGasScrapeError = null;
-    console.log('[GAS] No hay URLs de pago de Gases del Caribe configuradas.');
-    return [];
-  }
-
-  let browser;
-  const results = new Array(targets.length);
-  try {
-    lastGasScrapeError = null;
-    console.log('[GAS] Consultando ' + targets.length + ' enlace(s) de Gases del Caribe...');
-    browser = await browserFactory('gas');
-    let nextIndex = 0;
-    const worker = async () => {
-      while (true) {
-        const index = nextIndex++;
-        if (index >= targets.length) return;
-        const target = targets[index];
-        const checkedAt = new Date().toISOString();
-        let completed = false;
-        let attempt = 0;
-        while (!completed && attempt < GAS_CAPTCHA_MAX_ATTEMPTS) {
-          attempt += 1;
-          let page;
-          try {
-            page = await browser.newPage();
-            page.setDefaultNavigationTimeout?.(GAS_TIMEOUT_MS);
-            const responseBodies = [];
-            const captureResponse = response => {
-              const type = response.request().resourceType();
-              const contentType = response.headers()['content-type'] || '';
-              const responseUrl = response.url();
-              if (!['xhr', 'fetch'].includes(type) || !/json|text|html/i.test(contentType)) return;
-              if (!/payment|factur|saldo|deuda|invoice|amount|balance|contrat|pago/i.test(responseUrl) && !/json/i.test(contentType)) return;
-              Promise.race([
-                response.text(),
-                sleep(GAS_RESPONSE_TIMEOUT_MS).then(() => ''),
-              ]).then(body => {
-                if (body && /factura|saldo|deuda|total|valor|monto|amount|balance|debt|invoice|pendingValue|amountDue|invoiceTotal/i.test(body)) {
-                  responseBodies.push(body.slice(0, 100000));
-                }
-              }).catch(() => {});
-            };
-            const canCaptureResponses = typeof page.on === 'function' && typeof page.off === 'function';
-            if (canCaptureResponses) page.on('response', captureResponse);
-            const deadline = Date.now() + GAS_TIMEOUT_MS;
-            const response = await page.goto(target.gasPaymentUrl, {
-              waitUntil: 'domcontentloaded',
-              timeout: GAS_TIMEOUT_MS,
-            });
-            if (response && response.status() >= 400) throw new Error('El portal respondio HTTP ' + response.status());
-            await sleep(2200);
-            const pageState = await waitForGasTurnstile(page, deadline);
-            if (pageState && (pageState.hasTurnstile || pageState.hasCaptchaText) &&
-                !pageState.turnstileToken && !pageState.hasBillingResult) {
-              lastGasScrapeError = GAS_CAPTCHA_ERROR;
-              if (attempt >= GAS_CAPTCHA_MAX_ATTEMPTS) {
-                results[index] = gasRecord(target, { status: 'captcha', deudaCOP: null, error: GAS_CAPTCHA_ERROR }, checkedAt);
-                completed = true;
-              } else {
-                console.warn('[GAS] ' + (target.apartment || target.apartmentId) + ': Turnstile detectado; reiniciando pagina (intento ' + (attempt + 1) + '/' + GAS_CAPTCHA_MAX_ATTEMPTS + ').');
-              }
-              continue;
-            }
-            await submitGasQueryIfReady(page, target.gasPaymentCode);
-            const parsed = await waitForGasBill(page, responseBodies, deadline);
-            if (canCaptureResponses) page.off('response', captureResponse);
-            if (parsed.status === 'captcha') {
-              lastGasScrapeError = parsed.error || GAS_CAPTCHA_ERROR;
-              if (attempt >= GAS_CAPTCHA_MAX_ATTEMPTS) {
-                results[index] = gasRecord(target, parsed, checkedAt);
-                completed = true;
-              } else {
-                console.warn('[GAS] ' + (target.apartment || target.apartmentId) + ': Turnstile detectado; reiniciando pagina (intento ' + (attempt + 1) + '/' + GAS_CAPTCHA_MAX_ATTEMPTS + ').');
-              }
-              continue;
-            }
-            if (parsed.status === 'unknown') {
-              throw new Error('Gases del Caribe timeout: no mostro el valor de la deuda despues de ' + (GAS_TIMEOUT_MS / 1000) + ' segundos.');
-            }
-            results[index] = gasRecord(target, parsed, checkedAt);
-            const suffix = parsed.deudaCOP !== null ? ' ($' + parsed.deudaCOP.toLocaleString('es-CO') + ')' : '';
-            console.log('[GAS] ' + (target.apartment || target.apartmentId) + ': ' + parsed.status + suffix);
-            completed = true;
-          } catch (error) {
-            lastGasScrapeError = error.message;
-            const isCaptcha = /captcha|turnstile|verification/i.test(String(error.message || ''));
-            const maxAttempts = isCaptcha ? GAS_CAPTCHA_MAX_ATTEMPTS : GAS_MAX_ATTEMPTS;
-            if (attempt < maxAttempts) {
-              const reason = isCaptcha ? 'Turnstile detectado' : 'sin valor despues de ' + (GAS_TIMEOUT_MS / 1000) + 's';
-              console.warn('[GAS] ' + (target.apartment || target.apartmentId) + ': ' + reason + '; reiniciando pagina (intento ' + (attempt + 1) + '/' + maxAttempts + ').');
-            } else {
-              results[index] = gasNavigationError(target, error, checkedAt);
-              console.error('[GAS] ' + (target.apartment || target.apartmentId) + ': ' + error.message);
-              completed = true;
-            }
-          } finally {
-            if (page) await closeWaterResource(page);
-          }
-        }
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(GAS_WORKERS, targets.length) }, worker));
-  } catch (error) {
-    lastGasScrapeError = error.message;
-    console.error('[GAS] SCRAPER ERROR:', error.message);
-    for (let index = 0; index < targets.length; index++) {
-      if (!results[index]) results[index] = gasNavigationError(targets[index], error);
-    }
-  } finally {
-    if (browser) await closeWaterBrowser(browser);
-  }
-  return results.filter(Boolean);
-}
-
+/* Individual gas-link fallback removed: the gas scraper is portal-only.
+*/
 // ── AIR-E SCRAPER ──────────────────────────────────────────────────────────
 //
 // New approach (2026): Air-e exposes an authenticated JSON API that returns
@@ -1831,6 +1843,53 @@ function serviceResultMatchesApartment(result, apartment) {
     String(result?.apartment || '').trim() === String(apartment?.name || '').trim();
 }
 
+function portalFailureResult(service, target, message, checkedAt = new Date().toISOString()) {
+  const provider = service === 'water' ? 'Triple A' : 'Gases del Caribe';
+  const status = /captcha|turnstile|verificaci[oó]n/i.test(String(message || ''))
+    ? 'captcha'
+    : /timeout|agot[oó]|tard[oó]/i.test(String(message || '')) ? 'timeout' : 'error';
+  const result = {
+    provider,
+    service,
+    apartmentId: target.apartmentId,
+    apartment: target.apartment,
+    status,
+    deudaCOP: null,
+    deudaTotalCOP: null,
+    deudaLabel: 'Deuda Total',
+    numFacturas: null,
+    error: String(message || `Portal global de ${provider} no devolvió datos.`),
+    checkedAt,
+    scrapedAt: checkedAt,
+  };
+  if (service === 'water') {
+    result.waterPaymentUrl = target.waterPaymentUrl || TRIPLE_A_URLS.policies;
+    result.waterPaymentCode = target.waterPaymentCode || null;
+  } else {
+    result.gasPaymentUrl = target.gasPaymentUrl || GAS_PORTAL_URLS.payments;
+    result.gasPaymentCode = target.gasPaymentCode || null;
+  }
+  return result;
+}
+
+function completePortalResults(service, globalResults, runError) {
+  const provider = service === 'water' ? 'Triple A' : 'Gases del Caribe';
+  const targets = configuredApartmentTargets();
+  const results = Array.isArray(globalResults) ? [...globalResults] : [];
+  const missing = targets.filter(target => !results.some(result => serviceResultMatchesApartment(result, target)));
+  for (const target of missing) {
+    const message = results.length
+      ? `El portal global de ${provider} no devolvió datos para el apartamento ${target.apartment} en esta consulta.`
+      : (runError || `El portal global de ${provider} no devolvió datos en esta consulta.`);
+    results.push(portalFailureResult(service, target, message));
+  }
+  if (targets.length) {
+    const successCount = results.filter(result => !['error', 'timeout', 'captcha'].includes(result.status)).length;
+    console.log(`[${provider}] Resultado portal-only: ${successCount}/${targets.length} apartamento(s) con datos confirmados; ${missing.length} sin datos en esta ejecución.`);
+  }
+  return results;
+}
+
 function runWaterScrapeOnce(reason) {
   if (waterScrapePromise) {
     console.log('[SERVICES] Triple A water scrape already running; skipping overlapping run.');
@@ -1843,18 +1902,11 @@ function runWaterScrapeOnce(reason) {
     }
     console.log(`[SERVICES] Running Triple A water scrape (${reason})...`);
     try {
-      // The authenticated Triple A portal is the primary path. Only the
-      // apartments absent from that account fall back to their legacy QR URL.
       const globalResults = await scrapeTripleAAccount();
-      const missingApartments = (db?.apartments || []).filter(apartment =>
-        !globalResults.some(result => serviceResultMatchesApartment(result, apartment))
-      );
-      let results = globalResults;
-      if (missingApartments.length) {
-        console.log(`[TRIPLE A] Respaldo QR para ${missingApartments.length} apartamento(s) no asociados en el portal global.`);
-        const fallbackResults = await scrapeWaterBills(missingApartments);
-        results = [...globalResults, ...fallbackResults];
-      }
+      // Portal-only by design: every configured apartment must come from the
+      // authenticated global account. Missing records are persisted as errors
+      // for this run so a previous QR amount cannot look current.
+      const results = completePortalResults('water', globalResults, lastWaterScrapeError);
       if (db && saveData && results.length) persistWaterResults(results);
       return results;
     } catch (e) {
@@ -1893,19 +1945,10 @@ function runGasScrapeOnce(reason) {
     if (waterScrapePromise) await waterScrapePromise.catch(() => {});
     console.log(`[SERVICES] Running Gases del Caribe scrape (${reason})...`);
     try {
-      // The authenticated contracts/invoices API is the primary path. Keep
-      // the public payment form as a per-apartment fallback for new records
-      // that have not been associated in the account yet.
       const globalResults = await scrapeGasAccount();
-      const missingApartments = (db?.apartments || []).filter(apartment =>
-        !globalResults.some(result => serviceResultMatchesApartment(result, apartment))
-      );
-      let results = globalResults;
-      if (missingApartments.length) {
-        console.log(`[GAS] Respaldo individual para ${missingApartments.length} apartamento(s) no asociados en el portal global.`);
-        const fallbackResults = await scrapeGasBills(missingApartments);
-        results = [...globalResults, ...fallbackResults];
-      }
+      // Portal-only by design: do not consult public payment links when an
+      // account is absent or a contract cannot be matched.
+      const results = completePortalResults('gas', globalResults, lastGasScrapeError);
       if (db && saveData && results.length) persistGasResults(results);
       return results;
     } catch (error) {
@@ -1980,9 +2023,7 @@ module.exports = {
   init,
   scrapeAirE,
   scrapeTripleAAccount,
-  scrapeWaterBills,
   scrapeGasAccount,
-  scrapeGasBills,
   parseCopAmount,
   extractWaterAmount,
   extractGasAmount,
@@ -1990,8 +2031,6 @@ module.exports = {
   gasInvoiceSummary,
   parseWaterBillPage,
   parseGasBillPage,
-  waterNavigationError,
-  gasNavigationError,
   persistWaterResults,
   persistGasResults,
   runWaterScrapeOnce,

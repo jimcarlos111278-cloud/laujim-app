@@ -35,12 +35,12 @@ function timeAgo(iso) {
 function waterBillLabel(bill) {
   if (!bill) return '';
   const debt = Number(bill.deudaCOP);
-  if (Number.isFinite(debt) && debt > 0) return `Deuda: $${debt.toLocaleString('es-CO')}`;
-  if (bill.status === 'pending') return 'Factura pendiente · valor no informado';
+  if (Number.isFinite(debt) && debt > 0) return `Deuda Total: $${debt.toLocaleString('es-CO')}`;
+  if (bill.status === 'pending') return 'Deuda Total pendiente · valor no informado';
   if (bill.status === 'paid') return 'Al día · Sin deuda';
   if (bill.status === 'captcha') return 'Requiere verificación manual';
   if (bill.status === 'timeout') return 'Consulta agotó el tiempo';
-  if (bill.status === 'error') return 'No se pudo consultar';
+  if (bill.status === 'error') return 'Portal sin datos confirmados';
   return 'Estado no identificado';
 }
 
@@ -100,6 +100,8 @@ export default function Utilities() {
   const [syncNote, setSyncNote] = useState('');
   const [waterSyncingNow, setWaterSyncingNow] = useState(false);
   const [waterSyncNote, setWaterSyncNote] = useState('');
+  const [gasSyncingNow, setGasSyncingNow] = useState(false);
+  const [gasSyncNote, setGasSyncNote] = useState('');
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
   const scanTimerRef = useRef(null);
@@ -127,7 +129,8 @@ export default function Utilities() {
         const data = await res.json();
         const electricity = data?.services?.electricity?.payment;
         const water = data?.services?.water?.payment;
-        if (electricity || water) entries[apt.id] = { electricity, water };
+        const gas = data?.services?.gas?.payment;
+        if (electricity || water || gas) entries[apt.id] = { electricity, water, gas };
       } catch {}
     }));
     setDebts(entries);
@@ -167,7 +170,7 @@ export default function Utilities() {
   async function handleWaterSync() {
     if (waterSyncingNow) return;
     setWaterSyncingNow(true);
-    setWaterSyncNote('Consultando enlaces QR de agua…');
+    setWaterSyncNote('Consultando el portal global de Triple A…');
     try {
       const res = await fetch(getBase() + '/scrape-water', {
         method: 'POST',
@@ -184,10 +187,37 @@ export default function Utilities() {
         try { await loadDebts(apartments); } catch {}
         setWaterSyncingNow(false);
         setWaterSyncNote('');
-      }, 30000);
+      }, 120000);
     } catch {
       setWaterSyncNote('No se pudo iniciar la consulta de agua. Verifica la conexión.');
       setWaterSyncingNow(false);
+    }
+  }
+
+  async function handleGasSync() {
+    if (gasSyncingNow) return;
+    setGasSyncingNow(true);
+    setGasSyncNote('Consultando el portal global de Gases del Caribe…');
+    try {
+      const res = await fetch(getBase() + '/scrape-gas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) {
+        setGasSyncNote(res.status === 401 || res.status === 403 ? 'Sin permisos de administración para consultar gas.' : 'El servidor rechazó la consulta.');
+        setGasSyncingNow(false);
+        return;
+      }
+      setGasSyncNote('Consulta en curso; actualizando resultados…');
+      setTimeout(async () => {
+        try { await loadDebts(apartments); } catch {}
+        setGasSyncingNow(false);
+        setGasSyncNote('');
+      }, 120000);
+    } catch {
+      setGasSyncNote('No se pudo iniciar la consulta de gas. Verifica la conexión.');
+      setGasSyncingNow(false);
     }
   }
 
@@ -365,8 +395,12 @@ export default function Utilities() {
         <button onClick={handleWaterSync} disabled={waterSyncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
           <Droplets className={`w-3.5 h-3.5 ${waterSyncingNow ? 'animate-pulse' : ''}`} /> {waterSyncingNow ? 'Consultando agua…' : 'Actualizar agua'}
         </button>
+        <button onClick={handleGasSync} disabled={gasSyncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg hover:from-amber-600 hover:to-orange-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
+          <Flame className={`w-3.5 h-3.5 ${gasSyncingNow ? 'animate-pulse' : ''}`} /> {gasSyncingNow ? 'Consultando gas…' : 'Actualizar gas'}
+        </button>
         {syncNote && <span className="text-xs text-gray-500 dark:text-gray-400">{syncNote}</span>}
         {waterSyncNote && <span className="text-xs text-gray-500 dark:text-gray-400">{waterSyncNote}</span>}
+        {gasSyncNote && <span className="text-xs text-gray-500 dark:text-gray-400">{gasSyncNote}</span>}
       </div>
       {syncingNow && (
         <p className="text-[11px] text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg px-3 py-2">
@@ -410,6 +444,13 @@ export default function Utilities() {
                           {waterBillLabel(debts[apt.id].water)}
                           {debts[apt.id].water.status === 'pending' && debts[apt.id].water.numFacturas > 0 && ` · ${debts[apt.id].water.numFacturas} ${debts[apt.id].water.numFacturas === 1 ? 'factura' : 'facturas'}`}
                           {waterBillMeta(debts[apt.id].water) && <span className="text-gray-400 dark:text-gray-500 font-normal"> · {waterBillMeta(debts[apt.id].water)}</span>}
+                        </p>
+                      )}
+                      {svc === 'gas' && debts[apt.id]?.gas && (
+                        <p className={`text-xs font-semibold mt-1 ${waterBillClass(debts[apt.id].gas)}`}>
+                          {waterBillLabel(debts[apt.id].gas)}
+                          {debts[apt.id].gas.status === 'pending' && debts[apt.id].gas.numFacturas > 0 && ` · ${debts[apt.id].gas.numFacturas} ${debts[apt.id].gas.numFacturas === 1 ? 'factura' : 'facturas'}`}
+                          {waterBillMeta(debts[apt.id].gas) && <span className="text-gray-400 dark:text-gray-500 font-normal"> · {waterBillMeta(debts[apt.id].gas)}</span>}
                         </p>
                       )}
                       {svc === 'electricity' && debts[apt.id]?.electricity && (
