@@ -160,6 +160,20 @@ const PORTAL_LOGIN_ATTEMPTS = 3;
 const PORTAL_AUTH_SETTLE_TIMEOUT_MS = 60000;
 const PORTAL_DATA_ATTEMPTS = 2;
 const PORTAL_DATA_RETRY_DELAY_MS = 2500;
+// Gascaribe's frontend can expose a Turnstile token a few seconds before its
+// backend accepts the challenge. Keep this delay provider-specific so the
+// other portals do not pay the extra wait.
+const GAS_TURNSTILE_SETTLE_DELAY_MS = Math.max(
+  10000,
+  Number(process.env.GAS_TURNSTILE_SETTLE_DELAY_MS || 10000) || 10000,
+);
+const TRIPLE_A_LOGIN_METHOD = String(process.env.TRIPLE_A_LOGIN_METHOD || 'credentials')
+  .trim()
+  .toLowerCase();
+const TRIPLE_A_GOOGLE_LOGIN_TIMEOUT_MS = Math.max(
+  30000,
+  Number(process.env.TRIPLE_A_GOOGLE_LOGIN_TIMEOUT_MS || PORTAL_AUTH_TIMEOUT_MS) || PORTAL_AUTH_TIMEOUT_MS,
+);
 
 // Legacy fallback only. The source of truth is now db.apartments, so adding a
 // NIC in the admin UI is enough to include the apartment in the next scrape.
@@ -562,6 +576,40 @@ async function clickVisibleButton(page, selectors, timeout = 20000) {
     if (formFallback) {
       await formFallback.click();
       return true;
+    }
+    await sleep(Math.min(500, Math.max(50, deadline - Date.now())));
+  }
+  return false;
+}
+
+async function clickVisiblePortalButtonByText(page, patterns, timeout = 20000) {
+  const matchers = (Array.isArray(patterns) ? patterns : [patterns])
+    .map(pattern => pattern instanceof RegExp ? pattern : new RegExp(String(pattern), 'i'));
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    for (const root of portalFrameRoots(page)) {
+      const handles = await root.$$('button, input[type="button"], input[type="submit"], [role="button"]')
+        .catch(() => []);
+      for (const handle of handles) {
+        const box = await handle.boundingBox().catch(() => null);
+        if (!box || box.width <= 0 || box.height <= 0) {
+          await handle.dispose().catch(() => {});
+          continue;
+        }
+        const info = await handle.evaluate(element => ({
+          text: (element.innerText || element.value || element.getAttribute('aria-label') || '')
+            .replace(/\s+/g, ' ')
+            .trim(),
+          disabled: Boolean(element.disabled || element.getAttribute('aria-disabled') === 'true'),
+        })).catch(() => null);
+        if (!info || info.disabled || !matchers.some(matcher => matcher.test(info.text))) {
+          await handle.dispose().catch(() => {});
+          continue;
+        }
+        await handle.click();
+        await handle.dispose().catch(() => {});
+        return true;
+      }
     }
     await sleep(Math.min(500, Math.max(50, deadline - Date.now())));
   }
@@ -1254,6 +1302,56 @@ async function submitPortalLoginForm(page, {
   throw new Error(`${provider} no confirmÃ³ el inicio de sesiÃ³n dentro del tiempo permitido.`);
 }
 
+async function loginTripleAWithGoogle(page) {
+  // The portal owns the OAuth flow. We only press its official button and,
+  // when NextAuth returns a redirect URL without navigating, follow that URL
+  // in the same browser profile. No Google password, cookie, or token is read
+  // or entered by the scraper.
+  const googleResponsePromise = typeof page?.waitForResponse === 'function'
+    ? page.waitForResponse(response => /\/api\/auth\/signin\/google(?:[/?#]|$)/i.test(response.url()), {
+      timeout: 15000,
+    }).catch(() => null)
+    : Promise.resolve(null);
+  const clicked = await clickVisiblePortalButtonByText(page, /continuar\s+con\s+google/i, 20000);
+  if (!clicked) throw new Error('Triple A no mostró el botón oficial "Continuar con Google".');
+  console.log('[TRIPLE A] Se inició el login oficial con Google; esperando la sesión del perfil Chrome.');
+
+  const googleResponse = await googleResponsePromise;
+  if (googleResponse) {
+    const body = await responseTextWithTimeout(googleResponse, 10000);
+    const payload = parsePortalResponseBody(body) || {};
+    const redirectUrl = payload?.url || payload?.redirect || null;
+    if (redirectUrl) {
+      const absoluteUrl = new URL(String(redirectUrl), TRIPLE_A_URLS.login).toString();
+      await page.goto(absoluteUrl, { waitUntil: 'domcontentloaded', timeout: PORTAL_AUTH_TIMEOUT_MS }).catch(() => {});
+    }
+  }
+
+  const deadline = Date.now() + TRIPLE_A_GOOGLE_LOGIN_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const currentUrl = String(typeof page?.url === 'function' ? page.url() : '');
+    if (/portal\.aaa\.com\.co\/(?:inicio|polizas|pagos-usuario|deudas|facturas-usuario|transacciones|pqrs|super-cliente)(?:[/?#]|$)/i.test(currentUrl)) {
+      return true;
+    }
+    // If the OAuth provider is asking for account selection/sign-in, leave
+    // the visible Chrome window available for the owner to complete it once.
+    if (/accounts\.google\.com/i.test(currentUrl)) {
+      console.log('[TRIPLE A] Google requiere una sesión ya iniciada o una confirmación manual en el perfil Chrome.');
+    }
+    await sleep(1000);
+  }
+
+  // NextAuth may set the cookie while leaving the React login route mounted.
+  // Validate the session by opening the protected route before failing.
+  await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
+    waitUntil: 'domcontentloaded',
+    timeout: PORTAL_AUTH_TIMEOUT_MS,
+  }, 'Triple A').catch(() => {});
+  const finalUrl = String(typeof page?.url === 'function' ? page.url() : '');
+  if (/portal\.aaa\.com\.co\/(?:inicio|polizas|pagos-usuario|deudas|facturas-usuario|transacciones|pqrs|super-cliente)(?:[/?#]|$)/i.test(finalUrl)) return true;
+  throw new Error('Triple A no completó el login con Google. Inicia sesión una vez en el perfil Chrome del worker y vuelve a ejecutar.');
+}
+
 async function loginTripleAWithPortalApi(page, credentials, captchaSolver) {
   await executePortalTurnstile(page);
   if (captchaSolver) await captchaSolver.waitForSolved(60000);
@@ -1319,6 +1417,9 @@ async function loginGasWithPortalApi(page, credentials, captchaSolver) {
     token = await readPortalTurnstileToken(page);
   }
   if (!token) throw new Error('Gases del Caribe no entregÃ³ el token de Turnstile.');
+
+  console.log(`[GAS] Turnstile entregó el token; esperando ${Math.ceil(GAS_TURNSTILE_SETTLE_DELAY_MS / 1000)} s antes del login oficial.`);
+  await sleep(GAS_TURNSTILE_SETTLE_DELAY_MS);
 
   const loginResponse = await page.evaluate(async ({ apiUrl, email, password, captchaToken }) => {
     const url = `${apiUrl}/login?g-recaptcha-response=${encodeURIComponent(captchaToken)}`;
@@ -1484,6 +1585,17 @@ async function scrapeTripleAAccount() {
     let authenticatedByLogin = false;
     let authenticatedByApi = false;
     let loginError = null;
+    const googleLoginRequested = /^(google|auto)$/.test(TRIPLE_A_LOGIN_METHOD);
+    if (googleLoginRequested) {
+      try {
+        authenticatedByLogin = await loginTripleAWithGoogle(page);
+        console.log('[TRIPLE A] Login oficial con Google confirmado; se conservará la misma sesión para consultar pólizas.');
+      } catch (error) {
+        loginError = error;
+        console.warn(`[TRIPLE A] El login con Google no se confirmó: ${error.message}`);
+      }
+    }
+    if (!authenticatedByLogin && TRIPLE_A_LOGIN_METHOD !== 'google') {
     try {
       const apiLogin = await loginTripleAWithPortalApi(page, credentials, captchaSolver);
       authHeader = apiLogin?.authHeader || null;
@@ -1519,6 +1631,7 @@ async function scrapeTripleAAccount() {
     } catch (error) {
       loginError = error;
       console.warn(`[TRIPLE A] El login visual no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
+    }
     }
     }
     if (!authenticatedByLogin && loginError && /detached|execution context|target closed|connection closed|captcha|turnstile|HTTP (?:401|422)/i.test(String(loginError.message || loginError))) {
@@ -2157,8 +2270,11 @@ async function scrapeGasAccount() {
           });
           if (executed) console.log('[GAS] Turnstile preparado antes de enviar el formulario.');
           if (captchaSolver) await captchaSolver.waitForSolved(60000);
-          gasCaptchaToken = await readPortalTurnstileToken(page);
-          await sleep(500);
+          const gasChallenge = await waitForPortalTurnstile(page, 30000);
+          gasCaptchaToken = gasChallenge?.turnstileToken || await readPortalTurnstileToken(page);
+          if (!gasCaptchaToken) throw new Error('Gases del Caribe no entregó el token de Turnstile antes de enviar el formulario.');
+          console.log(`[GAS] Turnstile preparado; esperando ${Math.ceil(GAS_TURNSTILE_SETTLE_DELAY_MS / 1000)} s antes de enviar el formulario.`);
+          await sleep(GAS_TURNSTILE_SETTLE_DELAY_MS);
         },
       });
       authenticatedByLogin = true;

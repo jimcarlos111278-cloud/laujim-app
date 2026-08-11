@@ -5,6 +5,7 @@
   "replaceExisting": true,
   "chromeProfileDir": "C:/Users/TU_USUARIO/.laujim-chrome-profiles",
   "headless": false,
+  "tripleALoginMethod": "credentials",
   "chromeExecutablePath": "",
   "portalCredentials": {
     "air-e": {

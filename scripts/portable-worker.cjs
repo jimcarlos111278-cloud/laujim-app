@@ -38,12 +38,16 @@ function readConfig() {
 const config = readConfig();
 const chromeProfileDir = path.resolve(config.chromeProfileDir || path.join(os.homedir(), '.laujim-chrome-profiles'));
 const headless = config.headless === true || /^(1|true|yes)$/i.test(String(process.env.PORTABLE_WORKER_HEADLESS || ''));
+const tripleALoginMethod = String(
+  config.tripleALoginMethod || process.env.TRIPLE_A_LOGIN_METHOD || 'credentials',
+).trim().toLowerCase();
 
 // These must be set before loading services-scraper.cjs because it reads the
 // browser mode and profile settings during module initialization.
 process.env.RENDER_FULL_CHROME = headless ? '' : 'true';
 process.env.BROWSER_MODE = headless ? 'headless' : 'full';
 process.env.RENDER_CHROME_PROFILE_DIR = chromeProfileDir;
+process.env.TRIPLE_A_LOGIN_METHOD = tripleALoginMethod;
 if (config.chromeExecutablePath) process.env.CHROME_EXECUTABLE_PATH = path.resolve(String(config.chromeExecutablePath));
 // This runner is local-only. Never spend Browserless quota when a PC/VPS is
 // selected as the active device.
@@ -124,7 +128,13 @@ async function runOnce(reason = 'schedule') {
   console.log(`[PORTABLE WORKER] Inicio ${reason}: ${config.deviceId}`);
   const remote = await loadRemoteConfig();
   applyRemoteConfig(remote);
-  const providers = remote.schedule?.providers?.length ? remote.schedule.providers : ['air-e', 'water', 'gas'];
+  const localProviderOverride = String(process.env.PORTABLE_WORKER_PROVIDERS || '')
+    .split(',')
+    .map(provider => provider.trim().toLowerCase())
+    .filter(provider => ['air-e', 'water', 'gas'].includes(provider));
+  const providers = localProviderOverride.length
+    ? localProviderOverride
+    : remote.schedule?.providers?.length ? remote.schedule.providers : ['air-e', 'water', 'gas'];
   const results = [];
 
   for (const provider of providers) {

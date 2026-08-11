@@ -101,6 +101,13 @@ portales y no consume una integracion remota. El modo `render` queda disponible
 solo si el administrador lo selecciona expresamente y cuenta con un navegador
 local/full-browser en ese entorno.
 
+Para Triple A, el worker puede usar el login oficial con Google en vez del
+formulario de correo y contrasena. Configura `tripleALoginMethod` como
+`google` en `portable-worker.config.json` y completa una sola vez el acceso de
+Google en el perfil Chrome persistente del worker. El scraper no introduce ni
+lee la contrasena de Google; si el perfil no tiene la cuenta iniciada, dejara
+el navegador visible para que el administrador lo complete.
+
 La frecuencia tambien se puede cambiar desde `Worker scraper` en la app. La
 seleccion se guarda como `portable_worker_schedule`; el siguiente
 `GET /worker/v1/config` entrega el nuevo intervalo al dispositivo.
