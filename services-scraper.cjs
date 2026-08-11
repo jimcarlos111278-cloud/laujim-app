@@ -318,16 +318,30 @@ async function waitAndType(page, selector, text, timeout = 45000) {
   }
 }
 
+function portalFrameRoots(page) {
+  const roots = [page];
+  if (typeof page?.frames !== 'function') return roots;
+  try {
+    const main = typeof page.mainFrame === 'function' ? page.mainFrame() : null;
+    for (const frame of page.frames()) {
+      if (frame && frame !== main) roots.push(frame);
+    }
+  } catch {}
+  return roots;
+}
+
 async function visibleHandle(page, selectors, timeout = 15000) {
   const list = Array.isArray(selectors) ? selectors : [selectors];
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    for (const selector of list) {
-      const handles = await page.$$(selector).catch(() => []);
-      for (const handle of handles) {
-        const box = await handle.boundingBox().catch(() => null);
-        if (box && box.width > 0 && box.height > 0) return handle;
-        try { await handle.dispose(); } catch {}
+    for (const root of portalFrameRoots(page)) {
+      for (const selector of list) {
+        const handles = await root.$$(selector).catch(() => []);
+        for (const handle of handles) {
+          const box = await handle.boundingBox().catch(() => null);
+          if (box && box.width > 0 && box.height > 0) return handle;
+          try { await handle.dispose(); } catch {}
+        }
       }
     }
     await sleep(Math.min(500, Math.max(50, deadline - Date.now())));
@@ -340,16 +354,60 @@ async function typeVisibleField(page, selectors, value, timeout = 45000) {
   if (!handle) {
     throw new Error(`No se encontró un campo visible (${(Array.isArray(selectors) ? selectors : [selectors]).join(', ')}).`);
   }
-  await handle.click({ clickCount: 3 });
-  await handle.type(String(value ?? ''), { delay: 35 });
-  return handle;
+  try {
+    await handle.click({ clickCount: 3 });
+    await handle.type(String(value ?? ''), { delay: 35 });
+    return handle;
+  } catch (error) {
+    try { await handle.dispose(); } catch {}
+    throw error;
+  }
 }
 
 async function clickVisibleButton(page, selectors, timeout = 20000) {
-  const handle = await visibleHandle(page, selectors, timeout);
-  if (!handle) return false;
-  await handle.click();
-  return true;
+  const list = Array.isArray(selectors) ? selectors : [selectors];
+  const deadline = Date.now() + timeout;
+  const actionWords = /ingresar|iniciar|sesion|login|entrar|acceder|continuar|autenticar|consultar|buscar|enviar|submit/i;
+  while (Date.now() < deadline) {
+    let formFallback = null;
+    for (const root of portalFrameRoots(page)) {
+      for (const selector of list) {
+        const handles = await root.$$(selector).catch(() => []);
+        for (const handle of handles) {
+          const box = await handle.boundingBox().catch(() => null);
+          if (!box || box.width <= 0 || box.height <= 0) {
+            try { await handle.dispose(); } catch {}
+            continue;
+          }
+          const info = await handle.evaluate(element => ({
+            type: element.getAttribute('type') || '',
+            text: (element.innerText || element.value || element.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim(),
+            inForm: Boolean(element.closest('form')),
+            disabled: Boolean(element.disabled || element.getAttribute('aria-disabled') === 'true'),
+          })).catch(() => null);
+          if (!info || info.disabled) {
+            try { await handle.dispose(); } catch {}
+            continue;
+          }
+          const isSubmit = /submit/i.test(info.type) || actionWords.test(info.text);
+          if (isSubmit) {
+            await handle.click();
+            return true;
+          }
+          if (info.inForm && !formFallback) formFallback = handle;
+          else {
+            try { await handle.dispose(); } catch {}
+          }
+        }
+      }
+    }
+    if (formFallback) {
+      await formFallback.click();
+      return true;
+    }
+    await sleep(Math.min(500, Math.max(50, deadline - Date.now())));
+  }
+  return false;
 }
 
 function normalizeDigits(value) {
@@ -662,25 +720,32 @@ async function visibleSelectorExists(page, selector) {
 }
 
 async function portalLoginDiagnostic(page) {
-  return page?.evaluate?.(() => ({
-    url: location.href,
-    title: document.title,
-    inputs: [...document.querySelectorAll('input')].slice(0, 20).map(input => ({
-      type: input.type,
-      name: input.name,
-      id: input.id,
-      autocomplete: input.autocomplete,
-      visible: !!(input.offsetWidth || input.offsetHeight || input.getClientRects().length),
-      disabled: Boolean(input.disabled),
-    })),
-    buttons: [...document.querySelectorAll('button')].slice(0, 15).map(button => ({
-      type: button.type,
-      text: (button.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 100),
-      visible: !!(button.offsetWidth || button.offsetHeight || button.getClientRects().length),
-      disabled: Boolean(button.disabled),
-    })),
-    bodyText: (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 1200),
-  })).catch(() => ({ url: page?.url?.() || '', title: 'unavailable' }));
+  const roots = portalFrameRoots(page);
+  const frames = [];
+  for (const root of roots) {
+    const frameUrl = typeof root?.url === 'function' ? root.url() : page?.url?.() || '';
+    const safeUrl = String(frameUrl).split('?')[0].split('#')[0];
+    const state = await root?.evaluate?.(() => ({
+      inputs: [...document.querySelectorAll('input')].slice(0, 20).map(input => ({
+        type: input.type,
+        name: input.name,
+        id: input.id,
+        placeholder: input.placeholder,
+        autocomplete: input.autocomplete,
+        visible: !!(input.offsetWidth || input.offsetHeight || input.getClientRects().length),
+        disabled: Boolean(input.disabled),
+      })),
+      buttons: [...document.querySelectorAll('button, input[type="submit"], [role="button"]')].slice(0, 15).map(button => ({
+        type: button.type || '',
+        text: (button.innerText || button.value || button.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim().slice(0, 100),
+        visible: !!(button.offsetWidth || button.offsetHeight || button.getClientRects().length),
+        disabled: Boolean(button.disabled),
+      })),
+      bodyText: (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 1200),
+    })).catch(() => ({ unavailable: true }));
+    frames.push({ url: safeUrl, ...state });
+  }
+  return { frames };
 }
 
 async function waitForPortalAuthCompletion(page, passwordSelectors, timeout = PORTAL_AUTH_SETTLE_TIMEOUT_MS) {
@@ -710,8 +775,21 @@ async function loginPortalPage(page, {
   if (!hasPassword) return false;
 
   for (let attempt = 1; attempt <= loginAttempts; attempt += 1) {
-    await typeVisibleField(page, emailSelectors, username, 10000);
-    await typeVisibleField(page, passwordSelectors, password, 10000);
+    try {
+      await typeVisibleField(page, emailSelectors, username, 10000);
+      await typeVisibleField(page, passwordSelectors, password, 10000);
+    } catch (error) {
+      const diagnostic = await portalLoginDiagnostic(page);
+      console.error(`[${provider}] DiagnÃ³stico de formulario (intento ${attempt}):`, JSON.stringify(diagnostic));
+      if (attempt < loginAttempts) {
+        console.warn(`[${provider}] El formulario cambiÃ³ o no cargÃ³; recargando (intento ${attempt + 1}/${loginAttempts}).`);
+        if (typeof page.reload === 'function') {
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: PORTAL_AUTH_TIMEOUT_MS }).catch(() => {});
+        }
+        continue;
+      }
+      throw error;
+    }
     const challenge = await waitForPortalTurnstile(page, 30000);
     if (challenge?.hasTurnstile && !challenge.turnstileToken) {
       throw new Error(turnstileError);
@@ -951,8 +1029,23 @@ async function scrapeTripleAAccount() {
       timeout: PORTAL_AUTH_TIMEOUT_MS,
     });
 
-    const tripleEmailSelectors = ['input[name="email"]', 'input[type="email"]', 'input[autocomplete="username"]', 'input[name="username"]', 'input[type="text"]'];
-    const triplePasswordSelectors = ['input[name="password"]', 'input[type="password"]'];
+    const tripleEmailSelectors = [
+      'input[name="email" i]',
+      'input[id*="email" i]',
+      'input[type="email"]',
+      'input[autocomplete="username"]',
+      'input[name*="user" i]',
+      'input[id*="user" i]',
+      'input[placeholder*="correo" i]',
+      'input[placeholder*="email" i]',
+      'input[type="text"]',
+    ];
+    const triplePasswordSelectors = [
+      'input[name="password" i]',
+      'input[id*="password" i]',
+      'input[id*="pass" i]',
+      'input[type="password"]',
+    ];
     const authenticatedByLogin = await loginPortalPage(page, {
       provider: 'Triple A',
       username: credentials.username,
@@ -1441,12 +1534,22 @@ async function scrapeGasAccount() {
 
     const emailSelectors = [
       'input[type="email"]',
-      'input[name="email"]',
+      'input[name="email" i]',
+      'input[id*="email" i]',
       'input[autocomplete="email"]',
-      'input[name="username"]',
+      'input[autocomplete="username"]',
+      'input[name*="user" i]',
+      'input[id*="user" i]',
+      'input[placeholder*="correo" i]',
+      'input[placeholder*="email" i]',
       'input[type="text"]',
     ];
-    const passwordSelectors = ['input[type="password"]', 'input[name="password"]'];
+    const passwordSelectors = [
+      'input[type="password"]',
+      'input[name="password" i]',
+      'input[id*="password" i]',
+      'input[id*="pass" i]',
+    ];
     const authenticatedByLogin = await loginPortalPage(page, {
       provider: 'Gases del Caribe',
       username: credentials.username,
