@@ -2130,13 +2130,20 @@ async function scrapeGasAccount() {
       console.log('[GAS] Se probarÃ¡ la sesiÃ³n existente del portal global.');
     }
 
-    if (authenticatedByLogin) {
+    // A detached login frame does not necessarily mean the session was lost:
+    // Browserless can close the React login document after setting the
+    // authenticated cookie. Try the spare page for transient browser errors
+    // before declaring the portal unavailable.
+    const canUseSparePage = Boolean(dataPage) && (
+      authenticatedByLogin || (loginError && isTransientPortalRunError(loginError.message))
+    );
+    if (canUseSparePage) {
       if (dataPage) {
         const loginPage = page;
         page = dataPage;
         dataPage = null;
         await loginPage?.close?.().catch?.(() => {});
-        console.log('[GAS] Se cambiÃ³ a la pÃ¡gina de trabajo conservando la sesiÃ³n autenticada.');
+        console.log(`[GAS] Se cambiÃ³ a la pÃ¡gina de trabajo conservando la sesiÃ³n${authenticatedByLogin ? ' autenticada' : ' potencialmente autenticada'}.`);
       } else {
         try {
           const replacement = await recreatePortalPage(browser, page, captchaSolver, 'Gases del Caribe');
@@ -2151,7 +2158,7 @@ async function scrapeGasAccount() {
       }
     }
 
-    if (authenticatedByLogin) {
+    if (authenticatedByLogin || canUseSparePage) {
       await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
         waitUntil: 'domcontentloaded',
         timeout: PORTAL_AUTH_TIMEOUT_MS,
