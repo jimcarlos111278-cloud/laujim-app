@@ -661,6 +661,28 @@ async function visibleSelectorExists(page, selector) {
   return true;
 }
 
+async function portalLoginDiagnostic(page) {
+  return page?.evaluate?.(() => ({
+    url: location.href,
+    title: document.title,
+    inputs: [...document.querySelectorAll('input')].slice(0, 20).map(input => ({
+      type: input.type,
+      name: input.name,
+      id: input.id,
+      autocomplete: input.autocomplete,
+      visible: !!(input.offsetWidth || input.offsetHeight || input.getClientRects().length),
+      disabled: Boolean(input.disabled),
+    })),
+    buttons: [...document.querySelectorAll('button')].slice(0, 15).map(button => ({
+      type: button.type,
+      text: (button.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 100),
+      visible: !!(button.offsetWidth || button.offsetHeight || button.getClientRects().length),
+      disabled: Boolean(button.disabled),
+    })),
+    bodyText: (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 1200),
+  })).catch(() => ({ url: page?.url?.() || '', title: 'unavailable' }));
+}
+
 async function waitForPortalAuthCompletion(page, passwordSelectors, timeout = PORTAL_AUTH_SETTLE_TIMEOUT_MS) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
@@ -680,7 +702,11 @@ async function loginPortalPage(page, {
   turnstileError,
   loginAttempts = PORTAL_LOGIN_ATTEMPTS,
 }) {
-  const hasPassword = await visibleSelectorExists(page, passwordSelectors);
+  const initialPasswordHandle = await visibleHandle(page, passwordSelectors, 15000);
+  const hasPassword = Boolean(initialPasswordHandle);
+  if (initialPasswordHandle) {
+    try { await initialPasswordHandle.dispose(); } catch {}
+  }
   if (!hasPassword) return false;
 
   for (let attempt = 1; attempt <= loginAttempts; attempt += 1) {
@@ -713,6 +739,8 @@ async function loginPortalPage(page, {
     }
   }
 
+  const diagnostic = await portalLoginDiagnostic(page);
+  console.error(`[${provider}] Diagnóstico de login:`, JSON.stringify(diagnostic));
   throw new Error(`${provider} no completó el inicio de sesión después de ${loginAttempts} intentos.`);
 }
 
@@ -923,12 +951,14 @@ async function scrapeTripleAAccount() {
       timeout: PORTAL_AUTH_TIMEOUT_MS,
     });
 
+    const tripleEmailSelectors = ['input[name="email"]', 'input[type="email"]', 'input[autocomplete="username"]', 'input[name="username"]', 'input[type="text"]'];
+    const triplePasswordSelectors = ['input[name="password"]', 'input[type="password"]'];
     const authenticatedByLogin = await loginPortalPage(page, {
       provider: 'Triple A',
       username: credentials.username,
       password: credentials.password,
-      emailSelectors: ['input[name="email"]', 'input[type="email"]', 'input[autocomplete="username"]'],
-      passwordSelectors: ['input[name="password"]', 'input[type="password"]'],
+      emailSelectors: tripleEmailSelectors,
+      passwordSelectors: triplePasswordSelectors,
       submitSelectors: ['button[type="submit"]', 'button'],
       turnstileError: 'Triple A mantiene Turnstile visible después de esperar a Browserless.',
     });
@@ -936,7 +966,8 @@ async function scrapeTripleAAccount() {
       console.log('[TRIPLE A] La sesión ya estaba autenticada; se reutiliza el portal global.');
     }
 
-    if (await visibleSelectorExists(page, 'input[name="password"]')) {
+    if (await visibleSelectorExists(page, triplePasswordSelectors)) {
+      console.error('[TRIPLE A] Diagnóstico de login:', JSON.stringify(await portalLoginDiagnostic(page)));
       throw new Error('Triple A no completó el inicio de sesión.');
     }
 

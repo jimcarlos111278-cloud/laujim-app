@@ -4108,7 +4108,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 146,
+      "community": 98,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -4119,7 +4119,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 146,
+      "community": 98,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -6870,8 +6870,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_firstname",
-      "community": 16,
-      "community_name": "handleCloudInbound",
+      "community": 29,
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "firstname()"
     },
     {
@@ -6894,8 +6894,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudperiodlabel",
-      "community": 29,
-      "community_name": "colombiaDate",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudperiodlabel()"
     },
     {
@@ -6906,8 +6906,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudtemplatedebtvalue",
-      "community": 16,
-      "community_name": "handleCloudInbound",
+      "community": 29,
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "cloudtemplatedebtvalue()"
     },
     {
@@ -6918,8 +6918,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudpaymenttemplatedata",
-      "community": 16,
-      "community_name": "handleCloudInbound",
+      "community": 29,
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "cloudpaymenttemplatedata()"
     },
     {
@@ -6930,8 +6930,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudpaymentremindertemplate",
-      "community": 16,
-      "community_name": "handleCloudInbound",
+      "community": 29,
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "sendcloudpaymentremindertemplate()"
     },
     {
@@ -6943,7 +6943,7 @@
       "_origin": "ast",
       "id": "server_colombiadate",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "colombiadate()"
     },
     {
@@ -6955,7 +6955,7 @@
       "_origin": "ast",
       "id": "server_paymentperiod",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "paymentperiod()"
     },
     {
@@ -6967,7 +6967,7 @@
       "_origin": "ast",
       "id": "server_paymentcountsascollected",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "paymentcountsascollected()"
     },
     {
@@ -6979,7 +6979,7 @@
       "_origin": "ast",
       "id": "server_activecontractforapartment",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "activecontractforapartment()"
     },
     {
@@ -7051,7 +7051,7 @@
       "_origin": "ast",
       "id": "server_creatependingpaymentfromproof",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "creatependingpaymentfromproof()"
     },
     {
@@ -7434,8 +7434,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_splitcloudtext",
-      "community": 29,
-      "community_name": "colombiaDate",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "splitcloudtext()"
     },
     {
@@ -7446,8 +7446,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudtextchunks",
-      "community": 29,
-      "community_name": "colombiaDate",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "sendcloudtextchunks()"
     },
     {
@@ -7481,8 +7481,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildclouddetailedglobalservicesreport",
-      "community": 29,
-      "community_name": "colombiaDate",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "buildclouddetailedglobalservicesreport()"
     },
     {
@@ -7505,8 +7505,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudapartmentservicesline",
-      "community": 29,
-      "community_name": "colombiaDate",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudapartmentservicesline()"
     },
     {
@@ -7517,8 +7517,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildcloudglobalservicesreport",
-      "community": 29,
-      "community_name": "colombiaDate",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "buildcloudglobalservicesreport()"
     },
     {
@@ -7553,8 +7553,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudglobalservices",
-      "community": 29,
-      "community_name": "colombiaDate",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "sendcloudglobalservices()"
     },
     {
@@ -7566,7 +7566,7 @@
       "_origin": "ast",
       "id": "server_cloudrentamount",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "cloudrentamount()"
     },
     {
@@ -7578,7 +7578,7 @@
       "_origin": "ast",
       "id": "server_activetenantforapartment",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "activetenantforapartment()"
     },
     {
@@ -7638,7 +7638,7 @@
       "_origin": "ast",
       "id": "server_nextcloudcollectionid",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "nextcloudcollectionid()"
     },
     {
@@ -7650,7 +7650,7 @@
       "_origin": "ast",
       "id": "server_registercloudrentpayment",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "registercloudrentpayment()"
     },
     {
@@ -7662,7 +7662,7 @@
       "_origin": "ast",
       "id": "server_confirmcloudrentpayments",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "confirmcloudrentpayments()"
     },
     {
@@ -7674,7 +7674,7 @@
       "_origin": "ast",
       "id": "server_cloudformatfulldate",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "cloudformatfulldate()"
     },
     {
@@ -7710,7 +7710,7 @@
       "_origin": "ast",
       "id": "server_cloudpaymentresultline",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "cloudpaymentresultline()"
     },
     {
@@ -7722,7 +7722,7 @@
       "_origin": "ast",
       "id": "server_confirmcloudpaymentsandreply",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "confirmcloudpaymentsandreply()"
     },
     {
@@ -7746,7 +7746,7 @@
       "_origin": "ast",
       "id": "server_registercloudunexpectedexpense",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "registercloudunexpectedexpense()"
     },
     {
@@ -7806,7 +7806,7 @@
       "_origin": "ast",
       "id": "server_cloudcalendardate",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "cloudcalendardate()"
     },
     {
@@ -7818,7 +7818,7 @@
       "_origin": "ast",
       "id": "server_clouddatekey",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "clouddatekey()"
     },
     {
@@ -7830,7 +7830,7 @@
       "_origin": "ast",
       "id": "server_cloudformatdaymonth",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "cloudformatdaymonth()"
     },
     {
@@ -7842,7 +7842,7 @@
       "_origin": "ast",
       "id": "server_cloudcapitalise",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "cloudcapitalise()"
     },
     {
@@ -7854,7 +7854,7 @@
       "_origin": "ast",
       "id": "server_cloudpaymentdate",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "cloudpaymentdate()"
     },
     {
@@ -7866,7 +7866,7 @@
       "_origin": "ast",
       "id": "server_buildadmindebtreport",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "cloudPaymentTemplateData",
       "norm_label": "buildadmindebtreport()"
     },
     {
@@ -8209,8 +8209,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "services_scraper_browserless_profiles",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 131,
+      "community_name": "scrapeAirE",
       "norm_label": "browserless_profiles"
     },
     {
@@ -8244,8 +8244,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_firstexistingpath",
-      "community": 23,
-      "community_name": "services-scraper.cjs",
+      "community": 131,
+      "community_name": "scrapeAirE",
       "norm_label": "firstexistingpath()"
     },
     {
@@ -8256,8 +8256,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_resolvechromium",
-      "community": 23,
-      "community_name": "services-scraper.cjs",
+      "community": 131,
+      "community_name": "scrapeAirE",
       "norm_label": "resolvechromium()"
     },
     {
@@ -8396,8 +8396,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_browserlessendpointfor",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 131,
+      "community_name": "scrapeAirE",
       "norm_label": "browserlessendpointfor()"
     },
     {
@@ -8408,8 +8408,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_launchbrowser",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 131,
+      "community_name": "scrapeAirE",
       "norm_label": "launchbrowser()"
     },
     {
@@ -8432,8 +8432,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_visiblehandle",
-      "community": 35,
-      "community_name": "loginPortalPage",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "visiblehandle()"
     },
     {
@@ -8444,8 +8444,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_typevisiblefield",
-      "community": 35,
-      "community_name": "loginPortalPage",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "typevisiblefield()"
     },
     {
@@ -8456,8 +8456,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_clickvisiblebutton",
-      "community": 35,
-      "community_name": "loginPortalPage",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "clickvisiblebutton()"
     },
     {
@@ -8492,8 +8492,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_configuredapartmenttargets",
-      "community": 109,
-      "community_name": "completePortalResults",
+      "community": 111,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "configuredapartmenttargets()"
     },
     {
@@ -8516,8 +8516,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_normalizeportaltext",
-      "community": 120,
-      "community_name": "portalFieldValue",
+      "community": 111,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "normalizeportaltext()"
     },
     {
@@ -8636,8 +8636,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_inspectwaterpage",
-      "community": 35,
-      "community_name": "loginPortalPage",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "inspectwaterpage()"
     },
     {
@@ -8672,8 +8672,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_waitforportalturnstile",
-      "community": 35,
-      "community_name": "loginPortalPage",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "waitforportalturnstile()"
     },
     {
@@ -8684,39 +8684,51 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_visibleselectorexists",
-      "community": 35,
-      "community_name": "loginPortalPage",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "visibleselectorexists()"
     },
     {
-      "label": "waitForPortalAuthCompletion()",
+      "label": "portalLoginDiagnostic()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
       "source_location": "L664",
       "_callable": true,
       "_origin": "ast",
+      "id": "services_scraper_portallogindiagnostic",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
+      "norm_label": "portallogindiagnostic()"
+    },
+    {
+      "label": "waitForPortalAuthCompletion()",
+      "file_type": "code",
+      "source_file": "services-scraper.cjs",
+      "source_location": "L686",
+      "_callable": true,
+      "_origin": "ast",
       "id": "services_scraper_waitforportalauthcompletion",
-      "community": 35,
-      "community_name": "loginPortalPage",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "waitforportalauthcompletion()"
     },
     {
       "label": "loginPortalPage()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L673",
+      "source_location": "L695",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_loginportalpage",
-      "community": 35,
-      "community_name": "loginPortalPage",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "loginportalpage()"
     },
     {
       "label": "parsePortalAmount()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L719",
+      "source_location": "L747",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_parseportalamount",
@@ -8728,7 +8740,7 @@
       "label": "portalFieldValue()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L725",
+      "source_location": "L753",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_portalfieldvalue",
@@ -8740,7 +8752,7 @@
       "label": "unwrapPortalList()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L742",
+      "source_location": "L770",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_unwrapportallist",
@@ -8752,7 +8764,7 @@
       "label": "portalPayloadDiagnostics()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L775",
+      "source_location": "L803",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_portalpayloaddiagnostics",
@@ -8764,7 +8776,7 @@
       "label": "portalDiagnosticReferences()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L787",
+      "source_location": "L815",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_portaldiagnosticreferences",
@@ -8776,19 +8788,19 @@
       "label": "logUnmatchedPortalItems()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L795",
+      "source_location": "L823",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_logunmatchedportalitems",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 111,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "logunmatchedportalitems()"
     },
     {
       "label": "responseTextWithTimeout()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L806",
+      "source_location": "L834",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_responsetextwithtimeout",
@@ -8800,7 +8812,7 @@
       "label": "parsePortalResponseBody()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L817",
+      "source_location": "L845",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_parseportalresponsebody",
@@ -8812,7 +8824,7 @@
       "label": "fetchPortalJson()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L822",
+      "source_location": "L850",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_fetchportaljson",
@@ -8824,7 +8836,7 @@
       "label": "tripleAStatusValue()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L844",
+      "source_location": "L872",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_tripleastatusvalue",
@@ -8836,7 +8848,7 @@
       "label": "tripleARecord()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L852",
+      "source_location": "L880",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_triplearecord",
@@ -8848,7 +8860,7 @@
       "label": "scrapeTripleAAccount()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L896",
+      "source_location": "L924",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_scrapetripleaaccount",
@@ -8860,7 +8872,7 @@
       "label": "extractGasAmount()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1153",
+      "source_location": "L1184",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_extractgasamount",
@@ -8872,7 +8884,7 @@
       "label": "parseGasBillPage()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1173",
+      "source_location": "L1204",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_parsegasbillpage",
@@ -8884,7 +8896,7 @@
       "label": "gasInvoiceSummary()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1320",
+      "source_location": "L1351",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_gasinvoicesummary",
@@ -8896,7 +8908,7 @@
       "label": "gasRecord()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1344",
+      "source_location": "L1375",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_gasrecord",
@@ -8908,7 +8920,7 @@
       "label": "scrapeGasAccount()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1365",
+      "source_location": "L1396",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_scrapegasaccount",
@@ -8920,7 +8932,7 @@
       "label": "parseAirEAmount()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1558",
+      "source_location": "L1589",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_parseaireamount",
@@ -8932,7 +8944,7 @@
       "label": "aggregateAirEInvoices()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1574",
+      "source_location": "L1605",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_aggregateaireinvoices",
@@ -8944,7 +8956,7 @@
       "label": "scrapeAirE()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1612",
+      "source_location": "L1643",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_scrapeaire",
@@ -8956,7 +8968,7 @@
       "label": "runScrapeOnce()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1798",
+      "source_location": "L1829",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_runscrapeonce",
@@ -8968,7 +8980,7 @@
       "label": "persistWaterResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1823",
+      "source_location": "L1854",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_persistwaterresults",
@@ -8980,7 +8992,7 @@
       "label": "serviceResultMatchesApartment()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1839",
+      "source_location": "L1870",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_serviceresultmatchesapartment",
@@ -8992,7 +9004,7 @@
       "label": "portalFailureResult()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1846",
+      "source_location": "L1877",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_portalfailureresult",
@@ -9004,7 +9016,7 @@
       "label": "completePortalResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1875",
+      "source_location": "L1906",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_completeportalresults",
@@ -9016,7 +9028,7 @@
       "label": "runWaterScrapeOnce()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1893",
+      "source_location": "L1924",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_runwaterscrapeonce",
@@ -9028,7 +9040,7 @@
       "label": "persistGasResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1922",
+      "source_location": "L1953",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_persistgasresults",
@@ -9040,7 +9052,7 @@
       "label": "runGasScrapeOnce()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1938",
+      "source_location": "L1969",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_rungasscrapeonce",
@@ -9052,7 +9064,7 @@
       "label": "startScheduler()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1964",
+      "source_location": "L1995",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_startscheduler",
@@ -9064,7 +9076,7 @@
       "label": "stopScheduler()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1989",
+      "source_location": "L2020",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_stopscheduler",
@@ -9076,7 +9088,7 @@
       "label": "persistResults()",
       "file_type": "code",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2000",
+      "source_location": "L2031",
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_persistresults",
@@ -9125,8 +9137,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_protectedroute",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "protectedroute()"
     },
     {
@@ -9137,8 +9149,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_adminroute",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "adminroute()"
     },
     {
@@ -9149,8 +9161,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_privateapp",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 15,
+      "community_name": "PrivateApp",
       "norm_label": "privateapp()"
     },
     {
@@ -9220,8 +9232,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_getserverversion",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "getserverversion()"
     },
     {
@@ -9232,8 +9244,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_uploadfile",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "uploadfile()"
     },
     {
@@ -9255,8 +9267,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_refreshallfromserver",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "refreshallfromserver()"
     },
     {
@@ -9291,8 +9303,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopdataversionpolling",
-      "community": 11,
-      "community_name": "api.js",
+      "community": 18,
+      "community_name": "auth.js",
       "norm_label": "stopdataversionpolling()"
     },
     {
@@ -9303,8 +9315,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_startcloudpolling",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "startcloudpolling()"
     },
     {
@@ -9316,7 +9328,7 @@
       "_origin": "ast",
       "id": "src_api_stopcloudpolling",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "stopcloudpolling()"
     },
     {
@@ -9469,8 +9481,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout",
-      "community": 39,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "layout.jsx"
     },
     {
@@ -9480,8 +9492,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_layout_navitems",
-      "community": 39,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "navitems"
     },
     {
@@ -9492,8 +9504,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_layout_layout",
-      "community": 39,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "layout()"
     },
     {
@@ -9596,8 +9608,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_statscard",
-      "community": 37,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "statscard.jsx"
     },
     {
@@ -9608,8 +9620,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_statscard_statscard",
-      "community": 37,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "statscard()"
     },
     {
@@ -9620,7 +9632,7 @@
       "_origin": "ast",
       "id": "src_components_themeselector",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "themeselector.jsx"
     },
     {
@@ -9631,7 +9643,7 @@
       "_origin": "ast",
       "id": "src_components_themeselector_iconmap",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "iconmap"
     },
     {
@@ -9643,7 +9655,7 @@
       "_origin": "ast",
       "id": "src_components_themeselector_themeselector",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "themeselector()"
     },
     {
@@ -9757,8 +9769,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_db_database_initdb",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 11,
+      "community_name": "api.js",
       "norm_label": "initdb()"
     },
     {
@@ -9954,8 +9966,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartments_apartments",
-      "community": 37,
-      "community_name": "react",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "apartments()"
     },
     {
@@ -10023,8 +10035,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contracts_contracts",
-      "community": 37,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "contracts()"
     },
     {
@@ -10034,8 +10046,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_dashboard",
-      "community": 37,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "dashboard.jsx"
     },
     {
@@ -10058,7 +10070,7 @@
       "_origin": "ast",
       "id": "src_pages_login",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "login.jsx"
     },
     {
@@ -10070,7 +10082,7 @@
       "_origin": "ast",
       "id": "src_pages_login_login",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "login()"
     },
     {
@@ -10080,8 +10092,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_miapto",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "miapto.jsx"
     },
     {
@@ -10092,8 +10104,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_miapto_miapto",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "miapto()"
     },
     {
@@ -10115,8 +10127,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_payments_payments",
-      "community": 37,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "payments()"
     },
     {
@@ -10126,8 +10138,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_predial",
-      "community": 117,
-      "community_name": "Predial.jsx",
+      "community": 37,
+      "community_name": "react",
       "norm_label": "predial.jsx"
     },
     {
@@ -10137,8 +10149,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
-      "community": 117,
-      "community_name": "Predial.jsx",
+      "community": 37,
+      "community_name": "react",
       "norm_label": "ref_map"
     },
     {
@@ -10149,8 +10161,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
-      "community": 117,
-      "community_name": "Predial.jsx",
+      "community": 37,
+      "community_name": "react",
       "norm_label": "lookupref()"
     },
     {
@@ -10161,8 +10173,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
-      "community": 117,
-      "community_name": "Predial.jsx",
+      "community": 37,
+      "community_name": "react",
       "norm_label": "getpredialurl()"
     },
     {
@@ -10173,8 +10185,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_predial",
-      "community": 117,
-      "community_name": "Predial.jsx",
+      "community": 37,
+      "community_name": "react",
       "norm_label": "predial()"
     },
     {
@@ -10334,8 +10346,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_tenants_tenants",
-      "community": 37,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "auth.js",
       "norm_label": "tenants()"
     },
     {
@@ -10345,8 +10357,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_utilities",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 35,
+      "community_name": "Utilities.jsx",
       "norm_label": "utilities.jsx"
     },
     {
@@ -10356,8 +10368,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_pages_utilities_services",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 35,
+      "community_name": "Utilities.jsx",
       "norm_label": "services"
     },
     {
@@ -10368,8 +10380,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_timeago",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 35,
+      "community_name": "Utilities.jsx",
       "norm_label": "timeago()"
     },
     {
@@ -10380,8 +10392,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_waterbilllabel",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 35,
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbilllabel()"
     },
     {
@@ -10392,8 +10404,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillclass",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 35,
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbillclass()"
     },
     {
@@ -10404,8 +10416,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillmeta",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 35,
+      "community_name": "Utilities.jsx",
       "norm_label": "waterbillmeta()"
     },
     {
@@ -10415,8 +10427,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_pages_utilities_portals",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 35,
+      "community_name": "Utilities.jsx",
       "norm_label": "portals"
     },
     {
@@ -10427,8 +10439,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_qrviewcontent",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 35,
+      "community_name": "Utilities.jsx",
       "norm_label": "qrviewcontent()"
     },
     {
@@ -10439,8 +10451,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_utilities",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 35,
+      "community_name": "Utilities.jsx",
       "norm_label": "utilities()"
     },
     {
@@ -10450,8 +10462,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "whatsappcontacts.jsx"
     },
     {
@@ -10462,8 +10474,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappcontacts_whatsappcontacts",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "whatsappcontacts()"
     },
     {
@@ -10473,8 +10485,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_whatsappinbox",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "whatsappinbox.jsx"
     },
     {
@@ -10485,8 +10497,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_cloudrequest",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "cloudrequest()"
     },
     {
@@ -10497,8 +10509,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_formatdate",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "formatdate()"
     },
     {
@@ -10509,8 +10521,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediaicon",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "mediaicon()"
     },
     {
@@ -10521,8 +10533,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_mediamessage",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "mediamessage()"
     },
     {
@@ -10533,8 +10545,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_whatsappinbox_whatsappinbox",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "whatsappinbox()"
     },
     {
@@ -10545,7 +10557,7 @@
       "_origin": "ast",
       "id": "src_utils_auth",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "auth.js"
     },
     {
@@ -10569,7 +10581,7 @@
       "_origin": "ast",
       "id": "src_utils_auth_setauth",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "setauth()"
     },
     {
@@ -10581,7 +10593,7 @@
       "_origin": "ast",
       "id": "src_utils_auth_clearauth",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "clearauth()"
     },
     {
@@ -10592,8 +10604,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_isadmin",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 18,
+      "community_name": "auth.js",
       "norm_label": "isadmin()"
     },
     {
@@ -10605,7 +10617,7 @@
       "_origin": "ast",
       "id": "src_utils_auth_istenant",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "istenant()"
     },
     {
@@ -10617,7 +10629,7 @@
       "_origin": "ast",
       "id": "src_utils_auth_gettenantapartmentid",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "gettenantapartmentid()"
     },
     {
@@ -10628,8 +10640,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_requireauth",
-      "community": 22,
-      "community_name": "chat.js",
+      "community": 18,
+      "community_name": "auth.js",
       "norm_label": "requireauth()"
     },
     {
@@ -10641,7 +10653,7 @@
       "_origin": "ast",
       "id": "src_utils_auth_login",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "login()"
     },
     {
@@ -10653,7 +10665,7 @@
       "_origin": "ast",
       "id": "src_utils_auth_loginadmin",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "loginadmin()"
     },
     {
@@ -10665,7 +10677,7 @@
       "_origin": "ast",
       "id": "src_utils_auth_logintenant",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "logintenant()"
     },
     {
@@ -10675,8 +10687,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_calendar",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "calendar.js"
     },
     {
@@ -10687,8 +10699,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_uidforapt",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "uidforapt()"
     },
     {
@@ -10699,8 +10711,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_getstoreduids",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "getstoreduids()"
     },
     {
@@ -10711,8 +10723,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_savestoreduids",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "savestoreduids()"
     },
     {
@@ -10723,8 +10735,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_fmtdate",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -10735,8 +10747,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_nextduedate",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "nextduedate()"
     },
     {
@@ -10747,8 +10759,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateics",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "generateics()"
     },
     {
@@ -10759,8 +10771,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_downloadics",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "downloadics()"
     },
     {
@@ -10771,8 +10783,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_addcalendarreminder",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "addcalendarreminder()"
     },
     {
@@ -10783,8 +10795,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateallpaymentreminders",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "generateallpaymentreminders()"
     },
     {
@@ -10795,8 +10807,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_syncandgeneratereminders",
-      "community": 98,
-      "community_name": "calendar.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "syncandgeneratereminders()"
     },
     {
@@ -10806,8 +10818,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_callscreening",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "callscreening.js"
     },
     {
@@ -10818,8 +10830,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_nativeandroid",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "nativeandroid()"
     },
     {
@@ -10830,8 +10842,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_callerscreeningplugin",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "callerscreeningplugin()"
     },
     {
@@ -10842,8 +10854,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_normalizedphone",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "normalizedphone()"
     },
     {
@@ -10854,8 +10866,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_getcallscreeningstatus",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "getcallscreeningstatus()"
     },
     {
@@ -10866,8 +10878,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_syncauthorizedcallernumbers",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "syncauthorizedcallernumbers()"
     },
     {
@@ -10878,8 +10890,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_requestcallscreeningrole",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "requestcallscreeningrole()"
     },
     {
@@ -10890,8 +10902,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_setcallscreeningenabled",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "setcallscreeningenabled()"
     },
     {
@@ -10902,8 +10914,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_setallowcallsfromcontacts",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "setallowcallsfromcontacts()"
     },
     {
@@ -10914,8 +10926,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_requestprotectedsmsrole",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "requestprotectedsmsrole()"
     },
     {
@@ -10926,8 +10938,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_callscreening_getauthorizedsmsmessages",
-      "community": 40,
-      "community_name": "callScreening.js",
+      "community": 39,
+      "community_name": "Settings.jsx",
       "norm_label": "getauthorizedsmsmessages()"
     },
     {
@@ -11185,8 +11197,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_utils_config_auth_token",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "auth_token"
     },
     {
@@ -11198,7 +11210,7 @@
       "_origin": "ast",
       "id": "src_utils_config_setapitoken",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "setapitoken()"
     },
     {
@@ -11221,8 +11233,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_config_getbase",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "getbase()"
     },
     {
@@ -11547,8 +11559,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatcurrency",
-      "community": 37,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatcurrency()"
     },
     {
@@ -11571,8 +11583,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatshortdate",
-      "community": 37,
-      "community_name": "react",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatshortdate()"
     },
     {
@@ -11727,8 +11739,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatrelativeduedate",
-      "community": 18,
-      "community_name": "getBase",
+      "community": 1,
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "formatrelativeduedate()"
     },
     {
@@ -11844,8 +11856,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_notifications",
-      "community": 37,
-      "community_name": "react",
+      "community": 15,
+      "community_name": "PrivateApp",
       "norm_label": "notifications.js"
     },
     {
@@ -11856,8 +11868,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_requestnotificationpermission",
-      "community": 64,
-      "community_name": "App.jsx",
+      "community": 15,
+      "community_name": "PrivateApp",
       "norm_label": "requestnotificationpermission()"
     },
     {
@@ -11868,8 +11880,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notify",
-      "community": 37,
-      "community_name": "react",
+      "community": 15,
+      "community_name": "PrivateApp",
       "norm_label": "notify()"
     },
     {
@@ -11880,8 +11892,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notifypaymentreminder",
-      "community": 37,
-      "community_name": "react",
+      "community": 15,
+      "community_name": "PrivateApp",
       "norm_label": "notifypaymentreminder()"
     },
     {
@@ -11926,8 +11938,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_sync",
-      "community": 39,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "sync.js"
     },
     {
@@ -11938,8 +11950,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_sync_isserveravailable",
-      "community": 39,
-      "community_name": "Settings.jsx",
+      "community": 64,
+      "community_name": "App.jsx",
       "norm_label": "isserveravailable()"
     },
     {
@@ -11950,7 +11962,7 @@
       "_origin": "ast",
       "id": "src_utils_theme",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "theme.js"
     },
     {
@@ -11961,7 +11973,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_themes",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "themes"
     },
     {
@@ -11972,7 +11984,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_thememap",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "thememap"
     },
     {
@@ -11984,7 +11996,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_gettheme",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "gettheme()"
     },
     {
@@ -11996,7 +12008,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_getthemeinfo",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "getthemeinfo()"
     },
     {
@@ -12008,7 +12020,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_settheme",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "settheme()"
     },
     {
@@ -12020,7 +12032,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_inittheme",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "inittheme()"
     },
     {
@@ -12032,7 +12044,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_applytheme",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "applytheme()"
     },
     {
@@ -12044,7 +12056,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_syncthemetoserver",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "syncthemetoserver()"
     },
     {
@@ -12056,7 +12068,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_loadthemefromserver",
       "community": 15,
-      "community_name": "ThemeSelector.jsx",
+      "community_name": "PrivateApp",
       "norm_label": "loadthemefromserver()"
     },
     {
@@ -12066,8 +12078,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_viewmode",
-      "community": 37,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "auth.js",
       "norm_label": "viewmode.js"
     },
     {
@@ -12078,8 +12090,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_viewmode_getviewmode",
-      "community": 37,
-      "community_name": "react",
+      "community": 18,
+      "community_name": "auth.js",
       "norm_label": "getviewmode()"
     },
     {
@@ -12091,7 +12103,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode_setviewmode",
       "community": 18,
-      "community_name": "getBase",
+      "community_name": "auth.js",
       "norm_label": "setviewmode()"
     },
     {
@@ -12816,8 +12828,8 @@
       "source_location": "L900",
       "_origin": "ast",
       "id": "readme_notificaciones",
-      "community": 46,
-      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
+      "community": 40,
+      "community_name": "Notificaciones",
       "norm_label": "notificaciones"
     },
     {
@@ -12827,8 +12839,8 @@
       "source_location": "L902",
       "_origin": "ast",
       "id": "readme_notificaciones_del_navegador_src_utils_notifications_js",
-      "community": 46,
-      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
+      "community": 40,
+      "community_name": "Notificaciones",
       "norm_label": "notificaciones del navegador (`src/utils/notifications.js`)"
     },
     {
@@ -12838,8 +12850,8 @@
       "source_location": "L912",
       "_origin": "ast",
       "id": "readme_notificaciones_locales_apk_src_utils_localnotifications_js",
-      "community": 46,
-      "community_name": "Gesti\u00f3n de Apartamentos \u2014 Laujim APP",
+      "community": 40,
+      "community_name": "Notificaciones",
       "norm_label": "notificaciones locales apk (`src/utils/localnotifications.js`)"
     },
     {
@@ -31406,7 +31418,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2030",
+      "source_location": "L2061",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31561,7 +31573,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1875",
+      "source_location": "L1906",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31605,7 +31617,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2029",
+      "source_location": "L2060",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31617,7 +31629,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2028",
+      "source_location": "L2059",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31651,7 +31663,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L822",
+      "source_location": "L850",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31706,7 +31718,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2031",
+      "source_location": "L2062",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31718,7 +31730,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1344",
+      "source_location": "L1375",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31740,7 +31752,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2044",
+      "source_location": "L2075",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31752,7 +31764,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2042",
+      "source_location": "L2073",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31764,7 +31776,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2043",
+      "source_location": "L2074",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31787,7 +31799,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2023",
+      "source_location": "L2054",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31832,7 +31844,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L673",
+      "source_location": "L695",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31843,7 +31855,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L795",
+      "source_location": "L823",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31920,7 +31932,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1558",
+      "source_location": "L1589",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31931,7 +31943,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2027",
+      "source_location": "L2058",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31943,7 +31955,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2033",
+      "source_location": "L2064",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -31955,7 +31967,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L719",
+      "source_location": "L747",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31966,7 +31978,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L817",
+      "source_location": "L845",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -31977,7 +31989,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2032",
+      "source_location": "L2063",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32000,7 +32012,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2035",
+      "source_location": "L2066",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32012,7 +32024,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2000",
+      "source_location": "L2031",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32023,7 +32035,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2034",
+      "source_location": "L2065",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32046,7 +32058,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L787",
+      "source_location": "L815",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32057,7 +32069,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1846",
+      "source_location": "L1877",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32068,7 +32080,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L725",
+      "source_location": "L753",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32090,7 +32102,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L775",
+      "source_location": "L664",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "services_scraper",
+      "target": "services_scraper_portallogindiagnostic",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services-scraper.cjs",
+      "source_location": "L803",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32123,7 +32146,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L806",
+      "source_location": "L834",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32134,7 +32157,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2037",
+      "source_location": "L2068",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32146,7 +32169,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1798",
+      "source_location": "L1829",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32157,7 +32180,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2036",
+      "source_location": "L2067",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32169,7 +32192,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2024",
+      "source_location": "L2055",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32181,7 +32204,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2026",
+      "source_location": "L2057",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32193,7 +32216,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2025",
+      "source_location": "L2056",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32205,7 +32228,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1839",
+      "source_location": "L1870",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32227,7 +32250,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2038",
+      "source_location": "L2069",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32239,7 +32262,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L2039",
+      "source_location": "L2070",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -32262,7 +32285,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L852",
+      "source_location": "L880",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32273,7 +32296,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L844",
+      "source_location": "L872",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32295,7 +32318,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L742",
+      "source_location": "L770",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32339,7 +32362,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L664",
+      "source_location": "L686",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper",
@@ -32386,7 +32409,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L810",
+      "source_location": "L838",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_responsetextwithtimeout",
@@ -32398,7 +32421,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1667",
+      "source_location": "L1698",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -32410,7 +32433,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1441",
+      "source_location": "L1472",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -32422,7 +32445,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L948",
+      "source_location": "L979",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -32446,7 +32469,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L668",
+      "source_location": "L690",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waitforportalauthcompletion",
@@ -32494,7 +32517,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1745",
+      "source_location": "L1776",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -32506,7 +32529,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1624",
+      "source_location": "L1655",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -32518,7 +32541,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1374",
+      "source_location": "L1405",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -32530,7 +32553,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L903",
+      "source_location": "L931",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -32554,7 +32577,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1619",
+      "source_location": "L1650",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -32566,7 +32589,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1375",
+      "source_location": "L1406",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -32578,7 +32601,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L904",
+      "source_location": "L932",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -32590,7 +32613,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1628",
+      "source_location": "L1659",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -32602,7 +32625,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1377",
+      "source_location": "L1408",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -32614,7 +32637,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L906",
+      "source_location": "L934",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -32626,7 +32649,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1649",
+      "source_location": "L1680",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -32642,6 +32665,18 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_clickvisiblebutton",
+      "target": "services_scraper_visiblehandle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "services-scraper.cjs",
+      "source_location": "L705",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "services_scraper_loginportalpage",
       "target": "services_scraper_visiblehandle",
       "confidence_score": 1.0
     },
@@ -32674,7 +32709,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L687",
+      "source_location": "L713",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_loginportalpage",
@@ -32686,7 +32721,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L693",
+      "source_location": "L719",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_loginportalpage",
@@ -32710,7 +32745,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L789",
+      "source_location": "L817",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_portaldiagnosticreferences",
@@ -32746,7 +32781,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1877",
+      "source_location": "L1908",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_completeportalresults",
@@ -32758,7 +32793,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1480",
+      "source_location": "L1511",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -32770,7 +32805,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L980",
+      "source_location": "L1011",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -32806,7 +32841,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L727",
+      "source_location": "L755",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_portalfieldvalue",
@@ -32830,7 +32865,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L788",
+      "source_location": "L816",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_portaldiagnosticreferences",
@@ -32854,7 +32889,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1484",
+      "source_location": "L1515",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -32866,7 +32901,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L984",
+      "source_location": "L1015",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -32878,7 +32913,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1174",
+      "source_location": "L1205",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_parsegasbillpage",
@@ -32902,7 +32937,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1158",
+      "source_location": "L1189",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_extractgasamount",
@@ -32926,7 +32961,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1571",
+      "source_location": "L1602",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_parseaireamount",
@@ -32938,7 +32973,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L722",
+      "source_location": "L750",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_parseportalamount",
@@ -33010,7 +33045,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1532",
+      "source_location": "L1563",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33022,7 +33057,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1011",
+      "source_location": "L1042",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33034,7 +33069,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L689",
+      "source_location": "L715",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_loginportalpage",
@@ -33046,7 +33081,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L683",
+      "source_location": "L732",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_loginportalpage",
@@ -33058,7 +33093,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1432",
+      "source_location": "L1463",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33070,7 +33105,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L939",
+      "source_location": "L969",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33082,7 +33117,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L667",
+      "source_location": "L689",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_waitforportalauthcompletion",
@@ -33094,7 +33129,31 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L703",
+      "source_location": "L742",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "services_scraper_loginportalpage",
+      "target": "services_scraper_portallogindiagnostic",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "services-scraper.cjs",
+      "source_location": "L970",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "services_scraper_scrapetripleaaccount",
+      "target": "services_scraper_portallogindiagnostic",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "services-scraper.cjs",
+      "source_location": "L729",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_loginportalpage",
@@ -33106,7 +33165,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1419",
+      "source_location": "L1450",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33118,7 +33177,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L926",
+      "source_location": "L956",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33130,7 +33189,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1324",
+      "source_location": "L1355",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_gasinvoicesummary",
@@ -33142,7 +33201,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L854",
+      "source_location": "L882",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_triplearecord",
@@ -33154,7 +33213,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1325",
+      "source_location": "L1356",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_gasinvoicesummary",
@@ -33166,7 +33225,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1456",
+      "source_location": "L1487",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33178,7 +33237,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L855",
+      "source_location": "L883",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_triplearecord",
@@ -33190,7 +33249,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L845",
+      "source_location": "L873",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_tripleastatusvalue",
@@ -33202,7 +33261,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1460",
+      "source_location": "L1491",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33214,7 +33273,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L965",
+      "source_location": "L996",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33226,7 +33285,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1479",
+      "source_location": "L1510",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33238,7 +33297,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L979",
+      "source_location": "L1010",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33250,7 +33309,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L797",
+      "source_location": "L825",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_logunmatchedportalitems",
@@ -33262,7 +33321,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1514",
+      "source_location": "L1545",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33274,7 +33333,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L994",
+      "source_location": "L1025",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33286,7 +33345,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1396",
+      "source_location": "L1427",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33298,7 +33357,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L912",
+      "source_location": "L940",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33310,7 +33369,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1398",
+      "source_location": "L1429",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33322,7 +33381,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L914",
+      "source_location": "L942",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33334,7 +33393,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1447",
+      "source_location": "L1478",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33346,7 +33405,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L957",
+      "source_location": "L988",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33358,7 +33417,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L853",
+      "source_location": "L881",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_triplearecord",
@@ -33370,7 +33429,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L987",
+      "source_location": "L1018",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapetripleaaccount",
@@ -33382,7 +33441,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1905",
+      "source_location": "L1936",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runwaterscrapeonce",
@@ -33394,7 +33453,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1179",
+      "source_location": "L1210",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_parsegasbillpage",
@@ -33406,7 +33465,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1498",
+      "source_location": "L1529",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33418,7 +33477,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1499",
+      "source_location": "L1530",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapegasaccount",
@@ -33430,7 +33489,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1948",
+      "source_location": "L1979",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_rungasscrapeonce",
@@ -33442,7 +33501,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1585",
+      "source_location": "L1616",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_aggregateaireinvoices",
@@ -33454,7 +33513,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1744",
+      "source_location": "L1775",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_scrapeaire",
@@ -33466,7 +33525,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1810",
+      "source_location": "L1841",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runscrapeonce",
@@ -33478,7 +33537,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1811",
+      "source_location": "L1842",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runscrapeonce",
@@ -33490,7 +33549,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1975",
+      "source_location": "L2006",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -33502,7 +33561,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1910",
+      "source_location": "L1941",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runwaterscrapeonce",
@@ -33514,7 +33573,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1879",
+      "source_location": "L1910",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_completeportalresults",
@@ -33526,7 +33585,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1884",
+      "source_location": "L1915",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_completeportalresults",
@@ -33538,7 +33597,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1951",
+      "source_location": "L1982",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_rungasscrapeonce",
@@ -33550,7 +33609,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1909",
+      "source_location": "L1940",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_runwaterscrapeonce",
@@ -33562,7 +33621,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1976",
+      "source_location": "L2007",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -33574,7 +33633,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1952",
+      "source_location": "L1983",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_rungasscrapeonce",
@@ -33586,7 +33645,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "services-scraper.cjs",
-      "source_location": "L1977",
+      "source_location": "L2008",
       "weight": 1.0,
       "_origin": "ast",
       "source": "services_scraper_startscheduler",
@@ -45157,5 +45216,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "6ac753d6c3029723c9cf87071eadb32b1f057781"
+  "built_at_commit": "0f007bdbd39d47f5a69700290e7d69c09af7dc4d"
 }
