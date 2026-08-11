@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1786477654.548747,
-    "ast_hash": "48f0fdb6749a3909abec58d77fd25155",
+    "mtime": 1786479842.516826,
+    "ast_hash": "245f764718cccfd1405e32ea11e303d7",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {

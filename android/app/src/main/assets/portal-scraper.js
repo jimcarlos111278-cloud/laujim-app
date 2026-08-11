@@ -3,7 +3,7 @@
  *
  * This file executes inside Laujim's own Android WebView. It deliberately
  * uses the authenticated page context (cookies, local storage and the
- * portal's same-origin fetch) instead of a remote browser or a captcha
+ * portal's approved API requests) instead of a remote browser or a captcha
  * bypass. If a portal asks for login or a human verification, the runner
  * reports needs_login/needs_verification and the native app can show it.
  */
@@ -171,7 +171,17 @@
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 90000);
     try {
-      const response = await fetch(url, Object.assign({ credentials: 'include', headers: { Accept: 'application/json' } }, options || {}, { signal: controller.signal }));
+      const requestOptions = Object.assign({ credentials: 'include', headers: { Accept: 'application/json' } }, options || {});
+      // Gascaribe's API accepts the bearer token but does not enable
+      // Access-Control-Allow-Credentials. Sending WebView cookies to that
+      // cross-origin API makes Chromium reject the response as "Failed to
+      // fetch" before JavaScript can inspect its HTTP status.
+      if (!Object.prototype.hasOwnProperty.call(options || {}, 'credentials')) {
+        try {
+          if (new URL(url, location.href).origin !== location.origin) requestOptions.credentials = 'omit';
+        } catch {}
+      }
+      const response = await fetch(url, Object.assign(requestOptions, { signal: controller.signal }));
       const body = await response.text();
       let payload = null;
       try { payload = JSON.parse(body); } catch {}
@@ -313,7 +323,7 @@
     if (state.password) return needsLogin('gas', 'Gases del Caribe solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.');
     if (state.challenge) return { state: 'needs_verification', provider: 'gas', message: 'Gases del Caribe muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
     const token = storedToken();
-    const response = await jsonWithAuthFallback(`${GAS_API}/contracts`, token);
+    const response = await jsonWithAuthFallback(`${GAS_API}/contracts`, token, { credentials: 'omit' });
     if (response.status === 401 || response.status === 403) return needsLogin('gas', `Gases del Caribe rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`);
     if (!response.ok) return { state: 'error', provider: 'gas', message: `Gases del Caribe rechazó la consulta (HTTP ${response.status}).`, results: [] };
     const payloadToken = field(response.payload, ['token', 'appToken', 'accessToken', 'authorization']);
@@ -328,7 +338,7 @@
       if (!target) continue;
       const contractId = field(contract, ['contractId', 'contractNumber', 'id', 'number']);
       if (!contractId) continue;
-      const invoiceResponse = await jsonWithAuthFallback(`${GAS_API}/invoices/${encodeURIComponent(contractId)}`, auth);
+      const invoiceResponse = await jsonWithAuthFallback(`${GAS_API}/invoices/${encodeURIComponent(contractId)}`, auth, { credentials: 'omit' });
       if (!invoiceResponse.ok) {
         invoiceFailures += 1;
         continue;
