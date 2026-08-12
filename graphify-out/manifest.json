@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786488376.41104,
-    "ast_hash": "fc9c5badb287687e458fe18205ad16a5",
+    "mtime": 1786516159.832846,
+    "ast_hash": "99c9827096c51c715fef0a8adeff9f0f",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -75,9 +75,9 @@
     "semantic_hash": "e91b4501c14da821682fa5c26a16d616"
   },
   "android/build.gradle": {
-    "mtime": 1784050294.0,
-    "ast_hash": "682315a426653617c6a74fc12bef55b6",
-    "semantic_hash": "682315a426653617c6a74fc12bef55b6"
+    "mtime": 1786497994.3920586,
+    "ast_hash": "ed6ecb8ea80449ca2f11eae85035faac",
+    "semantic_hash": ""
   },
   "android/capacitor.settings.gradle": {
     "mtime": 1785660578.9938948,
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786491519.4682832,
-    "ast_hash": "ce87a40549430090d3d8b27c7eea0778",
+    "mtime": 1786516260.0286324,
+    "ast_hash": "e56178f66ae34e073a62f45666b83927",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -200,8 +200,8 @@
     "semantic_hash": "71a67340b976e6da54a894c626095751"
   },
   "scripts/copy-apk.js": {
-    "mtime": 1786427888.484678,
-    "ast_hash": "ee38c323f4c8561c2aa716a42f9b2e63",
+    "mtime": 1786498162.3166795,
+    "ast_hash": "919c42ce88da42c2c581df4efb2a0633",
     "semantic_hash": ""
   },
   "scripts/deploy-snapshot.cjs": {
@@ -235,13 +235,13 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786491278.1696854,
-    "ast_hash": "5b0c81a0b22cf29496b86eb7994c6a24",
+    "mtime": 1786515286.2160287,
+    "ast_hash": "efa206dfc11c10910b45d849a835c908",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1786489389.2266858,
-    "ast_hash": "b534f65c815e0c9853ed25f18c2539b5",
+    "mtime": 1786515225.5977333,
+    "ast_hash": "280cca63c0a8191910708838228484f1",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "src/pages/ScraperWorker.jsx": {
-    "mtime": 1786491037.6580544,
-    "ast_hash": "a20f0ff87eb9f810a5d30204ed3b6813",
+    "mtime": 1786494941.3428485,
+    "ast_hash": "e528b047b98f7c8489b13a83c2d1b540",
     "semantic_hash": ""
   },
   "src/utils/portableWorker.js": {
@@ -850,8 +850,8 @@
     "semantic_hash": ""
   },
   "worker-protocol.cjs": {
-    "mtime": 1786487667.5167527,
-    "ast_hash": "8bce2e7ec838c1a3a7a2528df75e590d",
+    "mtime": 1786513633.1129377,
+    "ast_hash": "beb5a26e1c40bca641c924ed4521815e",
     "semantic_hash": ""
   },
   "docs/scraper-worker.md": {
@@ -865,8 +865,8 @@
     "semantic_hash": ""
   },
   "scripts/portable-worker.cjs": {
-    "mtime": 1786489313.0196645,
-    "ast_hash": "7ca0e0e71161e94527cdc53160578265",
+    "mtime": 1786497681.72042,
+    "ast_hash": "4d3296a010f9f04f9a7a720ce72b537e",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarm.java": {
@@ -885,13 +885,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
-    "mtime": 1786433882.886849,
-    "ast_hash": "342e6d0ff1a680598ad3f3f9144c191d",
+    "mtime": 1786513575.224269,
+    "ast_hash": "ea384532ea1b244104daa54e949a6113",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1786491556.7058382,
-    "ast_hash": "671fb21b7749da0c0caff1db817685ad",
+    "mtime": 1786515741.3540719,
+    "ast_hash": "bc4b95f04be6c45a53b3d505fd69201f",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
@@ -915,13 +915,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1786491290.891905,
-    "ast_hash": "a63fd3f132eb884c1eef2a39f863ee4e",
+    "mtime": 1786515746.7394133,
+    "ast_hash": "01b795d67e88720177a822fc1a5a815c",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
-    "mtime": 1786433882.886849,
-    "ast_hash": "269438b8a40b15b4d1589235c3464131",
+    "mtime": 1786513500.9165044,
+    "ast_hash": "143fa71bc673ad127e65b8d69d554bcb",
     "semantic_hash": ""
   },
   ".tmp/gradle-off-onedrive.init.gradle": {
@@ -932,6 +932,16 @@
   ".tmp/run-pc-worker-aiven.cjs": {
     "mtime": 1786489299.199128,
     "ast_hash": "01a90b8bae286f6d31b63f26fc63870a",
+    "semantic_hash": ""
+  },
+  ".tmp/reporte-servicios-sample.png": {
+    "mtime": 1786515321.127963,
+    "ast_hash": "879dc892cad1ed808423c769a5aa5825",
+    "semantic_hash": ""
+  },
+  ".tmp/reporte-servicios-test.png": {
+    "mtime": 1786515299.9532108,
+    "ast_hash": "124ff6d9d73ed8dfb7114f6de8dcf8d9",
     "semantic_hash": ""
   }
 }

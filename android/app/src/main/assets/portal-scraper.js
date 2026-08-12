@@ -171,6 +171,13 @@
   // configured payment code to duplicate one portal result when it is shared;
   // only fall back to the one best label match when the code is not available.
   function matchingTargets(apartments, record, provider, used) {
+    // Keep Gases on the pre-1.0.18 one-contract/one-apartment mapping. The
+    // shared-code duplication is intentionally limited to Triple A, where
+    // the authenticated policy list can contain a shared service account.
+    if (provider === 'gas') {
+      const best = bestTargetMatch(apartments || [], record, provider, used);
+      return best ? [best] : [];
+    }
     const codeKey = provider === 'water' ? 'waterPaymentCode' : provider === 'gas' ? 'gasPaymentCode' : 'electricityPaymentCode';
     const portalCode = digits(record?.code);
     const exact = (apartments || []).filter(target => {

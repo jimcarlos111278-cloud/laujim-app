@@ -79,15 +79,16 @@ public class ScraperWorkerService extends Service {
         super.onCreate();
         executor = Executors.newSingleThreadExecutor();
         createNotificationChannel();
-        // PortalBrowserActivity owns the single shared WebView. Creating a
-        // second hidden WebView loses the portal SPA's in-memory session and
-        // makes Triple A render its shell without any policies.
+        // Air-e and Gases keep the 1.0.17 local-worker path. Triple A is the
+        // only provider that runs in the visible portal WebView because its
+        // authenticated policy selector lives in the hydrated SPA DOM.
         try {
             runnerScript = readAsset("portal-scraper.js");
         } catch (IOException error) {
             runnerScript = "";
             ScraperWorkerStore.setRunState(ScraperWorkerService.this, "error", "No se pudo cargar el motor local: " + error.getMessage());
         }
+        createLocalWebView();
         startForeground(NOTIFICATION_ID, notification("Worker local preparado", null));
     }
 
@@ -358,7 +359,7 @@ public class ScraperWorkerService extends Service {
             .put("deviceId", deviceId)
             .put("platform", "android")
             .put("runtime", "laujim-local-webview")
-            .put("appVersion", "1.0.18")
+            .put("appVersion", "1.0.19")
             .put("providers", scheduleProviders == null ? new JSONArray() : scheduleProviders)
             .put("replaceExisting", false);
         HttpResult result = request(server + "/worker/v1/register", "POST", token, deviceId, registration.toString());
@@ -366,6 +367,13 @@ public class ScraperWorkerService extends Service {
     }
 
     private JSONObject runProvider(String provider, JSONObject config) throws Exception {
+        String normalized = provider == null ? "" : provider.trim().toLowerCase();
+        if (!"water".equals(normalized)) {
+            // Air-e and Gases remain on the 1.0.17 local-worker route.
+            JSONObject outcome = loadAndEvaluate(provider, portalWorkUrl(provider), config);
+            return outcome == null ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.") : outcome;
+        }
+
         // Open the authenticated data route so the portal itself refreshes its
         // session token. Loading only /login leaves NextAuth/Gascaribe tokens
         // unavailable to the local runner and produces false 401/fetch errors.

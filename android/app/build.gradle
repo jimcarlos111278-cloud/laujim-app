@@ -1,5 +1,10 @@
 apply plugin: 'com.android.application'
 
+// OneDrive can leave generated asset files as reparse points. A local build
+// may provide a hydrated copy outside OneDrive without changing the APK
+// contents or the normal Render/CI build path.
+def externalAssetRoot = System.getenv('LAUJIM_ANDROID_ASSETS_ROOT')
+
 android {
     namespace = "com.laujim.aptmanager"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -10,12 +15,17 @@ android {
         // Keep debug APK upgrades monotonic even when the build machine clock
         // is behind a previously distributed APK.
         versionCode = Math.max((int) (System.currentTimeMillis() / 1000), 1786486000)
-        versionName = "1.0.18"
+        versionName = "1.0.19"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    if (externalAssetRoot) {
+        sourceSets {
+            main.assets.srcDirs = [externalAssetRoot]
         }
     }
     buildTypes {

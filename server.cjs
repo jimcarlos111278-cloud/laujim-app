@@ -1423,6 +1423,157 @@ function buildCloudApartmentServicesInfo(apartment) {
   ].filter(Boolean).join('\n');
 }
 
+function cloudReportDateLabel(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('es-CO', {
+    timeZone: 'America/Bogota',
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  }).formatToParts(date);
+  const part = type => parts.find(item => item.type === type)?.value || '';
+  const month = part('month').replace(/\./g, '').toUpperCase();
+  const period = part('dayPeriod').replace(/\s+/g, ' ').trim();
+  return `${part('day')} ${month} ${part('year')} · ${part('hour')}:${part('minute')} ${period}`.trim();
+}
+
+function cloudImageMoney(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? `$${Math.round(amount).toLocaleString('es-CO')}` : '—';
+}
+
+function escapeCloudImageHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[character]));
+}
+
+function buildCloudServicesImageData() {
+  const rows = occupiedCloudApartments().map(apartment => {
+    const summary = cloudApartmentServices(apartment);
+    const services = ['electricity', 'water', 'gas'].map(key => {
+      const state = summary.states[key];
+      const amount = Number(state?.debt);
+      return {
+        known: state?.known === true && Number.isFinite(amount),
+        amount: Number.isFinite(amount) ? amount : null,
+      };
+    });
+    const complete = services.every(service => service.known);
+    return {
+      apartment: String(apartment.name || apartment.id || '—'),
+      services,
+      complete,
+      total: complete ? services.reduce((sum, service) => sum + service.amount, 0) : null,
+    };
+  });
+  const allComplete = rows.length > 0 && rows.every(row => row.complete);
+  return {
+    dateLabel: cloudReportDateLabel(),
+    rows,
+    allComplete,
+    total: allComplete ? rows.reduce((sum, row) => sum + row.total, 0) : null,
+  };
+}
+
+function cloudServicesReportImageHtml(report) {
+  const headerCells = [
+    ['#AP', 'ap-head'],
+    ['⚡ AIR-E', 'air-head'],
+    ['💧 TRIPLE A', 'water-head'],
+    ['🔥 GASES', 'gas-head'],
+  ].map(([label, className]) => `<div class="cell header ${className}">${label}</div>`).join('');
+  const serviceRows = report.rows.length
+    ? report.rows.map((row, index) => {
+      const stripe = index % 2 ? ' stripe' : '';
+      const values = row.services.map(service => service.known ? cloudImageMoney(service.amount) : '—');
+      return [
+        `<div class="cell apartment${stripe}">${escapeCloudImageHtml(row.apartment)}</div>`,
+        `<div class="cell money${stripe}">${values[0]}</div>`,
+        `<div class="cell money${stripe}">${values[1]}</div>`,
+        `<div class="cell money${stripe}">${values[2]}</div>`,
+      ].join('');
+    }).join('')
+    : '<div class="empty">No hay apartamentos configurados para mostrar.</div>';
+  const totalRows = report.rows.length
+    ? report.rows.map((row, index) => {
+      const stripe = index % 2 ? ' stripe' : '';
+      return [
+        `<div class="cell apartment${stripe}">${escapeCloudImageHtml(row.apartment)}</div>`,
+        `<div class="cell money${stripe}">${row.complete ? cloudImageMoney(row.total) : '—'}</div>`,
+      ].join('');
+    }).join('')
+    : '';
+  const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '—';
+  const incompleteNote = report.allComplete
+    ? ''
+    : '<div class="note">— indica que el portal todavía no confirmó el valor; el total se muestra cuando los tres servicios estén confirmados.</div>';
+  return `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #ffffff; }
+  body { width: 1160px; padding: 42px; color: #15263a; font-family: Arial, "DejaVu Sans", sans-serif; }
+  .card { border: 2px solid #d9e5ef; border-radius: 28px; overflow: hidden; box-shadow: 0 8px 22px rgba(25, 64, 96, .09); }
+  .title { padding: 30px 34px 24px; background: linear-gradient(135deg, #0d6fae, #1594c5); color: #fff; }
+  h1 { margin: 0 0 10px; font-size: 39px; letter-spacing: .5px; }
+  .date { font-size: 24px; opacity: .96; }
+  .section { padding: 28px 30px 4px; }
+  h2 { margin: 0 0 18px; color: #0d6fae; font-size: 28px; }
+  .table { display: grid; grid-template-columns: 150px repeat(3, minmax(0, 1fr)); border: 2px solid #cbdce8; border-radius: 16px; overflow: hidden; }
+  .total-table { grid-template-columns: 1fr 1fr; }
+  .cell { min-height: 64px; display: flex; align-items: center; padding: 13px 18px; border-right: 1px solid #d8e4ec; border-bottom: 1px solid #d8e4ec; font-size: 26px; background: #fff; }
+  .cell:nth-child(4n) { border-right: 0; }
+  .header { min-height: 68px; justify-content: center; font-size: 23px; font-weight: 800; color: #fff; border-bottom: 0; white-space: nowrap; }
+  .ap-head { background: #35536b; }
+  .air-head { background: #e88717; }
+  .water-head { background: #168cc4; }
+  .gas-head { background: #d9543f; }
+  .apartment { justify-content: center; font-weight: 800; }
+  .money { justify-content: flex-end; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  .stripe { background: #f4f8fb; }
+  .total { margin-top: 20px; border: 3px solid #0d6fae; border-radius: 16px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; }
+  .total .cell { min-height: 78px; border-bottom: 0; font-size: 29px; }
+  .total .label { color: #0d6fae; font-weight: 800; }
+  .total .amount { color: #0d6fae; font-size: 34px; }
+  .note { padding: 20px 4px 12px; color: #647889; font-size: 19px; line-height: 1.35; }
+  .empty { grid-column: 1 / -1; padding: 28px; font-size: 24px; color: #647889; text-align: center; }
+  .footer { padding: 22px 34px 28px; color: #647889; font-size: 19px; text-align: center; }
+</style></head><body>
+  <div class="card">
+    <div class="title"><h1>📊 REPORTE DE SERVICIOS</h1><div class="date">${escapeCloudImageHtml(report.dateLabel)}</div></div>
+    <div class="section">
+      <h2>Valores confirmados por apartamento</h2>
+      <div class="table">${headerCells}${serviceRows}</div>
+    </div>
+    <div class="section">
+      <h2>💰 TOTAL POR APARTAMENTO</h2>
+      <div class="table total-table">${totalRows || '<div class="empty">Sin datos para totalizar.</div>'}</div>
+      <div class="total"><div class="cell label">TOTAL</div><div class="cell money amount">${grandTotal}</div></div>
+      ${incompleteNote}
+    </div>
+    <div class="footer">Todos los valores corresponden a <b>Deuda Total</b> y se generaron con la última sincronización disponible.</div>
+  </div>
+</body></html>`;
+}
+
+async function renderCloudServicesReportImage(report = buildCloudServicesImageData()) {
+  if (typeof servicesScraper.launchLocalBrowser !== 'function') {
+    throw new Error('El renderizador local de imágenes no está disponible');
+  }
+  const browser = await servicesScraper.launchLocalBrowser('whatsapp-report');
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1160, height: 900, deviceScaleFactor: 1 });
+    await page.setContent(cloudServicesReportImageHtml(report), { waitUntil: 'load' });
+    const height = await page.evaluate(() => Math.max(
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight,
+    ));
+    await page.setViewport({ width: 1160, height: Math.max(900, Math.ceil(height)), deviceScaleFactor: 1 });
+    return Buffer.from(await page.screenshot({ type: 'png', fullPage: true }));
+  } finally {
+    await browser.close().catch(() => {});
+  }
+}
+
 // Payment references, current service debts and payment links for one apartment.
 async function sendCloudServicesInfo(phone, aptRef) {
   const ref = String(aptRef || '').trim();
@@ -1437,7 +1588,51 @@ async function sendCloudServicesInfo(phone, aptRef) {
 }
 
 async function sendCloudGlobalServices(phone) {
-  await sendCloudTextChunks(phone, buildCloudGlobalServicesReport());
+  const report = buildCloudServicesImageData();
+  try {
+    const buffer = await renderCloudServicesReportImage(report);
+    const file = {
+      originalname: `reporte-servicios-${colombiaDate()}.png`,
+      mimetype: 'image/png',
+      buffer,
+      size: buffer.length,
+    };
+    const uploaded = await uploadCloudMedia(file);
+    const media = {
+      kind: 'image',
+      mimeType: file.mimetype,
+      fileName: file.originalname,
+      size: file.size,
+      id: uploaded.id,
+    };
+    if (r2Ready()) {
+      try {
+        Object.assign(media, await putR2Buffer({
+          section: 'whatsapp/outbound', fileName: file.originalname,
+          buffer, mimeType: file.mimetype,
+        }));
+        media.archiveStatus = 'stored';
+      } catch (archiveError) {
+        media.archiveStatus = 'not_archived';
+        media.archiveError = archiveError.message;
+        console.warn('[R2] generated services report archive skipped:', archiveError.message);
+      }
+    } else {
+      media.archiveStatus = 'not_configured';
+    }
+    const caption = `📊 REPORTE DE SERVICIOS\n${report.dateLabel}`;
+    const result = await sendCloudMedia(phone, media, caption);
+    const conversation = getCloudConversation({ phone });
+    addCloudMessage(conversation, 'out', {
+      type: 'image', text: caption, mediaId: media.id, media,
+      whatsappMessageId: result.messages?.[0]?.id || null,
+    });
+    saveData();
+    console.log(`[WHATSAPP CLOUD] Global services report image sent (${report.rows.length} apartment(s), ${buffer.length} bytes).`);
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] services report image error; using text fallback:', error.message);
+    await sendCloudTextChunks(phone, buildCloudGlobalServicesReport());
+  }
   await sendCloudServicesMenu(phone);
 }
 
@@ -4274,7 +4469,9 @@ if (require.main === module) startServer();
 module.exports = {
   buildAdminDebtReport,
   buildCloudGlobalServicesReport,
+  buildCloudServicesImageData,
   buildCloudApartmentServicesInfo,
+  renderCloudServicesReportImage,
   cloudAdminGreeting,
   cloudApartmentFloor,
   cloudServiceState,

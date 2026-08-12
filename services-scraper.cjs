@@ -388,6 +388,22 @@ async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHRO
   });
 }
 
+// Local-only browser for server-generated artifacts (for example the global
+// WhatsApp services report). It deliberately bypasses Browserless and the
+// visible/full-Chrome worker profile: rendering a report must not consume a
+// remote browser quota or interfere with the authenticated portal session.
+async function launchLocalBrowser(profileName = 'services-report') {
+  const cfg = await resolveChromium(profileName, false);
+  return await puppeteer.launch({
+    args: cfg.args,
+    defaultViewport: { width: 1200, height: 900 },
+    executablePath: cfg.executablePath,
+    headless: cfg.headless,
+    protocolTimeout: 60000,
+    ...(cfg.userDataDir ? { userDataDir: cfg.userDataDir } : {}),
+  });
+}
+
 // ── HELPERS ─────────────────────────────────────────────────────────────────
 
 // Browserless exposes CAPTCHA lifecycle events through CDP. Automatic
@@ -3352,6 +3368,7 @@ function persistResults(results) {
 
 module.exports = {
   init,
+  launchLocalBrowser,
   scrapeAirE,
   scrapeTripleAAccount,
   scrapeGasAccount,
