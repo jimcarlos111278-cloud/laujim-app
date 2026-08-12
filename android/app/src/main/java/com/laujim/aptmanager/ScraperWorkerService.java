@@ -325,7 +325,7 @@ public class ScraperWorkerService extends Service {
     private JSONObject diagnosticDetails(JSONObject outcome) {
         if (outcome == null) return null;
         JSONObject details = new JSONObject();
-        String[] keys = {"state", "stage", "policyCount", "matchedPolicies", "unmatchedPolicies", "contractCount", "matchedContracts", "unmatchedContracts", "unmatchedApartments", "uiFailures", "invoiceFailures", "missingContractIds", "fetchError"};
+        String[] keys = {"state", "stage", "policyCount", "matchedPolicies", "unmatchedPolicies", "contractCount", "matchedContracts", "unmatchedContracts", "unmatchedApartments", "uiFailures", "invoiceFailures", "missingContractIds", "domRows", "domParagraphs", "domTextLength", "hydrationWaitMs", "url", "title", "fetchError"};
         for (String key : keys) {
             if (!outcome.has(key)) continue;
             try { details.put(key, outcome.opt(key)); } catch (JSONException ignored) { }
@@ -350,7 +350,7 @@ public class ScraperWorkerService extends Service {
             .put("deviceId", deviceId)
             .put("platform", "android")
             .put("runtime", "laujim-local-webview")
-            .put("appVersion", "1.0.15")
+            .put("appVersion", "1.0.16")
             .put("providers", scheduleProviders == null ? new JSONArray() : scheduleProviders)
             .put("replaceExisting", false);
         HttpResult result = request(server + "/worker/v1/register", "POST", token, deviceId, registration.toString());

@@ -754,22 +754,22 @@ async function waitForRenderedReader(reader, timeout = RENDERED_PORTAL_TIMEOUT_M
 
 async function renderedWaterPolicies(page) {
   return page.evaluate(() => {
-    const visible = element => {
+    const available = element => {
       if (!element) return false;
       const style = getComputedStyle(element);
-      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+      return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
     };
     const text = element => String(element?.innerText || element?.textContent || '').replace(/\s+/g, ' ').trim();
-    const rows = [...document.querySelectorAll('[role="row"], tr')].filter(visible);
+    const rows = [...document.querySelectorAll('[role="row"], tr')].filter(available);
     const seen = new Set();
     const result = [];
     for (const row of rows) {
-      const cells = [...row.querySelectorAll('[role="gridcell"], td')].filter(visible).map(text);
+      const cells = [...row.querySelectorAll('[role="gridcell"], td')].filter(available).map(text);
       const rowText = text(row);
       let name = cells[1] || '';
       let code = String(cells[2] || '').replace(/\D/g, '');
       const address = cells[3] || '';
-      const match = rowText.match(/((?:AP|Casa)\s*\d{3})\s*[-–]\s*(\d{4,})/i);
+      const match = rowText.match(/((?:AP|Casa)\s*\d{3})\s*[-\u2013\u2014:]\s*(\d{4,})/i);
       if (match) {
         name = match[1];
         code = match[2].replace(/\D/g, '');
@@ -778,23 +778,31 @@ async function renderedWaterPolicies(page) {
       seen.add(code);
       result.push({ name, code, address, status: cells[6] || '' });
     }
+    if (result.length) return result;
+    const candidates = [...document.querySelectorAll('p, li, [role="cell"]')].filter(available).map(text)
+      .concat(String(document.body?.innerText || document.body?.textContent || '').split(/\r?\n/).map(value => value.trim()).filter(Boolean));
+    for (const value of candidates) {
+      const match = value.match(/((?:AP|Casa)\s*\d{3})\s*[-\u2013\u2014:]\s*(\d{4,})/i);
+      if (!match || result.some(item => item.code === match[2])) continue;
+      result.push({ name: match[1], code: match[2].replace(/\D/g, ''), address: '', status: '' });
+    }
     return result;
   }).catch(() => []);
 }
 
 async function renderedGasContracts(page) {
   return page.evaluate(() => {
-    const visible = element => {
+    const available = element => {
       if (!element) return false;
       const style = getComputedStyle(element);
-      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+      return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
     };
     const text = element => String(element?.innerText || element?.textContent || '').replace(/\s+/g, ' ').trim();
-    const paragraphs = [...document.querySelectorAll('p')].filter(visible).map(text);
+    const paragraphs = [...document.querySelectorAll('p')].filter(available).map(text);
     const result = [];
     const seen = new Set();
     for (let index = 0; index < paragraphs.length; index += 1) {
-      const match = paragraphs[index].match(/^(.+?)\s*[-–]\s*(\d{4,})$/);
+      const match = paragraphs[index].match(/^(.+?)\s*[-\u2013\u2014:]\s*(\d{4,})$/);
       if (!match || seen.has(match[2])) continue;
       seen.add(match[2]);
       let address = '';
@@ -805,6 +813,13 @@ async function renderedGasContracts(page) {
         }
       }
       result.push({ name: match[1].trim(), code: match[2], address });
+    }
+    if (result.length) return result;
+    const bodyLines = String(document.body?.innerText || document.body?.textContent || '').split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+    for (const value of bodyLines) {
+      const match = value.match(/^(.+?)\s*[-\u2013\u2014:]\s*(\d{4,})$/);
+      if (!match || result.some(item => item.code === match[2])) continue;
+      result.push({ name: match[1].trim(), code: match[2], address: '' });
     }
     return result;
   }).catch(() => []);
@@ -820,13 +835,13 @@ async function collectRenderedWaterPolicies(page) {
     }
     const signature = current.map(item => item.code).join(',');
     const moved = await page.evaluate(() => {
-      const visible = element => {
+      const available = element => {
         if (!element) return false;
         const style = getComputedStyle(element);
-        return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+        return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
       };
       const button = [...document.querySelectorAll('button')].find(element =>
-        visible(element) && !element.disabled && element.getAttribute('aria-disabled') !== 'true' && /siguiente|next/i.test(element.innerText || element.getAttribute('aria-label') || '')
+        available(element) && !element.disabled && element.getAttribute('aria-disabled') !== 'true' && /siguiente|next/i.test(element.innerText || element.getAttribute('aria-label') || '')
       );
       if (!button) return false;
       button.click();
@@ -844,12 +859,12 @@ async function collectRenderedWaterPolicies(page) {
 
 async function portalLoginVisible(page) {
   return page.evaluate(() => {
-    const visible = element => {
+    const available = element => {
       if (!element) return false;
       const style = getComputedStyle(element);
-      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+      return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
     };
-    return Boolean([...document.querySelectorAll('input[type="password"], input[name*="password" i], input[id*="password" i]')].some(visible));
+    return Boolean([...document.querySelectorAll('input[type="password"], input[name*="password" i], input[id*="password" i]')].some(available));
   }).catch(() => false);
 }
 
@@ -895,14 +910,14 @@ function portalUiStatus(status, amount) {
 
 async function queryRenderedTripleAPolicy(page, code) {
   const ready = await page.evaluate((paymentCode) => {
-    const visible = element => {
+    const available = element => {
       if (!element) return false;
       const style = getComputedStyle(element);
-      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+      return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
     };
-    const input = [...document.querySelectorAll('input[name="paymentNumber"], input[type="number"]')].find(visible);
+    const input = [...document.querySelectorAll('input[name="paymentNumber"], input[type="number"]')].find(available);
     const button = [...document.querySelectorAll('button, input[type="submit"], [role="button"]')].find(element =>
-      visible(element) && !element.disabled && /consultar/i.test(element.innerText || element.value || element.getAttribute('aria-label') || '')
+      available(element) && !element.disabled && /consultar/i.test(element.innerText || element.value || element.getAttribute('aria-label') || '')
     );
     if (!input || !button) return false;
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
@@ -915,13 +930,13 @@ async function queryRenderedTripleAPolicy(page, code) {
   if (!ready) return { status: 'error', deudaCOP: null, error: 'Triple A no mostro el formulario de consulta autenticado.' };
 
   const parsed = await waitForRenderedPortal(page, (paymentCode) => {
-    const body = String(document.body?.innerText || '').replace(/\s+/g, ' ');
+    const body = String(document.body?.innerText || document.body?.textContent || '').replace(/\s+/g, ' ');
     if (/captcha|turnstile|no soy un robot/i.test(body)) return { challenge: true };
     if (!new RegExp(`\\b${String(paymentCode).replace(/\D/g, '')}\\b`).test(body) || !/total a pagar/i.test(body)) return null;
     const amountMatch = body.match(/total a pagar[^$0-9]{0,80}\$\s*([0-9][0-9.,]*)/i);
     const amount = amountMatch ? Number(amountMatch[1].replace(/\./g, '').replace(',', '.')) : null;
     const statusMatch = body.match(/pago pendiente|pago en mora|estas al dia|est[aá]s al d[ií]a/i);
-    const lines = String(document.body?.innerText || '').split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+    const lines = String(document.body?.innerText || document.body?.textContent || '').split(/\r?\n/).map(value => value.trim()).filter(Boolean);
     const dueIndex = lines.findIndex(value => /^fecha de vencimiento$/i.test(value));
     return {
       amount: Number.isFinite(amount) ? Math.round(amount) : (statusMatch && /al dia|est[aá]s al d[ií]a/i.test(statusMatch[0]) ? 0 : null),
@@ -936,26 +951,26 @@ async function queryRenderedTripleAPolicy(page, code) {
 }
 
 async function selectRenderedGasContract(page, code) {
-  const selected = await page.evaluate((contractCode) => {
-    const visible = element => {
+  const selected = await page.evaluate(() => {
+    const available = element => {
       if (!element) return false;
       const style = getComputedStyle(element);
-      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+      return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
     };
-    const selector = [...document.querySelectorAll('button')].find(element => visible(element) && /^(?:ap|casa)\s*\d{3}$/i.test((element.innerText || '').trim()));
+    const selector = [...document.querySelectorAll('button')].find(element => available(element) && /^(?:ap|casa)\s*\d{3}$/i.test((element.innerText || '').trim()));
     if (!selector) return false;
     selector.click();
     return true;
-  }, String(code)).catch(() => false);
+  }).catch(() => false);
   if (!selected) return false;
   return Boolean(await waitForRenderedPortal(page, (contractCode) => {
-    const visible = element => {
+    const available = element => {
       if (!element) return false;
       const style = getComputedStyle(element);
-      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+      return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
     };
     const item = [...document.querySelectorAll('[role="menuitem"], [role="option"], li, button')].find(element =>
-      visible(element) && String(element.innerText || element.textContent || '').includes(String(contractCode))
+      available(element) && String(element.innerText || element.textContent || '').includes(String(contractCode))
     );
     if (!item) return false;
     item.click();
@@ -967,16 +982,16 @@ async function queryRenderedGasContract(page, code) {
   if (!(await selectRenderedGasContract(page, code))) return { status: 'error', deudaCOP: null, error: `Gases del Caribe no mostro el contrato ${code}.` };
   await sleep(500);
   await page.evaluate(() => {
-    const visible = element => {
+    const available = element => {
       if (!element) return false;
       const style = getComputedStyle(element);
-      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+      return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
     };
-    const inicio = [...document.querySelectorAll('button')].find(element => visible(element) && /^inicio$/i.test((element.innerText || '').trim()));
+    const inicio = [...document.querySelectorAll('button')].find(element => available(element) && /^inicio$/i.test((element.innerText || '').trim()));
     if (inicio) inicio.click();
   }).catch(() => {});
   const parsed = await waitForRenderedPortal(page, (contractCode) => {
-    const body = String(document.body?.innerText || '').replace(/\s+/g, ' ');
+    const body = String(document.body?.innerText || document.body?.textContent || '').replace(/\s+/g, ' ');
     if (/captcha|turnstile|no soy un robot/i.test(body)) return { challenge: true };
     if (!new RegExp(`contrato\\s*n[^0-9]{0,8}${String(contractCode).replace(/\D/g, '')}`).test(body) || !/total a pagar/i.test(body)) return null;
     const amountMatch = body.match(/total a pagar[^$0-9]{0,80}\$\s*([0-9][0-9.,]*)/i);

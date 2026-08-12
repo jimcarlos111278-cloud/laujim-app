@@ -41,9 +41,19 @@
     return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && !!element.getClientRects().length;
   }
 
+  // The worker WebView may be off-screen while its portal DOM is hydrated.
+  // In that mode getClientRects() can be empty even when the table/form is
+  // usable. Keep `visible` strict for Turnstile and use this DOM-level test
+  // for portal tables, forms and menu controls.
+  function domAvailable(element) {
+    if (!element || element.getAttribute('aria-hidden') === 'true') return false;
+    const style = getComputedStyle(element);
+    return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
+  }
+
   function loginState() {
-    const body = clean(document.body && document.body.innerText);
-    const password = Array.from(document.querySelectorAll('input[type="password"], input[name*="password" i], input[id*="password" i]')).find(visible);
+    const body = clean(uiBodyText());
+    const password = Array.from(document.querySelectorAll('input[type="password"], input[name*="password" i], input[id*="password" i]')).find(domAvailable);
     const challenge = Array.from(document.querySelectorAll(
       '.cf-turnstile, iframe[src*="challenges.cloudflare.com"], iframe[src*="recaptcha"], [id*="captcha" i]'
     )).find(visible);
@@ -328,7 +338,7 @@
   }
 
   function uiBodyText() {
-    return String(document.body?.innerText || document.documentElement?.innerText || '');
+    return String(document.body?.innerText || document.body?.textContent || document.documentElement?.innerText || document.documentElement?.textContent || '');
   }
 
   function uiLines(text) {
@@ -337,7 +347,7 @@
 
   function findVisibleUiElement(selector, matcher) {
     return Array.from(document.querySelectorAll(selector || '*')).find(element => {
-      if (!visible(element)) return false;
+      if (!domAvailable(element)) return false;
       return typeof matcher !== 'function' || matcher(uiText(element), element);
     }) || null;
   }
@@ -392,18 +402,22 @@
     return String(target?.id == null ? target?.name || '' : target.id);
   }
 
+  function portalPair(text) {
+    return String(text || '').match(/((?:AP|Casa)\s*\d{3})\s*[-\u2013\u2014:]\s*(\d{4,})/i);
+  }
+
   function waterPoliciesOnPage() {
     const records = [];
     const seen = new Set();
-    const rows = Array.from(document.querySelectorAll('[role="row"], tr')).filter(visible);
+    const rows = Array.from(document.querySelectorAll('[role="row"], tr')).filter(domAvailable);
     for (const row of rows) {
-      const cells = Array.from(row.querySelectorAll('[role="gridcell"], td')).filter(visible).map(uiText);
+      const cells = Array.from(row.querySelectorAll('[role="gridcell"], td')).filter(domAvailable).map(uiText);
       let name = cells[1] || '';
       let code = digits(cells[2] || '');
       const address = cells[3] || '';
       const rowText = uiText(row);
       if ((!name || code.length < 4) && rowText) {
-        const match = rowText.match(/((?:AP|Casa)\s*\d{3})\s*[-–]\s*(\d{4,})/i);
+        const match = portalPair(rowText);
         if (match) {
           name = match[1];
           code = digits(match[2]);
@@ -414,9 +428,10 @@
       records.push({ name, code, address, status: cells[6] || '' });
     }
     if (!records.length) {
-      const paragraphs = Array.from(document.querySelectorAll('p')).filter(visible).map(uiText);
-      for (const value of paragraphs) {
-        const match = value.match(/((?:AP|Casa)\s*\d{3})\s*[-–]\s*(\d{4,})/i);
+      const candidates = Array.from(document.querySelectorAll('p, li, [role="cell"]')).filter(domAvailable).map(uiText)
+        .concat(uiLines(uiBodyText()));
+      for (const value of candidates) {
+        const match = portalPair(value);
         if (!match || seen.has(digits(match[2]))) continue;
         seen.add(digits(match[2]));
         records.push({ name: match[1], code: digits(match[2]), address: '', status: '' });
@@ -500,17 +515,18 @@
   }
 
   function gasContractsOnPage() {
-    const paragraphs = Array.from(document.querySelectorAll('p')).filter(visible).map(uiText);
+    const paragraphs = Array.from(document.querySelectorAll('p')).filter(domAvailable).map(uiText);
     const contracts = [];
     const seen = new Set();
-    for (let index = 0; index < paragraphs.length; index += 1) {
-      const match = paragraphs[index].match(/^(.+?)\s*[-–]\s*(\d{4,})$/);
+    const candidates = paragraphs.concat(uiLines(uiBodyText()));
+    for (let index = 0; index < candidates.length; index += 1) {
+      const match = candidates[index].match(/^(.+?)\s*[-\u2013\u2014:]\s*(\d{4,})$/);
       if (!match || seen.has(match[2]) || /contrato asociado/i.test(match[1])) continue;
       seen.add(match[2]);
       let address = '';
-      for (let cursor = index + 1; cursor < Math.min(paragraphs.length, index + 7); cursor += 1) {
-        if (/direcci[oó]n del predio/i.test(paragraphs[cursor])) {
-          address = paragraphs[cursor + 1] || '';
+      for (let cursor = index + 1; cursor < Math.min(candidates.length, index + 7); cursor += 1) {
+        if (/direcci[o\u00f3]n del predio/i.test(candidates[cursor])) {
+          address = candidates[cursor + 1] || '';
           break;
         }
       }
@@ -796,9 +812,21 @@
     if (state.password) return needsLogin('water', 'Triple A solicita iniciar sesion. Abre el portal desde Laujim, inicia sesion y vuelve a ejecutar.', { stage: 'login_page' });
     if (state.challenge) return { state: 'needs_verification', provider: 'water', stage: 'turnstile', message: 'Triple A muestra una verificacion. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
 
+    const hydrationStartedAt = Date.now();
     await wait(1200);
     const policies = await discoverWaterPolicies();
-    if (!policies.length) return { state: 'error', provider: 'water', stage: 'parse_policies', message: 'Triple A no mostro polizas en la sesion autenticada.', results: [] };
+    if (!policies.length) {
+      return {
+        state: 'error', provider: 'water', stage: 'parse_policies', policyCount: 0,
+        domRows: document.querySelectorAll('[role="row"], tr').length,
+        domParagraphs: document.querySelectorAll('p, li, [role="cell"]').length,
+        domTextLength: uiBodyText().length,
+        hydrationWaitMs: Date.now() - hydrationStartedAt,
+        url: location.href, title: document.title || '',
+        message: 'Triple A autentico la sesion, pero la pantalla de polizas no termino de hidratarse o cambio su estructura.',
+        results: [],
+      };
+    }
     if (!(await openWaterPayments())) return { state: 'error', provider: 'water', stage: 'open_payments', message: 'Triple A no abrio la pantalla de pagos autenticada.', results: [] };
 
     const results = [];
@@ -862,12 +890,21 @@
     if (state.password) return needsLogin('gas', 'Gases del Caribe solicita iniciar sesion. Abre el portal desde Laujim, inicia sesion y vuelve a ejecutar.', { stage: 'login_page' });
     if (state.challenge) return { state: 'needs_verification', provider: 'gas', stage: 'turnstile', message: 'Gases del Caribe muestra una verificacion. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
 
+    const hydrationStartedAt = Date.now();
     await wait(1200);
     const contracts = await waitForUi(() => {
       const current = gasContractsOnPage();
       return current.length ? current : null;
     }, PORTAL_PAGE_TIMEOUT_MS);
-    if (!contracts || !contracts.length) return { state: 'error', provider: 'gas', stage: 'parse_contracts', contractCount: 0, message: 'Gases del Caribe no mostro contratos en la sesion autenticada.', results: [] };
+    if (!contracts || !contracts.length) return {
+      state: 'error', provider: 'gas', stage: 'parse_contracts', contractCount: 0,
+      domParagraphs: document.querySelectorAll('p, li').length,
+      domTextLength: uiBodyText().length,
+      hydrationWaitMs: Date.now() - hydrationStartedAt,
+      url: location.href, title: document.title || '',
+      message: 'Gases del Caribe autentico la sesion, pero la pantalla de contratos no termino de hidratarse o cambio su estructura.',
+      results: [],
+    };
 
     const results = [];
     const used = new Set();
