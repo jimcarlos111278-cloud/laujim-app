@@ -180,6 +180,21 @@
     }
     const codeKey = provider === 'water' ? 'waterPaymentCode' : provider === 'gas' ? 'gasPaymentCode' : 'electricityPaymentCode';
     const portalCode = digits(record?.code);
+    // The portal's visible apartment label/address is newer and more
+    // trustworthy than a code entered months ago. Prefer that label when it
+    // identifies an apartment; otherwise fall back to the configured code.
+    const labelMatches = (apartments || []).filter(target => {
+      if (used?.has(targetKey(target))) return false;
+      const values = allStrings(record).map(value => ({ raw: value, normalized: clean(value) }));
+      const number = apartmentNumber(target.name);
+      const name = clean(target.name);
+      return (number && values.some(value => apartmentNumber(value.raw) === number))
+        || (name && values.some(value => value.normalized === name));
+    });
+    if (labelMatches.length) {
+      const exactLabelMatches = labelMatches.filter(target => portalCode && digits(target?.[codeKey]) === portalCode);
+      return exactLabelMatches.length ? exactLabelMatches : [labelMatches[0]];
+    }
     const exact = (apartments || []).filter(target => {
       if (used?.has(targetKey(target)) || !portalCode) return false;
       return digits(target?.[codeKey]) === portalCode;
@@ -494,14 +509,20 @@
     if (!code) return false;
     if (selectedWaterPolicyCode() === code && /total\s+a\s+pagar/i.test(uiBodyText())) return true;
 
-    const toggleCandidates = Array.from(document.querySelectorAll(
-      'button, [role="button"], [aria-haspopup="listbox"], div, span'
-    )).filter(domAvailable).map(element => ({ element, text: uiText(element) }))
-      .filter(item => item.text && item.text.length < 180 && portalPair(item.text))
-      .sort((left, right) => left.text.length - right.text.length);
-    const toggle = toggleCandidates[0]?.element || null;
-    if (toggle) toggle.click();
-    const option = await waitForUi(() => waterPolicyOption(policy), 5_000);
+    // The selector can already be open after discovery. Reuse an option
+    // that is currently visible; clicking the toggle again would close it
+    // and make the next policy impossible to select.
+    let option = waterPolicyOption(policy);
+    if (!option) {
+      const toggleCandidates = Array.from(document.querySelectorAll(
+        'button, [role="button"], [aria-haspopup="listbox"], div, span'
+      )).filter(domAvailable).map(element => ({ element, text: uiText(element) }))
+        .filter(item => item.text && item.text.length < 180 && portalPair(item.text))
+        .sort((left, right) => left.text.length - right.text.length);
+      const toggle = toggleCandidates[0]?.element || null;
+      if (toggle) toggle.click();
+      option = await waitForUi(() => waterPolicyOption(policy), 5_000);
+    }
     if (!option) return false;
     option.click();
     return Boolean(await waitForUi(() => {
@@ -535,6 +556,23 @@
       if (!changed) break;
     }
     return all;
+  }
+
+  async function openWaterPolicySelector() {
+    const visiblePolicies = waterPoliciesOnPage();
+    if (visiblePolicies.length > 1) return visiblePolicies;
+    const toggleCandidates = Array.from(document.querySelectorAll(
+      'button, [role="button"], [aria-haspopup="listbox"], div, span'
+    )).filter(domAvailable).map(element => ({ element, text: uiText(element) }))
+      .filter(item => item.text && item.text.length < 180 && portalPair(item.text))
+      .sort((left, right) => left.text.length - right.text.length);
+    const toggle = toggleCandidates[0]?.element || null;
+    if (!toggle) return visiblePolicies;
+    toggle.click();
+    return (await waitForUi(() => {
+      const policies = waterPoliciesOnPage();
+      return policies.length > 1 ? policies : null;
+    }, 5_000)) || visiblePolicies;
   }
 
   async function openWaterPayments() {
@@ -896,6 +934,7 @@
 
     const hydrationStartedAt = Date.now();
     await wait(1200);
+    await openWaterPolicySelector();
     const policies = await discoverWaterPolicies();
     if (!policies.length) {
       return {
