@@ -403,7 +403,10 @@
   }
 
   function portalPair(text) {
-    return String(text || '').match(/((?:AP|Casa)\s*\d{3})\s*[-\u2013\u2014:]\s*(\d{4,})/i);
+    // Triple A renders the selector as "AP 303 • 975245" (and uses
+    // "Casa 101 • 11156" for the house). The previous parser only accepted
+    // a hyphen/colon, so it discarded every visible policy option.
+    return String(text || '').match(/((?:AP|Casa)\s*\d{3})\s*(?:[-\u2013\u2014:\u2022\u00b7]\s*)?(\d{4,})/i);
   }
 
   function waterPoliciesOnPage() {
@@ -440,6 +443,51 @@
     return records;
   }
 
+  function firstWaterPolicyFromText(text) {
+    for (const line of uiLines(text)) {
+      const match = portalPair(line);
+      if (match) return { name: match[1], code: digits(match[2]) };
+    }
+    return null;
+  }
+
+  function selectedWaterPolicyCode() {
+    return firstWaterPolicyFromText(uiBodyText())?.code || null;
+  }
+
+  function waterPolicyOption(policy) {
+    const code = digits(policy?.code);
+    if (!code) return null;
+    const candidates = Array.from(document.querySelectorAll(
+      'button, [role="button"], [role="option"], [role="menuitem"], li, a, [tabindex], div, span'
+    )).filter(domAvailable).map(element => ({ element, text: uiText(element) }))
+      .filter(item => item.text && digits(item.text).includes(code) && portalPair(item.text))
+      .sort((left, right) => left.text.length - right.text.length);
+    return candidates[0]?.element || null;
+  }
+
+  async function selectWaterPolicy(policy) {
+    const code = digits(policy?.code);
+    if (!code) return false;
+    if (selectedWaterPolicyCode() === code && /total\s+a\s+pagar/i.test(uiBodyText())) return true;
+
+    const toggleCandidates = Array.from(document.querySelectorAll(
+      'button, [role="button"], [aria-haspopup="listbox"], div, span'
+    )).filter(domAvailable).map(element => ({ element, text: uiText(element) }))
+      .filter(item => item.text && item.text.length < 180 && portalPair(item.text))
+      .sort((left, right) => left.text.length - right.text.length);
+    const toggle = toggleCandidates[0]?.element || null;
+    if (toggle) toggle.click();
+    const option = await waitForUi(() => waterPolicyOption(policy), 5_000);
+    if (!option) return false;
+    option.click();
+    return Boolean(await waitForUi(() => {
+      const currentCode = selectedWaterPolicyCode();
+      const text = uiBodyText();
+      return currentCode === code && /total\s+a\s+pagar/i.test(text) && new RegExp(escapeRegex(code)).test(text) ? true : null;
+    }, PORTAL_UI_TIMEOUT_MS));
+  }
+
   async function discoverWaterPolicies() {
     const all = [];
     for (let page = 0; page < 8; page += 1) {
@@ -467,6 +515,10 @@
   }
 
   async function openWaterPayments() {
+    // The current Triple A portal already shows the debt card on the
+    // authenticated home screen. There is no separate "Pagos" link to open;
+    // changing the policy dropdown refreshes "Total a pagar" in place.
+    if (/tu\s+deuda\s+actual/i.test(uiBodyText()) && /total\s+a\s+pagar/i.test(uiBodyText())) return true;
     const link = findVisibleUiElement('a', (label, element) =>
       /pagos-usuario/.test(String(element.getAttribute('href') || '')) || clean(label) === 'pagos'
     );
@@ -495,6 +547,13 @@
   }
 
   async function queryWaterPolicy(policy) {
+    if (/tu\s+deuda\s+actual|total\s+a\s+pagar/i.test(uiBodyText())) {
+      if (!(await selectWaterPolicy(policy))) return { error: `Triple A no pudo seleccionar la poliza ${policy.code}.` };
+      const selectedText = uiBodyText();
+      const parsed = parseWaterPaymentResult(selectedText);
+      if (parsed.amount !== null || parsed.status !== 'unknown') return parsed;
+      return { error: `Triple A no mostro el total de la poliza ${policy.code}.` };
+    }
     const input = document.querySelector('input[name="paymentNumber"], input[type="number"]');
     const submit = findVisibleUiElement('button', label => clean(label) === 'consultar');
     if (!input || !submit) return { error: 'Triple A no mostro el formulario de consulta.' };

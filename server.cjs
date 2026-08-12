@@ -721,6 +721,24 @@ function colombiaDate(date = new Date()) {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
+// Render runs in UTC, while the administrator and the tenants use Colombia's
+// fixed UTC-5 clock. Keep the WhatsApp timestamp independent of the server's
+// local timezone. The UI label uses the user's requested "CDT" wording.
+function formatColombiaDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const formatted = new Intl.DateTimeFormat('es-CO', {
+    timeZone: 'America/Bogota',
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(date);
+  return `${formatted} (CDT)`;
+}
+
 function paymentPeriod(payment) {
   return String(payment?.period || payment?.date || '').slice(0, 7);
 }
@@ -991,7 +1009,7 @@ function buildDebtReply(contact) {
     const isTotalDebt = record.provider === 'Air-e' || record.deudaLabel === 'Deuda Total';
     const checkedAt = record.checkedAt || record.scrapedAt || record.updatedAt;
     const when = checkedAt && !Number.isNaN(new Date(checkedAt).getTime())
-      ? ` Datos del ${new Date(checkedAt).toLocaleString('es-CO', { dateStyle: 'short' })}.`
+      ? ` Datos del ${formatColombiaDateTime(checkedAt)}.`
       : '';
     if (debt !== null && debt > 0) {
       if (isTotalDebt) {
@@ -1307,7 +1325,7 @@ function cloudServiceDisplayBlock(summary) {
     const updatedAt = record?.checkedAt || record?.scrapedAt || record?.updatedAt;
     lines.push('', `${service.icon} *${service.label}:* ${state.label}`);
     lines.push(cloudServiceReference(apartment, record, service.key));
-    if (updatedAt) lines.push(`Actualizado: ${new Date(updatedAt).toLocaleString('es-CO')}`);
+    if (updatedAt) lines.push(`Actualizado: ${formatColombiaDateTime(updatedAt)}`);
     lines.push(`💳 *${service.paymentLabel}:* ${cloudServicePaymentLink(apartment, record, service.key)}`);
   }
   return lines.join('\n');
@@ -1389,13 +1407,13 @@ function buildCloudApartmentServicesInfo(apartment) {
     '*⚡ Energía (Air-e)*',
     `   NIC: ${apartment.nic || apartment.electricityPaymentCode || '—'}`,
     `   ${states.electricity.label}`,
-    records.electricity?.scrapedAt ? `   Actualizado: ${new Date(records.electricity.scrapedAt).toLocaleString('es-CO')}` : '',
+    records.electricity?.scrapedAt ? `   Actualizado: ${formatColombiaDateTime(records.electricity.scrapedAt)}` : '',
     apartment.electricityPaymentUrl ? `   Pago: ${apartment.electricityPaymentUrl}` : '',
     '',
     '*💧 Agua (Triple A)*',
     `   N° Póliza: ${apartment.waterPaymentCode || '—'}`,
     `   ${states.water.label}`,
-    records.water?.checkedAt ? `   Actualizado: ${new Date(records.water.checkedAt).toLocaleString('es-CO')}` : '',
+    records.water?.checkedAt ? `   Actualizado: ${formatColombiaDateTime(records.water.checkedAt)}` : '',
     apartment.waterPaymentUrl ? `   Pago: ${apartment.waterPaymentUrl}` : '',
     '',
     '*🔥 Gas (Gases del Caribe)*',
