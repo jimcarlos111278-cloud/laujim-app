@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786515286.2160287,
-    "ast_hash": "efa206dfc11c10910b45d849a835c908",
+    "mtime": 1786517194.4105406,
+    "ast_hash": "01dee40b0186b31ecdc0a836fc4e2d00",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -942,6 +942,21 @@
   ".tmp/reporte-servicios-test.png": {
     "mtime": 1786515299.9532108,
     "ast_hash": "124ff6d9d73ed8dfb7114f6de8dcf8d9",
+    "semantic_hash": ""
+  },
+  ".tmp/reporte-servicios-template-dynamic.png": {
+    "mtime": 1786517139.327416,
+    "ast_hash": "bece93a8efa3adc75d7c39663fc9df04",
+    "semantic_hash": ""
+  },
+  ".tmp/reporte-servicios-template-final.png": {
+    "mtime": 1786517183.9188387,
+    "ast_hash": "b38331207303211e3031bd56f8da582f",
+    "semantic_hash": ""
+  },
+  ".tmp/reporte-servicios-template.png": {
+    "mtime": 1786517113.5020485,
+    "ast_hash": "af638f027f41fea462f1d4f6f3bab567",
     "semantic_hash": ""
   }
 }

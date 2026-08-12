@@ -1,16 +1,16 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-12)
 
 ## Corpus Check
-- 142 files · ~188,341 words
+- 142 files · ~210,194 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
 - 1654 nodes · 3461 edges · 153 communities (112 shown, 41 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 66 edges (avg confidence: 0.52)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 67 edges (avg confidence: 0.52)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cff5a01d`
+- Built from commit: `eef07359`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

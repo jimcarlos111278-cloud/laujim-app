@@ -1432,12 +1432,12 @@ function cloudReportDateLabel(date = new Date()) {
   const part = type => parts.find(item => item.type === type)?.value || '';
   const month = part('month').replace(/\./g, '').toUpperCase();
   const period = part('dayPeriod').replace(/\s+/g, ' ').trim();
-  return `${part('day')} ${month} ${part('year')} · ${part('hour')}:${part('minute')} ${period}`.trim();
+  return `${part('day')} ${month} ${part('year')} \u00b7 ${part('hour')}:${part('minute')} ${period}`.trim();
 }
 
 function cloudImageMoney(value) {
   const amount = Number(value);
-  return Number.isFinite(amount) ? `$${Math.round(amount).toLocaleString('es-CO')}` : '—';
+  return Number.isFinite(amount) ? `$${Math.round(amount).toLocaleString('es-CO')}` : '\u2014';
 }
 
 function escapeCloudImageHtml(value) {
@@ -1447,9 +1447,11 @@ function escapeCloudImageHtml(value) {
 }
 
 function buildCloudServicesImageData() {
-  const rows = occupiedCloudApartments().map(apartment => {
-    const summary = cloudApartmentServices(apartment);
-    const services = ['electricity', 'water', 'gas'].map(key => {
+  const summaries = occupiedCloudApartments().map(cloudApartmentServices);
+  const serviceKeys = ['electricity', 'water', 'gas'];
+  const rows = summaries.map(summary => {
+    const { apartment } = summary;
+    const services = serviceKeys.map(key => {
       const state = summary.states[key];
       const amount = Number(state?.debt);
       return {
@@ -1459,97 +1461,141 @@ function buildCloudServicesImageData() {
     });
     const complete = services.every(service => service.known);
     return {
-      apartment: String(apartment.name || apartment.id || '—'),
+      apartment: String(apartment.name || apartment.id || '\u2014'),
       services,
       complete,
       total: complete ? services.reduce((sum, service) => sum + service.amount, 0) : null,
     };
   });
+  const serviceTotals = serviceKeys.map((_, index) => rows.reduce((sum, row) => (
+    sum + (row.services[index].known ? row.services[index].amount : 0)
+  ), 0));
+  const serviceConfirmedCounts = serviceKeys.map((_, index) => rows.reduce((count, row) => (
+    count + (row.services[index].known ? 1 : 0)
+  ), 0));
+  const serviceSync = Object.fromEntries(serviceKeys.map(key => {
+    const latest = summaries
+      .map(summary => summary.records[key]?.checkedAt || summary.records[key]?.scrapedAt || summary.records[key]?.updatedAt)
+      .filter(value => value && !Number.isNaN(new Date(value).getTime()))
+      .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0];
+    return [key, latest ? cloudReportDateLabel(new Date(latest)) : '\u2014'];
+  }));
   const allComplete = rows.length > 0 && rows.every(row => row.complete);
   return {
     dateLabel: cloudReportDateLabel(),
     rows,
+    serviceTotals,
+    serviceConfirmedCounts,
+    serviceSync,
     allComplete,
     total: allComplete ? rows.reduce((sum, row) => sum + row.total, 0) : null,
   };
 }
 
 function cloudServicesReportImageHtml(report) {
+  const serviceMeta = [
+    { key: 'electricity', icon: '\u26a1', name: 'AIR-E', className: 'air-head' },
+    { key: 'water', icon: '\ud83d\udca7', name: 'TRIPLE A', className: 'water-head' },
+    { key: 'gas', icon: '\ud83d\udd25', name: 'GASES', className: 'gas-head' },
+  ];
   const headerCells = [
-    ['#AP', 'ap-head'],
-    ['⚡ AIR-E', 'air-head'],
-    ['💧 TRIPLE A', 'water-head'],
-    ['🔥 GASES', 'gas-head'],
-  ].map(([label, className]) => `<div class="cell header ${className}">${label}</div>`).join('');
+    '<div class="cell header ap-head"><div class="header-main"># APARTAMENTO</div></div>',
+    ...serviceMeta.map(service => `<div class="cell header ${service.className}"><div class="header-main">${service.icon} ${service.name}</div><div class="header-sub">\u00dalt. sincronizaci\u00f3n</div></div>`),
+    '<div class="cell header total-head"><div class="header-main">TOTAL</div><div class="header-sub">Deuda total</div></div>',
+  ].join('');
   const serviceRows = report.rows.length
     ? report.rows.map((row, index) => {
       const stripe = index % 2 ? ' stripe' : '';
-      const values = row.services.map(service => service.known ? cloudImageMoney(service.amount) : '—');
+      const serviceCells = row.services.map(service => {
+        const amount = service.known ? cloudImageMoney(service.amount) : '\u2014';
+        const status = service.known ? (service.amount === 0 ? 'Al d\u00eda' : 'Confirmado') : 'No confirmado';
+        return `<div class="cell service-value${stripe}"><div class="amount">${amount}</div><div class="status ${service.known ? 'confirmed' : 'unconfirmed'}">${status}</div></div>`;
+      }).join('');
+      const total = row.complete ? cloudImageMoney(row.total) : '\u2014';
       return [
         `<div class="cell apartment${stripe}">${escapeCloudImageHtml(row.apartment)}</div>`,
-        `<div class="cell money${stripe}">${values[0]}</div>`,
-        `<div class="cell money${stripe}">${values[1]}</div>`,
-        `<div class="cell money${stripe}">${values[2]}</div>`,
+        serviceCells,
+        `<div class="cell money row-total${stripe}">${total}</div>`,
       ].join('');
     }).join('')
     : '<div class="empty">No hay apartamentos configurados para mostrar.</div>';
-  const totalRows = report.rows.length
-    ? report.rows.map((row, index) => {
-      const stripe = index % 2 ? ' stripe' : '';
-      return [
-        `<div class="cell apartment${stripe}">${escapeCloudImageHtml(row.apartment)}</div>`,
-        `<div class="cell money${stripe}">${row.complete ? cloudImageMoney(row.total) : '—'}</div>`,
-      ].join('');
-    }).join('')
-    : '';
-  const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '—';
+  const totals = report.serviceTotals || [null, null, null];
+  const confirmedCounts = report.serviceConfirmedCounts || [0, 0, 0];
+  const totalGeneralCells = serviceMeta.map((service, index) => {
+    const hasValues = confirmedCounts[index] > 0;
+    return `<div class="cell money total-row-value">${hasValues ? cloudImageMoney(totals[index]) : '\u2014'}</div>`;
+  }).join('');
+  const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '\u2014';
+  const syncSummary = serviceMeta.map(service => `
+    <div class="sync-item ${service.className.replace('-head', '')}">
+      <div class="sync-name">${service.icon} <span>${service.name}</span></div>
+      <div class="sync-label">Sincronizado:</div>
+      <div class="sync-value">${escapeCloudImageHtml(report.serviceSync?.[service.key] || '\u2014')}</div>
+    </div>`).join('');
   const incompleteNote = report.allComplete
-    ? ''
-    : '<div class="note">— indica que el portal todavía no confirmó el valor; el total se muestra cuando los tres servicios estén confirmados.</div>';
+    ? '<div class="note"><span class="info-icon">i</span> Todos los valores están confirmados. Los totales corresponden a la Deuda Total.</div>'
+    : '<div class="note"><span class="info-icon">i</span> \u2014 indica que el portal todavía no confirmó el valor. Los totales por servicio suman únicamente valores confirmados; el total general aparece cuando todos los apartamentos tienen sus tres servicios confirmados.</div>';
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #ffffff; }
-  body { width: 1160px; padding: 42px; color: #15263a; font-family: Arial, "DejaVu Sans", sans-serif; }
-  .card { border: 2px solid #d9e5ef; border-radius: 28px; overflow: hidden; box-shadow: 0 8px 22px rgba(25, 64, 96, .09); }
-  .title { padding: 30px 34px 24px; background: linear-gradient(135deg, #0d6fae, #1594c5); color: #fff; }
-  h1 { margin: 0 0 10px; font-size: 39px; letter-spacing: .5px; }
-  .date { font-size: 24px; opacity: .96; }
-  .section { padding: 28px 30px 4px; }
-  h2 { margin: 0 0 18px; color: #0d6fae; font-size: 28px; }
-  .table { display: grid; grid-template-columns: 150px repeat(3, minmax(0, 1fr)); border: 2px solid #cbdce8; border-radius: 16px; overflow: hidden; }
-  .total-table { grid-template-columns: 1fr 1fr; }
-  .cell { min-height: 64px; display: flex; align-items: center; padding: 13px 18px; border-right: 1px solid #d8e4ec; border-bottom: 1px solid #d8e4ec; font-size: 26px; background: #fff; }
-  .cell:nth-child(4n) { border-right: 0; }
-  .header { min-height: 68px; justify-content: center; font-size: 23px; font-weight: 800; color: #fff; border-bottom: 0; white-space: nowrap; }
-  .ap-head { background: #35536b; }
-  .air-head { background: #e88717; }
-  .water-head { background: #168cc4; }
-  .gas-head { background: #d9543f; }
-  .apartment { justify-content: center; font-weight: 800; }
-  .money { justify-content: flex-end; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
-  .stripe { background: #f4f8fb; }
-  .total { margin-top: 20px; border: 3px solid #0d6fae; border-radius: 16px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; }
-  .total .cell { min-height: 78px; border-bottom: 0; font-size: 29px; }
-  .total .label { color: #0d6fae; font-weight: 800; }
-  .total .amount { color: #0d6fae; font-size: 34px; }
-  .note { padding: 20px 4px 12px; color: #647889; font-size: 19px; line-height: 1.35; }
-  .empty { grid-column: 1 / -1; padding: 28px; font-size: 24px; color: #647889; text-align: center; }
-  .footer { padding: 22px 34px 28px; color: #647889; font-size: 19px; text-align: center; }
+  body { width: 1080px; padding: 32px; color: #253b53; font-family: Arial, "DejaVu Sans", sans-serif; }
+  .card { border: 2px solid #d7e3ec; border-radius: 24px; overflow: hidden; box-shadow: 0 8px 22px rgba(25, 64, 96, .09); }
+  .title { padding: 28px 30px 24px; background: linear-gradient(135deg, #0d6fae, #1594c5); color: #fff; }
+  .title-line { display: flex; align-items: center; gap: 18px; }
+  .report-logo { width: 46px; height: 48px; padding: 5px 6px 4px; display: flex; align-items: flex-end; gap: 4px; background: #fff; border-radius: 2px; }
+  .report-logo span { display: block; width: 8px; border-radius: 1px 1px 0 0; }
+  .report-logo .bar-one { height: 25px; background: #2c8bc5; }
+  .report-logo .bar-two { height: 35px; background: #83c64c; }
+  .report-logo .bar-three { height: 18px; background: #edb843; }
+  h1 { margin: 0 0 8px; font-size: 36px; letter-spacing: .3px; }
+  .date { font-size: 22px; opacity: .96; }
+  .table { margin: 34px 28px 0; display: grid; grid-template-columns: 210px repeat(3, minmax(0, 1fr)) 150px; border: 2px solid #cbdce8; border-radius: 16px; overflow: hidden; }
+  .cell { min-width: 0; min-height: 74px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px 12px; border-right: 1px solid #d8e4ec; border-bottom: 1px solid #d8e4ec; font-size: 23px; background: #fff; overflow: hidden; }
+  .cell:nth-child(5n) { border-right: 0; }
+  .header { min-height: 86px; justify-content: center; color: #fff; border-bottom: 0; white-space: nowrap; }
+  .header-main { font-size: 21px; font-weight: 800; line-height: 1.25; }
+  .header-sub { margin-top: 5px; font-size: 15px; font-weight: 400; line-height: 1.15; }
+  .ap-head { background: #2e4a62; }
+  .air-head { background: #f28a0b; }
+  .water-head { background: #118fc8; }
+  .gas-head { background: #e9533f; }
+  .total-head { background: #1c507b; }
+  .apartment { font-weight: 800; font-size: 24px; }
+  .service-value { gap: 5px; }
+  .amount { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 16px; line-height: 1.15; white-space: nowrap; }
+  .confirmed { color: #637991; }
+  .unconfirmed { color: #637991; }
+  .money { justify-content: center; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  .row-total { color: #1c507b; }
+  .stripe { background: #f3f7fa; }
+  .total-row-label { background: #1c507b; color: #fff; font-size: 19px; font-weight: 800; white-space: nowrap; }
+  .total-row-value { color: #1c507b; font-size: 23px; }
+  .sync-grid { margin: 28px 28px 0; display: grid; grid-template-columns: repeat(3, 1fr); }
+  .sync-item { min-height: 100px; padding: 4px 28px 4px 20px; border-right: 1px solid #cbdce8; }
+  .sync-item:last-child { border-right: 0; }
+  .sync-name { font-size: 20px; font-weight: 800; }
+  .sync-name span { margin-left: 8px; }
+  .sync-label { margin: 13px 0 2px 37px; font-size: 17px; color: #637991; }
+  .sync-value { margin-left: 37px; font-size: 18px; color: #253b53; white-space: nowrap; }
+  .air .sync-name { color: #e88909; }
+  .water .sync-name { color: #148fc5; }
+  .gas .sync-name { color: #e84e3a; }
+  .note { margin: 28px 28px 0; padding: 16px 18px; border: 2px solid #1674bc; border-radius: 10px; color: #637991; font-size: 17px; line-height: 1.35; }
+  .info-icon { display: inline-flex; justify-content: center; align-items: center; width: 22px; height: 22px; margin-right: 8px; border: 2px solid #1674bc; border-radius: 50%; color: #1674bc; font-size: 14px; font-weight: 800; }
+  .empty { grid-column: 1 / -1; padding: 28px; font-size: 22px; color: #637991; text-align: center; }
+  .footer { margin-top: 26px; padding: 20px 30px 26px; border-top: 1px solid #d8e4ec; color: #637991; font-size: 17px; line-height: 1.45; }
+  .footer-main { font-size: 17px; }
+  .refresh-icon { display: inline-block; margin-right: 10px; color: #168bc5; font-size: 30px; line-height: .7; vertical-align: -3px; }
+  .footer-date { margin-top: 8px; color: #8397ad; }
 </style></head><body>
   <div class="card">
-    <div class="title"><h1>📊 REPORTE DE SERVICIOS</h1><div class="date">${escapeCloudImageHtml(report.dateLabel)}</div></div>
-    <div class="section">
-      <h2>Valores confirmados por apartamento</h2>
-      <div class="table">${headerCells}${serviceRows}</div>
-    </div>
-    <div class="section">
-      <h2>💰 TOTAL POR APARTAMENTO</h2>
-      <div class="table total-table">${totalRows || '<div class="empty">Sin datos para totalizar.</div>'}</div>
-      <div class="total"><div class="cell label">TOTAL</div><div class="cell money amount">${grandTotal}</div></div>
-      ${incompleteNote}
-    </div>
-    <div class="footer">Todos los valores corresponden a <b>Deuda Total</b> y se generaron con la última sincronización disponible.</div>
+    <div class="title"><div class="title-line"><div class="report-logo"><span class="bar-one"></span><span class="bar-two"></span><span class="bar-three"></span></div><div><h1>REPORTE DE SERVICIOS</h1><div class="date">${escapeCloudImageHtml(report.dateLabel)}</div></div></div></div>
+    <div class="table">${headerCells}${serviceRows}<div class="cell total-row-label">TOTAL GENERAL</div>${totalGeneralCells}<div class="cell money total-row-value">${grandTotal}</div></div>
+    <div class="sync-grid">${syncSummary}</div>
+    ${incompleteNote}
+    <div class="footer"><div class="footer-main"><span class="refresh-icon">↻</span> Todos los valores corresponden a <b>Deuda Total</b> y se generaron con la última sincronización disponible.</div><div class="footer-date">Reporte generado: ${escapeCloudImageHtml(report.dateLabel)}</div></div>
   </div>
 </body></html>`;
 }
