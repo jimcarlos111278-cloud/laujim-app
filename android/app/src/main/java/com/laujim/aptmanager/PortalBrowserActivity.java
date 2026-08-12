@@ -83,6 +83,14 @@ public class PortalBrowserActivity extends Activity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        // Re-assert the shared instance whenever Android brings this activity
+        // back after reordering the task or restoring it from the background.
+        activeInstance = this;
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
