@@ -971,8 +971,11 @@ function buildDebtReply(contact) {
   const aptId = Number(contact.apartmentId);
   const apt = (db.apartments || []).find(a => Number(a.id) === aptId);
   const nic = apt?.electricityPaymentCode || apt?.nic || '';
-  const electricityRecords = (db.utilityRecords || [])
-    .filter(r => r.provider === 'Air-e' && (r.nic === nic || (apt && r.apartment === apt.name)))
+  const directElectricityRecords = (db.utilityRecords || [])
+    .filter(r => r.provider === 'Air-e' && apt &&
+      (Number(r.apartmentId) === Number(apt.id) || r.apartment === apt.name));
+  const electricityRecords = (directElectricityRecords.length ? directElectricityRecords : (db.utilityRecords || [])
+    .filter(r => r.provider === 'Air-e' && !r.apartmentId && !r.apartment && r.nic === nic))
     .sort((a, b) => (b.scrapedAt || '').localeCompare(a.scrapedAt || ''));
   const electricity = electricityRecords[0] || null;
   const water = latestUtilityRecord('Triple A', apt);
@@ -2598,13 +2601,19 @@ app.get('/api/public/apartments/:id', (req, res) => {
 app.get('/api/services/utility-records/:apartmentId', (req, res) => {
   const aptId = Number(req.params.apartmentId);
   if (!db.utilityRecords) db.utilityRecords = [];
-  const records = db.utilityRecords.filter(r => {
-    // Match by apartment name (e.g. "101", "201") or by electricityPaymentCode
-    const apt = db.apartments.find(a => a.id === aptId);
-    if (!apt) return false;
-     return Number(r.apartmentId) === aptId || r.apartment === apt.name ||
-       (r.provider === 'Air-e' && r.nic === (apt.electricityPaymentCode || apt.nic));
-  });
+  const apt = db.apartments.find(a => a.id === aptId);
+  if (!apt) return res.json([]);
+  // Match by apartment identity first. Shared Air-e NICs must not make the
+  // record for one apartment appear as a second record in another apartment.
+  const directRecords = db.utilityRecords.filter(r =>
+    Number(r.apartmentId) === aptId || r.apartment === apt.name
+  );
+  const hasDirectAirE = directRecords.some(r => r.provider === 'Air-e');
+  const legacyAirERecords = hasDirectAirE ? [] : db.utilityRecords.filter(r =>
+    r.provider === 'Air-e' && !r.apartmentId && !r.apartment &&
+    r.nic === (apt.electricityPaymentCode || apt.nic)
+  );
+  const records = [...directRecords, ...legacyAirERecords];
   // Sort by scrapedAt DESC, then by periodo DESC
   records.sort((a, b) => (b.scrapedAt || '').localeCompare(a.scrapedAt || '') || (b.periodo || '').localeCompare(a.periodo || ''));
   res.json(records);
@@ -3184,11 +3193,22 @@ app.post('/api/scrape-air-e', async (req, res) => {
   try {
     res.json({ ok: true, message: 'Scrape iniciado. Los resultados se guardarán en utilityRecords.' });
     const results = await servicesScraper.scrapeAirE();
-    // Persist results (one current-debt record per NIC)
+    // Persist results per apartment. A shared NIC is expected to generate a
+    // separate visible record for every apartment that uses that service.
     if (!db.utilityRecords) db.utilityRecords = [];
     for (const r of results) {
       const existing = db.utilityRecords.findIndex(
-        (u) => u.nic === r.nic && u.provider === 'Air-e'
+        (u) => {
+          if (u.provider !== 'Air-e') return false;
+          const sameApartmentId = r.apartmentId !== null && r.apartmentId !== undefined &&
+            u.apartmentId !== null && u.apartmentId !== undefined &&
+            Number(u.apartmentId) === Number(r.apartmentId);
+          const sameApartmentName = String(r.apartment || '').trim() &&
+            String(u.apartment || '').trim() === String(r.apartment || '').trim();
+          if (sameApartmentId || sameApartmentName) return true;
+          return !r.apartmentId && !r.apartment && !u.apartmentId && !u.apartment &&
+            u.nic === r.nic;
+        }
       );
       if (existing >= 0) {
         db.utilityRecords[existing] = { ...db.utilityRecords[existing], ...r };
@@ -3234,8 +3254,11 @@ app.get('/api/public/utility-status/:apartmentId', (req, res) => {
   let electricityInfo = null;
   const correctNic = apt.electricityPaymentCode || apt.nic || '';
   if (correctNic && db.utilityRecords) {
-    const elecRecords = db.utilityRecords
-      .filter(r => r.nic === correctNic && r.provider === 'Air-e')
+    const directElecRecords = db.utilityRecords
+      .filter(r => r.provider === 'Air-e' &&
+        (Number(r.apartmentId) === Number(apt.id) || r.apartment === apt.name));
+    const elecRecords = (directElecRecords.length ? directElecRecords : db.utilityRecords
+      .filter(r => r.nic === correctNic && r.provider === 'Air-e' && !r.apartmentId && !r.apartment))
       .sort((a, b) => (b.scrapedAt || '').localeCompare(a.scrapedAt || ''));
     if (elecRecords.length > 0) {
       const latest = elecRecords[0];

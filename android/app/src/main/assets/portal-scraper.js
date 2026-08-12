@@ -236,15 +236,19 @@
   async function jsonWithAuthFallback(url, token, options) {
     const base = options || {};
     const baseHeaders = Object.assign({}, base.headers || {});
-    let response = await json(url, Object.assign({}, base, { headers: baseHeaders }));
-    if (![401, 403].includes(response.status)) return response;
-    for (const authorization of authorizationVariants(token)) {
+    const variants = authorizationVariants(token);
+    const attempts = variants.length ? variants : [null];
+    let response = null;
+    for (const authorization of attempts) {
       response = await json(url, Object.assign({}, base, {
-        headers: Object.assign({}, baseHeaders, { Authorization: authorization }),
+        headers: Object.assign({}, baseHeaders, authorization ? { Authorization: authorization } : {}),
       }));
-      if (![401, 403].includes(response.status)) break;
+      // A CORS/preflight failure is reported as status 0. Try the remaining
+      // token formats because the two provider frontends use different
+      // conventions (bare token vs Bearer token).
+      if (![0, 401, 403].includes(response.status)) break;
     }
-    return response;
+    return response || { status: 0, ok: false, payload: null, body: '', error: 'No se obtuvo respuesta del portal.' };
   }
 
   function responseDetail(response) {
@@ -292,6 +296,24 @@
     return '';
   }
 
+  async function waitForStoredToken(timeoutMs) {
+    const deadline = Date.now() + Math.max(0, Number(timeoutMs) || 0);
+    let token = storedToken();
+    while (!token && Date.now() < deadline) {
+      await wait(500);
+      token = storedToken();
+    }
+    return token;
+  }
+
+  function portalAppVersion() {
+    try {
+      return document.querySelector('meta[name="version-info"]')?.getAttribute('content') || 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  }
+
   async function runAirE(config) {
     const state = loginState();
     if (state.password) return needsLogin('air-e', 'Air-e solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
@@ -336,9 +358,16 @@
     const state = loginState();
     if (state.password) return needsLogin('water', 'Triple A solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
     if (state.challenge) return { state: 'needs_verification', provider: 'water', stage: 'turnstile', message: 'Triple A muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
-    const token = storedToken();
+    // /polizas performs the real NextAuth/BFF request and exposes the
+    // Authorization header to the local hook. The login route alone only
+    // has an HttpOnly session cookie and made /bff/subscriptions return 401.
+    await wait(2500);
+    const token = await waitForStoredToken(8000);
     const response = await jsonWithAuthFallback('/bff/subscriptions', token, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest', 'x-app-version': 'unknown' },
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'x-app-version': portalAppVersion(),
+      },
     });
     if (response.status === 401 || response.status === 403) return needsLogin('water', `Triple A rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`, { stage: 'fetch_subscriptions', httpStatus: response.status, fetchError: response.error || null });
     if (!response.ok) return { state: 'error', provider: 'water', stage: 'fetch_subscriptions', httpStatus: response.status, fetchError: response.error || null, message: `Triple A rechazó la consulta (HTTP ${response.status}).`, results: [] };
@@ -371,12 +400,19 @@
     const state = loginState();
     if (state.password) return needsLogin('gas', 'Gases del Caribe solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
     if (state.challenge) return { state: 'needs_verification', provider: 'gas', stage: 'turnstile', message: 'Gases del Caribe muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
-    const token = storedToken();
-    const response = await jsonWithAuthFallback(`${GAS_API}/contracts`, token, { credentials: 'omit' });
+    // The protected contracts page hydrates currentUser/localStorage and lets
+    // the native hook capture the exact token used by Gascaribe's Axios app.
+    await wait(2500);
+    const token = await waitForStoredToken(8000);
+    const gasRequestOptions = {
+      credentials: 'omit',
+      headers: { Pragma: 'no-cache' },
+    };
+    const response = await jsonWithAuthFallback(`${GAS_API}/contracts`, token, gasRequestOptions);
     if (response.status === 401 || response.status === 403) return needsLogin('gas', `Gases del Caribe rechazó la sesión (HTTP ${response.status}). Inicia sesión desde la app.`, { stage: 'fetch_contracts', httpStatus: response.status, fetchError: response.error || null });
     if (!response.ok) return { state: 'error', provider: 'gas', stage: 'fetch_contracts', httpStatus: response.status, fetchError: response.error || null, message: `Gases del Caribe rechazó la consulta (HTTP ${response.status}).`, results: [] };
     const payloadToken = field(response.payload, ['token', 'appToken', 'accessToken', 'authorization']);
-    const auth = String(payloadToken || token || '').trim();
+    const auth = String(payloadToken || await waitForStoredToken(1500) || token || '').trim();
     const contracts = list(response.payload, ['contracts', 'items']);
     if (!contracts.length) return { state: 'error', provider: 'gas', stage: 'parse_contracts', contractCount: 0, message: 'Gases del Caribe aceptó la sesión, pero no devolvió contratos.', results: [] };
     const results = [];
@@ -402,7 +438,10 @@
         missingContractIds += 1;
         continue;
       }
-      const invoiceResponse = await jsonWithAuthFallback(`${GAS_API}/invoices/${encodeURIComponent(contractId)}`, auth, { credentials: 'omit' });
+      // Match the official frontend: it always sends this query parameter,
+      // even when the value is empty after the authenticated session exists.
+      const invoiceUrl = `${GAS_API}/invoices/${encodeURIComponent(contractId)}?g-recaptcha-response=${encodeURIComponent('')}`;
+      const invoiceResponse = await jsonWithAuthFallback(invoiceUrl, auth, gasRequestOptions);
       if (!invoiceResponse.ok) {
         invoiceFailures += 1;
         if (!firstInvoiceStatus) firstInvoiceStatus = Number(invoiceResponse.status) || 0;

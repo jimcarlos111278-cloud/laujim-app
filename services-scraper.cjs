@@ -194,7 +194,6 @@ const AIR_E_NIC_MAP = {
 
 function configuredAirETargets(apartments = db?.apartments || []) {
   const targets = [];
-  const seen = new Set();
   const ordered = [...(apartments || [])].sort((left, right) => {
     const leftConfigured = left?.status === 'occupied' ? 0 : 1;
     const rightConfigured = right?.status === 'occupied' ? 0 : 1;
@@ -203,8 +202,10 @@ function configuredAirETargets(apartments = db?.apartments || []) {
 
   for (const apartment of ordered) {
     const nic = String(apartment?.electricityPaymentCode || apartment?.nic || '').replace(/\D/g, '');
-    if (!nic || seen.has(nic)) continue;
-    seen.add(nic);
+    // A single Air-e NIC can intentionally be shared by multiple apartments.
+    // Keep one target per apartment so the same portal debt is displayed on
+    // every apartment that is configured with that shared NIC.
+    if (!nic) continue;
     targets.push({
       apartmentId: apartment.id,
       apartment: apartment.name,
@@ -2936,10 +2937,23 @@ function persistResults(results) {
   if (!db.utilityRecords) db.utilityRecords = [];
 
   for (const r of results) {
-    // One current-debt record per NIC
+    // Keep one current-debt record per apartment. A shared NIC is expected to
+    // appear more than once when it belongs to multiple apartments.
     r.provider = 'Air-e';
     const idx = db.utilityRecords.findIndex(
-      (u) => u.nic === r.nic && u.provider === 'Air-e'
+      (u) => {
+        if (u.provider !== 'Air-e') return false;
+        const sameApartmentId = r.apartmentId !== null && r.apartmentId !== undefined &&
+          u.apartmentId !== null && u.apartmentId !== undefined &&
+          Number(u.apartmentId) === Number(r.apartmentId);
+        const sameApartmentName = String(r.apartment || '').trim() &&
+          String(u.apartment || '').trim() === String(r.apartment || '').trim();
+        if (sameApartmentId || sameApartmentName) return true;
+        // Legacy records without apartment identity can still be refreshed by
+        // NIC, but never use NIC as the key when either record has an apartment.
+        return !r.apartmentId && !r.apartment && !u.apartmentId && !u.apartment &&
+          u.nic === r.nic;
+      }
     );
     if (idx >= 0) {
       db.utilityRecords[idx] = { ...db.utilityRecords[idx], ...r };

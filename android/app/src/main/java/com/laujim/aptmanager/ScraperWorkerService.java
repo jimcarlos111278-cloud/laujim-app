@@ -347,7 +347,7 @@ public class ScraperWorkerService extends Service {
             .put("deviceId", deviceId)
             .put("platform", "android")
             .put("runtime", "laujim-local-webview")
-            .put("appVersion", "1.0.12")
+            .put("appVersion", "1.0.13")
             .put("providers", scheduleProviders == null ? new JSONArray() : scheduleProviders)
             .put("replaceExisting", false);
         HttpResult result = request(server + "/worker/v1/register", "POST", token, deviceId, registration.toString());
@@ -355,9 +355,19 @@ public class ScraperWorkerService extends Service {
     }
 
     private JSONObject runProvider(String provider, JSONObject config) throws Exception {
-        String url = PortalBrowserActivity.portalUrl(provider);
+        // Open the authenticated data route so the portal itself refreshes its
+        // session token. Loading only /login leaves NextAuth/Gascaribe tokens
+        // unavailable to the local runner and produces false 401/fetch errors.
+        String url = portalWorkUrl(provider);
         JSONObject outcome = loadAndEvaluate(provider, url, config);
         return outcome == null ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.") : outcome;
+    }
+
+    private String portalWorkUrl(String provider) {
+        String normalized = provider == null ? "" : provider.trim().toLowerCase();
+        if ("water".equals(normalized)) return "https://portal.aaa.com.co/polizas";
+        if ("gas".equals(normalized)) return "https://portal.gascaribe.com/contracts";
+        return PortalBrowserActivity.portalUrl(provider);
     }
 
     private void captureAuthorization(String url, java.util.Map<String, String> headers) {
