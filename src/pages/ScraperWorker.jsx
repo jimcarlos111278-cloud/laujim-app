@@ -55,8 +55,10 @@ function formatLogTime(value) {
   const date = new Date(value || '');
   if (Number.isNaN(date.getTime())) return 'sin hora';
   return new Intl.DateTimeFormat('es-CO', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
-  }).format(date);
+    timeZone: 'America/Bogota',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+  }).format(date) + ' · Colombia (UTC−5)';
 }
 
 function logLevelClass(level) {
@@ -77,7 +79,7 @@ function LogList({ logs, emptyText }) {
             <span className="font-semibold text-gray-700 dark:text-gray-200">{log.provider || 'Worker'}</span>
             <span className="rounded bg-white px-1.5 py-0.5 text-gray-500 shadow-sm dark:bg-gray-800 dark:text-gray-400">{log.stage || 'general'}</span>
             {log.httpStatus !== null && log.httpStatus !== undefined && <span className="font-mono text-gray-500">HTTP {log.httpStatus}</span>}
-            <span className="ml-auto text-gray-400">{formatLogTime(log.eventAt || log.createdAt)}</span>
+            <span className="ml-auto text-right text-gray-400" title="Hora del evento en Colombia (UTC−5)">Hora: {formatLogTime(log.eventAt || log.createdAt)}</span>
           </div>
           <p className="mt-2 text-gray-700 dark:text-gray-300">{log.message}</p>
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-gray-500 dark:text-gray-400">
@@ -473,9 +475,18 @@ export default function ScraperWorker() {
             <button onClick={handleNativeRunNow} disabled={nativeBusy || !settings.token} className="inline-flex items-center gap-2 rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-800 hover:bg-green-100 disabled:opacity-50 dark:border-green-800 dark:text-green-200 dark:hover:bg-green-900/30">
               <RefreshCw className="h-4 w-4" /> Ejecutar ahora
             </button>
-            <span className="text-xs text-gray-600 dark:text-gray-300">Estado: {nativeStatus?.lastState || 'sin iniciar'}{nativeStatus?.currentProvider ? ` · ${nativeStatus.currentProvider}` : ''}{nativeStatus?.lastRunAt ? ` · ${nativeStatus.lastRunAt}` : ''}</span>
+            <span className="text-xs text-gray-600 dark:text-gray-300">Estado: {nativeStatus?.lastState || 'sin iniciar'}{nativeStatus?.currentProvider ? ` · ${nativeStatus.currentProvider}` : ''}{nativeStatus?.lastRunAt ? ` · ${formatLogTime(nativeStatus.lastRunAt)}` : ''}</span>
           </div>
-          {nativeStatus?.lastError && <p className="mt-3 rounded-lg bg-red-100 p-3 text-xs text-red-800 dark:bg-red-900/30 dark:text-red-200">Último error: {nativeStatus.lastError}</p>}
+          {nativeStatus?.lastError && (
+            <div className="mt-3 rounded-lg bg-red-100 p-3 text-xs text-red-800 dark:bg-red-900/30 dark:text-red-200">
+              <p><strong>Último error</strong>{nativeStatus.lastRunAt ? ` · ${formatLogTime(nativeStatus.lastRunAt)}` : ''}: {nativeStatus.lastError}</p>
+              {String(nativeStatus.lastError).includes('conserva la sesión') && (
+                <p className="mt-2 border-t border-red-200 pt-2 dark:border-red-800/60">
+                  Para Triple A: pulsa <strong>Abrir Triple A</strong> desde esta pantalla, inicia sesión y completa Turnstile si aparece; después pulsa <strong>Volver a Laujim</strong> sin cerrar la APK ni borrar cookies y ejecuta de nuevo el worker.
+                </p>
+              )}
+            </div>
+          )}
           <div className="mt-4 rounded-lg border border-green-200 bg-white/70 p-3 dark:border-green-800/60 dark:bg-gray-900/40">
             <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">Primera configuración o verificación manual</p>
             <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">Abre cada portal desde aquí, inicia sesión y completa Turnstile si aparece. La sesión queda en el teléfono para las siguientes ejecuciones.</p>
@@ -539,7 +550,7 @@ export default function ScraperWorker() {
             <div className="rounded-lg bg-indigo-100 p-2 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"><Activity className="h-5 w-5" /></div>
             <div>
               <h2 className="font-semibold text-gray-900 dark:text-white">Diagnóstico de ejecuciones</h2>
-              <p className="text-xs text-gray-600 dark:text-gray-300">Render registra lo que recibió; la app registra lo que ocurrió dentro del WebView. Se actualiza cada 10 segundos y nunca muestra tokens, cookies ni facturas completas.</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300">Render registra lo que recibió; la app registra lo que ocurrió dentro del WebView. Se actualiza cada 10 segundos. Cada evento muestra fecha y hora de Colombia (UTC−5); nunca muestra tokens, cookies ni facturas completas.</p>
             </div>
           </div>
           <button onClick={() => loadDiagnostics(true)} disabled={diagnosticsBusy} className="inline-flex items-center gap-2 self-start rounded-lg border border-indigo-300 px-3 py-2 text-xs font-medium text-indigo-800 hover:bg-indigo-100 disabled:opacity-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-900/40">

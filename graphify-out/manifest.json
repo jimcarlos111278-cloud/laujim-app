@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "src/pages/ScraperWorker.jsx": {
-    "mtime": 1786494941.3428485,
-    "ast_hash": "e528b047b98f7c8489b13a83c2d1b540",
+    "mtime": 1786517392.155858,
+    "ast_hash": "2aaba0aec0c14cffeaddf3354a13aefe",
     "semantic_hash": ""
   },
   "src/utils/portableWorker.js": {
