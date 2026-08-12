@@ -447,9 +447,52 @@
     return String(text || '').match(/((?:AP|Casa)\s*\d{3})\s*(?:[-\u2013\u2014:\u2022\u00b7]\s*)?(\d{4,})/i);
   }
 
+  function waterPolicyMenuItems() {
+    return Array.from(document.querySelectorAll('[role="menuitem"], [role="option"]'))
+      .filter(domAvailable)
+      .map(element => {
+        const text = uiText(element);
+        const match = portalPair(text);
+        return match ? {
+          element,
+          text,
+          name: match[1],
+          code: digits(match[2]),
+        } : null;
+      })
+      .filter(Boolean);
+  }
+
+  function waterPolicySelectorTrigger() {
+    // Triple A does not expose a semantic button here. The same policy text
+    // is repeated across several nested MUI containers; sorting only by text
+    // length selected MuiCardHeader-root, whose programmatic click does
+    // nothing. The actual control is the smallest container that includes
+    // both the selected policy and the down-arrow icon.
+    const arrowSelector = '.material-icons, [class*="arrow-down"], [class*="ri-arrow-down"]';
+    const candidates = Array.from(document.querySelectorAll('button, [role="button"], div, span'))
+      .filter(domAvailable)
+      .map(element => ({
+        element,
+        text: uiText(element),
+        descendants: element.querySelectorAll('*').length,
+      }))
+      .filter(item => item.text && item.text.length < 180
+        && portalPair(item.text)
+        && item.element.querySelector(arrowSelector))
+      .sort((left, right) => left.descendants - right.descendants || left.text.length - right.text.length);
+    return candidates[0]?.element || null;
+  }
+
   function waterPoliciesOnPage() {
     const records = [];
     const seen = new Set();
+    for (const item of waterPolicyMenuItems()) {
+      if (!item.code || seen.has(item.code)) continue;
+      seen.add(item.code);
+      records.push({ name: item.name, code: item.code, address: '', status: '' });
+    }
+    if (records.length) return records;
     const rows = Array.from(document.querySelectorAll('[role="row"], tr')).filter(domAvailable);
     for (const row of rows) {
       const cells = Array.from(row.querySelectorAll('[role="gridcell"], td')).filter(domAvailable).map(uiText);
@@ -496,31 +539,32 @@
   function waterPolicyOption(policy) {
     const code = digits(policy?.code);
     if (!code) return null;
-    const candidates = Array.from(document.querySelectorAll(
-      'button, [role="button"], [role="option"], [role="menuitem"], li, a, [tabindex], div, span'
-    )).filter(domAvailable).map(element => ({ element, text: uiText(element) }))
-      .filter(item => item.text && digits(item.text).includes(code) && portalPair(item.text))
-      .sort((left, right) => left.text.length - right.text.length);
-    return candidates[0]?.element || null;
+    return waterPolicyMenuItems().find(item => item.code === code)?.element || null;
   }
 
   async function selectWaterPolicy(policy) {
     const code = digits(policy?.code);
     if (!code) return false;
-    if (selectedWaterPolicyCode() === code && /total\s+a\s+pagar/i.test(uiBodyText())) return true;
+    const alreadySelected = selectedWaterPolicyCode() === code && /total\s+a\s+pagar/i.test(uiBodyText());
 
-    // The selector can already be open after discovery. Reuse an option
-    // that is currently visible; clicking the toggle again would close it
-    // and make the next policy impossible to select.
+    if (alreadySelected) {
+      if (!waterPolicyMenuItems().length) return true;
+      const toggle = waterPolicySelectorTrigger();
+      if (!toggle) return false;
+      toggle.click();
+      return Boolean(await waitForUi(() => {
+        const text = uiBodyText();
+        return !waterPolicyMenuItems().length
+          && selectedWaterPolicyCode() === code
+          && /total\s+a\s+pagar/i.test(text) ? true : null;
+      }, 5_000));
+    }
+
+    // Discovery intentionally leaves the menu open. Reuse the matching
+    // semantic menu item instead of searching all repeated text containers.
     let option = waterPolicyOption(policy);
     if (!option) {
-      const toggleCandidates = Array.from(document.querySelectorAll(
-        'button, [role="button"], [aria-haspopup="listbox"], div, span'
-      )).filter(domAvailable).map(element => ({ element, text: uiText(element) }))
-        .filter(item => item.text && item.text.length < 180 && portalPair(item.text))
-        .sort((left, right) => left.text.length - right.text.length);
-      const toggle = toggleCandidates[0]?.element || null;
-      if (toggle) toggle.click();
+      await openWaterPolicySelector();
       option = await waitForUi(() => waterPolicyOption(policy), 5_000);
     }
     if (!option) return false;
@@ -528,11 +572,19 @@
     return Boolean(await waitForUi(() => {
       const currentCode = selectedWaterPolicyCode();
       const text = uiBodyText();
-      return currentCode === code && /total\s+a\s+pagar/i.test(text) && new RegExp(escapeRegex(code)).test(text) ? true : null;
+      return currentCode === code
+        && !waterPolicyMenuItems().length
+        && /total\s+a\s+pagar/i.test(text)
+        && new RegExp(escapeRegex(code)).test(text) ? true : null;
     }, PORTAL_UI_TIMEOUT_MS));
   }
 
   async function discoverWaterPolicies() {
+    const selector = waterPolicySelectorTrigger();
+    const openMenu = waterPolicyMenuItems();
+    if (selector || openMenu.length) {
+      return await openWaterPolicySelector();
+    }
     const all = [];
     for (let page = 0; page < 8; page += 1) {
       const current = await waitForUi(() => {
@@ -559,36 +611,36 @@
   }
 
   async function openWaterPolicySelector() {
+    const menuPolicies = waterPolicyMenuItems().map(item => ({
+      name: item.name,
+      code: item.code,
+      address: '',
+      status: '',
+    }));
+    if (menuPolicies.length) return menuPolicies;
     const visiblePolicies = waterPoliciesOnPage();
-    if (visiblePolicies.length > 1) return visiblePolicies;
-    const toggleCandidates = Array.from(document.querySelectorAll(
-      'button, [role="button"], [aria-haspopup="listbox"], div, span'
-    )).filter(domAvailable).map(element => ({ element, text: uiText(element) }))
-      .filter(item => item.text && item.text.length < 180 && portalPair(item.text))
-      .sort((left, right) => left.text.length - right.text.length);
-    const toggle = toggleCandidates[0]?.element || null;
+    const toggle = waterPolicySelectorTrigger();
     if (!toggle) return visiblePolicies;
     toggle.click();
     return (await waitForUi(() => {
-      const policies = waterPoliciesOnPage();
-      return policies.length > 1 ? policies : null;
+      const policies = waterPolicyMenuItems().map(item => ({
+        name: item.name,
+        code: item.code,
+        address: '',
+        status: '',
+      }));
+      return policies.length ? policies : null;
     }, 5_000)) || visiblePolicies;
   }
 
   async function openWaterPayments() {
-    // The current Triple A portal already shows the debt card on the
-    // authenticated home screen. There is no separate "Pagos" link to open;
-    // changing the policy dropdown refreshes "Total a pagar" in place.
-    if (/tu\s+deuda\s+actual/i.test(uiBodyText()) && /total\s+a\s+pagar/i.test(uiBodyText())) return true;
-    const link = findVisibleUiElement('a', (label, element) =>
-      /pagos-usuario/.test(String(element.getAttribute('href') || '')) || clean(label) === 'pagos'
-    );
-    if (!link) return false;
-    link.click();
-    return Boolean(await waitForUi(() =>
-      /pagos-usuario/.test(location.pathname) && document.querySelector('input[name="paymentNumber"], input[type="number"]'),
-      PORTAL_PAGE_TIMEOUT_MS
-    ));
+    // The reliable debt value lives on /inicio. Do not navigate from this
+    // injected runner: a full SPA/document navigation would destroy the
+    // JavaScript promise that must answer the Android bridge.
+    return Boolean(await waitForUi(() => {
+      const text = uiBodyText();
+      return /tu\s+deuda\s+actual/i.test(text) && /total\s+a\s+pagar/i.test(text) ? true : null;
+    }, PORTAL_PAGE_TIMEOUT_MS));
   }
 
   function parseWaterPaymentResult(text) {
@@ -934,7 +986,14 @@
 
     const hydrationStartedAt = Date.now();
     await wait(1200);
-    await openWaterPolicySelector();
+    if (!(await openWaterPayments())) {
+      return {
+        state: 'error', provider: 'water', stage: 'open_debt_home',
+        url: location.href, title: document.title || '',
+        message: 'Triple A esta autenticado, pero no muestra Tu deuda actual. Abre Inicio en el portal y vuelve a ejecutar.',
+        results: [],
+      };
+    }
     const policies = await discoverWaterPolicies();
     if (!policies.length) {
       return {
@@ -948,8 +1007,6 @@
         results: [],
       };
     }
-    if (!(await openWaterPayments())) return { state: 'error', provider: 'water', stage: 'open_payments', message: 'Triple A no abrio la pantalla de pagos autenticada.', results: [] };
-
     const results = [];
     const used = new Set();
     let unmatchedPolicies = 0;
