@@ -170,6 +170,27 @@ async function fetchFirst(collection, field, value) {
 export const api = {
   getServerVersion,
   refreshBase,
+  marketplace: {
+    async jobs(apartmentId) {
+      const suffix = apartmentId ? `?apartmentId=${encodeURIComponent(apartmentId)}` : '';
+      const response = await fetch(getBase() + '/marketplace/jobs' + suffix, {
+        headers: { 'x-auth-token': AUTH_TOKEN },
+        signal: AbortSignal.timeout(10000),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'No se pudo consultar Marketplace.');
+      return Array.isArray(payload.jobs) ? payload.jobs : [];
+    },
+    async publish(apartmentId) {
+      return serverReq('POST', 'marketplace/jobs', null, { apartmentId, publish: true });
+    },
+    async retry(jobId) {
+      return serverReq('POST', `marketplace/jobs/${jobId}/retry`);
+    },
+    async cancel(jobId) {
+      return serverReq('POST', `marketplace/jobs/${jobId}/cancel`);
+    },
+  },
   async uploadPhoto(file, apartmentId) {
     try {
       return await uploadFile('/api/upload/photo', file, { apartmentId });

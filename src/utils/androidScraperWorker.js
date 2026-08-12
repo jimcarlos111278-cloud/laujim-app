@@ -26,9 +26,39 @@ export function stopAndroidScraperWorker() {
   return NativeScraperWorker.stop();
 }
 
+export function rescheduleAndroidScraperWorker() {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
+  return NativeScraperWorker.reschedule();
+}
+
+export function requestAndroidExactAlarmPermission() {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
+  return NativeScraperWorker.requestExactAlarmPermission();
+}
+
+export function openAndroidBatterySettings() {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
+  return NativeScraperWorker.openBatterySettings();
+}
+
 export function getAndroidScraperWorkerStatus() {
   if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
   return NativeScraperWorker.getStatus();
+}
+
+export function getInstalledAndroidVersion() {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false, version: '0.0.0' });
+  return NativeScraperWorker.getInstalledVersion();
+}
+
+export function openAndroidMarketplace() {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
+  return NativeScraperWorker.openMarketplace();
+}
+
+export function runAndroidMarketplaceWorkerNow() {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
+  return NativeScraperWorker.runMarketplaceNow();
 }
 
 export function openAndroidPortal(provider) {

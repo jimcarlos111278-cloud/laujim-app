@@ -13,6 +13,7 @@
     "dev": "npm run graphify && vite",
     "build": "npm run graphify && vite build && node scripts/generate-version.js && node scripts/fix-html.js",
     "build-apk": "npm run build && node scripts/prepare-capacitor-assets.js && npx cap copy android && cd android && gradlew.bat assembleDebug && cd .. && node scripts/copy-apk.js",
+    "test:marketplace-api": "node scripts/test-marketplace-api.cjs",
     "portable-worker": "node scripts/portable-worker.cjs",
     "lint": "oxlint",
     "preview": "vite preview",

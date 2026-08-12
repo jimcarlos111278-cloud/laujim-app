@@ -5,25 +5,21 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dist = join(__dirname, '..', 'dist');
 const verFile = join(dist, 'version.json');
+const androidGradle = join(__dirname, '..', 'android', 'app', 'build.gradle');
 
 const now = new Date();
 const pad = n => String(n).padStart(2, '0');
 const buildBase = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
-const major = 1, minor = 0;
-let patch = 0;
-
-let prev = null;
-try { prev = JSON.parse(readFileSync(verFile, 'utf-8')); } catch {}
-
-if (prev && prev.build) {
-  const prevPatch = prev.patch || 0;
-  patch = Number(prevPatch) + 1;
-} else {
-  patch = 1;
-}
+let apkVersion = '1.0.0';
+try {
+  const gradle = readFileSync(androidGradle, 'utf-8');
+  apkVersion = gradle.match(/versionName\s*=\s*["']([^"']+)["']/)?.[1] || apkVersion;
+} catch {}
+const versionParts = apkVersion.split('.').map(value => Number(value) || 0);
+const patch = versionParts[2] || 0;
 
 const version = {
-  version: `${major}.${minor}.${patch}`,
+  version: apkVersion,
   build: buildBase,
   patch,
   date: now.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' }),

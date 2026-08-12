@@ -145,12 +145,22 @@ public class ScraperWorkerService extends Service {
             stopSelfResult(startId);
             return START_NOT_STICKY;
         }
-        if (running.compareAndSet(false, true)) executor.execute(() -> runLocalScrape(startId));
+        String triggerSource = intent == null ? "android" : intent.getStringExtra("triggerSource");
+        if (triggerSource == null || triggerSource.trim().isEmpty()) triggerSource = "android";
+        if (running.compareAndSet(false, true)) {
+            final String source = triggerSource;
+            ScraperWorkerStore.setSchedulerEvent(this, "service_started", source, "El servicio inició la consulta común de los proveedores habilitados.");
+            ScraperWorkerSchedule.scheduleNextAlarm(this, "service-started");
+            executor.execute(() -> runLocalScrape(startId, source));
+        } else {
+            ScraperWorkerStore.setSchedulerEvent(this, "service_already_running", triggerSource, "Se ignoró una activación porque los portales todavía estaban en ejecución.");
+        }
         return START_NOT_STICKY;
     }
 
-    private void runLocalScrape(int startId) {
+    private void runLocalScrape(int startId, String triggerSource) {
         int nextHours = ScraperWorkerStore.intervalHours(this);
+        boolean scheduleChanged = false;
         String server = "";
         String token = "";
         String deviceId = "";
@@ -168,7 +178,14 @@ public class ScraperWorkerService extends Service {
             }
 
             ScraperWorkerStore.setRunState(this, "connecting", "");
-            addAppEvent(diagnosticEvents, null, "run_started", "info", "La app inició una ejecución local.", -1, 0, 0, null);
+            JSONObject schedulerDetails = new JSONObject()
+                .put("triggerSource", triggerSource)
+                .put("intervalHours", ScraperWorkerStore.intervalHours(this))
+                .put("startAt", ScraperWorkerStore.startAt(this))
+                .put("timezone", ScraperWorkerStore.timezone(this))
+                .put("nextRunAt", ScraperWorkerStore.iso(ScraperWorkerStore.nextRunAt(this)))
+                .put("scheduleMode", ScraperWorkerStore.scheduleMode(this));
+            addAppEvent(diagnosticEvents, null, "run_started", "info", "La app inició una ejecución programada común para Air-e, Triple A y Gases.", -1, 0, 0, schedulerDetails);
             flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
             updateNotification("Conectando con Laujim…", null);
             long configStartedAt = System.currentTimeMillis();
@@ -182,7 +199,12 @@ public class ScraperWorkerService extends Service {
             JSONObject schedule = config.optJSONObject("schedule");
             if (schedule != null) {
                 nextHours = ScraperWorkerStore.clampHours(schedule.optInt("intervalHours", nextHours));
-                ScraperWorkerStore.setIntervalHours(this, nextHours);
+                scheduleChanged = ScraperWorkerStore.setSchedule(
+                    this,
+                    nextHours,
+                    schedule.optString("startAt", ScraperWorkerStore.startAt(this)),
+                    schedule.optString("timezone", ScraperWorkerStore.timezone(this))
+                );
             }
 
             registerLocalWorker(server, token, deviceId, schedule == null ? null : schedule.optJSONArray("providers"));
@@ -289,12 +311,15 @@ public class ScraperWorkerService extends Service {
         } finally {
             ScraperWorkerStore.setCurrentProvider(this, "");
             running.set(false);
-            if (ScraperWorkerStore.enabled(this)) ScraperWorkerAlarm.scheduleNext(this, nextHours * 60L * 60L * 1000L);
+            if (ScraperWorkerStore.enabled(this)) {
+                if (scheduleChanged) ScraperWorkerSchedule.scheduleAll(this, "server-schedule-changed");
+                else ScraperWorkerSchedule.scheduleNextAlarm(this, "run-finished");
+            }
             mainHandler.post(() -> {
                 if (webView != null) webView.stopLoading();
             });
             stopForeground(STOP_FOREGROUND_REMOVE);
-            stopSelfResult(startId);
+            stopSelf();
         }
     }
 
@@ -334,7 +359,7 @@ public class ScraperWorkerService extends Service {
     private JSONObject diagnosticDetails(JSONObject outcome) {
         if (outcome == null) return null;
         JSONObject details = new JSONObject();
-        String[] keys = {"state", "stage", "policyCount", "matchedPolicies", "unmatchedPolicies", "contractCount", "matchedContracts", "unmatchedContracts", "unmatchedApartments", "uiFailures", "invoiceFailures", "missingContractIds", "domRows", "domParagraphs", "domTextLength", "hydrationWaitMs", "url", "title", "fetchError"};
+        String[] keys = {"state", "stage", "executionPath", "policyCount", "matchedPolicies", "unmatchedPolicies", "contractCount", "matchedContracts", "unmatchedContracts", "unmatchedApartments", "uiFailures", "invoiceFailures", "missingContractIds", "domRows", "domParagraphs", "domTextLength", "hydrationWaitMs", "url", "title", "fetchError"};
         for (String key : keys) {
             if (!outcome.has(key)) continue;
             try { details.put(key, outcome.opt(key)); } catch (JSONException ignored) { }
@@ -359,7 +384,7 @@ public class ScraperWorkerService extends Service {
             .put("deviceId", deviceId)
             .put("platform", "android")
             .put("runtime", "laujim-local-webview")
-            .put("appVersion", "1.0.22")
+            .put("appVersion", installedAppVersion())
             .put("providers", scheduleProviders == null ? new JSONArray() : scheduleProviders)
             .put("replaceExisting", false);
         HttpResult result = request(server + "/worker/v1/register", "POST", token, deviceId, registration.toString());
@@ -374,16 +399,24 @@ public class ScraperWorkerService extends Service {
             return outcome == null ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.") : outcome;
         }
 
-        // Open the authenticated data route so the portal itself refreshes its
-        // session token. Loading only /login leaves NextAuth/Gascaribe tokens
-        // unavailable to the local runner and produces false 401/fetch errors.
+        // Triple A first reuses the visible authenticated SPA that already
+        // proved the policy selector. If Android reclaimed that activity,
+        // recover through a local WebView with the same persistent cookie and
+        // WebStorage profile so an hourly run does not depend on RAM alone.
         if (runnerScript == null || runnerScript.isEmpty()) {
-            return new JSONObject().put("state", "error").put("provider", provider).put("stage", "shared_webview").put("message", "El motor local de portales no estÃ¡ disponible.").put("results", new JSONArray());
+            return new JSONObject().put("state", "error").put("provider", provider).put("stage", "shared_webview").put("message", "El motor local de portales no está disponible.").put("results", new JSONArray());
         }
-        String encoded = PortalBrowserActivity
-            .executeScraper(provider, config == null ? "{}" : config.toString(), runnerScript)
-            .get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        JSONObject outcome = parseJsJson(encoded);
+        JSONObject outcome;
+        if (PortalBrowserActivity.hasActiveBrowser()) {
+            String encoded = PortalBrowserActivity
+                .executeScraper(provider, config == null ? "{}" : config.toString(), runnerScript)
+                .get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            outcome = parseJsJson(encoded);
+            if (outcome != null) outcome.put("executionPath", "authenticated-visible-webview");
+        } else {
+            outcome = loadAndEvaluate(provider, portalWorkUrl(provider), config);
+            if (outcome != null) outcome.put("executionPath", "persistent-background-webview");
+        }
         return outcome == null ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.") : outcome;
     }
 
@@ -613,6 +646,15 @@ public class ScraperWorkerService extends Service {
         while (result.endsWith("/")) result = result.substring(0, result.length() - 1);
         if (result.endsWith("/api")) result = result.substring(0, result.length() - 4);
         return result;
+    }
+
+    private String installedAppVersion() {
+        try {
+            android.content.pm.PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return info.versionName == null ? "unknown" : info.versionName;
+        } catch (android.content.pm.PackageManager.NameNotFoundException ignored) {
+            return "unknown";
+        }
     }
 
     private String providerLabel(String provider) {

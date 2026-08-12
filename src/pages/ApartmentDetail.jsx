@@ -7,6 +7,7 @@ import { api } from '../api';
 import { photoUrl, isCapacitor, getBase, AUTH_TOKEN } from '../utils/config';
 import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate } from '../utils/helpers';
 import { generateMarketplaceJson } from '../utils/marketplaceBookmarklet';
+import { openAndroidMarketplace, runAndroidMarketplaceWorkerNow } from '../utils/androidScraperWorker';
 import { generateApartmentPDF } from '../utils/pdf';
 import { addCalendarReminder } from '../utils/calendar';
 import QRCode from 'qrcode';
@@ -121,11 +122,27 @@ export default function ApartmentDetail() {
   const scannerRef = useRef(null);
   const videoRef = useRef(null);
   const [marketplaceUrl, setMarketplaceUrl] = useState('');
+  const [marketplaceJob, setMarketplaceJob] = useState(null);
+  const [marketplaceBusy, setMarketplaceBusy] = useState(false);
+  const [marketplaceMessage, setMarketplaceMessage] = useState(null);
   const [copied, setCopied] = useState(false);
   const [publicPageCopied, setPublicPageCopied] = useState(false);
   const [showWaModal, setShowWaModal] = useState(false);
 
   useEffect(() => { if (id) load(); }, [id]);
+
+  useEffect(() => {
+    if (!apt?.id || !marketplaceJob || !['queued', 'claimed', 'processing'].includes(marketplaceJob.status)) return undefined;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const jobs = await api.marketplace.jobs(apt.id);
+        if (!cancelled) setMarketplaceJob(jobs[0] || null);
+      } catch { /* keep the last known state */ }
+    };
+    const timer = setInterval(refresh, 5000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [apt?.id, marketplaceJob?.id, marketplaceJob?.status]);
 
   async function load() {
     const a = await api.apartments.get(Number(id));
@@ -159,6 +176,12 @@ export default function ApartmentDetail() {
     setPhotos(allPhotos.filter(p => p.apartmentId === a.id));
     setUtilityRecords(allU.filter(u => u.apartmentId === a.id));
     setMarketplaceUrl(a.marketplaceUrl || '');
+    try {
+      const jobs = await api.marketplace.jobs(a.id);
+      setMarketplaceJob(jobs[0] || null);
+    } catch {
+      setMarketplaceJob(null);
+    }
     setUtilityPeriod(getCurrentPeriod());
     // Generate QR codes for existing payment URLs
     const urls = {};
@@ -634,6 +657,60 @@ export default function ApartmentDetail() {
     if (marketplaceUrl) window.open(marketplaceUrl, '_blank');
   }
 
+  async function queueMarketplacePublication() {
+    if (!apt?.id || marketplaceBusy) return;
+    setMarketplaceBusy(true);
+    setMarketplaceMessage(null);
+    try {
+      const response = await api.marketplace.publish(apt.id);
+      const job = response.job || null;
+      setMarketplaceJob(job);
+      let localMessage = '';
+      if (isCapacitor()) {
+        try {
+          await runAndroidMarketplaceWorkerNow();
+          localMessage = ' El navegador local ya fue activado.';
+        } catch (error) {
+          localMessage = ` Quedó en cola; abre Facebook en la APK si solicita sesión (${error.message || 'worker no disponible'}).`;
+        }
+      }
+      setMarketplaceMessage({
+        type: 'success',
+        text: response.alreadyQueued
+          ? `Ese apartamento ya estaba en la cola.${localMessage}`
+          : `Publicación enviada al teléfono.${localMessage || ' El worker Android la recogerá en su próxima comprobación.'}`,
+      });
+    } catch (error) {
+      setMarketplaceMessage({ type: 'error', text: error.message || 'No se pudo crear la publicación.' });
+    } finally {
+      setMarketplaceBusy(false);
+    }
+  }
+
+  async function retryMarketplacePublication() {
+    if (!marketplaceJob?.id || marketplaceBusy) return;
+    setMarketplaceBusy(true);
+    setMarketplaceMessage(null);
+    try {
+      const response = await api.marketplace.retry(marketplaceJob.id);
+      setMarketplaceJob(response.job || null);
+      if (isCapacitor()) await runAndroidMarketplaceWorkerNow().catch(() => null);
+      setMarketplaceMessage({ type: 'success', text: 'Reintento enviado al worker Android.' });
+    } catch (error) {
+      setMarketplaceMessage({ type: 'error', text: error.message || 'No se pudo reintentar.' });
+    } finally {
+      setMarketplaceBusy(false);
+    }
+  }
+
+  async function openMarketplaceLogin() {
+    try {
+      await openAndroidMarketplace();
+    } catch (error) {
+      setMarketplaceMessage({ type: 'error', text: error.message || 'No se pudo abrir Facebook en la APK.' });
+    }
+  }
+
   async function shareToWhatsAppApt() {
     if (!apt) return;
     setShareLoading(true);
@@ -1101,10 +1178,35 @@ export default function ApartmentDetail() {
                   <button onClick={autoFillMarketplace} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700">
                     <Zap className="w-3.5 h-3.5" /> Auto-llenar
                   </button>
+                  <button onClick={queueMarketplacePublication} disabled={marketplaceBusy || ['queued', 'claimed', 'processing'].includes(marketplaceJob?.status)} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors bg-indigo-600 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    <Send className="w-3.5 h-3.5" /> {marketplaceBusy ? 'Enviando…' : 'Publicar con el teléfono'}
+                  </button>
+                  {isCapacitor() && (
+                    <button onClick={openMarketplaceLogin} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors border border-indigo-300 text-indigo-700 hover:bg-indigo-50">
+                      <Globe className="w-3.5 h-3.5" /> Iniciar sesión de Facebook
+                    </button>
+                  )}
                   <button onClick={saveMarketplaceUrl} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors border border-gray-300 text-gray-600 hover:bg-gray-50">
                     <Share2 className="w-3.5 h-3.5" /> {marketplaceUrl ? 'Actualizar URL' : 'Guardar URL'}
                   </button>
                 </div>
+                {marketplaceJob && (
+                  <div className={`rounded-lg border p-3 text-xs ${marketplaceJob.status === 'published' ? 'border-green-200 bg-green-50 text-green-800' : ['failed', 'needs_login', 'needs_review'].includes(marketplaceJob.status) ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-indigo-200 bg-indigo-50 text-indigo-800'}`}>
+                    <p><strong>Worker local:</strong> {marketplaceJob.status} · intento {marketplaceJob.attempts || 0}</p>
+                    {marketplaceJob.message && <p className="mt-1">{marketplaceJob.message}</p>}
+                    {marketplaceJob.error && <p className="mt-1">{marketplaceJob.error}</p>}
+                    {['failed', 'needs_login', 'needs_review'].includes(marketplaceJob.status) && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {isCapacitor() && <button onClick={openMarketplaceLogin} className="rounded-md border border-amber-400 px-2 py-1 font-medium">Abrir Facebook</button>}
+                        <button onClick={retryMarketplacePublication} disabled={marketplaceBusy} className="rounded-md bg-amber-700 px-2 py-1 font-medium text-white disabled:opacity-50">Reintentar</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {marketplaceMessage && (
+                  <div className={`rounded-lg p-3 text-xs ${marketplaceMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>{marketplaceMessage.text}</div>
+                )}
+                <p className="text-[11px] text-gray-500">Render solo pone el anuncio en cola. La sesión de Facebook, el 2FA y la publicación se ejecutan localmente en el navegador de la APK; no se guarda la contraseña en Laujim.</p>
                 {marketplaceUrl && (
                   <div className="flex items-center gap-3">
                     <button onClick={openPublishedAd} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">

@@ -188,6 +188,11 @@ public class PortalBrowserActivity extends Activity {
         return result;
     }
 
+    static boolean hasActiveBrowser() {
+        PortalBrowserActivity activity = activeInstance;
+        return activity != null && activity.webView != null;
+    }
+
     private void startScraper(String requestedProvider, String configJson, String runnerScript, CompletableFuture<String> result) {
         if (webView == null) {
             result.completeExceptionally(new IllegalStateException("El navegador compartido no está disponible."));

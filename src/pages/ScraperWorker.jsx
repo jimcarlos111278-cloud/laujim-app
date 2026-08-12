@@ -25,6 +25,9 @@ import {
   configureAndroidScraperWorker,
   getAndroidScraperWorkerStatus,
   runAndroidScraperWorkerNow,
+  rescheduleAndroidScraperWorker,
+  requestAndroidExactAlarmPermission,
+  openAndroidBatterySettings,
   startAndroidScraperWorker,
   stopAndroidScraperWorker,
   supportsAndroidScraperWorker,
@@ -143,10 +146,12 @@ export default function ScraperWorker() {
   useEffect(() => {
     if (!supportsAndroidScraperWorker()) return undefined;
     let cancelled = false;
-    getAndroidScraperWorkerStatus()
+    const refresh = () => getAndroidScraperWorkerStatus()
       .then(status => { if (!cancelled) setNativeStatus(status); })
       .catch(() => {});
-    return () => { cancelled = true; };
+    refresh();
+    const interval = setInterval(refresh, 10 * 1000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   async function loadDiagnostics(showError = false) {
@@ -208,8 +213,26 @@ export default function ScraperWorker() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'No se pudo guardar la programación.');
-      setScheduleForm({ ...DEFAULT_SCHEDULE, ...payload.schedule });
-      setScheduleMessage({ type: 'success', text: 'Frecuencia guardada. El worker la tomará en su próxima configuración.' });
+      const savedSchedule = { ...DEFAULT_SCHEDULE, ...payload.schedule };
+      setScheduleForm(savedSchedule);
+      let nativeMessage = '';
+      if (supportsAndroidScraperWorker() && settings.serverUrl && settings.token && settings.deviceId) {
+        const current = savePortableWorkerSettings(settings);
+        await configureAndroidScraperWorker({
+          serverUrl: current.serverUrl,
+          token: current.token,
+          deviceId: current.deviceId,
+          intervalHours: Number(savedSchedule.intervalHours || 12),
+          startAt: savedSchedule.startAt,
+          timezone: savedSchedule.timezone,
+        });
+        const status = await rescheduleAndroidScraperWorker();
+        setNativeStatus(status);
+        nativeMessage = status.enabled
+          ? ` Próxima ejecución: ${formatLogTime(status.nextRunAt)}.`
+          : ' El horario quedó preparado y se activará al iniciar el worker Android.';
+      }
+      setScheduleMessage({ type: 'success', text: `Frecuencia guardada y sincronizada con el dispositivo.${nativeMessage}` });
     } catch (error) {
       setScheduleMessage({ type: 'error', text: error.message });
     } finally {
@@ -256,6 +279,8 @@ export default function ScraperWorker() {
             token: current.token,
             deviceId: current.deviceId,
             intervalHours: Number(result.schedule?.intervalHours || scheduleForm.intervalHours || 12),
+            startAt: result.schedule?.startAt || scheduleForm.startAt,
+            timezone: result.schedule?.timezone || scheduleForm.timezone,
           });
           const status = await startAndroidScraperWorker();
           setNativeStatus(status);
@@ -292,6 +317,8 @@ export default function ScraperWorker() {
         token: current.token,
         deviceId: current.deviceId,
         intervalHours: Number(scheduleForm.intervalHours || 12),
+        startAt: scheduleForm.startAt,
+        timezone: scheduleForm.timezone,
       });
       const status = await startAndroidScraperWorker();
       setNativeStatus(status);
@@ -333,6 +360,8 @@ export default function ScraperWorker() {
         token: current.token,
         deviceId: current.deviceId,
         intervalHours: Number(scheduleForm.intervalHours || 12),
+        startAt: scheduleForm.startAt,
+        timezone: scheduleForm.timezone,
       });
       const status = await runAndroidScraperWorkerNow();
       setNativeStatus(status);
@@ -349,6 +378,27 @@ export default function ScraperWorker() {
       await openAndroidPortal(provider);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'No se pudo abrir el portal en el teléfono.' });
+    }
+  }
+
+  async function handleExactAlarmPermission() {
+    try {
+      const status = await requestAndroidExactAlarmPermission();
+      setNativeStatus(status);
+      setMessage({ type: 'success', text: status.exactAlarmAllowed
+        ? 'Las alarmas exactas ya están permitidas y el horario quedó reprogramado.'
+        : 'Activa “Alarmas y recordatorios” para que Android respete mejor la hora configurada. Al volver, Laujim lo detectará automáticamente.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'No se pudo abrir el permiso de alarmas.' });
+    }
+  }
+
+  async function handleBatterySettings() {
+    try {
+      await openAndroidBatterySettings();
+      setMessage({ type: 'success', text: 'En Batería, selecciona “Sin restricciones” y regresa a Laujim.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'No se pudieron abrir los ajustes de batería.' });
     }
   }
 
@@ -475,8 +525,39 @@ export default function ScraperWorker() {
             <button onClick={handleNativeRunNow} disabled={nativeBusy || !settings.token} className="inline-flex items-center gap-2 rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-800 hover:bg-green-100 disabled:opacity-50 dark:border-green-800 dark:text-green-200 dark:hover:bg-green-900/30">
               <RefreshCw className="h-4 w-4" /> Ejecutar ahora
             </button>
-            <span className="text-xs text-gray-600 dark:text-gray-300">Estado: {nativeStatus?.lastState || 'sin iniciar'}{nativeStatus?.currentProvider ? ` · ${nativeStatus.currentProvider}` : ''}{nativeStatus?.lastRunAt ? ` · ${formatLogTime(nativeStatus.lastRunAt)}` : ''}</span>
+            {!nativeStatus?.exactAlarmAllowed && (
+              <button onClick={handleExactAlarmPermission} className="inline-flex items-center gap-2 rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+                <Clock3 className="h-4 w-4" /> Permitir horario exacto
+              </button>
+            )}
+            <button onClick={handleBatterySettings} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
+              <ShieldCheck className="h-4 w-4" /> Ajustes de batería
+            </button>
           </div>
+          <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+            <div className="rounded-lg border border-green-200 bg-white/80 p-3 dark:border-green-800/60 dark:bg-gray-900/40">
+              <p className="text-gray-500 dark:text-gray-400">Estado del scraper</p>
+              <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{nativeStatus?.lastState || 'sin iniciar'}{nativeStatus?.currentProvider ? ` · ${nativeStatus.currentProvider}` : ''}</p>
+              {nativeStatus?.lastRunAt && <p className="mt-1 text-gray-500">Último cambio: {formatLogTime(nativeStatus.lastRunAt)}</p>}
+            </div>
+            <div className="rounded-lg border border-green-200 bg-white/80 p-3 dark:border-green-800/60 dark:bg-gray-900/40">
+              <p className="text-gray-500 dark:text-gray-400">Próxima ejecución de los tres servicios</p>
+              <p className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{nativeStatus?.enabled && nativeStatus?.nextRunAt ? formatLogTime(nativeStatus.nextRunAt) : 'No programada'}</p>
+              <p className="mt-1 text-gray-500">Modo: {nativeStatus?.scheduleMode || 'sin configurar'} · cada {nativeStatus?.intervalHours || scheduleForm.intervalHours} h</p>
+            </div>
+          </div>
+          {nativeStatus?.lastSchedulerEvent && (
+            <div className="mt-3 rounded-lg border border-green-200 bg-white/70 p-3 text-xs text-gray-700 dark:border-green-800/60 dark:bg-gray-900/40 dark:text-gray-300">
+              <p><strong>Programador:</strong> {nativeStatus.lastSchedulerEvent} · origen: {nativeStatus.lastTriggerSource || 'scheduler'}</p>
+              {nativeStatus.lastSchedulerMessage && <p className="mt-1">{nativeStatus.lastSchedulerMessage}</p>}
+              {nativeStatus.lastSchedulerEventAt && <p className="mt-1 text-gray-500">{formatLogTime(nativeStatus.lastSchedulerEventAt)}</p>}
+            </div>
+          )}
+          {!nativeStatus?.exactAlarmAllowed && (
+            <div className="mt-3 rounded-lg bg-amber-100 p-3 text-xs text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
+              WorkManager queda activo como respaldo, pero Android puede retrasar el horario. Pulsa <strong>Permitir horario exacto</strong> para la ejecución horaria más puntual.
+            </div>
+          )}
           {nativeStatus?.lastError && (
             <div className="mt-3 rounded-lg bg-red-100 p-3 text-xs text-red-800 dark:bg-red-900/30 dark:text-red-200">
               <p><strong>Último error</strong>{nativeStatus.lastRunAt ? ` · ${formatLogTime(nativeStatus.lastRunAt)}` : ''}: {nativeStatus.lastError}</p>
