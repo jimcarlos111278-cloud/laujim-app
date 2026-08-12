@@ -277,8 +277,8 @@ export default function ScraperWorker() {
 
   async function handleNativeStart() {
     if (!supportsAndroidScraperWorker()) return;
-    if (!settings.token) {
-      setMessage({ type: 'error', text: 'Configura el token del worker antes de iniciar la APK.' });
+    if (!settings.serverUrl || !settings.token || !settings.deviceId) {
+      setMessage({ type: 'error', text: 'Configura URL, token e identificador del dispositivo antes de iniciar la APK.' });
       return;
     }
     setNativeBusy(true); setMessage(null);
@@ -315,8 +315,23 @@ export default function ScraperWorker() {
   }
 
   async function handleNativeRunNow() {
+    if (!supportsAndroidScraperWorker()) return;
+    if (!settings.serverUrl || !settings.token || !settings.deviceId) {
+      setMessage({ type: 'error', text: 'Configura URL, token e identificador del dispositivo antes de ejecutar la APK.' });
+      return;
+    }
     setNativeBusy(true); setMessage(null);
     try {
+      // Synchronize the native preferences with the visible form before
+      // starting a manual run. Previously only the start/register buttons did
+      // this, so a direct "Ejecutar ahora" could use an empty native config.
+      const current = savePortableWorkerSettings(settings);
+      await configureAndroidScraperWorker({
+        serverUrl: current.serverUrl,
+        token: current.token,
+        deviceId: current.deviceId,
+        intervalHours: Number(scheduleForm.intervalHours || 12),
+      });
       const status = await runAndroidScraperWorkerNow();
       setNativeStatus(status);
       setMessage({ type: 'success', text: 'Consulta local iniciada en el teléfono. Revisa el estado cuando termine cada portal.' });

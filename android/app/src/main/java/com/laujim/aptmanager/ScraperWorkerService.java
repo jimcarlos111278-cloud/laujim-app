@@ -347,7 +347,7 @@ public class ScraperWorkerService extends Service {
             .put("deviceId", deviceId)
             .put("platform", "android")
             .put("runtime", "laujim-local-webview")
-            .put("appVersion", "1.0.13")
+            .put("appVersion", "1.0.14")
             .put("providers", scheduleProviders == null ? new JSONArray() : scheduleProviders)
             .put("replaceExisting", false);
         HttpResult result = request(server + "/worker/v1/register", "POST", token, deviceId, registration.toString());
