@@ -65,7 +65,7 @@ public class ScraperWorkerPlugin extends Plugin {
         String provider = call.getString("provider", "air-e");
         Intent intent = new Intent(getContext(), PortalBrowserActivity.class)
             .putExtra(PortalBrowserActivity.EXTRA_PROVIDER, provider)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         try {
             getContext().startActivity(intent);
             call.resolve();

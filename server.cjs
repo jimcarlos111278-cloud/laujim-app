@@ -3144,13 +3144,15 @@ app.post('/worker/v1/results', requirePortableWorker, (req, res) => {
       source: 'render', deviceId, runId: body.runId, stage: 'results_inspection', level: 'error',
       message: 'Render no aceptó ningún resultado enviado por el worker.',
       received: inspection.received, accepted: 0, rejected: inspection.rejected.length,
-      details: { acceptedByProvider: inspection.acceptedByProvider, rejectedByProvider: inspection.rejectedByProvider, truncated: inspection.truncated },
+      details: { confirmed: 0, issueCount: 0, acceptedByProvider: inspection.acceptedByProvider, rejectedByProvider: inspection.rejectedByProvider, truncated: inspection.truncated },
     });
     console.warn(`[WORKER RESULTS] ${deviceId}: received=${inspection.received}, accepted=0, rejected=${inspection.rejected.length}.`, inspection.rejected.slice(0, 12));
     return res.status(400).json({
       error: 'No se recibieron resultados válidos',
       received: inspection.received,
       accepted: 0,
+      confirmed: 0,
+      issueCount: 0,
       persisted: 0,
       rejectedCount: inspection.rejected.length,
       rejected: inspection.rejected.slice(0, 50),
@@ -3172,21 +3174,31 @@ app.post('/worker/v1/results', requirePortableWorker, (req, res) => {
   }
   console.log(
     `[WORKER RESULTS] ${deviceId}: received=${inspection.received}, accepted=${inspection.accepted}, ` +
-    `persisted=${persisted}, rejected=${inspection.rejected.length}, ` +
+    `confirmed=${inspection.confirmed}, issues=${inspection.issueCount}, persisted=${persisted}, ` +
     `acceptedByProvider=${JSON.stringify(inspection.acceptedByProvider)}`,
   );
   appendScraperLog({
     source: 'render', deviceId, runId: body.runId, stage: 'results_receipt',
-    level: inspection.rejected.length ? 'warn' : 'success',
-    message: `Render procesó ${inspection.received} resultado(s): ${inspection.accepted} aceptados y ${persisted} persistidos.`,
+    level: inspection.rejected.length || inspection.issueCount ? 'warn' : 'success',
+    message: `Render procesó ${inspection.received} resultado(s): ${inspection.confirmed} confirmados, ${inspection.issueCount} con incidencia y ${persisted} persistidos.`,
     received: inspection.received, accepted: inspection.accepted, persisted, rejected: inspection.rejected.length,
-    details: { acceptedByProvider: inspection.acceptedByProvider, rejectedByProvider: inspection.rejectedByProvider, truncated: inspection.truncated },
+    details: {
+      confirmed: inspection.confirmed,
+      issueCount: inspection.issueCount,
+      acceptedByProvider: inspection.acceptedByProvider,
+      confirmedByProvider: inspection.confirmedByProvider,
+      issueByProvider: inspection.issueByProvider,
+      rejectedByProvider: inspection.rejectedByProvider,
+      truncated: inspection.truncated,
+    },
   });
   res.json({
     ok: true,
     deviceId,
     received: inspection.received,
     accepted: inspection.accepted,
+    confirmed: inspection.confirmed,
+    issueCount: inspection.issueCount,
     persisted,
     rejectedCount: inspection.rejected.length,
     rejected: inspection.rejected.slice(0, 50),

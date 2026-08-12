@@ -79,7 +79,15 @@ public class ScraperWorkerService extends Service {
         super.onCreate();
         executor = Executors.newSingleThreadExecutor();
         createNotificationChannel();
-        createLocalWebView();
+        // PortalBrowserActivity owns the single shared WebView. Creating a
+        // second hidden WebView loses the portal SPA's in-memory session and
+        // makes Triple A render its shell without any policies.
+        try {
+            runnerScript = readAsset("portal-scraper.js");
+        } catch (IOException error) {
+            runnerScript = "";
+            ScraperWorkerStore.setRunState(ScraperWorkerService.this, "error", "No se pudo cargar el motor local: " + error.getMessage());
+        }
         startForeground(NOTIFICATION_ID, notification("Worker local preparado", null));
     }
 
@@ -337,7 +345,7 @@ public class ScraperWorkerService extends Service {
         try {
             JSONObject receipt = parseObject(body);
             JSONObject details = new JSONObject();
-            String[] keys = {"received", "accepted", "persisted", "rejectedCount", "truncated"};
+            String[] keys = {"received", "accepted", "confirmed", "issueCount", "persisted", "rejectedCount", "truncated"};
             for (String key : keys) if (receipt.has(key)) details.put(key, receipt.opt(key));
             return details.length() == 0 ? null : details;
         } catch (Exception ignored) {
@@ -350,7 +358,7 @@ public class ScraperWorkerService extends Service {
             .put("deviceId", deviceId)
             .put("platform", "android")
             .put("runtime", "laujim-local-webview")
-            .put("appVersion", "1.0.17")
+            .put("appVersion", "1.0.18")
             .put("providers", scheduleProviders == null ? new JSONArray() : scheduleProviders)
             .put("replaceExisting", false);
         HttpResult result = request(server + "/worker/v1/register", "POST", token, deviceId, registration.toString());
@@ -361,8 +369,13 @@ public class ScraperWorkerService extends Service {
         // Open the authenticated data route so the portal itself refreshes its
         // session token. Loading only /login leaves NextAuth/Gascaribe tokens
         // unavailable to the local runner and produces false 401/fetch errors.
-        String url = portalWorkUrl(provider);
-        JSONObject outcome = loadAndEvaluate(provider, url, config);
+        if (runnerScript == null || runnerScript.isEmpty()) {
+            return new JSONObject().put("state", "error").put("provider", provider).put("stage", "shared_webview").put("message", "El motor local de portales no estÃ¡ disponible.").put("results", new JSONArray());
+        }
+        String encoded = PortalBrowserActivity
+            .executeScraper(provider, config == null ? "{}" : config.toString(), runnerScript)
+            .get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        JSONObject outcome = parseJsJson(encoded);
         return outcome == null ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.") : outcome;
     }
 
@@ -513,12 +526,16 @@ public class ScraperWorkerService extends Service {
             JSONObject receipt = parseObject(pushed.body);
             int received = receipt.optInt("received", localResults.size());
             int accepted = receipt.optInt("accepted", received);
+            int confirmed = receipt.optInt("confirmed", Math.max(0, accepted - localIssues));
+            int issueCount = receipt.optInt("issueCount", localIssues);
             int persisted = receipt.optInt("persisted", accepted);
             int rejected = receipt.optInt("rejectedCount", Math.max(0, received - accepted));
             StringBuilder message = new StringBuilder()
                 .append("Servidor: ").append(received)
                 .append(" recibidos, ").append(accepted)
-                .append(" aceptados, ").append(persisted)
+                .append(" aceptados, ").append(confirmed)
+                .append(" confirmados, ").append(issueCount)
+                .append(" con incidencia, ").append(persisted)
                 .append(" persistidos");
             JSONObject byProvider = receipt.optJSONObject("acceptedByProvider");
             if (byProvider != null && byProvider.length() > 0) {

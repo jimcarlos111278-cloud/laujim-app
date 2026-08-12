@@ -166,6 +166,22 @@
     return best;
   }
 
+  // A single utility account can legitimately serve more than one apartment
+  // (for example the house and an apartment sharing the same meter). Use the
+  // configured payment code to duplicate one portal result when it is shared;
+  // only fall back to the one best label match when the code is not available.
+  function matchingTargets(apartments, record, provider, used) {
+    const codeKey = provider === 'water' ? 'waterPaymentCode' : provider === 'gas' ? 'gasPaymentCode' : 'electricityPaymentCode';
+    const portalCode = digits(record?.code);
+    const exact = (apartments || []).filter(target => {
+      if (used?.has(targetKey(target)) || !portalCode) return false;
+      return digits(target?.[codeKey]) === portalCode;
+    });
+    if (exact.length) return exact;
+    const best = bestTargetMatch(apartments || [], record, provider, used);
+    return best ? [best] : [];
+  }
+
   function parseAmount(value) {
     if (typeof value === 'number') return Number.isFinite(value) ? Math.round(value) : null;
     if (value == null || value === '') return null;
@@ -893,36 +909,36 @@
     let unmatchedPolicies = 0;
     let uiFailures = 0;
     for (const policy of policies) {
-      const target = bestTargetMatch(config.apartments || [], policy, 'water', used);
-      if (!target) {
+      const targets = matchingTargets(config.apartments || [], policy, 'water', used);
+      if (!targets.length) {
         unmatchedPolicies += 1;
         continue;
       }
-      used.add(targetKey(target));
+      targets.forEach(target => used.add(targetKey(target)));
       const parsed = await queryWaterPolicy(policy);
       if (parsed?.challenge) {
         return { state: 'needs_verification', provider: 'water', stage: 'turnstile', message: 'Triple A mostro una verificacion durante la consulta. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
       }
       if (parsed?.error || parsed?.amount === null || parsed?.amount === undefined) {
         uiFailures += 1;
-        results.push(resultBase('Triple A', 'water', target, {
-          waterPaymentCode: policy.code,
-          waterPaymentUrl: 'https://portal.aaa.com.co/polizas',
-          status: 'error',
-          error: parsed?.error || `Triple A no entrego el total de la poliza ${policy.code}.`,
-        }));
+        for (const target of targets) results.push(resultBase('Triple A', 'water', target, {
+            waterPaymentCode: policy.code,
+            waterPaymentUrl: 'https://portal.aaa.com.co/polizas',
+            status: 'error',
+            error: parsed?.error || `Triple A no entrego el total de la poliza ${policy.code}.`,
+          }));
         continue;
       }
-      results.push(resultBase('Triple A', 'water', target, {
-        waterPaymentCode: policy.code,
-        waterPaymentUrl: 'https://portal.aaa.com.co/polizas',
-        status: parsed.status,
-        deudaCOP: parsed.amount,
-        deudaTotalCOP: parsed.amount,
-        numFacturas: parsed.status === 'pending' ? 1 : 0,
-        periodo: parsed.dueDate || null,
-        fechaVencimiento: parsed.dueDate || null,
-      }));
+      for (const target of targets) results.push(resultBase('Triple A', 'water', target, {
+          waterPaymentCode: policy.code,
+          waterPaymentUrl: 'https://portal.aaa.com.co/polizas',
+          status: parsed.status,
+          deudaCOP: parsed.amount,
+          deudaTotalCOP: parsed.amount,
+          numFacturas: parsed.status === 'pending' ? 1 : 0,
+          periodo: parsed.dueDate || null,
+          fechaVencimiento: parsed.dueDate || null,
+        }));
     }
 
     appendUnmatchedPortalResults(results, config, used, 'Triple A', 'water', 'waterPaymentCode', 'Triple A no tiene esta poliza asociada en la cuenta autenticada.');
@@ -970,37 +986,37 @@
     let uiFailures = 0;
     let unmatchedContracts = 0;
     for (const contract of contracts) {
-      const target = bestTargetMatch(config.apartments || [], contract, 'gas', used);
-      if (!target) {
+      const targets = matchingTargets(config.apartments || [], contract, 'gas', used);
+      if (!targets.length) {
         unmatchedContracts += 1;
         continue;
       }
-      used.add(targetKey(target));
+      targets.forEach(target => used.add(targetKey(target)));
       const parsed = await queryGasContract(contract);
       if (parsed?.challenge) {
         return { state: 'needs_verification', provider: 'gas', stage: 'turnstile', message: 'Gases del Caribe mostro una verificacion durante la consulta. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
       }
       if (parsed?.error || parsed?.amount === null || parsed?.amount === undefined) {
         uiFailures += 1;
-        results.push(resultBase('Gases del Caribe', 'gas', target, {
-          gasPaymentCode: contract.code,
-          gasPaymentUrl: 'https://portal.gascaribe.com/contracts',
-          status: 'error',
-          error: parsed?.error || `Gases del Caribe no entrego el total del contrato ${contract.code}.`,
-        }));
+        for (const target of targets) results.push(resultBase('Gases del Caribe', 'gas', target, {
+            gasPaymentCode: contract.code,
+            gasPaymentUrl: 'https://portal.gascaribe.com/contracts',
+            status: 'error',
+            error: parsed?.error || `Gases del Caribe no entrego el total del contrato ${contract.code}.`,
+          }));
         continue;
       }
-      results.push(resultBase('Gases del Caribe', 'gas', target, {
-        gasPaymentCode: contract.code,
-        gasPaymentUrl: 'https://portal.gascaribe.com/contracts',
-        status: parsed.status,
-        deudaCOP: parsed.amount,
-        deudaTotalCOP: parsed.amount,
-        numFacturas: parsed.status === 'pending' ? 1 : 0,
-        factura: parsed.invoice || null,
-        periodo: parsed.dueDate || null,
-        fechaVencimiento: parsed.dueDate || null,
-      }));
+      for (const target of targets) results.push(resultBase('Gases del Caribe', 'gas', target, {
+          gasPaymentCode: contract.code,
+          gasPaymentUrl: 'https://portal.gascaribe.com/contracts',
+          status: parsed.status,
+          deudaCOP: parsed.amount,
+          deudaTotalCOP: parsed.amount,
+          numFacturas: parsed.status === 'pending' ? 1 : 0,
+          factura: parsed.invoice || null,
+          periodo: parsed.dueDate || null,
+          fechaVencimiento: parsed.dueDate || null,
+        }));
     }
 
     appendUnmatchedPortalResults(results, config, used, 'Gases del Caribe', 'gas', 'gasPaymentCode', 'Gases del Caribe no tiene este contrato asociado en la cuenta autenticada.');

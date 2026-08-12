@@ -164,8 +164,20 @@ function inspectWorkerResults(body, options = {}) {
     records: accepted,
     received: rawRecords.length,
     accepted: accepted.length,
+    confirmed: accepted.filter(record =>
+      ['pending', 'paid'].includes(record.status) && record.deudaTotalCOP !== null
+    ).length,
+    issueCount: accepted.filter(record =>
+      !['pending', 'paid'].includes(record.status) || record.deudaTotalCOP === null
+    ).length,
     rejected,
     acceptedByProvider: providerCount(accepted),
+    confirmedByProvider: providerCount(accepted.filter(record =>
+      ['pending', 'paid'].includes(record.status) && record.deudaTotalCOP !== null
+    )),
+    issueByProvider: providerCount(accepted.filter(record =>
+      !['pending', 'paid'].includes(record.status) || record.deudaTotalCOP === null
+    )),
     rejectedByProvider: providerCount(rejected),
     truncated: Math.max(0, rawRecords.length - limited.length),
   };
