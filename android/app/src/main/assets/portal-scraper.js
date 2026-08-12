@@ -314,6 +314,278 @@
     }
   }
 
+  // The authenticated portals expose the reliable result in their rendered
+  // screens.  Their cross-origin APIs are protected by short-lived tokens and
+  // anti-forgery values, so the local worker follows the same visible route a
+  // user follows after Turnstile has been completed.
+  const PORTAL_UI_TIMEOUT_MS = 25_000;
+  const PORTAL_PAGE_TIMEOUT_MS = 30_000;
+
+  function uiText(element) {
+    if (!element) return '';
+    return String(element.innerText || element.textContent || element.getAttribute?.('aria-label') || element.getAttribute?.('title') || '')
+      .replace(/\s+/g, ' ').trim();
+  }
+
+  function uiBodyText() {
+    return String(document.body?.innerText || document.documentElement?.innerText || '');
+  }
+
+  function uiLines(text) {
+    return String(text || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  }
+
+  function findVisibleUiElement(selector, matcher) {
+    return Array.from(document.querySelectorAll(selector || '*')).find(element => {
+      if (!visible(element)) return false;
+      return typeof matcher !== 'function' || matcher(uiText(element), element);
+    }) || null;
+  }
+
+  async function waitForUi(predicate, timeoutMs) {
+    const deadline = Date.now() + Math.max(0, Number(timeoutMs) || PORTAL_UI_TIMEOUT_MS);
+    while (Date.now() < deadline) {
+      try {
+        const value = await predicate();
+        if (value) return value;
+      } catch {
+      }
+      await wait(350);
+    }
+    return null;
+  }
+
+  function escapeRegex(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function uiAmountAfter(text, label) {
+    const source = String(text || '');
+    const start = source.toLowerCase().indexOf(String(label || '').toLowerCase());
+    if (start < 0) return null;
+    const fragment = source.slice(start, start + 180);
+    const match = fragment.match(/\$\s*([0-9][0-9.,]*)/);
+    return match ? parseAmount(match[1]) : null;
+  }
+
+  function uiLineAfter(lines, matcher) {
+    const index = lines.findIndex(line => matcher.test(line));
+    if (index < 0) return null;
+    return lines.slice(index + 1, index + 4).find(Boolean) || null;
+  }
+
+  function setUiInputValue(input, value) {
+    if (!input) return;
+    const next = String(value == null ? '' : value);
+    try {
+      const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      if (descriptor && descriptor.set) descriptor.set.call(input, next);
+      else input.value = next;
+    } catch {
+      input.value = next;
+    }
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function targetKey(target) {
+    return String(target?.id == null ? target?.name || '' : target.id);
+  }
+
+  function waterPoliciesOnPage() {
+    const records = [];
+    const seen = new Set();
+    const rows = Array.from(document.querySelectorAll('[role="row"], tr')).filter(visible);
+    for (const row of rows) {
+      const cells = Array.from(row.querySelectorAll('[role="gridcell"], td')).filter(visible).map(uiText);
+      let name = cells[1] || '';
+      let code = digits(cells[2] || '');
+      const address = cells[3] || '';
+      const rowText = uiText(row);
+      if ((!name || code.length < 4) && rowText) {
+        const match = rowText.match(/((?:AP|Casa)\s*\d{3})\s*[-–]\s*(\d{4,})/i);
+        if (match) {
+          name = match[1];
+          code = digits(match[2]);
+        }
+      }
+      if (!name || code.length < 4 || seen.has(code)) continue;
+      seen.add(code);
+      records.push({ name, code, address, status: cells[6] || '' });
+    }
+    if (!records.length) {
+      const paragraphs = Array.from(document.querySelectorAll('p')).filter(visible).map(uiText);
+      for (const value of paragraphs) {
+        const match = value.match(/((?:AP|Casa)\s*\d{3})\s*[-–]\s*(\d{4,})/i);
+        if (!match || seen.has(digits(match[2]))) continue;
+        seen.add(digits(match[2]));
+        records.push({ name: match[1], code: digits(match[2]), address: '', status: '' });
+      }
+    }
+    return records;
+  }
+
+  async function discoverWaterPolicies() {
+    const all = [];
+    for (let page = 0; page < 8; page += 1) {
+      const current = await waitForUi(() => {
+        const rows = waterPoliciesOnPage();
+        return rows.length ? rows : null;
+      }, PORTAL_PAGE_TIMEOUT_MS);
+      if (!current) break;
+      for (const record of current) {
+        if (!all.some(item => item.code === record.code)) all.push(record);
+      }
+      const signature = current.map(item => item.code).join(',');
+      const next = findVisibleUiElement('button', (label, element) =>
+        /siguiente|next/.test(clean(label)) && !element.disabled && element.getAttribute('aria-disabled') !== 'true'
+      );
+      if (!next) break;
+      next.click();
+      const changed = await waitForUi(() => {
+        const after = waterPoliciesOnPage();
+        return after.length && after.map(item => item.code).join(',') !== signature ? after : null;
+      }, 10_000);
+      if (!changed) break;
+    }
+    return all;
+  }
+
+  async function openWaterPayments() {
+    const link = findVisibleUiElement('a', (label, element) =>
+      /pagos-usuario/.test(String(element.getAttribute('href') || '')) || clean(label) === 'pagos'
+    );
+    if (!link) return false;
+    link.click();
+    return Boolean(await waitForUi(() =>
+      /pagos-usuario/.test(location.pathname) && document.querySelector('input[name="paymentNumber"], input[type="number"]'),
+      PORTAL_PAGE_TIMEOUT_MS
+    ));
+  }
+
+  function parseWaterPaymentResult(text) {
+    const source = String(text || '');
+    const lines = uiLines(source);
+    const policyMatch = source.match(/p[oó]liza\s*[^0-9]{0,30}(\d{4,})/i);
+    const amount = uiAmountAfter(source, 'total a pagar');
+    const statusLine = lines.find(line => /pago pendiente|pago en mora|est[aá]s al d[ií]a/i.test(line)) || '';
+    const dueDate = uiLineAfter(lines, /^fecha de vencimiento$/i);
+    const status = statusFrom(amount, statusLine);
+    return {
+      policy: policyMatch ? policyMatch[1] : null,
+      amount: amount === null && status === 'paid' ? 0 : amount,
+      status,
+      dueDate,
+    };
+  }
+
+  async function queryWaterPolicy(policy) {
+    const input = document.querySelector('input[name="paymentNumber"], input[type="number"]');
+    const submit = findVisibleUiElement('button', label => clean(label) === 'consultar');
+    if (!input || !submit) return { error: 'Triple A no mostro el formulario de consulta.' };
+    setUiInputValue(input, policy.code);
+    input.focus?.();
+    submit.click();
+    const parsed = await waitForUi(() => {
+      if (loginState().challenge) return { challenge: true };
+      const text = uiBodyText();
+      if (!/total a pagar/i.test(text)) return null;
+      if (!new RegExp(escapeRegex(policy.code)).test(text)) return null;
+      const result = parseWaterPaymentResult(text);
+      return result.amount !== null || result.status !== 'unknown' ? result : null;
+    }, PORTAL_UI_TIMEOUT_MS);
+    if (parsed?.challenge) return parsed;
+    if (!parsed) return { error: `Triple A no mostro el resultado de la poliza ${policy.code}.` };
+    return parsed;
+  }
+
+  function gasContractsOnPage() {
+    const paragraphs = Array.from(document.querySelectorAll('p')).filter(visible).map(uiText);
+    const contracts = [];
+    const seen = new Set();
+    for (let index = 0; index < paragraphs.length; index += 1) {
+      const match = paragraphs[index].match(/^(.+?)\s*[-–]\s*(\d{4,})$/);
+      if (!match || seen.has(match[2]) || /contrato asociado/i.test(match[1])) continue;
+      seen.add(match[2]);
+      let address = '';
+      for (let cursor = index + 1; cursor < Math.min(paragraphs.length, index + 7); cursor += 1) {
+        if (/direcci[oó]n del predio/i.test(paragraphs[cursor])) {
+          address = paragraphs[cursor + 1] || '';
+          break;
+        }
+      }
+      contracts.push({ name: match[1].trim(), code: match[2], address });
+    }
+    return contracts;
+  }
+
+  function currentGasContractButton() {
+    return findVisibleUiElement('button', label => /^(?:ap|casa)\s*\d{3}$/i.test(label));
+  }
+
+  function parseGasHomeResult(text) {
+    const source = String(text || '');
+    const dueLine = uiLines(source).find(line => /^vence\b/i.test(line)) || null;
+    const contractMatch = source.match(/contrato\s*n[^0-9]{0,8}(\d{4,})/i);
+    const invoiceMatch = source.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
+    const amount = uiAmountAfter(source, 'total a pagar');
+    return {
+      contract: contractMatch ? contractMatch[1] : null,
+      invoice: invoiceMatch ? invoiceMatch[1] : null,
+      dueDate: dueLine,
+      amount,
+      status: amount === null ? 'unknown' : amount > 0 ? 'pending' : 'paid',
+    };
+  }
+
+  async function queryGasContract(contract) {
+    const selector = currentGasContractButton();
+    if (!selector) return { error: 'Gases del Caribe no mostro el selector de contratos.' };
+    selector.click();
+    const menu = await waitForUi(() => {
+      const selectors = '[role="menuitem"], [role="option"], li, button';
+      return findVisibleUiElement(selectors, label => label.includes(contract.code) && label !== uiText(selector));
+    }, 10_000);
+    if (!menu) return { error: `Gases del Caribe no mostro el contrato ${contract.code}.` };
+    menu.click();
+    await wait(500);
+    const inicio = findVisibleUiElement('button', label => clean(label) === 'inicio');
+    if (inicio) inicio.click();
+    const parsed = await waitForUi(() => {
+      if (loginState().challenge) return { challenge: true };
+      const text = uiBodyText();
+      if (!/total a pagar/i.test(text) || !new RegExp(escapeRegex(contract.code)).test(text)) return null;
+      const result = parseGasHomeResult(text);
+      return result.amount !== null ? result : null;
+    }, PORTAL_UI_TIMEOUT_MS);
+    if (parsed?.challenge) return parsed;
+    return parsed || { error: `Gases del Caribe no mostro la factura del contrato ${contract.code}.` };
+  }
+
+  function unmatchedPortalResult(provider, service, target, code, message) {
+    const extra = {
+      status: 'unknown',
+      deudaCOP: null,
+      deudaTotalCOP: null,
+      error: message,
+    };
+    if (provider === 'Triple A') {
+      extra.waterPaymentCode = String(code || target.waterPaymentCode || '').trim() || null;
+      extra.waterPaymentUrl = 'https://portal.aaa.com.co/polizas';
+    } else {
+      extra.gasPaymentCode = String(code || target.gasPaymentCode || '').trim() || null;
+      extra.gasPaymentUrl = 'https://portal.gascaribe.com/contracts';
+    }
+    return resultBase(provider, service, target, extra);
+  }
+
+  function appendUnmatchedPortalResults(results, config, used, provider, service, codeKey, message) {
+    for (const target of config.apartments || []) {
+      if (used.has(targetKey(target))) continue;
+      results.push(unmatchedPortalResult(provider, service, target, target[codeKey], message));
+    }
+  }
+
   async function runAirE(config) {
     const state = loginState();
     if (state.password) return needsLogin('air-e', 'Air-e solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
@@ -519,11 +791,146 @@
     return { state: 'ok', provider: 'gas', ...gasDiagnostics, results };
   }
 
+  async function runWaterUi(config) {
+    const state = loginState();
+    if (state.password) return needsLogin('water', 'Triple A solicita iniciar sesion. Abre el portal desde Laujim, inicia sesion y vuelve a ejecutar.', { stage: 'login_page' });
+    if (state.challenge) return { state: 'needs_verification', provider: 'water', stage: 'turnstile', message: 'Triple A muestra una verificacion. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+
+    await wait(1200);
+    const policies = await discoverWaterPolicies();
+    if (!policies.length) return { state: 'error', provider: 'water', stage: 'parse_policies', message: 'Triple A no mostro polizas en la sesion autenticada.', results: [] };
+    if (!(await openWaterPayments())) return { state: 'error', provider: 'water', stage: 'open_payments', message: 'Triple A no abrio la pantalla de pagos autenticada.', results: [] };
+
+    const results = [];
+    const used = new Set();
+    let unmatchedPolicies = 0;
+    let uiFailures = 0;
+    for (const policy of policies) {
+      const target = bestTargetMatch(config.apartments || [], policy, 'water', used);
+      if (!target) {
+        unmatchedPolicies += 1;
+        continue;
+      }
+      used.add(targetKey(target));
+      const parsed = await queryWaterPolicy(policy);
+      if (parsed?.challenge) {
+        return { state: 'needs_verification', provider: 'water', stage: 'turnstile', message: 'Triple A mostro una verificacion durante la consulta. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+      }
+      if (parsed?.error || parsed?.amount === null || parsed?.amount === undefined) {
+        uiFailures += 1;
+        results.push(resultBase('Triple A', 'water', target, {
+          waterPaymentCode: policy.code,
+          waterPaymentUrl: 'https://portal.aaa.com.co/polizas',
+          status: 'error',
+          error: parsed?.error || `Triple A no entrego el total de la poliza ${policy.code}.`,
+        }));
+        continue;
+      }
+      results.push(resultBase('Triple A', 'water', target, {
+        waterPaymentCode: policy.code,
+        waterPaymentUrl: 'https://portal.aaa.com.co/polizas',
+        status: parsed.status,
+        deudaCOP: parsed.amount,
+        deudaTotalCOP: parsed.amount,
+        numFacturas: parsed.status === 'pending' ? 1 : 0,
+        periodo: parsed.dueDate || null,
+        fechaVencimiento: parsed.dueDate || null,
+      }));
+    }
+
+    appendUnmatchedPortalResults(results, config, used, 'Triple A', 'water', 'waterPaymentCode', 'Triple A no tiene esta poliza asociada en la cuenta autenticada.');
+    const unmatchedApartments = (config.apartments || []).filter(target => !used.has(targetKey(target))).length;
+    const hasWarning = unmatchedPolicies > 0 || uiFailures > 0 || unmatchedApartments > 0;
+    return {
+      state: hasWarning ? 'warning' : 'ok',
+      provider: 'water',
+      stage: uiFailures ? 'query_payments' : 'parse_payments',
+      policyCount: policies.length,
+      matchedPolicies: policies.length - unmatchedPolicies,
+      unmatchedPolicies,
+      unmatchedApartments,
+      uiFailures,
+      results,
+      message: hasWarning
+        ? `Triple A consulto ${policies.length - unmatchedPolicies} poliza(s); ${unmatchedApartments} apartamento(s) no tienen asociacion o resultado confirmado.`
+        : `Triple A consulto ${results.length} apartamento(s) desde la pantalla autenticada.`,
+    };
+  }
+
+  async function runGasUi(config) {
+    const state = loginState();
+    if (state.password) return needsLogin('gas', 'Gases del Caribe solicita iniciar sesion. Abre el portal desde Laujim, inicia sesion y vuelve a ejecutar.', { stage: 'login_page' });
+    if (state.challenge) return { state: 'needs_verification', provider: 'gas', stage: 'turnstile', message: 'Gases del Caribe muestra una verificacion. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+
+    await wait(1200);
+    const contracts = await waitForUi(() => {
+      const current = gasContractsOnPage();
+      return current.length ? current : null;
+    }, PORTAL_PAGE_TIMEOUT_MS);
+    if (!contracts || !contracts.length) return { state: 'error', provider: 'gas', stage: 'parse_contracts', contractCount: 0, message: 'Gases del Caribe no mostro contratos en la sesion autenticada.', results: [] };
+
+    const results = [];
+    const used = new Set();
+    let uiFailures = 0;
+    let unmatchedContracts = 0;
+    for (const contract of contracts) {
+      const target = bestTargetMatch(config.apartments || [], contract, 'gas', used);
+      if (!target) {
+        unmatchedContracts += 1;
+        continue;
+      }
+      used.add(targetKey(target));
+      const parsed = await queryGasContract(contract);
+      if (parsed?.challenge) {
+        return { state: 'needs_verification', provider: 'gas', stage: 'turnstile', message: 'Gases del Caribe mostro una verificacion durante la consulta. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+      }
+      if (parsed?.error || parsed?.amount === null || parsed?.amount === undefined) {
+        uiFailures += 1;
+        results.push(resultBase('Gases del Caribe', 'gas', target, {
+          gasPaymentCode: contract.code,
+          gasPaymentUrl: 'https://portal.gascaribe.com/contracts',
+          status: 'error',
+          error: parsed?.error || `Gases del Caribe no entrego el total del contrato ${contract.code}.`,
+        }));
+        continue;
+      }
+      results.push(resultBase('Gases del Caribe', 'gas', target, {
+        gasPaymentCode: contract.code,
+        gasPaymentUrl: 'https://portal.gascaribe.com/contracts',
+        status: parsed.status,
+        deudaCOP: parsed.amount,
+        deudaTotalCOP: parsed.amount,
+        numFacturas: parsed.status === 'pending' ? 1 : 0,
+        factura: parsed.invoice || null,
+        periodo: parsed.dueDate || null,
+        fechaVencimiento: parsed.dueDate || null,
+      }));
+    }
+
+    appendUnmatchedPortalResults(results, config, used, 'Gases del Caribe', 'gas', 'gasPaymentCode', 'Gases del Caribe no tiene este contrato asociado en la cuenta autenticada.');
+    const unmatchedApartments = (config.apartments || []).filter(target => !used.has(targetKey(target))).length;
+    const hasWarning = uiFailures > 0 || unmatchedContracts > 0 || unmatchedApartments > 0;
+    return {
+      state: hasWarning ? 'warning' : 'ok',
+      provider: 'gas',
+      stage: uiFailures ? 'query_invoices_ui' : 'parse_invoices_ui',
+      contractCount: contracts.length,
+      matchedContracts: contracts.length - unmatchedContracts,
+      unmatchedContracts,
+      unmatchedApartments,
+      uiFailures,
+      results,
+      message: hasWarning
+        ? `Gases del Caribe consulto ${contracts.length - unmatchedContracts} contrato(s) desde la pantalla autenticada; ${unmatchedApartments} apartamento(s) no tienen asociacion o resultado confirmado.`
+        : `Gases del Caribe consulto ${results.length} apartamento(s) desde la pantalla autenticada.`,
+    };
+  }
+
   async function run(provider, config) {
     try {
       if (provider === 'air-e') return await runAirE(config || {});
-      if (provider === 'water') return await runWater(config || {});
-      if (provider === 'gas') return await runGas(config || {});
+      if (provider === 'water') return await runWaterUi(config || {});
+      if (provider === 'gas') return await runGasUi(config || {});
       return { state: 'error', provider, message: 'Servicio no soportado.', results: [] };
     } catch (error) {
       return { state: 'error', provider, stage: 'runner', fetchError: error && error.message || null, message: error && error.message || 'Error local del portal.', results: [] };

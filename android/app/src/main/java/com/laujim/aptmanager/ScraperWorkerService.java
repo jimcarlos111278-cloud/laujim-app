@@ -92,7 +92,10 @@ public class ScraperWorkerService extends Service {
         settings.setLoadsImagesAutomatically(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setSupportMultipleWindows(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " LaujimLocalWorker/1.0");
+        // Keep the exact Android WebView user agent used by PortalBrowserActivity.
+        // Turnstile sessions can be tied to the browser fingerprint/user agent;
+        // adding a worker-only suffix made a visible login look authenticated
+        // while the background WebView was treated as a different client.
         webView.setVisibility(View.INVISIBLE);
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
@@ -322,7 +325,7 @@ public class ScraperWorkerService extends Service {
     private JSONObject diagnosticDetails(JSONObject outcome) {
         if (outcome == null) return null;
         JSONObject details = new JSONObject();
-        String[] keys = {"state", "stage", "contractCount", "matchedContracts", "unmatchedContracts", "invoiceFailures", "missingContractIds", "fetchError"};
+        String[] keys = {"state", "stage", "policyCount", "matchedPolicies", "unmatchedPolicies", "contractCount", "matchedContracts", "unmatchedContracts", "unmatchedApartments", "uiFailures", "invoiceFailures", "missingContractIds", "fetchError"};
         for (String key : keys) {
             if (!outcome.has(key)) continue;
             try { details.put(key, outcome.opt(key)); } catch (JSONException ignored) { }
@@ -347,7 +350,7 @@ public class ScraperWorkerService extends Service {
             .put("deviceId", deviceId)
             .put("platform", "android")
             .put("runtime", "laujim-local-webview")
-            .put("appVersion", "1.0.14")
+            .put("appVersion", "1.0.15")
             .put("providers", scheduleProviders == null ? new JSONArray() : scheduleProviders)
             .put("replaceExisting", false);
         HttpResult result = request(server + "/worker/v1/register", "POST", token, deviceId, registration.toString());

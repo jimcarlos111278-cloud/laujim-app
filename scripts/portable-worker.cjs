@@ -53,6 +53,7 @@ if (config.chromeExecutablePath) process.env.CHROME_EXECUTABLE_PATH = path.resol
 // selected as the active device.
 process.env.BROWSERLESS_PROFILES = '';
 process.env.BROWSERLESS_WS_ENDPOINT = '';
+process.env.PORTAL_UI_SCRAPE = 'true';
 delete process.env.BROWSERLESS_TOKEN;
 delete process.env.BROWSERLESS_TOKEN_AIR_E;
 delete process.env.BROWSERLESS_TOKEN_WATER;

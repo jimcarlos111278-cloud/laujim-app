@@ -5,7 +5,10 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dist = join(__dirname, '..', 'dist');
 const publicDir = join(__dirname, '..', 'public');
-const apkSrc = join(__dirname, '..', 'android', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
+const externalBuildRoot = process.env.LAUJIM_ANDROID_BUILD_ROOT;
+const apkSrc = externalBuildRoot
+  ? join(externalBuildRoot, 'app', 'outputs', 'apk', 'debug', 'app-debug.apk')
+  : join(__dirname, '..', 'android', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
 const apkDst = join(dist, 'app-debug.apk');
 const publicApkDst = join(publicDir, 'app-debug.apk');
 

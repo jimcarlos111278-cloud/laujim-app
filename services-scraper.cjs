@@ -724,6 +724,368 @@ function matchPortalApartmentForService(targets, identifiers = [], service = nul
   return best;
 }
 
+// The local worker must read the rendered authenticated portal, just as a
+// person does in Chrome.  Calling /bff/subscriptions or /invoices directly
+// loses the browser's short-lived session/anti-forgery state and was the cause
+// of the recurring 401/422 results.  These helpers deliberately use only DOM
+// interaction and rendered text; no cookies, storage or raw API payloads are
+// inspected.
+const RENDERED_PORTAL_TIMEOUT_MS = 30000;
+
+async function waitForRenderedPortal(page, evaluator, timeout = RENDERED_PORTAL_TIMEOUT_MS, arg = undefined) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const value = await page.evaluate(evaluator, arg).catch(() => null);
+    if (value) return value;
+    await sleep(350);
+  }
+  return null;
+}
+
+async function waitForRenderedReader(reader, timeout = RENDERED_PORTAL_TIMEOUT_MS) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const value = await reader().catch(() => null);
+    if (value) return value;
+    await sleep(350);
+  }
+  return null;
+}
+
+async function renderedWaterPolicies(page) {
+  return page.evaluate(() => {
+    const visible = element => {
+      if (!element) return false;
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+    };
+    const text = element => String(element?.innerText || element?.textContent || '').replace(/\s+/g, ' ').trim();
+    const rows = [...document.querySelectorAll('[role="row"], tr')].filter(visible);
+    const seen = new Set();
+    const result = [];
+    for (const row of rows) {
+      const cells = [...row.querySelectorAll('[role="gridcell"], td')].filter(visible).map(text);
+      const rowText = text(row);
+      let name = cells[1] || '';
+      let code = String(cells[2] || '').replace(/\D/g, '');
+      const address = cells[3] || '';
+      const match = rowText.match(/((?:AP|Casa)\s*\d{3})\s*[-–]\s*(\d{4,})/i);
+      if (match) {
+        name = match[1];
+        code = match[2].replace(/\D/g, '');
+      }
+      if (!name || code.length < 4 || seen.has(code)) continue;
+      seen.add(code);
+      result.push({ name, code, address, status: cells[6] || '' });
+    }
+    return result;
+  }).catch(() => []);
+}
+
+async function renderedGasContracts(page) {
+  return page.evaluate(() => {
+    const visible = element => {
+      if (!element) return false;
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+    };
+    const text = element => String(element?.innerText || element?.textContent || '').replace(/\s+/g, ' ').trim();
+    const paragraphs = [...document.querySelectorAll('p')].filter(visible).map(text);
+    const result = [];
+    const seen = new Set();
+    for (let index = 0; index < paragraphs.length; index += 1) {
+      const match = paragraphs[index].match(/^(.+?)\s*[-–]\s*(\d{4,})$/);
+      if (!match || seen.has(match[2])) continue;
+      seen.add(match[2]);
+      let address = '';
+      for (let cursor = index + 1; cursor < Math.min(paragraphs.length, index + 8); cursor += 1) {
+        if (/direcci[oó]n del predio/i.test(paragraphs[cursor])) {
+          address = paragraphs[cursor + 1] || '';
+          break;
+        }
+      }
+      result.push({ name: match[1].trim(), code: match[2], address });
+    }
+    return result;
+  }).catch(() => []);
+}
+
+async function collectRenderedWaterPolicies(page) {
+  const all = [];
+  for (let pageNumber = 0; pageNumber < 8; pageNumber += 1) {
+    const current = await waitForRenderedReader(() => renderedWaterPolicies(page), 15000);
+    if (!current?.length) break;
+    for (const policy of current) {
+      if (!all.some(item => item.code === policy.code)) all.push(policy);
+    }
+    const signature = current.map(item => item.code).join(',');
+    const moved = await page.evaluate(() => {
+      const visible = element => {
+        if (!element) return false;
+        const style = getComputedStyle(element);
+        return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+      };
+      const button = [...document.querySelectorAll('button')].find(element =>
+        visible(element) && !element.disabled && element.getAttribute('aria-disabled') !== 'true' && /siguiente|next/i.test(element.innerText || element.getAttribute('aria-label') || '')
+      );
+      if (!button) return false;
+      button.click();
+      return true;
+    }).catch(() => false);
+    if (!moved) break;
+    const changed = await waitForRenderedReader(async () => {
+      const after = await renderedWaterPolicies(page);
+      return after.length && after.map(item => item.code).join(',') !== signature ? after : null;
+    }, 10000);
+    if (!changed) break;
+  }
+  return all;
+}
+
+async function portalLoginVisible(page) {
+  return page.evaluate(() => {
+    const visible = element => {
+      if (!element) return false;
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+    };
+    return Boolean([...document.querySelectorAll('input[type="password"], input[name*="password" i], input[id*="password" i]')].some(visible));
+  }).catch(() => false);
+}
+
+async function openAuthenticatedPortalPage({ provider, page, dataUrl, loginUrl, emailSelectors, passwordSelectors, captchaSolver }) {
+  await gotoPortalPage(page, dataUrl, {
+    waitUntil: 'domcontentloaded',
+    timeout: PORTAL_AUTH_TIMEOUT_MS,
+  }, provider).catch(() => {});
+  await sleep(1500);
+  if (!(await portalLoginVisible(page))) return;
+
+  const credentials = getPortalCredentials(provider === 'Triple A' ? ['triple-a', 'water'] : ['gascaribe', 'gas']);
+  await gotoPortalPage(page, loginUrl, {
+    waitUntil: 'domcontentloaded',
+    timeout: PORTAL_AUTH_TIMEOUT_MS,
+  }, provider);
+  await submitPortalLoginForm(page, {
+    provider,
+    username: credentials.username,
+    password: credentials.password,
+    emailSelectors,
+    passwordSelectors,
+    prepareSubmit: async () => {
+      await executePortalTurnstile(page).catch(() => false);
+      if (captchaSolver) await captchaSolver.waitForSolved(60000);
+      await sleep(provider === 'Gases del Caribe' ? GAS_TURNSTILE_SETTLE_DELAY_MS : 500);
+    },
+  });
+  await gotoPortalPage(page, dataUrl, {
+    waitUntil: 'domcontentloaded',
+    timeout: PORTAL_AUTH_TIMEOUT_MS,
+  }, provider);
+  await sleep(1800);
+}
+
+function portalUiStatus(status, amount) {
+  const normalized = normalizePortalText(status);
+  if (amount !== null && amount > 0) return 'pending';
+  if (amount === 0 || /al dia|sin deuda|paid|pagad|cancelad/.test(normalized)) return 'paid';
+  if (/pendiente|mora|vencid|pending|overdue/.test(normalized)) return 'pending';
+  return 'unknown';
+}
+
+async function queryRenderedTripleAPolicy(page, code) {
+  const ready = await page.evaluate((paymentCode) => {
+    const visible = element => {
+      if (!element) return false;
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+    };
+    const input = [...document.querySelectorAll('input[name="paymentNumber"], input[type="number"]')].find(visible);
+    const button = [...document.querySelectorAll('button, input[type="submit"], [role="button"]')].find(element =>
+      visible(element) && !element.disabled && /consultar/i.test(element.innerText || element.value || element.getAttribute('aria-label') || '')
+    );
+    if (!input || !button) return false;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    if (setter) setter.call(input, String(paymentCode)); else input.value = String(paymentCode);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    button.click();
+    return true;
+  }, String(code)).catch(() => false);
+  if (!ready) return { status: 'error', deudaCOP: null, error: 'Triple A no mostro el formulario de consulta autenticado.' };
+
+  const parsed = await waitForRenderedPortal(page, (paymentCode) => {
+    const body = String(document.body?.innerText || '').replace(/\s+/g, ' ');
+    if (/captcha|turnstile|no soy un robot/i.test(body)) return { challenge: true };
+    if (!new RegExp(`\\b${String(paymentCode).replace(/\D/g, '')}\\b`).test(body) || !/total a pagar/i.test(body)) return null;
+    const amountMatch = body.match(/total a pagar[^$0-9]{0,80}\$\s*([0-9][0-9.,]*)/i);
+    const amount = amountMatch ? Number(amountMatch[1].replace(/\./g, '').replace(',', '.')) : null;
+    const statusMatch = body.match(/pago pendiente|pago en mora|estas al dia|est[aá]s al d[ií]a/i);
+    const lines = String(document.body?.innerText || '').split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+    const dueIndex = lines.findIndex(value => /^fecha de vencimiento$/i.test(value));
+    return {
+      amount: Number.isFinite(amount) ? Math.round(amount) : (statusMatch && /al dia|est[aá]s al d[ií]a/i.test(statusMatch[0]) ? 0 : null),
+      statusText: statusMatch?.[0] || '',
+      dueDate: dueIndex >= 0 ? lines[dueIndex + 1] || null : null,
+      policy: String(paymentCode),
+    };
+  }, RENDERED_PORTAL_TIMEOUT_MS, String(code));
+  if (parsed?.challenge) return { status: 'captcha', deudaCOP: null, error: 'Triple A mostro una verificacion durante la consulta.' };
+  if (!parsed || parsed.amount === null) return { status: 'error', deudaCOP: null, error: `Triple A no mostro el total de la poliza ${code}.` };
+  return { status: portalUiStatus(parsed.statusText, parsed.amount), deudaCOP: parsed.amount, periodo: parsed.dueDate || null };
+}
+
+async function selectRenderedGasContract(page, code) {
+  const selected = await page.evaluate((contractCode) => {
+    const visible = element => {
+      if (!element) return false;
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+    };
+    const selector = [...document.querySelectorAll('button')].find(element => visible(element) && /^(?:ap|casa)\s*\d{3}$/i.test((element.innerText || '').trim()));
+    if (!selector) return false;
+    selector.click();
+    return true;
+  }, String(code)).catch(() => false);
+  if (!selected) return false;
+  return Boolean(await waitForRenderedPortal(page, (contractCode) => {
+    const visible = element => {
+      if (!element) return false;
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+    };
+    const item = [...document.querySelectorAll('[role="menuitem"], [role="option"], li, button')].find(element =>
+      visible(element) && String(element.innerText || element.textContent || '').includes(String(contractCode))
+    );
+    if (!item) return false;
+    item.click();
+    return true;
+  }, 10000, String(code)));
+}
+
+async function queryRenderedGasContract(page, code) {
+  if (!(await selectRenderedGasContract(page, code))) return { status: 'error', deudaCOP: null, error: `Gases del Caribe no mostro el contrato ${code}.` };
+  await sleep(500);
+  await page.evaluate(() => {
+    const visible = element => {
+      if (!element) return false;
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && !!element.getClientRects().length;
+    };
+    const inicio = [...document.querySelectorAll('button')].find(element => visible(element) && /^inicio$/i.test((element.innerText || '').trim()));
+    if (inicio) inicio.click();
+  }).catch(() => {});
+  const parsed = await waitForRenderedPortal(page, (contractCode) => {
+    const body = String(document.body?.innerText || '').replace(/\s+/g, ' ');
+    if (/captcha|turnstile|no soy un robot/i.test(body)) return { challenge: true };
+    if (!new RegExp(`contrato\\s*n[^0-9]{0,8}${String(contractCode).replace(/\D/g, '')}`).test(body) || !/total a pagar/i.test(body)) return null;
+    const amountMatch = body.match(/total a pagar[^$0-9]{0,80}\$\s*([0-9][0-9.,]*)/i);
+    const amount = amountMatch ? Number(amountMatch[1].replace(/\./g, '').replace(',', '.')) : null;
+    const invoiceMatch = body.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
+    const dueMatch = body.match(/vence[^.]{0,40}/i);
+    return { amount: Number.isFinite(amount) ? Math.round(amount) : null, invoice: invoiceMatch?.[1] || null, dueDate: dueMatch?.[0] || null };
+  }, RENDERED_PORTAL_TIMEOUT_MS, String(code));
+  if (parsed?.challenge) return { status: 'captcha', deudaCOP: null, error: 'Gases del Caribe mostro una verificacion durante la consulta.' };
+  if (!parsed || parsed.amount === null) return { status: 'error', deudaCOP: null, error: `Gases del Caribe no mostro el total del contrato ${code}.` };
+  return { status: parsed.amount > 0 ? 'pending' : 'paid', deudaCOP: parsed.amount, factura: parsed.invoice || null, periodo: parsed.dueDate || null };
+}
+
+async function scrapeTripleAFromRenderedUi() {
+  let browser;
+  let page;
+  let captchaSolver;
+  try {
+    lastWaterScrapeError = null;
+    browser = await launchBrowser('water');
+    page = await browser.newPage();
+    page.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
+    captchaSolver = await attachBrowserlessCaptchaSolver(page, 'Triple A');
+    await openAuthenticatedPortalPage({
+      provider: 'Triple A', page, dataUrl: TRIPLE_A_URLS.policies, loginUrl: TRIPLE_A_URLS.login,
+      emailSelectors: ['input[type="email"]', 'input[name="email" i]', 'input[autocomplete="username"]', 'input[type="text"]'],
+      passwordSelectors: ['input[type="password"]', 'input[name="password" i]'], captchaSolver,
+    });
+    const policies = await collectRenderedWaterPolicies(page);
+    if (!policies?.length) throw new Error('Triple A no mostro polizas en la sesion autenticada.');
+    const opened = await page.evaluate(() => {
+      const link = [...document.querySelectorAll('a')].find(element => /pagos-usuario/.test(String(element.getAttribute('href') || '')) || /^pagos$/i.test(element.innerText || ''));
+      if (!link) return false;
+      link.click();
+      return true;
+    });
+    if (!opened) throw new Error('Triple A no abrio la pantalla de pagos autenticada.');
+    await waitForRenderedPortal(page, () => Boolean(document.querySelector?.('input[name="paymentNumber"], input[type="number"]')), 30000).catch(() => null);
+    const targets = configuredApartmentTargets();
+    const results = [];
+    const used = new Set();
+    for (const policy of policies) {
+      const target = matchPortalApartmentForService(targets, policy, 'water');
+      if (!target || used.has(String(target.apartmentId || target.apartment))) continue;
+      used.add(String(target.apartmentId || target.apartment));
+      const parsed = await queryRenderedTripleAPolicy(page, policy.code);
+      results.push({ provider: 'Triple A', service: 'water', apartmentId: target.apartmentId, apartment: target.apartment, waterPaymentCode: policy.code, waterPaymentUrl: target.waterPaymentUrl || TRIPLE_A_URLS.policies, status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, periodo: parsed.periodo || null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      console.log(`[TRIPLE A] UI ${target.apartment}: ${parsed.status} (${parsed.deudaCOP === null ? 'sin valor' : `$${parsed.deudaCOP.toLocaleString('es-CO')}`}).`);
+    }
+    for (const target of targets) {
+      const key = String(target.apartmentId || target.apartment);
+      if (used.has(key)) continue;
+      results.push({ provider: 'Triple A', service: 'water', apartmentId: target.apartmentId, apartment: target.apartment, waterPaymentCode: target.waterPaymentCode || null, waterPaymentUrl: target.waterPaymentUrl || TRIPLE_A_URLS.policies, status: 'unknown', deudaCOP: null, deudaTotalCOP: null, deudaLabel: 'Deuda Total', numFacturas: null, error: 'Triple A no tiene esta poliza asociada en la cuenta autenticada.', checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+    }
+    return results;
+  } catch (error) {
+    lastWaterScrapeError = error.message;
+    console.error('[TRIPLE A] UI scraper error:', error.message);
+    return [];
+  } finally {
+    if (captchaSolver) await captchaSolver.close().catch(() => {});
+    if (browser) await closeWaterBrowser(browser);
+  }
+}
+
+async function scrapeGasFromRenderedUi() {
+  let browser;
+  let page;
+  let captchaSolver;
+  try {
+    lastGasScrapeError = null;
+    browser = await launchBrowser('gas');
+    page = await browser.newPage();
+    page.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
+    captchaSolver = await attachBrowserlessCaptchaSolver(page, 'Gases del Caribe');
+    await openAuthenticatedPortalPage({
+      provider: 'Gases del Caribe', page, dataUrl: GAS_PORTAL_URLS.contracts, loginUrl: GAS_PORTAL_URLS.login,
+      emailSelectors: ['input[type="email"]', 'input[name="email" i]', 'input[autocomplete="username"]', 'input[type="text"]'],
+      passwordSelectors: ['input[type="password"]', 'input[name="password" i]'], captchaSolver,
+    });
+    const contracts = await waitForRenderedReader(() => renderedGasContracts(page), RENDERED_PORTAL_TIMEOUT_MS);
+    if (!contracts?.length) throw new Error('Gases del Caribe no mostro contratos en la sesion autenticada.');
+    const targets = configuredApartmentTargets();
+    const results = [];
+    const used = new Set();
+    for (const contract of contracts) {
+      const target = matchPortalApartmentForService(targets, contract, 'gas');
+      if (!target || used.has(String(target.apartmentId || target.apartment))) continue;
+      used.add(String(target.apartmentId || target.apartment));
+      const parsed = await queryRenderedGasContract(page, contract.code);
+      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: contract.code, gasPaymentUrl: target.gasPaymentUrl || GAS_PORTAL_URLS.contracts, status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, factura: parsed.factura || null, periodo: parsed.periodo || null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      console.log(`[GAS] UI ${target.apartment}: ${parsed.status} (${parsed.deudaCOP === null ? 'sin valor' : `$${parsed.deudaCOP.toLocaleString('es-CO')}`}).`);
+    }
+    for (const target of targets) {
+      const key = String(target.apartmentId || target.apartment);
+      if (used.has(key)) continue;
+      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: target.gasPaymentCode || null, gasPaymentUrl: target.gasPaymentUrl || GAS_PORTAL_URLS.contracts, status: 'unknown', deudaCOP: null, deudaTotalCOP: null, deudaLabel: 'Deuda Total', numFacturas: null, error: 'Gases del Caribe no tiene este contrato asociado en la cuenta autenticada.', checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+    }
+    return results;
+  } catch (error) {
+    lastGasScrapeError = error.message;
+    console.error('[GAS] UI scraper error:', error.message);
+    return [];
+  } finally {
+    if (captchaSolver) await captchaSolver.close().catch(() => {});
+    if (browser) await closeWaterBrowser(browser);
+  }
+}
+
 // ── AUTHENTICATED PORTAL SCRAPERS ───────────────────────────────────────────
 //
 // The scheduled/manual service jobs use only the authenticated provider
@@ -1504,6 +1866,9 @@ function tripleARecord(target, subscription, checkedAt = new Date().toISOString(
 }
 
 async function scrapeTripleAAccount() {
+  if (!/^(0|false|no)$/i.test(String(process.env.PORTAL_UI_SCRAPE || 'true'))) {
+    return scrapeTripleAFromRenderedUi();
+  }
   let browser;
   let page;
   let dataPage;
@@ -2136,6 +2501,9 @@ function gasRecord(target, parsed, checkedAt = new Date().toISOString()) {
 }
 
 async function scrapeGasAccount() {
+  if (!/^(0|false|no)$/i.test(String(process.env.PORTAL_UI_SCRAPE || 'true'))) {
+    return scrapeGasFromRenderedUi();
+  }
   let browser;
   let page;
   let dataPage;

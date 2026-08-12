@@ -2868,6 +2868,24 @@ function mergePortableWorkerRecords(records) {
     });
     if (index >= 0) db.utilityRecords[index] = { ...db.utilityRecords[index], ...result };
     else db.utilityRecords.push(result);
+
+    // The authenticated portal name/address is authoritative.  Once a UI
+    // scrape returns a confirmed value, keep the real portal identifier on the
+    // apartment so the next run does not depend on the old QR/manual code.
+    const mappedApartment = (db.apartments || []).find(apartment =>
+      (result.apartmentId !== null && result.apartmentId !== undefined && Number(apartment.id) === Number(result.apartmentId)) ||
+      (result.apartment && String(apartment.name || '').trim() === String(result.apartment).trim())
+    );
+    if (mappedApartment && ['paid', 'pending'].includes(String(result.status || '').toLowerCase())) {
+      if (result.provider === 'Triple A' && result.waterPaymentCode) {
+        mappedApartment.waterPaymentCode = String(result.waterPaymentCode);
+        if (result.waterPaymentUrl) mappedApartment.waterPaymentUrl = String(result.waterPaymentUrl);
+      }
+      if (result.provider === 'Gases del Caribe' && result.gasPaymentCode) {
+        mappedApartment.gasPaymentCode = String(result.gasPaymentCode);
+        if (result.gasPaymentUrl) mappedApartment.gasPaymentUrl = String(result.gasPaymentUrl);
+      }
+    }
     persisted += 1;
   }
   if (persisted) saveData();

@@ -17,6 +17,16 @@ buildscript {
 
 apply from: "variables.gradle"
 
+// OneDrive marks generated Gradle folders as reparse points and can hold them
+// open while syncing.  A caller may place only temporary build outputs
+// elsewhere without changing the source or the APK contents.
+def externalBuildRoot = System.getenv('LAUJIM_ANDROID_BUILD_ROOT')
+if (externalBuildRoot) {
+    allprojects {
+        buildDir = new File(externalBuildRoot, project.name)
+    }
+}
+
 allprojects {
     repositories {
         google()
