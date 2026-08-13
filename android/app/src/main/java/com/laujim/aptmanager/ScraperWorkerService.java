@@ -60,8 +60,6 @@ public class ScraperWorkerService extends Service {
     private static final int READ_TIMEOUT_MS = 35_000;
     // Keep the portal window open for the requested three-minute allowance.
     private static final long WEBVIEW_TIMEOUT_MS = 180_000L;
-    private static final String AUTH_CAPTURE_SCRIPT = "(function(){if(window.__LaujimAuthHookInstalled)return;window.__LaujimAuthHookInstalled=true;const send=function(value){try{if(value&&window.LaujimAndroidBridge&&typeof window.LaujimAndroidBridge.captureAuthorization==='function')window.LaujimAndroidBridge.captureAuthorization(String(value));}catch(e){}};const read=function(headers){if(!headers)return '';try{if(typeof headers.get==='function')return headers.get('Authorization')||headers.get('authorization')||'';if(Array.isArray(headers)){for(const item of headers){if(item&&String(item[0]).toLowerCase()==='authorization')return item[1]||'';}}for(const key of Object.keys(headers)){if(key.toLowerCase()==='authorization')return headers[key]||'';}}catch(e){}return '';};const originalFetch=window.fetch;if(typeof originalFetch==='function')window.fetch=function(input,init){send(read(init&&init.headers)||read(input&&input.headers));return originalFetch.apply(this,arguments);};try{const proto=XMLHttpRequest.prototype;const originalSet=proto.setRequestHeader;proto.setRequestHeader=function(name,value){if(String(name||'').toLowerCase()==='authorization')send(value);return originalSet.apply(this,arguments);};}catch(e){}})();";
-
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private ExecutorService executor;
@@ -70,6 +68,10 @@ public class ScraperWorkerService extends Service {
     private final Object javascriptResultLock = new Object();
     private CompletableFuture<String> javascriptResult;
     private String runnerScript;
+    private volatile String webViewProvider = "";
+    private volatile String webViewWorkUrl = "";
+    private volatile boolean storageRestoreAttempted;
+    private volatile int webViewGeneration;
     // Provider portals keep bearer tokens in JavaScript memory. Capture the
     // authorization header inside this phone WebView for the local runner.
     private volatile String nativeAuthorization = "";
@@ -127,8 +129,29 @@ public class ScraperWorkerService extends Service {
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                CompletableFuture<Boolean> ready = pageReady;
-                if (ready != null && !ready.isDone()) ready.complete(true);
+                PortalSessionVault.flushCookies();
+                installAuthorizationHook(view);
+                final int generation = webViewGeneration;
+                final String currentProvider = webViewProvider;
+                if (!storageRestoreAttempted && isProviderUrl(url, currentProvider)) {
+                    storageRestoreAttempted = true;
+                    String state = PortalSessionVault.loadState(ScraperWorkerService.this, currentProvider);
+                    if (!state.isEmpty()) {
+                        view.evaluateJavascript(PortalSessionVault.restoreScript(state), ignored ->
+                            mainHandler.postDelayed(() -> {
+                                if (webView != null && generation == webViewGeneration) webView.loadUrl(webViewWorkUrl);
+                            }, 250L));
+                        return;
+                    }
+                }
+                storageRestoreAttempted = true;
+                captureSessionLater(view, currentProvider, generation, 600L);
+                captureSessionLater(view, currentProvider, generation, 3_000L);
+                mainHandler.postDelayed(() -> {
+                    if (generation != webViewGeneration) return;
+                    CompletableFuture<Boolean> ready = pageReady;
+                    if (ready != null && !ready.isDone()) ready.complete(true);
+                }, 1_500L);
             }
         });
         try {
@@ -393,16 +416,16 @@ public class ScraperWorkerService extends Service {
 
     private JSONObject runProvider(String provider, JSONObject config) throws Exception {
         String normalized = provider == null ? "" : provider.trim().toLowerCase();
-        if (!"water".equals(normalized)) {
-            // Air-e and Gases remain on the 1.0.17 local-worker route.
+        if ("gas".equals(normalized)) {
+            // Gases is stable on the legacy background path. Keep it isolated
+            // while Air-e and Triple A reuse the authenticated visible view.
             JSONObject outcome = loadAndEvaluate(provider, portalWorkUrl(provider), config);
             return outcome == null ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.") : outcome;
         }
 
-        // Triple A first reuses the visible authenticated SPA that already
-        // proved the policy selector. If Android reclaimed that activity,
-        // recover through a local WebView with the same persistent cookie and
-        // WebStorage profile so an hourly run does not depend on RAM alone.
+        // Air-e and Triple A first reuse the visible authenticated SPA. If
+        // Android reclaimed it, recover the encrypted per-origin state in the
+        // background WebView so an hourly run does not depend on RAM alone.
         if (runnerScript == null || runnerScript.isEmpty()) {
             return new JSONObject().put("state", "error").put("provider", provider).put("stage", "shared_webview").put("message", "El motor local de portales no está disponible.").put("results", new JSONArray());
         }
@@ -421,22 +444,21 @@ public class ScraperWorkerService extends Service {
     }
 
     private String portalWorkUrl(String provider) {
-        String normalized = provider == null ? "" : provider.trim().toLowerCase();
-        if ("water".equals(normalized)) return "https://portal.aaa.com.co/polizas";
-        if ("gas".equals(normalized)) return "https://portal.gascaribe.com/contracts";
-        return PortalBrowserActivity.portalUrl(provider);
+        return PortalBrowserActivity.portalWorkUrl(provider);
     }
 
     private void captureAuthorization(String url, java.util.Map<String, String> headers) {
         if (url == null || headers == null) return;
         String lowerUrl = url.toLowerCase();
         if (!lowerUrl.contains("portal.aaa.com.co")
+            && !lowerUrl.contains("portal.air-e.com")
             && !lowerUrl.contains("gascaribe")
             && !lowerUrl.contains("innovacion-gascaribe.com")) return;
         for (java.util.Map.Entry<String, String> entry : headers.entrySet()) {
             if (entry.getKey() != null && "authorization".equalsIgnoreCase(entry.getKey())
                 && entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
                 nativeAuthorization = entry.getValue().trim();
+                PortalSessionVault.saveAuthorization(this, webViewProvider, nativeAuthorization);
                 return;
             }
         }
@@ -445,9 +467,25 @@ public class ScraperWorkerService extends Service {
     private void installAuthorizationHook(WebView view) {
         if (view == null) return;
         mainHandler.post(() -> {
-            try { view.evaluateJavascript(AUTH_CAPTURE_SCRIPT, ignored -> { }); }
+            try { view.evaluateJavascript(PortalSessionVault.authorizationCaptureScript("LaujimAndroidBridge"), ignored -> { }); }
             catch (Exception ignored) { }
         });
+    }
+
+    private void captureSessionLater(WebView view, String provider, int generation, long delayMs) {
+        mainHandler.postDelayed(() -> {
+            if (view == null || webView == null || generation != webViewGeneration || !isProviderUrl(view.getUrl(), provider)) return;
+            try { view.evaluateJavascript(PortalSessionVault.snapshotScript(provider, "LaujimAndroidBridge"), ignored -> { }); }
+            catch (RuntimeException ignored) { }
+        }, delayMs);
+    }
+
+    private boolean isProviderUrl(String url, String provider) {
+        String lower = String.valueOf(url == null ? "" : url).toLowerCase();
+        String normalized = PortalSessionVault.normalize(provider);
+        if ("water".equals(normalized)) return lower.contains("portal.aaa.com.co");
+        if ("gas".equals(normalized)) return lower.contains("portal.gascaribe.com") || lower.contains("innovacion-gascaribe.com");
+        return lower.contains("portal.air-e.com");
     }
 
     private JSONArray failureRecords(String provider, JSONObject config, JSONObject outcome, String message) throws JSONException {
@@ -492,6 +530,12 @@ public class ScraperWorkerService extends Service {
 
     private JSONObject loadAndEvaluate(String provider, String url, JSONObject config) throws Exception {
         CompletableFuture<Boolean> loaded = new CompletableFuture<>();
+        webViewProvider = PortalSessionVault.normalize(provider);
+        webViewWorkUrl = url;
+        storageRestoreAttempted = false;
+        webViewGeneration += 1;
+        PortalSessionVault.flushCookies();
+        nativeAuthorization = PortalSessionVault.loadAuthorization(this, webViewProvider);
         pageReady = loaded;
         mainHandler.post(() -> {
             if (webView != null) webView.loadUrl(url);
@@ -500,6 +544,9 @@ public class ScraperWorkerService extends Service {
         try { loaded.get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS); }
         catch (Exception error) { throw new IllegalStateException("Timeout cargando " + providerLabel(provider) + "."); }
         pageReady = null;
+
+        String restoredAuthorization = PortalSessionVault.loadAuthorization(this, webViewProvider);
+        if (!restoredAuthorization.isEmpty()) nativeAuthorization = restoredAuthorization;
 
         CompletableFuture<String> result = new CompletableFuture<>();
         synchronized (javascriptResultLock) {
@@ -711,7 +758,17 @@ public class ScraperWorkerService extends Service {
     private final class JavascriptResultBridge {
         @JavascriptInterface
         public void captureAuthorization(String value) {
-            if (value != null && !value.trim().isEmpty()) nativeAuthorization = value.trim();
+            if (value != null && !value.trim().isEmpty()) {
+                nativeAuthorization = value.trim();
+                PortalSessionVault.saveAuthorization(ScraperWorkerService.this, webViewProvider, nativeAuthorization);
+            }
+        }
+
+        @JavascriptInterface
+        public void persistSession(String provider, String value) {
+            if (value == null || value.isEmpty()) return;
+            PortalSessionVault.saveState(ScraperWorkerService.this, provider, value);
+            PortalSessionVault.flushCookies();
         }
 
         @JavascriptInterface

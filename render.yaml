@@ -25,7 +25,7 @@ services:
       - key: SESSION_TTL_HOURS
         value: "12"
       - key: SERVICES_SCRAPE_INTERVAL_HOURS
-        value: "12"
+        value: "1"
       - key: SERVICES_EXECUTION_MODE
         value: portable
       # Portable worker (Android/PC). The token remains dashboard-only.
@@ -34,13 +34,23 @@ services:
       - key: SCRAPER_WORKER_TOKEN
         sync: false
       - key: PORTABLE_WORKER_INTERVAL_HOURS
-        value: "12"
+        value: "1"
       - key: PORTABLE_WORKER_START_AT
         value: "07:00"
       - key: PORTABLE_WORKER_TIMEZONE
         value: America/Bogota
       - key: PORTABLE_WORKER_PROVIDERS
         value: air-e,water,gas
+      # Cameras and locks remain local. Render only calls the authenticated
+      # HTTPS gateway and issues short-lived viewing/access requests.
+      - key: EDGE_GATEWAY_URL
+        sync: false
+      - key: EDGE_GATEWAY_TOKEN
+        sync: false
+      - key: CAMERA_STREAMS_JSON
+        sync: false
+      - key: ACCESS_DOORS_JSON
+        sync: false
       - key: DATABASE_URL
         # The production database is Aiven. Keep its private URL only in the
         # Render dashboard; the old Render database was deleted/expired.

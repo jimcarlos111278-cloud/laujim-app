@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dist = join(__dirname, '..', 'dist');
 const verFile = join(dist, 'version.json');
+const publicDir = join(__dirname, '..', 'public');
 const androidGradle = join(__dirname, '..', 'android', 'app', 'build.gradle');
 
 const now = new Date();
@@ -27,6 +28,14 @@ const version = {
 };
 
 if (!existsSync(dist)) mkdirSync(dist, { recursive: true });
+if (!existsSync(publicDir)) mkdirSync(publicDir, { recursive: true });
 
 writeFileSync(verFile, JSON.stringify(version, null, 2));
+const appVersion = {
+  version: apkVersion,
+  apkUrl: `https://laujim-app.onrender.com/app-debug.apk?v=${encodeURIComponent(apkVersion)}`,
+};
+const appVersionJson = `${JSON.stringify(appVersion, null, 2)}\n`;
+writeFileSync(join(publicDir, 'app-version.json'), appVersionJson);
+writeFileSync(join(dist, 'app-version.json'), appVersionJson);
 console.log(`Version: ${version.version} (build ${version.build}) ${version.date} ${version.time}`);

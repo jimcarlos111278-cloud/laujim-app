@@ -2,12 +2,15 @@ package com.laujim.aptmanager;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebStorage;
 import android.webkit.WebView;
@@ -18,12 +21,13 @@ import android.widget.TextView;
 
 import org.json.JSONObject;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Visible local browser used for the one-time portal login and any human
- * verification. The worker executes the scraper in this exact WebView so the
- * portal's in-memory SPA session, DOM and authenticated requests are shared.
+ * Visible local browser used for portal login and human verification. The
+ * worker prefers this exact WebView and also keeps an encrypted snapshot of
+ * per-origin sessionStorage so Android can recover after reclaiming it.
  */
 public class PortalBrowserActivity extends Activity {
     public static final String EXTRA_PROVIDER = "provider";
@@ -34,8 +38,11 @@ public class PortalBrowserActivity extends Activity {
     private final Object scraperLock = new Object();
     private WebView webView;
     private TextView status;
-    private String provider;
+    private String provider = "air-e";
     private String currentUrl = "";
+    private String nativeAuthorization = "";
+    private boolean storageRestoreAttempted;
+    private int navigationGeneration;
     private CompletableFuture<Boolean> pageReady = new CompletableFuture<>();
     private CompletableFuture<String> pendingScraperResult;
 
@@ -57,7 +64,7 @@ public class PortalBrowserActivity extends Activity {
         root.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         status = new TextView(this);
-        status.setText("Inicia sesión o completa la verificación. Luego vuelve a Laujim y pulsa Ejecutar ahora.");
+        status.setText("Inicia sesión o completa la verificación. La sesión se conserva cifrada solo en este dispositivo.");
         status.setTextColor(android.graphics.Color.DKGRAY);
         status.setTextSize(13);
         status.setPadding(24, 0, 24, 12);
@@ -79,14 +86,12 @@ public class PortalBrowserActivity extends Activity {
         configureWebView(webView);
         root.addView(webView, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(root);
-        loadPortal(provider);
+        beginLoad(provider);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        // Re-assert the shared instance whenever Android brings this activity
-        // back after reordering the task or restoring it from the background.
         activeInstance = this;
     }
 
@@ -96,10 +101,9 @@ public class PortalBrowserActivity extends Activity {
         setIntent(intent);
         String nextProvider = normalize(intent == null ? null : intent.getStringExtra(EXTRA_PROVIDER));
         if (!nextProvider.equals(provider)) {
-            provider = nextProvider;
-            loadPortal(provider);
+            persistThen(() -> beginLoad(nextProvider));
         } else if (status != null) {
-            status.setText("Sesión conservada. El worker ejecutará el scraper dentro de este navegador.");
+            status.setText("Sesión conservada. El worker usará este mismo navegador para " + providerLabel(provider) + ".");
         }
     }
 
@@ -108,45 +112,117 @@ public class PortalBrowserActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
+        settings.setLoadsImagesAutomatically(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setSupportMultipleWindows(false);
         settings.setLoadWithOverviewMode(false);
         settings.setUseWideViewPort(true);
-        CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(view, true);
+        CookieManager cookies = CookieManager.getInstance();
+        cookies.setAcceptCookie(true);
+        cookies.setAcceptThirdPartyCookies(view, true);
         view.addJavascriptInterface(new PortalBridge(), "LaujimAndroidBridge");
         view.setWebChromeClient(new WebChromeClient());
         view.setWebViewClient(new WebViewClient() {
             @Override
-            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+            public void onPageStarted(WebView page, String url, Bitmap favicon) {
                 currentUrl = url == null ? "" : url;
-                synchronized (scraperLock) {
-                    if (pageReady == null || pageReady.isDone()) pageReady = new CompletableFuture<>();
-                }
+                installAuthorizationHook(page);
             }
 
             @Override
-            public void onPageFinished(WebView view, String url) {
+            public WebResourceResponse shouldInterceptRequest(WebView page, WebResourceRequest request) {
+                captureAuthorization(
+                    request == null || request.getUrl() == null ? null : request.getUrl().toString(),
+                    request == null ? null : request.getRequestHeaders()
+                );
+                return super.shouldInterceptRequest(page, request);
+            }
+
+            @Override
+            public void onPageFinished(WebView page, String url) {
                 currentUrl = url == null ? "" : url;
-                CompletableFuture<Boolean> ready;
-                synchronized (scraperLock) {
-                    ready = pageReady;
+                PortalSessionVault.flushCookies();
+                installAuthorizationHook(page);
+                final int generation = navigationGeneration;
+                if (!storageRestoreAttempted && isProviderUrl(currentUrl, provider)) {
+                    storageRestoreAttempted = true;
+                    String state = PortalSessionVault.loadState(PortalBrowserActivity.this, provider);
+                    if (!state.isEmpty()) {
+                        page.evaluateJavascript(PortalSessionVault.restoreScript(state), ignored ->
+                            mainHandler.postDelayed(() -> {
+                                if (webView != null && generation == navigationGeneration) webView.loadUrl(portalWorkUrl(provider));
+                            }, 250L));
+                        return;
+                    }
                 }
-                if (ready != null && !ready.isDone()) ready.complete(true);
+                storageRestoreAttempted = true;
+                captureSessionLater(generation, 800L);
+                captureSessionLater(generation, 3_000L);
+                captureSessionLater(generation, 8_000L);
+                mainHandler.postDelayed(() -> {
+                    if (generation != navigationGeneration) return;
+                    CompletableFuture<Boolean> ready;
+                    synchronized (scraperLock) { ready = pageReady; }
+                    if (ready != null && !ready.isDone()) ready.complete(true);
+                }, 1_200L);
                 if (status != null) {
-                    status.setText("Página cargada. Si el portal muestra verificación, complétala aquí. Sesión: " + currentUrl);
+                    status.setText("Página cargada. Completa cualquier verificación aquí. Sesión local: " + currentUrl);
                 }
             }
         });
     }
 
-    private void loadPortal(String nextProvider) {
+    private void beginLoad(String nextProvider) {
         if (webView == null) return;
-        synchronized (scraperLock) {
-            pageReady = new CompletableFuture<>();
-        }
+        provider = normalize(nextProvider);
+        navigationGeneration += 1;
+        storageRestoreAttempted = false;
+        nativeAuthorization = PortalSessionVault.loadAuthorization(this, provider);
+        synchronized (scraperLock) { pageReady = new CompletableFuture<>(); }
         currentUrl = "";
-        if (status != null) status.setText("Cargando " + providerLabel(nextProvider) + " en el navegador compartido…");
-        webView.loadUrl(portalUrl(nextProvider));
+        PortalSessionVault.flushCookies();
+        if (status != null) status.setText("Cargando " + providerLabel(provider) + " en el navegador compartido…");
+        webView.loadUrl(portalWorkUrl(provider));
+    }
+
+    private void persistThen(Runnable action) {
+        if (webView == null || currentUrl.isEmpty()) {
+            action.run();
+            return;
+        }
+        try {
+            webView.evaluateJavascript(PortalSessionVault.snapshotScript(provider, "LaujimAndroidBridge"), ignored -> action.run());
+        } catch (RuntimeException ignored) {
+            action.run();
+        }
+    }
+
+    private void captureSessionLater(int generation, long delayMs) {
+        mainHandler.postDelayed(() -> {
+            if (webView == null || generation != navigationGeneration || !isProviderUrl(currentUrl, provider)) return;
+            try { webView.evaluateJavascript(PortalSessionVault.snapshotScript(provider, "LaujimAndroidBridge"), ignored -> { }); }
+            catch (RuntimeException ignored) { }
+        }, delayMs);
+    }
+
+    private void installAuthorizationHook(WebView page) {
+        if (page == null) return;
+        mainHandler.post(() -> {
+            try { page.evaluateJavascript(PortalSessionVault.authorizationCaptureScript("LaujimAndroidBridge"), ignored -> { }); }
+            catch (RuntimeException ignored) { }
+        });
+    }
+
+    private void captureAuthorization(String url, Map<String, String> headers) {
+        if (url == null || headers == null || !isProviderUrl(url, provider)) return;
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            if (entry.getKey() != null && "authorization".equalsIgnoreCase(entry.getKey())
+                && entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+                nativeAuthorization = entry.getValue().trim();
+                PortalSessionVault.saveAuthorization(this, provider, nativeAuthorization);
+                return;
+            }
+        }
     }
 
     private void clearPortalData() {
@@ -154,34 +230,32 @@ public class PortalBrowserActivity extends Activity {
             completePendingExceptionLocked(new IllegalStateException("La sesión del portal fue borrada."));
             pageReady = new CompletableFuture<>();
         }
-        CookieManager.getInstance().removeAllCookies(value -> CookieManager.getInstance().flush());
+        PortalSessionVault.clear(this);
+        CookieManager.getInstance().removeAllCookies(value -> PortalSessionVault.flushCookies());
         WebStorage.getInstance().deleteAllData();
         if (webView != null) {
             webView.clearCache(true);
             webView.clearHistory();
         }
-        if (status != null) status.setText("Cookies y datos del WebView borrados. Cargando el login nuevamente…");
-        loadPortal(provider);
+        if (status != null) status.setText("Cookies y sesión cifrada borradas. Cargando el portal nuevamente…");
+        beginLoad(provider);
     }
 
     private void returnToLaujim() {
-        if (status != null) status.setText("Sesión conservada para el worker. Volviendo a Laujim…");
-        Intent intent = new Intent(this, MainActivity.class)
-            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        startActivity(intent);
+        if (status != null) status.setText("Guardando la sesión local y volviendo a Laujim…");
+        persistThen(() -> {
+            PortalSessionVault.flushCookies();
+            Intent intent = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
+        });
     }
 
-    /**
-     * Run the local scraper in the currently authenticated visible WebView.
-     * The activity is intentionally kept alive when returning to Laujim so a
-     * service run can reuse the same SPA session later.
-     */
     static CompletableFuture<String> executeScraper(String requestedProvider, String configJson, String runnerScript) {
         CompletableFuture<String> result = new CompletableFuture<>();
         PortalBrowserActivity activity = activeInstance;
         if (activity == null || activity.webView == null) {
             result.completeExceptionally(new IllegalStateException(
-                "Abre el portal desde Laujim y conserva la sesión del navegador antes de ejecutar el worker."));
+                "El navegador visible no está activo; se intentará recuperar la sesión cifrada en segundo plano."));
             return result;
         }
         activity.mainHandler.post(() -> activity.startScraper(requestedProvider, configJson, runnerScript, result));
@@ -207,41 +281,42 @@ public class PortalBrowserActivity extends Activity {
         }
 
         String nextProvider = normalize(requestedProvider);
-        if (!isProviderUrl(currentUrl, nextProvider)) {
-            provider = nextProvider;
-            loadPortal(nextProvider);
+        if (!nextProvider.equals(provider) || !isProviderUrl(currentUrl, nextProvider)) {
+            persistThen(() -> {
+                beginLoad(nextProvider);
+                scheduleScraperEvaluation(nextProvider, configJson, runnerScript, result);
+            });
+            return;
         }
+        scheduleScraperEvaluation(nextProvider, configJson, runnerScript, result);
+    }
 
+    private void scheduleScraperEvaluation(String nextProvider, String configJson, String runnerScript, CompletableFuture<String> result) {
         CompletableFuture<Boolean> ready;
-        synchronized (scraperLock) {
-            ready = pageReady;
-        }
+        synchronized (scraperLock) { ready = pageReady; }
         Runnable evaluate = () -> evaluateScraper(nextProvider, configJson, runnerScript, result);
-        if (ready != null && !ready.isDone()) {
-            ready.whenComplete((ignored, error) -> mainHandler.postDelayed(evaluate, 500L));
-        } else {
-            mainHandler.postDelayed(evaluate, 500L);
-        }
+        if (ready != null && !ready.isDone()) ready.whenComplete((ignored, error) -> mainHandler.postDelayed(evaluate, 1_200L));
+        else mainHandler.postDelayed(evaluate, 1_200L);
     }
 
     private void evaluateScraper(String nextProvider, String configJson, String runnerScript, CompletableFuture<String> result) {
         synchronized (scraperLock) {
             if (pendingScraperResult != result || result.isDone()) return;
         }
+        String savedAuth = nativeAuthorization == null || nativeAuthorization.isEmpty()
+            ? PortalSessionVault.loadAuthorization(this, nextProvider)
+            : nativeAuthorization;
         String expression = "(async()=>{try{"
-            + "window.__LaujimNativeAuthorization='';"
+            + "window.__LaujimNativeAuthorization=" + quote(savedAuth) + ";"
             + (runnerScript == null ? "" : runnerScript)
             + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');"
             + "const outcome=await window.LaujimLocalPortalScraper.run(" + quote(nextProvider) + "," + (configJson == null ? "{}" : configJson) + ");"
             + "window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));"
             + "}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(nextProvider)
             + ",stage:'shared_webview',message:String(e&&e.message||e),results:[]}));}})();";
-        try {
-            webView.evaluateJavascript(expression, ignored -> { });
-        } catch (Exception error) {
-            synchronized (scraperLock) {
-                completePendingExceptionLocked(error);
-            }
+        try { webView.evaluateJavascript(expression, ignored -> { }); }
+        catch (Exception error) {
+            synchronized (scraperLock) { completePendingExceptionLocked(error); }
         }
     }
 
@@ -259,21 +334,23 @@ public class PortalBrowserActivity extends Activity {
         }
     }
 
-    private static String quote(String value) {
-        return JSONObject.quote(value == null ? "" : value);
-    }
+    private static String quote(String value) { return JSONObject.quote(value == null ? "" : value); }
 
-    private static String normalize(String value) {
-        String normalized = value == null ? "" : value.trim().toLowerCase();
-        return normalized.equals("water") || normalized.equals("triple-a") ? "water"
-            : normalized.equals("gas") || normalized.equals("gascaribe") ? "gas" : "air-e";
-    }
+    private static String normalize(String value) { return PortalSessionVault.normalize(value); }
 
     static String portalUrl(String provider) {
         switch (normalize(provider)) {
             case "water": return "https://portal.aaa.com.co/iniciar-sesion";
             case "gas": return "https://portal.gascaribe.com/login";
             default: return "https://portal.air-e.com/Login?returnurl=%2fMis-Facturas%2fListado-de-Facturas";
+        }
+    }
+
+    static String portalWorkUrl(String provider) {
+        switch (normalize(provider)) {
+            case "water": return "https://portal.aaa.com.co/inicio";
+            case "gas": return "https://portal.gascaribe.com/contracts";
+            default: return "https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List";
         }
     }
 
@@ -293,10 +370,13 @@ public class PortalBrowserActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        synchronized (scraperLock) {
-            completePendingExceptionLocked(new IllegalStateException("El navegador compartido se cerró."));
+        if (webView != null) {
+            try { webView.evaluateJavascript(PortalSessionVault.snapshotScript(provider, "LaujimAndroidBridge"), ignored -> { }); }
+            catch (RuntimeException ignored) { }
         }
+        synchronized (scraperLock) { completePendingExceptionLocked(new IllegalStateException("El navegador compartido se cerró.")); }
         if (activeInstance == this) activeInstance = null;
+        PortalSessionVault.flushCookies();
         if (webView != null) {
             webView.stopLoading();
             webView.destroy();
@@ -314,6 +394,21 @@ public class PortalBrowserActivity extends Activity {
                 pendingScraperResult = null;
             }
             if (pending != null && !pending.isDone()) pending.complete(value);
+            mainHandler.post(() -> captureSessionLater(navigationGeneration, 0L));
+        }
+
+        @JavascriptInterface
+        public void persistSession(String targetProvider, String value) {
+            if (value == null || value.isEmpty()) return;
+            PortalSessionVault.saveState(PortalBrowserActivity.this, targetProvider, value);
+            PortalSessionVault.flushCookies();
+        }
+
+        @JavascriptInterface
+        public void captureAuthorization(String value) {
+            if (value == null || value.trim().isEmpty()) return;
+            nativeAuthorization = value.trim();
+            PortalSessionVault.saveAuthorization(PortalBrowserActivity.this, provider, nativeAuthorization);
         }
     }
 }

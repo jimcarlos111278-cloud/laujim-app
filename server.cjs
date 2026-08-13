@@ -13,6 +13,9 @@ const servicesScraper = require('./services-scraper.cjs');
 const workerProtocol = require('./worker-protocol.cjs');
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const ffmpegPath = require('ffmpeg-static');
+const PizZip = require('pizzip');
+const Docxtemplater = require('docxtemplater');
+const { PDFDocument, PDFTextField, PDFCheckBox, PDFDropdown, PDFRadioGroup, PDFOptionList } = require('pdf-lib');
 
 const app = express();
 const PORT = process.env.PORT || 1011;
@@ -177,6 +180,17 @@ async function streamR2Object(storageKey, res, fallback = {}) {
   res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(safeName)}`);
   if (object.ContentLength !== undefined) res.setHeader('Content-Length', String(object.ContentLength));
   object.Body.pipe(res);
+}
+
+async function getR2Buffer(storageKey) {
+  const object = await getR2Client().send(new GetObjectCommand({ Bucket: r2Config().bucket, Key: storageKey }));
+  if (!object.Body) throw new Error('El archivo permanente no devolvió contenido');
+  if (typeof object.Body.transformToByteArray === 'function') {
+    return Buffer.from(await object.Body.transformToByteArray());
+  }
+  const chunks = [];
+  for await (const chunk of object.Body) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks);
 }
 
 function constantTimeEqual(left, right) {
@@ -437,7 +451,7 @@ function cloudApiRequest(pathname, method, payload) {
 // Graph version and not under a phone-number ID.
 function cloudGraphRequest(pathname, method = 'GET', payload = null) {
   const c = cloudConfig();
-  if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no estÃ¡ configurada'));
+  if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no está configurada'));
   const body = payload ? JSON.stringify(payload) : null;
   return new Promise((resolve, reject) => {
     const req = https.request({
@@ -454,7 +468,7 @@ function cloudGraphRequest(pathname, method = 'GET', payload = null) {
           const parsed = JSON.parse(data || '{}');
           if (res.statusCode >= 200 && res.statusCode < 300) resolve(parsed);
           else reject(new Error(parsed.error?.message || 'Cloud API error'));
-        } catch { reject(new Error('Respuesta invÃ¡lida de Cloud API')); }
+        } catch { reject(new Error('Respuesta inválida de Cloud API')); }
       });
     });
     req.on('error', reject);
@@ -535,7 +549,7 @@ async function archiveCloudInboundMedia(media) {
 
 function uploadCloudMedia(file) {
   const c = cloudConfig();
-  if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no estÃ¡ configurada'));
+  if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no está configurada'));
   const boundary = `----LaujimMedia${crypto.randomBytes(12).toString('hex')}`;
   const safeName = String(file.originalname || 'archivo').replace(/[\r\n"]/g, '_');
   const mime = file.mimetype || 'application/octet-stream';
@@ -558,11 +572,11 @@ function uploadCloudMedia(file) {
           const parsed = JSON.parse(data || '{}');
           if (res.statusCode >= 200 && res.statusCode < 300 && parsed.id) resolve(parsed);
           else reject(new Error(parsed.error?.message || 'No fue posible cargar el archivo a WhatsApp'));
-        } catch { reject(new Error('Respuesta invÃ¡lida al cargar el archivo')); }
+        } catch { reject(new Error('Respuesta inválida al cargar el archivo')); }
       });
     });
     req.on('error', reject);
-    req.setTimeout(30000, () => req.destroy(new Error('La carga del archivo tardÃ³ demasiado')));
+    req.setTimeout(30000, () => req.destroy(new Error('La carga del archivo tardó demasiado')));
     req.write(body);
     req.end();
   });
@@ -930,6 +944,136 @@ function requireCloudAdmin(req, res) {
   if (req.auth?.role === 'admin') return true;
   res.status(403).json({ error: 'Acceso de administración requerido' });
   return false;
+}
+
+function parseJsonEnv(name, fallback = []) {
+  try {
+    const parsed = JSON.parse(String(process.env[name] || ''));
+    return parsed && typeof parsed === 'object' ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function safeEdgeId(value) {
+  return String(value || '').trim().replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 80);
+}
+
+function cameraDefinitions() {
+  const configured = parseJsonEnv('CAMERA_STREAMS_JSON', []);
+  return (Array.isArray(configured) ? configured : []).map((item, index) => ({
+    id: safeEdgeId(item?.id) || `camera-${index + 1}`,
+    gatewayId: safeEdgeId(item?.gatewayId || item?.id) || `camera-${index + 1}`,
+    name: String(item?.name || `Cámara ${index + 1}`).trim().slice(0, 100),
+    location: String(item?.location || '').trim().slice(0, 140) || null,
+    tenantVisible: item?.tenantVisible === true,
+    enabled: item?.enabled !== false,
+  })).filter(item => item.enabled);
+}
+
+function doorDefinitions() {
+  const configured = parseJsonEnv('ACCESS_DOORS_JSON', []);
+  return (Array.isArray(configured) ? configured : []).map((item, index) => ({
+    id: safeEdgeId(item?.id) || `door-${index + 1}`,
+    gatewayId: safeEdgeId(item?.gatewayId || item?.id) || `door-${index + 1}`,
+    name: String(item?.name || `Acceso ${index + 1}`).trim().slice(0, 100),
+    location: String(item?.location || '').trim().slice(0, 140) || null,
+    tenantVisible: item?.tenantVisible === true,
+    enabled: item?.enabled !== false,
+  })).filter(item => item.enabled);
+}
+
+function publicEdgeView(item) {
+  return { id: item.id, name: item.name, location: item.location, tenantVisible: item.tenantVisible, enabled: item.enabled };
+}
+
+function edgeGatewayConfig() {
+  return {
+    url: String(process.env.EDGE_GATEWAY_URL || '').trim().replace(/\/+$/, ''),
+    token: String(process.env.EDGE_GATEWAY_TOKEN || '').trim(),
+  };
+}
+
+function edgeGatewayReady() {
+  const config = edgeGatewayConfig();
+  return Boolean(config.url && config.token && /^https:\/\//i.test(config.url));
+}
+
+async function edgeGatewayRequest(route, body) {
+  const config = edgeGatewayConfig();
+  if (!edgeGatewayReady()) throw new Error('La pasarela local de cámaras y accesos todavía no está conectada.');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetch(config.url + route, {
+      method: 'POST', signal: controller.signal,
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${config.token}` },
+      body: JSON.stringify(body || {}),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(String(payload.error || payload.message || `Pasarela HTTP ${response.status}`).slice(0, 300));
+    return payload;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const accessRateLimits = new Map();
+
+function accessRateAllowed(actorKey) {
+  const key = String(actorKey || 'unknown');
+  const now = Date.now();
+  const recent = (accessRateLimits.get(key) || []).filter(stamp => now - stamp < 60_000);
+  if (recent.length >= 4 || (recent.length && now - recent[recent.length - 1] < 10_000)) return false;
+  recent.push(now);
+  accessRateLimits.set(key, recent);
+  return true;
+}
+
+function appendAccessEvent(input = {}) {
+  if (!Array.isArray(db.accessEvents)) db.accessEvents = [];
+  const event = {
+    id: nextId.accessEvents || 1,
+    requestId: String(input.requestId || crypto.randomUUID()).slice(0, 80),
+    actorRole: input.actorRole === 'tenant' ? 'tenant' : 'admin',
+    actorId: String(input.actorId || '').slice(0, 100) || null,
+    apartmentId: Number(input.apartmentId) || null,
+    doorId: safeEdgeId(input.doorId) || null,
+    status: ['requested', 'opened', 'failed', 'rejected'].includes(input.status) ? input.status : 'failed',
+    message: String(input.message || '').replace(/\s+/g, ' ').trim().slice(0, 300) || null,
+    createdAt: new Date().toISOString(),
+  };
+  nextId.accessEvents = event.id + 1;
+  db.accessEvents.unshift(event);
+  if (db.accessEvents.length > 1000) db.accessEvents.splice(1000);
+  saveData();
+  return event;
+}
+
+function tenantUtilityOverview(apartment) {
+  const electricity = latestUtilityRecord('Air-e', apartment);
+  const water = latestUtilityRecord('Triple A', apartment);
+  const gas = latestUtilityRecord('Gases del Caribe', apartment);
+  const view = (record, provider, referenceLabel, reference, paymentUrl, paymentMode) => ({
+    provider,
+    status: record?.status || 'unknown',
+    debt: utilityDebtAmount(record),
+    checkedAt: record?.checkedAt || record?.scrapedAt || record?.updatedAt || null,
+    error: record?.error ? String(record.error).slice(0, 240) : null,
+    referenceLabel,
+    reference: String(reference || '').trim() || null,
+    paymentUrl: /^https:\/\//i.test(String(paymentUrl || '')) ? String(paymentUrl) : null,
+    paymentMode,
+  });
+  const nic = apartment?.electricityPaymentCode || apartment?.nic || electricity?.nic || '';
+  const airPaymentUrl = apartment?.electricityPaymentUrl || (nic
+    ? `https://portal.air-e.com/Pagar#/User/${encodeURIComponent(String(nic).replace(/\D/g, ''))}/NUMEROCONTRATO`
+    : '');
+  return {
+    electricity: view(electricity, 'Air-e', 'NIC', nic, airPaymentUrl, 'nic'),
+    water: view(water, 'Triple A', 'Póliza', apartment?.waterPaymentCode || water?.waterPaymentCode, apartment?.waterPaymentUrl, 'qr'),
+    gas: view(gas, 'Gases del Caribe', 'Contrato', apartment?.gasPaymentCode || gas?.gasPaymentCode, apartment?.gasPaymentUrl, 'qr'),
+  };
 }
 
 // ── Debt query intent (servicios públicos) ────────────────────────────────
@@ -2580,7 +2724,7 @@ function loadData() {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
-  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs', 'utilityRecords', 'scraperWorkers', 'scraperLogs'].forEach(k => { if (!db[k]) db[k] = []; });
+  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs', 'utilityRecords', 'scraperWorkers', 'scraperLogs', 'marketplaceJobs', 'accessEvents', 'contractTemplates'].forEach(k => { if (!db[k]) db[k] = []; });
   if (pruneAuthSessions()) console.log('Expired authentication sessions removed');
   recalcNextId();
 }
@@ -2811,7 +2955,128 @@ app.get('/api/tenant/overview', (req, res) => {
     (!item.endDate || new Date(item.endDate).getTime() >= Date.now())
   ) || null;
   const payments = (db.payments || []).filter(item => Number(item.apartmentId) === apartmentId && item.type === 'rent');
-  res.json({ apartment, tenant, contract, payments });
+  const apartmentView = {
+    id: apartment.id, name: apartment.name, status: apartment.status,
+    floor: apartment.floor || null, area: apartment.area || null,
+    rooms: apartment.rooms || null, bathrooms: apartment.bathrooms || null,
+    monthlyRent: apartment.monthlyRent || 0, paymentDueDay: apartment.paymentDueDay || 1,
+    waterReadingDay: apartment.waterReadingDay || null,
+    gasReadingDay: apartment.gasReadingDay || null,
+    electricityReadingDay: apartment.electricityReadingDay || null,
+  };
+  const tenantView = {
+    id: tenant.id,
+    name: tenant.name,
+    phone: tenant.phone || null,
+    email: tenant.email || null,
+  };
+  const contractView = contract ? {
+    id: contract.id,
+    status: contract.status || null,
+    startDate: contract.startDate || null,
+    endDate: contract.endDate || null,
+    monthlyRent: Number(contract.monthlyRent) || 0,
+    contractFile: contract.contractFile || null,
+  } : null;
+  const paymentView = payments.map(payment => ({
+    id: payment.id,
+    date: payment.date || null,
+    period: payment.period || null,
+    amount: Number(payment.amount) || 0,
+    type: payment.type,
+    status: payment.status || null,
+  }));
+  res.json({
+    apartment: apartmentView, tenant: tenantView, contract: contractView, payments: paymentView,
+    services: tenantUtilityOverview(apartment),
+    cameras: cameraDefinitions().filter(camera => camera.tenantVisible).map(publicEdgeView),
+    doors: doorDefinitions().filter(door => door.tenantVisible).map(publicEdgeView),
+    edgeGatewayConnected: edgeGatewayReady(),
+  });
+});
+
+app.post('/api/tenant/cameras/:id/ticket', async (req, res) => {
+  const camera = cameraDefinitions().find(item => item.id === safeEdgeId(req.params.id) && item.tenantVisible);
+  if (!camera) return res.status(404).json({ error: 'Cámara no disponible para este portal.' });
+  try {
+    const payload = await edgeGatewayRequest(`/v1/cameras/${encodeURIComponent(camera.gatewayId)}/ticket`, {
+      requestId: crypto.randomUUID(), role: 'tenant', apartmentId: Number(req.auth.apartmentId), ttlSeconds: 120,
+    });
+    const playbackUrl = String(payload.playbackUrl || payload.url || '');
+    if (!/^https:\/\//i.test(playbackUrl)) throw new Error('La pasarela no devolvió una transmisión HTTPS válida.');
+    res.json({ ok: true, camera: publicEdgeView(camera), playbackUrl, expiresAt: payload.expiresAt || null, mode: payload.mode || 'embed' });
+  } catch (error) {
+    res.status(503).json({ error: error.message });
+  }
+});
+
+app.post('/api/tenant/access/doors/:id/unlock', async (req, res) => {
+  const door = doorDefinitions().find(item => item.id === safeEdgeId(req.params.id) && item.tenantVisible);
+  if (!door) return res.status(404).json({ error: 'Acceso no disponible para este portal.' });
+  if (req.body?.confirm !== true) return res.status(400).json({ error: 'Confirma explícitamente la apertura.' });
+  const actorKey = `tenant:${req.auth.tenantId}:${door.id}`;
+  if (!accessRateAllowed(actorKey)) {
+    appendAccessEvent({ actorRole: 'tenant', actorId: req.auth.tenantId, apartmentId: req.auth.apartmentId, doorId: door.id, status: 'rejected', message: 'Límite de frecuencia.' });
+    return res.status(429).json({ error: 'Espera unos segundos antes de volver a solicitar la apertura.' });
+  }
+  const requestId = crypto.randomUUID();
+  try {
+    const payload = await edgeGatewayRequest(`/v1/doors/${encodeURIComponent(door.gatewayId)}/unlock`, {
+      requestId, role: 'tenant', tenantId: Number(req.auth.tenantId), apartmentId: Number(req.auth.apartmentId), pulseMs: 1200,
+    });
+    const event = appendAccessEvent({ requestId, actorRole: 'tenant', actorId: req.auth.tenantId, apartmentId: req.auth.apartmentId, doorId: door.id, status: 'opened', message: payload.message || 'Apertura confirmada por la pasarela.' });
+    res.json({ ok: true, requestId: event.requestId, door: publicEdgeView(door), message: event.message });
+  } catch (error) {
+    appendAccessEvent({ requestId, actorRole: 'tenant', actorId: req.auth.tenantId, apartmentId: req.auth.apartmentId, doorId: door.id, status: 'failed', message: error.message });
+    res.status(503).json({ error: error.message, requestId });
+  }
+});
+
+app.get('/api/security/overview', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  res.json({
+    ok: true,
+    gatewayConnected: edgeGatewayReady(),
+    cameras: cameraDefinitions().map(publicEdgeView),
+    doors: doorDefinitions().map(publicEdgeView),
+    accessEvents: (db.accessEvents || []).slice(0, 100),
+  });
+});
+
+app.post('/api/security/cameras/:id/ticket', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const camera = cameraDefinitions().find(item => item.id === safeEdgeId(req.params.id));
+  if (!camera) return res.status(404).json({ error: 'Cámara no configurada.' });
+  try {
+    const payload = await edgeGatewayRequest(`/v1/cameras/${encodeURIComponent(camera.gatewayId)}/ticket`, {
+      requestId: crypto.randomUUID(), role: 'admin', ttlSeconds: 180,
+    });
+    const playbackUrl = String(payload.playbackUrl || payload.url || '');
+    if (!/^https:\/\//i.test(playbackUrl)) throw new Error('La pasarela no devolvió una transmisión HTTPS válida.');
+    res.json({ ok: true, camera: publicEdgeView(camera), playbackUrl, expiresAt: payload.expiresAt || null, mode: payload.mode || 'embed' });
+  } catch (error) {
+    res.status(503).json({ error: error.message });
+  }
+});
+
+app.post('/api/security/doors/:id/unlock', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const door = doorDefinitions().find(item => item.id === safeEdgeId(req.params.id));
+  if (!door) return res.status(404).json({ error: 'Acceso no configurado.' });
+  if (req.body?.confirm !== true) return res.status(400).json({ error: 'Confirma explícitamente la apertura.' });
+  const actorKey = `admin:${req.auth.id || req.auth.name || 'admin'}:${door.id}`;
+  if (!accessRateAllowed(actorKey)) return res.status(429).json({ error: 'Espera unos segundos antes de volver a abrir.' });
+  const requestId = crypto.randomUUID();
+  try {
+    const payload = await edgeGatewayRequest(`/v1/doors/${encodeURIComponent(door.gatewayId)}/unlock`, {
+      requestId, role: 'admin', actor: req.auth.name || 'Administrador', pulseMs: 1200,
+    });
+    const event = appendAccessEvent({ requestId, actorRole: 'admin', actorId: req.auth.name, doorId: door.id, status: 'opened', message: payload.message || 'Apertura confirmada por la pasarela.' });
+    res.json({ ok: true, requestId: event.requestId, door: publicEdgeView(door), message: event.message });
+  } catch (error) {
+    appendAccessEvent({ requestId, actorRole: 'admin', actorId: req.auth.name, doorId: door.id, status: 'failed', message: error.message });
+    res.status(503).json({ error: error.message, requestId });
+  }
 });
 
 app.get('/api/public/vacants', (req, res) => {
@@ -3026,7 +3291,7 @@ function savedPortableWorkerSchedule() {
 function workerScheduleConfig() {
   const saved = savedPortableWorkerSchedule();
   const requestedInterval = Number(
-    saved?.intervalHours ?? process.env.PORTABLE_WORKER_INTERVAL_HOURS ?? process.env.SERVICES_SCRAPE_INTERVAL_HOURS ?? 12,
+    saved?.intervalHours ?? process.env.PORTABLE_WORKER_INTERVAL_HOURS ?? process.env.SERVICES_SCRAPE_INTERVAL_HOURS ?? 1,
   );
   const intervalHours = Number.isFinite(requestedInterval)
     ? Math.min(168, Math.max(1, Math.floor(requestedInterval)))
@@ -3439,6 +3704,17 @@ app.get('/api/marketplace/jobs', (req, res) => {
   res.json({ ok: true, jobs });
 });
 
+app.get('/api/marketplace/logs', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 80));
+  const jobId = Number(req.query.jobId || 0);
+  const logs = ensureScraperLogCollection()
+    .filter(log => log.provider === 'Facebook Marketplace')
+    .filter(log => !jobId || log.runId === `marketplace-job-${jobId}`)
+    .slice(0, limit);
+  res.json({ ok: true, logs, total: logs.length });
+});
+
 app.post('/api/marketplace/jobs', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   const apartmentId = Number(req.body?.apartmentId);
@@ -3476,6 +3752,11 @@ app.post('/api/marketplace/jobs', (req, res) => {
     listingUrl: null,
   };
   ensureMarketplaceJobs().push(job);
+  appendScraperLog({
+    source: 'render', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    stage: 'queued', level: 'info', message: `Apartamento ${job.apartmentName}: publicación agregada a la cola local.`,
+    details: { jobId: job.id, apartmentId: job.apartmentId, photos: listing.photoCount, publish: job.publish },
+  }, { persist: false });
   saveData();
   console.log(`[MARKETPLACE] Job ${job.id} queued for apartment ${job.apartmentName}; photos=${listing.photoCount}.`);
   res.status(201).json({ ok: true, job: marketplaceJobView(job) });
@@ -3499,6 +3780,11 @@ app.post('/api/marketplace/jobs/:id/retry', (req, res) => {
   job.updatedAt = new Date().toISOString();
   job.error = null;
   job.message = 'Reintento en espera del worker Android.';
+  appendScraperLog({
+    source: 'render', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    stage: 'retry_queued', level: 'info', message: `Reintento ${Number(job.attempts || 0) + 1} agregado a la cola.`,
+    details: { jobId: job.id, apartmentId: job.apartmentId },
+  }, { persist: false });
   saveData();
   res.json({ ok: true, job: marketplaceJobView(job) });
 });
@@ -3546,6 +3832,11 @@ app.get('/worker/v1/marketplace/jobs/next', requirePortableWorker, (req, res) =>
   job.claimedBy = deviceId;
   job.updatedAt = now;
   job.attempts = (Number(job.attempts) || 0) + 1;
+  appendScraperLog({
+    source: 'render', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    deviceId, stage: 'claimed', level: 'info', message: `Trabajo entregado al navegador local; intento ${job.attempts}.`,
+    details: { jobId: job.id, apartmentId: job.apartmentId, attempt: job.attempts },
+  }, { persist: false });
   job.message = 'Trabajo entregado al navegador local del teléfono.';
   saveData();
   console.log(`[MARKETPLACE] Job ${job.id} claimed by ${deviceId}.`);
@@ -3561,6 +3852,29 @@ app.get('/worker/v1/marketplace/jobs/next', requirePortableWorker, (req, res) =>
     },
     serverTime: now,
   });
+});
+
+app.post('/worker/v1/marketplace/jobs/:id/events', requirePortableWorker, (req, res) => {
+  const deviceId = workerProtocol.normalizeWorkerId(req.headers['x-worker-id'] || req.body?.deviceId);
+  const job = ensureMarketplaceJobs().find(item => Number(item.id) === Number(req.params.id));
+  if (!deviceId) return res.status(400).json({ error: 'deviceId inválido' });
+  if (!job) return res.status(404).json({ error: 'Trabajo de Marketplace no encontrado.' });
+  if (job.claimedBy && job.claimedBy !== deviceId) return res.status(409).json({ error: 'El trabajo pertenece a otro dispositivo.' });
+  const events = Array.isArray(req.body?.events) ? req.body.events.slice(0, 80) : [];
+  if (!events.length) return res.status(400).json({ error: 'No se recibieron eventos de Marketplace.' });
+  let persisted = 0;
+  events.forEach(event => {
+    if (!event || typeof event !== 'object' || Array.isArray(event)) return;
+    appendScraperLog({
+      source: 'app', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+      deviceId, stage: event.stage || 'marketplace', level: event.level || 'info',
+      message: event.message || 'Evento local de Marketplace.', eventAt: event.eventAt,
+      durationMs: event.durationMs, details: { ...(event.details || {}), jobId: job.id, apartmentId: job.apartmentId },
+    }, { persist: false });
+    persisted += 1;
+  });
+  saveData();
+  res.json({ ok: true, persisted, serverTime: new Date().toISOString() });
 });
 
 app.post('/worker/v1/marketplace/jobs/:id/status', requirePortableWorker, (req, res) => {
@@ -3587,8 +3901,15 @@ app.post('/worker/v1/marketplace/jobs/:id/status', requirePortableWorker, (req, 
     const apartment = (db.apartments || []).find(item => Number(item.id) === Number(job.apartmentId));
     if (apartment && job.listingUrl) apartment.marketplaceUrl = job.listingUrl;
   }
+  appendScraperLog({
+    source: 'render', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    deviceId, stage: `status_${status}`,
+    level: status === 'published' ? 'success' : status === 'processing' ? 'info' : status === 'failed' ? 'error' : 'warn',
+    message: job.message || `Marketplace cambió a ${status}.`,
+    details: { jobId: job.id, apartmentId: job.apartmentId, status, hasListingUrl: Boolean(job.listingUrl) },
+  }, { persist: false });
   saveData();
-  console.log(`[MARKETPLACE] Job ${job.id} status=${status} device=${deviceId}.`);
+  console.log(`[MARKETPLACE] Job ${job.id} status=${status} device=${deviceId}; message=${String(job.message || '').slice(0, 240)}.`);
   res.json({ ok: true, job: marketplaceJobView(job), serverTime: now });
 });
 
@@ -3929,6 +4250,199 @@ app.delete('/api/photo/:id', async (req, res) => {
   db.photos.splice(idx, 1);
   saveData();
   res.json({ success: true });
+});
+
+function normalizeTemplateVariables(values) {
+  const seen = new Set();
+  const result = [];
+  for (const raw of Array.isArray(values) ? values : []) {
+    const value = String(raw || '').trim().replace(/^\{\{\s*|\s*\}\}$/g, '').slice(0, 100);
+    const key = value.toLocaleLowerCase('es');
+    if (!value || seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+    if (result.length >= 120) break;
+  }
+  return result;
+}
+
+function parseManualTemplateVariables(raw) {
+  if (Array.isArray(raw)) return normalizeTemplateVariables(raw);
+  try {
+    const parsed = JSON.parse(String(raw || '[]'));
+    if (Array.isArray(parsed)) return normalizeTemplateVariables(parsed);
+  } catch { }
+  return normalizeTemplateVariables(String(raw || '').split(/[\n,;]+/));
+}
+
+async function inspectContractTemplate(buffer, fileName, mimeType) {
+  const extension = path.extname(String(fileName || '')).toLowerCase();
+  if (extension === '.docx') {
+    const doc = new Docxtemplater(new PizZip(buffer), {
+      paragraphLoop: true,
+      linebreaks: true,
+      delimiters: { start: '{{', end: '}}' },
+    });
+    const fullText = String(doc.getFullText() || '');
+    const variables = [];
+    for (const match of fullText.matchAll(/\{\{\s*([^{}]+?)\s*\}\}/g)) variables.push(match[1]);
+    return { format: 'docx', detectedVariables: normalizeTemplateVariables(variables), supportsGeneration: true };
+  }
+  if (extension === '.pdf' || String(mimeType || '').toLowerCase() === 'application/pdf') {
+    const document = await PDFDocument.load(buffer, { ignoreEncryption: false, updateMetadata: false });
+    const fields = document.getForm().getFields().map(field => field.getName());
+    return {
+      format: 'pdf',
+      detectedVariables: normalizeTemplateVariables(fields),
+      supportsGeneration: fields.length > 0,
+    };
+  }
+  throw new Error('Formato no compatible. Usa PDF o Word .docx. Los archivos .doc antiguos deben convertirse a .docx.');
+}
+
+function contractTemplateView(item) {
+  return {
+    id: item.id,
+    name: item.name,
+    originalName: item.originalName,
+    format: item.format,
+    mimeType: item.mimeType,
+    size: item.size,
+    detectedVariables: normalizeTemplateVariables(item.detectedVariables),
+    manualVariables: normalizeTemplateVariables(item.manualVariables),
+    variables: normalizeTemplateVariables([...(item.detectedVariables || []), ...(item.manualVariables || [])]),
+    supportsGeneration: Boolean(item.supportsGeneration),
+    uploadedAt: item.uploadedAt,
+    updatedAt: item.updatedAt || item.uploadedAt,
+  };
+}
+
+function truthyTemplateValue(value) {
+  return value === true || ['1', 'true', 'sí', 'si', 'yes', 'on', 'x'].includes(String(value || '').trim().toLocaleLowerCase('es'));
+}
+
+async function generateFromContractTemplate(template, values) {
+  const source = await getR2Buffer(template.storageKey);
+  if (template.format === 'docx') {
+    const doc = new Docxtemplater(new PizZip(source), {
+      paragraphLoop: true,
+      linebreaks: true,
+      delimiters: { start: '{{', end: '}}' },
+      nullGetter: () => '',
+    });
+    doc.render(values || {});
+    return { buffer: doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' }), mimeType: template.mimeType, extension: '.docx' };
+  }
+  if (template.format === 'pdf') {
+    const document = await PDFDocument.load(source, { ignoreEncryption: false });
+    const form = document.getForm();
+    for (const field of form.getFields()) {
+      if (!Object.prototype.hasOwnProperty.call(values || {}, field.getName())) continue;
+      const value = values[field.getName()];
+      if (field instanceof PDFTextField) field.setText(String(value ?? ''));
+      else if (field instanceof PDFCheckBox) {
+        if (truthyTemplateValue(value)) field.check();
+        else field.uncheck();
+      }
+      else if (field instanceof PDFDropdown || field instanceof PDFOptionList || field instanceof PDFRadioGroup) {
+        const selected = String(value ?? '');
+        if (selected) field.select(selected);
+      }
+    }
+    return { buffer: Buffer.from(await document.save()), mimeType: 'application/pdf', extension: '.pdf' };
+  }
+  throw new Error('La plantilla no admite generación automática.');
+}
+
+app.get('/api/contract-templates', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  res.json((db.contractTemplates || []).map(contractTemplateView));
+});
+
+app.post('/api/contract-templates', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  if (!upload) return res.status(500).json({ error: 'Carga de archivos no disponible' });
+  upload.single('template')(req, res, async error => {
+    if (error) return res.status(400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? 'La plantilla supera el límite de 20 MB' : error.message });
+    if (!req.file) return res.status(400).json({ error: 'Selecciona una plantilla PDF o Word .docx' });
+    try {
+      const inspection = await inspectContractTemplate(req.file.buffer, req.file.originalname, req.file.mimetype);
+      const stored = await putR2Buffer({
+        section: 'contract-templates',
+        fileName: req.file.originalname,
+        buffer: req.file.buffer,
+        mimeType: req.file.mimetype,
+      });
+      const now = new Date().toISOString();
+      const record = {
+        id: nextId.contractTemplates || 1,
+        name: String(req.body?.name || path.basename(req.file.originalname, path.extname(req.file.originalname))).trim().slice(0, 140),
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        storageKey: stored.storageKey,
+        size: stored.size,
+        format: inspection.format,
+        detectedVariables: inspection.detectedVariables,
+        manualVariables: parseManualTemplateVariables(req.body?.manualVariables),
+        supportsGeneration: inspection.supportsGeneration,
+        uploadedAt: now,
+        updatedAt: now,
+      };
+      db.contractTemplates.push(record);
+      nextId.contractTemplates = record.id + 1;
+      saveData();
+      res.status(201).json(contractTemplateView(record));
+    } catch (templateError) {
+      res.status(400).json({ error: templateError.message || 'No fue posible analizar la plantilla.' });
+    }
+  });
+});
+
+app.put('/api/contract-templates/:id', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const template = (db.contractTemplates || []).find(item => Number(item.id) === Number(req.params.id));
+  if (!template) return res.status(404).json({ error: 'Plantilla no encontrada' });
+  if (req.body?.name !== undefined) template.name = String(req.body.name || '').trim().slice(0, 140) || template.name;
+  if (req.body?.manualVariables !== undefined) template.manualVariables = parseManualTemplateVariables(req.body.manualVariables);
+  template.updatedAt = new Date().toISOString();
+  saveData();
+  res.json(contractTemplateView(template));
+});
+
+app.get('/api/contract-templates/:id/file', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const template = (db.contractTemplates || []).find(item => Number(item.id) === Number(req.params.id));
+  if (!template) return res.status(404).json({ error: 'Plantilla no encontrada' });
+  try {
+    await streamR2Object(template.storageKey, res, { fileName: template.originalName, mimeType: template.mimeType });
+  } catch (error) { res.status(502).json({ error: `No fue posible leer la plantilla: ${error.message}` }); }
+});
+
+app.post('/api/contract-templates/:id/generate', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const template = (db.contractTemplates || []).find(item => Number(item.id) === Number(req.params.id));
+  if (!template) return res.status(404).json({ error: 'Plantilla no encontrada' });
+  if (!template.supportsGeneration) {
+    return res.status(422).json({ error: 'Este PDF no contiene campos rellenables. Añade campos AcroForm o usa Word con variables {{campo}}.' });
+  }
+  try {
+    const generated = await generateFromContractTemplate(template, req.body?.values || {});
+    const baseName = r2SafeFileName(template.name || 'contrato').replace(/\.[^.]+$/, '');
+    res.setHeader('Content-Type', generated.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(`${baseName}-generado${generated.extension}`)}`);
+    res.send(generated.buffer);
+  } catch (error) { res.status(400).json({ error: error.message || 'No fue posible generar el contrato.' }); }
+});
+
+app.delete('/api/contract-templates/:id', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const index = (db.contractTemplates || []).findIndex(item => Number(item.id) === Number(req.params.id));
+  if (index < 0) return res.status(404).json({ error: 'Plantilla no encontrada' });
+  const [template] = db.contractTemplates.splice(index, 1);
+  try { await deleteR2Object(template.storageKey, template.size); }
+  catch (error) { db.contractTemplates.splice(index, 0, template); return res.status(502).json({ error: `No fue posible eliminar la plantilla: ${error.message}` }); }
+  saveData();
+  res.json({ ok: true });
 });
 
 app.post('/api/upload/contract', (req, res) => {

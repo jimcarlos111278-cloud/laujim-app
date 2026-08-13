@@ -22,7 +22,7 @@ public class ScraperWorkerPlugin extends Plugin {
         String serverUrl = call.getString("serverUrl");
         String token = call.getString("token");
         String deviceId = call.getString("deviceId");
-        Integer hours = call.getInt("intervalHours", 12);
+        Integer hours = call.getInt("intervalHours", 1);
         String startAt = call.getString("startAt", "07:00");
         String timezone = call.getString("timezone", "America/Bogota");
         if (serverUrl == null || serverUrl.trim().isEmpty() || token == null || token.trim().isEmpty()) {
@@ -34,7 +34,7 @@ public class ScraperWorkerPlugin extends Plugin {
             serverUrl.trim(),
             token.trim(),
             deviceId == null || deviceId.trim().isEmpty() ? "android-laujim" : deviceId.trim(),
-            hours == null ? 12 : hours,
+            hours == null ? 1 : hours,
             startAt,
             timezone
         );
@@ -160,6 +160,7 @@ public class ScraperWorkerPlugin extends Plugin {
         android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
         cookies.removeAllCookies(value -> cookies.flush());
         android.webkit.WebStorage.getInstance().deleteAllData();
+        PortalSessionVault.clear(getContext());
         call.resolve(status());
     }
 

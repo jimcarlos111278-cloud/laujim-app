@@ -41,7 +41,7 @@ final class ScraperWorkerStore {
     static String token(Context context) { return prefs(context).getString("token", ""); }
     static String deviceId(Context context) { return prefs(context).getString("deviceId", "android-laujim"); }
     static String mode(Context context) { return prefs(context).getString("mode", "local-webview"); }
-    static int intervalHours(Context context) { return clampHours(prefs(context).getInt("intervalHours", 12)); }
+    static int intervalHours(Context context) { return clampHours(prefs(context).getInt("intervalHours", 1)); }
     static String startAt(Context context) { return normalizeStartAt(prefs(context).getString("startAt", "07:00")); }
     static String timezone(Context context) { return normalizeTimezone(prefs(context).getString("timezone", "America/Bogota")); }
     static boolean enabled(Context context) { return prefs(context).getBoolean("enabled", false); }

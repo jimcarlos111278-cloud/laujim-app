@@ -42,7 +42,7 @@
 
         <activity
             android:name=".MarketplaceBrowserActivity"
-            android:label="Laujim Â· Marketplace"
+            android:label="Laujim · Marketplace"
             android:exported="false"
             android:screenOrientation="portrait" />
 

@@ -950,7 +950,7 @@
         state: 'error',
         provider: 'gas',
         ...gasDiagnostics,
-        message: `Gases del Caribe asociÃ³ ${matchedContracts} contrato(s) con apartamentos, pero no pudo consultar sus facturas (${invoiceFailures} fallo(s), ${missingContractIds} sin identificador).${suffix}`,
+        message: `Gases del Caribe asoció ${matchedContracts} contrato(s) con apartamentos, pero no pudo consultar sus facturas (${invoiceFailures} fallo(s), ${missingContractIds} sin identificador).${suffix}`,
         results: [],
       };
     }
@@ -959,7 +959,7 @@
         state: 'error',
         provider: 'gas',
         ...gasDiagnostics,
-        message: `Gases del Caribe devolviÃ³ ${contracts.length} contrato(s), pero ninguno coincidiÃ³ con los apartamentos configurados (${unmatchedContracts} sin asociar).`,
+        message: `Gases del Caribe devolvió ${contracts.length} contrato(s), pero ninguno coincidió con los apartamentos configurados (${unmatchedContracts} sin asociar).`,
         results: [],
       };
     }

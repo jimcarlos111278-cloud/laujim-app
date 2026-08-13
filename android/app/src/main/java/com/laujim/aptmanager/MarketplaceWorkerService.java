@@ -75,7 +75,6 @@ public class MarketplaceWorkerService extends Service {
         startForegroundCompat(notification("Buscando publicaciones pendientes…"));
         try { automationScript = readAsset("marketplace-worker.js"); }
         catch (IOException error) { automationScript = ""; }
-        mainHandler.post(this::createWebView);
     }
 
     @Override
@@ -126,7 +125,6 @@ public class MarketplaceWorkerService extends Service {
                 throw new IllegalStateException("Falta configurar URL, token o dispositivo.");
             }
             if (automationScript.isEmpty()) throw new IllegalStateException("El motor local de Marketplace no está disponible.");
-            waitForWebView();
             ScraperWorkerStore.setMarketplaceRunState(this, "checking", "", "");
             HttpResult next = request(server + "/worker/v1/marketplace/jobs/next", "GET", token, deviceId, null);
             if (next.status < 200 || next.status >= 300) throw new IllegalStateException("Render respondió HTTP " + next.status + " al consultar Marketplace.");
@@ -142,7 +140,9 @@ public class MarketplaceWorkerService extends Service {
             ScraperWorkerStore.setMarketplaceRunState(this, "processing", "", jobId);
             updateNotification("Publicando apartamento " + currentJob.optString("apartmentName", "") + "…");
 
-            JSONObject outcome = executeInWebView(currentJob);
+            JSONObject outcome = executeInAuthenticatedWebView(currentJob);
+            JSONArray events = outcome.optJSONArray("events");
+            if (events != null && events.length() > 0) postEvents(server, token, deviceId, jobId, events);
             String state = outcome.optString("state", "failed");
             String message = outcome.optString("message", "Marketplace terminó sin mensaje.");
             String listingUrl = outcome.optString("listingUrl", "");
@@ -171,6 +171,27 @@ public class MarketplaceWorkerService extends Service {
             stopForeground(STOP_FOREGROUND_DETACH);
             stopSelfResult(startId);
         }
+    }
+
+    private JSONObject executeInAuthenticatedWebView(JSONObject job) throws Exception {
+        JSONObject listing = job.optJSONObject("listing");
+        if (listing == null) listing = new JSONObject();
+        if (MarketplaceBrowserActivity.hasActiveBrowser()) {
+            String raw = MarketplaceBrowserActivity
+                .executeJob(listing, job.optBoolean("publish", true), automationScript)
+                .get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            JSONObject outcome = new JSONObject(raw == null || raw.isEmpty() ? "{}" : raw);
+            outcome.put("executionPath", "authenticated-visible-webview");
+            return outcome;
+        }
+        return new JSONObject()
+            .put("state", "needs_login")
+            .put("stage", "shared_webview_missing")
+            .put("message", "Abre Facebook desde Laujim, conserva ese navegador y vuelve a pulsar Reintentar.")
+            .put("events", new JSONArray().put(new JSONObject()
+                .put("stage", "shared_webview_missing")
+                .put("message", "El navegador autenticado de Facebook no estaba activo.")
+                .put("eventAt", new java.util.Date().toInstant().toString())));
     }
 
     private JSONObject executeInWebView(JSONObject job) throws Exception {
@@ -254,6 +275,14 @@ public class MarketplaceWorkerService extends Service {
             .put("listingUrl", listingUrl == null ? JSONObject.NULL : listingUrl);
         HttpResult response = request(server + "/worker/v1/marketplace/jobs/" + jobId + "/status", "POST", token, deviceId, body.toString());
         if (response.status < 200 || response.status >= 300) throw new IOException("Render rechazó el estado de Marketplace (HTTP " + response.status + ").");
+    }
+
+    private void postEvents(String server, String token, String deviceId, String jobId, JSONArray events) throws Exception {
+        JSONObject body = new JSONObject()
+            .put("deviceId", deviceId)
+            .put("events", events == null ? new JSONArray() : events);
+        HttpResult response = request(server + "/worker/v1/marketplace/jobs/" + jobId + "/events", "POST", token, deviceId, body.toString());
+        if (response.status < 200 || response.status >= 300) throw new IOException("Render rechazó los logs de Marketplace (HTTP " + response.status + ").");
     }
 
     private void openVisibleFacebook() {

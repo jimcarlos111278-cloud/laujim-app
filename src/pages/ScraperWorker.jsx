@@ -38,7 +38,7 @@ import { AUTH_TOKEN, getBase } from '../utils/config';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 const DEFAULT_SCHEDULE = {
-  intervalHours: 12,
+  intervalHours: 1,
   startAt: '07:00',
   timezone: 'America/Bogota',
   providers: ['air-e', 'water', 'gas'],
@@ -222,7 +222,7 @@ export default function ScraperWorker() {
           serverUrl: current.serverUrl,
           token: current.token,
           deviceId: current.deviceId,
-          intervalHours: Number(savedSchedule.intervalHours || 12),
+          intervalHours: Number(savedSchedule.intervalHours || 1),
           startAt: savedSchedule.startAt,
           timezone: savedSchedule.timezone,
         });
@@ -278,7 +278,7 @@ export default function ScraperWorker() {
             serverUrl: current.serverUrl,
             token: current.token,
             deviceId: current.deviceId,
-            intervalHours: Number(result.schedule?.intervalHours || scheduleForm.intervalHours || 12),
+            intervalHours: Number(result.schedule?.intervalHours || scheduleForm.intervalHours || 1),
             startAt: result.schedule?.startAt || scheduleForm.startAt,
             timezone: result.schedule?.timezone || scheduleForm.timezone,
           });
@@ -316,7 +316,7 @@ export default function ScraperWorker() {
         serverUrl: current.serverUrl,
         token: current.token,
         deviceId: current.deviceId,
-        intervalHours: Number(scheduleForm.intervalHours || 12),
+        intervalHours: Number(scheduleForm.intervalHours || 1),
         startAt: scheduleForm.startAt,
         timezone: scheduleForm.timezone,
       });
@@ -359,7 +359,7 @@ export default function ScraperWorker() {
         serverUrl: current.serverUrl,
         token: current.token,
         deviceId: current.deviceId,
-        intervalHours: Number(scheduleForm.intervalHours || 12),
+        intervalHours: Number(scheduleForm.intervalHours || 1),
         startAt: scheduleForm.startAt,
         timezone: scheduleForm.timezone,
       });

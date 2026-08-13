@@ -24,6 +24,8 @@ import PublicApartments from './pages/PublicApartments';
 import PublicApartment from './pages/PublicApartment';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
+import SecurityCenter from './pages/SecurityCenter';
+import Onboarding from './pages/Onboarding';
 import { requestNotificationPermission } from './utils/notifications';
 import { api, getCloudSyncStatus, refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
 import { initTheme, loadThemeFromServer } from './utils/theme';
@@ -152,6 +154,8 @@ function PrivateApp() {
                   <Route path="/payments" element={<Payments />} />
                   <Route path="/utilities" element={<Utilities />} />
                   <Route path="/scraper-worker" element={<ScraperWorker />} />
+                  <Route path="/security" element={<SecurityCenter />} />
+                  <Route path="/onboarding" element={<Onboarding />} />
                   <Route path="/predial" element={<Predial />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/share" element={<ShareApartments />} />

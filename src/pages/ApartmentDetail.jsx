@@ -123,6 +123,7 @@ export default function ApartmentDetail() {
   const videoRef = useRef(null);
   const [marketplaceUrl, setMarketplaceUrl] = useState('');
   const [marketplaceJob, setMarketplaceJob] = useState(null);
+  const [marketplaceLogs, setMarketplaceLogs] = useState([]);
   const [marketplaceBusy, setMarketplaceBusy] = useState(false);
   const [marketplaceMessage, setMarketplaceMessage] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -137,7 +138,12 @@ export default function ApartmentDetail() {
     const refresh = async () => {
       try {
         const jobs = await api.marketplace.jobs(apt.id);
-        if (!cancelled) setMarketplaceJob(jobs[0] || null);
+        const latest = jobs[0] || null;
+        const logs = latest ? await api.marketplace.logs(latest.id, 25) : [];
+        if (!cancelled) {
+          setMarketplaceJob(latest);
+          setMarketplaceLogs(logs);
+        }
       } catch { /* keep the last known state */ }
     };
     const timer = setInterval(refresh, 5000);
@@ -178,9 +184,12 @@ export default function ApartmentDetail() {
     setMarketplaceUrl(a.marketplaceUrl || '');
     try {
       const jobs = await api.marketplace.jobs(a.id);
-      setMarketplaceJob(jobs[0] || null);
+      const latest = jobs[0] || null;
+      setMarketplaceJob(latest);
+      setMarketplaceLogs(latest ? await api.marketplace.logs(latest.id, 25) : []);
     } catch {
       setMarketplaceJob(null);
+      setMarketplaceLogs([]);
     }
     setUtilityPeriod(getCurrentPeriod());
     // Generate QR codes for existing payment URLs
@@ -1202,6 +1211,19 @@ export default function ApartmentDetail() {
                       </div>
                     )}
                   </div>
+                )}
+                {marketplaceLogs.length > 0 && (
+                  <details className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                    <summary className="cursor-pointer font-semibold">Logs de Facebook ({marketplaceLogs.length})</summary>
+                    <div className="mt-2 max-h-52 space-y-2 overflow-auto">
+                      {marketplaceLogs.map(log => (
+                        <div key={log.id} className="rounded-md bg-white p-2 shadow-sm">
+                          <p className="font-medium">{log.stage} · {new Date(log.eventAt || log.createdAt).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</p>
+                          <p className="mt-0.5 text-slate-600">{log.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 )}
                 {marketplaceMessage && (
                   <div className={`rounded-lg p-3 text-xs ${marketplaceMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>{marketplaceMessage.text}</div>

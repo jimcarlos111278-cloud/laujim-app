@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2, Camera, UserPlus
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
 import { clearAuth } from '../utils/auth';
@@ -16,11 +16,13 @@ const navItems = [
 
   { to: '/contracts', label: 'Contratos', icon: FileText },
   { to: '/generate-contract', label: 'Generar Contrato', icon: ScrollText },
+  { to: '/onboarding', label: 'Onboarding', icon: UserPlus },
   { to: '/payments', label: 'Pagos', icon: DollarSign },
   { to: '/whatsapp', label: 'WhatsApp Cloud', icon: MessageCircle },
   { to: '/whatsapp-contactos', label: 'Contactos WhatsApp', icon: Users },
   { to: '/utilities', label: 'Servicios Públicos', icon: Zap },
   { to: '/scraper-worker', label: 'Worker scraper', icon: Smartphone },
+  { to: '/security', label: 'Seguridad y cámaras', icon: Camera },
   { to: '/share', label: 'Compartir', icon: Share2 },
   { to: '/reports', label: 'Reportes', icon: BarChart3 },
   { to: '/settings', label: 'Configuración', icon: Settings },

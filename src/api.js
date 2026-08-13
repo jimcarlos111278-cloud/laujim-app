@@ -190,6 +190,17 @@ export const api = {
     async cancel(jobId) {
       return serverReq('POST', `marketplace/jobs/${jobId}/cancel`);
     },
+    async logs(jobId, limit = 80) {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (jobId) params.set('jobId', String(jobId));
+      const response = await fetch(getBase() + '/marketplace/logs?' + params, {
+        headers: { 'x-auth-token': AUTH_TOKEN },
+        signal: AbortSignal.timeout(10000),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'No se pudieron consultar los logs de Marketplace.');
+      return Array.isArray(payload.logs) ? payload.logs : [];
+    },
   },
   async uploadPhoto(file, apartmentId) {
     try {

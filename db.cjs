@@ -21,7 +21,10 @@ const INITIAL_DATA = {
   authSessions: [],
   paymentReminderLogs: [],
   scraperWorkers: [],
+  scraperLogs: [],
   marketplaceJobs: [],
+  accessEvents: [],
+  contractTemplates: [],
 };
 
 module.exports = { INITIAL_DATA };
