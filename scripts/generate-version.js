@@ -7,11 +7,18 @@ const dist = join(__dirname, '..', 'dist');
 const verFile = join(dist, 'version.json');
 const publicDir = join(__dirname, '..', 'public');
 const androidGradle = join(__dirname, '..', 'android', 'app', 'build.gradle');
+const publicVersionFile = join(publicDir, 'app-version.json');
 
 const now = new Date();
 const pad = n => String(n).padStart(2, '0');
 const buildBase = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
-let apkVersion = '1.0.0';
+let apkVersion = String(process.env.LAUJIM_APP_VERSION || '').trim();
+if (!apkVersion) {
+  try {
+    apkVersion = String(JSON.parse(readFileSync(publicVersionFile, 'utf-8'))?.version || '').trim();
+  } catch {}
+}
+if (!apkVersion) apkVersion = '1.0.0';
 try {
   const gradle = readFileSync(androidGradle, 'utf-8');
   apkVersion = gradle.match(/versionName\s*=\s*["']([^"']+)["']/)?.[1] || apkVersion;
