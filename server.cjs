@@ -2954,7 +2954,7 @@ app.post('/api/login', (req, res) => {
   }
   const apartmentLogin = String(username || '').trim();
   const documentId = String(password || '').trim();
-  const apt = (db.apartments || []).find(a => a.name === apartmentLogin || String(a.id) === apartmentLogin);
+  const apt = (db.apartments || []).find(a => a.name === apartmentLogin);
   if (apt) {
     const tenant = (db.tenants || []).find(t => {
       if (!t.documentId || !constantTimeEqual(t.documentId, documentId)) return false;

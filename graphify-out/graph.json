@@ -11,7 +11,7 @@
       "_origin": "ast",
       "id": "opencode_opencode",
       "community": 38,
-      "community_name": "opencode.json",
+      "community_name": "playwright",
       "norm_label": ".opencode/opencode.json"
     },
     {
@@ -22,7 +22,7 @@
       "_origin": "ast",
       "id": "opencode_opencode_schema",
       "community": 38,
-      "community_name": "opencode.json",
+      "community_name": "playwright",
       "norm_label": "$schema"
     },
     {
@@ -33,7 +33,7 @@
       "_origin": "ast",
       "id": "opencode_opencode_plugin",
       "community": 38,
-      "community_name": "opencode.json",
+      "community_name": "playwright",
       "norm_label": "plugin"
     },
     {
@@ -44,8 +44,107 @@
       "_origin": "ast",
       "id": "ref_opencode_plugins_graphify_js",
       "community": 38,
-      "community_name": "opencode.json",
+      "community_name": "playwright",
       "norm_label": ".opencode/plugins/graphify.js"
+    },
+    {
+      "label": ".opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs",
+      "file_type": "concept",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "ref_opencode_plugins_ponytail_opencode_plugins_ponytail_mjs",
+      "community": 38,
+      "community_name": "playwright",
+      "norm_label": ".opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs"
+    },
+    {
+      "label": "mcp",
+      "file_type": "code",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "opencode_opencode_mcp",
+      "community": 38,
+      "community_name": "playwright",
+      "norm_label": "mcp"
+    },
+    {
+      "label": "playwright",
+      "file_type": "code",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "opencode_opencode_mcp_playwright",
+      "community": 38,
+      "community_name": "playwright",
+      "norm_label": "playwright"
+    },
+    {
+      "label": "type",
+      "file_type": "code",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "opencode_opencode_playwright_type",
+      "community": 38,
+      "community_name": "playwright",
+      "norm_label": "type"
+    },
+    {
+      "label": "command",
+      "file_type": "code",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "opencode_opencode_playwright_command",
+      "community": 38,
+      "community_name": "playwright",
+      "norm_label": "command"
+    },
+    {
+      "label": "npx.cmd",
+      "file_type": "concept",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "ref_npx_cmd",
+      "community": 38,
+      "community_name": "playwright",
+      "norm_label": "npx.cmd"
+    },
+    {
+      "label": "-y",
+      "file_type": "concept",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "ref_y",
+      "community": 38,
+      "community_name": "playwright",
+      "norm_label": "-y"
+    },
+    {
+      "label": "@playwright/mcp@latest",
+      "file_type": "concept",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "ref_playwright_mcp_latest",
+      "community": 38,
+      "community_name": "playwright",
+      "norm_label": "@playwright/mcp@latest"
+    },
+    {
+      "label": "enabled",
+      "file_type": "code",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "opencode_opencode_playwright_enabled",
+      "community": 38,
+      "community_name": "playwright",
+      "norm_label": "enabled"
     },
     {
       "label": "chrome-cdp.js",
@@ -16651,8 +16750,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "activity",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 40,
+      "community_name": "PortalBrowserActivity",
       "norm_label": "activity"
     },
     {
@@ -17026,8 +17125,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_requestphotos",
-      "community": 47,
-      "community_name": "MarketplaceBrowserActivity",
+      "community": 237,
+      "community_name": ".flushCookies",
       "norm_label": ".requestphotos()"
     },
     {
@@ -17037,8 +17136,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_java_javascriptinterface",
-      "community": 47,
-      "community_name": "MarketplaceBrowserActivity",
+      "community": 237,
+      "community_name": ".flushCookies",
       "norm_label": "javascriptinterface"
     },
     {
@@ -17061,8 +17160,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_persistsession",
-      "community": 47,
-      "community_name": "MarketplaceBrowserActivity",
+      "community": 237,
+      "community_name": ".flushCookies",
       "norm_label": ".persistsession()"
     },
     {
@@ -17198,7 +17297,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerdispatcher",
-      "community": 347,
+      "community": 362,
       "community_name": "MarketplaceWorkerDispatcher",
       "norm_label": "marketplaceworkerdispatcher.java"
     },
@@ -17211,7 +17310,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerdispatcher_marketplaceworkerdispatcher",
-      "community": 347,
+      "community": 362,
       "community_name": "MarketplaceWorkerDispatcher",
       "norm_label": "marketplaceworkerdispatcher"
     },
@@ -17223,7 +17322,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerdispatcher_marketplaceworkerdispatcher_marketplaceworkerdispatcher",
-      "community": 347,
+      "community": 362,
       "community_name": "MarketplaceWorkerDispatcher",
       "norm_label": ".marketplaceworkerdispatcher()"
     },
@@ -17246,7 +17345,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerdispatcher_java_context",
-      "community": 347,
+      "community": 362,
       "community_name": "MarketplaceWorkerDispatcher",
       "norm_label": "context"
     },
@@ -17352,7 +17451,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "service",
-      "community": 329,
+      "community": 289,
       "community_name": "Service",
       "norm_label": "service"
     },
@@ -17810,8 +17909,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 40,
+      "community_name": "PortalBrowserActivity",
       "norm_label": "portalbrowseractivity.java"
     },
     {
@@ -17834,8 +17933,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_java_handler",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 40,
+      "community_name": "PortalBrowserActivity",
       "norm_label": "handler"
     },
     {
@@ -17845,8 +17944,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_java_webview",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 40,
+      "community_name": "PortalBrowserActivity",
       "norm_label": "webview"
     },
     {
@@ -17856,8 +17955,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_java_textview",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 40,
+      "community_name": "PortalBrowserActivity",
       "norm_label": "textview"
     },
     {
@@ -17868,8 +17967,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbrowseractivity_oncreate",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 40,
+      "community_name": "PortalBrowserActivity",
       "norm_label": ".oncreate()"
     },
     {
@@ -17879,8 +17978,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_java_bundle",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 40,
+      "community_name": "PortalBrowserActivity",
       "norm_label": "bundle"
     },
     {
@@ -17937,8 +18036,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbrowseractivity_configurewebview",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 40,
+      "community_name": "PortalBrowserActivity",
       "norm_label": ".configurewebview()"
     },
     {
@@ -17973,8 +18072,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbrowseractivity_capturesessionlater",
-      "community": 40,
-      "community_name": "PortalBrowserActivity",
+      "community": 168,
+      "community_name": ".snapshotScript",
       "norm_label": ".capturesessionlater()"
     },
     {
@@ -17985,8 +18084,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbrowseractivity_installauthorizationhook",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 40,
+      "community_name": "PortalBrowserActivity",
       "norm_label": ".installauthorizationhook()"
     },
     {
@@ -18045,8 +18144,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbrowseractivity_hasactivebrowser",
-      "community": 40,
-      "community_name": "PortalBrowserActivity",
+      "community": 64,
+      "community_name": "ScraperWorkerService",
       "norm_label": ".hasactivebrowser()"
     },
     {
@@ -18203,7 +18302,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge",
       "community": 168,
-      "community_name": ".onCreate",
+      "community_name": ".snapshotScript",
       "norm_label": "portalbridge"
     },
     {
@@ -18215,7 +18314,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_resolve",
       "community": 168,
-      "community_name": ".onCreate",
+      "community_name": ".snapshotScript",
       "norm_label": ".resolve()"
     },
     {
@@ -18226,7 +18325,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_java_javascriptinterface",
       "community": 168,
-      "community_name": ".onCreate",
+      "community_name": ".snapshotScript",
       "norm_label": "javascriptinterface"
     },
     {
@@ -18238,7 +18337,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_persistsession",
       "community": 168,
-      "community_name": ".onCreate",
+      "community_name": ".snapshotScript",
       "norm_label": ".persistsession()"
     },
     {
@@ -18250,7 +18349,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_captureauthorization",
       "community": 168,
-      "community_name": ".onCreate",
+      "community_name": ".snapshotScript",
       "norm_label": ".captureauthorization()"
     },
     {
@@ -18356,8 +18455,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalsessionvault_portalsessionvault_flushcookies",
-      "community": 40,
-      "community_name": "PortalBrowserActivity",
+      "community": 237,
+      "community_name": ".flushCookies",
       "norm_label": ".flushcookies()"
     },
     {
@@ -18392,8 +18491,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalsessionvault_portalsessionvault_snapshotscript",
-      "community": 71,
-      "community_name": "PortalSessionVault",
+      "community": 168,
+      "community_name": ".snapshotScript",
       "norm_label": ".snapshotscript()"
     },
     {
@@ -18404,8 +18503,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalsessionvault_portalsessionvault_authorizationcapturescript",
-      "community": 168,
-      "community_name": ".onCreate",
+      "community": 71,
+      "community_name": "PortalSessionVault",
       "norm_label": ".authorizationcapturescript()"
     },
     {
@@ -18497,7 +18596,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice",
-      "community": 329,
+      "community": 289,
       "community_name": "Service",
       "norm_label": "respondviamessageservice.java"
     },
@@ -18510,7 +18609,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice",
-      "community": 329,
+      "community": 289,
       "community_name": "Service",
       "norm_label": "respondviamessageservice"
     },
@@ -18522,7 +18621,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice_onbind",
-      "community": 329,
+      "community": 289,
       "community_name": "Service",
       "norm_label": ".onbind()"
     },
@@ -18533,7 +18632,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_intent",
-      "community": 329,
+      "community": 289,
       "community_name": "Service",
       "norm_label": "intent"
     },
@@ -18544,7 +18643,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_ibinder",
-      "community": 329,
+      "community": 289,
       "community_name": "Service",
       "norm_label": "ibinder"
     },
@@ -18555,7 +18654,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_override",
-      "community": 329,
+      "community": 289,
       "community_name": "Service",
       "norm_label": "override"
     },
@@ -19814,7 +19913,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge",
       "community": 237,
-      "community_name": "JavascriptResultBridge",
+      "community_name": ".flushCookies",
       "norm_label": "javascriptresultbridge"
     },
     {
@@ -19826,7 +19925,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge_captureauthorization",
       "community": 237,
-      "community_name": "JavascriptResultBridge",
+      "community_name": ".flushCookies",
       "norm_label": ".captureauthorization()"
     },
     {
@@ -19837,7 +19936,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_javascriptinterface",
       "community": 237,
-      "community_name": "JavascriptResultBridge",
+      "community_name": ".flushCookies",
       "norm_label": "javascriptinterface"
     },
     {
@@ -19849,7 +19948,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge_persistsession",
       "community": 237,
-      "community_name": "JavascriptResultBridge",
+      "community_name": ".flushCookies",
       "norm_label": ".persistsession()"
     },
     {
@@ -19861,7 +19960,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge_resolve",
       "community": 237,
-      "community_name": "JavascriptResultBridge",
+      "community_name": ".flushCookies",
       "norm_label": ".resolve()"
     },
     {
@@ -22115,8 +22214,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 362,
-      "community_name": "@capacitor/cli",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -22126,8 +22225,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 362,
-      "community_name": "@capacitor/cli",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -22159,8 +22258,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_filesystem",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 347,
+      "community_name": "@capacitor/filesystem",
       "norm_label": "@capacitor/filesystem"
     },
     {
@@ -22170,8 +22269,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "capacitor_filesystem",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 347,
+      "community_name": "@capacitor/filesystem",
       "norm_label": "@capacitor/filesystem"
     },
     {
@@ -24977,7 +25076,7 @@
       "_origin": "ast",
       "id": "server_r2config",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "r2config()"
     },
     {
@@ -24989,7 +25088,7 @@
       "_origin": "ast",
       "id": "server_r2ready",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "r2ready()"
     },
     {
@@ -25001,7 +25100,7 @@
       "_origin": "ast",
       "id": "server_getr2client",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "getr2client()"
     },
     {
@@ -25013,7 +25112,7 @@
       "_origin": "ast",
       "id": "server_ensurer2usage",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "ensurer2usage()"
     },
     {
@@ -25025,7 +25124,7 @@
       "_origin": "ast",
       "id": "server_r2safefilename",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "r2safefilename()"
     },
     {
@@ -25037,7 +25136,7 @@
       "_origin": "ast",
       "id": "server_r2key",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "r2key()"
     },
     {
@@ -25049,7 +25148,7 @@
       "_origin": "ast",
       "id": "server_putr2buffer",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "putr2buffer()"
     },
     {
@@ -25061,7 +25160,7 @@
       "_origin": "ast",
       "id": "server_deleter2object",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "deleter2object()"
     },
     {
@@ -25073,7 +25172,7 @@
       "_origin": "ast",
       "id": "server_streamr2object",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "streamr2object()"
     },
     {
@@ -25085,7 +25184,7 @@
       "_origin": "ast",
       "id": "server_getr2buffer",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "getr2buffer()"
     },
     {
@@ -25096,8 +25195,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_constanttimeequal",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "constanttimeequal()"
     },
     {
@@ -25108,8 +25207,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_encryptsecret",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "encryptsecret()"
     },
     {
@@ -25120,8 +25219,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_decryptsecret",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "decryptsecret()"
     },
     {
@@ -25132,8 +25231,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_ensureauthsessions",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "ensureauthsessions()"
     },
     {
@@ -25144,8 +25243,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_pruneauthsessions",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "pruneauthsessions()"
     },
     {
@@ -25156,8 +25255,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_createauthsession",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "createauthsession()"
     },
     {
@@ -25168,8 +25267,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_getauthsession",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "getauthsession()"
     },
     {
@@ -25180,8 +25279,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_removeauthsession",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "removeauthsession()"
     },
     {
@@ -25193,7 +25292,7 @@
       "_origin": "ast",
       "id": "server_cloudconfig",
       "community": 31,
-      "community_name": "cloudApiRequest",
+      "community_name": "startServer",
       "norm_label": "cloudconfig()"
     },
     {
@@ -25205,7 +25304,7 @@
       "_origin": "ast",
       "id": "server_cloudready",
       "community": 31,
-      "community_name": "cloudApiRequest",
+      "community_name": "startServer",
       "norm_label": "cloudready()"
     },
     {
@@ -25240,8 +25339,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_tenantbelongstoapartment",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "tenantbelongstoapartment()"
     },
     {
@@ -25300,8 +25399,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_clearcloudauthstate",
-      "community": 16,
-      "community_name": "handleCloudInbound",
+      "community": 0,
+      "community_name": "handleCloudAdminMessage",
       "norm_label": "clearcloudauthstate()"
     },
     {
@@ -25372,8 +25471,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_addcloudmessage",
-      "community": 16,
-      "community_name": "handleCloudInbound",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "addcloudmessage()"
     },
     {
@@ -25384,8 +25483,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudapirequest",
-      "community": 31,
-      "community_name": "cloudApiRequest",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "cloudapirequest()"
     },
     {
@@ -25397,7 +25496,7 @@
       "_origin": "ast",
       "id": "server_cloudgraphrequest",
       "community": 31,
-      "community_name": "cloudApiRequest",
+      "community_name": "startServer",
       "norm_label": "cloudgraphrequest()"
     },
     {
@@ -25408,8 +25507,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudmediakind",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "cloudmediakind()"
     },
     {
@@ -25433,7 +25532,7 @@
       "_origin": "ast",
       "id": "server_downloadcloudmedia",
       "community": 31,
-      "community_name": "cloudApiRequest",
+      "community_name": "startServer",
       "norm_label": "downloadcloudmedia()"
     },
     {
@@ -25445,7 +25544,7 @@
       "_origin": "ast",
       "id": "server_archivecloudinboundmedia",
       "community": 31,
-      "community_name": "cloudApiRequest",
+      "community_name": "startServer",
       "norm_label": "archivecloudinboundmedia()"
     },
     {
@@ -25457,7 +25556,7 @@
       "_origin": "ast",
       "id": "server_uploadcloudmedia",
       "community": 31,
-      "community_name": "cloudApiRequest",
+      "community_name": "startServer",
       "norm_label": "uploadcloudmedia()"
     },
     {
@@ -25468,8 +25567,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudmedia",
-      "community": 31,
-      "community_name": "cloudApiRequest",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "sendcloudmedia()"
     },
     {
@@ -25504,8 +25603,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudadminaccessbutton",
-      "community": 31,
-      "community_name": "cloudApiRequest",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "sendcloudadminaccessbutton()"
     },
     {
@@ -25517,7 +25616,7 @@
       "_origin": "ast",
       "id": "server_firstname",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "firstname()"
     },
     {
@@ -25528,8 +25627,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudgreetingtemplate",
-      "community": 31,
-      "community_name": "cloudApiRequest",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "sendcloudgreetingtemplate()"
     },
     {
@@ -25540,8 +25639,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudperiodlabel",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudperiodlabel()"
     },
     {
@@ -25553,7 +25652,7 @@
       "_origin": "ast",
       "id": "server_cloudtemplatedebtvalue",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudtemplatedebtvalue()"
     },
     {
@@ -25565,7 +25664,7 @@
       "_origin": "ast",
       "id": "server_cloudpaymenttemplatedata",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudpaymenttemplatedata()"
     },
     {
@@ -25577,7 +25676,7 @@
       "_origin": "ast",
       "id": "server_sendcloudpaymentremindertemplate",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "sendcloudpaymentremindertemplate()"
     },
     {
@@ -25589,7 +25688,7 @@
       "_origin": "ast",
       "id": "server_colombiadate",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "colombiadate()"
     },
     {
@@ -25600,8 +25699,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_formatcolombiadatetime",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "formatcolombiadatetime()"
     },
     {
@@ -25613,7 +25712,7 @@
       "_origin": "ast",
       "id": "server_paymentperiod",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "paymentperiod()"
     },
     {
@@ -25625,7 +25724,7 @@
       "_origin": "ast",
       "id": "server_paymentcountsascollected",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "paymentcountsascollected()"
     },
     {
@@ -25637,7 +25736,7 @@
       "_origin": "ast",
       "id": "server_activecontractforapartment",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "activecontractforapartment()"
     },
     {
@@ -25673,7 +25772,7 @@
       "_origin": "ast",
       "id": "server_paymentreminderoffsets",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "paymentreminderoffsets()"
     },
     {
@@ -25685,7 +25784,7 @@
       "_origin": "ast",
       "id": "server_runpaymentreminders",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "runpaymentreminders()"
     },
     {
@@ -25696,8 +25795,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudinteractivereply",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "cloudinteractivereply()"
     },
     {
@@ -25733,7 +25832,7 @@
       "_origin": "ast",
       "id": "server_creatependingpaymentfromproof",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "creatependingpaymentfromproof()"
     },
     {
@@ -25744,8 +25843,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_transcodevoicenote",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "transcodevoicenote()"
     },
     {
@@ -25768,8 +25867,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_failcloudauthentication",
-      "community": 16,
-      "community_name": "handleCloudInbound",
+      "community": 0,
+      "community_name": "handleCloudAdminMessage",
       "norm_label": "failcloudauthentication()"
     },
     {
@@ -25781,7 +25880,7 @@
       "_origin": "ast",
       "id": "server_validcloudsignature",
       "community": 31,
-      "community_name": "cloudApiRequest",
+      "community_name": "startServer",
       "norm_label": "validcloudsignature()"
     },
     {
@@ -25792,8 +25891,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_requirecloudadmin",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "requirecloudadmin()"
     },
     {
@@ -25804,8 +25903,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_parsejsonenv",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "parsejsonenv()"
     },
     {
@@ -25816,8 +25915,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_safeedgeid",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "safeedgeid()"
     },
     {
@@ -25828,8 +25927,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cameradefinitions",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "cameradefinitions()"
     },
     {
@@ -25840,8 +25939,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_doordefinitions",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "doordefinitions()"
     },
     {
@@ -25852,8 +25951,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_publicedgeview",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "publicedgeview()"
     },
     {
@@ -25864,8 +25963,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_edgegatewayconfig",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "edgegatewayconfig()"
     },
     {
@@ -25876,8 +25975,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_edgegatewayready",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "edgegatewayready()"
     },
     {
@@ -25888,8 +25987,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_edgegatewayrequest",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "edgegatewayrequest()"
     },
     {
@@ -25911,8 +26010,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_accessrateallowed",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "accessrateallowed()"
     },
     {
@@ -25923,8 +26022,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_appendaccessevent",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "appendaccessevent()"
     },
     {
@@ -25995,8 +26094,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_builddebtreply",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "builddebtreply()"
     },
     {
@@ -26043,8 +26142,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudadmingreeting",
-      "community": 31,
-      "community_name": "cloudApiRequest",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "cloudadmingreeting()"
     },
     {
@@ -26055,8 +26154,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_greetcloudadminonce",
-      "community": 31,
-      "community_name": "cloudApiRequest",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "greetcloudadminonce()"
     },
     {
@@ -26067,8 +26166,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_iscloudexitcommand",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "iscloudexitcommand()"
     },
     {
@@ -26091,8 +26190,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudnormalisetext",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudnormalisetext()"
     },
     {
@@ -26115,8 +26214,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudapartmentfloor",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudapartmentfloor()"
     },
     {
@@ -26127,8 +26226,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_occupiedcloudapartments",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "occupiedcloudapartments()"
     },
     {
@@ -26163,8 +26262,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicepaymentlink",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudservicepaymentlink()"
     },
     {
@@ -26175,8 +26274,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicereference",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudservicereference()"
     },
     {
@@ -26199,8 +26298,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudapartmentservices",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudapartmentservices()"
     },
     {
@@ -26259,8 +26358,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_splitcloudtext",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "splitcloudtext()"
     },
     {
@@ -26271,8 +26370,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudtextchunks",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "sendcloudtextchunks()"
     },
     {
@@ -26294,8 +26393,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicedisplayblock",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudservicedisplayblock()"
     },
     {
@@ -26306,8 +26405,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildclouddetailedglobalservicesreport",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "buildclouddetailedglobalservicesreport()"
     },
     {
@@ -26318,8 +26417,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildclouddetailedapartmentservicesinfo",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "buildclouddetailedapartmentservicesinfo()"
     },
     {
@@ -26330,8 +26429,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudapartmentservicesline",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudapartmentservicesline()"
     },
     {
@@ -26342,8 +26441,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildcloudglobalservicesreport",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "buildcloudglobalservicesreport()"
     },
     {
@@ -26354,8 +26453,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildcloudapartmentservicesinfo",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "buildcloudapartmentservicesinfo()"
     },
     {
@@ -26366,8 +26465,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudreportdatelabel",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudreportdatelabel()"
     },
     {
@@ -26402,8 +26501,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildcloudservicesimagedata",
-      "community": 289,
-      "community_name": "cloudApartmentServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "buildcloudservicesimagedata()"
     },
     {
@@ -26450,7 +26549,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudglobalservices",
-      "community": 162,
+      "community": 29,
       "community_name": "sendCloudGlobalServices",
       "norm_label": "sendcloudglobalservices()"
     },
@@ -26463,7 +26562,7 @@
       "_origin": "ast",
       "id": "server_cloudrentamount",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudrentamount()"
     },
     {
@@ -26510,8 +26609,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudreminderresultline",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudreminderresultline()"
     },
     {
@@ -26522,8 +26621,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudcollectiontemplates",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "sendcloudcollectiontemplates()"
     },
     {
@@ -26535,7 +26634,7 @@
       "_origin": "ast",
       "id": "server_nextcloudcollectionid",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "nextcloudcollectionid()"
     },
     {
@@ -26547,7 +26646,7 @@
       "_origin": "ast",
       "id": "server_registercloudrentpayment",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "registercloudrentpayment()"
     },
     {
@@ -26558,8 +26657,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_confirmcloudrentpayments",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "confirmcloudrentpayments()"
     },
     {
@@ -26570,8 +26669,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudformatfulldate",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudformatfulldate()"
     },
     {
@@ -26606,8 +26705,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudpaymentresultline",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudpaymentresultline()"
     },
     {
@@ -26618,8 +26717,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_confirmcloudpaymentsandreply",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "confirmcloudpaymentsandreply()"
     },
     {
@@ -26630,8 +26729,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_parsecloudmoney",
-      "community": 0,
-      "community_name": "handleCloudAdminMessage",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "parsecloudmoney()"
     },
     {
@@ -26642,8 +26741,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_registercloudunexpectedexpense",
-      "community": 29,
-      "community_name": "colombiaDate",
+      "community": 0,
+      "community_name": "handleCloudAdminMessage",
       "norm_label": "registercloudunexpectedexpense()"
     },
     {
@@ -26703,7 +26802,7 @@
       "_origin": "ast",
       "id": "server_cloudcalendardate",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudcalendardate()"
     },
     {
@@ -26715,7 +26814,7 @@
       "_origin": "ast",
       "id": "server_clouddatekey",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "clouddatekey()"
     },
     {
@@ -26727,7 +26826,7 @@
       "_origin": "ast",
       "id": "server_cloudformatdaymonth",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudformatdaymonth()"
     },
     {
@@ -26739,7 +26838,7 @@
       "_origin": "ast",
       "id": "server_cloudcapitalise",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudcapitalise()"
     },
     {
@@ -26751,7 +26850,7 @@
       "_origin": "ast",
       "id": "server_cloudpaymentdate",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudpaymentdate()"
     },
     {
@@ -26763,7 +26862,7 @@
       "_origin": "ast",
       "id": "server_buildadmindebtreport",
       "community": 29,
-      "community_name": "colombiaDate",
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "buildadmindebtreport()"
     },
     {
@@ -26797,8 +26896,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_initpostgres",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "initpostgres()"
     },
     {
@@ -26809,8 +26908,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_loadfrompostgres",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "loadfrompostgres()"
     },
     {
@@ -26845,8 +26944,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_loaddata",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "loaddata()"
     },
     {
@@ -26857,8 +26956,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_recalcnextid",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "recalcnextid()"
     },
     {
@@ -26928,7 +27027,7 @@
       "_origin": "ast",
       "id": "server_getr2usage",
       "community": 162,
-      "community_name": "sendCloudGlobalServices",
+      "community_name": "getR2Client",
       "norm_label": "getr2usage()"
     },
     {
@@ -26939,8 +27038,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_getdatabaseusage",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "getdatabaseusage()"
     },
     {
@@ -26951,8 +27050,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_syncpasswordfromtenant",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "syncpasswordfromtenant()"
     },
     {
@@ -26963,8 +27062,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_startserver",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "startserver()"
     },
     {
@@ -27384,8 +27483,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_launchlocalbrowser",
-      "community": 23,
-      "community_name": "services-scraper.cjs",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "launchlocalbrowser()"
     },
     {
@@ -27408,8 +27507,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_gotoportalpage",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 18,
+      "community_name": "sleep",
       "norm_label": "gotoportalpage()"
     },
     {
@@ -27504,8 +27603,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_normalizedigits",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 329,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "normalizedigits()"
     },
     {
@@ -27516,8 +27615,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_apartmentnumberfrom",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 329,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "apartmentnumberfrom()"
     },
     {
@@ -27540,8 +27639,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_matchportalapartment",
-      "community": 23,
-      "community_name": "services-scraper.cjs",
+      "community": 329,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "matchportalapartment()"
     },
     {
@@ -27564,8 +27663,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_portalidentifiervalues",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 329,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "portalidentifiervalues()"
     },
     {
@@ -27576,8 +27675,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_portalcodevalues",
-      "community": 23,
-      "community_name": "services-scraper.cjs",
+      "community": 329,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "portalcodevalues()"
     },
     {
@@ -27588,8 +27687,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_matchportalapartmentforservice",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 329,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "matchportalapartmentforservice()"
     },
     {
@@ -27612,8 +27711,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_waitforrenderedreader",
-      "community": 258,
-      "community_name": "collectRenderedWaterPolicies",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
       "norm_label": "waitforrenderedreader()"
     },
     {
@@ -27624,8 +27723,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_renderedwaterpolicies",
-      "community": 258,
-      "community_name": "collectRenderedWaterPolicies",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
       "norm_label": "renderedwaterpolicies()"
     },
     {
@@ -27636,8 +27735,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_renderedgascontracts",
-      "community": 23,
-      "community_name": "services-scraper.cjs",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "renderedgascontracts()"
     },
     {
@@ -27648,8 +27747,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_collectrenderedwaterpolicies",
-      "community": 258,
-      "community_name": "collectRenderedWaterPolicies",
+      "community": 23,
+      "community_name": "services-scraper.cjs",
       "norm_label": "collectrenderedwaterpolicies()"
     },
     {
@@ -27660,8 +27759,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_portalloginvisible",
-      "community": 23,
-      "community_name": "services-scraper.cjs",
+      "community": 18,
+      "community_name": "sleep",
       "norm_label": "portalloginvisible()"
     },
     {
@@ -27672,8 +27771,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_openauthenticatedportalpage",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 18,
+      "community_name": "sleep",
       "norm_label": "openauthenticatedportalpage()"
     },
     {
@@ -27828,8 +27927,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_inspectwaterpage",
-      "community": 18,
-      "community_name": "sleep",
+      "community": 258,
+      "community_name": "loginTripleAWithPortalApi",
       "norm_label": "inspectwaterpage()"
     },
     {
@@ -27864,8 +27963,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_waitforportalturnstile",
-      "community": 18,
-      "community_name": "sleep",
+      "community": 258,
+      "community_name": "loginTripleAWithPortalApi",
       "norm_label": "waitforportalturnstile()"
     },
     {
@@ -27972,8 +28071,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_portaldiagnosticreferences",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 329,
+      "community_name": "matchPortalApartmentForService",
       "norm_label": "portaldiagnosticreferences()"
     },
     {
@@ -27996,8 +28095,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_responsetextwithtimeout",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 18,
+      "community_name": "sleep",
       "norm_label": "responsetextwithtimeout()"
     },
     {
@@ -28008,8 +28107,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_parseportalresponsebody",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 258,
+      "community_name": "loginTripleAWithPortalApi",
       "norm_label": "parseportalresponsebody()"
     },
     {
@@ -28032,8 +28131,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_requestportaljson",
-      "community": 18,
-      "community_name": "sleep",
+      "community": 258,
+      "community_name": "loginTripleAWithPortalApi",
       "norm_label": "requestportaljson()"
     },
     {
@@ -28044,8 +28143,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_readportalturnstiletoken",
-      "community": 18,
-      "community_name": "sleep",
+      "community": 258,
+      "community_name": "loginTripleAWithPortalApi",
       "norm_label": "readportalturnstiletoken()"
     },
     {
@@ -28056,8 +28155,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_executeportalturnstile",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 258,
+      "community_name": "loginTripleAWithPortalApi",
       "norm_label": "executeportalturnstile()"
     },
     {
@@ -28080,8 +28179,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_logintripleawithgoogle",
-      "community": 94,
-      "community_name": "scrapeGasAccount",
+      "community": 18,
+      "community_name": "sleep",
       "norm_label": "logintripleawithgoogle()"
     },
     {
@@ -28092,8 +28191,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_logintripleawithportalapi",
-      "community": 18,
-      "community_name": "sleep",
+      "community": 258,
+      "community_name": "loginTripleAWithPortalApi",
       "norm_label": "logintripleawithportalapi()"
     },
     {
@@ -28104,8 +28203,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_logingaswithportalapi",
-      "community": 18,
-      "community_name": "sleep",
+      "community": 258,
+      "community_name": "loginTripleAWithPortalApi",
       "norm_label": "logingaswithportalapi()"
     },
     {
@@ -28188,8 +28287,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "services_scraper_gasrecord",
-      "community": 23,
-      "community_name": "services-scraper.cjs",
+      "community": 94,
+      "community_name": "scrapeGasAccount",
       "norm_label": "gasrecord()"
     },
     {
@@ -32292,8 +32391,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_github_copilot_instructions",
-      "community": 293,
-      "community_name": "plugins/ponytail/README.ko.md",
+      "community": 287,
+      "community_name": "plugins/ponytail/README.es.md",
       "norm_label": "plugins/ponytail/.github/copilot-instructions.md"
     },
     {
@@ -32303,8 +32402,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_github_copilot_instructions_ponytail_lazy_senior_dev_mode",
-      "community": 293,
-      "community_name": "plugins/ponytail/README.ko.md",
+      "community": 287,
+      "community_name": "plugins/ponytail/README.es.md",
       "norm_label": "ponytail, lazy senior dev mode"
     },
     {
@@ -34811,8 +34910,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "plugins/ponytail/docs/agent-portability.md"
     },
     {
@@ -34822,8 +34921,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_agent_portability",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "agent portability"
     },
     {
@@ -34833,8 +34932,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_supported_adapters",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "supported adapters"
     },
     {
@@ -34844,8 +34943,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_adapter_rule",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "adapter rule"
     },
     {
@@ -34855,8 +34954,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_portable_behavior",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "portable behavior"
     },
     {
@@ -38694,8 +38793,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_github_copilot_instructions",
-      "community": 181,
-      "community_name": "README.es.md",
+      "community": 175,
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "vendor/ponytail/.github/copilot-instructions.md"
     },
     {
@@ -38705,8 +38804,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_github_copilot_instructions_ponytail_lazy_senior_dev_mode",
-      "community": 181,
-      "community_name": "README.es.md",
+      "community": 175,
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "ponytail, lazy senior dev mode"
     },
     {
@@ -39245,7 +39344,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "vendor/ponytail/readme.es.md"
     },
     {
@@ -39256,7 +39355,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es_antes_despu\u00e9s",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "antes / despues"
     },
     {
@@ -39267,7 +39366,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es_n\u00fameros",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "numeros"
     },
     {
@@ -39278,7 +39377,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es_c\u00f3mo_funciona",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "como funciona"
     },
     {
@@ -39421,7 +39520,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es_comandos",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "comandos"
     },
     {
@@ -39432,7 +39531,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es_desarrollo",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "desarrollo"
     },
     {
@@ -39443,7 +39542,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es_faq",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "faq"
     },
     {
@@ -39454,7 +39553,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es_patrocinadores",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "patrocinadores"
     },
     {
@@ -39465,7 +39564,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es_licencia",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "licencia"
     },
     {
@@ -39476,7 +39575,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_es_historial_de_estrellas",
       "community": 181,
-      "community_name": "README.es.md",
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "historial de estrellas"
     },
     {
@@ -39487,7 +39586,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "vendor/ponytail/readme.ko.md"
     },
     {
@@ -39498,7 +39597,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko_before_after",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "before / after"
     },
     {
@@ -39509,7 +39608,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko_numbers",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "numbers"
     },
     {
@@ -39520,7 +39619,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko_how_it_works",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "how it works"
     },
     {
@@ -39674,7 +39773,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko_commands",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "commands"
     },
     {
@@ -39685,7 +39784,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko_development",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "development"
     },
     {
@@ -39696,7 +39795,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko_faq",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "faq"
     },
     {
@@ -39707,7 +39806,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko_sponsors",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "sponsors"
     },
     {
@@ -39718,7 +39817,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko_license",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "license"
     },
     {
@@ -39729,7 +39828,7 @@
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_readme_ko_star_history",
       "community": 175,
-      "community_name": "README.ko.md",
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "star history"
     },
     {
@@ -41213,8 +41312,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability",
-      "community": 175,
-      "community_name": "README.ko.md",
+      "community": 181,
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "vendor/ponytail/docs/agent-portability.md"
     },
     {
@@ -41224,8 +41323,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability_agent_portability",
-      "community": 175,
-      "community_name": "README.ko.md",
+      "community": 181,
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "agent portability"
     },
     {
@@ -41235,8 +41334,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability_supported_adapters",
-      "community": 175,
-      "community_name": "README.ko.md",
+      "community": 181,
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "supported adapters"
     },
     {
@@ -41246,8 +41345,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability_adapter_rule",
-      "community": 175,
-      "community_name": "README.ko.md",
+      "community": 181,
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "adapter rule"
     },
     {
@@ -41257,8 +41356,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability_portable_behavior",
-      "community": 175,
-      "community_name": "README.ko.md",
+      "community": 181,
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "portable behavior"
     },
     {
@@ -45984,6 +46083,17 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".opencode/opencode.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "opencode_opencode",
+      "target": "opencode_opencode_mcp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
       "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
@@ -46012,6 +46122,98 @@
       "_origin": "ast",
       "source": "opencode_opencode_plugin",
       "target": "ref_opencode_plugins_graphify_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "context": "import",
+      "_origin": "ast",
+      "source": "opencode_opencode_plugin",
+      "target": "ref_opencode_plugins_ponytail_opencode_plugins_ponytail_mjs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "opencode_opencode_mcp",
+      "target": "opencode_opencode_mcp_playwright",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "opencode_opencode_mcp_playwright",
+      "target": "opencode_opencode_playwright_command",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "opencode_opencode_mcp_playwright",
+      "target": "opencode_opencode_playwright_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "opencode_opencode_mcp_playwright",
+      "target": "opencode_opencode_playwright_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "import",
+      "_origin": "ast",
+      "source": "opencode_opencode_playwright_command",
+      "target": "ref_npx_cmd",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "import",
+      "_origin": "ast",
+      "source": "opencode_opencode_playwright_command",
+      "target": "ref_playwright_mcp_latest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".opencode/opencode.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "import",
+      "_origin": "ast",
+      "source": "opencode_opencode_playwright_command",
+      "target": "ref_y",
       "confidence_score": 1.0
     },
     {
@@ -124333,5 +124535,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "23b329bd8f817d12d81817547e57d4caa260c27e"
+  "built_at_commit": "4daace6bc7f1fa4c773cf2aa57417ac61b56784c"
 }
