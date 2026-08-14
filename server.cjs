@@ -1420,8 +1420,9 @@ function isReceiptPaymentUrl(value, service) {
 
 function publicServicePaymentUrl(apartment, record, service) {
   if (service === 'electricity') {
-    const nic = apartment?.electricityPaymentCode || apartment?.nic || record?.nic;
-    return nic ? 'https://airepagos.st/' : null;
+    // Air-e has no public receipt QR. Tenants use the public page and enter
+    // the NIC shown in the service details, so never expose the admin portal.
+    return 'https://airepagos.st/';
   }
   const field = service === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl';
   return [apartment?.[field], record?.[field]].find(value => isReceiptPaymentUrl(value, service)) || null;

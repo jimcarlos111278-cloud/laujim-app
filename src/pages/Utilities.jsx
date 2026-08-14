@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Zap, Droplets, Flame, Search, ExternalLink, ChevronLeft, ChevronRight, RefreshCw, MessageCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Zap, Droplets, Flame, Search, ExternalLink, ChevronLeft, ChevronRight, RefreshCw, MessageCircle, Scan, Image as ImageIcon, Trash2 } from 'lucide-react';
+import Modal from '../components/Modal';
 import { api } from '../api';
 import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, servicePaymentUrl } from '../utils/helpers';
-import { getBase, AUTH_TOKEN } from '../utils/config';
+import { getBase, AUTH_TOKEN, isCapacitor } from '../utils/config';
+import jsQR from 'jsqr';
 
 const services = {
   water: {
@@ -66,6 +68,10 @@ const PORTALS = [
   { key: 'gas', name: 'Gas', icon: Flame, url: 'https://portal.gascaribe.com/login' },
 ];
 
+const AIR_E_PUBLIC_PAYMENT_URL = 'https://airepagos.st/';
+const QR_SERVICES = new Set(['water', 'gas']);
+const SCAN_MAX_WIDTH = 640;
+
 export default function Utilities() {
   const [apartments, setApartments] = useState([]);
   const [tenants, setTenants] = useState([]);
@@ -79,6 +85,15 @@ export default function Utilities() {
   const [waterSyncNote, setWaterSyncNote] = useState('');
   const [gasSyncingNow, setGasSyncingNow] = useState(false);
   const [gasSyncNote, setGasSyncNote] = useState('');
+  const [scanService, setScanService] = useState(null);
+  const [scanApartmentId, setScanApartmentId] = useState(null);
+  const [scanStatus, setScanStatus] = useState('');
+  const scanServiceRef = useRef(null);
+  const scanApartmentRef = useRef(null);
+  const scanDetectorRef = useRef(null);
+  const scanTimerRef = useRef(null);
+  const scannerRef = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => { load(); }, []);
 
@@ -191,6 +206,222 @@ export default function Utilities() {
     }
   }
 
+  function qrPaymentField(service) {
+    return service === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl';
+  }
+
+  function normalizeReceiptQrUrl(raw, service) {
+    if (!QR_SERVICES.has(service)) return '';
+    let value = String(raw || '').trim();
+    if (!value) return '';
+    if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+    try {
+      const url = new URL(value);
+      if (url.protocol !== 'https:') return '';
+      const host = url.hostname.toLowerCase();
+      const path = url.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+      if (service === 'water') {
+        const isReceipt = host.endsWith('portal.aaa.com.co') && path === '/pagos' &&
+          String(url.searchParams.get('tipoPago') || '').toLowerCase() === 'coupon' &&
+          Boolean(url.searchParams.get('numeroPago'));
+        return isReceipt ? url.toString() : '';
+      }
+      if (host.endsWith('gascaribe.com') && /^\/(?:login|contracts)(?:\/|$)/i.test(path)) return '';
+      if (host.endsWith('gascaribe.com') && path === '/payments' && [...url.searchParams.keys()].length === 0) return '';
+      return url.toString();
+    } catch {
+      return '';
+    }
+  }
+
+  function closeQrScanner() {
+    scanServiceRef.current = null;
+    scanApartmentRef.current = null;
+    setScanService(null);
+    setScanApartmentId(null);
+    stopWebCam();
+  }
+
+  async function saveScannedPaymentUrl(apartmentId, service, rawValue) {
+    const url = normalizeReceiptQrUrl(rawValue, service);
+    if (!url) {
+      throw new Error(service === 'water'
+        ? 'El QR no parece ser un enlace de pago nativo de Triple A.'
+        : 'El QR no contiene un enlace de pago válido de Gases del Caribe.');
+    }
+    const field = qrPaymentField(service);
+    await api.apartments.update(Number(apartmentId), { [field]: url });
+    setApartments(current => current.map(apartment => (
+      Number(apartment.id) === Number(apartmentId) ? { ...apartment, [field]: url } : apartment
+    )));
+    return url;
+  }
+
+  async function handleScanButton(apartmentId, service) {
+    if (!QR_SERVICES.has(service)) return;
+    if (isCapacitor()) {
+      try {
+        const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
+        const result = await BarcodeScanner.scan();
+        const rawValue = result.barcodes?.[0]?.rawValue;
+        if (!rawValue) return;
+        await saveScannedPaymentUrl(apartmentId, service, rawValue);
+      } catch (error) {
+        console.error('QR payment scan error:', error);
+        alert(error.message || 'No se pudo guardar el QR de pago.');
+      }
+      return;
+    }
+    scanServiceRef.current = service;
+    scanApartmentRef.current = apartmentId;
+    setScanService(service);
+    setScanApartmentId(apartmentId);
+    setScanStatus('Iniciando cámara...');
+    scanTimerRef.current = setTimeout(startWebCam, 100);
+  }
+
+  async function getScanDetector() {
+    if (scanDetectorRef.current) return scanDetectorRef.current;
+    if (window.BarcodeDetector) {
+      try {
+        scanDetectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] });
+        return scanDetectorRef.current;
+      } catch {}
+    }
+    return null;
+  }
+
+  async function detectQrInVideo(video) {
+    if (!video || video.readyState < video.HAVE_CURRENT_DATA) return null;
+    const detector = await getScanDetector();
+    if (detector) {
+      try {
+        const detected = await detector.detect(video);
+        if (detected.length) return detected[0].rawValue;
+      } catch {}
+    }
+    const width = Math.min(video.videoWidth || SCAN_MAX_WIDTH, SCAN_MAX_WIDTH);
+    const height = Math.min(video.videoHeight || 480, Math.round(width * ((video.videoHeight || 480) / (video.videoWidth || SCAN_MAX_WIDTH))));
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(video, 0, 0, width, height);
+      const image = context.getImageData(0, 0, width, height);
+      const detected = jsQR(image.data, image.width, image.height);
+      return detected?.data || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function detectQrInFile(file) {
+    try {
+      const bitmap = await createImageBitmap(file, { resizeWidth: SCAN_MAX_WIDTH, resizeQuality: 'high' });
+      const detector = await getScanDetector();
+      if (detector) {
+        try {
+          const detected = await detector.detect(bitmap);
+          if (detected.length) {
+            bitmap.close();
+            return detected[0].rawValue;
+          }
+        } catch {}
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      const image = context.getImageData(0, 0, canvas.width, canvas.height);
+      const detected = jsQR(image.data, image.width, image.height);
+      return detected?.data || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function startWebCam() {
+    if (!scanServiceRef.current || !navigator.mediaDevices?.getUserMedia) {
+      setScanStatus('Cámara no disponible; usa subir foto.');
+      setTimeout(() => scannerRef.current?.click(), 300);
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
+    }).then(stream => {
+      if (!videoRef.current || !scanServiceRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      const video = videoRef.current;
+      video.srcObject = stream;
+      video.onloadedmetadata = () => {
+        video.play().then(() => {
+          setScanStatus('Enfoca el QR del recibo.');
+          scanTimerRef.current = setTimeout(scanVideoFrame, 500);
+        }).catch(() => setScanStatus('No se pudo iniciar la cámara; usa subir foto.'));
+      };
+    }).catch(() => {
+      setScanStatus('Cámara no disponible; usa subir foto.');
+      setTimeout(() => scannerRef.current?.click(), 300);
+    });
+  }
+
+  function stopWebCam() {
+    if (scanTimerRef.current) {
+      clearTimeout(scanTimerRef.current);
+      scanTimerRef.current = null;
+    }
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setScanStatus('');
+  }
+
+  async function scanVideoFrame() {
+    const service = scanServiceRef.current;
+    const apartmentId = scanApartmentRef.current;
+    if (!service || apartmentId === null) return;
+    const rawValue = await detectQrInVideo(videoRef.current);
+    if (rawValue) {
+      try {
+        setScanStatus('QR detectado; guardando enlace...');
+        await saveScannedPaymentUrl(apartmentId, service, rawValue);
+        closeQrScanner();
+      } catch (error) {
+        setScanStatus(error.message || 'El QR no es válido para este servicio.');
+        scanTimerRef.current = setTimeout(scanVideoFrame, 1000);
+      }
+      return;
+    }
+    scanTimerRef.current = setTimeout(scanVideoFrame, 500);
+  }
+
+  async function handleScanFile(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const service = scanServiceRef.current;
+    const apartmentId = scanApartmentRef.current;
+    if (!service || apartmentId === null) return;
+    const rawValue = await detectQrInFile(file);
+    try {
+      if (!rawValue) throw new Error('No se encontró un código QR en la imagen.');
+      setScanStatus('QR detectado; guardando enlace...');
+      await saveScannedPaymentUrl(apartmentId, service, rawValue);
+      closeQrScanner();
+    } catch (error) {
+      setScanStatus(error.message || 'No se pudo guardar el QR.');
+      alert(error.message || 'No se pudo guardar el QR.');
+    }
+  }
+
+  useEffect(() => () => closeQrScanner(), []);
+
   function getActiveTenant(aptId) {
     const contract = contracts.find(c => c.apartmentId === aptId && (!c.endDate || new Date(c.endDate) > new Date()));
     return contract ? tenants.find(t => t.id === contract.tenantId) : null;
@@ -220,28 +451,22 @@ export default function Utilities() {
 
   function getUrl(apt, svc) { return servicePaymentUrl(apt, svc); }
 
+  const scanApartment = apartments.find(apartment => Number(apartment.id) === Number(scanApartmentId));
+
   async function handleElectricityPay(apt) {
     if (!apt) return;
-    const savedUrl = servicePaymentUrl(apt, 'electricity');
-    if (savedUrl) { window.open(savedUrl, '_blank'); return; }
-    const existingNIC = apt.nic || apt.electricityPaymentCode || '';
-    if (existingNIC.replace(/\D/g, '').length >= 4) {
-      const digits = existingNIC.replace(/\D/g, '');
-      const url = 'https://airepagos.st/';
-      await api.apartments.update(apt.id, { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
-      const idx = apartments.findIndex(a => a.id === apt.id);
-      if (idx !== -1) { const u = [...apartments]; u[idx] = { ...u[idx], nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url }; setApartments(u); }
-      window.open(url, '_blank'); return;
-    }
-    const nic = window.prompt('Ingresa el NIC de Air-e (' + apt.name + '):', '');
-    if (!nic || !nic.trim()) return;
-    const digits = nic.trim().replace(/\D/g, '');
-    if (digits.length < 4) { alert('El NIC debe tener al menos 4 dígitos'); return; }
-    const url = 'https://airepagos.st/';
-    await api.apartments.update(apt.id, { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
-    const idx = apartments.findIndex(a => a.id === apt.id);
-    if (idx !== -1) { const u = [...apartments]; u[idx] = { ...u[idx], nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url }; setApartments(u); }
-    window.open(url, '_blank');
+    window.open(AIR_E_PUBLIC_PAYMENT_URL, '_blank', 'noopener,noreferrer');
+  }
+
+  async function handleDeletePaymentLink(apt, service) {
+    if (!apt || !QR_SERVICES.has(service)) return;
+    const label = service === 'water' ? 'Triple A' : 'Gases del Caribe';
+    if (!window.confirm(`Eliminar el enlace QR de ${label} del apartamento ${apt.name}?`)) return;
+    const field = qrPaymentField(service);
+    await api.apartments.update(apt.id, { [field]: null });
+    setApartments(current => current.map(apartment => (
+      apartment.id === apt.id ? { ...apartment, [field]: null } : apartment
+    )));
   }
 
   /* Legacy QR scanner removed: service links now come only from official portals.
@@ -422,19 +647,27 @@ export default function Utilities() {
                       )}
                     </div>
                     {/* Actions */}
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
                       {svc === 'electricity' ? (
                         <button onClick={() => handleElectricityPay(apt)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg hover:from-purple-600 hover:to-violet-700 transition-all shadow-sm">
                           <ExternalLink className="w-3 h-3" /> Pagar
                         </button>
                       ) : (
-                        url ? (
-                          <button onClick={() => window.open(url, '_blank')} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm">
-                            <ExternalLink className="w-3 h-3" /> Pagar
+                        <>
+                          {url && (
+                            <button onClick={() => window.open(url, '_blank', 'noopener,noreferrer')} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm">
+                              <ExternalLink className="w-3 h-3" /> Pagar
+                            </button>
+                          )}
+                          <button onClick={() => handleScanButton(apt.id, svc)} className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white/80 dark:bg-gray-700 hover:bg-white dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-lg transition-colors" title={url ? 'Reemplazar enlace QR' : 'Escanear QR del recibo'}>
+                            <Scan className="w-3 h-3" /> {url ? 'Escanear otro' : 'Escanear'}
                           </button>
-                        ) : (
-                          <span className="text-[11px] text-gray-400 dark:text-gray-500">Portal pendiente</span>
-                        )
+                          {url && (
+                            <button onClick={() => handleDeletePaymentLink(apt, svc)} className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-lg transition-colors" title="Eliminar enlace QR">
+                              <Trash2 className="w-3 h-3" /> Eliminar
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -445,6 +678,37 @@ export default function Utilities() {
         ))}
         {filtered.length === 0 && <p className="text-center text-gray-400 dark:text-gray-500 py-8">No se encontraron apartamentos</p>}
       </div>
+
+      <Modal
+        open={scanService !== null}
+        onClose={closeQrScanner}
+        title={scanService ? `Escanear QR - ${services[scanService].name}${scanApartment ? ` · Apto ${scanApartment.name}` : ''}` : ''}
+        size="sm"
+      >
+        <div className="p-1">
+          <div className="relative bg-black rounded-xl overflow-hidden mb-3" style={{ minHeight: 280 }}>
+            <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-52 h-52 border-2 border-emerald-400 rounded-xl opacity-80" />
+            </div>
+            {scanStatus && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                <p className="text-white text-xs text-center">{scanStatus}</p>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Enfoca el QR del recibo físico. El enlace se guardará para que el inquilino pueda pagar sin entrar al portal administrativo.</p>
+          <div className="flex gap-2">
+            <button onClick={() => scannerRef.current?.click()} className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+              <ImageIcon className="w-4 h-4" /> Subir foto
+            </button>
+            <button onClick={closeQrScanner} className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm">
+              Cancelar
+            </button>
+          </div>
+          <input ref={scannerRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} className="hidden" />
+        </div>
+      </Modal>
 
     </div>
   );
