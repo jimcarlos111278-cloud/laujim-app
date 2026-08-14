@@ -5,7 +5,7 @@ import Modal from '../components/Modal';
 import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
 import { photoUrl, isCapacitor, getBase, AUTH_TOKEN } from '../utils/config';
-import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate } from '../utils/helpers';
+import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate, servicePaymentUrl } from '../utils/helpers';
 import { generateMarketplaceJson } from '../utils/marketplaceBookmarklet';
 import { openAndroidMarketplace, runAndroidMarketplaceWorkerNow } from '../utils/androidScraperWorker';
 import { generateApartmentPDF } from '../utils/pdf';
@@ -194,9 +194,10 @@ export default function ApartmentDetail() {
     setUtilityPeriod(getCurrentPeriod());
     // Generate QR codes for existing payment URLs
     const urls = {};
-    for (const [svc, field] of [['water', 'waterPaymentUrl'], ['gas', 'gasPaymentUrl'], ['electricity', 'electricityPaymentUrl']]) {
-      if (a[field]) {
-        try { urls[svc] = await QRCode.toDataURL(a[field], { width: 240, margin: 2, color: { dark: '#1f2937', light: '#ffffff' } }); } catch {}
+    for (const svc of ['water', 'gas']) {
+      const url = servicePaymentUrl(a, svc);
+      if (url) {
+        try { urls[svc] = await QRCode.toDataURL(url, { width: 240, margin: 2, color: { dark: '#1f2937', light: '#ffffff' } }); } catch {}
       }
     }
     if (Object.keys(urls).length > 0) setQrUrls(urls);
@@ -205,7 +206,7 @@ export default function ApartmentDetail() {
   async function handleSave(e) {
     e.preventDefault();
     const nic = form.nic || form.electricityPaymentCode || '';
-    const autoUrl = nic ? `https://portal.air-e.com/Pagar#/User/${nic.replace(/\D/g, '')}/NUMEROCONTRATO` : '';
+    const autoUrl = nic ? 'https://airepagos.st/' : '';
     await api.apartments.update(Number(id), {
       ...form,
       monthlyRent: Number(form.monthlyRent),
@@ -372,17 +373,16 @@ export default function ApartmentDetail() {
     if (!nic || !nic.trim()) return;
     const digits = nic.trim().replace(/\D/g, '');
     if (digits.length < 4) { alert('El NIC debe tener al menos 4 dígitos'); return; }
-    const url = `https://portal.air-e.com/Pagar#/User/${digits}/NUMEROCONTRATO`;
+    const url = 'https://airepagos.st/';
     await api.apartments.update(Number(id), { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
     const updated = { ...apt, nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url };
     setApt(updated);
     setForm(updated);
-    generateQr('electricity', url);
     openPaymentUrl(url);
   }
 
   function handlePayElectricity() {
-    const url = apt.electricityPaymentUrl;
+    const url = servicePaymentUrl(apt, 'electricity');
     if (url) {
       openPaymentUrl(url);
     } else {
@@ -504,11 +504,9 @@ export default function ApartmentDetail() {
       gas: latestUtilityRecord(utilityRecords, 'gas'),
     };
     const links = {
-      electricity: apt?.electricityPaymentUrl || (apt?.electricityPaymentCode || apt?.nic
-        ? `https://portal.air-e.com/Pagar#/User/${encodeURIComponent(apt.electricityPaymentCode || apt.nic)}/NUMEROCONTRATO`
-        : 'No configurado'),
-      water: apt?.waterPaymentUrl || 'https://portal.aaa.com.co/pagos-usuario',
-      gas: apt?.gasPaymentUrl || 'https://portal.gascaribe.com/payments',
+      electricity: servicePaymentUrl(apt, 'electricity') || 'No configurado',
+      water: servicePaymentUrl(apt, 'water') || 'No configurado',
+      gas: servicePaymentUrl(apt, 'gas') || 'No configurado',
     };
     return {
       deuda_aire: utilityDebtText(records.electricity),
@@ -1022,6 +1020,7 @@ export default function ApartmentDetail() {
                 const overdue = rec && !rec.paid && isOverdueByReadingDate(utilityPeriod, readingDay);
                 const overdueCount = utilityRecords.filter(r => r.service === svc && !r.paid).length;
                 const Icon = serviceIcons[svc];
+                const paymentUrl = servicePaymentUrl(apt, svc);
                 return (
                   <div key={svc} className={`p-3 rounded-lg border ${overdue ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-100'}`}>
                     <div className="flex items-center justify-between mb-1">
@@ -1043,17 +1042,17 @@ export default function ApartmentDetail() {
                           </a>
                         )}
                         {svc === 'electricity' ? (
-                          <button onClick={handlePayElectricity} className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${apt.electricityPaymentUrl ? 'text-emerald-600 hover:bg-emerald-100 font-medium' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}>
+                          <button onClick={handlePayElectricity} className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${paymentUrl ? 'text-emerald-600 hover:bg-emerald-100 font-medium' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}>
                             <ExternalLink className="w-3 h-3" /> Pagar
                           </button>
                         ) : (
                           <>
-                            {apt[svc === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl'] && (
+                            {paymentUrl && (
                               <>
                                 <button onClick={() => setShowQrModal(svc)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-100 rounded transition-colors">
                                   <QrCode className="w-3 h-3" /> QR
                                 </button>
-                                <button onClick={() => openPaymentUrl(apt[svc === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl'])} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-100 rounded transition-colors font-medium">
+                                <button onClick={() => openPaymentUrl(paymentUrl)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-100 rounded transition-colors font-medium">
                                   <ExternalLink className="w-3 h-3" /> Pagar
                                 </button>
                               </>
@@ -1090,9 +1089,9 @@ export default function ApartmentDetail() {
               <div className="p-4 text-center">
                 <h3 className="font-semibold text-gray-900 mb-1">Pago {serviceNames[showQrModal]}</h3>
                 <p className="text-xs text-gray-500 mb-4">{apt.name}</p>
-                <img src={qrUrls[showQrModal]} alt="QR de pago" className="mx-auto w-56 h-56 rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => openPaymentUrl(apt[showQrModal === 'water' ? 'waterPaymentUrl' : showQrModal === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl'])} />
+                <img src={qrUrls[showQrModal]} alt="QR de pago" className="mx-auto w-56 h-56 rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => openPaymentUrl(servicePaymentUrl(apt, showQrModal))} />
                 <p className="text-xs text-gray-400 mt-2">Toca el QR o el botón para pagar</p>
-                <button onClick={() => openPaymentUrl(apt[showQrModal === 'water' ? 'waterPaymentUrl' : showQrModal === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl'])} className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium">
+                <button onClick={() => openPaymentUrl(servicePaymentUrl(apt, showQrModal))} className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium">
                   <ExternalLink className="w-4 h-4" /> Pagar ahora
                 </button>
                 {showQrModal !== 'electricity' && (
@@ -1397,7 +1396,7 @@ export default function ApartmentDetail() {
               <input type="text" value={form.electricityPaymentCode || ''} onChange={e => setForm({...form, electricityPaymentCode: e.target.value})} placeholder="Ej: 5678901234" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><QrCode className="w-3 h-3" /> URL Pago Electricidad (QR)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> URL de pago Air-e (página pública)</label>
               <input type="url" value={form.electricityPaymentUrl || ''} onChange={e => setForm({...form, electricityPaymentUrl: e.target.value})} placeholder="URL del pago (opcional)" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
           </div>

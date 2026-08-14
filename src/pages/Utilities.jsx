@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Zap, Droplets, Flame, Search, ExternalLink, ChevronLeft, ChevronRight, RefreshCw, MessageCircle } from 'lucide-react';
 import { api } from '../api';
-import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod } from '../utils/helpers';
+import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, servicePaymentUrl } from '../utils/helpers';
 import { getBase, AUTH_TOKEN } from '../utils/config';
 
 const services = {
@@ -205,9 +205,9 @@ export default function Utilities() {
     const msg = template
       .replace(/{nombre}/g, tenant.name || '')
       .replace(/{apto}/g, apt.name || '')
-      .replace(/{link_aire}/g, apt.electricityPaymentUrl || 'https://portal.air-e.com/Pagar#/List')
-      .replace(/{link_triplea}/g, apt.waterPaymentUrl || 'https://portal.aaa.com.co/pagos')
-      .replace(/{link_gases}/g, apt.gasPaymentUrl || 'https://portal.gascaribe.com/login');
+      .replace(/{link_aire}/g, servicePaymentUrl(apt, 'electricity') || 'No configurado')
+      .replace(/{link_triplea}/g, servicePaymentUrl(apt, 'water') || 'No configurado')
+      .replace(/{link_gases}/g, servicePaymentUrl(apt, 'gas') || 'No configurado');
     window.open(`https://wa.me/${fullNum}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
@@ -218,20 +218,16 @@ export default function Utilities() {
     return apt.electricityPaymentCode || apt.nic || '';
   }
 
-  function getUrl(apt, svc) {
-    if (!apt) return '';
-    if (svc === 'water') return apt.waterPaymentUrl || '';
-    if (svc === 'gas') return apt.gasPaymentUrl || '';
-    return apt.electricityPaymentUrl || '';
-  }
+  function getUrl(apt, svc) { return servicePaymentUrl(apt, svc); }
 
   async function handleElectricityPay(apt) {
     if (!apt) return;
-    if (apt.electricityPaymentUrl) { window.open(apt.electricityPaymentUrl, '_blank'); return; }
+    const savedUrl = servicePaymentUrl(apt, 'electricity');
+    if (savedUrl) { window.open(savedUrl, '_blank'); return; }
     const existingNIC = apt.nic || apt.electricityPaymentCode || '';
     if (existingNIC.replace(/\D/g, '').length >= 4) {
       const digits = existingNIC.replace(/\D/g, '');
-      const url = `https://portal.air-e.com/Pagar#/User/${digits}/NUMEROCONTRATO`;
+      const url = 'https://airepagos.st/';
       await api.apartments.update(apt.id, { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
       const idx = apartments.findIndex(a => a.id === apt.id);
       if (idx !== -1) { const u = [...apartments]; u[idx] = { ...u[idx], nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url }; setApartments(u); }
@@ -241,7 +237,7 @@ export default function Utilities() {
     if (!nic || !nic.trim()) return;
     const digits = nic.trim().replace(/\D/g, '');
     if (digits.length < 4) { alert('El NIC debe tener al menos 4 dígitos'); return; }
-    const url = `https://portal.air-e.com/Pagar#/User/${digits}/NUMEROCONTRATO`;
+    const url = 'https://airepagos.st/';
     await api.apartments.update(apt.id, { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
     const idx = apartments.findIndex(a => a.id === apt.id);
     if (idx !== -1) { const u = [...apartments]; u[idx] = { ...u[idx], nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url }; setApartments(u); }

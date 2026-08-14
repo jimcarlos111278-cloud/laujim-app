@@ -1054,13 +1054,13 @@ async function scrapeTripleAFromRenderedUi() {
       if (!target || used.has(String(target.apartmentId || target.apartment))) continue;
       used.add(String(target.apartmentId || target.apartment));
       const parsed = await queryRenderedTripleAPolicy(page, policy.code);
-      results.push({ provider: 'Triple A', service: 'water', apartmentId: target.apartmentId, apartment: target.apartment, waterPaymentCode: policy.code, waterPaymentUrl: target.waterPaymentUrl || TRIPLE_A_URLS.policies, status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, periodo: parsed.periodo || null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      results.push({ provider: 'Triple A', service: 'water', apartmentId: target.apartmentId, apartment: target.apartment, waterPaymentCode: policy.code, waterPaymentUrl: target.waterPaymentUrl || null, status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, periodo: parsed.periodo || null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
       console.log(`[TRIPLE A] UI ${target.apartment}: ${parsed.status} (${parsed.deudaCOP === null ? 'sin valor' : `$${parsed.deudaCOP.toLocaleString('es-CO')}`}).`);
     }
     for (const target of targets) {
       const key = String(target.apartmentId || target.apartment);
       if (used.has(key)) continue;
-      results.push({ provider: 'Triple A', service: 'water', apartmentId: target.apartmentId, apartment: target.apartment, waterPaymentCode: target.waterPaymentCode || null, waterPaymentUrl: target.waterPaymentUrl || TRIPLE_A_URLS.policies, status: 'unknown', deudaCOP: null, deudaTotalCOP: null, deudaLabel: 'Deuda Total', numFacturas: null, error: 'Triple A no tiene esta poliza asociada en la cuenta autenticada.', checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      results.push({ provider: 'Triple A', service: 'water', apartmentId: target.apartmentId, apartment: target.apartment, waterPaymentCode: target.waterPaymentCode || null, waterPaymentUrl: target.waterPaymentUrl || null, status: 'unknown', deudaCOP: null, deudaTotalCOP: null, deudaLabel: 'Deuda Total', numFacturas: null, error: 'Triple A no tiene esta poliza asociada en la cuenta autenticada.', checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
     }
     return results;
   } catch (error) {
@@ -1098,13 +1098,13 @@ async function scrapeGasFromRenderedUi() {
       if (!target || used.has(String(target.apartmentId || target.apartment))) continue;
       used.add(String(target.apartmentId || target.apartment));
       const parsed = await queryRenderedGasContract(page, contract.code);
-      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: contract.code, gasPaymentUrl: target.gasPaymentUrl || GAS_PORTAL_URLS.contracts, status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, factura: parsed.factura || null, periodo: parsed.periodo || null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: contract.code, gasPaymentUrl: target.gasPaymentUrl || null, status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, factura: parsed.factura || null, periodo: parsed.periodo || null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
       console.log(`[GAS] UI ${target.apartment}: ${parsed.status} (${parsed.deudaCOP === null ? 'sin valor' : `$${parsed.deudaCOP.toLocaleString('es-CO')}`}).`);
     }
     for (const target of targets) {
       const key = String(target.apartmentId || target.apartment);
       if (used.has(key)) continue;
-      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: target.gasPaymentCode || null, gasPaymentUrl: target.gasPaymentUrl || GAS_PORTAL_URLS.contracts, status: 'unknown', deudaCOP: null, deudaTotalCOP: null, deudaLabel: 'Deuda Total', numFacturas: null, error: 'Gases del Caribe no tiene este contrato asociado en la cuenta autenticada.', checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: target.gasPaymentCode || null, gasPaymentUrl: target.gasPaymentUrl || null, status: 'unknown', deudaCOP: null, deudaTotalCOP: null, deudaLabel: 'Deuda Total', numFacturas: null, error: 'Gases del Caribe no tiene este contrato asociado en la cuenta autenticada.', checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
     }
     return results;
   } catch (error) {
@@ -1881,7 +1881,7 @@ function tripleARecord(target, subscription, checkedAt = new Date().toISOString(
     service: 'water',
     apartmentId: target.apartmentId,
     apartment: target.apartment,
-    waterPaymentUrl: target.waterPaymentUrl || TRIPLE_A_URLS.policies,
+    waterPaymentUrl: target.waterPaymentUrl || null,
     waterPaymentCode: String(subscriptionCode || target.waterPaymentCode || '').trim() || null,
     status,
     deudaCOP,
@@ -2788,7 +2788,7 @@ async function scrapeGasAccount() {
       const summary = gasInvoiceSummary(invoices);
       const record = gasRecord({
         ...target,
-        gasPaymentUrl: target.gasPaymentUrl || GAS_PORTAL_URLS.payments,
+        gasPaymentUrl: target.gasPaymentUrl || null,
         gasPaymentCode: String(contractId),
       }, {
         ...summary,
@@ -3187,10 +3187,10 @@ function portalFailureResult(service, target, message, checkedAt = new Date().to
     scrapedAt: checkedAt,
   };
   if (service === 'water') {
-    result.waterPaymentUrl = target.waterPaymentUrl || TRIPLE_A_URLS.policies;
+    result.waterPaymentUrl = target.waterPaymentUrl || null;
     result.waterPaymentCode = target.waterPaymentCode || null;
   } else {
-    result.gasPaymentUrl = target.gasPaymentUrl || GAS_PORTAL_URLS.payments;
+    result.gasPaymentUrl = target.gasPaymentUrl || null;
     result.gasPaymentCode = target.gasPaymentCode || null;
   }
   return result;

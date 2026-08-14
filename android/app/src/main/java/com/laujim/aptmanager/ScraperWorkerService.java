@@ -520,10 +520,12 @@ public class ScraperWorkerService extends Service {
                 record.put("nic", apartment.optString("electricityPaymentCode", ""));
             } else if ("water".equals(provider)) {
                 record.put("waterPaymentCode", apartment.optString("waterPaymentCode", ""));
-                record.put("waterPaymentUrl", "https://portal.aaa.com.co/polizas");
+                String paymentUrl = apartment.optString("waterPaymentUrl", "");
+                if (!paymentUrl.isEmpty()) record.put("waterPaymentUrl", paymentUrl);
             } else {
                 record.put("gasPaymentCode", apartment.optString("gasPaymentCode", ""));
-                record.put("gasPaymentUrl", "https://portal.gascaribe.com/payments");
+                String paymentUrl = apartment.optString("gasPaymentUrl", "");
+                if (!paymentUrl.isEmpty()) record.put("gasPaymentUrl", paymentUrl);
             }
             records.put(record);
         }

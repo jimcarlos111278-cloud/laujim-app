@@ -2,6 +2,29 @@ export function formatCurrency(amount) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount || 0);
 }
 
+export function servicePaymentUrl(apartment, service) {
+  if (service === 'electricity') {
+    return (apartment?.electricityPaymentCode || apartment?.nic) ? 'https://airepagos.st/' : '';
+  }
+  const field = service === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl';
+  const value = String(apartment?.[field] || '').trim();
+  if (!/^https?:\/\//i.test(value)) return '';
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    const path = url.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+    if (service === 'water' && host.endsWith('portal.aaa.com.co') &&
+      !(path === '/pagos' && url.searchParams.get('tipoPago') === 'coupon' && url.searchParams.get('numeroPago'))) return '';
+    if (service === 'gas' && host.endsWith('gascaribe.com')) {
+      if (/^\/(?:login|contracts)(?:\/|$)/i.test(path)) return '';
+      if (path === '/payments' && [...url.searchParams.keys()].length === 0) return '';
+    }
+    return value;
+  } catch {
+    return '';
+  }
+}
+
 export function formatDate(dateStr) {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });

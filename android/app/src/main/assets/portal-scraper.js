@@ -759,10 +759,10 @@
     };
     if (provider === 'Triple A') {
       extra.waterPaymentCode = String(code || target.waterPaymentCode || '').trim() || null;
-      extra.waterPaymentUrl = 'https://portal.aaa.com.co/polizas';
+      extra.waterPaymentUrl = target.waterPaymentUrl || null;
     } else {
       extra.gasPaymentCode = String(code || target.gasPaymentCode || '').trim() || null;
-      extra.gasPaymentUrl = 'https://portal.gascaribe.com/contracts';
+      extra.gasPaymentUrl = target.gasPaymentUrl || null;
     }
     return resultBase(provider, service, target, extra);
   }
@@ -1026,7 +1026,7 @@
         uiFailures += 1;
         for (const target of targets) results.push(resultBase('Triple A', 'water', target, {
             waterPaymentCode: policy.code,
-            waterPaymentUrl: 'https://portal.aaa.com.co/polizas',
+            waterPaymentUrl: target.waterPaymentUrl || null,
             status: 'error',
             error: parsed?.error || `Triple A no entrego el total de la poliza ${policy.code}.`,
           }));
@@ -1034,7 +1034,7 @@
       }
       for (const target of targets) results.push(resultBase('Triple A', 'water', target, {
           waterPaymentCode: policy.code,
-          waterPaymentUrl: 'https://portal.aaa.com.co/polizas',
+          waterPaymentUrl: target.waterPaymentUrl || null,
           status: parsed.status,
           deudaCOP: parsed.amount,
           deudaTotalCOP: parsed.amount,
@@ -1103,7 +1103,7 @@
         uiFailures += 1;
         for (const target of targets) results.push(resultBase('Gases del Caribe', 'gas', target, {
             gasPaymentCode: contract.code,
-            gasPaymentUrl: 'https://portal.gascaribe.com/contracts',
+            gasPaymentUrl: target.gasPaymentUrl || null,
             status: 'error',
             error: parsed?.error || `Gases del Caribe no entrego el total del contrato ${contract.code}.`,
           }));
@@ -1111,7 +1111,7 @@
       }
       for (const target of targets) results.push(resultBase('Gases del Caribe', 'gas', target, {
           gasPaymentCode: contract.code,
-          gasPaymentUrl: 'https://portal.gascaribe.com/contracts',
+          gasPaymentUrl: target.gasPaymentUrl || null,
           status: parsed.status,
           deudaCOP: parsed.amount,
           deudaTotalCOP: parsed.amount,

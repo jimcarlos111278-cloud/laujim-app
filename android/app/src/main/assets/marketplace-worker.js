@@ -88,8 +88,8 @@
     try { element.scrollIntoView({ block: 'center', behavior: 'instant' }); } catch (_) {}
     element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-    element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-    try { element.click(); } catch (_) {}
+    try { element.click(); }
+    catch (_) { element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }
   }
 
   function findControl(keywords) {
@@ -134,10 +134,10 @@
     return false;
   }
 
-  async function fillAddress(address) {
+  async function fillAddress(address, fallbackField) {
     if (!address) return true;
     var field = document.querySelector('input[role="combobox"][aria-autocomplete="list"][type="text"]') ||
-      findEditable(['direccion', 'address', 'ubicacion', 'location']);
+      findEditable(['direccion', 'address', 'ubicacion', 'location']) || fallbackField;
     if (!field) return false;
     setNativeValue(field, address);
     for (var attempt = 0; attempt < 25; attempt += 1) {
@@ -205,12 +205,15 @@
   }
 
   function hasMobileComposer() {
-    return Boolean(
+    var detected = Boolean(
       findControl(['categoria', 'category']) &&
       findEditable(['que vendes', 'what are you selling', 'titulo del anuncio', 'listing title']) &&
       findEditable(['precio', 'price']) &&
       findEditable(['descripcion', 'description'])
     );
+    if (detected) return true;
+    var body = normalizeText(document.body && document.body.innerText || '');
+    return /nueva publicacion/.test(body) && editableElements().length >= 3;
   }
 
   function hasWebRentalForm() {
@@ -222,7 +225,7 @@
   }
 
   async function selectMobileRentalCategory() {
-    var control = findControl(['categoria', 'category']);
+    var control = findControl(['categoria', 'category']) || findButton(['seleccionar', 'select']);
     if (!control) return false;
     var selectedText = control.tagName.toLowerCase() === 'select' && control.selectedOptions && control.selectedOptions[0]
       ? (control.selectedOptions[0].textContent || control.selectedOptions[0].value || '')
@@ -338,6 +341,8 @@
     emit('form_ready', 'Formulario de alquiler listo; completando el apartamento.', { editables: editableElements().length });
 
     var mobileComposer = hasMobileComposer();
+    var mobileEditables = mobileComposer ? editableElements() : [];
+    var mobileFieldIndex = { title: 0, price: 1, location: 2, description: 3 };
     var fields = [
       { key: 'title', labels: ['que vendes', 'what are you selling', 'titulo del anuncio', 'listing title', 'titulo'] },
       { key: 'price', labels: ['precio por mes', 'precio', 'price per month', 'monthly price'] },
@@ -351,6 +356,9 @@
     var filled = [];
     fields.forEach(function (field) {
       var element = findEditable(field.labels);
+      if (!element && mobileComposer && mobileFieldIndex[field.key] !== undefined) {
+        element = mobileEditables[mobileFieldIndex[field.key]] || null;
+      }
       var value = data[field.key] ||
         (field.key === 'title' ? ('Apartamento ' + String(data.apartmentName || 'en arriendo')) : '') ||
         (field.key === 'location' ? (data.address || data.city || 'Barranquilla') : '') ||
@@ -358,8 +366,11 @@
       if (element && setNativeValue(element, value)) filled.push(field.key);
     });
 
+    var mobileLocationField = mobileComposer
+      ? (findEditable(['lugar', 'ubicacion', 'location', 'direccion', 'address']) || mobileEditables[mobileFieldIndex.location] || null)
+      : null;
     var address = mobileComposer
-      ? (filled.includes('location') || !findEditable(['lugar', 'ubicacion', 'location', 'direccion', 'address']) || await fillAddress(data.address || data.city || 'Barranquilla'))
+      ? await fillAddress(data.address || data.city || 'Barranquilla', mobileLocationField)
       : await fillAddress(data.address);
     if (address && !filled.includes('location')) filled.push('address');
     var dropdowns = [

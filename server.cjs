@@ -1095,14 +1095,10 @@ function tenantUtilityOverview(apartment) {
     paymentUrl: /^https:\/\//i.test(String(paymentUrl || '')) ? String(paymentUrl) : null,
     paymentMode,
   });
-  const nic = apartment?.electricityPaymentCode || apartment?.nic || electricity?.nic || '';
-  const airPaymentUrl = apartment?.electricityPaymentUrl || (nic
-    ? `https://portal.air-e.com/Pagar#/User/${encodeURIComponent(String(nic).replace(/\D/g, ''))}/NUMEROCONTRATO`
-    : '');
   return {
-    electricity: view(electricity, 'Air-e', 'NIC', nic, airPaymentUrl, 'nic'),
-    water: view(water, 'Triple A', 'Póliza', apartment?.waterPaymentCode || water?.waterPaymentCode, apartment?.waterPaymentUrl, 'qr'),
-    gas: view(gas, 'Gases del Caribe', 'Contrato', apartment?.gasPaymentCode || gas?.gasPaymentCode, apartment?.gasPaymentUrl, 'qr'),
+    electricity: view(electricity, 'Air-e', 'NIC', apartment?.electricityPaymentCode || apartment?.nic || electricity?.nic, publicServicePaymentUrl(apartment, electricity, 'electricity'), 'nic'),
+    water: view(water, 'Triple A', 'Póliza', apartment?.waterPaymentCode || water?.waterPaymentCode, publicServicePaymentUrl(apartment, water, 'water'), 'qr'),
+    gas: view(gas, 'Gases del Caribe', 'Contrato', apartment?.gasPaymentCode || gas?.gasPaymentCode, publicServicePaymentUrl(apartment, gas, 'gas'), 'qr'),
   };
 }
 
@@ -1330,26 +1326,38 @@ function cloudListSections(title, rows) {
   return [{ title, rows }];
 }
 
-function cloudServicePaymentLink(apartment, record, service) {
-  const fieldByService = {
-    electricity: 'electricityPaymentUrl',
-    water: 'waterPaymentUrl',
-    gas: 'gasPaymentUrl',
-  };
-  const recordField = fieldByService[service];
-  const candidates = [apartment?.[fieldByService[service]], record?.[recordField]];
-  for (const candidate of candidates) {
-    const value = String(candidate || '').trim();
-    if (!/^https?:\/\//i.test(value)) continue;
-    // The portal URLs are not the QR payment links requested for water and gas.
-    // Keep a saved QR URL, but never present the scraper's navigation fallback as
-    // if it were a payment destination.
-    if (service === 'water' && /portal\.aaa\.com\.co\/polizas/i.test(value)) continue;
-    if (service === 'gas' && /portal\.gascaribe\.com\/(?:payments|contracts)/i.test(value)) continue;
-    return value;
+function isReceiptPaymentUrl(value, service) {
+  const text = String(value || '').trim();
+  if (!/^https?:\/\//i.test(text)) return false;
+  try {
+    const url = new URL(text);
+    const host = url.hostname.toLowerCase();
+    const path = url.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+    if (service === 'water' && host.endsWith('portal.aaa.com.co')) {
+      return path === '/pagos' && url.searchParams.get('tipoPago') === 'coupon' && Boolean(url.searchParams.get('numeroPago'));
+    }
+    if (service === 'gas' && host.endsWith('gascaribe.com')) {
+      if (/^\/(?:login|contracts)(?:\/|$)/i.test(path)) return false;
+      if (path === '/payments' && [...url.searchParams.keys()].length === 0) return false;
+      return true;
+    }
+    return true;
+  } catch {
+    return false;
   }
-  if (service === 'electricity') return 'https://airepagos.st/';
-  return 'No configurado';
+}
+
+function publicServicePaymentUrl(apartment, record, service) {
+  if (service === 'electricity') {
+    const nic = apartment?.electricityPaymentCode || apartment?.nic || record?.nic;
+    return nic ? 'https://airepagos.st/' : null;
+  }
+  const field = service === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl';
+  return [apartment?.[field], record?.[field]].find(value => isReceiptPaymentUrl(value, service)) || null;
+}
+
+function cloudServicePaymentLink(apartment, record, service) {
+  return publicServicePaymentUrl(apartment, record, service) || 'No configurado';
 }
 
 function cloudServiceReference(apartment, record, service) {
@@ -1587,18 +1595,18 @@ function buildCloudApartmentServicesInfo(apartment) {
     `   NIC: ${apartment.nic || apartment.electricityPaymentCode || '—'}`,
     `   ${states.electricity.label}`,
     records.electricity?.scrapedAt ? `   Actualizado: ${formatColombiaDateTime(records.electricity.scrapedAt)}` : '',
-    apartment.electricityPaymentUrl ? `   Pago: ${apartment.electricityPaymentUrl}` : '',
+    `   Pago: ${cloudServicePaymentLink(apartment, records.electricity, 'electricity')}`,
     '',
     '*💧 Agua (Triple A)*',
     `   N° Póliza: ${apartment.waterPaymentCode || '—'}`,
     `   ${states.water.label}`,
     records.water?.checkedAt ? `   Actualizado: ${formatColombiaDateTime(records.water.checkedAt)}` : '',
-    apartment.waterPaymentUrl ? `   Pago: ${apartment.waterPaymentUrl}` : '',
+    `   Pago: ${cloudServicePaymentLink(apartment, records.water, 'water')}`,
     '',
     '*🔥 Gas (Gases del Caribe)*',
     `   N° Contrato: ${apartment.gasPaymentCode || '—'}`,
     `   ${states.gas.label}`,
-    apartment.gasPaymentUrl ? `   Pago: ${apartment.gasPaymentUrl}` : '',
+    `   Pago: ${cloudServicePaymentLink(apartment, records.gas, 'gas')}`,
   ].filter(Boolean).join('\n');
 }
 
@@ -3523,11 +3531,15 @@ function mergePortableWorkerRecords(records) {
     if (mappedApartment && ['paid', 'pending'].includes(String(result.status || '').toLowerCase())) {
       if (result.provider === 'Triple A' && result.waterPaymentCode) {
         mappedApartment.waterPaymentCode = String(result.waterPaymentCode);
-        if (result.waterPaymentUrl) mappedApartment.waterPaymentUrl = String(result.waterPaymentUrl);
+        if (result.waterPaymentUrl && isReceiptPaymentUrl(result.waterPaymentUrl, 'water')) {
+          mappedApartment.waterPaymentUrl = String(result.waterPaymentUrl);
+        }
       }
       if (result.provider === 'Gases del Caribe' && result.gasPaymentCode) {
         mappedApartment.gasPaymentCode = String(result.gasPaymentCode);
-        if (result.gasPaymentUrl) mappedApartment.gasPaymentUrl = String(result.gasPaymentUrl);
+        if (result.gasPaymentUrl && isReceiptPaymentUrl(result.gasPaymentUrl, 'gas')) {
+          mappedApartment.gasPaymentUrl = String(result.gasPaymentUrl);
+        }
       }
     }
     persisted += 1;
