@@ -1088,7 +1088,7 @@ function tenantUtilityOverview(apartment) {
     provider,
     status: record?.status || 'unknown',
     debt: utilityDebtAmount(record),
-    checkedAt: record?.checkedAt || record?.scrapedAt || record?.updatedAt || null,
+    checkedAt: utilityRecordValueTimestamp(record),
     error: record?.error ? String(record.error).slice(0, 240) : null,
     referenceLabel,
     reference: String(reference || '').trim() || null,
@@ -1113,12 +1113,63 @@ function isDebtQuery(text) {
 // Shared service-record helpers must live outside startServer(). The WhatsApp
 // admin handlers are declared before startServer and use the same records as
 // the HTTP utility endpoints.
+function utilityProviderKey(value) {
+  const normalized = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+  if (normalized === 'aire' || normalized === 'air' || normalized.includes('aire')) return 'air-e';
+  if (normalized.includes('triplea') || normalized === 'agua') return 'water';
+  if (normalized.includes('gases') || normalized.includes('gascaribe')) return 'gas';
+  return normalized;
+}
+
+function utilityRecordTimestamp(record) {
+  const value = record?.checkedAt || record?.scrapedAt || record?.updatedAt || record?.createdAt || 0;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function utilityRecordValueTimestamp(record) {
+  return record?.valueCheckedAt || record?.checkedAt || record?.scrapedAt || record?.updatedAt || null;
+}
+
+function utilityRecordMatchesApartment(record, apartment) {
+  if (!record || !apartment) return false;
+  const recordId = Number(record.apartmentId);
+  const apartmentId = Number(apartment.id);
+  if (Number.isFinite(recordId) && Number.isFinite(apartmentId) && recordId === apartmentId) return true;
+  const recordName = String(record.apartment || '').trim().toLowerCase();
+  const apartmentName = String(apartment.name || '').trim().toLowerCase();
+  return Boolean(recordName && apartmentName && recordName === apartmentName);
+}
+
+function utilityRecordAirENic(record) {
+  return String(record?.nic || record?.electricityPaymentCode || record?.electricityCode || '').replace(/\D/g, '');
+}
+
 function latestUtilityRecord(provider, apartment) {
-  const records = (db.utilityRecords || []).filter(record =>
-    record.provider === provider &&
-    (Number(record.apartmentId) === Number(apartment?.id) || record.apartment === apartment?.name)
-  );
-  return records.sort((a, b) => new Date(b.checkedAt || b.scrapedAt || b.updatedAt || 0) - new Date(a.checkedAt || a.scrapedAt || a.updatedAt || 0))[0] || null;
+  const requestedProvider = utilityProviderKey(provider);
+  const records = (db.utilityRecords || []).filter(record => utilityProviderKey(record.provider) === requestedProvider);
+  const direct = records.filter(record => utilityRecordMatchesApartment(record, apartment));
+
+  // Air-e returns one Deuda Total per NIC and the worker may legitimately
+  // persist that record without an apartment id/name (or with an older
+  // portal label). A NIC is the canonical identity for Air-e, so include
+  // that record when the direct apartment mapping is missing or stale.
+  const expectedNic = requestedProvider === 'air-e'
+    ? String(apartment?.electricityPaymentCode || apartment?.nic || '').replace(/\D/g, '')
+    : '';
+  const byNic = expectedNic
+    ? records.filter(record => utilityRecordAirENic(record) === expectedNic)
+    : [];
+  const candidates = [...new Map([...direct, ...byNic].map(record => [
+    `${record.id ?? ''}|${record.apartmentId ?? ''}|${record.apartment ?? ''}|${utilityRecordAirENic(record)}`,
+    record,
+  ])).values()];
+
+  return candidates.sort((a, b) => utilityRecordTimestamp(b) - utilityRecordTimestamp(a))[0] || null;
 }
 
 function utilityDebtAmount(record) {
@@ -1128,7 +1179,7 @@ function utilityDebtAmount(record) {
   const fields = [
     'deudaTotalCOP', 'totalDeudaCOP', 'saldoTotalCOP', 'deudaCOP',
     'totalCOP', 'saldoCOP', 'amountCOP', 'valorCOP', 'deudaTotal',
-    'deuda', 'total', 'amount', 'valor',
+    'deuda', 'total', 'amount', 'valor', 'deudaText',
   ];
   for (const field of fields) {
     if (record[field] === null || record[field] === undefined || record[field] === '') continue;
@@ -1140,9 +1191,36 @@ function utilityDebtAmount(record) {
   return null;
 }
 
+function utilityResultHasConfirmedValue(record) {
+  const status = String(record?.status || '').trim().toLowerCase();
+  return ['pending', 'paid'].includes(status) && utilityDebtAmount(record) !== null;
+}
+
+function mergeUtilityRecord(existing, incoming) {
+  const merged = { ...(existing || {}), ...(incoming || {}) };
+  if (!existing || !utilityResultHasConfirmedValue(existing) || utilityResultHasConfirmedValue(incoming)) {
+    if (utilityResultHasConfirmedValue(incoming)) {
+      merged.valueCheckedAt = incoming.checkedAt || incoming.scrapedAt || new Date().toISOString();
+    }
+    return merged;
+  }
+
+  // A failed/captcha/timeout run is still a useful health signal, but it is
+  // not a new bill value. Keep the last confirmed amount so WhatsApp and the
+  // tenant portal do not replace a real Air-e debt with a blank response.
+  for (const field of ['deudaCOP', 'deudaTotalCOP', 'deudaLabel', 'deudaText', 'status', 'numFacturas', 'factura', 'periodo']) {
+    if (existing[field] !== undefined) merged[field] = existing[field];
+  }
+  merged.valueCheckedAt = existing.valueCheckedAt || existing.checkedAt || existing.scrapedAt || null;
+  merged.lastAttemptAt = incoming?.checkedAt || incoming?.scrapedAt || new Date().toISOString();
+  merged.lastAttemptStatus = incoming?.status || 'unknown';
+  merged.lastAttemptError = incoming?.error || null;
+  return merged;
+}
+
 function utilityPaymentView(record) {
   if (!record) return null;
-  const checkedAt = record.checkedAt || record.scrapedAt || record.updatedAt || null;
+  const checkedAt = utilityRecordValueTimestamp(record);
   return {
     status: record.status || 'unknown',
     deudaCOP: utilityDebtAmount(record),
@@ -1158,14 +1236,7 @@ function utilityPaymentView(record) {
 function buildDebtReply(contact) {
   const aptId = Number(contact.apartmentId);
   const apt = (db.apartments || []).find(a => Number(a.id) === aptId);
-  const nic = apt?.electricityPaymentCode || apt?.nic || '';
-  const directElectricityRecords = (db.utilityRecords || [])
-    .filter(r => r.provider === 'Air-e' && apt &&
-      (Number(r.apartmentId) === Number(apt.id) || r.apartment === apt.name));
-  const electricityRecords = (directElectricityRecords.length ? directElectricityRecords : (db.utilityRecords || [])
-    .filter(r => r.provider === 'Air-e' && !r.apartmentId && !r.apartment && r.nic === nic))
-    .sort((a, b) => (b.scrapedAt || '').localeCompare(a.scrapedAt || ''));
-  const electricity = electricityRecords[0] || null;
+  const electricity = latestUtilityRecord('Air-e', apt);
   const water = latestUtilityRecord('Triple A', apt);
   const gas = latestUtilityRecord('Gases del Caribe', apt);
   if (!electricity && !water && !gas) {
@@ -1177,7 +1248,7 @@ function buildDebtReply(contact) {
     const debt = utilityDebtAmount(record);
     const facturas = Number(record.numFacturas) || (record.status === 'pending' ? 1 : 0);
     const isTotalDebt = record.provider === 'Air-e' || record.deudaLabel === 'Deuda Total';
-    const checkedAt = record.checkedAt || record.scrapedAt || record.updatedAt;
+    const checkedAt = utilityRecordValueTimestamp(record);
     const when = checkedAt && !Number.isNaN(new Date(checkedAt).getTime())
       ? ` Datos del ${formatColombiaDateTime(checkedAt)}.`
       : '';
@@ -1509,7 +1580,7 @@ function cloudServiceDisplayBlock(summary) {
   for (const service of CLOUD_SERVICE_PRESENTATIONS) {
     const record = records[service.key];
     const state = states[service.key];
-    const updatedAt = record?.checkedAt || record?.scrapedAt || record?.updatedAt;
+    const updatedAt = utilityRecordValueTimestamp(record);
     lines.push('', `${service.icon} *${service.label}:* ${state.label}`);
     lines.push(cloudServiceReference(apartment, record, service.key));
     if (updatedAt) lines.push(`Actualizado: ${formatColombiaDateTime(updatedAt)}`);
@@ -1600,7 +1671,7 @@ function buildCloudApartmentServicesInfo(apartment) {
     '*💧 Agua (Triple A)*',
     `   N° Póliza: ${apartment.waterPaymentCode || '—'}`,
     `   ${states.water.label}`,
-    records.water?.checkedAt ? `   Actualizado: ${formatColombiaDateTime(records.water.checkedAt)}` : '',
+    utilityRecordValueTimestamp(records.water) ? `   Actualizado: ${formatColombiaDateTime(utilityRecordValueTimestamp(records.water))}` : '',
     `   Pago: ${cloudServicePaymentLink(apartment, records.water, 'water')}`,
     '',
     '*🔥 Gas (Gases del Caribe)*',
@@ -1662,7 +1733,7 @@ function buildCloudServicesImageData() {
   ), 0));
   const serviceSync = Object.fromEntries(serviceKeys.map(key => {
     const latest = summaries
-      .map(summary => summary.records[key]?.checkedAt || summary.records[key]?.scrapedAt || summary.records[key]?.updatedAt)
+      .map(summary => utilityRecordValueTimestamp(summary.records[key]))
       .filter(value => value && !Number.isNaN(new Date(value).getTime()))
       .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0];
     return [key, latest ? cloudReportDateLabel(new Date(latest)) : '\u2014'];
@@ -3518,7 +3589,7 @@ function mergePortableWorkerRecords(records) {
       if (result.provider === 'Air-e' && result.nic && record.nic) return String(record.nic) === String(result.nic);
       return sameApartment(record);
     });
-    if (index >= 0) db.utilityRecords[index] = { ...db.utilityRecords[index], ...result };
+    if (index >= 0) db.utilityRecords[index] = mergeUtilityRecord(db.utilityRecords[index], result);
     else db.utilityRecords.push(result);
 
     // The authenticated portal name/address is authoritative.  Once a UI
@@ -4120,7 +4191,7 @@ app.post('/api/scrape-air-e', async (req, res) => {
         }
       );
       if (existing >= 0) {
-        db.utilityRecords[existing] = { ...db.utilityRecords[existing], ...r };
+        db.utilityRecords[existing] = mergeUtilityRecord(db.utilityRecords[existing], r);
       } else {
         db.utilityRecords.push(r);
       }
