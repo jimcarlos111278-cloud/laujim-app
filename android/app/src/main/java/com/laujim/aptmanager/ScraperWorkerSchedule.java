@@ -41,7 +41,7 @@ final class ScraperWorkerSchedule {
         }
         long nextAt = calculateNextRunAt(app, System.currentTimeMillis());
         scheduleAlarmAt(app, nextAt, reason);
-        boolean workScheduled = schedulePeriodicWork(app, nextAt);
+        boolean workScheduled = schedulePeriodicWork(app, nextAt, reason);
         boolean exact = canScheduleExactAlarms(app);
         if (!workScheduled) {
             ScraperWorkerStore.setNextRunAt(app, nextAt, exact ? "exact-only" : "inexact-only", reason);
@@ -157,7 +157,7 @@ final class ScraperWorkerSchedule {
         }
     }
 
-    private static boolean schedulePeriodicWork(Context context, long nextAt) {
+    private static boolean schedulePeriodicWork(Context context, long nextAt, String reason) {
         try {
             long intervalMs = Math.max(MIN_WORK_INTERVAL_MS, ScraperWorkerStore.intervalHours(context) * 60L * 60L * 1000L);
             long initialDelay = Math.max(MIN_DELAY_MS, nextAt - System.currentTimeMillis());
@@ -175,12 +175,26 @@ final class ScraperWorkerSchedule {
                 .build();
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 PERIODIC_WORK_NAME,
-                ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+                shouldReplacePeriodicWork(reason)
+                    ? ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE
+                    : ExistingPeriodicWorkPolicy.KEEP,
                 request
             );
             return true;
         } catch (RuntimeException error) {
             return false;
         }
+    }
+
+    private static boolean shouldReplacePeriodicWork(String reason) {
+        String value = reason == null ? "" : reason;
+        return "native-config-updated".equals(value)
+            || "worker-started".equals(value)
+            || "manual-reschedule".equals(value)
+            || "exact-permission-detected".equals(value)
+            || "server-schedule-changed".equals(value)
+            || "boot-or-package-update".equals(value)
+            || "service-destroyed".equals(value)
+            || "service-task-removed".equals(value);
     }
 }

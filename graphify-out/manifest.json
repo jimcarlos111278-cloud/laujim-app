@@ -1,8 +1,8 @@
 {
   ".build-state.json": {
-    "mtime": 1784523238.307861,
-    "ast_hash": "e2406d89088d30b558866ab271ccad99",
-    "semantic_hash": "e2406d89088d30b558866ab271ccad99"
+    "mtime": 1786521393.0292902,
+    "ast_hash": "8a929c98188d10a074f1a0217014edb5",
+    "semantic_hash": ""
   },
   ".oxlintrc.json": {
     "mtime": 1784337544.0380108,
@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786516159.832846,
-    "ast_hash": "99c9827096c51c715fef0a8adeff9f0f",
+    "mtime": 1786604748.2488794,
+    "ast_hash": "f4b5bed92ce67370a23c53da9916aeb6",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -125,8 +125,8 @@
     "semantic_hash": "9bd25f44f8255f4a9af580f3b89bc797"
   },
   "db.cjs": {
-    "mtime": 1786426007.0447834,
-    "ast_hash": "b61bed84e614b9f289df5529c18329ce",
+    "mtime": 1786604834.7050931,
+    "ast_hash": "90600173736bd5da9adedf5fdc896d8d",
     "semantic_hash": ""
   },
   "exportar-backup.ps1": {
@@ -170,13 +170,13 @@
     "semantic_hash": "df8481c2a365eb0e981dcc791222efd1"
   },
   "package.json": {
-    "mtime": 1786430185.5120635,
-    "ast_hash": "e5d1b199f2ef2ab5f88a71b464271ab7",
+    "mtime": 1786685981.7216341,
+    "ast_hash": "e9cf46efc9867e9089e09772d9517826",
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786516260.0286324,
-    "ast_hash": "e56178f66ae34e073a62f45666b83927",
+    "mtime": 1786685739.930525,
+    "ast_hash": "d2cb62b11e2b404348e840ed2f1a5db3",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -215,9 +215,9 @@
     "semantic_hash": "2c4327c7a48d078af1557e05ba5beed3"
   },
   "scripts/generate-version.js": {
-    "mtime": 1784523650.4431763,
-    "ast_hash": "99a1a67237642de12e4bf3d94ef96335",
-    "semantic_hash": "99a1a67237642de12e4bf3d94ef96335"
+    "mtime": 1786608253.9376912,
+    "ast_hash": "b66d61b65273ba02628181d4bcda4668",
+    "semantic_hash": ""
   },
   "scripts/migrate-to-aiven.cjs": {
     "mtime": 1784705814.3623314,
@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786517194.4105406,
-    "ast_hash": "01dee40b0186b31ecdc0a836fc4e2d00",
+    "mtime": 1786684977.4925559,
+    "ast_hash": "ff670d0d0425fab5d8f9582a509a2da0",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -255,13 +255,13 @@
     "semantic_hash": "29cdee1095d1f60e9d9f4d8d4cec3bde"
   },
   "src/App.jsx": {
-    "mtime": 1786432167.416494,
-    "ast_hash": "b9b8aacc7f27db1209dccec7da637883",
+    "mtime": 1786604992.626681,
+    "ast_hash": "ade4042f2bcd01cb2cc0150d50c11aff",
     "semantic_hash": ""
   },
   "src/api.js": {
-    "mtime": 1786432035.3477938,
-    "ast_hash": "e986a8026c98e7f1fb7c5b26eccea693",
+    "mtime": 1786603929.0815873,
+    "ast_hash": "ccc824181eb420cafea97133b765bf24",
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.jsx": {
@@ -270,8 +270,8 @@
     "semantic_hash": "3d82f6b120b2a5ba30ebc89bd6d8f817"
   },
   "src/components/Layout.jsx": {
-    "mtime": 1786432146.2417958,
-    "ast_hash": "4906e4bbf1fbcff834404723af740c85",
+    "mtime": 1786604992.6294625,
+    "ast_hash": "b1d6aa727f87089810284d0626298c99",
     "semantic_hash": ""
   },
   "src/components/Modal.jsx": {
@@ -295,9 +295,9 @@
     "semantic_hash": "d1562b8f31bed9be185596d9980063f5"
   },
   "src/components/VersionBanner.jsx": {
-    "mtime": 1785685242.387405,
-    "ast_hash": "8cec2d407781a3d676dbf4c0cdfe81e4",
-    "semantic_hash": "8cec2d407781a3d676dbf4c0cdfe81e4"
+    "mtime": 1786577061.184886,
+    "ast_hash": "dd6c8699dc7c6a65216b5c027ec86d62",
+    "semantic_hash": ""
   },
   "src/db/database.js": {
     "mtime": 1785527079.5526433,
@@ -310,8 +310,8 @@
     "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
   },
   "src/pages/ApartmentDetail.jsx": {
-    "mtime": 1786397535.7610562,
-    "ast_hash": "5dd5999ee3699f7335c24267ba63ecc5",
+    "mtime": 1786603950.4044511,
+    "ast_hash": "78f5058cd161f7e5b37ac272cd73f78f",
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
@@ -345,9 +345,9 @@
     "semantic_hash": ""
   },
   "src/pages/MiApto.jsx": {
-    "mtime": 1785965937.6819677,
-    "ast_hash": "e39792286ce7e87368d4ab7a20335011",
-    "semantic_hash": "e39792286ce7e87368d4ab7a20335011"
+    "mtime": 1786605008.8394785,
+    "ast_hash": "76e1961a997154bf49475559f15c9bb2",
+    "semantic_hash": ""
   },
   "src/pages/Payments.jsx": {
     "mtime": 1785657923.7275558,
@@ -555,13 +555,13 @@
     "semantic_hash": ""
   },
   "proyecto de camaras/para-codex-integracion-seguridad.md": {
-    "mtime": 1785793650.9811904,
-    "ast_hash": "dbedcf8ecb1fb44ac7f946345ffda524",
+    "mtime": 1786684942.1517558,
+    "ast_hash": "e5c3902c193a657d6bf193a87fe08f75",
     "semantic_hash": ""
   },
   "proyecto de camaras/plan-cameras-videoportero.md": {
-    "mtime": 1785831802.4737995,
-    "ast_hash": "797f91dad5102aed75856d776a2a80e1",
+    "mtime": 1786684911.6714826,
+    "ast_hash": "c3d4430a5029b31c461240eeb6053669",
     "semantic_hash": ""
   },
   "proyecto de camaras/topologia.html": {
@@ -580,8 +580,8 @@
     "semantic_hash": ""
   },
   "render.yaml": {
-    "mtime": 1786434573.8091583,
-    "ast_hash": "ea74e8c7e7f1a1ed4ab30cbc607f051e",
+    "mtime": 1786607272.047887,
+    "ast_hash": "6bac070a4a6ea2467f06c902bb413636",
     "semantic_hash": ""
   },
   "IMG_4307.jpeg": {
@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "src/pages/ScraperWorker.jsx": {
-    "mtime": 1786517392.155858,
-    "ast_hash": "2aaba0aec0c14cffeaddf3354a13aefe",
+    "mtime": 1786605659.8797271,
+    "ast_hash": "25fd723e44482ac0e0cdb88e1c04e881",
     "semantic_hash": ""
   },
   "src/utils/portableWorker.js": {
@@ -869,39 +869,34 @@
     "ast_hash": "4d3296a010f9f04f9a7a720ce72b537e",
     "semantic_hash": ""
   },
-  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarm.java": {
-    "mtime": 1786429238.4326172,
-    "ast_hash": "323345f3630fa4e153cf9a52cf26f241",
-    "semantic_hash": ""
-  },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
-    "mtime": 1786429238.4326172,
-    "ast_hash": "65c7805acca54f166437ed731449a5da",
+    "mtime": 1786572603.1286643,
+    "ast_hash": "79bf9fe5881f402404e7f877263c22dd",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
-    "mtime": 1786429238.4347908,
-    "ast_hash": "f7fb0e32442bd627c0db4e3091e66c59",
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
-    "mtime": 1786513575.224269,
-    "ast_hash": "ea384532ea1b244104daa54e949a6113",
+    "mtime": 1786685900.1137123,
+    "ast_hash": "8d12808844a495bd9ead59dd50dfe616",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1786515741.3540719,
-    "ast_hash": "bc4b95f04be6c45a53b3d505fd69201f",
+    "mtime": 1786685069.5474858,
+    "ast_hash": "56fda212b6aa83bbed8e7955abde41e1",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
-    "mtime": 1786433882.8794012,
-    "ast_hash": "7dc60c11e832c7d89108f8ce4e58cbb2",
+    "mtime": 1786605633.3381457,
+    "ast_hash": "35a7a05bc1d4027502de946c5c8a6e00",
     "semantic_hash": ""
   },
   "src/utils/androidScraperWorker.js": {
-    "mtime": 1786433916.1740913,
-    "ast_hash": "6b7f5d1729c8f94793fbdeeab71a5831",
+    "mtime": 1786575263.5685782,
+    "ast_hash": "d4156ae25e4ee378b709e2ee73ef4ce7",
     "semantic_hash": ""
   },
   "scripts/prepare-capacitor-assets.js": {
@@ -915,13 +910,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1786515746.7394133,
-    "ast_hash": "01b795d67e88720177a822fc1a5a815c",
+    "mtime": 1786607694.609583,
+    "ast_hash": "f363a988649421f26f632851b7d9845c",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
-    "mtime": 1786513500.9165044,
-    "ast_hash": "143fa71bc673ad127e65b8d69d554bcb",
+    "mtime": 1786603444.705922,
+    "ast_hash": "c52f6216a4ed3c68ec6475a881acd37f",
     "semantic_hash": ""
   },
   ".tmp/gradle-off-onedrive.init.gradle": {
@@ -957,6 +952,1681 @@
   ".tmp/reporte-servicios-template.png": {
     "mtime": 1786517113.5020485,
     "ast_hash": "af638f027f41fea462f1d4f6f3bab567",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1786573474.3779428,
+    "ast_hash": "441adad68e52d75c3360112a7d216181",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1786572582.522002,
+    "ast_hash": "87fce31a6768330e4f7f79aced8b778b",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1786685001.4083085,
+    "ast_hash": "778877895999e1f6d50bfa2b4152112f",
+    "semantic_hash": ""
+  },
+  "android/app/src/test/java/com/laujim/aptmanager/ScraperWorkerScheduleTest.java": {
+    "mtime": 1786573492.8217869,
+    "ast_hash": "465f00307bf064b6fc72da0720077b0a",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/assets/marketplace-worker.js": {
+    "mtime": 1786685109.0672076,
+    "ast_hash": "6135fe07237555ef6d19bbff3d636215",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
+    "mtime": 1786685051.4349396,
+    "ast_hash": "16c3901850b1181bc089ce7139f56b5f",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
+    "mtime": 1786575523.5687664,
+    "ast_hash": "b187f3cf288c48eb40ae1a242c340978",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerDispatcher.java": {
+    "mtime": 1786575523.5652575,
+    "ast_hash": "573f748179d2223304ce1c3aa8851b58",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerSchedule.java": {
+    "mtime": 1786575523.5707803,
+    "ast_hash": "21c0dbc441fa5bd1c0c33600e38e351e",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
+    "mtime": 1786604748.2264006,
+    "ast_hash": "b020b84fe09aafb21712c3f236d5a0e9",
+    "semantic_hash": ""
+  },
+  "scripts/test-marketplace-api.cjs": {
+    "mtime": 1786576000.1010191,
+    "ast_hash": "19e838f3f6cbd012924e1f1def989734",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1786603240.7433457,
+    "ast_hash": "8137048a9d0a1e1d1bb5c8b3dd3321d5",
+    "semantic_hash": ""
+  },
+  "src/pages/SecurityCenter.jsx": {
+    "mtime": 1786604239.097194,
+    "ast_hash": "af37d0ae5dad15802681f51be6cc917b",
+    "semantic_hash": ""
+  },
+  "src/pages/Onboarding.jsx": {
+    "mtime": 1786604992.6183128,
+    "ast_hash": "3569b9dc89fd5700d503ee994076f1b5",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/package.json": {
+    "mtime": 1786684331.640021,
+    "ast_hash": "4f3878b065e668469feb14e865eb3921",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/playwright-cli.js": {
+    "mtime": 1786684331.640021,
+    "ast_hash": "ae62f0d08daa9922c1fc50a3c15a83a7",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/playwright.config.ts": {
+    "mtime": 1786684331.6410196,
+    "ast_hash": "c87c54c0a5c1a763d196011c65fa93a6",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/scripts/update.js": {
+    "mtime": 1786684331.6420195,
+    "ast_hash": "1be8778c0430b5faceb1413de0611fe1",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skillCheck.js": {
+    "mtime": 1786684331.6430192,
+    "ast_hash": "e5ba165aa32313ef22af59d2290324a2",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/tests/integration.spec.ts": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "a676cfc66f4cd52446033d7052ef4c7c",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.agents/plugins/marketplace.json": {
+    "mtime": 1786684331.9384758,
+    "ast_hash": "c3cd74c0b7ac03e18cfe92ef4051d5e3",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.claude-plugin/marketplace.json": {
+    "mtime": 1786684331.9384758,
+    "ast_hash": "ca299f3c376e645302af7615192f315f",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.claude-plugin/plugin.json": {
+    "mtime": 1786684331.9384758,
+    "ast_hash": "bdc360896a75be190dbf3d90ee4aea46",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.codex-plugin/plugin.json": {
+    "mtime": 1786684331.9384758,
+    "ast_hash": "bff3275c4d0b9940408acf95756486f0",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.devin-plugin/plugin.json": {
+    "mtime": 1786684331.9384758,
+    "ast_hash": "91180f301cfee823b6b973075335be7d",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.github/plugin/marketplace.json": {
+    "mtime": 1786684331.949647,
+    "ast_hash": "b75009ddf97b3fb5096a0755d59b7361",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.github/plugin/plugin.json": {
+    "mtime": 1786684331.949647,
+    "ast_hash": "5a33934f9780ea7719ca9dc4b8823a77",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.grok-plugin/marketplace.json": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "88fbfebff9a22e556fbcd0d216c70c57",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.opencode/plugins/ponytail-frontmatter.cjs": {
+    "mtime": 1786684331.9699688,
+    "ast_hash": "870b39a82389de2c3b266123b301aa05",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.opencode/plugins/ponytail.mjs": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "db7e606e726a34494cbe23b395fe89c9",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.qoder-plugin/plugin.json": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "64983bd08a7299112c378cf9d444b00b",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/__init__.py": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "705c2693f36ce9b6980067bbe041f68c",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/agentic/complete.py": {
+    "mtime": 1786684331.9919899,
+    "ast_hash": "0318bfe6481e3eea4162e7e5ba2a5369",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/agentic/judge.py": {
+    "mtime": 1786684332.0014844,
+    "ast_hash": "08582e08f01b1ac46f54a14dab72e6be",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/agentic/run.py": {
+    "mtime": 1786684332.0014844,
+    "ast_hash": "f8a60ea5be8c338ef3c2489a6dcd5ba8",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/agentic/tasks.py": {
+    "mtime": 1786684332.0034926,
+    "ast_hash": "ef316e09ee71dc534d31ef01d4ed759a",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/arms/baseline.js": {
+    "mtime": 1786684332.0034926,
+    "ast_hash": "073233d7847b7c6ab8e6379e5d755e4c",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/arms/caveman.js": {
+    "mtime": 1786684332.0034926,
+    "ast_hash": "e6324bb82fe7688591e6c9f5051b8b85",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/arms/ponytail.js": {
+    "mtime": 1786684332.0034926,
+    "ast_hash": "f6bd007f2fb681efe40847f8cd126ee2",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/behavior.js": {
+    "mtime": 1786684332.0034926,
+    "ast_hash": "6e9a7ca610943cb1fad56a11c90bbf9c",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/benchmark-local.py": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "41a7b549d371d6e3da58ef92c76258b3",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/claude-email.js": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "baf02a95a2c547a2c5132757b01a69dd",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/correctness.js": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "0770c9962d796402b21e40a30b3208d3",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/correctness.test.js": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "588cc05cf9ac2a7985322208c702344f",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/generate-examples.mjs": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "c8c09526736a8be8378c51f08309c8a0",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/loc.js": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "e3e3e740f33fb1581324c2020997a999",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/loc.test.js": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "886c3042596a5d575adb74f43579e143",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/model-email.js": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "3da9411358aa7c2cacf989efc26458d2",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/prompts.json": {
+    "mtime": 1786684332.01736,
+    "ast_hash": "f28e27909ca8215e87fef603e450f2e9",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/robustness-audit.js": {
+    "mtime": 1786684332.0260096,
+    "ast_hash": "88c0defb53a17d2baff80696851c58ed",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/gemini-extension.json": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "b16b3c278a2d4b072ce9b06d97efb93a",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/claude-codex-hooks.json": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "3575797115ccc0d6c30c350b08ff3c69",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/copilot-hooks.json": {
+    "mtime": 1786684332.0446188,
+    "ast_hash": "251b4b6a60ea59ceefe888c641517707",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/ponytail-activate.js": {
+    "mtime": 1786684332.0446188,
+    "ast_hash": "4685e4c29612e36d82bd414d457f309a",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/ponytail-config.js": {
+    "mtime": 1786684332.0446188,
+    "ast_hash": "b4a41f88d457b34bfccd9f6f18a6dab0",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/ponytail-instructions.js": {
+    "mtime": 1786684332.0446188,
+    "ast_hash": "c5e13a48b9bbde5c95c5cb19c57e39cd",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/ponytail-mode-tracker.js": {
+    "mtime": 1786684332.0446188,
+    "ast_hash": "4eb352ea075b4df43978232a6e15e8f0",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/ponytail-runtime.js": {
+    "mtime": 1786684332.0446188,
+    "ast_hash": "6460f00d5bbe842e49d178fea8b2c01b",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/ponytail-statusline.ps1": {
+    "mtime": 1786684332.048888,
+    "ast_hash": "4885b4c7b1c32b8128bd5791d0aa3e61",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/ponytail-statusline.sh": {
+    "mtime": 1786684332.048888,
+    "ast_hash": "3c68bbb1674e65b6bc3a62161da758dd",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/ponytail-subagent.js": {
+    "mtime": 1786684332.048888,
+    "ast_hash": "d3723a31ba4b64e56782eca40e309cd1",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/hooks/qoder-hooks.json": {
+    "mtime": 1786684332.0508952,
+    "ast_hash": "f0163bb61a4dd79ed4d37ea138e3785a",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/opencode.json": {
+    "mtime": 1786684332.0508952,
+    "ast_hash": "12480805d334400bc7fb057cee96931e",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/package.json": {
+    "mtime": 1786684332.0508952,
+    "ast_hash": "fc801d38c57a4aec5c8a336c12ac28a6",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/pi-extension/index.js": {
+    "mtime": 1786684332.0508952,
+    "ast_hash": "ba71ef8862fa61750cf87881ace0abf7",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/pi-extension/package.json": {
+    "mtime": 1786684332.0508952,
+    "ast_hash": "0c45a7cf9e637fd58fdeb039d4109937",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/pi-extension/test/extension.test.js": {
+    "mtime": 1786684332.0508952,
+    "ast_hash": "b24cefc81809f79f59dd7626c18910be",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/pi-extension/test/helpers.test.js": {
+    "mtime": 1786684332.056644,
+    "ast_hash": "c65fbe1da25ab13ed78225f215f34680",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/plugin.json": {
+    "mtime": 1786684332.056644,
+    "ast_hash": "5f881f3c7e48ce9b8aeee891d808ca6b",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/ponytail-mcp/index.js": {
+    "mtime": 1786684332.0606427,
+    "ast_hash": "9b0b601319251c4d1465eacec4f90636",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/ponytail-mcp/instructions.js": {
+    "mtime": 1786684332.0606427,
+    "ast_hash": "c2326d71248aa7cac50e41654ede766e",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/ponytail-mcp/package.json": {
+    "mtime": 1786684332.0616446,
+    "ast_hash": "744678fb00b3f479f5c47950ba1e09ac",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/ponytail-mcp/test/instructions.test.js": {
+    "mtime": 1786684332.0631144,
+    "ast_hash": "2bfbe70d4fe56e58ea50028d43c3640a",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/scripts/build-openclaw-skills.js": {
+    "mtime": 1786684332.0631144,
+    "ast_hash": "0055011ab7f4bfc95df429c443726c26",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/scripts/check-rule-copies.js": {
+    "mtime": 1786684332.0631144,
+    "ast_hash": "80e481a56c2773aff5542afe6b075a93",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/scripts/check-versions.js": {
+    "mtime": 1786684332.0631144,
+    "ast_hash": "a5e3758ba5e66f433e50021f9a0e0a2e",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/scripts/publish-openclaw-skills.js": {
+    "mtime": 1786684332.0631144,
+    "ast_hash": "d6f16edcfcc54eff1a12cf8647b79460",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/scripts/uninstall.js": {
+    "mtime": 1786684332.0631144,
+    "ast_hash": "1da201e1713dd82f9ec90e109ed93ef3",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/behavior.test.js": {
+    "mtime": 1786684332.0734017,
+    "ast_hash": "59fd68d918a7cc82eea0edacc76445fa",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/commands.test.js": {
+    "mtime": 1786684332.0744045,
+    "ast_hash": "7c3ad9c51608149f57bef1f8536471bf",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/copilot-plugin.test.js": {
+    "mtime": 1786684332.0754054,
+    "ast_hash": "a99f28dd3010c5d202f791b80328405a",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/correctness.test.js": {
+    "mtime": 1786684332.0773783,
+    "ast_hash": "f7a99c00d3c0666eba246073b5f6b214",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/gemini-extension.test.js": {
+    "mtime": 1786684332.0783772,
+    "ast_hash": "5f8c29140ebc8355baa7b84024bbe9ca",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/grok-plugin.test.js": {
+    "mtime": 1786684332.079378,
+    "ast_hash": "1c2ff3c037c6df18c9adfc7c7117287f",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/hermes-plugin.test.js": {
+    "mtime": 1786684332.0803783,
+    "ast_hash": "318fc63da59308289bab647cf86bf74d",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/hooks-windows.test.js": {
+    "mtime": 1786684332.0803783,
+    "ast_hash": "6610be0e0336212ab478df22d6f642d1",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/hooks.test.js": {
+    "mtime": 1786684332.0813768,
+    "ast_hash": "5fdcaaa88aa1d7f1205d61bbb6bac1fa",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/openclaw-skills.test.js": {
+    "mtime": 1786684332.0823765,
+    "ast_hash": "dc0db8ff7c7973fd331f497ac77a5c94",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/opencode-plugin.test.js": {
+    "mtime": 1786684332.0832317,
+    "ast_hash": "43b3f5cc384fcd2cc8fcdef45da98347",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/package-scripts.test.js": {
+    "mtime": 1786684332.0832317,
+    "ast_hash": "c64482f165911c6d0c552ae2e7e5e03d",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/package.test.js": {
+    "mtime": 1786684332.0832317,
+    "ast_hash": "5061705c29fe6c13f91b5a4bb04ff8a9",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/qoder-plugin.test.js": {
+    "mtime": 1786684332.0832317,
+    "ast_hash": "962fc60126442a3096fa8cc9cda6d3a0",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/tests/uninstall.test.js": {
+    "mtime": 1786684332.0832317,
+    "ast_hash": "bbc61973d3a1ed91cbdc4d7b2b02bcc8",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/.azure-pipelines/publish.yml": {
+    "mtime": 1786684331.6252234,
+    "ast_hash": "d0470b845ed80be85e2deb356ae273bd",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/.claude/skills/dev/SKILL.md": {
+    "mtime": 1786684331.6252234,
+    "ast_hash": "cf4083f97766446508e83c754d751b98",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/.claude/skills/dev/release.md": {
+    "mtime": 1786684331.6252234,
+    "ast_hash": "b9914a686ad9efd4766490c51eaba1cc",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/.claude/skills/dev/roll.md": {
+    "mtime": 1786684331.6252234,
+    "ast_hash": "8ebb3618dba90b6dd6c303645db825ca",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/.github/workflows/ci.yml": {
+    "mtime": 1786684331.6329122,
+    "ast_hash": "f50f9fd1ce38f3687e59f07abbd90cf9",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/.github/workflows/publish.yml": {
+    "mtime": 1786684331.6329122,
+    "ast_hash": "c8f4de00485c6a000d2ff3b6ded373c4",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/CLAUDE.md": {
+    "mtime": 1786684331.6349106,
+    "ast_hash": "5b214f7fda98cde168ca8b19b90bf5c3",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/CONTRIBUTING.md": {
+    "mtime": 1786684331.6359105,
+    "ast_hash": "40bdd72d75375e30343585a981de5142",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/README.md": {
+    "mtime": 1786684331.6369104,
+    "ast_hash": "4d20fd7f12afb68717f604849f8e2754",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/SECURITY.md": {
+    "mtime": 1786684331.6379132,
+    "ast_hash": "ecf111355e335f4939c4236dfc97f4a8",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/SKILL.md": {
+    "mtime": 1786684331.64502,
+    "ast_hash": "b6c2478cb358b1b77906319f65c218b2",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/references/element-attributes.md": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "06a9cd91326c0fb1eeafa6853132ff0d",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/references/playwright-tests.md": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "2098b51f50cfc25605dfabd6d0368fd8",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/references/request-mocking.md": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "281652081dacf00f27a637ce372c0d17",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/references/running-code.md": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "39be2ef507d2943ee6e969f23e8f6c20",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/references/session-management.md": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "50d6f92a413c507cd066e33526e5298e",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/references/storage-state.md": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "16c4d7ae1f2d8eceef11fc14de4ae130",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/references/test-generation.md": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "a34accaf4ab93f7b94b40303ba7996b3",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/references/tracing.md": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "8c66ddbc29fc172bde7d71211d4e3473",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/playwright-cli/skills/playwright-cli/references/video-recording.md": {
+    "mtime": 1786684331.6460178,
+    "ast_hash": "29e61c00414ae28d7719b6cc285a18bf",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.agents/rules/ponytail.md": {
+    "mtime": 1786684331.9384758,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.clinerules/ponytail.md": {
+    "mtime": 1786684331.9384758,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.github/FUNDING.yml": {
+    "mtime": 1786684331.9384758,
+    "ast_hash": "1c95421c1ec3ffa02d51acf83972c6e4",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.github/copilot-instructions.md": {
+    "mtime": 1786684331.9384758,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.github/workflows/publish.yml": {
+    "mtime": 1786684331.949647,
+    "ast_hash": "49a523e551e09614745b7506bfbe99d5",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.github/workflows/test.yml": {
+    "mtime": 1786684331.949647,
+    "ast_hash": "b516312d8b3b84c1a2cc263586e1e384",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.kiro/steering/ponytail.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "af036f3c54f2241c7dc8e8ea64058cdb",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.openclaw/skills/ponytail-audit/SKILL.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "14b0a5b743fe349763c26323d5526539",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.openclaw/skills/ponytail-debt/SKILL.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "72bd269c1559ee41a29dff0b4d95f68f",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.openclaw/skills/ponytail-gain/SKILL.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "2f9106922eccfbdde5e6f5fe0063ac32",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.openclaw/skills/ponytail-help/SKILL.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "26ae3a4ec5bf36739bc7ba2fe49c631c",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.openclaw/skills/ponytail-review/SKILL.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "0e4dc0ffba47ca7a35339deb1c052666",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.openclaw/skills/ponytail/SKILL.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "701638c238d6b9797e7f8eecb919eb84",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.opencode/command/ponytail-audit.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "760d4b0812ee9005002124c0db2b8052",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.opencode/command/ponytail-debt.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "84e41d00f3de3cf62a704634a389b20f",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.opencode/command/ponytail-gain.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "ced6077c8d53ec2608d5b592647d4108",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.opencode/command/ponytail-help.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "9da7f5e2ae24d3274cedddd95aa7d9be",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.opencode/command/ponytail-review.md": {
+    "mtime": 1786684331.9543376,
+    "ast_hash": "50d2e63342d72f465d5b7dd5b5f9fa9b",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.opencode/command/ponytail.md": {
+    "mtime": 1786684331.9699688,
+    "ast_hash": "c7edc37c98056293f5341e27d047849a",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.qoder/rules/ponytail.md": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/.windsurf/rules/ponytail.md": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/README.es.md": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "98466102bf0d7ba48803fc20b81cbeb6",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/README.ko.md": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "fdf276da6b5c2103ab856389e9a0268f",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/README.md": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "c620c5f47a7e6f38c6ec13835e318217",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/after-install.md": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "57c34f115834fd638a9377df2e4edcb2",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/README.md": {
+    "mtime": 1786684331.9919899,
+    "ast_hash": "76ce692157e316a1721f6194091027de",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/agentic/README.md": {
+    "mtime": 1786684331.9919899,
+    "ast_hash": "2110f73dc979181226d8cd11de19e0ff",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/arms/caveman-SKILL.md": {
+    "mtime": 1786684332.0034926,
+    "ast_hash": "c5f031e74f07becd926ad5013207268e",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/behavior.yaml": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "a3977ccd494d268533e9b90b00fa574d",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/promptfooconfig.gemini.yaml": {
+    "mtime": 1786684332.01093,
+    "ast_hash": "97d609a3cc06e3a4840fb3c703ff31f0",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/promptfooconfig.gpt-newest.yaml": {
+    "mtime": 1786684332.01736,
+    "ast_hash": "a0f3d1a275dd6f21dd87ab4ec16b5287",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/promptfooconfig.gpt.yaml": {
+    "mtime": 1786684332.01736,
+    "ast_hash": "ad48e31c6e0a12a18c0cebcb97304758",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/promptfooconfig.yaml": {
+    "mtime": 1786684332.01736,
+    "ast_hash": "b50b636bee26e11d67c4ae6a889174ce",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/results/2026-06-12-caveman-vs-ponytail.md": {
+    "mtime": 1786684332.01736,
+    "ast_hash": "203e4970502ff6da111b25149f11628e",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/results/2026-06-12-v4-hardening-vs-caveman.md": {
+    "mtime": 1786684332.01736,
+    "ast_hash": "b45dfa29e641dc4a2d079b910d7df996",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/results/2026-06-15-llama3.2-local.md": {
+    "mtime": 1786684332.01736,
+    "ast_hash": "4c8057b3fa9ac3a4bc27f80cbb88e1d0",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/results/2026-06-16-correctness-gate-fix.md": {
+    "mtime": 1786684332.01736,
+    "ast_hash": "06154d837a458cea705ade22e689a849",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/results/2026-06-16-robustness-audit.md": {
+    "mtime": 1786684332.02307,
+    "ast_hash": "b97e271734683394073e162a9e25c51f",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/results/2026-06-17-agentic-safety.md": {
+    "mtime": 1786684332.02307,
+    "ast_hash": "18d9f1cb59166005acd9f3c9ce23c3da",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/results/2026-06-17-cost-verification.md": {
+    "mtime": 1786684332.02307,
+    "ast_hash": "b2068693bb62620ae0661eb292d12572",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/results/2026-06-18-agentic.md": {
+    "mtime": 1786684332.0260096,
+    "ast_hash": "6215f48140cf6e396655451651299a09",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/benchmarks/results/2026-06-22-issue-245-217-comprehension.md": {
+    "mtime": 1786684332.0260096,
+    "ast_hash": "58fc7e70827dc04b1c3c3efed87b4a11",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/docs/agent-portability.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "34ea926a766e3ef17ad9b97fe912131f",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/docs/platform-native.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "8c288a68c8e58e957081e5eb34969fe1",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/README.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "1ccf04b6982dd6949ccd6ae93f37c789",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/csv-sum.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "654b6922e3a97e0e88e7b82a4a7b1d76",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/debounce.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "5423fe676f023b3b1225753ed91457c0",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/deep-clone.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "3746d6eb9863908919b31c7a698f3643",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/email-validation.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "1a482f1e8205b06da1dee0edffaf09b2",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/group-by.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "ba9609a1c861757636b1ddfa88a7989c",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/infinite-scroll.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "b844370bbdecac312c25156cd78137cf",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/modal-dialog.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "d837b1cbfa3e27be565e6c7277a9e07e",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/number-formatting.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "12601f928f9424cc9495a1ed6a8f283d",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/rate-limit.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "4b01ce1151172ef3f4a41b6c63627796",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/react-countdown.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "c1fe3fc74588421ae88eb0b2399c605e",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/examples/url-params.md": {
+    "mtime": 1786684332.0332482,
+    "ast_hash": "88a9ab4bf81bfef992f99d5a83d9c61e",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/plugin.yaml": {
+    "mtime": 1786684332.057644,
+    "ast_hash": "12497cda2ceb4fd702fcb789ccfd4c7f",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/ponytail-mcp/README.md": {
+    "mtime": 1786684332.0596437,
+    "ast_hash": "87cf95a35697635b9d823f67699df535",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/skills/ponytail-audit/SKILL.md": {
+    "mtime": 1786684332.0631144,
+    "ast_hash": "741076540e91247a0bace7b89c27ac6b",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/skills/ponytail-debt/SKILL.md": {
+    "mtime": 1786684332.0631144,
+    "ast_hash": "19c1eef33c9b109abb5805a762a545c8",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/skills/ponytail-gain/SKILL.md": {
+    "mtime": 1786684332.0693953,
+    "ast_hash": "8f9cd980326238785d2fc23a9cfddc96",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/skills/ponytail-help/SKILL.md": {
+    "mtime": 1786684332.0704026,
+    "ast_hash": "25b3214341fdc2f0805d2f8a5da6fefd",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/skills/ponytail-review/SKILL.md": {
+    "mtime": 1786684332.0714016,
+    "ast_hash": "52f93e973047baa9a906c6dc5879a4a6",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/skills/ponytail/SKILL.md": {
+    "mtime": 1786684332.072402,
+    "ast_hash": "33f013ce03c8c66a6002ef941a433b81",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/benchmark-3model.svg": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "c1c3a91776193c98d6ff90de3d6310c0",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/benchmark-agentic.svg": {
+    "mtime": 1786684331.9719782,
+    "ast_hash": "004c0e7f418fa139e431cf7c03c166ee",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/logo-dark.png": {
+    "mtime": 1786684331.9857514,
+    "ast_hash": "04333e49586d3a7e52dc0e99524058c8",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/logo-dark.svg": {
+    "mtime": 1786684331.9857514,
+    "ast_hash": "e550f610b54f8541d9c48277cc5c8938",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/logo-greenpt-dark.svg": {
+    "mtime": 1786684331.9857514,
+    "ast_hash": "95a1e2b22325784f8fd616b508aa3ec1",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/logo-greenpt.svg": {
+    "mtime": 1786684331.9857514,
+    "ast_hash": "7ce5f5cfd72beebb75789c597ce4291d",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/logo.png": {
+    "mtime": 1786684331.9919899,
+    "ast_hash": "036e892fd1c2bd1bfb329ee7c3b1cd02",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/social-preview.png": {
+    "mtime": 1786684331.9919899,
+    "ast_hash": "afeb113daf2e6aa6260af475ac5047a7",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/waitlist-banner-es.png": {
+    "mtime": 1786684331.9919899,
+    "ast_hash": "329d29850248f06083c9aaf37033bb72",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/waitlist-banner-ko.png": {
+    "mtime": 1786684331.9919899,
+    "ast_hash": "382b77997d73c537f0b6405d36795add",
+    "semantic_hash": ""
+  },
+  ".tmp/vendor/ponytail/assets/waitlist-banner.png": {
+    "mtime": 1786684331.9919899,
+    "ast_hash": "2c223c2bb087ce98b47ef2dee43c2d7c",
+    "semantic_hash": ""
+  },
+  ".tmp/ponytail-context.md": {
+    "mtime": 1786685148.6440225,
+    "ast_hash": "82ecb891d0a735c05372b34d8332fa87",
+    "semantic_hash": ""
+  },
+  "proyecto de camaras/guia-instalador-cableado.md": {
+    "mtime": 1786685212.0617363,
+    "ast_hash": "769c937adec03e26b094b659abbc0643",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.agents/plugins/marketplace.json": {
+    "mtime": 1786685928.163613,
+    "ast_hash": "c3cd74c0b7ac03e18cfe92ef4051d5e3",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.claude-plugin/marketplace.json": {
+    "mtime": 1786685928.170002,
+    "ast_hash": "ca299f3c376e645302af7615192f315f",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.claude-plugin/plugin.json": {
+    "mtime": 1786685928.170002,
+    "ast_hash": "bdc360896a75be190dbf3d90ee4aea46",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.codex-plugin/plugin.json": {
+    "mtime": 1786685928.170002,
+    "ast_hash": "bff3275c4d0b9940408acf95756486f0",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.devin-plugin/plugin.json": {
+    "mtime": 1786685928.175472,
+    "ast_hash": "91180f301cfee823b6b973075335be7d",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.github/plugin/marketplace.json": {
+    "mtime": 1786685928.175472,
+    "ast_hash": "b75009ddf97b3fb5096a0755d59b7361",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.github/plugin/plugin.json": {
+    "mtime": 1786685928.1798499,
+    "ast_hash": "5a33934f9780ea7719ca9dc4b8823a77",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.grok-plugin/marketplace.json": {
+    "mtime": 1786685928.1844296,
+    "ast_hash": "88fbfebff9a22e556fbcd0d216c70c57",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.opencode/plugins/ponytail-frontmatter.cjs": {
+    "mtime": 1786685928.20322,
+    "ast_hash": "870b39a82389de2c3b266123b301aa05",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs": {
+    "mtime": 1786685928.20322,
+    "ast_hash": "db7e606e726a34494cbe23b395fe89c9",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.qoder-plugin/plugin.json": {
+    "mtime": 1786685928.20523,
+    "ast_hash": "64983bd08a7299112c378cf9d444b00b",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/__init__.py": {
+    "mtime": 1786685928.2100358,
+    "ast_hash": "705c2693f36ce9b6980067bbe041f68c",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/agentic/complete.py": {
+    "mtime": 1786685928.2372942,
+    "ast_hash": "0318bfe6481e3eea4162e7e5ba2a5369",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/agentic/judge.py": {
+    "mtime": 1786685928.2379677,
+    "ast_hash": "08582e08f01b1ac46f54a14dab72e6be",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/agentic/run.py": {
+    "mtime": 1786685928.2399778,
+    "ast_hash": "f8a60ea5be8c338ef3c2489a6dcd5ba8",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/agentic/tasks.py": {
+    "mtime": 1786685928.2399778,
+    "ast_hash": "ef316e09ee71dc534d31ef01d4ed759a",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/arms/baseline.js": {
+    "mtime": 1786685928.2399778,
+    "ast_hash": "073233d7847b7c6ab8e6379e5d755e4c",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/arms/caveman.js": {
+    "mtime": 1786685928.2442431,
+    "ast_hash": "e6324bb82fe7688591e6c9f5051b8b85",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/arms/ponytail.js": {
+    "mtime": 1786685928.2448778,
+    "ast_hash": "f6bd007f2fb681efe40847f8cd126ee2",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/behavior.js": {
+    "mtime": 1786685928.2448778,
+    "ast_hash": "6e9a7ca610943cb1fad56a11c90bbf9c",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/benchmark-local.py": {
+    "mtime": 1786685928.2468877,
+    "ast_hash": "41a7b549d371d6e3da58ef92c76258b3",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/claude-email.js": {
+    "mtime": 1786685928.2468877,
+    "ast_hash": "baf02a95a2c547a2c5132757b01a69dd",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/correctness.js": {
+    "mtime": 1786685928.2468877,
+    "ast_hash": "0770c9962d796402b21e40a30b3208d3",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/correctness.test.js": {
+    "mtime": 1786685928.2500038,
+    "ast_hash": "588cc05cf9ac2a7985322208c702344f",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/generate-examples.mjs": {
+    "mtime": 1786685928.2500038,
+    "ast_hash": "c8c09526736a8be8378c51f08309c8a0",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/loc.js": {
+    "mtime": 1786685928.2518308,
+    "ast_hash": "e3e3e740f33fb1581324c2020997a999",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/loc.test.js": {
+    "mtime": 1786685928.2518308,
+    "ast_hash": "886c3042596a5d575adb74f43579e143",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/model-email.js": {
+    "mtime": 1786685928.2518308,
+    "ast_hash": "3da9411358aa7c2cacf989efc26458d2",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/prompts.json": {
+    "mtime": 1786685928.253839,
+    "ast_hash": "f28e27909ca8215e87fef603e450f2e9",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/robustness-audit.js": {
+    "mtime": 1786685928.2606528,
+    "ast_hash": "88c0defb53a17d2baff80696851c58ed",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/gemini-extension.json": {
+    "mtime": 1786685928.2801204,
+    "ast_hash": "b16b3c278a2d4b072ce9b06d97efb93a",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/claude-codex-hooks.json": {
+    "mtime": 1786685928.2801204,
+    "ast_hash": "3575797115ccc0d6c30c350b08ff3c69",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/copilot-hooks.json": {
+    "mtime": 1786685928.2801204,
+    "ast_hash": "251b4b6a60ea59ceefe888c641517707",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/ponytail-activate.js": {
+    "mtime": 1786685928.2801204,
+    "ast_hash": "4685e4c29612e36d82bd414d457f309a",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/ponytail-config.js": {
+    "mtime": 1786685928.2801204,
+    "ast_hash": "b4a41f88d457b34bfccd9f6f18a6dab0",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/ponytail-instructions.js": {
+    "mtime": 1786685928.2859142,
+    "ast_hash": "c5e13a48b9bbde5c95c5cb19c57e39cd",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/ponytail-mode-tracker.js": {
+    "mtime": 1786685928.286592,
+    "ast_hash": "4eb352ea075b4df43978232a6e15e8f0",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/ponytail-runtime.js": {
+    "mtime": 1786685928.286592,
+    "ast_hash": "6460f00d5bbe842e49d178fea8b2c01b",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/ponytail-statusline.ps1": {
+    "mtime": 1786685928.2886024,
+    "ast_hash": "4885b4c7b1c32b8128bd5791d0aa3e61",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/ponytail-statusline.sh": {
+    "mtime": 1786685928.2886024,
+    "ast_hash": "3c68bbb1674e65b6bc3a62161da758dd",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/ponytail-subagent.js": {
+    "mtime": 1786685928.2901127,
+    "ast_hash": "d3723a31ba4b64e56782eca40e309cd1",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/hooks/qoder-hooks.json": {
+    "mtime": 1786685928.2901127,
+    "ast_hash": "f0163bb61a4dd79ed4d37ea138e3785a",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/opencode.json": {
+    "mtime": 1786685928.2901127,
+    "ast_hash": "12480805d334400bc7fb057cee96931e",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/pi-extension/index.js": {
+    "mtime": 1786685928.2928584,
+    "ast_hash": "ba71ef8862fa61750cf87881ace0abf7",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/pi-extension/test/extension.test.js": {
+    "mtime": 1786685928.2935014,
+    "ast_hash": "b24cefc81809f79f59dd7626c18910be",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/pi-extension/test/helpers.test.js": {
+    "mtime": 1786685928.2955115,
+    "ast_hash": "c65fbe1da25ab13ed78225f215f34680",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/plugin.json": {
+    "mtime": 1786685928.2955115,
+    "ast_hash": "5f881f3c7e48ce9b8aeee891d808ca6b",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/ponytail-mcp/index.js": {
+    "mtime": 1786685928.2997956,
+    "ast_hash": "9b0b601319251c4d1465eacec4f90636",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/ponytail-mcp/instructions.js": {
+    "mtime": 1786685928.300442,
+    "ast_hash": "c2326d71248aa7cac50e41654ede766e",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/ponytail-mcp/test/instructions.test.js": {
+    "mtime": 1786685928.300442,
+    "ast_hash": "2bfbe70d4fe56e58ea50028d43c3640a",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/scripts/build-openclaw-skills.js": {
+    "mtime": 1786685928.300442,
+    "ast_hash": "0055011ab7f4bfc95df429c443726c26",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/scripts/check-rule-copies.js": {
+    "mtime": 1786685928.300442,
+    "ast_hash": "80e481a56c2773aff5542afe6b075a93",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/scripts/check-versions.js": {
+    "mtime": 1786685928.3052282,
+    "ast_hash": "a5e3758ba5e66f433e50021f9a0e0a2e",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/scripts/publish-openclaw-skills.js": {
+    "mtime": 1786685928.3067477,
+    "ast_hash": "d6f16edcfcc54eff1a12cf8647b79460",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/scripts/uninstall.js": {
+    "mtime": 1786685928.3073833,
+    "ast_hash": "1da201e1713dd82f9ec90e109ed93ef3",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/behavior.test.js": {
+    "mtime": 1786685928.3143165,
+    "ast_hash": "59fd68d918a7cc82eea0edacc76445fa",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/commands.test.js": {
+    "mtime": 1786685928.3143165,
+    "ast_hash": "7c3ad9c51608149f57bef1f8536471bf",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/copilot-plugin.test.js": {
+    "mtime": 1786685928.3143165,
+    "ast_hash": "a99f28dd3010c5d202f791b80328405a",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/correctness.test.js": {
+    "mtime": 1786685928.3143165,
+    "ast_hash": "f7a99c00d3c0666eba246073b5f6b214",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/gemini-extension.test.js": {
+    "mtime": 1786685928.3143165,
+    "ast_hash": "5f8c29140ebc8355baa7b84024bbe9ca",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/grok-plugin.test.js": {
+    "mtime": 1786685928.3198688,
+    "ast_hash": "1c2ff3c037c6df18c9adfc7c7117287f",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/hermes-plugin.test.js": {
+    "mtime": 1786685928.3206363,
+    "ast_hash": "318fc63da59308289bab647cf86bf74d",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/hooks-windows.test.js": {
+    "mtime": 1786685928.3213084,
+    "ast_hash": "6610be0e0336212ab478df22d6f642d1",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/hooks.test.js": {
+    "mtime": 1786685928.3233197,
+    "ast_hash": "5fdcaaa88aa1d7f1205d61bbb6bac1fa",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/openclaw-skills.test.js": {
+    "mtime": 1786685928.3233197,
+    "ast_hash": "dc0db8ff7c7973fd331f497ac77a5c94",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/opencode-plugin.test.js": {
+    "mtime": 1786685928.3233197,
+    "ast_hash": "43b3f5cc384fcd2cc8fcdef45da98347",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/package-scripts.test.js": {
+    "mtime": 1786685928.3233197,
+    "ast_hash": "c64482f165911c6d0c552ae2e7e5e03d",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/package.test.js": {
+    "mtime": 1786685928.3233197,
+    "ast_hash": "5061705c29fe6c13f91b5a4bb04ff8a9",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/qoder-plugin.test.js": {
+    "mtime": 1786685928.3233197,
+    "ast_hash": "962fc60126442a3096fa8cc9cda6d3a0",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/tests/uninstall.test.js": {
+    "mtime": 1786685928.327573,
+    "ast_hash": "bbc61973d3a1ed91cbdc4d7b2b02bcc8",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.agents/rules/ponytail.md": {
+    "mtime": 1786685928.1684918,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.clinerules/ponytail.md": {
+    "mtime": 1786685928.170002,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.github/FUNDING.yml": {
+    "mtime": 1786685928.175472,
+    "ast_hash": "1c95421c1ec3ffa02d51acf83972c6e4",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.github/copilot-instructions.md": {
+    "mtime": 1786685928.175472,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.github/workflows/publish.yml": {
+    "mtime": 1786685928.1824229,
+    "ast_hash": "49a523e551e09614745b7506bfbe99d5",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.github/workflows/test.yml": {
+    "mtime": 1786685928.1824229,
+    "ast_hash": "b516312d8b3b84c1a2cc263586e1e384",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.kiro/steering/ponytail.md": {
+    "mtime": 1786685928.1844296,
+    "ast_hash": "af036f3c54f2241c7dc8e8ea64058cdb",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.openclaw/skills/ponytail-audit/SKILL.md": {
+    "mtime": 1786685928.189825,
+    "ast_hash": "14b0a5b743fe349763c26323d5526539",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.openclaw/skills/ponytail-debt/SKILL.md": {
+    "mtime": 1786685928.189825,
+    "ast_hash": "72bd269c1559ee41a29dff0b4d95f68f",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.openclaw/skills/ponytail-gain/SKILL.md": {
+    "mtime": 1786685928.191857,
+    "ast_hash": "2f9106922eccfbdde5e6f5fe0063ac32",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.openclaw/skills/ponytail-help/SKILL.md": {
+    "mtime": 1786685928.191857,
+    "ast_hash": "26ae3a4ec5bf36739bc7ba2fe49c631c",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.openclaw/skills/ponytail-review/SKILL.md": {
+    "mtime": 1786685928.191857,
+    "ast_hash": "0e4dc0ffba47ca7a35339deb1c052666",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.openclaw/skills/ponytail/SKILL.md": {
+    "mtime": 1786685928.196292,
+    "ast_hash": "701638c238d6b9797e7f8eecb919eb84",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.opencode/command/ponytail-audit.md": {
+    "mtime": 1786685928.1983006,
+    "ast_hash": "760d4b0812ee9005002124c0db2b8052",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.opencode/command/ponytail-debt.md": {
+    "mtime": 1786685928.1983006,
+    "ast_hash": "84e41d00f3de3cf62a704634a389b20f",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.opencode/command/ponytail-gain.md": {
+    "mtime": 1786685928.1998072,
+    "ast_hash": "ced6077c8d53ec2608d5b592647d4108",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.opencode/command/ponytail-help.md": {
+    "mtime": 1786685928.1998072,
+    "ast_hash": "9da7f5e2ae24d3274cedddd95aa7d9be",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.opencode/command/ponytail-review.md": {
+    "mtime": 1786685928.1998072,
+    "ast_hash": "50d2e63342d72f465d5b7dd5b5f9fa9b",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.opencode/command/ponytail.md": {
+    "mtime": 1786685928.2025814,
+    "ast_hash": "c7edc37c98056293f5341e27d047849a",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.qoder/rules/ponytail.md": {
+    "mtime": 1786685928.20523,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/.windsurf/rules/ponytail.md": {
+    "mtime": 1786685928.20523,
+    "ast_hash": "c015b34524a6b541eb95b792e6e61626",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/README.es.md": {
+    "mtime": 1786685928.2100358,
+    "ast_hash": "98466102bf0d7ba48803fc20b81cbeb6",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/README.ko.md": {
+    "mtime": 1786685928.2100358,
+    "ast_hash": "fdf276da6b5c2103ab856389e9a0268f",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/README.md": {
+    "mtime": 1786685928.2100358,
+    "ast_hash": "c620c5f47a7e6f38c6ec13835e318217",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/after-install.md": {
+    "mtime": 1786685928.2100358,
+    "ast_hash": "57c34f115834fd638a9377df2e4edcb2",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/README.md": {
+    "mtime": 1786685928.2330494,
+    "ast_hash": "76ce692157e316a1721f6194091027de",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/agentic/README.md": {
+    "mtime": 1786685928.2330494,
+    "ast_hash": "2110f73dc979181226d8cd11de19e0ff",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/arms/caveman-SKILL.md": {
+    "mtime": 1786685928.2399778,
+    "ast_hash": "c5f031e74f07becd926ad5013207268e",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/behavior.yaml": {
+    "mtime": 1786685928.2468877,
+    "ast_hash": "a3977ccd494d268533e9b90b00fa574d",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/promptfooconfig.gemini.yaml": {
+    "mtime": 1786685928.253839,
+    "ast_hash": "97d609a3cc06e3a4840fb3c703ff31f0",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/promptfooconfig.gpt-newest.yaml": {
+    "mtime": 1786685928.253839,
+    "ast_hash": "a0f3d1a275dd6f21dd87ab4ec16b5287",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/promptfooconfig.gpt.yaml": {
+    "mtime": 1786685928.253839,
+    "ast_hash": "ad48e31c6e0a12a18c0cebcb97304758",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/promptfooconfig.yaml": {
+    "mtime": 1786685928.253839,
+    "ast_hash": "b50b636bee26e11d67c4ae6a889174ce",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/results/2026-06-12-caveman-vs-ponytail.md": {
+    "mtime": 1786685928.253839,
+    "ast_hash": "203e4970502ff6da111b25149f11628e",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/results/2026-06-12-v4-hardening-vs-caveman.md": {
+    "mtime": 1786685928.253839,
+    "ast_hash": "b45dfa29e641dc4a2d079b910d7df996",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/results/2026-06-15-llama3.2-local.md": {
+    "mtime": 1786685928.2587972,
+    "ast_hash": "4c8057b3fa9ac3a4bc27f80cbb88e1d0",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/results/2026-06-16-correctness-gate-fix.md": {
+    "mtime": 1786685928.259147,
+    "ast_hash": "06154d837a458cea705ade22e689a849",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/results/2026-06-16-robustness-audit.md": {
+    "mtime": 1786685928.2601464,
+    "ast_hash": "b97e271734683394073e162a9e25c51f",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/results/2026-06-17-agentic-safety.md": {
+    "mtime": 1786685928.2606528,
+    "ast_hash": "18d9f1cb59166005acd9f3c9ce23c3da",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/results/2026-06-17-cost-verification.md": {
+    "mtime": 1786685928.2606528,
+    "ast_hash": "b2068693bb62620ae0661eb292d12572",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/results/2026-06-18-agentic.md": {
+    "mtime": 1786685928.2606528,
+    "ast_hash": "6215f48140cf6e396655451651299a09",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/benchmarks/results/2026-06-22-issue-245-217-comprehension.md": {
+    "mtime": 1786685928.2606528,
+    "ast_hash": "58fc7e70827dc04b1c3c3efed87b4a11",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/docs/agent-portability.md": {
+    "mtime": 1786685928.2702253,
+    "ast_hash": "34ea926a766e3ef17ad9b97fe912131f",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/docs/platform-native.md": {
+    "mtime": 1786685928.2702253,
+    "ast_hash": "8c288a68c8e58e957081e5eb34969fe1",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/README.md": {
+    "mtime": 1786685928.2720244,
+    "ast_hash": "1ccf04b6982dd6949ccd6ae93f37c789",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/csv-sum.md": {
+    "mtime": 1786685928.2726922,
+    "ast_hash": "654b6922e3a97e0e88e7b82a4a7b1d76",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/debounce.md": {
+    "mtime": 1786685928.2726922,
+    "ast_hash": "5423fe676f023b3b1225753ed91457c0",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/deep-clone.md": {
+    "mtime": 1786685928.2747028,
+    "ast_hash": "3746d6eb9863908919b31c7a698f3643",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/email-validation.md": {
+    "mtime": 1786685928.2747028,
+    "ast_hash": "1a482f1e8205b06da1dee0edffaf09b2",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/group-by.md": {
+    "mtime": 1786685928.2747028,
+    "ast_hash": "ba9609a1c861757636b1ddfa88a7989c",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/infinite-scroll.md": {
+    "mtime": 1786685928.2747028,
+    "ast_hash": "b844370bbdecac312c25156cd78137cf",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/modal-dialog.md": {
+    "mtime": 1786685928.2747028,
+    "ast_hash": "d837b1cbfa3e27be565e6c7277a9e07e",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/number-formatting.md": {
+    "mtime": 1786685928.2747028,
+    "ast_hash": "12601f928f9424cc9495a1ed6a8f283d",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/rate-limit.md": {
+    "mtime": 1786685928.2789762,
+    "ast_hash": "4b01ce1151172ef3f4a41b6c63627796",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/react-countdown.md": {
+    "mtime": 1786685928.2801204,
+    "ast_hash": "c1fe3fc74588421ae88eb0b2399c605e",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/examples/url-params.md": {
+    "mtime": 1786685928.2801204,
+    "ast_hash": "88a9ab4bf81bfef992f99d5a83d9c61e",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/plugin.yaml": {
+    "mtime": 1786685928.2955115,
+    "ast_hash": "12497cda2ceb4fd702fcb789ccfd4c7f",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/ponytail-mcp/README.md": {
+    "mtime": 1786685928.2955115,
+    "ast_hash": "87cf95a35697635b9d823f67699df535",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/skills/ponytail-audit/SKILL.md": {
+    "mtime": 1786685928.3093908,
+    "ast_hash": "741076540e91247a0bace7b89c27ac6b",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/skills/ponytail-debt/SKILL.md": {
+    "mtime": 1786685928.309898,
+    "ast_hash": "19c1eef33c9b109abb5805a762a545c8",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/skills/ponytail-gain/SKILL.md": {
+    "mtime": 1786685928.309898,
+    "ast_hash": "8f9cd980326238785d2fc23a9cfddc96",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/skills/ponytail-help/SKILL.md": {
+    "mtime": 1786685928.309898,
+    "ast_hash": "25b3214341fdc2f0805d2f8a5da6fefd",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/skills/ponytail-review/SKILL.md": {
+    "mtime": 1786685928.3136852,
+    "ast_hash": "52f93e973047baa9a906c6dc5879a4a6",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/skills/ponytail/SKILL.md": {
+    "mtime": 1786685928.3143165,
+    "ast_hash": "33f013ce03c8c66a6002ef941a433b81",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/benchmark-3model.svg": {
+    "mtime": 1786685928.2100358,
+    "ast_hash": "c1c3a91776193c98d6ff90de3d6310c0",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/benchmark-agentic.svg": {
+    "mtime": 1786685928.2164664,
+    "ast_hash": "004c0e7f418fa139e431cf7c03c166ee",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/logo-dark.png": {
+    "mtime": 1786685928.220065,
+    "ast_hash": "04333e49586d3a7e52dc0e99524058c8",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/logo-dark.svg": {
+    "mtime": 1786685928.220065,
+    "ast_hash": "e550f610b54f8541d9c48277cc5c8938",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/logo-greenpt-dark.svg": {
+    "mtime": 1786685928.220065,
+    "ast_hash": "95a1e2b22325784f8fd616b508aa3ec1",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/logo-greenpt.svg": {
+    "mtime": 1786685928.2234094,
+    "ast_hash": "7ce5f5cfd72beebb75789c597ce4291d",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/logo.png": {
+    "mtime": 1786685928.2260814,
+    "ast_hash": "036e892fd1c2bd1bfb329ee7c3b1cd02",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/social-preview.png": {
+    "mtime": 1786685928.2260814,
+    "ast_hash": "afeb113daf2e6aa6260af475ac5047a7",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/waitlist-banner-es.png": {
+    "mtime": 1786685928.2310395,
+    "ast_hash": "329d29850248f06083c9aaf37033bb72",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/waitlist-banner-ko.png": {
+    "mtime": 1786685928.2310395,
+    "ast_hash": "382b77997d73c537f0b6405d36795add",
+    "semantic_hash": ""
+  },
+  ".opencode/plugins/ponytail/assets/waitlist-banner.png": {
+    "mtime": 1786685928.2330494,
+    "ast_hash": "2c223c2bb087ce98b47ef2dee43c2d7c",
     "semantic_hash": ""
   }
 }

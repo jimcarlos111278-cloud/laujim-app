@@ -59,8 +59,10 @@ public class ScraperWorkerPlugin extends Plugin {
 
     @PluginMethod
     public void runNow(PluginCall call) {
+        boolean wasEnabled = ScraperWorkerStore.enabled(getContext());
         ScraperWorkerStore.setEnabled(getContext(), true);
-        ScraperWorkerSchedule.scheduleAll(getContext(), "manual-run");
+        if (!wasEnabled) ScraperWorkerSchedule.scheduleAll(getContext(), "worker-started");
+        else ScraperWorkerSchedule.scheduleNextAlarm(getContext(), "manual-run");
         if (!ScraperWorkerDispatcher.dispatch(getContext(), "manual-run", true)) {
             call.reject(ScraperWorkerStore.lastError(getContext()));
             return;
@@ -176,10 +178,13 @@ public class ScraperWorkerPlugin extends Plugin {
 
     @PluginMethod
     public void getStatus(PluginCall call) {
-        if (ScraperWorkerStore.enabled(getContext())
-            && ScraperWorkerSchedule.canScheduleExactAlarms(getContext())
-            && !"exact+workmanager".equals(ScraperWorkerStore.scheduleMode(getContext()))) {
-            ScraperWorkerSchedule.scheduleAll(getContext(), "exact-permission-detected");
+        if (ScraperWorkerStore.enabled(getContext())) {
+            long nextRunAt = ScraperWorkerStore.nextRunAt(getContext());
+            boolean exactUpgrade = ScraperWorkerSchedule.canScheduleExactAlarms(getContext())
+                && !"exact+workmanager".equals(ScraperWorkerStore.scheduleMode(getContext()));
+            boolean missedSchedule = nextRunAt > 0L && nextRunAt < System.currentTimeMillis() - 60_000L;
+            if (exactUpgrade) ScraperWorkerSchedule.scheduleAll(getContext(), "exact-permission-detected");
+            else if (missedSchedule) ScraperWorkerSchedule.scheduleAll(getContext(), "scheduler-recovery");
         }
         call.resolve(status());
     }

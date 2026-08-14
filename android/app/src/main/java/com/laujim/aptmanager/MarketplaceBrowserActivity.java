@@ -39,6 +39,7 @@ import java.util.concurrent.Executors;
  */
 public class MarketplaceBrowserActivity extends Activity {
     static final String CREATE_URL = "https://www.facebook.com/marketplace/create/";
+    private static final int PHOTO_PICKER_REQUEST = 31782;
 
     private static volatile MarketplaceBrowserActivity activeInstance;
 
@@ -119,7 +120,11 @@ public class MarketplaceBrowserActivity extends Activity {
             @Override
             public boolean onShowFileChooser(WebView page, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 pendingFileCallback = callback;
-                executor.execute(MarketplaceBrowserActivity.this::deliverJobPhotos);
+                if (hasAutomatedPhotoSelection()) {
+                    executor.execute(MarketplaceBrowserActivity.this::deliverJobPhotos);
+                } else {
+                    openSystemPhotoPicker();
+                }
                 return true;
             }
         });
@@ -268,6 +273,47 @@ public class MarketplaceBrowserActivity extends Activity {
             pendingFileCallback = null;
             if (callback != null) callback.onReceiveValue(selected);
         });
+    }
+
+    private boolean hasAutomatedPhotoSelection() {
+        synchronized (jobLock) {
+            JSONArray urls = currentListing == null ? null : currentListing.optJSONArray("photoUrls");
+            return urls != null && urls.length() > 0;
+        }
+    }
+
+    private void openSystemPhotoPicker() {
+        try {
+            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("image/*")
+                .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+            startActivityForResult(picker, PHOTO_PICKER_REQUEST);
+        } catch (RuntimeException error) {
+            ValueCallback<Uri[]> callback = pendingFileCallback;
+            pendingFileCallback = null;
+            if (callback != null) callback.onReceiveValue(null);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PHOTO_PICKER_REQUEST) return;
+        Uri[] selected = null;
+        if (resultCode == RESULT_OK && data != null) {
+            if (data.getClipData() != null) {
+                int count = data.getClipData().getItemCount();
+                selected = new Uri[count];
+                for (int index = 0; index < count; index += 1) selected[index] = data.getClipData().getItemAt(index).getUri();
+            } else if (data.getData() != null) {
+                selected = new Uri[] { data.getData() };
+            }
+        }
+        ValueCallback<Uri[]> callback = pendingFileCallback;
+        pendingFileCallback = null;
+        if (callback != null) callback.onReceiveValue(selected);
     }
 
     private void download(String source, File target) throws Exception {

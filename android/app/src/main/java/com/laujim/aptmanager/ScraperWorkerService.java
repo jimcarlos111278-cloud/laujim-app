@@ -72,6 +72,7 @@ public class ScraperWorkerService extends Service {
     private volatile String webViewWorkUrl = "";
     private volatile boolean storageRestoreAttempted;
     private volatile int webViewGeneration;
+    private volatile boolean normalStopRequested;
     // Provider portals keep bearer tokens in JavaScript memory. Capture the
     // authorization header inside this phone WebView for the local runner.
     private volatile String nativeAuthorization = "";
@@ -166,7 +167,7 @@ public class ScraperWorkerService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!ScraperWorkerStore.enabled(this)) {
             stopSelfResult(startId);
-            return START_NOT_STICKY;
+            return START_REDELIVER_INTENT;
         }
         String triggerSource = intent == null ? "android" : intent.getStringExtra("triggerSource");
         if (triggerSource == null || triggerSource.trim().isEmpty()) triggerSource = "android";
@@ -178,7 +179,7 @@ public class ScraperWorkerService extends Service {
         } else {
             ScraperWorkerStore.setSchedulerEvent(this, "service_already_running", triggerSource, "Se ignoró una activación porque los portales todavía estaban en ejecución.");
         }
-        return START_NOT_STICKY;
+        return START_REDELIVER_INTENT;
     }
 
     private void runLocalScrape(int startId, String triggerSource) {
@@ -341,6 +342,7 @@ public class ScraperWorkerService extends Service {
             mainHandler.post(() -> {
                 if (webView != null) webView.stopLoading();
             });
+            normalStopRequested = true;
             stopForeground(STOP_FOREGROUND_REMOVE);
             stopSelf();
         }
@@ -741,7 +743,20 @@ public class ScraperWorkerService extends Service {
     }
 
     @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        if (ScraperWorkerStore.enabled(this)) {
+            ScraperWorkerStore.setSchedulerEvent(this, "service_task_removed", "android", "Android retiró la tarea; se reconstruyó la alarma y el respaldo WorkManager.");
+            ScraperWorkerSchedule.scheduleAll(this, "service-task-removed");
+        }
+        super.onTaskRemoved(rootIntent);
+    }
+
+    @Override
     public void onDestroy() {
+        if (ScraperWorkerStore.enabled(this) && !normalStopRequested) {
+            ScraperWorkerStore.setSchedulerEvent(this, "service_destroyed", "android", "El servicio terminó inesperadamente; se reconstruyó el scheduler local.");
+            ScraperWorkerSchedule.scheduleAll(this, "service-destroyed");
+        }
         if (executor != null) executor.shutdownNow();
         mainHandler.post(() -> {
             if (webView != null) {

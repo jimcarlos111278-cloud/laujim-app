@@ -7,6 +7,12 @@
       .replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
+  function facebookRentalType(value) {
+    var normalized = normalizeText(value);
+    if (!normalized || /departamento|apartamento|piso|condominio/.test(normalized)) return 'Apartamento o piso';
+    return String(value);
+  }
+
   function wait(ms) {
     return new Promise(function (resolve) { setTimeout(resolve, ms); });
   }
@@ -173,6 +179,96 @@
       }) || null;
   }
 
+  function findButtonFromEnd(labels) {
+    var wanted = labels.map(normalizeText);
+    var buttons = Array.from(document.querySelectorAll('button, [role="button"], a[role="button"]'))
+      .filter(visible)
+      .filter(function (button) {
+        var text = normalizeText((button.textContent || '') + ' ' + (button.getAttribute('aria-label') || ''));
+        return wanted.some(function (label) { return text === label || text.indexOf(label) >= 0; });
+      });
+    return buttons.length ? buttons[buttons.length - 1] : null;
+  }
+
+  function findExactVisibleText(labels) {
+    var wanted = labels.map(normalizeText);
+    var candidates = Array.from(document.querySelectorAll(
+      'button, [role="button"], [role="option"], [role="menuitem"], [role="menuitemradio"], [role="radio"], a, li, [tabindex]'
+    )).filter(visible).filter(function (element) {
+      var text = normalizeText(element.textContent || element.getAttribute('aria-label') || '');
+      return wanted.some(function (label) { return text === label; });
+    });
+    candidates.sort(function (left, right) {
+      return (left.textContent || '').length - (right.textContent || '').length;
+    });
+    return candidates[0] || null;
+  }
+
+  function hasMobileComposer() {
+    return Boolean(
+      findControl(['categoria', 'category']) &&
+      findEditable(['que vendes', 'what are you selling', 'titulo del anuncio', 'listing title']) &&
+      findEditable(['precio', 'price']) &&
+      findEditable(['descripcion', 'description'])
+    );
+  }
+
+  function hasWebRentalForm() {
+    return Boolean(
+      findControl(['tipo de propiedad en alquiler', 'tipo de alquiler', 'property type']) &&
+      findEditable(['precio al mes', 'monthly price', 'price per month']) &&
+      findEditable(['descripcion de la propiedad en alquiler', 'rental description'])
+    );
+  }
+
+  async function selectMobileRentalCategory() {
+    var control = findControl(['categoria', 'category']);
+    if (!control) return false;
+    var selectedText = control.tagName.toLowerCase() === 'select' && control.selectedOptions && control.selectedOptions[0]
+      ? (control.selectedOptions[0].textContent || control.selectedOptions[0].value || '')
+      : (control.textContent || '');
+    var controlText = normalizeText(selectedText + ' ' + (control.getAttribute('aria-label') || ''));
+    if (controlText.indexOf('alquiler') >= 0 || controlText.indexOf('rent') >= 0) return true;
+
+    if (control.tagName.toLowerCase() === 'select') {
+      var directOption = Array.from(control.options || []).find(function (option) {
+        var label = normalizeText(option.textContent || option.value || '');
+        return label === 'alquileres' || label.indexOf('alquiler') >= 0 || label.indexOf('rent') >= 0;
+      });
+      if (directOption) {
+        control.value = directOption.value;
+        control.dispatchEvent(new Event('change', { bubbles: true }));
+        emit('mobile_category_selected', 'Facebook seleccionó la categoría Alquileres.', { mode: 'select' });
+        return true;
+      }
+    }
+
+    emit('mobile_category_opened', 'Abriendo la categoría de Marketplace del celular.', {});
+    activate(control);
+    await wait(500);
+    var housing = findExactVisibleText(['vivienda', 'housing']);
+    if (housing) {
+      activate(housing);
+      await wait(500);
+    }
+    var rental = findExactVisibleText(['alquileres', 'rentals', 'rent']);
+    if (!rental) {
+      var options = Array.from(document.querySelectorAll('[role="option"], [role="menuitem"], [role="menuitemradio"], li, [tabindex]'))
+        .filter(visible);
+      rental = options.find(function (item) {
+        var label = normalizeText(item.textContent || item.getAttribute('aria-label') || '');
+        return label.indexOf('alquiler') >= 0 || label === 'rentals' || label === 'rent';
+      }) || null;
+    }
+    if (rental) {
+      activate(rental);
+      await wait(1200);
+      emit('mobile_category_selected', 'Facebook seleccionó Vivienda > Alquileres.', {});
+      return true;
+    }
+    return false;
+  }
+
   function loginRequired() {
     var url = window.location.href.toLowerCase();
     if (/login|checkpoint|two_factor|recover/.test(url)) return true;
@@ -187,14 +283,21 @@
   async function openRentalComposer() {
     if (/\/marketplace\/create\/(rental|housing|property)/i.test(window.location.pathname)) return true;
     if (!/\/marketplace\/create/i.test(window.location.pathname)) return false;
+    if (hasMobileComposer()) {
+      var mobileCategory = await selectMobileRentalCategory();
+      if (mobileCategory || hasMobileComposer()) {
+        emit('mobile_form_detected', 'Se detectó el formulario móvil de Marketplace.', { path: window.location.pathname });
+        return true;
+      }
+    }
     var wanted = [
-      'propiedad en alquiler', 'vivienda en alquiler', 'alquiler o venta',
+      'propiedad en alquiler', 'vivienda en alquiler', 'viviendas en venta o alquiler', 'alquiler o venta',
       'crear anuncio de alquiler', 'home for rent', 'property for rent',
       'housing for rent', 'rental listing'
     ].map(normalizeText);
     for (var attempt = 0; attempt < 45; attempt += 1) {
       if (loginRequired()) return false;
-      if (editableElements().length > 2) return true;
+      if (hasMobileComposer() || hasWebRentalForm()) return true;
       var controls = Array.from(document.querySelectorAll('a, button, [role="button"], [role="menuitem"], [role="option"]')).filter(visible);
       var rental = controls.find(function (control) {
         var text = normalizeText((control.getAttribute('aria-label') || '') + ' ' + (control.textContent || ''));
@@ -204,11 +307,11 @@
         emit('open_rental_form', 'Abriendo el tipo de anuncio Propiedad en alquiler.', { path: window.location.pathname });
         activate(rental);
         await wait(2500);
-        if (/\/marketplace\/create\/(rental|housing|property)/i.test(window.location.pathname) || editableElements().length > 2) return true;
+        if (/\/marketplace\/create\/(rental|housing|property)/i.test(window.location.pathname) || hasMobileComposer() || hasWebRentalForm()) return true;
       }
       await wait(750);
     }
-    return editableElements().length > 2;
+    return hasMobileComposer() || hasWebRentalForm();
   }
 
   async function run(data, options) {
@@ -234,10 +337,12 @@
     }
     emit('form_ready', 'Formulario de alquiler listo; completando el apartamento.', { editables: editableElements().length });
 
+    var mobileComposer = hasMobileComposer();
     var fields = [
+      { key: 'title', labels: ['que vendes', 'what are you selling', 'titulo del anuncio', 'listing title', 'titulo'] },
       { key: 'price', labels: ['precio por mes', 'precio', 'price per month', 'monthly price'] },
       { key: 'description', labels: ['descripcion del alquiler', 'rental description', 'descripcion', 'description'] },
-      { key: 'title', labels: ['titulo del anuncio', 'listing title', 'titulo'] },
+      { key: 'location', labels: ['lugar', 'ubicacion', 'location', 'direccion', 'address'] },
       { key: 'propertySquareFeet', labels: ['pies cuadrados', 'square feet', 'metros cuadrados', 'tamano de la propiedad'] },
       { key: 'availability', labels: ['fecha disponible', 'date available', 'disponibilidad'] },
       { key: 'bedrooms', labels: ['numero de habitaciones', 'habitaciones', 'bedrooms'] },
@@ -246,12 +351,17 @@
     var filled = [];
     fields.forEach(function (field) {
       var element = findEditable(field.labels);
-      var value = data[field.key] || (field.key === 'propertySquareFeet' ? data.area : '');
+      var value = data[field.key] ||
+        (field.key === 'title' ? ('Apartamento ' + String(data.apartmentName || 'en arriendo')) : '') ||
+        (field.key === 'location' ? (data.address || data.city || 'Barranquilla') : '') ||
+        (field.key === 'propertySquareFeet' ? data.area : '');
       if (element && setNativeValue(element, value)) filled.push(field.key);
     });
 
-    var address = await fillAddress(data.address);
-    if (address) filled.push('address');
+    var address = mobileComposer
+      ? (filled.includes('location') || !findEditable(['lugar', 'ubicacion', 'location', 'direccion', 'address']) || await fillAddress(data.address || data.city || 'Barranquilla'))
+      : await fillAddress(data.address);
+    if (address && !filled.includes('location')) filled.push('address');
     var dropdowns = [
       { key: 'rentalType', labels: ['tipo de alquiler', 'rental type', 'property type'] },
       { key: 'laundryType', labels: ['tipo de lavadero', 'lavadero', 'laundry type'] },
@@ -260,15 +370,26 @@
       { key: 'heatingType', labels: ['tipo de calefaccion', 'calefaccion', 'heating type'] }
     ];
     for (var index = 0; index < dropdowns.length; index += 1) {
-      if (await choose(dropdowns[index].labels, data[dropdowns[index].key])) filled.push(dropdowns[index].key);
+      var dropdownValue = data[dropdowns[index].key];
+      if (dropdowns[index].key === 'rentalType') dropdownValue = facebookRentalType(dropdownValue);
+      if (await choose(dropdowns[index].labels, dropdownValue)) filled.push(dropdowns[index].key);
     }
     setToggle(['se aceptan gatos', 'cat friendly', 'gatos'], data.catFriendly);
     setToggle(['se aceptan perros', 'dog friendly', 'perros'], data.dogFriendly);
 
     var photoInput = document.querySelector('input[type="file"][accept*="image"], input[type="file"]');
     if (data.photoUrls && data.photoUrls.length && !photoInput) {
-      emit('photo_input_missing', 'Facebook no mostró el selector de fotos.', { filled: filled });
-      return { state: 'needs_review', stage: 'photo_input_missing', message: 'Facebook no mostró el selector de fotos.', filled: filled };
+      var addPhotos = findButton(['añadir fotos', 'agregar fotos', 'add photos']);
+      if (addPhotos) {
+        emit('photo_button_opened', 'Abriendo el selector de fotos de Marketplace.', {});
+        activate(addPhotos);
+        await wait(700);
+        photoInput = document.querySelector('input[type="file"][accept*="image"], input[type="file"]');
+      }
+      if (!photoInput) {
+        emit('photo_input_missing', 'Facebook no mostró el selector de fotos.', { filled: filled });
+        return { state: 'needs_review', stage: 'photo_input_missing', message: 'Facebook no mostró el selector de fotos.', filled: filled };
+      }
     }
     if (photoInput && data.photoUrls && data.photoUrls.length) {
       emit('photos_requested', 'Preparando y adjuntando las fotos.', { requested: data.photoUrls.length });
@@ -282,18 +403,37 @@
       emit('photos_attached', 'Fotos adjuntadas al formulario.', { attached: photoInput.files.length });
     }
 
-    if (!address || !filled.includes('price') || !filled.includes('description')) {
+    var requiredFieldsReady = mobileComposer
+      ? filled.includes('title') && filled.includes('price') && filled.includes('description')
+      : address && filled.includes('price') && filled.includes('description');
+    if (!requiredFieldsReady) {
       emit('required_fields_missing', 'Facebook cambió o no aceptó un campo obligatorio.', { address: address, filled: filled });
       return { state: 'needs_review', stage: 'required_fields_missing', message: 'Facebook cambió campos obligatorios; revisa el formulario abierto.', filled: filled };
     }
 
     emit('form_completed', 'Datos obligatorios completados.', { filled: filled });
     if (!options.publish) return { state: 'needs_review', stage: 'form_completed', message: 'Formulario completado para revisión manual.', filled: filled };
-    var next = findButton(['siguiente', 'next']);
+    var next = mobileComposer ? findButtonFromEnd(['publicar', 'publish']) : findButton(['siguiente', 'next']);
     if (!next) return { state: 'needs_review', stage: 'next_missing', message: 'Formulario completado, pero no se encontró el botón Siguiente.', filled: filled };
-    emit('next_clicked', 'Avanzando a la revisión final.', { filled: filled });
+    emit(mobileComposer ? 'publish_clicked' : 'next_clicked', mobileComposer ? 'Publicando el anuncio desde el formulario móvil.' : 'Avanzando a la revisión final.', { filled: filled });
     activate(next);
     await wait(2500);
+
+    if (mobileComposer) {
+      var mobileResultDeadline = Date.now() + 90_000;
+      while (Date.now() < mobileResultDeadline) {
+        var mobileListingUrl = currentListingUrl();
+        var mobileBody = normalizeText(document.body && document.body.innerText || '');
+        if (mobileListingUrl || /publicacion (creada|publicada)|anuncio (creado|publicado)|tu publicacion|listing (created|published)/.test(mobileBody)) {
+          emit('published', 'Facebook confirmó la publicación móvil.', { listingUrl: mobileListingUrl });
+          return { state: 'published', stage: 'published', message: 'Facebook confirmó la publicación.', listingUrl: mobileListingUrl, filled: filled };
+        }
+        if (loginRequired()) return { state: 'needs_login', stage: 'post_publish_verification', message: 'Facebook solicitó una verificación adicional después de publicar.', filled: filled };
+        await wait(1000);
+      }
+      emit('confirmation_missing', 'Facebook recibió el formulario móvil, pero no confirmó la publicación.', { path: window.location.pathname });
+      return { state: 'needs_review', stage: 'confirmation_missing', message: 'Facebook recibió el formulario, pero no confirmó la publicación. Revísala en el navegador local.', filled: filled };
+    }
 
     var publishClicked = false;
     var publishDeadline = Date.now() + 60_000;

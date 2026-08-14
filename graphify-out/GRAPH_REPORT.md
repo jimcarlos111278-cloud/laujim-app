@@ -1,16 +1,16 @@
-# Graph Report - Proyecto Laujim APP fix  (2026-08-12)
+# Graph Report - Proyecto Laujim APP fix  (2026-08-14)
 
 ## Corpus Check
-- 142 files · ~210,279 words
+- 433 files · ~448,577 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1654 nodes · 3462 edges · 153 communities (112 shown, 41 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 67 edges (avg confidence: 0.52)
+- 4049 nodes · 6809 edges · 381 communities (327 shown, 54 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 185 edges (avg confidence: 0.51)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `eb09d902`
+- Built from commit: `23b329bd`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -26,43 +26,43 @@
 - dependencies
 - saveData
 - dependencies
-- api.js
+- vendor/ponytail/benchmarks/agentic/tasks.py
 - handleCloudInbound
-- BroadcastReceiver
+- .onReceive
 - content-facebook.js
-- config.js
+- ScraperWorkerStore
 - handleCloudInbound
 - scripts
-- loginPortalPage
+- sleep
 - chrome-cdp.js
 - getR2Client
 - 5. ESPECIFICACIÓN DE INTEGRACIÓN (LO QUE CODEX DEBE CONSTRUIR)
-- getBase
+- Settings.jsx
 - services-scraper.cjs
 - contractGenerator.js
 - setup-graphify-hooks.cjs
 - runPaymentReminders
 - public/manifest.json
 - sync-aiven-before-push.cjs
-- sendCloudGlobalServices
+- colombiaDate
 - graphify.js
-- startServer
+- cloudApiRequest
 - devDependencies
 - scripts
 - backup.js
 - calendar.js
-- @capacitor/share
+- playwright-cli.js
 - worker-protocol.cjs
 - opencode.json
 - portal-scraper.js
-- App.jsx
+- PortalBrowserActivity
 - tailwindcss
 - .oxlintrc.json
 - add-passwords.js
 - ScraperWorker.jsx
-- Settings.jsx
+- MarketplaceWorkerService
 - Gestión de Apartamentos — Laujim APP
-- ffmpeg-static
+- MarketplaceBrowserActivity
 - generate-version.js
 - MainActivity.java
 - content-portals.js
@@ -85,8 +85,8 @@
 - ThemeSelector.jsx
 - run-pc-worker-aiven.cjs
 - pre-whatsapp-bot/package.json
-- Plan — Cámaras + Timbre QR + Integración Laujim APP
-- react-dom
+- Plan — Cámaras + Timbre QR + Integración Laujim APP (RUTA SIN VPS)
+- PortalSessionVault
 - cdp-driver.cjs
 - 2. Modos de ejecución
 - cdp-driver.mjs
@@ -99,7 +99,7 @@
 - Sistema de Temas (6 Temas Visuales)
 - Construir APK para Android
 - API REST Completa
-- sleep
+- hooks.test.js
 - Convertir a APK con Capacitor
 - WhatsApp Business Platform — puesta en marcha
 - Base de Datos en Memoria
@@ -111,29 +111,29 @@
 - Requerimientos del Sistema
 - Sistema de Autenticación
 - runGasScrapeOnce
-- puppeteer-core
+- ponytail/package.json
 - portalFieldValue
 - pre-push
-- jspdf
-- react
+- run.py
+- cors
 - @capacitor/core
-- @capacitor/core
-- multer
-- @capacitor/filesystem
+- robustness-audit.js
+- plugins/ponytail/tests/hooks.test.js
+- plugins/ponytail/benchmarks/agentic/run.py
 - Worker portatil de servicios
-- lucide-react
-- @capacitor-mlkit/barcode-scanning
+- plugins/ponytail/benchmarks/robustness-audit.js
+- App.jsx
 - test-water-scraper.cjs
 - @capacitor/local-notifications
-- node-cron
+- Commands
 - scrapeAirE
-- PortalBrowserActivity
+- Browser Automation with playwright-cli
 - Plantillas de WhatsApp Cloud de Laujim
 - _scrape-diagnostic.cjs
-- recharts
+- correctness.js
 - portable-worker.cjs
 - Plantilla de WhatsApp: cobro_canon_servicios
-- @sparticuz/chromium
+- vendor/ponytail/ponytail-mcp/instructions.js
 - dexie
 - jspdf
 - jsqr
@@ -144,59 +144,268 @@
 - react-router-dom
 - recharts
 - @tailwindcss/vite
-- @capacitor-mlkit/barcode-scanning
-- @tailwindcss/vite
-- ErrorBoundary
-- pg
+- vendor/ponytail/hooks/ponytail-runtime.js
+- vendor/ponytail/__init__.py
+- .enabled
+- jsqr
 - cors
-- callScreening.js
-- @capacitor/cli
+- .doWork
+- react
+- chat.js
 - prepare-capacitor-assets.js
+- ScraperWorkerPlugin
+- GUÍA DEL INSTALADOR — Cableado y conexiones físicas (Cámaras + Timbre QR, ruta SIN VPS)
+- plugins/ponytail/benchmarks/agentic/tasks.py
+- test-marketplace-api.cjs
+- marketplace-worker.js
+- react-dom
+- Local Storage
+- api.js
+- sendCloudGlobalServices
+- Browser Session Management
+- react-router-dom
+- uninstall.test.js
+- .calculateNextRunAt
+- ErrorBoundary
+- .onCreate
+- 3. Heal
+- Test generation (plan → generate → heal)
+- vendor/ponytail/hooks/ponytail-config.js
+- vendor/ponytail/pi-extension/index.js
+- Tracing
+- Install
+- README.ko.md
+- ponytail-mcp/package.json
+- openclaw-skills.test.js
+- Running Custom Playwright Code
+- generate-examples.mjs
+- Install
+- README.es.md
+- vendor/ponytail/.opencode/plugins/ponytail.mjs
+- ponytail/README.md
+- Instalación
+- check-rule-copies.js
+- gemini-extension.test.js
+- hermes-plugin.test.js
+- devDependencies
+- playwright-cli/SKILL.md
+- Agentic benchmark: does ponytail cut code without cutting safety?
+- ponytail-activate.js
+- How to prepare a release
+- Agentic benchmark
+- Ponytail v4 hardening — A–F benchmark vs Caveman (2026-06-12)
+- Platform-Native Solutions
+- Rate Limiting in FastAPI
+- publish-openclaw-skills.js
+- opencode-plugin.test.js
+- Video Recording
+- Benchmark
+- Robustness audit: does ponytail degrade weak models? (2026-06-16)
+- Agentic safety benchmark (2026-06-17): SUPERSEDED
+- Cost verification: reproducing the "47-77% cheaper" claim (2026-06-17)
+- Comprehension & reuse: fixing #245 and #217
+- React Countdown Timer Component
+- Ponytail
+- Ponytail
+- hooks-windows.test.js
+- Contributing
+- update.js
+- Advanced Mocking with run-code
+- Contexto de reparación Laujim
+- behavior.test.js
+- benchmark-local.py
+- marketplace.json
+- examples/README.md
+- Email Validation Function
+- Ponytail Help
+- check-versions.js
+- Ponytail Help
+- commands.test.js
+- copilot-plugin.test.js
+- qoder-plugin.test.js
+- plugins/ponytail/pi-extension/index.js
+- package.json
+- Caveman vs Ponytail — 2026-06-12
+- Debounce Search Input
+- plugins/ponytail/hooks/ponytail-runtime.js
+- caveman-SKILL.md
+- Local model benchmark: llama3.2 via Ollama — 2026-06-15
+- 2026-06-16-correctness-gate-fix.md
+- csv-sum.md
+- pi-extension/package.json
+- grok-plugin.test.js
+- package-scripts.test.js
+- package.test.js
+- JavascriptResultBridge
+- Commands
+- .openclaw/skills/ponytail-audit/SKILL.md
+- Ponytail Gain
+- .openclaw/skills/ponytail-review/SKILL.md
+- ponytail-mcp
+- ponytail/skills/ponytail-audit/SKILL.md
+- Ponytail Gain
+- ponytail/skills/ponytail-review/SKILL.md
+- vendor/ponytail/opencode.json
+- caveman.js
+- ponytail.js
+- Deep Clone
+- Group By
+- Infinite Scroll
+- Modal Dialog
+- Number Formatting
+- URL Parameters
+- .openclaw/skills/ponytail-debt/SKILL.md
+- ponytail/skills/ponytail-debt/SKILL.md
+- collectRenderedWaterPolicies
+- integration.spec.ts
+- react-countdown.md
+- dexie
+- plugins/ponytail/benchmarks/correctness.js
+- plugins/ponytail/__init__.py
+- plugins/ponytail/benchmarks/agentic/complete.py
+- @tailwindcss/vite
+- CLAUDE.md
+- SECURITY.md
+- after-install.md
+- .agents/rules/ponytail.md
+- .clinerules/ponytail.md
+- ponytail-statusline.sh script
+- steering/ponytail.md
+- .windsurf/rules/ponytail.md
+- vendor/ponytail/benchmarks/agentic/complete.py
+- plugins/ponytail/tests/uninstall.test.js
+- plugins/ponytail/hooks/ponytail-config.js
+- Install
+- plugins/ponytail/README.es.md
+- plugins/ponytail/tests/openclaw-skills.test.js
+- cloudApartmentServices
+- plugins/ponytail/benchmarks/generate-examples.mjs
+- plugins/ponytail/ponytail-mcp/instructions.js
+- Install
+- plugins/ponytail/README.ko.md
+- plugins/ponytail/README.md
+- Instalación
+- plugins/ponytail/scripts/check-rule-copies.js
+- plugins/ponytail/tests/gemini-extension.test.js
+- plugins/ponytail/tests/hermes-plugin.test.js
+- Agentic benchmark: does ponytail cut code without cutting safety?
+- plugins/ponytail/hooks/ponytail-activate.js
+- Agentic benchmark
+- Ponytail v4 hardening — A–F benchmark vs Caveman (2026-06-12)
+- Platform-Native Solutions
+- Rate Limiting in FastAPI
+- plugins/ponytail/.opencode/plugins/ponytail.mjs
+- plugins/ponytail/scripts/publish-openclaw-skills.js
+- plugins/ponytail/tests/opencode-plugin.test.js
+- Benchmark
+- Robustness audit: does ponytail degrade weak models? (2026-06-16)
+- Agentic safety benchmark (2026-06-17): SUPERSEDED
+- Cost verification: reproducing the "47-77% cheaper" claim (2026-06-17)
+- Comprehension & reuse: fixing #245 and #217
+- React Countdown Timer Component
+- Ponytail
+- Ponytail
+- plugins/ponytail/tests/hooks-windows.test.js
+- Cookies
+- plugins/ponytail/tests/behavior.test.js
+- plugins/ponytail/benchmarks/benchmark-local.py
+- plugins/ponytail/.claude-plugin/marketplace.json
+- plugins/ponytail/examples/README.md
+- Email Validation Function
+- Ponytail Help
+- plugins/ponytail/scripts/check-versions.js
+- Ponytail Help
+- plugins/ponytail/tests/commands.test.js
+- plugins/ponytail/tests/copilot-plugin.test.js
+- plugins/ponytail/tests/qoder-plugin.test.js
+- Service
+- Caveman vs Ponytail — 2026-06-12
+- Debounce Search Input
+- plugins/ponytail/benchmarks/arms/caveman-SKILL.md
+- Local model benchmark: llama3.2 via Ollama — 2026-06-15
+- plugins/ponytail/benchmarks/results/2026-06-16-correctness-gate-fix.md
+- plugins/ponytail/examples/csv-sum.md
+- plugins/ponytail/tests/grok-plugin.test.js
+- plugins/ponytail/tests/package-scripts.test.js
+- plugins/ponytail/tests/package.test.js
+- plugins/ponytail/.openclaw/skills/ponytail-audit/SKILL.md
+- Ponytail Gain
+- plugins/ponytail/.openclaw/skills/ponytail-review/SKILL.md
+- ponytail-mcp
+- plugins/ponytail/skills/ponytail-audit/SKILL.md
+- Ponytail Gain
+- plugins/ponytail/skills/ponytail-review/SKILL.md
+- MarketplaceWorkerDispatcher
+- plugins/ponytail/benchmarks/arms/caveman.js
+- plugins/ponytail/benchmarks/arms/ponytail.js
+- Deep Clone
+- Group By
+- Infinite Scroll
+- Modal Dialog
+- Number Formatting
+- URL Parameters
+- plugins/ponytail/.openclaw/skills/ponytail-debt/SKILL.md
+- plugins/ponytail/opencode.json
+- plugins/ponytail/skills/ponytail-debt/SKILL.md
+- Storage State
+- plugins/ponytail/examples/react-countdown.md
+- @capacitor-mlkit/barcode-scanning
+- @capacitor/cli
+- @capacitor/core
+- node-cron
+- plugins/ponytail/after-install.md
+- plugins/ponytail/.agents/rules/ponytail.md
+- plugins/ponytail/.clinerules/ponytail.md
+- ponytail-statusline.sh script
+- plugins/ponytail/.kiro/steering/ponytail.md
+- plugins/ponytail/.windsurf/rules/ponytail.md
+- qrcode
+- recharts
 
 ## God Nodes (most connected - your core abstractions)
-1. `startServer()` - 48 edges
-2. `startServer()` - 46 edges
-3. `ScraperWorkerService` - 35 edges
-4. `getBase()` - 35 edges
-5. `handleCloudAdminMessage()` - 33 edges
-6. `handleCloudInbound()` - 29 edges
-7. `scrapeGasAccount()` - 29 edges
-8. `react` - 27 edges
-9. `saveData()` - 27 edges
-10. `handleCloudInbound()` - 25 edges
+1. `startServer()` - 65 edges
+2. `ScraperWorkerStore` - 51 edges
+3. `startServer()` - 49 edges
+4. `getBase()` - 40 edges
+5. `ScraperWorkerService` - 39 edges
+6. `handleCloudAdminMessage()` - 33 edges
+7. `MarketplaceWorkerService` - 31 edges
+8. `PortalBrowserActivity` - 31 edges
+9. `MarketplaceBrowserActivity` - 30 edges
+10. `react` - 29 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `portalFrameRoots()` --indirect_call--> `frame()`  [INFERRED]
+  services-scraper.cjs → .tmp/vendor/playwright-cli/skillCheck.js
 - `portalFieldValue()` --indirect_call--> `field()`  [INFERRED]
   services-scraper.cjs → android/app/src/main/assets/portal-scraper.js
-- `generateContractPDF()` --references--> `jspdf`  [EXTRACTED]
-  src/utils/contractGenerator.js → package.json
+- `startServer()` --calls--> `scrapeAirE()`  [EXTRACTED]
+  _head_server.cjs → services-scraper.cjs
+- `startServer()` --calls--> `startScheduler()`  [EXTRACTED]
+  _head_server.cjs → services-scraper.cjs
 - `generateApartmentPDF()` --references--> `jspdf`  [EXTRACTED]
   src/utils/pdf.js → package.json
-- `getServerVersion()` --calls--> `getBase()`  [EXTRACTED]
-  src/api.js → src/utils/config.js
-- `uploadFile()` --calls--> `getRawBase()`  [EXTRACTED]
-  src/api.js → src/utils/config.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (153 total, 41 thin omitted)
+## Communities (381 total, 54 thin omitted)
 
 ### Community 0 - "handleCloudAdminMessage"
-Cohesion: 0.34
-Nodes (23): cloudApartmentsForFloor(), cloudFindApartment(), cloudListSections(), greetCloudAdminOnce(), handleCloudAdminMessage(), registerCloudUnexpectedExpense(), saveData(), sendCloudAdminMenu() (+15 more)
+Cohesion: 0.18
+Nodes (35): cloudApartmentFloor(), cloudApartmentsForFloor(), cloudFindApartment(), cloudFormatFullDate(), cloudInteractiveReply(), cloudListSections(), cloudNormaliseText(), cloudPaymentResultLine() (+27 more)
 
 ### Community 1 - "ApartmentDetail.jsx"
-Cohesion: 0.10
-Nodes (27): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), serviceColors (+19 more)
+Cohesion: 0.09
+Nodes (38): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), serviceColors (+30 more)
 
 ### Community 2 - ".status"
-Cohesion: 0.11
-Nodes (15): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, AuthorizedCallerScreeningService (+7 more)
+Cohesion: 0.08
+Nodes (23): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, AuthorizedCallerScreeningService (+15 more)
 
 ### Community 3 - "server.cjs"
-Cohesion: 0.05
-Nodes (58): app, BACKUP_DIR, BACKUP_FILE, buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildCloudServicesImageData(), buildDebtReply(), CLOUD_SERVICE_PRESENTATIONS (+50 more)
+Cohesion: 0.04
+Nodes (79): accessRateAllowed(), accessRateLimits, activeContractForTenant(), activeTenantForApartment(), app, appendAccessEvent(), BACKUP_DIR, BACKUP_FILE (+71 more)
 
 ### Community 4 - "pre-whatsapp-bot/server.cjs"
 Cohesion: 0.08
@@ -211,12 +420,12 @@ Cohesion: 0.07
 Nodes (29): action, default_icon, default_popup, default_title, background, service_worker, content_scripts, 128 (+21 more)
 
 ### Community 7 - "startServer"
-Cohesion: 0.16
-Nodes (21): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudPeriodLabel(), cloudReady(), downloadCloudMedia() (+13 more)
+Cohesion: 0.15
+Nodes (22): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudPeriodLabel(), cloudReady(), downloadCloudMedia() (+14 more)
 
 ### Community 8 - "dependencies"
-Cohesion: 0.12
-Nodes (17): @aws-sdk/client-s3, @capacitor/android, cors, dexie, express, jsqr, dependencies, @aws-sdk/client-s3 (+9 more)
+Cohesion: 0.06
+Nodes (33): @aws-sdk/client-s3, @capacitor/android, @capacitor/filesystem, @capacitor-mlkit/barcode-scanning, @capacitor/share, docxtemplater, express, ffmpeg-static (+25 more)
 
 ### Community 9 - "saveData"
 Cohesion: 0.24
@@ -226,37 +435,37 @@ Nodes (11): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getA
 Cohesion: 0.11
 Nodes (19): dependencies, @capacitor/android, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, express, pg, qrcode (+11 more)
 
-### Community 11 - "api.js"
-Cohesion: 0.12
-Nodes (24): CLOUD_COLLECTIONS, createItem(), deleteItem(), getCloudSyncStatus(), getDataVersion(), getServerVersion(), lastCloudSyncStatus, refreshAllFromServer() (+16 more)
+### Community 11 - "vendor/ponytail/benchmarks/agentic/tasks.py"
+Cohesion: 0.17
+Nodes (28): _contained(), _fail(), _find(), _find_class(), _import(), _import_pkg(), _ok(), Path (+20 more)
 
 ### Community 12 - "handleCloudInbound"
 Cohesion: 0.22
 Nodes (21): addCloudMessage(), authorizedCloudContact(), blockCloudUser(), clearCloudAuthState(), cloudInboundMedia(), cloudInteractiveReply(), ensureCloudCollections(), failCloudAuthentication() (+13 more)
 
-### Community 13 - "BroadcastReceiver"
-Cohesion: 0.10
-Nodes (21): AuthorizedMmsReceiver, Context, Intent, Override, AuthorizedSmsReceiver, Context, Intent, Override (+13 more)
+### Community 13 - ".onReceive"
+Cohesion: 0.16
+Nodes (13): AuthorizedMmsReceiver, Context, Intent, Override, Context, Intent, Override, ScraperWorkerAlarmReceiver (+5 more)
 
 ### Community 14 - "content-facebook.js"
 Cohesion: 0.25
 Nodes (22): activate(), autoFill(), checkAndRun(), chooseDropdown(), fillAndConfirmAddress(), fillAndConfirmAddressReliable(), findAndSet(), findDropdown() (+14 more)
 
-### Community 15 - "config.js"
-Cohesion: 0.12
-Nodes (17): VersionBanner(), versionIsNewer(), ContractGenerator(), PublicApartment(), serviceIcons, ShareApartments(), WhatsAppContacts(), cloudRequest() (+9 more)
+### Community 15 - "ScraperWorkerStore"
+Cohesion: 0.15
+Nodes (3): Context, SharedPreferences, ScraperWorkerStore
 
 ### Community 16 - "handleCloudInbound"
-Cohesion: 0.18
-Nodes (23): authorizedCloudContact(), blockCloudUser(), clearCloudAuthState(), cloudAdminPhones(), cloudInboundMedia(), cloudInteractiveReply(), ensureCloudCollections(), failCloudAuthentication() (+15 more)
+Cohesion: 0.20
+Nodes (22): addCloudMessage(), authorizedCloudContact(), blockCloudUser(), clearCloudAuthState(), cloudAdminPhones(), cloudInboundMedia(), ensureCloudCollections(), failCloudAuthentication() (+14 more)
 
 ### Community 17 - "scripts"
 Cohesion: 0.20
 Nodes (10): scripts, backup, build, build-apk, dev, lint, network, preview (+2 more)
 
-### Community 18 - "loginPortalPage"
-Cohesion: 0.39
-Nodes (9): clickVisibleButton(), loginPortalPage(), portalFrameRoots(), portalLoginDiagnostic(), submitPortalLoginForm(), typeVisibleField(), visibleHandle(), visibleSelectorExists() (+1 more)
+### Community 18 - "sleep"
+Cohesion: 0.22
+Nodes (17): clickVisibleButton(), clickVisiblePortalButtonByText(), inspectWaterPage(), loginGasWithPortalApi(), loginPortalPage(), loginTripleAWithPortalApi(), portalFrameRoots(), portalLoginDiagnostic() (+9 more)
 
 ### Community 19 - "chrome-cdp.js"
 Cohesion: 0.53
@@ -270,17 +479,17 @@ Nodes (10): deleteR2Object(), ensureR2Usage(), getR2Client(), getR2Usage(), putR
 Cohesion: 0.07
 Nodes (27): 1.1 Identidad, 1.2 Stack (verificado en package.json + README), 1.3 Autenticación, 1.4 Colecciones existentes (13 núcleo), 1.5 Datos relevantes por apartamento, 1.6 Puntos de extensión existentes (patrones a imitar), 1. ESTADO ACTUAL DE LA APP, 2. LIMITACIONES DE HARDWARE / INFRAESTRUCTURA (CRÍTICAS) (+19 more)
 
-### Community 22 - "getBase"
-Cohesion: 0.14
-Nodes (35): stopCloudPolling(), stopDataVersionPolling(), AdminRoute(), ProtectedRoute(), Chat(), Login(), MiApto(), clearAuth() (+27 more)
+### Community 22 - "Settings.jsx"
+Cohesion: 0.20
+Nodes (20): callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus(), nativeAndroid(), normalizedPhone(), requestCallScreeningRole(), requestProtectedSmsRole(), setAllowCallsFromContacts() (+12 more)
 
 ### Community 23 - "services-scraper.cjs"
-Cohesion: 0.06
-Nodes (40): aggregateAirEInvoices(), AIR_E_NIC_MAP, AIR_E_URLS, BROWSERLESS_PROFILES, BROWSERLESS_REGION, BROWSERLESS_SOLVE_CAPTCHAS, BROWSERLESS_STEALTH, BROWSERLESS_TIMEOUT_MS (+32 more)
+Cohesion: 0.05
+Nodes (42): aggregateAirEInvoices(), AIR_E_NIC_MAP, AIR_E_URLS, BROWSERLESS_PROFILES, BROWSERLESS_REGION, BROWSERLESS_SOLVE_CAPTCHAS, BROWSERLESS_STEALTH, BROWSERLESS_TIMEOUT_MS (+34 more)
 
 ### Community 24 - "contractGenerator.js"
-Cohesion: 0.17
-Nodes (13): centenasALetras(), CIENTOS, CLAUSULAS, DECENAS, ESPECIALES, fechaEnLetras(), generateContractPDF(), limpiarNumero() (+5 more)
+Cohesion: 0.14
+Nodes (15): jspdf, jspdf, centenasALetras(), CIENTOS, CLAUSULAS, DECENAS, ESPECIALES, fechaEnLetras() (+7 more)
 
 ### Community 25 - "setup-graphify-hooks.cjs"
 Cohesion: 0.20
@@ -298,21 +507,21 @@ Nodes (13): background_color, categories, description, display, icons, name, ori
 Cohesion: 0.24
 Nodes (9): collectionCount(), DATA_FILE, { execFileSync }, fs, localDataChanged(), path, { Pool }, ROOT (+1 more)
 
-### Community 29 - "sendCloudGlobalServices"
-Cohesion: 0.11
-Nodes (35): activeContractForApartment(), activeTenantForApartment(), addCloudMessage(), buildAdminDebtReport(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), cloudApartmentServicesLine(), cloudCalendarDate() (+27 more)
+### Community 29 - "colombiaDate"
+Cohesion: 0.18
+Nodes (21): activeContractForApartment(), buildAdminDebtReport(), cloudCalendarDate(), cloudCapitalise(), cloudDateKey(), cloudFormatDayMonth(), cloudPaymentDate(), cloudPaymentTemplateData() (+13 more)
 
-### Community 31 - "startServer"
-Cohesion: 0.09
-Nodes (39): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudReady(), constantTimeEqual(), createAuthSession() (+31 more)
+### Community 31 - "cloudApiRequest"
+Cohesion: 0.21
+Nodes (13): archiveCloudInboundMedia(), cloudAdminGreeting(), cloudApiRequest(), cloudConfig(), cloudGraphRequest(), cloudReady(), downloadCloudMedia(), greetCloudAdminOnce() (+5 more)
 
 ### Community 32 - "devDependencies"
 Cohesion: 0.18
 Nodes (11): devDependencies, oxlint, @types/react, @types/react-dom, vite, @vitejs/plugin-react, oxlint, @types/react (+3 more)
 
 ### Community 33 - "scripts"
-Cohesion: 0.06
-Nodes (30): oxlint, devDependencies, oxlint, @types/react, @types/react-dom, vite, @vitejs/plugin-react, engines (+22 more)
+Cohesion: 0.14
+Nodes (14): scripts, backup, build, build-apk, dev, graphify, lint, network (+6 more)
 
 ### Community 34 - "backup.js"
 Cohesion: 0.20
@@ -322,8 +531,12 @@ Nodes (9): backupDir, dataDir, __dirname, dst, files, now, root, src (+1 more)
 Cohesion: 0.38
 Nodes (10): addCalendarReminder(), downloadICS(), fmtDate(), generateAllPaymentReminders(), generateICS(), getStoredUIDs(), nextDueDate(), saveStoredUIDs() (+2 more)
 
+### Community 36 - "playwright-cli.js"
+Cohesion: 0.05
+Nodes (46): playwright-core, @playwright/test, author, name, bin, playwright-cli, dependencies, playwright (+38 more)
+
 ### Community 37 - "worker-protocol.cjs"
-Cohesion: 0.21
+Cohesion: 0.20
 Nodes (17): assert, records, worker, ALLOWED_STATUSES, crypto, inspectWorkerResults(), isoOrNow(), normalizeAmount() (+9 more)
 
 ### Community 38 - "opencode.json"
@@ -332,11 +545,11 @@ Nodes (3): plugin, $schema, .opencode/plugins/graphify.js
 
 ### Community 39 - "portal-scraper.js"
 Cohesion: 0.12
-Nodes (55): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), currentGasContractButton(), digits() (+47 more)
+Nodes (58): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), currentGasContractButton(), digits() (+50 more)
 
-### Community 40 - "App.jsx"
-Cohesion: 0.19
-Nodes (17): react, api, Modal(), Apartments(), Contracts(), Payments(), getPredialUrl(), lookupRef() (+9 more)
+### Community 40 - "PortalBrowserActivity"
+Cohesion: 0.18
+Nodes (3): Intent, Override, PortalBrowserActivity
 
 ### Community 42 - ".oxlintrc.json"
 Cohesion: 0.25
@@ -347,20 +560,24 @@ Cohesion: 0.25
 Nodes (6): db, dbCjsPath, dbPath, __dirname, root, seedCopy
 
 ### Community 44 - "ScraperWorker.jsx"
-Cohesion: 0.20
-Nodes (26): DEFAULT_SCHEDULE, formatLogTime(), formatSchedule(), logLevelClass(), LogList(), ScraperWorker(), clearAndroidPortalCookies(), configureAndroidScraperWorker() (+18 more)
+Cohesion: 0.17
+Nodes (32): DEFAULT_SCHEDULE, formatLogTime(), formatSchedule(), logLevelClass(), LogList(), ScraperWorker(), clearAndroidPortalCookies(), configureAndroidScraperWorker() (+24 more)
 
-### Community 45 - "Settings.jsx"
-Cohesion: 0.16
-Nodes (15): Layout(), navItems, Settings(), cancelAllNotifications(), getNotifConfig(), saveNotifConfig(), schedulePaymentReminders(), generateBookmarkletCode() (+7 more)
+### Community 45 - "MarketplaceWorkerService"
+Cohesion: 0.10
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
 
 ### Community 46 - "Gestión de Apartamentos — Laujim APP"
 Cohesion: 0.12
 Nodes (16): Arquitectura del Sistema, Estructura del Proyecto, Flujo de Datos, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial (+8 more)
 
+### Community 47 - "MarketplaceBrowserActivity"
+Cohesion: 0.12
+Nodes (13): Bundle, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override, TextView (+5 more)
+
 ### Community 48 - "generate-version.js"
-Cohesion: 0.29
-Nodes (5): __dirname, dist, now, verFile, version
+Cohesion: 0.15
+Nodes (11): androidGradle, apkVersion, appVersion, __dirname, dist, now, publicDir, publicVersionFile (+3 more)
 
 ### Community 49 - "MainActivity.java"
 Cohesion: 0.47
@@ -419,8 +636,8 @@ Cohesion: 0.83
 Nodes (3): gradlew script, die(), warn()
 
 ### Community 64 - "ScraperWorkerService"
-Cohesion: 0.06
-Nodes (29): IBinder, Intent, Override, RespondViaMessageService, Context, ScraperWorkerAlarm, CapacitorPlugin, JSObject (+21 more)
+Cohesion: 0.12
+Nodes (9): HttpResult, Handler, IBinder, Intent, JSONArray, JSONObject, Notification, WebView (+1 more)
 
 ### Community 66 - "Extensión de Chrome — Llenar Laujim"
 Cohesion: 0.12
@@ -438,9 +655,13 @@ Nodes (7): deviceId, path, { Pool }, profileDir, root, serverUrl, workerToken
 Cohesion: 0.29
 Nodes (6): engines, node, name, private, type, version
 
-### Community 70 - "Plan — Cámaras + Timbre QR + Integración Laujim APP"
-Cohesion: 0.18
-Nodes (10): Arquitectura (resumen), Decisión tomada, Equipos (compra el dueño, obra aparte ~$300), Funcionalidad, Integración en Laujim APP (alcance acordado), Orden de operaciones, Pendientes independientes de este plan, Plan — Cámaras + Timbre QR + Integración Laujim APP (+2 more)
+### Community 70 - "Plan — Cámaras + Timbre QR + Integración Laujim APP (RUTA SIN VPS)"
+Cohesion: 0.17
+Nodes (11): Arquitectura (resumen), Cambio de ruta — 2026-08-14 (sin VPS), Decisión tomada (2026-08-14), Equipos (compra el dueño, obra aparte ~$300), Funcionalidad, Integración en Laujim APP (alcance acordado), Orden de operaciones, Pendientes independientes de este plan (+3 more)
+
+### Community 71 - "PortalSessionVault"
+Cohesion: 0.24
+Nodes (4): Context, SharedPreferences, PortalSessionVault, SecretKey
 
 ### Community 72 - "cdp-driver.cjs"
 Cohesion: 0.60
@@ -463,8 +684,8 @@ Cohesion: 0.25
 Nodes (8): `capacitor.config.json` — Capacitor 8, Configuración Específica por Archivo, `index.html` — Entry Point, `server.cjs` — Servidor Express, `src/App.jsx` — Router e Inicialización, `src/main.jsx` — Bootstrap React, `src/utils/config.js` — Conexión al Servidor, `vite.config.js` — Build & Dev Server
 
 ### Community 94 - "scrapeGasAccount"
-Cohesion: 0.17
-Nodes (25): apartmentNumberFrom(), attachBrowserlessCaptchaSolver(), browserlessEndpointCandidates(), closeWaterBrowser(), closeWaterResource(), configuredApartmentTargets(), fetchPortalJson(), gasRecord() (+17 more)
+Cohesion: 0.19
+Nodes (27): apartmentNumberFrom(), attachBrowserlessCaptchaSolver(), browserlessEndpointCandidates(), closeWaterBrowser(), closeWaterResource(), configuredApartmentTargets(), executePortalTurnstile(), fetchPortalJson() (+19 more)
 
 ### Community 95 - "Sistema de Temas (6 Temas Visuales)"
 Cohesion: 0.29
@@ -478,9 +699,9 @@ Nodes (5): Alternativa sin Android Studio (solo CLI), Construir APK para Android
 Cohesion: 0.33
 Nodes (6): API REST Completa, Editor API (auth Basic: admin/admin123), Endpoints de Antecedentes (Policía), Endpoints de Archivos, Endpoints Generales, Endpoints Genéricos (CRUD Automático)
 
-### Community 98 - "sleep"
-Cohesion: 0.24
-Nodes (15): clickVisiblePortalButtonByText(), executePortalTurnstile(), gotoPortalPage(), inspectWaterPage(), loginGasWithPortalApi(), loginTripleAWithGoogle(), loginTripleAWithPortalApi(), openAuthenticatedPortalPage() (+7 more)
+### Community 98 - "hooks.test.js"
+Cohesion: 0.05
+Nodes (42): assert, claudeEnv, codexData, codexEnv, codexState, copilotData, customConfigDir, { DEFAULT_MODE, getDefaultMode, isShellSafe, writeDefaultMode } (+34 more)
 
 ### Community 99 - "Convertir a APK con Capacitor"
 Cohesion: 0.40
@@ -526,25 +747,57 @@ Nodes (4): Login Admin, Login Inquilino, Sesión, Sistema de Autenticación
 Cohesion: 0.24
 Nodes (12): completePortalResults(), enqueueServiceBrowserRun(), isTransientPortalRunError(), persistGasResults(), persistResults(), persistWaterResults(), portalFailureResult(), runGasScrapeOnce() (+4 more)
 
+### Community 110 - "ponytail/package.json"
+Cohesion: 0.05
+Nodes (40): AGENTS.md, assets/, hooks/, LICENSE, opencode, opencode-plugin, pi, pi-extension/ (+32 more)
+
 ### Community 111 - "portalFieldValue"
 Cohesion: 0.24
 Nodes (11): gasInvoiceSummary(), normalizePortalText(), parsePortalAmount(), portalFieldValue(), portalUiStatus(), queryRenderedGasContract(), queryRenderedTripleAPolicy(), selectRenderedGasContract() (+3 more)
+
+### Community 113 - "run.py"
+Cohesion: 0.12
+Nodes (31): aggregate(), chat_code_loc(), _claude_version(), code_stats(), _count(), _git(), git_diff_stats(), _git_snapshot() (+23 more)
+
+### Community 116 - "robustness-audit.js"
+Cohesion: 0.08
+Nodes (25): { checkPy, pyBlock, TASKS }, email, fs, kv, MODELS, path, skill, { checkPy, pyBlock, TASKS } (+17 more)
+
+### Community 117 - "plugins/ponytail/tests/hooks.test.js"
+Cohesion: 0.05
+Nodes (42): assert, claudeEnv, codexData, codexEnv, codexState, copilotData, customConfigDir, { DEFAULT_MODE, getDefaultMode, isShellSafe, writeDefaultMode } (+34 more)
+
+### Community 118 - "plugins/ponytail/benchmarks/agentic/run.py"
+Cohesion: 0.12
+Nodes (31): aggregate(), chat_code_loc(), _claude_version(), code_stats(), _count(), _git(), git_diff_stats(), _git_snapshot() (+23 more)
 
 ### Community 120 - "Worker portatil de servicios"
 Cohesion: 0.25
 Nodes (7): Android, Cambiar de dispositivo, Configuracion de Render, Contrato HTTP, Objetivo, PC o VPS, Worker portatil de servicios
 
+### Community 121 - "plugins/ponytail/benchmarks/robustness-audit.js"
+Cohesion: 0.08
+Nodes (25): { checkPy, pyBlock, TASKS }, email, fs, kv, MODELS, path, skill, { checkPy, pyBlock, TASKS } (+17 more)
+
+### Community 122 - "App.jsx"
+Cohesion: 0.09
+Nodes (33): uploadFile(), AdminRoute(), ProtectedRoute(), Layout(), navItems, readInstalledAndroidVersion(), VersionBanner(), versionIsNewer() (+25 more)
+
 ### Community 123 - "test-water-scraper.cjs"
 Cohesion: 0.50
 Nodes (3): assert, db, scraper
+
+### Community 125 - "Commands"
+Cohesion: 0.07
+Nodes (29): Commands, Configuration file, Core, Demo, DevTools, Getting Started, Headed operation, Installation (+21 more)
 
 ### Community 126 - "scrapeAirE"
 Cohesion: 0.40
 Nodes (5): configuredAirETargets(), contractFromAirEResources(), getAirECredentials(), scrapeAirE(), waitAndType()
 
-### Community 127 - "PortalBrowserActivity"
-Cohesion: 0.16
-Nodes (10): Activity, Bundle, Handler, Intent, JavascriptInterface, Override, WebView, PortalBridge (+2 more)
+### Community 127 - "Browser Automation with playwright-cli"
+Cohesion: 0.14
+Nodes (14): Browser Automation with playwright-cli, Browser Sessions, Example: Debugging with DevTools, Example: Form submission, Example: Interactive session, Example: Multi-tab workflow, Installation, Open parameters (+6 more)
 
 ### Community 128 - "Plantillas de WhatsApp Cloud de Laujim"
 Cohesion: 0.40
@@ -554,6 +807,10 @@ Nodes (4): 1. `saludo_inquilino`, 2. `cobro_canon_servicios`, Plantillas de What
 Cohesion: 0.40
 Nodes (4): db, fs, path, scraper
 
+### Community 130 - "correctness.js"
+Cohesion: 0.10
+Nodes (17): CHECKS, correctnessTimeoutMs(), exec(), { execSync }, fs, os, path, python() (+9 more)
+
 ### Community 131 - "portable-worker.cjs"
 Cohesion: 0.16
 Nodes (17): applyRemoteConfig(), chromeProfileDir, config, configPath, fs, loadRemoteConfig(), localDb, main() (+9 more)
@@ -562,29 +819,777 @@ Nodes (17): applyRemoteConfig(), chromeProfileDir, config, configPath, fs, loadR
 Cohesion: 0.50
 Nodes (3): Cuerpo para Meta, Orden de variables, Plantilla de WhatsApp: `cobro_canon_servicios`
 
-### Community 150 - "callScreening.js"
-Cohesion: 0.55
-Nodes (10): callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus(), nativeAndroid(), normalizedPhone(), requestCallScreeningRole(), requestProtectedSmsRole(), setAllowCallsFromContacts() (+2 more)
+### Community 133 - "vendor/ponytail/ponytail-mcp/instructions.js"
+Cohesion: 0.26
+Nodes (10): getDefaultMode(), modeArg, server, { version }, buildInstructions(), { getDefaultMode, normalizeMode }, { getPonytailInstructions }, MODES (+2 more)
+
+### Community 144 - "vendor/ponytail/hooks/ponytail-runtime.js"
+Cohesion: 0.13
+Nodes (20): isDeactivationCommand(), { clearMode, isQoder, readMode, setMode, writeHookOutput }, finish(), { getDefaultMode, isDeactivationCommand, writeDefaultMode }, { getPonytailInstructions }, clearMode(), fs, { getClaudeDir, getConfigDir } (+12 more)
+
+### Community 145 - "vendor/ponytail/__init__.py"
+Cohesion: 0.19
+Nodes (21): build_injected_context(), _config_dir(), _default_mode(), _fallback_instructions(), _filter_skill_body_for_mode(), _handle_mode_command(), _make_skill_command_handler(), _normalize_config_mode() (+13 more)
+
+### Community 146 - ".enabled"
+Cohesion: 0.18
+Nodes (6): Context, ScraperWorkerDispatcher, Context, ScraperWorkerSchedule, Override, PendingIntent
+
+### Community 150 - ".doWork"
+Cohesion: 0.14
+Nodes (14): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker, Context, NonNull (+6 more)
+
+### Community 151 - "react"
+Cohesion: 0.19
+Nodes (12): react, api, Modal(), Apartments(), ContractGenerator(), getPredialUrl(), lookupRef(), Predial() (+4 more)
+
+### Community 152 - "chat.js"
+Cohesion: 0.32
+Nodes (15): Chat(), fetchPresence(), getAllRooms(), getRoomMessages(), getStatusLabel(), lastCheck, pollNewMessages(), sendHeartbeat() (+7 more)
+
+### Community 154 - "ScraperWorkerPlugin"
+Cohesion: 0.18
+Nodes (8): Context, MarketplaceWorkerSchedule, CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin, Plugin
+
+### Community 155 - "GUÍA DEL INSTALADOR — Cableado y conexiones físicas (Cámaras + Timbre QR, ruta SIN VPS)"
+Cohesion: 0.22
+Nodes (8): 1. Regla de oro en 1 frase, 2. Mapa físico del edificio (dónde va cada cosa), 3. Tabla de conexiones (la copia para el instalador), 4. Materiales de cableado (para comprar junto a los equipos), 5. Orden de instalación (paso a paso para el instalador), 6. Checklist final de verificación (el instalador confirma cada uno), 7. Errores comunes a evitar, GUÍA DEL INSTALADOR — Cableado y conexiones físicas (Cámaras + Timbre QR, ruta SIN VPS)
+
+### Community 156 - "plugins/ponytail/benchmarks/agentic/tasks.py"
+Cohesion: 0.17
+Nodes (28): _contained(), _fail(), _find(), _find_class(), _import(), _import_pkg(), _ok(), Path (+20 more)
+
+### Community 157 - "test-marketplace-api.cjs"
+Cohesion: 0.22
+Nodes (10): child, fs, os, path, project, request(), run(), { spawn } (+2 more)
+
+### Community 158 - "marketplace-worker.js"
+Cohesion: 0.30
+Nodes (24): activate(), choose(), currentListingUrl(), editableElements(), emit(), facebookRentalType(), fillAddress(), findButton() (+16 more)
+
+### Community 160 - "Local Storage"
+Cohesion: 0.09
+Nodes (22): Advanced: Multiple Operations, Authentication State Reuse, Clear All localStorage, Clear sessionStorage, Common Patterns, Delete Database, Delete Single Item, Delete Single Item (+14 more)
+
+### Community 161 - "api.js"
+Cohesion: 0.10
+Nodes (37): CLOUD_COLLECTIONS, createItem(), deleteItem(), getCloudSyncStatus(), getDataVersion(), getServerVersion(), lastCloudSyncStatus, refreshAllFromServer() (+29 more)
+
+### Community 162 - "sendCloudGlobalServices"
+Cohesion: 0.35
+Nodes (12): deleteR2Object(), ensureR2Usage(), getR2Buffer(), getR2Client(), getR2Usage(), putR2Buffer(), r2Config(), r2Key() (+4 more)
+
+### Community 163 - "Browser Session Management"
+Cohesion: 0.10
+Nodes (20): 1. Name Browser Sessions Semantically, 2. Always Clean Up, 3. Delete Stale Browser Data, A/B Testing Sessions, Attach by channel name, Attach via browser extension, Attach via CDP endpoint, Attaching to a Running Browser (+12 more)
+
+### Community 165 - "uninstall.test.js"
+Cohesion: 0.10
+Nodes (18): assert, claudeDir, configDir, configPath, env, flagPath, fs, home (+10 more)
+
+### Community 166 - ".calculateNextRunAt"
+Cohesion: 0.26
+Nodes (3): Test, ScraperWorkerScheduleTest, TimeZone
+
+### Community 168 - ".onCreate"
+Cohesion: 0.19
+Nodes (7): Activity, Bundle, Handler, JavascriptInterface, TextView, WebView, PortalBridge
+
+### Community 169 - "3. Heal"
+Cohesion: 0.33
+Nodes (6): 3.1 Find failing tests, 3.2 Debug one failure, 3.3 Apply the fix, 3.4 Reconcile with the spec, 3.5 Iteration and giving up, 3. Heal
+
+### Community 170 - "Test generation (plan → generate → heal)"
+Cohesion: 0.12
+Nodes (17): 0. How generation works, 1.1 Prerequisite: workspace, 1.2 Prerequisite: seed test, 1.3 Explore the app, 1.4 Write the spec file, 1. Planning, 2.1 Inputs, 2.2 Generate one scenario (+9 more)
+
+### Community 171 - "vendor/ponytail/hooks/ponytail-config.js"
+Cohesion: 0.16
+Nodes (14): fs, getClaudeDir(), getConfigDir(), getConfigPath(), getHideStatus(), getQuietStartup(), os, path (+6 more)
+
+### Community 172 - "vendor/ponytail/pi-extension/index.js"
+Cohesion: 0.12
+Nodes (23): normalizeConfigMode(), normalizeMode(), normalizePersistedMode(), RUNTIME_MODES, { DEFAULT_MODE, normalizeMode, normalizePersistedMode }, filterSkillBodyForMode(), fs, getFallbackInstructions() (+15 more)
+
+### Community 173 - "Tracing"
+Cohesion: 0.12
+Nodes (16): 1. Start Tracing Before the Problem, 2. Clean Up Old Traces, Analyzing Performance, Basic Usage, Best Practices, Capturing Evidence, Debugging Failed Actions, Limitations (+8 more)
+
+### Community 174 - "Install"
+Cohesion: 0.12
+Nodes (16): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+8 more)
+
+### Community 175 - "README.ko.md"
+Cohesion: 0.13
+Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Before / after, Commands, Development, FAQ (+5 more)
+
+### Community 176 - "ponytail-mcp/package.json"
+Cohesion: 0.14
+Nodes (13): @modelcontextprotocol/sdk, dependencies, @modelcontextprotocol/sdk, zod, description, license, name, private (+5 more)
+
+### Community 177 - "openclaw-skills.test.js"
+Cohesion: 0.21
+Nodes (12): DESCRIPTIONS, fs, NAMES, outPath(), path, render(), ROOT, sourceBody() (+4 more)
+
+### Community 178 - "Running Custom Playwright Code"
+Cohesion: 0.15
+Nodes (13): Clipboard, Complex Workflows, Error Handling, File Downloads, Frames and Iframes, Geolocation, JavaScript Execution, Media Emulation (+5 more)
+
+### Community 179 - "generate-examples.mjs"
+Cohesion: 0.18
+Nodes (10): isHaiku(), j, meta, pick(), rows, tbl, assert, cases (+2 more)
+
+### Community 180 - "Install"
+Cohesion: 0.15
+Nodes (13): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+5 more)
+
+### Community 181 - "README.es.md"
+Cohesion: 0.17
+Nodes (10): Ponytail, lazy senior dev mode, Antes / después, Comandos, Cómo funciona, Desarrollo, FAQ, Historial de estrellas, Licencia (+2 more)
+
+### Community 182 - "vendor/ponytail/.opencode/plugins/ponytail.mjs"
+Cohesion: 0.22
+Nodes (7): __dirname, parseCommandFile(), { getDefaultMode, normalizePersistedMode }, { getPonytailInstructions }, { parseCommandFile }, require, statePath
+
+### Community 183 - "ponytail/README.md"
+Cohesion: 0.17
+Nodes (10): Ponytail, lazy senior dev mode, Before / after, Commands, Development, FAQ, How it works, License, Numbers (+2 more)
+
+### Community 184 - "Instalación"
+Cohesion: 0.17
+Nodes (12): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+4 more)
+
+### Community 185 - "check-rule-copies.js"
+Cohesion: 0.17
+Nodes (9): agents, canonical, copies, fs, INVARIANTS, path, root, skill (+1 more)
+
+### Community 186 - "gemini-extension.test.js"
+Cohesion: 0.18
+Nodes (11): assert, fs, loadManifest(), path, read(), REUSED_COMMANDS, REUSED_SKILLS, root (+3 more)
+
+### Community 187 - "hermes-plugin.test.js"
+Cohesion: 0.18
+Nodes (11): assert, commands, fs, os, path, python(), pythonExe(), root (+3 more)
+
+### Community 188 - "devDependencies"
+Cohesion: 0.15
+Nodes (13): oxlint, devDependencies, oxlint, playwright, @types/react, @types/react-dom, vite, @vitejs/plugin-react (+5 more)
+
+### Community 189 - "playwright-cli/SKILL.md"
+Cohesion: 0.24
+Nodes (4): Examples, Inspecting Element Attributes, Debugging Playwright Tests, Running Playwright Tests
+
+### Community 190 - "Agentic benchmark: does ponytail cut code without cutting safety?"
+Cohesion: 0.18
+Nodes (11): A contamination bug we found in our own numbers, Agentic benchmark: does ponytail cut code without cutting safety?, Axis 1: lines of code on real features (12 tasks), Axis 2: does minimizing drop a guard? (6 tasks), Conclusion, Limitations (so this can't be the next thing someone debunks), Reproduce, Setup (+3 more)
+
+### Community 191 - "ponytail-activate.js"
+Cohesion: 0.18
+Nodes (10): claudeDir, {
+  clearMode,
+  isCodex,
+  isCopilot,
+  setMode,
+  writeHookOutput,
+}, fs, { getDefaultMode, getClaudeDir, isShellSafe }, { getPonytailInstructions }, mode, output, path (+2 more)
+
+### Community 192 - "How to prepare a release"
+Cohesion: 0.20
+Nodes (7): How to prepare a release, Pitfalls, Steps, How to roll Playwright dependency, Key files, Steps, Development skills
+
+### Community 193 - "Agentic benchmark"
+Cohesion: 0.20
+Nodes (10): Agentic benchmark, Arms, Completeness judge (`complete.py`), Metrics, Over-engineering judge (`judge.py`), Reproduce, Results, Tasks (+2 more)
+
+### Community 194 - "Ponytail v4 hardening — A–F benchmark vs Caveman (2026-06-12)"
+Cohesion: 0.20
+Nodes (9): Acceptance criteria (brief §5.6), Addendum: same-model control arm (control2, added same day), Build phase — non-blank LOC / .py files (scorer-verified), Correctness, Extension phase (tasks C, D — surprise requests, git-measured), Ponytail v4 hardening — A–F benchmark vs Caveman (2026-06-12), Residual (honest notes), Safety — adversarial probes (independently executed) (+1 more)
+
+### Community 195 - "Platform-Native Solutions"
+Cohesion: 0.20
+Nodes (9): CSS Capabilities, Database, HTML Elements, JavaScript / Browser APIs, Node.js Standard Library, Platform-Native Solutions, Python Standard Library, Swift / SwiftUI (+1 more)
+
+### Community 196 - "Rate Limiting in FastAPI"
+Cohesion: 0.20
+Nodes (10): 1. **Using `slowapi` (Recommended - Easiest)**, 2. **Using `limits` Library (More Control)**, 3. **Custom Middleware (Full Control)**, 4. **Per-User Rate Limiting (With Authentication)**, 5. **Redis-Based Rate Limiting (Production)**, 6. **Complete Example with Multiple Endpoints**, Comparison Table, Rate Limiting in FastAPI (+2 more)
+
+### Community 197 - "publish-openclaw-skills.js"
+Cohesion: 0.20
+Nodes (7): fs, passthrough, path, root, skillsDir, slugs, { spawnSync }
+
+### Community 198 - "opencode-plugin.test.js"
+Cohesion: 0.20
+Nodes (8): assert, fs, os, path, { pathToFileURL }, statePath, test, tmp
+
+### Community 199 - "Video Recording"
+Cohesion: 0.22
+Nodes (8): 1. Use Descriptive Filenames, 2. Record entire hero scripts., Basic Recording, Best Practices, Limitations, Overlay API Summary, Tracing vs Video, Video Recording
+
+### Community 200 - "Benchmark"
+Cohesion: 0.22
+Nodes (9): Benchmark, Claude (Haiku / Sonnet / Opus), Independent benchmarks, Local models via Ollama, Median results (10 runs, 2026-06-13; cost re-verified at 30 runs, 2026-06-17), Metrics, Notes, Prerequisites (+1 more)
+
+### Community 201 - "Robustness audit: does ponytail degrade weak models? (2026-06-16)"
+Cohesion: 0.22
+Nodes (8): Conclusion, Edge-case traps (n=20/cell), Method, Reproduce, Robustness audit: does ponytail degrade weak models? (2026-06-16), The fix that wasn't, TL;DR, Validators: the email slip is provider-specific
+
+### Community 202 - "Agentic safety benchmark (2026-06-17): SUPERSEDED"
+Cohesion: 0.22
+Nodes (9): Agentic safety benchmark (2026-06-17): SUPERSEDED, Finding 1: the code-size gap collapses with a fair baseline, Finding 2: minimizing lines without a floor drops safety, Finding 3: over-engineering did not appear (null result, two ways), Reproduce, Results, TL;DR, What this does and does not show (+1 more)
+
+### Community 203 - "Cost verification: reproducing the "47-77% cheaper" claim (2026-06-17)"
+Cohesion: 0.22
+Nodes (9): Claude (pooled, 30 reps, USD for 5 tasks), Cost verification: reproducing the "47-77% cheaper" claim (2026-06-17), Gemini, Method, Notes, OpenAI (10 reps, USD for 5 tasks), Results, Takeaway (+1 more)
+
+### Community 204 - "Comprehension & reuse: fixing #245 and #217"
+Cohesion: 0.22
+Nodes (8): #217: rung shipped, failure did not reproduce, Comprehension & reuse: fixing #245 and #217, Haiku: a model ceiling, not a regression, Regression check: did the rule edits break anything?, Results — `trace-transfer`, n=6, root-cause-fix rate, The #245 reproducer, The fix, Verdict
+
+### Community 205 - "React Countdown Timer Component"
+Cohesion: 0.22
+Nodes (9): Advanced Timer with Formatted Display, Basic Countdown Timer, CSS Styling, Custom Hook Version, Features, React Countdown Timer Component, Styled Component with Animations, Usage Examples (+1 more)
+
+### Community 206 - "Ponytail"
+Cohesion: 0.22
+Nodes (8): Boundaries, Intensity, Output, Persistence, Ponytail, Rules, The ladder, When NOT to be lazy
+
+### Community 207 - "Ponytail"
+Cohesion: 0.22
+Nodes (8): Boundaries, Intensity, Output, Persistence, Ponytail, Rules, The ladder, When NOT to be lazy
+
+### Community 208 - "hooks-windows.test.js"
+Cohesion: 0.22
+Nodes (7): assert, fs, HOST_PLUGIN_MANIFESTS, path, root, { spawn }, test
+
+### Community 209 - "Contributing"
+Cohesion: 0.25
+Nodes (7): Build, Clone, Code of Conduct, Contributing, Contributor License Agreement, Run, Test
+
+### Community 210 - "update.js"
+Cohesion: 0.29
+Nodes (7): { execSync }, fs, main(), path, rootDir, run(), skillsDir
+
+### Community 211 - "Advanced Mocking with run-code"
+Cohesion: 0.25
+Nodes (8): Advanced Mocking with run-code, CLI Route Commands, Conditional Response Based on Request, Delayed Response, Modify Real Response, Request Mocking, Simulate Network Failures, URL Patterns
+
+### Community 212 - "Contexto de reparación Laujim"
+Cohesion: 0.40
+Nodes (4): Cambios realizados, Contexto de reparación Laujim, Hallazgos verificados, Restricciones
+
+### Community 213 - "behavior.test.js"
+Cohesion: 0.29
+Nodes (5): CHECKS, assert, behavior, check(), test
+
+### Community 214 - "benchmark-local.py"
+Cohesion: 0.39
+Nodes (7): call_ollama(), count_loc(), load_arms(), main(), Ponytail local benchmark — runs the same 5 tasks against any Ollama model. No…, Non-blank, non-comment lines of code: fenced blocks, or the whole response when…, run()
+
+### Community 215 - "marketplace.json"
+Cohesion: 0.25
+Nodes (7): description, name, owner, name, url, plugins, $schema
+
+### Community 216 - "examples/README.md"
+Cohesion: 0.25
+Nodes (5): Debounce, Without Ponytail, 116 lines of code, Rate Limiting, Without Ponytail, 128 lines of code, Examples
+
+### Community 217 - "Email Validation Function"
+Cohesion: 0.25
+Nodes (7): Comparison, Email Validation, Email Validation Function, More Robust Version (with additional checks), Using a Third-Party Library (Recommended for Production), With Ponytail, 3 lines of code, Without Ponytail, 75 lines of code
+
+### Community 218 - "Ponytail Help"
+Cohesion: 0.25
+Nodes (7): Configure Default Mode, Deactivate, Levels, More, Ponytail Help, Skills, Update
+
+### Community 219 - "check-versions.js"
+Cohesion: 0.25
+Nodes (6): distinct, fs, path, root, VERSION_FILES, versions
+
+### Community 220 - "Ponytail Help"
+Cohesion: 0.25
+Nodes (7): Configure Default Mode, Deactivate, Levels, More, Ponytail Help, Skills, Update
+
+### Community 221 - "commands.test.js"
+Cohesion: 0.25
+Nodes (7): assert, commands, fs, path, piSource, root, test
+
+### Community 222 - "copilot-plugin.test.js"
+Cohesion: 0.25
+Nodes (6): assert, fs, path, REQUIRED_COMMAND_FILES, root, test
+
+### Community 223 - "qoder-plugin.test.js"
+Cohesion: 0.25
+Nodes (6): assert, fs, path, root, SKILL_DIRS, test
+
+### Community 224 - "plugins/ponytail/pi-extension/index.js"
+Cohesion: 0.12
+Nodes (23): normalizeConfigMode(), normalizeMode(), normalizePersistedMode(), RUNTIME_MODES, { DEFAULT_MODE, normalizeMode, normalizePersistedMode }, filterSkillBodyForMode(), fs, getFallbackInstructions() (+15 more)
+
+### Community 225 - "package.json"
+Cohesion: 0.29
+Nodes (6): engines, node, name, private, type, version
+
+### Community 226 - "Caveman vs Ponytail — 2026-06-12"
+Cohesion: 0.29
+Nodes (6): Caveman vs Ponytail — 2026-06-12, Ponytail v1 (before this benchmark), Ponytail v2 (after fixes), Ponytail v3 (skill file compressed), v1 findings, Verdict (v3)
+
+### Community 227 - "Debounce Search Input"
+Cohesion: 0.29
+Nodes (7): Advanced: Debounce with Cancel & Immediate Options, Basic Debounce Function, Debounce Search Input, Enhanced Version with Loading State, HTML Example, Key Benefits, With Ponytail, 10 lines of code
+
+### Community 228 - "plugins/ponytail/hooks/ponytail-runtime.js"
+Cohesion: 0.13
+Nodes (20): isDeactivationCommand(), { clearMode, isQoder, readMode, setMode, writeHookOutput }, finish(), { getDefaultMode, isDeactivationCommand, writeDefaultMode }, { getPonytailInstructions }, clearMode(), fs, { getClaudeDir, getConfigDir } (+12 more)
+
+### Community 229 - "caveman-SKILL.md"
+Cohesion: 0.33
+Nodes (5): Auto-Clarity, Boundaries, Intensity, Persistence, Rules
+
+### Community 230 - "Local model benchmark: llama3.2 via Ollama — 2026-06-15"
+Cohesion: 0.33
+Nodes (5): Key findings, Local model benchmark: llama3.2 via Ollama — 2026-06-15, Reproduce, Results (n=5, median), Takeaway
+
+### Community 231 - "2026-06-16-correctness-gate-fix.md"
+Cohesion: 0.33
+Nodes (5): Claude re-score of committed responses through the fixed gate, Correctness under Ponytail: gate fixes + GPT-mini reproduction (2026-06-16), GPT arms (needs OPENAI_API_KEY in ../.env), The gate bugs, TL;DR
+
+### Community 232 - "csv-sum.md"
+Cohesion: 0.33
+Nodes (5): Alternative methods:, CSV Sum, Python code to read sales.csv and sum the 'amount' column, With Ponytail, 3 lines of code, Without Ponytail, 20 lines of code
+
+### Community 233 - "pi-extension/package.json"
+Cohesion: 0.33
+Nodes (5): name, private, scripts, test, type
+
+### Community 234 - "grok-plugin.test.js"
+Cohesion: 0.33
+Nodes (5): assert, fs, path, root, test
+
+### Community 235 - "package-scripts.test.js"
+Cohesion: 0.33
+Nodes (5): assert, fs, path, root, test
+
+### Community 236 - "package.test.js"
+Cohesion: 0.33
+Nodes (5): assert, fs, path, root, test
+
+### Community 238 - "Commands"
+Cohesion: 0.20
+Nodes (10): Commands, Core, DevTools, Keyboard, Mouse, Navigation, Network, Save as (+2 more)
+
+### Community 240 - ".openclaw/skills/ponytail-audit/SKILL.md"
+Cohesion: 0.40
+Nodes (4): Boundaries, Hunt, Output, Tags
+
+### Community 241 - "Ponytail Gain"
+Cohesion: 0.40
+Nodes (4): Boundaries, Honesty boundary, Ponytail Gain, Scoreboard
+
+### Community 242 - ".openclaw/skills/ponytail-review/SKILL.md"
+Cohesion: 0.40
+Nodes (4): Boundaries, Examples, Format, Scoring
+
+### Community 243 - "ponytail-mcp"
+Cohesion: 0.40
+Nodes (4): ponytail-mcp, Run it, Test, What it exposes
+
+### Community 244 - "ponytail/skills/ponytail-audit/SKILL.md"
+Cohesion: 0.40
+Nodes (4): Boundaries, Hunt, Output, Tags
+
+### Community 245 - "Ponytail Gain"
+Cohesion: 0.40
+Nodes (4): Boundaries, Honesty boundary, Ponytail Gain, Scoreboard
+
+### Community 246 - "ponytail/skills/ponytail-review/SKILL.md"
+Cohesion: 0.40
+Nodes (4): Boundaries, Examples, Format, Scoring
+
+### Community 247 - "vendor/ponytail/opencode.json"
+Cohesion: 0.50
+Nodes (3): ./.opencode/plugins/ponytail.mjs, plugin, $schema
+
+### Community 248 - "caveman.js"
+Cohesion: 0.50
+Nodes (3): fs, path, system
+
+### Community 249 - "ponytail.js"
+Cohesion: 0.50
+Nodes (3): fs, path, system
+
+### Community 250 - "Deep Clone"
+Cohesion: 0.50
+Nodes (3): Deep Clone, With Ponytail, Without Ponytail
+
+### Community 251 - "Group By"
+Cohesion: 0.50
+Nodes (3): Group By, With Ponytail, Without Ponytail
+
+### Community 252 - "Infinite Scroll"
+Cohesion: 0.50
+Nodes (3): Infinite Scroll, With Ponytail, Without Ponytail
+
+### Community 253 - "Modal Dialog"
+Cohesion: 0.50
+Nodes (3): Modal Dialog, With Ponytail, Without Ponytail
+
+### Community 254 - "Number Formatting"
+Cohesion: 0.50
+Nodes (3): Number Formatting, With Ponytail, Without Ponytail
+
+### Community 255 - "URL Parameters"
+Cohesion: 0.50
+Nodes (3): URL Parameters, With Ponytail, Without Ponytail
+
+### Community 256 - ".openclaw/skills/ponytail-debt/SKILL.md"
+Cohesion: 0.50
+Nodes (3): Boundaries, Output, Scan
+
+### Community 257 - "ponytail/skills/ponytail-debt/SKILL.md"
+Cohesion: 0.50
+Nodes (3): Boundaries, Output, Scan
+
+### Community 258 - "collectRenderedWaterPolicies"
+Cohesion: 0.67
+Nodes (3): collectRenderedWaterPolicies(), renderedWaterPolicies(), waitForRenderedReader()
+
+### Community 262 - "plugins/ponytail/benchmarks/correctness.js"
+Cohesion: 0.10
+Nodes (17): CHECKS, correctnessTimeoutMs(), exec(), { execSync }, fs, os, path, python() (+9 more)
+
+### Community 263 - "plugins/ponytail/__init__.py"
+Cohesion: 0.19
+Nodes (21): build_injected_context(), _config_dir(), _default_mode(), _fallback_instructions(), _filter_skill_body_for_mode(), _handle_mode_command(), _make_skill_command_handler(), _normalize_config_mode() (+13 more)
+
+### Community 264 - "plugins/ponytail/benchmarks/agentic/complete.py"
+Cohesion: 0.21
+Nodes (19): main(), parse_complete(), _rank_ok(), scores: {(task_id, label): {SCORE_KEY: int}}. For each task the 'complete'…, Live: the judge model must rank each complete ref above its stub., No API, no key: prove the GATE catches under-delivery. A well-ordered matrix…, run(), selftest() (+11 more)
+
+### Community 283 - "vendor/ponytail/benchmarks/agentic/complete.py"
+Cohesion: 0.21
+Nodes (19): main(), parse_complete(), _rank_ok(), scores: {(task_id, label): {SCORE_KEY: int}}. For each task the 'complete'…, Live: the judge model must rank each complete ref above its stub., No API, no key: prove the GATE catches under-delivery. A well-ordered matrix…, run(), selftest() (+11 more)
+
+### Community 284 - "plugins/ponytail/tests/uninstall.test.js"
+Cohesion: 0.10
+Nodes (18): assert, claudeDir, configDir, configPath, env, flagPath, fs, home (+10 more)
+
+### Community 285 - "plugins/ponytail/hooks/ponytail-config.js"
+Cohesion: 0.16
+Nodes (14): fs, getClaudeDir(), getConfigDir(), getConfigPath(), getHideStatus(), getQuietStartup(), os, path (+6 more)
+
+### Community 286 - "Install"
+Cohesion: 0.12
+Nodes (16): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+8 more)
+
+### Community 287 - "plugins/ponytail/README.es.md"
+Cohesion: 0.13
+Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Antes / después, Comandos, Cómo funciona, Desarrollo (+5 more)
+
+### Community 288 - "plugins/ponytail/tests/openclaw-skills.test.js"
+Cohesion: 0.21
+Nodes (12): DESCRIPTIONS, fs, NAMES, outPath(), path, render(), ROOT, sourceBody() (+4 more)
+
+### Community 289 - "cloudApartmentServices"
+Cohesion: 0.20
+Nodes (14): buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), buildCloudServicesImageData(), buildDebtReply(), cloudApartmentServices(), cloudApartmentServicesLine() (+6 more)
+
+### Community 290 - "plugins/ponytail/benchmarks/generate-examples.mjs"
+Cohesion: 0.18
+Nodes (10): isHaiku(), j, meta, pick(), rows, tbl, assert, cases (+2 more)
+
+### Community 291 - "plugins/ponytail/ponytail-mcp/instructions.js"
+Cohesion: 0.26
+Nodes (10): getDefaultMode(), modeArg, server, { version }, buildInstructions(), { getDefaultMode, normalizeMode }, { getPonytailInstructions }, MODES (+2 more)
+
+### Community 292 - "Install"
+Cohesion: 0.15
+Nodes (13): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+5 more)
+
+### Community 293 - "plugins/ponytail/README.ko.md"
+Cohesion: 0.17
+Nodes (10): Ponytail, lazy senior dev mode, Before / after, Commands, Development, FAQ, How it works, License, Numbers (+2 more)
+
+### Community 294 - "plugins/ponytail/README.md"
+Cohesion: 0.17
+Nodes (10): Ponytail, lazy senior dev mode, Before / after, Commands, Development, FAQ, How it works, License, Numbers (+2 more)
+
+### Community 295 - "Instalación"
+Cohesion: 0.17
+Nodes (12): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+4 more)
+
+### Community 296 - "plugins/ponytail/scripts/check-rule-copies.js"
+Cohesion: 0.17
+Nodes (9): agents, canonical, copies, fs, INVARIANTS, path, root, skill (+1 more)
+
+### Community 297 - "plugins/ponytail/tests/gemini-extension.test.js"
+Cohesion: 0.18
+Nodes (11): assert, fs, loadManifest(), path, read(), REUSED_COMMANDS, REUSED_SKILLS, root (+3 more)
+
+### Community 298 - "plugins/ponytail/tests/hermes-plugin.test.js"
+Cohesion: 0.18
+Nodes (11): assert, commands, fs, os, path, python(), pythonExe(), root (+3 more)
+
+### Community 299 - "Agentic benchmark: does ponytail cut code without cutting safety?"
+Cohesion: 0.18
+Nodes (11): A contamination bug we found in our own numbers, Agentic benchmark: does ponytail cut code without cutting safety?, Axis 1: lines of code on real features (12 tasks), Axis 2: does minimizing drop a guard? (6 tasks), Conclusion, Limitations (so this can't be the next thing someone debunks), Reproduce, Setup (+3 more)
+
+### Community 300 - "plugins/ponytail/hooks/ponytail-activate.js"
+Cohesion: 0.18
+Nodes (10): claudeDir, {
+  clearMode,
+  isCodex,
+  isCopilot,
+  setMode,
+  writeHookOutput,
+}, fs, { getDefaultMode, getClaudeDir, isShellSafe }, { getPonytailInstructions }, mode, output, path (+2 more)
+
+### Community 301 - "Agentic benchmark"
+Cohesion: 0.20
+Nodes (10): Agentic benchmark, Arms, Completeness judge (`complete.py`), Metrics, Over-engineering judge (`judge.py`), Reproduce, Results, Tasks (+2 more)
+
+### Community 302 - "Ponytail v4 hardening — A–F benchmark vs Caveman (2026-06-12)"
+Cohesion: 0.20
+Nodes (9): Acceptance criteria (brief §5.6), Addendum: same-model control arm (control2, added same day), Build phase — non-blank LOC / .py files (scorer-verified), Correctness, Extension phase (tasks C, D — surprise requests, git-measured), Ponytail v4 hardening — A–F benchmark vs Caveman (2026-06-12), Residual (honest notes), Safety — adversarial probes (independently executed) (+1 more)
+
+### Community 303 - "Platform-Native Solutions"
+Cohesion: 0.20
+Nodes (9): CSS Capabilities, Database, HTML Elements, JavaScript / Browser APIs, Node.js Standard Library, Platform-Native Solutions, Python Standard Library, Swift / SwiftUI (+1 more)
+
+### Community 304 - "Rate Limiting in FastAPI"
+Cohesion: 0.20
+Nodes (10): 1. **Using `slowapi` (Recommended - Easiest)**, 2. **Using `limits` Library (More Control)**, 3. **Custom Middleware (Full Control)**, 4. **Per-User Rate Limiting (With Authentication)**, 5. **Redis-Based Rate Limiting (Production)**, 6. **Complete Example with Multiple Endpoints**, Comparison Table, Rate Limiting in FastAPI (+2 more)
+
+### Community 305 - "plugins/ponytail/.opencode/plugins/ponytail.mjs"
+Cohesion: 0.22
+Nodes (7): __dirname, parseCommandFile(), { getDefaultMode, normalizePersistedMode }, { getPonytailInstructions }, { parseCommandFile }, require, statePath
+
+### Community 306 - "plugins/ponytail/scripts/publish-openclaw-skills.js"
+Cohesion: 0.20
+Nodes (7): fs, passthrough, path, root, skillsDir, slugs, { spawnSync }
+
+### Community 307 - "plugins/ponytail/tests/opencode-plugin.test.js"
+Cohesion: 0.20
+Nodes (8): assert, fs, os, path, { pathToFileURL }, statePath, test, tmp
+
+### Community 308 - "Benchmark"
+Cohesion: 0.22
+Nodes (9): Benchmark, Claude (Haiku / Sonnet / Opus), Independent benchmarks, Local models via Ollama, Median results (10 runs, 2026-06-13; cost re-verified at 30 runs, 2026-06-17), Metrics, Notes, Prerequisites (+1 more)
+
+### Community 309 - "Robustness audit: does ponytail degrade weak models? (2026-06-16)"
+Cohesion: 0.22
+Nodes (8): Conclusion, Edge-case traps (n=20/cell), Method, Reproduce, Robustness audit: does ponytail degrade weak models? (2026-06-16), The fix that wasn't, TL;DR, Validators: the email slip is provider-specific
+
+### Community 310 - "Agentic safety benchmark (2026-06-17): SUPERSEDED"
+Cohesion: 0.22
+Nodes (9): Agentic safety benchmark (2026-06-17): SUPERSEDED, Finding 1: the code-size gap collapses with a fair baseline, Finding 2: minimizing lines without a floor drops safety, Finding 3: over-engineering did not appear (null result, two ways), Reproduce, Results, TL;DR, What this does and does not show (+1 more)
+
+### Community 311 - "Cost verification: reproducing the "47-77% cheaper" claim (2026-06-17)"
+Cohesion: 0.22
+Nodes (9): Claude (pooled, 30 reps, USD for 5 tasks), Cost verification: reproducing the "47-77% cheaper" claim (2026-06-17), Gemini, Method, Notes, OpenAI (10 reps, USD for 5 tasks), Results, Takeaway (+1 more)
+
+### Community 312 - "Comprehension & reuse: fixing #245 and #217"
+Cohesion: 0.22
+Nodes (8): #217: rung shipped, failure did not reproduce, Comprehension & reuse: fixing #245 and #217, Haiku: a model ceiling, not a regression, Regression check: did the rule edits break anything?, Results — `trace-transfer`, n=6, root-cause-fix rate, The #245 reproducer, The fix, Verdict
+
+### Community 313 - "React Countdown Timer Component"
+Cohesion: 0.22
+Nodes (9): Advanced Timer with Formatted Display, Basic Countdown Timer, CSS Styling, Custom Hook Version, Features, React Countdown Timer Component, Styled Component with Animations, Usage Examples (+1 more)
+
+### Community 314 - "Ponytail"
+Cohesion: 0.22
+Nodes (8): Boundaries, Intensity, Output, Persistence, Ponytail, Rules, The ladder, When NOT to be lazy
+
+### Community 315 - "Ponytail"
+Cohesion: 0.22
+Nodes (8): Boundaries, Intensity, Output, Persistence, Ponytail, Rules, The ladder, When NOT to be lazy
+
+### Community 316 - "plugins/ponytail/tests/hooks-windows.test.js"
+Cohesion: 0.22
+Nodes (7): assert, fs, HOST_PLUGIN_MANIFESTS, path, root, { spawn }, test
+
+### Community 317 - "Cookies"
+Cohesion: 0.22
+Nodes (9): Advanced: Multiple Cookies or Custom Options, Clear All Cookies, Cookies, Delete a Cookie, Filter Cookies by Domain, Filter Cookies by Path, Get Specific Cookie, List All Cookies (+1 more)
+
+### Community 318 - "plugins/ponytail/tests/behavior.test.js"
+Cohesion: 0.29
+Nodes (5): CHECKS, assert, behavior, check(), test
+
+### Community 319 - "plugins/ponytail/benchmarks/benchmark-local.py"
+Cohesion: 0.39
+Nodes (7): call_ollama(), count_loc(), load_arms(), main(), Ponytail local benchmark — runs the same 5 tasks against any Ollama model. No…, Non-blank, non-comment lines of code: fenced blocks, or the whole response when…, run()
+
+### Community 320 - "plugins/ponytail/.claude-plugin/marketplace.json"
+Cohesion: 0.25
+Nodes (7): description, name, owner, name, url, plugins, $schema
+
+### Community 321 - "plugins/ponytail/examples/README.md"
+Cohesion: 0.25
+Nodes (5): Debounce, Without Ponytail, 116 lines of code, Rate Limiting, Without Ponytail, 128 lines of code, Examples
+
+### Community 322 - "Email Validation Function"
+Cohesion: 0.25
+Nodes (7): Comparison, Email Validation, Email Validation Function, More Robust Version (with additional checks), Using a Third-Party Library (Recommended for Production), With Ponytail, 3 lines of code, Without Ponytail, 75 lines of code
+
+### Community 323 - "Ponytail Help"
+Cohesion: 0.25
+Nodes (7): Configure Default Mode, Deactivate, Levels, More, Ponytail Help, Skills, Update
+
+### Community 324 - "plugins/ponytail/scripts/check-versions.js"
+Cohesion: 0.25
+Nodes (6): distinct, fs, path, root, VERSION_FILES, versions
+
+### Community 325 - "Ponytail Help"
+Cohesion: 0.25
+Nodes (7): Configure Default Mode, Deactivate, Levels, More, Ponytail Help, Skills, Update
+
+### Community 326 - "plugins/ponytail/tests/commands.test.js"
+Cohesion: 0.25
+Nodes (7): assert, commands, fs, path, piSource, root, test
+
+### Community 327 - "plugins/ponytail/tests/copilot-plugin.test.js"
+Cohesion: 0.25
+Nodes (6): assert, fs, path, REQUIRED_COMMAND_FILES, root, test
+
+### Community 328 - "plugins/ponytail/tests/qoder-plugin.test.js"
+Cohesion: 0.25
+Nodes (6): assert, fs, path, root, SKILL_DIRS, test
+
+### Community 329 - "Service"
+Cohesion: 0.43
+Nodes (5): IBinder, Intent, Override, RespondViaMessageService, Service
+
+### Community 330 - "Caveman vs Ponytail — 2026-06-12"
+Cohesion: 0.29
+Nodes (6): Caveman vs Ponytail — 2026-06-12, Ponytail v1 (before this benchmark), Ponytail v2 (after fixes), Ponytail v3 (skill file compressed), v1 findings, Verdict (v3)
+
+### Community 331 - "Debounce Search Input"
+Cohesion: 0.29
+Nodes (7): Advanced: Debounce with Cancel & Immediate Options, Basic Debounce Function, Debounce Search Input, Enhanced Version with Loading State, HTML Example, Key Benefits, With Ponytail, 10 lines of code
+
+### Community 332 - "plugins/ponytail/benchmarks/arms/caveman-SKILL.md"
+Cohesion: 0.33
+Nodes (5): Auto-Clarity, Boundaries, Intensity, Persistence, Rules
+
+### Community 333 - "Local model benchmark: llama3.2 via Ollama — 2026-06-15"
+Cohesion: 0.33
+Nodes (5): Key findings, Local model benchmark: llama3.2 via Ollama — 2026-06-15, Reproduce, Results (n=5, median), Takeaway
+
+### Community 334 - "plugins/ponytail/benchmarks/results/2026-06-16-correctness-gate-fix.md"
+Cohesion: 0.33
+Nodes (5): Claude re-score of committed responses through the fixed gate, Correctness under Ponytail: gate fixes + GPT-mini reproduction (2026-06-16), GPT arms (needs OPENAI_API_KEY in ../.env), The gate bugs, TL;DR
+
+### Community 335 - "plugins/ponytail/examples/csv-sum.md"
+Cohesion: 0.33
+Nodes (5): Alternative methods:, CSV Sum, Python code to read sales.csv and sum the 'amount' column, With Ponytail, 3 lines of code, Without Ponytail, 20 lines of code
+
+### Community 336 - "plugins/ponytail/tests/grok-plugin.test.js"
+Cohesion: 0.33
+Nodes (5): assert, fs, path, root, test
+
+### Community 337 - "plugins/ponytail/tests/package-scripts.test.js"
+Cohesion: 0.33
+Nodes (5): assert, fs, path, root, test
+
+### Community 338 - "plugins/ponytail/tests/package.test.js"
+Cohesion: 0.33
+Nodes (5): assert, fs, path, root, test
+
+### Community 340 - "plugins/ponytail/.openclaw/skills/ponytail-audit/SKILL.md"
+Cohesion: 0.40
+Nodes (4): Boundaries, Hunt, Output, Tags
+
+### Community 341 - "Ponytail Gain"
+Cohesion: 0.40
+Nodes (4): Boundaries, Honesty boundary, Ponytail Gain, Scoreboard
+
+### Community 342 - "plugins/ponytail/.openclaw/skills/ponytail-review/SKILL.md"
+Cohesion: 0.40
+Nodes (4): Boundaries, Examples, Format, Scoring
+
+### Community 343 - "ponytail-mcp"
+Cohesion: 0.40
+Nodes (4): ponytail-mcp, Run it, Test, What it exposes
+
+### Community 344 - "plugins/ponytail/skills/ponytail-audit/SKILL.md"
+Cohesion: 0.40
+Nodes (4): Boundaries, Hunt, Output, Tags
+
+### Community 345 - "Ponytail Gain"
+Cohesion: 0.40
+Nodes (4): Boundaries, Honesty boundary, Ponytail Gain, Scoreboard
+
+### Community 346 - "plugins/ponytail/skills/ponytail-review/SKILL.md"
+Cohesion: 0.40
+Nodes (4): Boundaries, Examples, Format, Scoring
+
+### Community 348 - "plugins/ponytail/benchmarks/arms/caveman.js"
+Cohesion: 0.50
+Nodes (3): fs, path, system
+
+### Community 349 - "plugins/ponytail/benchmarks/arms/ponytail.js"
+Cohesion: 0.50
+Nodes (3): fs, path, system
+
+### Community 350 - "Deep Clone"
+Cohesion: 0.50
+Nodes (3): Deep Clone, With Ponytail, Without Ponytail
+
+### Community 351 - "Group By"
+Cohesion: 0.50
+Nodes (3): Group By, With Ponytail, Without Ponytail
+
+### Community 352 - "Infinite Scroll"
+Cohesion: 0.50
+Nodes (3): Infinite Scroll, With Ponytail, Without Ponytail
+
+### Community 353 - "Modal Dialog"
+Cohesion: 0.50
+Nodes (3): Modal Dialog, With Ponytail, Without Ponytail
+
+### Community 354 - "Number Formatting"
+Cohesion: 0.50
+Nodes (3): Number Formatting, With Ponytail, Without Ponytail
+
+### Community 355 - "URL Parameters"
+Cohesion: 0.50
+Nodes (3): URL Parameters, With Ponytail, Without Ponytail
+
+### Community 356 - "plugins/ponytail/.openclaw/skills/ponytail-debt/SKILL.md"
+Cohesion: 0.50
+Nodes (3): Boundaries, Output, Scan
+
+### Community 357 - "plugins/ponytail/opencode.json"
+Cohesion: 0.50
+Nodes (3): ./.opencode/plugins/ponytail.mjs, plugin, $schema
+
+### Community 358 - "plugins/ponytail/skills/ponytail-debt/SKILL.md"
+Cohesion: 0.50
+Nodes (3): Boundaries, Output, Scan
+
+### Community 359 - "Storage State"
+Cohesion: 0.50
+Nodes (4): Restore Storage State, Save Storage State, Storage State, Storage State File Format
 
 ## Knowledge Gaps
-- **506 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES`, `$schema`, `oxc` (+501 more)
+- **1820 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES`, `$schema`, `name` (+1815 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **54 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `portalFieldValue()` connect `portalFieldValue` to `sleep`, `portal-scraper.js`, `scrapeGasAccount`, `services-scraper.cjs`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **Why does `field()` connect `portal-scraper.js` to `portalFieldValue`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
-- **Why does `dependencies` connect `dependencies` to `recharts`, `@sparticuz/chromium`, `@capacitor-mlkit/barcode-scanning`, `@tailwindcss/vite`, `pg`, `@capacitor/cli`, `scripts`, `@capacitor/share`, `tailwindcss`, `ffmpeg-static`, `react-dom`, `puppeteer-core`, `jspdf`, `react`, `@capacitor/core`, `multer`, `@capacitor/filesystem`, `lucide-react`, `@capacitor/local-notifications`, `node-cron`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **Why does `portalFrameRoots()` connect `sleep` to `playwright-cli.js`, `services-scraper.cjs`?**
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **What connects `$schema`, `.opencode/plugins/graphify.js`, `BROWSER_TOOL_PREFIXES` to the rest of the system?**
-  _506 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1820 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ApartmentDetail.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.10077519379844961 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08766233766233766 - nodes in this community are weakly interconnected._
 - **Should `.status` be split into smaller, more focused modules?**
-  _Cohesion score 0.11193339500462535 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07782898105478751 - nodes in this community are weakly interconnected._
 - **Should `server.cjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.04734073641145529 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.043037974683544304 - nodes in this community are weakly interconnected._

@@ -664,17 +664,24 @@ function cloudPeriodLabel(period = colombiaDate().slice(0, 7)) {
 // tenant's first name and the payment period as body variables, plus two
 // reply buttons: "Ya pagué" (id: payment_confirmed) and "No he pagado"
 // (id: payment_pending). The buttons are defined in the template itself.
-function cloudTemplateDebtValue(state) {
+function cloudTemplateDebtValue(state, referenceLabel = '', referenceValue = '') {
+  const suffix = referenceValue ? ` · ${referenceLabel}: ${referenceValue}` : '';
   if (state?.debt !== null && state?.debt !== undefined && Number.isFinite(Number(state.debt))) {
-    return '$' + Number(state.debt).toLocaleString('es-CO');
+    return '$' + Number(state.debt).toLocaleString('es-CO') + suffix;
   }
-  if (state?.known) return '$0 · Al día';
-  return 'Sin dato confirmado';
+  if (state?.known) return '$0 · Al día' + suffix;
+  return 'Sin dato confirmado' + suffix;
 }
 
 function cloudPaymentTemplateData(apartment, period) {
+  if (!apartment?.id) throw new Error('La conversación no está asociada a un apartamento con contrato activo.');
   const summary = cloudApartmentServices(apartment);
   const { contract, amount } = cloudRentAmount(apartment);
+  const references = {
+    electricity: apartment.electricityPaymentCode || apartment.nic || summary.records.electricity?.nic || '',
+    water: apartment.waterPaymentCode || summary.records.water?.waterPaymentCode || '',
+    gas: apartment.gasPaymentCode || summary.records.gas?.gasPaymentCode || '',
+  };
   const periodKey = String(period || colombiaDate().slice(0, 7)).slice(0, 7);
   const dueDay = Math.min(31, Math.max(1, Number(apartment?.paymentDueDay) || 5));
   const dueDate = cloudCalendarDate(periodKey, dueDay);
@@ -700,9 +707,9 @@ function cloudPaymentTemplateData(apartment, period) {
       { type: 'text', text: '$' + Number(amount || 0).toLocaleString('es-CO') },
       { type: 'text', text: cloudFormatFullDate(colombiaDate(dueDate)) },
       { type: 'text', text: rentStatus },
-      { type: 'text', text: cloudTemplateDebtValue(summary.states.electricity) },
-      { type: 'text', text: cloudTemplateDebtValue(summary.states.water) },
-      { type: 'text', text: cloudTemplateDebtValue(summary.states.gas) },
+      { type: 'text', text: cloudTemplateDebtValue(summary.states.electricity, 'NIC', references.electricity) },
+      { type: 'text', text: cloudTemplateDebtValue(summary.states.water, 'Póliza', references.water) },
+      { type: 'text', text: cloudTemplateDebtValue(summary.states.gas, 'Contrato', references.gas) },
       { type: 'text', text: cloudServicePaymentLink(apartment, summary.records.electricity, 'electricity') },
       { type: 'text', text: cloudServicePaymentLink(apartment, summary.records.water, 'water') },
       { type: 'text', text: cloudServicePaymentLink(apartment, summary.records.gas, 'gas') },
@@ -718,6 +725,7 @@ function sendCloudPaymentReminderTemplate(to, name, period, apartment = null) {
   const templateName = String(process.env.WHATSAPP_PAYMENT_REMINDER_TEMPLATE || 'cobro_canon_servicios').trim();
   const resolvedApartment = apartment || {};
   const data = cloudPaymentTemplateData(resolvedApartment, period);
+  console.log(`[WHATSAPP CLOUD] Payment template context: apartment=${resolvedApartment.name || resolvedApartment.id}, period=${period || colombiaDate().slice(0, 7)}, rent=${data.parameters[3].text}.`);
   if (name) data.parameters[0].text = firstName(name);
   return cloudApiRequest('/messages', 'POST', {
     messaging_product: 'whatsapp', to: normalizePhone(to), type: 'template',
@@ -766,6 +774,28 @@ function activeContractForApartment(apartmentId) {
   return (db.contracts || []).find(contract => Number(contract.apartmentId) === Number(apartmentId) &&
     contract.status !== 'terminated' && contract.status !== 'cancelled' &&
     (!contract.endDate || new Date(contract.endDate).getTime() >= now));
+}
+
+function activeContractForTenant(tenantId) {
+  const now = Date.now();
+  return (db.contracts || []).find(contract => Number(contract.tenantId) === Number(tenantId) &&
+    contract.status !== 'terminated' && contract.status !== 'cancelled' &&
+    (!contract.endDate || new Date(contract.endDate).getTime() >= now));
+}
+
+function resolveCloudConversationContext(conversation = {}) {
+  let tenant = (db.tenants || []).find(item => Number(item.id) === Number(conversation.tenantId)) || null;
+  let apartment = (db.apartments || []).find(item => Number(item.id) === Number(conversation.apartmentId)) || null;
+
+  if (!tenant && conversation.phone) {
+    tenant = (db.tenants || []).find(item => samePhone(item.phone, conversation.phone)) || null;
+  }
+  if (!apartment && tenant) {
+    const contract = activeContractForTenant(tenant.id);
+    apartment = (db.apartments || []).find(item => Number(item.id) === Number(contract?.apartmentId)) || null;
+  }
+  if (!tenant && apartment) tenant = activeTenantForApartment(apartment).tenant || null;
+  return { tenant, apartment };
 }
 
 function paymentReminderOffsets(apartment) {
@@ -1307,13 +1337,18 @@ function cloudServicePaymentLink(apartment, record, service) {
     gas: 'gasPaymentUrl',
   };
   const recordField = fieldByService[service];
-  const configured = record?.[recordField] || apartment?.[recordField];
-  if (configured) return String(configured);
-  if (service === 'electricity') {
-    const nic = apartment?.electricityPaymentCode || apartment?.nic;
-    if (nic) return `https://portal.air-e.com/Pagar#/User/${encodeURIComponent(nic)}/NUMEROCONTRATO`;
+  const candidates = [apartment?.[fieldByService[service]], record?.[recordField]];
+  for (const candidate of candidates) {
+    const value = String(candidate || '').trim();
+    if (!/^https?:\/\//i.test(value)) continue;
+    // The portal URLs are not the QR payment links requested for water and gas.
+    // Keep a saved QR URL, but never present the scraper's navigation fallback as
+    // if it were a payment destination.
+    if (service === 'water' && /portal\.aaa\.com\.co\/polizas/i.test(value)) continue;
+    if (service === 'gas' && /portal\.gascaribe\.com\/(?:payments|contracts)/i.test(value)) continue;
+    return value;
   }
-  if (service === 'gas' && apartment?.gasPaymentCode) return 'https://portal.gascaribe.com/payments';
+  if (service === 'electricity') return 'https://airepagos.st/';
   return 'No configurado';
 }
 
@@ -3384,7 +3419,8 @@ function marketplaceListingSnapshot(apartment, req) {
     apartmentId: Number(apartment.id),
     apartmentName: String(apartment.name || apartment.id),
     address: String(apartment.marketplaceAddress || apartment.address || '').trim(),
-    rentalType: String(apartment.marketplaceRentalType || 'Departamento/condominio'),
+    rentalType: String(apartment.marketplaceRentalType || 'Apartamento o piso'),
+    city: String(apartment.marketplaceCity || apartment.city || 'Barranquilla'),
     bedrooms: String(apartment.marketplaceBedrooms ?? apartment.rooms ?? ''),
     bathrooms: String(apartment.marketplaceBathrooms ?? apartment.bathrooms ?? ''),
     title: `Arriendo Apartamento ${apartment.name || apartment.id}`,
@@ -4820,8 +4856,9 @@ app.post('/api/whatsapp/cloud/send-template', async (req, res) => {
   if (!conversation || !['greeting', 'payment_reminder'].includes(template)) {
     return res.status(400).json({ error: 'Conversación y plantilla válida son requeridas' });
   }
-  const tenant = (db.tenants || []).find(item => Number(item.id) === Number(conversation.tenantId));
-  const apartment = (db.apartments || []).find(item => Number(item.id) === Number(conversation.apartmentId));
+  const context = resolveCloudConversationContext(conversation);
+  const tenant = context.tenant;
+  const apartment = context.apartment;
   try {
     let result;
     let message;
