@@ -1418,13 +1418,42 @@ function isReceiptPaymentUrl(value, service) {
   }
 }
 
+function gasContractPaymentUrl(contract) {
+  const code = String(contract || '').trim();
+  return code ? `https://portal.gascaribe.com/payments/contract/${encodeURIComponent(code)}` : null;
+}
+
+function normalizeApartmentServiceLinks(apartment) {
+  if (!apartment || typeof apartment !== 'object') return apartment;
+  apartment.gasPaymentUrl = gasContractPaymentUrl(apartment.gasPaymentCode);
+  return apartment;
+}
+
+function defaultGasAccountId(apartment, apartments = []) {
+  if (!String(apartment?.gasPaymentCode || '').trim()) return null;
+  const explicit = String(apartment?.gasAccountId || '').trim();
+  if (/^gas-\d+$/.test(explicit)) return explicit;
+  const counts = new Map();
+  for (const item of apartments || []) {
+    if (!String(item?.gasPaymentCode || '').trim()) continue;
+    const account = /^gas-\d+$/.test(String(item.gasAccountId || '')) ? String(item.gasAccountId) : 'gas-1';
+    counts.set(account, (counts.get(account) || 0) + 1);
+  }
+  let number = 1;
+  while ((counts.get(`gas-${number}`) || 0) >= 10) number += 1;
+  return `gas-${number}`;
+}
+
 function publicServicePaymentUrl(apartment, record, service) {
   if (service === 'electricity') {
     // Air-e has no public receipt QR. Tenants use the public page and enter
     // the NIC shown in the service details, so never expose the admin portal.
     return 'https://airepagos.st/';
   }
-  const field = service === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl';
+  if (service === 'gas') {
+    return gasContractPaymentUrl(apartment?.gasPaymentCode || record?.gasPaymentCode);
+  }
+  const field = 'waterPaymentUrl';
   return [apartment?.[field], record?.[field]].find(value => isReceiptPaymentUrl(value, service)) || null;
 }
 
@@ -3609,9 +3638,7 @@ function mergePortableWorkerRecords(records) {
       }
       if (result.provider === 'Gases del Caribe' && result.gasPaymentCode) {
         mappedApartment.gasPaymentCode = String(result.gasPaymentCode);
-        if (result.gasPaymentUrl && isReceiptPaymentUrl(result.gasPaymentUrl, 'gas')) {
-          mappedApartment.gasPaymentUrl = String(result.gasPaymentUrl);
-        }
+        mappedApartment.gasPaymentUrl = gasContractPaymentUrl(result.gasPaymentCode);
       }
     }
     persisted += 1;
@@ -5195,6 +5222,10 @@ app.post('/api/:collection', (req, res) => {
   if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
   const newItem = { ...req.body, id: nextId[col] || 1 };
   if (!newItem.createdAt) newItem.createdAt = new Date().toISOString();
+  if (col === 'apartments') {
+    normalizeApartmentServiceLinks(newItem);
+    newItem.gasAccountId = defaultGasAccountId(newItem, db.apartments);
+  }
   db[col].push(newItem);
   nextId[col] = (nextId[col] || 1) + 1;
   saveData();
@@ -5207,6 +5238,10 @@ app.put('/api/:collection/:id', async (req, res) => {
   const index = db[collection].findIndex(i => i.id === Number(id));
   if (index === -1) return res.status(404).json({ error: 'Not found' });
   db[collection][index] = { ...db[collection][index], ...req.body };
+  if (collection === 'apartments') {
+    normalizeApartmentServiceLinks(db[collection][index]);
+    db[collection][index].gasAccountId = defaultGasAccountId(db[collection][index], db.apartments);
+  }
   try {
     await saveData();
   } catch (error) {

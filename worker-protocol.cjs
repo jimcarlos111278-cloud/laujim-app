@@ -22,6 +22,11 @@ function text(value, max = 240) {
   return String(value ?? '').trim().slice(0, max);
 }
 
+function gasContractPaymentUrl(contract) {
+  const code = text(contract, 120);
+  return code ? `https://portal.gascaribe.com/payments/contract/${encodeURIComponent(code)}` : null;
+}
+
 function normalizeWorkerId(value) {
   const id = text(value, 128);
   return /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(id) ? id : null;
@@ -99,7 +104,9 @@ function sanitizeWorkerResult(raw, { deviceId = null, now = new Date().toISOStri
     result.waterPaymentUrl = text(raw.waterPaymentUrl, 300) || 'https://portal.aaa.com.co/polizas';
   } else {
     result.gasPaymentCode = text(raw.gasPaymentCode || raw.paymentCode || raw.policy, 120) || null;
-    result.gasPaymentUrl = text(raw.gasPaymentUrl, 300) || 'https://www.gascaribe.com/';
+    // Never persist a receipt/coupon QR from the worker. The public tenant
+    // link is always derived from the contract number.
+    result.gasPaymentUrl = gasContractPaymentUrl(result.gasPaymentCode);
   }
 
   return result;

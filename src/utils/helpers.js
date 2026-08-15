@@ -2,13 +2,22 @@ export function formatCurrency(amount) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount || 0);
 }
 
+// Gases del Caribe payment links must point to the contract, not to the
+// monthly receipt/coupon QR. The contract page lets the tenant see the
+// current debt and historical balance without the administrator session.
+export function gasContractPaymentUrl(contract) {
+  const code = String(contract || '').trim();
+  return code ? `https://portal.gascaribe.com/payments/contract/${encodeURIComponent(code)}` : '';
+}
+
 export function servicePaymentUrl(apartment, service) {
   if (service === 'electricity') {
     // Air-e has no receipt QR. Tenants use the public payment page and enter
     // the NIC shown beside the service; never expose the admin portal URL.
     return 'https://airepagos.st/';
   }
-  const field = service === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl';
+  if (service === 'gas') return gasContractPaymentUrl(apartment?.gasPaymentCode);
+  const field = 'waterPaymentUrl';
   const value = String(apartment?.[field] || '').trim();
   if (!/^https?:\/\//i.test(value)) return '';
   try {
@@ -17,10 +26,6 @@ export function servicePaymentUrl(apartment, service) {
     const path = url.pathname.toLowerCase().replace(/\/+$/, '') || '/';
     if (service === 'water' && host.endsWith('portal.aaa.com.co') &&
       !(path === '/pagos' && url.searchParams.get('tipoPago') === 'coupon' && url.searchParams.get('numeroPago'))) return '';
-    if (service === 'gas' && host.endsWith('gascaribe.com')) {
-      if (/^\/(?:login|contracts)(?:\/|$)/i.test(path)) return '';
-      if (path === '/payments' && [...url.searchParams.keys()].length === 0) return '';
-    }
     return value;
   } catch {
     return '';

@@ -69,6 +69,11 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function gasContractPaymentUrl(contract) {
+  const code = String(contract || '').trim();
+  return code ? `https://portal.gascaribe.com/payments/contract/${encodeURIComponent(code)}` : null;
+}
+
 function firstExistingPath(candidates) {
   return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || null;
 }
@@ -656,8 +661,8 @@ function configuredApartmentTargets(apartments = db?.apartments || []) {
       apartmentNumber: apartmentNumberFrom(apartment.name),
       waterPaymentUrl: apartment.waterPaymentUrl || null,
       waterPaymentCode: apartment.waterPaymentCode || null,
-      gasPaymentUrl: apartment.gasPaymentUrl || null,
       gasPaymentCode: apartment.gasPaymentCode || null,
+      gasPaymentUrl: gasContractPaymentUrl(apartment.gasPaymentCode),
     }));
 }
 
@@ -1098,13 +1103,13 @@ async function scrapeGasFromRenderedUi() {
       if (!target || used.has(String(target.apartmentId || target.apartment))) continue;
       used.add(String(target.apartmentId || target.apartment));
       const parsed = await queryRenderedGasContract(page, contract.code);
-      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: contract.code, gasPaymentUrl: target.gasPaymentUrl || null, status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, factura: parsed.factura || null, periodo: parsed.periodo || null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: contract.code, gasPaymentUrl: gasContractPaymentUrl(contract.code), status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, factura: parsed.factura || null, periodo: parsed.periodo || null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
       console.log(`[GAS] UI ${target.apartment}: ${parsed.status} (${parsed.deudaCOP === null ? 'sin valor' : `$${parsed.deudaCOP.toLocaleString('es-CO')}`}).`);
     }
     for (const target of targets) {
       const key = String(target.apartmentId || target.apartment);
       if (used.has(key)) continue;
-      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: target.gasPaymentCode || null, gasPaymentUrl: target.gasPaymentUrl || null, status: 'unknown', deudaCOP: null, deudaTotalCOP: null, deudaLabel: 'Deuda Total', numFacturas: null, error: 'Gases del Caribe no tiene este contrato asociado en la cuenta autenticada.', checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: target.gasPaymentCode || null, gasPaymentUrl: gasContractPaymentUrl(target.gasPaymentCode), status: 'unknown', deudaCOP: null, deudaTotalCOP: null, deudaLabel: 'Deuda Total', numFacturas: null, error: 'Gases del Caribe no tiene este contrato asociado en la cuenta autenticada.', checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
     }
     return results;
   } catch (error) {
@@ -2391,7 +2396,7 @@ function gasRecord(target, parsed, checkedAt = new Date().toISOString()) {
     service: 'gas',
     apartmentId: target.apartmentId,
     apartment: target.apartment,
-    gasPaymentUrl: target.gasPaymentUrl,
+    gasPaymentUrl: gasContractPaymentUrl(target.gasPaymentCode),
     gasPaymentCode: target.gasPaymentCode,
     status: parsed.status,
     deudaCOP: parsed.deudaCOP,
@@ -2788,8 +2793,8 @@ async function scrapeGasAccount() {
       const summary = gasInvoiceSummary(invoices);
       const record = gasRecord({
         ...target,
-        gasPaymentUrl: target.gasPaymentUrl || null,
         gasPaymentCode: String(contractId),
+        gasPaymentUrl: gasContractPaymentUrl(contractId),
       }, {
         ...summary,
         error: null,
@@ -3190,8 +3195,8 @@ function portalFailureResult(service, target, message, checkedAt = new Date().to
     result.waterPaymentUrl = target.waterPaymentUrl || null;
     result.waterPaymentCode = target.waterPaymentCode || null;
   } else {
-    result.gasPaymentUrl = target.gasPaymentUrl || null;
     result.gasPaymentCode = target.gasPaymentCode || null;
+    result.gasPaymentUrl = gasContractPaymentUrl(target.gasPaymentCode);
   }
   return result;
 }

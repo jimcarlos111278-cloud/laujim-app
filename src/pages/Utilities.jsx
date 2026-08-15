@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Zap, Droplets, Flame, Search, ExternalLink, ChevronLeft, ChevronRight, RefreshCw, MessageCircle, Scan, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Zap, Droplets, Flame, Search, ExternalLink, ChevronLeft, ChevronRight, RefreshCw, MessageCircle, Scan, Image as ImageIcon, Trash2, Settings2, AlertTriangle } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, servicePaymentUrl } from '../utils/helpers';
@@ -69,8 +69,49 @@ const PORTALS = [
 ];
 
 const AIR_E_PUBLIC_PAYMENT_URL = 'https://airepagos.st/';
-const QR_SERVICES = new Set(['water', 'gas']);
+// Gas payment links are now generated from the contract number. Only Triple A
+// still needs a receipt QR to give the tenant a public payment link.
+const QR_SERVICES = new Set(['water']);
 const SCAN_MAX_WIDTH = 640;
+const GAS_ACCOUNT_LIMIT = 10;
+
+function gasCode(apartment) {
+  return String(apartment?.gasPaymentCode || '').trim();
+}
+
+function buildGasAccounts(apartments) {
+  const groups = new Map();
+  const contractAccounts = new Map();
+  const conflicts = [];
+  let automaticApartmentIndex = 0;
+  const sorted = [...(apartments || [])]
+    .filter(apartment => gasCode(apartment))
+    .sort((left, right) => String(left.name || '').localeCompare(String(right.name || ''), 'es', { numeric: true }));
+
+  for (const apartment of sorted) {
+    const code = gasCode(apartment);
+    const explicitAccount = String(apartment.gasAccountId || '').trim();
+    const accountId = explicitAccount || `gas-${Math.floor(automaticApartmentIndex / GAS_ACCOUNT_LIMIT) + 1}`;
+    automaticApartmentIndex += 1;
+    const previousAccounts = contractAccounts.get(code) || new Set();
+    if (previousAccounts.size > 0 && !previousAccounts.has(accountId)) {
+      conflicts.push({ code, apartment: apartment.name, accounts: [...previousAccounts, accountId] });
+    }
+    previousAccounts.add(accountId);
+    contractAccounts.set(code, previousAccounts);
+    if (!groups.has(accountId)) groups.set(accountId, { id: accountId, contracts: [], apartments: [] });
+    const group = groups.get(accountId);
+    if (!group.contracts.includes(code)) group.contracts.push(code);
+    group.apartments.push(apartment);
+  }
+
+  return { accounts: [...groups.values()].sort((left, right) => left.id.localeCompare(right.id, 'en', { numeric: true })), conflicts };
+}
+
+function gasAccountLabel(accountId) {
+  const match = String(accountId || '').match(/(\d+)$/);
+  return match ? `Cuenta ${Number(match[1])}` : String(accountId || 'Sin cuenta');
+}
 
 export default function Utilities() {
   const [apartments, setApartments] = useState([]);
@@ -85,6 +126,7 @@ export default function Utilities() {
   const [waterSyncNote, setWaterSyncNote] = useState('');
   const [gasSyncingNow, setGasSyncingNow] = useState(false);
   const [gasSyncNote, setGasSyncNote] = useState('');
+  const [gasAccountNote, setGasAccountNote] = useState('');
   const [scanService, setScanService] = useState(null);
   const [scanApartmentId, setScanApartmentId] = useState(null);
   const [scanStatus, setScanStatus] = useState('');
@@ -94,6 +136,7 @@ export default function Utilities() {
   const scanTimerRef = useRef(null);
   const scannerRef = useRef(null);
   const videoRef = useRef(null);
+  const gasAccountSummary = buildGasAccounts(apartments);
 
   useEffect(() => { load(); }, []);
 
@@ -207,7 +250,7 @@ export default function Utilities() {
   }
 
   function qrPaymentField(service) {
-    return service === 'water' ? 'waterPaymentUrl' : 'gasPaymentUrl';
+    return 'waterPaymentUrl';
   }
 
   function normalizeReceiptQrUrl(raw, service) {
@@ -260,6 +303,7 @@ export default function Utilities() {
   }
 
   async function saveScannedPaymentUrl(apartmentId, service, rawValue) {
+    if (service !== 'water') throw new Error('Gases del Caribe usa el enlace permanente por contrato; no se guarda el QR mensual.');
     const url = normalizeReceiptQrUrl(rawValue, service);
     if (!url) {
       throw new Error(service === 'water'
@@ -521,6 +565,24 @@ export default function Utilities() {
     )));
   }
 
+  async function handleGasAccountChange(apartment, nextAccountId) {
+    const currentAccountId = String(apartment.gasAccountId || '').trim() || gasAccountSummary.accounts.find(account => account.apartments.some(item => item.id === apartment.id))?.id;
+    if (!nextAccountId || nextAccountId === currentAccountId) return;
+    const target = gasAccountSummary.accounts.find(account => account.id === nextAccountId);
+    if (target && target.apartments.length >= GAS_ACCOUNT_LIMIT && !target.apartments.some(item => item.id === apartment.id)) {
+      window.alert(`La ${gasAccountLabel(nextAccountId)} ya tiene ${GAS_ACCOUNT_LIMIT} apartamentos. Crea otra cuenta o mueve primero un apartamento.`);
+      return;
+    }
+    try {
+      const saved = await api.apartments.update(apartment.id, { gasAccountId: nextAccountId });
+      setApartments(current => current.map(item => item.id === apartment.id ? { ...item, gasAccountId: saved?.gasAccountId || nextAccountId } : item));
+      setGasAccountNote(`Apartamento ${apartment.name} asignado a ${gasAccountLabel(nextAccountId)}.`);
+      setTimeout(() => setGasAccountNote(''), 3500);
+    } catch (error) {
+      window.alert(`No se pudo guardar la cuenta de Gases: ${error.message}`);
+    }
+  }
+
   /* Legacy QR scanner removed: service links now come only from official portals.
   function handleScanQR(aptId, svc) {
     setScanAptId(aptId); setScanService(svc); setScanStatus('Iniciando cámara...');
@@ -598,6 +660,11 @@ export default function Utilities() {
     const s = search.toLowerCase();
     return a.name.toLowerCase().includes(s) || getCode(a, 'water').includes(s) || getCode(a, 'gas').includes(s) || getCode(a, 'electricity').includes(s);
   });
+  const highestGasAccount = gasAccountSummary.accounts.reduce((highest, account) => {
+    const number = Number(String(account.id).match(/(\d+)$/)?.[1] || 0);
+    return Math.max(highest, number);
+  }, 0);
+  const gasAccountOptions = Array.from({ length: Math.max(1, highestGasAccount + 1) }, (_, index) => `gas-${index + 1}`);
 
   return (
     <div className="space-y-4">
@@ -646,6 +713,57 @@ export default function Utilities() {
         </p>
       )}
 
+      {/* Gases account assignment */}
+      {gasAccountSummary.accounts.length > 0 && (
+        <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+          <div className="flex items-start gap-2">
+            <Settings2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-950 dark:text-amber-100">Cuentas de Gases del Caribe</h2>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-200">Máximo {GAS_ACCOUNT_LIMIT} apartamentos por cuenta. El enlace de pago siempre se genera por contrato.</p>
+                </div>
+                {gasAccountNote && <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{gasAccountNote}</span>}
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {gasAccountSummary.accounts.map(account => (
+                  <div key={account.id} className="rounded-lg border border-amber-200 bg-white/80 p-2.5 dark:border-amber-900/50 dark:bg-gray-800/70">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">{gasAccountLabel(account.id)}</span>
+                      <span className={`text-[11px] font-semibold ${account.apartments.length >= GAS_ACCOUNT_LIMIT ? 'text-red-600' : 'text-amber-700 dark:text-amber-300'}`}>{account.apartments.length}/{GAS_ACCOUNT_LIMIT} apartamentos</span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-gray-600 dark:text-gray-300">Aptos: {account.apartments.map(item => item.name).join(', ')}</p>
+                  </div>
+                ))}
+              </div>
+              {gasAccountSummary.conflicts.length > 0 && (
+                <div className="mt-2 flex gap-2 rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>Hay contratos repetidos asignados a cuentas diferentes ({gasAccountSummary.conflicts.map(item => `${item.code} · apto ${item.apartment}`).join('; ')}). Un mismo contrato debe quedar en una sola cuenta del portal.</span>
+                </div>
+              )}
+              <details className="mt-3">
+                <summary className="cursor-pointer text-[11px] font-semibold text-amber-800 dark:text-amber-200">Cambiar apartamento de cuenta</summary>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {apartments.filter(apartment => gasCode(apartment)).map(apartment => {
+                    const inferred = gasAccountSummary.accounts.find(account => account.apartments.some(item => item.id === apartment.id))?.id || 'gas-1';
+                    return (
+                      <label key={apartment.id} className="flex items-center justify-between gap-2 rounded-lg bg-white/70 px-2 py-1.5 text-[11px] dark:bg-gray-800/60">
+                        <span className="min-w-0 truncate text-gray-700 dark:text-gray-200">Apto {apartment.name} · {gasCode(apartment)}</span>
+                        <select value={inferred} onChange={event => handleGasAccountChange(apartment, event.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-1 text-[11px] text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100">
+                          {gasAccountOptions.map(accountId => <option key={accountId} value={accountId}>{gasAccountLabel(accountId)}</option>)}
+                        </select>
+                      </label>
+                    );
+                  })}
+                </div>
+              </details>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Search */}
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -666,6 +784,7 @@ export default function Utilities() {
                 const Icon = s.icon;
                 const code = getCode(apt, svc);
                 const url = getUrl(apt, svc);
+                const gasAccount = svc === 'gas' ? gasAccountSummary.accounts.find(account => account.apartments.some(item => item.id === apt.id)) : null;
                 return (
                   <div key={svc} className={`px-3 py-2.5 flex items-center gap-2 ${s.bgLight} dark:bg-transparent`}>
                     {/* Icon */}
@@ -676,6 +795,7 @@ export default function Utilities() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{s.name}</p>
                       {code && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{s.codeLabel}: <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{code}</span></p>}
+                      {gasAccount && <p className="text-[11px] text-amber-700 dark:text-amber-300">{gasAccountLabel(gasAccount.id)} · pago por contrato</p>}
                       {(svc === 'water' || svc === 'gas') && debts[apt.id] && (() => {
                         const bill = debts[apt.id][svc];
                         return (
@@ -704,6 +824,12 @@ export default function Utilities() {
                         <button onClick={() => handleElectricityPay(apt)} aria-label={`Pagar Air-e del apartamento ${apt.name}`} className="inline-flex h-8 w-8 sm:h-7 sm:w-auto sm:px-2 items-center justify-center gap-1 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-violet-600 rounded-md hover:from-purple-600 hover:to-violet-700 transition-all shadow-sm">
                           <ExternalLink className="w-3 h-3" /><span className="hidden sm:inline">Pagar</span>
                         </button>
+                      ) : svc === 'gas' ? (
+                        url ? (
+                          <button onClick={() => window.open(url, '_blank', 'noopener,noreferrer')} aria-label={`Pagar ${s.name} del apartamento ${apt.name}`} title="Pagar por contrato" className="inline-flex h-8 w-8 sm:h-7 sm:w-auto sm:px-2 items-center justify-center gap-1 text-xs font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-md hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm">
+                            <ExternalLink className="w-3 h-3" /><span className="hidden sm:inline">Pagar</span>
+                          </button>
+                        ) : <span className="text-[11px] text-gray-400">Sin contrato</span>
                       ) : (
                         <>
                           {url && (

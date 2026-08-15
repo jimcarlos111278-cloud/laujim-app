@@ -5,7 +5,7 @@ import Modal from '../components/Modal';
 import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
 import { photoUrl, isCapacitor, getBase, AUTH_TOKEN } from '../utils/config';
-import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate, servicePaymentUrl } from '../utils/helpers';
+import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate, servicePaymentUrl, gasContractPaymentUrl } from '../utils/helpers';
 import { generateMarketplaceJson } from '../utils/marketplaceBookmarklet';
 import { openAndroidMarketplace, runAndroidMarketplaceWorkerNow } from '../utils/androidScraperWorker';
 import { generateApartmentPDF } from '../utils/pdf';
@@ -247,7 +247,9 @@ export default function ApartmentDetail() {
       paymentReminderDays: (Array.isArray(form.paymentReminderDays) ? form.paymentReminderDays : [-3, 0, 3])
         .map(Number).filter(day => Number.isInteger(day) && day >= -15 && day <= 31),
       waterPaymentUrl: form.waterPaymentUrl || '',
-      gasPaymentUrl: form.gasPaymentUrl || '',
+      // Gases no longer uses the monthly receipt/coupon QR. Persist only the
+      // public contract payment route generated from the contract number.
+      gasPaymentUrl: gasContractPaymentUrl(form.gasPaymentCode),
       electricityPaymentUrl: autoUrl || form.electricityPaymentUrl || '',
     });
     setEditing(false);
@@ -419,6 +421,7 @@ export default function ApartmentDetail() {
   }
 
   async function saveScanResult(data, svc) {
+    if (svc === 'gas') throw new Error('Gases del Caribe usa el enlace permanente por contrato; no se guarda el QR mensual.');
     const url = normalizeScannedPaymentUrl(data, svc);
     if (!url) {
       throw new Error(svc === 'water'
@@ -1160,6 +1163,12 @@ export default function ApartmentDetail() {
                           <button onClick={handlePayElectricity} className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${paymentUrl ? 'text-emerald-600 hover:bg-emerald-100 font-medium' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}>
                             <ExternalLink className="w-3 h-3" /> Pagar
                           </button>
+                        ) : svc === 'gas' ? (
+                          paymentUrl && (
+                            <button onClick={() => openPaymentUrl(paymentUrl)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-100 rounded transition-colors font-medium">
+                              <ExternalLink className="w-3 h-3" /> Pagar por contrato
+                            </button>
+                          )
                         ) : (
                           <>
                             {paymentUrl && (
@@ -1499,8 +1508,8 @@ export default function ApartmentDetail() {
               <input type="text" value={form.gasPaymentCode || ''} onChange={e => setForm({...form, gasPaymentCode: e.target.value})} placeholder="Ej: 9876543210" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><QrCode className="w-3 h-3" /> URL Pago Gas (QR)</label>
-              <input type="url" value={form.gasPaymentUrl || ''} onChange={e => setForm({...form, gasPaymentUrl: e.target.value})} placeholder="URL del pago (opcional)" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> Enlace de pago por contrato</label>
+              <input type="url" value={gasContractPaymentUrl(form.gasPaymentCode)} readOnly placeholder="Se genera al ingresar el contrato" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Electricidad (día)</label>
