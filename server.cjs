@@ -1433,15 +1433,40 @@ function defaultGasAccountId(apartment, apartments = []) {
   if (!String(apartment?.gasPaymentCode || '').trim()) return null;
   const explicit = String(apartment?.gasAccountId || '').trim();
   if (/^gas-\d+$/.test(explicit)) return explicit;
+
+  const identity = item => item?.id != null
+    ? `id:${item.id}`
+    : `name:${String(item?.name || '').trim().toLowerCase()}|gas:${String(item?.gasPaymentCode || '').trim()}`;
+  const targetIdentity = identity(apartment);
+  const candidates = [...(apartments || [])];
+  if (!candidates.some(item => identity(item) === targetIdentity)) candidates.push(apartment);
+
   const counts = new Map();
-  for (const item of apartments || []) {
+  for (const item of candidates) {
     if (!String(item?.gasPaymentCode || '').trim()) continue;
-    const account = /^gas-\d+$/.test(String(item.gasAccountId || '')) ? String(item.gasAccountId) : 'gas-1';
-    counts.set(account, (counts.get(account) || 0) + 1);
+    const account = String(item.gasAccountId || '').trim();
+    if (/^gas-\d+$/.test(account)) counts.set(account, (counts.get(account) || 0) + 1);
   }
-  let number = 1;
-  while ((counts.get(`gas-${number}`) || 0) >= 10) number += 1;
-  return `gas-${number}`;
+
+  const unassigned = candidates
+    .filter(item => String(item?.gasPaymentCode || '').trim() && !/^gas-\d+$/.test(String(item?.gasAccountId || '').trim()))
+    .sort((left, right) => {
+      const created = String(left?.createdAt || '').localeCompare(String(right?.createdAt || ''));
+      if (created) return created;
+      const leftId = Number(left?.id);
+      const rightId = Number(right?.id);
+      if (Number.isFinite(leftId) && Number.isFinite(rightId) && leftId !== rightId) return leftId - rightId;
+      return String(left?.name || '').localeCompare(String(right?.name || ''), 'es', { numeric: true });
+    });
+  const assignments = new Map();
+  for (const item of unassigned) {
+    let number = 1;
+    while ((counts.get(`gas-${number}`) || 0) >= 10) number += 1;
+    const account = `gas-${number}`;
+    counts.set(account, (counts.get(account) || 0) + 1);
+    assignments.set(identity(item), account);
+  }
+  return assignments.get(targetIdentity) || 'gas-1';
 }
 
 function publicServicePaymentUrl(apartment, record, service) {
@@ -3486,6 +3511,8 @@ function portableWorkerApartments() {
     floor: apt.floor || String(apt.name || '').slice(0, 1) || null,
     waterPaymentCode: apt.waterPaymentCode || null,
     gasPaymentCode: apt.gasPaymentCode || null,
+    gasAccountId: defaultGasAccountId(apt, db.apartments || []),
+    gasPaymentUrl: gasContractPaymentUrl(apt.gasPaymentCode),
     electricityPaymentCode: apt.electricityPaymentCode || apt.nic || null,
   }));
 }

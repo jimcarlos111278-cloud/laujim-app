@@ -143,6 +143,11 @@
     const numberMatch = !!number && values.some(value => apartmentNumber(value.raw) === number);
     const nameMatch = !!name && values.some(value => value.normalized === name);
 
+    // Gases uses the contract number as the stable identity. Visible labels
+    // can change between portal accounts, so an exact configured contract
+    // must win over a stale apartment label.
+    if (provider === 'gas' && codeMatch) return 500;
+
     // The portal's apartment label is authoritative. Payment codes can be
     // stale or reassigned; using them first caused AP 401 to be stored under
     // apartment 203 when both records shared an old policy number.
@@ -687,10 +692,28 @@
   }
 
   function gasContractsOnPage() {
-    const paragraphs = Array.from(document.querySelectorAll('p')).filter(domAvailable).map(uiText);
+    const paragraphs = Array.from(document.querySelectorAll('p, li, button, [role="option"], [role="menuitem"], [role="menuitemradio"]')).filter(domAvailable).map(uiText);
     const contracts = [];
     const seen = new Set();
     const candidates = paragraphs.concat(uiLines(uiBodyText()));
+    const addContract = (name, code) => {
+      const normalizedCode = String(code || '').replace(/\D/g, '');
+      if (normalizedCode.length < 4 || seen.has(normalizedCode)) return;
+      seen.add(normalizedCode);
+      contracts.push({ name: String(name || '').trim(), code: normalizedCode, address: '' });
+    };
+    // Some portal builds render “AP 203 · 66499518” in one element while
+    // others render “Contrato: 66499518” without the apartment label.
+    // Capture both shapes before the legacy paragraph parser runs.
+    candidates.forEach(candidate => {
+      const text = String(candidate || '').replace(/\s+/g, ' ').trim();
+      if (!text || /contrato asociado/i.test(text)) return;
+      const apartmentMatch = text.match(/\b(?:ap|apto|apartamento|casa)\s*#?\s*(\d{3})\s*(?:[•·\-–—:|]\s*)+(\d{4,})\b/i);
+      if (apartmentMatch) addContract('AP ' + apartmentMatch[1], apartmentMatch[2]);
+      const codeMatch = text.match(/\b(?:contrato|contracto)\s*(?:n[°ºo.]*)?\s*[:#-]?\s*(\d{4,})\b/i);
+      if (codeMatch) addContract('', codeMatch[1]);
+      if (/^\d{6,}$/.test(text)) addContract('', text);
+    });
     for (let index = 0; index < candidates.length; index += 1) {
       const match = candidates[index].match(/^(.+?)\s*[-\u2013\u2014:]\s*(\d{4,})$/);
       if (!match || seen.has(match[2]) || /contrato asociado/i.test(match[1])) continue;
@@ -708,7 +731,7 @@
   }
 
   function currentGasContractButton() {
-    return findVisibleUiElement('button', label => /^(?:ap|casa)\s*\d{3}$/i.test(label));
+    return findVisibleUiElement('button', label => /^(?:ap|casa)\s*\d{3}(?:\s*[•·\-]\s*\d+)?$/i.test(label));
   }
 
   function parseGasHomeResult(text) {

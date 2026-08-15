@@ -71,6 +71,21 @@ public class ScraperWorkerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void runGasAccountNow(PluginCall call) {
+        String accountId = call.getString("accountId", "");
+        if (accountId == null || !accountId.trim().toLowerCase().matches("gas-\\d+")) {
+            call.reject("Cuenta de Gases inválida. Usa un identificador como gas-1 o gas-2.");
+            return;
+        }
+        ScraperWorkerStore.setEnabled(getContext(), true);
+        if (!ScraperWorkerDispatcher.dispatchGasAccount(getContext(), "manual-gas-account", accountId, true)) {
+            call.reject(ScraperWorkerStore.lastError(getContext()));
+            return;
+        }
+        call.resolve(status());
+    }
+
+    @PluginMethod
     public void reschedule(PluginCall call) {
         if (ScraperWorkerStore.enabled(getContext())) {
             ScraperWorkerSchedule.scheduleAll(getContext(), "manual-reschedule");

@@ -37,7 +37,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -54,6 +56,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ScraperWorkerService extends Service {
     public static final String ACTION_RUN = "com.laujim.aptmanager.SCRAPER_WORKER_RUN";
+    public static final String ACTION_RUN_GAS_ACCOUNT = "com.laujim.aptmanager.SCRAPER_WORKER_RUN_GAS_ACCOUNT";
+    public static final String EXTRA_GAS_ACCOUNT_ID = "gasAccountId";
     private static final String CHANNEL_ID = "laujim_scraper_worker";
     private static final int NOTIFICATION_ID = 31778;
     private static final int CONNECT_TIMEOUT_MS = 15_000;
@@ -175,14 +179,15 @@ public class ScraperWorkerService extends Service {
             final String source = triggerSource;
             ScraperWorkerStore.setSchedulerEvent(this, "service_started", source, "El servicio inició la consulta común de los proveedores habilitados.");
             ScraperWorkerSchedule.scheduleNextAlarm(this, "service-started");
-            executor.execute(() -> runLocalScrape(startId, source));
+            final String gasAccountId = intent == null ? "" : intent.getStringExtra(EXTRA_GAS_ACCOUNT_ID);
+            executor.execute(() -> runLocalScrape(startId, source, gasAccountId));
         } else {
             ScraperWorkerStore.setSchedulerEvent(this, "service_already_running", triggerSource, "Se ignoró una activación porque los portales todavía estaban en ejecución.");
         }
         return START_REDELIVER_INTENT;
     }
 
-    private void runLocalScrape(int startId, String triggerSource) {
+    private void runLocalScrape(int startId, String triggerSource, String requestedGasAccountId) {
         int nextHours = ScraperWorkerStore.intervalHours(this);
         boolean scheduleChanged = false;
         String server = "";
@@ -235,12 +240,11 @@ public class ScraperWorkerService extends Service {
             addAppEvent(diagnosticEvents, null, "register", "success", "La app quedó registrada como worker.", 200, 0, 0, null);
             flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
             JSONArray providers = schedule == null ? new JSONArray().put("air-e").put("water").put("gas") : schedule.optJSONArray("providers");
-            if (providers == null || providers.length() == 0) providers = new JSONArray().put("air-e").put("water").put("gas");
+            List<String> executionProviders = buildProviderRuns(providers, config, requestedGasAccountId);
             List<JSONObject> results = new ArrayList<>();
             String firstIssue = null;
-            for (int index = 0; index < providers.length(); index += 1) {
-                String provider = providers.optString(index, "").trim().toLowerCase();
-                if (!provider.equals("air-e") && !provider.equals("water") && !provider.equals("gas")) continue;
+            for (String provider : executionProviders) {
+                JSONObject providerConfig = scopedConfig(config, provider);
                 nativeAuthorization = "";
                 ScraperWorkerStore.setCurrentProvider(this, provider);
                 updateNotification("Consultando " + providerLabel(provider) + " en el teléfono…", provider);
@@ -250,7 +254,7 @@ public class ScraperWorkerService extends Service {
                 flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
                 JSONObject outcome;
                 try {
-                    outcome = runProvider(provider, config);
+                    outcome = runProvider(provider, providerConfig);
                 } catch (Exception providerError) {
                     String providerMessage = providerError.getMessage() == null
                         ? "Error local desconocido del portal."
@@ -276,7 +280,7 @@ public class ScraperWorkerService extends Service {
                     String noDataMessage = outcome.optString("message", "El portal no devolvió datos confirmados.");
                     if (firstIssue == null) firstIssue = noDataMessage;
                     updateNotification(noDataMessage, provider);
-                    JSONArray failureRecords = failureRecords(provider, config, outcome, noDataMessage);
+                    JSONArray failureRecords = failureRecords(provider, providerConfig, outcome, noDataMessage);
                     for (int item = 0; item < failureRecords.length(); item += 1) {
                         JSONObject record = failureRecords.optJSONObject(item);
                         if (record != null) results.add(record);
@@ -416,9 +420,77 @@ public class ScraperWorkerService extends Service {
         if (result.status < 200 || result.status >= 300) throw new IllegalStateException("No se pudo registrar el worker local (HTTP " + result.status + ").");
     }
 
+    /** Expands the single scheduled gas provider into one run per portal account. */
+    private List<String> buildProviderRuns(JSONArray configured, JSONObject config, String requestedGasAccountId) {
+        LinkedHashSet<String> runs = new LinkedHashSet<>();
+        String requested = normalizeGasAccountId(requestedGasAccountId);
+        if (!requested.isEmpty()) {
+            runs.add(requested);
+            return new ArrayList<>(runs);
+        }
+
+        boolean gasEnabled = false;
+        if (configured != null) {
+            for (int index = 0; index < configured.length(); index += 1) {
+                String provider = configured.optString(index, "").trim().toLowerCase();
+                if ("gas".equals(provider)) gasEnabled = true;
+                else if ("air-e".equals(provider) || "water".equals(provider)) runs.add(provider);
+            }
+        }
+        if (gasEnabled) {
+            LinkedHashSet<String> accounts = new LinkedHashSet<>();
+            JSONArray apartments = config == null ? null : config.optJSONArray("apartments");
+            if (apartments != null) {
+                for (int index = 0; index < apartments.length(); index += 1) {
+                    JSONObject apartment = apartments.optJSONObject(index);
+                    if (apartment == null || apartment.optString("gasPaymentCode", "").trim().isEmpty()) continue;
+                    String account = normalizeGasAccountId(apartment.optString("gasAccountId", ""));
+                    accounts.add(account.isEmpty() ? "gas-1" : account);
+                }
+            }
+            if (accounts.isEmpty()) accounts.add("gas-1");
+            runs.addAll(accounts);
+        }
+        if (runs.isEmpty()) {
+            runs.add("air-e");
+            runs.add("water");
+            runs.add("gas-1");
+        }
+        return new ArrayList<>(runs);
+    }
+
+    /** Keeps a gas-account failure from generating errors for the other account. */
+    private JSONObject scopedConfig(JSONObject config, String provider) throws JSONException {
+        if (config == null || !isGasAccountId(provider)) return config;
+        JSONObject scoped = new JSONObject(config.toString());
+        JSONArray source = config.optJSONArray("apartments");
+        JSONArray selected = new JSONArray();
+        if (source != null) {
+            for (int index = 0; index < source.length(); index += 1) {
+                JSONObject apartment = source.optJSONObject(index);
+                if (apartment == null || apartment.optString("gasPaymentCode", "").trim().isEmpty()) continue;
+                String configuredAccount = normalizeGasAccountId(apartment.optString("gasAccountId", ""));
+                if (configuredAccount.isEmpty()) configuredAccount = "gas-1";
+                if (provider.equals(configuredAccount)) selected.put(apartment);
+            }
+        }
+        scoped.put("apartments", selected);
+        scoped.put("gasAccountId", provider);
+        return scoped;
+    }
+
+    private String normalizeGasAccountId(String value) {
+        String normalized = value == null ? "" : value.trim().toLowerCase();
+        return normalized.matches("gas-\\d+") ? normalized : "";
+    }
+
+    private boolean isGasAccountId(String value) {
+        return normalizeGasAccountId(value).length() > 0;
+    }
+
     private JSONObject runProvider(String provider, JSONObject config) throws Exception {
         String normalized = provider == null ? "" : provider.trim().toLowerCase();
-        if ("gas".equals(normalized)) {
+        if (PortalSessionVault.isGasSession(normalized)) {
             // Gases is stable on the legacy background path. Keep it isolated
             // while Air-e and Triple A reuse the authenticated visible view.
             JSONObject outcome = loadAndEvaluate(provider, portalWorkUrl(provider), config);
@@ -484,7 +556,7 @@ public class ScraperWorkerService extends Service {
 
     private boolean isProviderUrl(String url, String provider) {
         String lower = String.valueOf(url == null ? "" : url).toLowerCase();
-        String normalized = PortalSessionVault.normalize(provider);
+        String normalized = PortalSessionVault.baseProvider(provider);
         if ("water".equals(normalized)) return lower.contains("portal.aaa.com.co");
         if ("gas".equals(normalized)) return lower.contains("portal.gascaribe.com") || lower.contains("innovacion-gascaribe.com");
         return lower.contains("portal.air-e.com");
@@ -500,7 +572,7 @@ public class ScraperWorkerService extends Service {
             ? "captcha"
             : normalizedMessage.matches("(?is).*timeout|tiempo.*") ? "timeout" : "error";
         String providerName = providerLabel(provider);
-        String service = "air-e".equals(provider) ? "electricity" : "water".equals(provider) ? "water" : "gas";
+        String service = "air-e".equals(PortalSessionVault.baseProvider(provider)) ? "electricity" : "water".equals(PortalSessionVault.baseProvider(provider)) ? "water" : "gas";
         for (int index = 0; index < apartments.length(); index += 1) {
             JSONObject apartment = apartments.optJSONObject(index);
             if (apartment == null) continue;
@@ -534,7 +606,9 @@ public class ScraperWorkerService extends Service {
 
     private JSONObject loadAndEvaluate(String provider, String url, JSONObject config) throws Exception {
         CompletableFuture<Boolean> loaded = new CompletableFuture<>();
+        String previousProvider = webViewProvider;
         webViewProvider = PortalSessionVault.normalize(provider);
+        PortalSessionVault.activateCookieSession(this, previousProvider, webViewProvider);
         webViewWorkUrl = url;
         storageRestoreAttempted = false;
         webViewGeneration += 1;
@@ -558,7 +632,8 @@ public class ScraperWorkerService extends Service {
         }
         String configJson = config.toString();
         String nativeAuthorizationJson = quote(nativeAuthorization);
-        String expression = "(async()=>{try{window.__LaujimNativeAuthorization=" + nativeAuthorizationJson + ";" + runnerScript + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');const outcome=await window.LaujimLocalPortalScraper.run(" + quote(provider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(provider) + ",message:String(e&&e.message||e),results:[]}));}})();";
+        String runnerProvider = PortalSessionVault.baseProvider(provider);
+        String expression = "(async()=>{try{window.__LaujimNativeAuthorization=" + nativeAuthorizationJson + ";" + runnerScript + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');const outcome=await window.LaujimLocalPortalScraper.run(" + quote(runnerProvider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(runnerProvider) + ",message:String(e&&e.message||e),results:[]}));}})();";
         mainHandler.postDelayed(() -> {
             if (webView == null) {
                 result.completeExceptionally(new IllegalStateException("WebView local no inicializado."));
@@ -709,8 +784,12 @@ public class ScraperWorkerService extends Service {
     }
 
     private String providerLabel(String provider) {
-        if ("water".equals(provider)) return "Triple A";
-        if ("gas".equals(provider)) return "Gases del Caribe";
+        String normalized = PortalSessionVault.normalize(provider);
+        if ("water".equals(normalized)) return "Triple A";
+        if (PortalSessionVault.isGasSession(normalized)) {
+            if (normalized.matches("gas-\\d+")) return "Gases del Caribe · Cuenta " + normalized.substring(4);
+            return "Gases del Caribe";
+        }
         return "Air-e";
     }
 
@@ -785,6 +864,7 @@ public class ScraperWorkerService extends Service {
         public void persistSession(String provider, String value) {
             if (value == null || value.isEmpty()) return;
             PortalSessionVault.saveState(ScraperWorkerService.this, provider, value);
+            PortalSessionVault.saveCookieSnapshot(ScraperWorkerService.this, provider);
             PortalSessionVault.flushCookies();
         }
 

@@ -174,7 +174,9 @@ public class PortalBrowserActivity extends Activity {
 
     private void beginLoad(String nextProvider) {
         if (webView == null) return;
+        String previousProvider = provider;
         provider = normalize(nextProvider);
+        PortalSessionVault.activateCookieSession(this, previousProvider, provider);
         navigationGeneration += 1;
         storageRestoreAttempted = false;
         nativeAuthorization = PortalSessionVault.loadAuthorization(this, provider);
@@ -310,7 +312,7 @@ public class PortalBrowserActivity extends Activity {
             + "window.__LaujimNativeAuthorization=" + quote(savedAuth) + ";"
             + (runnerScript == null ? "" : runnerScript)
             + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');"
-            + "const outcome=await window.LaujimLocalPortalScraper.run(" + quote(nextProvider) + "," + (configJson == null ? "{}" : configJson) + ");"
+            + "const outcome=await window.LaujimLocalPortalScraper.run(" + quote(PortalSessionVault.baseProvider(nextProvider)) + "," + (configJson == null ? "{}" : configJson) + ");"
             + "window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));"
             + "}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(nextProvider)
             + ",stage:'shared_webview',message:String(e&&e.message||e),results:[]}));}})();";
@@ -327,7 +329,7 @@ public class PortalBrowserActivity extends Activity {
 
     private static boolean isProviderUrl(String url, String requestedProvider) {
         String lowerUrl = String.valueOf(url == null ? "" : url).toLowerCase();
-        switch (normalize(requestedProvider)) {
+        switch (PortalSessionVault.baseProvider(requestedProvider)) {
             case "water": return lowerUrl.contains("portal.aaa.com.co");
             case "gas": return lowerUrl.contains("portal.gascaribe.com") || lowerUrl.contains("innovacion-gascaribe.com");
             default: return lowerUrl.contains("portal.air-e.com");
@@ -339,7 +341,7 @@ public class PortalBrowserActivity extends Activity {
     private static String normalize(String value) { return PortalSessionVault.normalize(value); }
 
     static String portalUrl(String provider) {
-        switch (normalize(provider)) {
+        switch (PortalSessionVault.baseProvider(provider)) {
             case "water": return "https://portal.aaa.com.co/iniciar-sesion";
             case "gas": return "https://portal.gascaribe.com/login";
             default: return "https://portal.air-e.com/Login?returnurl=%2fMis-Facturas%2fListado-de-Facturas";
@@ -347,7 +349,7 @@ public class PortalBrowserActivity extends Activity {
     }
 
     static String portalWorkUrl(String provider) {
-        switch (normalize(provider)) {
+        switch (PortalSessionVault.baseProvider(provider)) {
             case "water": return "https://portal.aaa.com.co/inicio";
             case "gas": return "https://portal.gascaribe.com/contracts";
             default: return "https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List";
@@ -355,9 +357,12 @@ public class PortalBrowserActivity extends Activity {
     }
 
     private static String providerLabel(String provider) {
-        switch (normalize(provider)) {
+        String normalized = normalize(provider);
+        switch (PortalSessionVault.baseProvider(normalized)) {
             case "water": return "Triple A";
-            case "gas": return "Gases del Caribe";
+            case "gas":
+                if (normalized.matches("gas-\\d+")) return "Gases del Caribe · Cuenta " + normalized.substring(4);
+                return "Gases del Caribe";
             default: return "Air-e";
         }
     }
@@ -376,6 +381,7 @@ public class PortalBrowserActivity extends Activity {
         }
         synchronized (scraperLock) { completePendingExceptionLocked(new IllegalStateException("El navegador compartido se cerró.")); }
         if (activeInstance == this) activeInstance = null;
+        PortalSessionVault.saveCookieSnapshot(this, provider);
         PortalSessionVault.flushCookies();
         if (webView != null) {
             webView.stopLoading();
@@ -401,6 +407,7 @@ public class PortalBrowserActivity extends Activity {
         public void persistSession(String targetProvider, String value) {
             if (value == null || value.isEmpty()) return;
             PortalSessionVault.saveState(PortalBrowserActivity.this, targetProvider, value);
+            PortalSessionVault.saveCookieSnapshot(PortalBrowserActivity.this, targetProvider);
             PortalSessionVault.flushCookies();
         }
 

@@ -727,7 +727,15 @@ export default function ApartmentDetail() {
     }
   }
 
-  function openMarketplace() {
+  async function openMarketplace() {
+    if (isCapacitor()) {
+      try {
+        await openAndroidMarketplace();
+        return;
+      } catch (error) {
+        setMarketplaceMessage({ type: 'error', text: error.message || 'No se pudo abrir Facebook en el navegador local.' });
+      }
+    }
     window.open('https://www.facebook.com/marketplace/you/selling', '_blank');
   }
 

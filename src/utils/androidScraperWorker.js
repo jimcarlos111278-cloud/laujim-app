@@ -21,6 +21,11 @@ export function runAndroidScraperWorkerNow() {
   return NativeScraperWorker.runNow();
 }
 
+export function runAndroidGasAccountNow(accountId) {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
+  return NativeScraperWorker.runGasAccountNow({ accountId });
+}
+
 export function stopAndroidScraperWorker() {
   if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
   return NativeScraperWorker.stop();

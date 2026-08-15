@@ -27,7 +27,12 @@ final class PortalSessionVault {
     private static final String KEY_ALIAS = "laujim.portal.session.v2";
     private static final String KEY_STATE = "state_";
     private static final String KEY_AUTH = "auth_";
+    private static final String KEY_COOKIES = "cookies_";
     private static final int MAX_VALUE_BYTES = 900_000;
+    private static final String[] GAS_ORIGINS = {
+        "https://portal.gascaribe.com/",
+        "https://pagosweb-production-api.innovacion-gascaribe.com/"
+    };
 
     private PortalSessionVault() { }
 
@@ -62,7 +67,81 @@ final class PortalSessionVault {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .remove(KEY_STATE + normalized)
             .remove(KEY_AUTH + normalized)
+            .remove(KEY_COOKIES + normalized)
             .apply();
+    }
+
+    /**
+     * Gases del Caribe permits a maximum of ten contracts per account. The
+     * Android WebView has one global cookie jar, so account sessions must be
+     * snapshotted before changing from gas-1 to gas-2 (or the next account).
+     * The snapshot is encrypted with the same Android Keystore key as the
+     * portal state and never leaves the device.
+     */
+    static void saveCookieSnapshot(Context context, String provider) {
+        String normalized = normalize(provider);
+        if (!isGasSession(normalized)) return;
+        try {
+            JSONObject snapshot = new JSONObject();
+            CookieManager cookies = CookieManager.getInstance();
+            for (String origin : GAS_ORIGINS) {
+                String value = cookies.getCookie(origin);
+                if (value != null && !value.trim().isEmpty()) snapshot.put(origin, value);
+            }
+            saveEncrypted(context, KEY_COOKIES + normalized, snapshot.toString());
+        } catch (Exception ignored) {
+            // A cookie snapshot is only a recovery aid; never fail a scrape.
+        }
+    }
+
+    /**
+     * Switches the shared WebView cookie jar to a saved Gases account. If no
+     * snapshot exists for a new account, stale Gases cookies are removed so a
+     * manual login cannot silently attach to the previous account.
+     */
+    static void activateCookieSession(Context context, String previousProvider, String nextProvider) {
+        String previous = normalize(previousProvider);
+        String next = normalize(nextProvider);
+        if (!isGasSession(next)) return;
+        if (isGasSession(previous) && !previous.equals(next)) saveCookieSnapshot(context, previous);
+
+        String saved = loadEncrypted(context, KEY_COOKIES + next);
+        boolean accountChanged = isGasSession(previous) && !previous.equals(next);
+        boolean newSecondaryAccount = isSecondaryGasSession(next) && saved.isEmpty();
+        boolean restoreSavedAccount = !saved.isEmpty();
+        if (accountChanged || newSecondaryAccount || restoreSavedAccount) clearGasCookies();
+        if (restoreSavedAccount) restoreGasCookies(saved);
+        flushCookies();
+    }
+
+    private static void clearGasCookies() {
+        try {
+            CookieManager cookies = CookieManager.getInstance();
+            for (String origin : GAS_ORIGINS) {
+                String current = cookies.getCookie(origin);
+                if (current == null || current.trim().isEmpty()) continue;
+                for (String part : current.split(";")) {
+                    String name = part.split("=", 2)[0].trim();
+                    if (name.isEmpty()) continue;
+                    cookies.setCookie(origin, name + "=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/");
+                }
+            }
+        } catch (RuntimeException ignored) { }
+    }
+
+    private static void restoreGasCookies(String snapshotJson) {
+        try {
+            JSONObject snapshot = new JSONObject(snapshotJson == null ? "{}" : snapshotJson);
+            CookieManager cookies = CookieManager.getInstance();
+            for (String origin : GAS_ORIGINS) {
+                String value = snapshot.optString(origin, "");
+                if (value.isEmpty()) continue;
+                for (String part : value.split(";")) {
+                    String cookie = part.trim();
+                    if (!cookie.isEmpty() && cookie.contains("=")) cookies.setCookie(origin, cookie + "; Path=/");
+                }
+            }
+        } catch (Exception ignored) { }
     }
 
     static String restoreScript(String encryptedStateJson) {
@@ -96,9 +175,24 @@ final class PortalSessionVault {
     static String normalize(String value) {
         String normalized = value == null ? "" : value.trim().toLowerCase();
         if (normalized.equals("water") || normalized.equals("triple-a")) return "water";
+        if (normalized.matches("gas-\\d+")) return normalized;
         if (normalized.equals("gas") || normalized.equals("gascaribe")) return "gas";
         if (normalized.equals("facebook") || normalized.equals("marketplace")) return "facebook";
         return "air-e";
+    }
+
+    static boolean isGasSession(String value) {
+        String normalized = normalize(value);
+        return normalized.equals("gas") || normalized.matches("gas-\\d+");
+    }
+
+    static boolean isSecondaryGasSession(String value) {
+        return normalize(value).matches("gas-[2-9]\\d*");
+    }
+
+    static String baseProvider(String value) {
+        String normalized = normalize(value);
+        return isGasSession(normalized) ? "gas" : normalized;
     }
 
     private static void saveEncrypted(Context context, String key, String value) {

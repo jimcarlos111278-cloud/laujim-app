@@ -12,6 +12,16 @@ final class ScraperWorkerDispatcher {
     private ScraperWorkerDispatcher() {}
 
     static synchronized boolean dispatch(Context context, String source, boolean force) {
+        return dispatchInternal(context, source, force, ScraperWorkerService.ACTION_RUN, null);
+    }
+
+    static synchronized boolean dispatchGasAccount(Context context, String source, String accountId, boolean force) {
+        String normalized = accountId == null ? "" : accountId.trim().toLowerCase();
+        if (!normalized.matches("gas-\\d+")) return false;
+        return dispatchInternal(context, source, force, ScraperWorkerService.ACTION_RUN_GAS_ACCOUNT, normalized);
+    }
+
+    private static boolean dispatchInternal(Context context, String source, boolean force, String action, String accountId) {
         Context app = context.getApplicationContext();
         if (!ScraperWorkerStore.enabled(app)) return false;
         long now = System.currentTimeMillis();
@@ -25,8 +35,9 @@ final class ScraperWorkerDispatcher {
         }
 
         Intent service = new Intent(app, ScraperWorkerService.class)
-            .setAction(ScraperWorkerService.ACTION_RUN)
+            .setAction(action)
             .putExtra("triggerSource", source == null ? "unknown" : source);
+        if (accountId != null) service.putExtra(ScraperWorkerService.EXTRA_GAS_ACCOUNT_ID, accountId);
         try {
             ContextCompat.startForegroundService(app, service);
             ScraperWorkerStore.setLastDispatchAt(app, now);

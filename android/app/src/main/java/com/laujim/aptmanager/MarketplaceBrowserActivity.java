@@ -127,6 +127,8 @@ public class MarketplaceBrowserActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
         settings.setSupportMultipleWindows(false);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setLoadWithOverviewMode(false);
@@ -138,11 +140,12 @@ public class MarketplaceBrowserActivity extends Activity {
         view.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onShowFileChooser(WebView page, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
                 pendingFileCallback = callback;
                 if (hasAutomatedPhotoSelection()) {
                     executor.execute(MarketplaceBrowserActivity.this::deliverJobPhotos);
                 } else {
-                    openSystemPhotoPicker();
+                    openSystemPhotoPicker(params);
                 }
                 return true;
             }
@@ -341,14 +344,23 @@ public class MarketplaceBrowserActivity extends Activity {
         }
     }
 
-    private void openSystemPhotoPicker() {
+    private void openSystemPhotoPicker(WebChromeClient.FileChooserParams params) {
         try {
-            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT)
+            String[] accepted = params == null ? new String[0] : params.getAcceptTypes();
+            java.util.ArrayList<String> mimeTypes = new java.util.ArrayList<>();
+            if (accepted != null) {
+                for (String type : accepted) {
+                    if (type != null && type.contains("/")) mimeTypes.add(type);
+                }
+            }
+            if (mimeTypes.isEmpty()) mimeTypes.add("image/*");
+            Intent picker = new Intent(Intent.ACTION_GET_CONTENT)
                 .addCategory(Intent.CATEGORY_OPENABLE)
-                .setType("image/*")
+                .setType(mimeTypes.size() == 1 ? mimeTypes.get(0) : "*/*")
                 .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                .putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toArray(new String[0]))
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-            startActivityForResult(picker, PHOTO_PICKER_REQUEST);
+            startActivityForResult(Intent.createChooser(picker, "Selecciona las fotos del apartamento"), PHOTO_PICKER_REQUEST);
         } catch (RuntimeException error) {
             ValueCallback<Uri[]> callback = pendingFileCallback;
             pendingFileCallback = null;
@@ -365,9 +377,13 @@ public class MarketplaceBrowserActivity extends Activity {
             if (data.getClipData() != null) {
                 int count = data.getClipData().getItemCount();
                 selected = new Uri[count];
-                for (int index = 0; index < count; index += 1) selected[index] = data.getClipData().getItemAt(index).getUri();
+                for (int index = 0; index < count; index += 1) {
+                    selected[index] = data.getClipData().getItemAt(index).getUri();
+                    try { getContentResolver().takePersistableUriPermission(selected[index], Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (RuntimeException ignored) { }
+                }
             } else if (data.getData() != null) {
                 selected = new Uri[] { data.getData() };
+                try { getContentResolver().takePersistableUriPermission(selected[0], Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (RuntimeException ignored) { }
             }
         }
         ValueCallback<Uri[]> callback = pendingFileCallback;

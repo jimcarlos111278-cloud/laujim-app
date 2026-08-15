@@ -24,6 +24,7 @@ import {
 import {
   configureAndroidScraperWorker,
   getAndroidScraperWorkerStatus,
+  runAndroidGasAccountNow,
   runAndroidScraperWorkerNow,
   rescheduleAndroidScraperWorker,
   requestAndroidExactAlarmPermission,
@@ -52,6 +53,41 @@ function formatSchedule(schedule) {
     : 'sin servicios';
   const mode = schedule.executionMode === 'render' ? 'Render' : 'local';
   return `Cada ${schedule.intervalHours} h desde las ${schedule.startAt} (${schedule.timezone}) · ${providers} · ejecución ${mode}`;
+}
+
+function gasAccountGroups(config) {
+  const groups = new Map();
+  const apartments = (Array.isArray(config?.apartments) ? config.apartments : [])
+    .filter(apartment => String(apartment?.gasPaymentCode || '').trim())
+    .sort((left, right) => String(left?.name || '').localeCompare(String(right?.name || ''), 'es', { numeric: true }));
+  const counts = new Map();
+  apartments.forEach(apartment => {
+    const explicit = String(apartment?.gasAccountId || '').trim().toLowerCase();
+    if (/^gas-\d+$/.test(explicit)) counts.set(explicit, (counts.get(explicit) || 0) + 1);
+  });
+  apartments.forEach(apartment => {
+    const explicit = String(apartment?.gasAccountId || '').trim().toLowerCase();
+    let accountId = explicit;
+    if (!/^gas-\d+$/.test(accountId)) {
+      let number = 1;
+      while ((counts.get(`gas-${number}`) || 0) >= 10) number += 1;
+      accountId = `gas-${number}`;
+      counts.set(accountId, (counts.get(accountId) || 0) + 1);
+    }
+    if (!groups.has(accountId)) groups.set(accountId, { id: accountId, apartments: [] });
+    groups.get(accountId).apartments.push(apartment);
+  });
+  if (!groups.size) groups.set('gas-1', { id: 'gas-1', apartments: [] });
+  return [...groups.values()].sort((left, right) => {
+    const a = Number(String(left.id).replace(/\D/g, '')) || 1;
+    const b = Number(String(right.id).replace(/\D/g, '')) || 1;
+    return a - b;
+  });
+}
+
+function gasAccountLabel(accountId) {
+  const number = String(accountId || '').match(/(\d+)$/);
+  return number ? 'Gases ' + (Number(number[1]) === 1 ? '' : number[1]) : 'Gases';
 }
 
 function formatLogTime(value) {
@@ -116,6 +152,7 @@ export default function ScraperWorker() {
   const [nativeBusy, setNativeBusy] = useState(false);
   const [diagnostics, setDiagnostics] = useState({ logs: [], summary: { render: 0, app: 0 } });
   const [diagnosticsBusy, setDiagnosticsBusy] = useState(false);
+  const gasAccounts = useMemo(() => gasAccountGroups(config), [config]);
 
   const deviceIcon = useMemo(() => settings.platform.includes('android') ? Smartphone : Laptop, [settings.platform]);
 
@@ -381,6 +418,31 @@ export default function ScraperWorker() {
     }
   }
 
+  async function handleGasAccountRun(accountId) {
+    if (!settings.serverUrl || !settings.token || !settings.deviceId) {
+      setMessage({ type: 'error', text: 'Configura URL, token e identificador del dispositivo antes de sincronizar Gases.' });
+      return;
+    }
+    setNativeBusy(true); setMessage(null);
+    try {
+      const current = savePortableWorkerSettings(settings);
+      await configureAndroidScraperWorker({
+        serverUrl: current.serverUrl,
+        token: current.token,
+        deviceId: current.deviceId,
+        intervalHours: Number(scheduleForm.intervalHours || 1),
+        startAt: scheduleForm.startAt,
+        timezone: scheduleForm.timezone,
+      });
+      await runAndroidGasAccountNow(accountId);
+      setMessage({ type: 'success', text: gasAccountLabel(accountId) + ' quedó en cola para consultar sus contratos. Si es la primera vez, abre esa cuenta, inicia sesión y vuelve a pulsar Sincronizar.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || ('No se pudo sincronizar ' + gasAccountLabel(accountId) + '.') });
+    } finally {
+      setNativeBusy(false);
+    }
+  }
+
   async function handleExactAlarmPermission() {
     try {
       const status = await requestAndroidExactAlarmPermission();
@@ -572,11 +634,30 @@ export default function ScraperWorker() {
             <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">Primera configuración o verificación manual</p>
             <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">Abre cada portal desde aquí, inicia sesión y completa Turnstile si aparece. La sesión queda en el teléfono para las siguientes ejecuciones.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {[['air-e', '⚡ Abrir Air-e'], ['water', '💧 Abrir Triple A'], ['gas', '🔥 Abrir Gases']].map(([provider, label]) => (
+              {[['air-e', '⚡ Abrir Air-e'], ['water', '💧 Abrir Triple A']].map(([provider, label]) => (
                 <button key={provider} onClick={() => handleOpenPortal(provider)} className="rounded-lg border border-green-300 px-3 py-2 text-xs font-medium text-green-800 hover:bg-green-100 dark:border-green-800 dark:text-green-200 dark:hover:bg-green-900/30">{label}</button>
+              ))}
+              {gasAccounts.map(account => (
+                <button key={account.id} onClick={() => handleOpenPortal(account.id)} className="rounded-lg border border-green-300 px-3 py-2 text-xs font-medium text-green-800 hover:bg-green-100 dark:border-green-800 dark:text-green-200 dark:hover:bg-green-900/30">
+                  🔥 Abrir {gasAccountLabel(account.id)}
+                  <span className="ml-1 text-[10px] opacity-70">({account.apartments.length || 'todos'})</span>
+                </button>
               ))}
               <button onClick={handleClearPortalCookies} className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Borrar cookies de portales</button>
             </div>
+            {gasAccounts.length > 1 && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/60 dark:bg-amber-900/20">
+                <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">Cuentas de Gases del Caribe detectadas</p>
+                <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">Cada botón abre una sesión distinta. Después de iniciar sesión en una cuenta, pulsa <strong>Sincronizar</strong> para consultar solo sus contratos.</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {gasAccounts.map(account => (
+                    <button key={'sync-' + account.id} onClick={() => handleGasAccountRun(account.id)} disabled={nativeBusy} className="rounded-md border border-amber-300 px-2.5 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/40">
+                      ↻ Sincronizar {gasAccountLabel(account.id)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
       )}
