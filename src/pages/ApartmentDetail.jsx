@@ -22,6 +22,33 @@ const utilityWebsites = {
   electricity: { name: 'Air-e', url: 'https://portal.air-e.com/Pagar#/List' },
 };
 
+function normalizeScannedPaymentUrl(raw, service) {
+  let value = String(raw || '').trim().replace(/[\s),.;]+$/g, '');
+  if (!value) return '';
+  if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'http:') {
+      const knownPaymentHost = /(?:^|\.)portal\.aaa\.com\.co$|(?:^|\.)gascaribe\.com$/i.test(url.hostname);
+      if (!knownPaymentHost) return '';
+      url.protocol = 'https:';
+    }
+    if (url.protocol !== 'https:') return '';
+    const host = url.hostname.toLowerCase();
+    const path = url.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+    if (service === 'water') return host.endsWith('portal.aaa.com.co') && /^\/pagos(?:\/|$)/i.test(path) ? url.toString() : '';
+    if (service === 'gas') {
+      if (!host.endsWith('gascaribe.com')) return '';
+      if (/^\/(?:login|contracts)(?:\/|$)/i.test(path)) return '';
+      if (path === '/payments' && [...url.searchParams.keys()].length === 0) return '';
+      return url.toString();
+    }
+    return '';
+  } catch {
+    return '';
+  }
+}
+
 const DEFAULT_WA_SERVICES_TEMPLATE = `Hola {nombre} 👋
 
 Te saluda la administración de apartamentos Laujim.
@@ -312,10 +339,19 @@ export default function ApartmentDetail() {
   const SCAN_MAX_W = 640;
   const scanDetectorRef = useRef(null);
 
+  function barcodeRawValue(barcode) {
+    return String(barcode?.rawValue || barcode?.displayValue || barcode?.urlBookmark?.url || '').trim();
+  }
+
   async function getDetector() {
     if (scanDetectorRef.current) return scanDetectorRef.current;
     if (window.BarcodeDetector) {
-      try { scanDetectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] }); return scanDetectorRef.current; } catch {}
+      try {
+        scanDetectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] });
+        return scanDetectorRef.current;
+      } catch {
+        try { scanDetectorRef.current = new window.BarcodeDetector(); return scanDetectorRef.current; } catch {}
+      }
     }
     return null;
   }
@@ -324,7 +360,7 @@ export default function ApartmentDetail() {
     if (video.readyState < video.HAVE_CURRENT_DATA) return null;
     const detector = await getDetector();
     if (detector) {
-      try { const b = await detector.detect(video); if (b.length > 0) return b[0].rawValue; } catch {}
+      try { const b = await detector.detect(video); if (b.length > 0) return barcodeRawValue(b[0]); } catch {}
     }
     const w = Math.min(video.videoWidth || 640, SCAN_MAX_W);
     const h = Math.min(video.videoHeight || 480, Math.round(w * ((video.videoHeight || 480) / (video.videoWidth || 640))));
@@ -341,27 +377,57 @@ export default function ApartmentDetail() {
   }
 
   async function detectFile(file) {
+    let bitmap = null;
     try {
-      const bitmap = await createImageBitmap(file, { resizeWidth: SCAN_MAX_W, resizeQuality: 'high' });
+      if (typeof createImageBitmap === 'function') {
+        bitmap = await createImageBitmap(file, { resizeWidth: SCAN_MAX_W, resizeQuality: 'high' });
+      } else {
+        bitmap = await new Promise((resolve, reject) => {
+          const image = new Image();
+          const objectUrl = URL.createObjectURL(file);
+          image.onload = () => { URL.revokeObjectURL(objectUrl); resolve(image); };
+          image.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('No se pudo abrir la imagen.')); };
+          image.src = objectUrl;
+        });
+      }
       const detector = await getDetector();
       if (detector) {
-        try { const b = await detector.detect(bitmap); if (b.length > 0) { bitmap.close(); return b[0].rawValue; } } catch {}
+        try {
+          const b = await detector.detect(bitmap);
+          if (b.length > 0) {
+            if (typeof bitmap.close === 'function') bitmap.close();
+            return barcodeRawValue(b[0]);
+          }
+        } catch {}
       }
       const canvas = document.createElement('canvas');
-      canvas.width = bitmap.width; canvas.height = bitmap.height;
+      const sourceWidth = bitmap.width || bitmap.naturalWidth || SCAN_MAX_W;
+      const sourceHeight = bitmap.height || bitmap.naturalHeight || 480;
+      const scale = Math.min(1, SCAN_MAX_W / sourceWidth);
+      canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+      canvas.height = Math.max(1, Math.round(sourceHeight * scale));
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(bitmap, 0, 0);
-      bitmap.close();
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      if (typeof bitmap.close === 'function') bitmap.close();
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       return code ? code.data : null;
-    } catch { return null; }
+    } catch {
+      if (bitmap && typeof bitmap.close === 'function') bitmap.close();
+      return null;
+    }
   }
 
   async function saveScanResult(data, svc) {
-    const url = data.startsWith('http') ? data : 'https://' + data;
+    const url = normalizeScannedPaymentUrl(data, svc);
+    if (!url) {
+      throw new Error(svc === 'water'
+        ? 'El QR no parece ser un enlace de pago nativo de Triple A.'
+        : 'El QR no contiene un enlace de pago válido de Gases del Caribe.');
+    }
     const field = svc === 'water' ? 'waterPaymentUrl' : svc === 'gas' ? 'gasPaymentUrl' : 'electricityPaymentUrl';
-    await api.apartments.update(Number(id), { [field]: url });
+    const saved = await api.apartments.update(Number(id), { [field]: url });
+    if (!saved || saved[field] !== url) throw new Error('Aiven no confirmó el enlace QR. Inténtalo de nuevo.');
     const updated = { ...apt, [field]: url };
     setApt(updated);
     setForm(updated);
@@ -390,41 +456,76 @@ export default function ApartmentDetail() {
     }
   }
 
+  function openWebScanner(svc) {
+    scanServiceRef.current = svc;
+    setScanStatus('Iniciando cámara…');
+    setScanService(svc);
+  }
+
+  function closeScanner() {
+    scanServiceRef.current = null;
+    stopWebCam();
+    setScanService(null);
+  }
+
   async function handleScanButton(svc) {
     if (isCapacitor()) {
+      let rawValue = '';
       try {
         const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
-        const result = await BarcodeScanner.scan();
-        const val = result.barcodes?.[0]?.rawValue;
-        if (val) await saveScanResult(val, svc);
-      } catch (e) {
-        console.error('Native scan error:', e);
-        alert('Error al escanear');
+        const supported = await BarcodeScanner.isSupported?.();
+        if (supported && supported.supported === false) throw new Error('Este dispositivo no tiene cámara disponible.');
+        const permission = await BarcodeScanner.checkPermissions?.();
+        if (permission && permission.camera !== 'granted' && permission.camera !== 'limited') {
+          const requested = await BarcodeScanner.requestPermissions?.();
+          if (requested && requested.camera !== 'granted' && requested.camera !== 'limited') {
+            throw new Error('Permiso de cámara denegado. Actívalo en Ajustes > Laujim > Cámara.');
+          }
+        }
+        const module = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable?.();
+        if (module && module.available === false) {
+          try { await BarcodeScanner.installGoogleBarcodeScannerModule?.(); } catch {}
+          throw new Error('El lector nativo se está instalando. Se abrirá el lector de respaldo.');
+        }
+        const { BarcodeFormat } = await import('@capacitor-mlkit/barcode-scanning');
+        const result = await BarcodeScanner.scan({ formats: [BarcodeFormat.QrCode], autoZoom: true });
+        rawValue = barcodeRawValue(result.barcodes?.[0]);
+        if (rawValue) await saveScanResult(rawValue, svc);
+      } catch (error) {
+        console.error('Native scan error:', error);
+        if (rawValue) alert(error.message || 'Aiven no confirmó el enlace QR.');
+        else openWebScanner(svc);
       }
     } else {
-      scanServiceRef.current = svc;
-      setScanService(svc);
-      setTimeout(startWebCam, 100);
+      openWebScanner(svc);
     }
   }
 
   function startWebCam() {
-    setScanStatus('Iniciando cámara...');
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } })
+    if (!scanServiceRef.current || !navigator.mediaDevices?.getUserMedia) {
+      setScanStatus('Cámara no disponible aquí; pulsa “Subir foto”.');
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    })
       .then(stream => {
-        if (!videoRef.current) return;
+        if (!videoRef.current || !scanServiceRef.current) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
         const v = videoRef.current;
         v.srcObject = stream;
         v.onloadedmetadata = () => {
           v.play().then(() => {
-            setScanStatus('Enfoca el QR en el recuadro');
+            setScanStatus('Enfoca el QR del recibo.');
             scanTimerRef.current = setTimeout(webDoScan, 500);
-          }).catch(e => console.error('play:', e));
+          }).catch(() => setScanStatus('No se pudo iniciar la cámara; pulsa “Subir foto”.'));
         };
       })
       .catch(() => {
-        setScanStatus('Cámara no disponible, usa subir foto');
-        setTimeout(() => scannerRef.current?.click(), 300);
+        setScanStatus('Permiso de cámara no disponible; pulsa “Subir foto”.');
       });
   }
 
@@ -437,16 +538,25 @@ export default function ApartmentDetail() {
     }
   }
 
+  useEffect(() => {
+    if (scanService === null) return undefined;
+    const timer = setTimeout(startWebCam, 250);
+    return () => clearTimeout(timer);
+  }, [scanService]);
+
   async function webDoScan() {
     const svc = scanServiceRef.current;
     if (!svc || !videoRef.current) return;
     const val = await detectVideo(videoRef.current);
     if (val) {
-      setScanStatus('¡QR detectado!');
-      await saveScanResult(val, svc);
-      stopWebCam();
-      scanServiceRef.current = null;
-      setScanService(null);
+      try {
+        setScanStatus('QR detectado; guardando enlace…');
+        await saveScanResult(val, svc);
+        closeScanner();
+      } catch (error) {
+        setScanStatus(error.message || 'El QR no es válido para este servicio.');
+        scanTimerRef.current = setTimeout(webDoScan, 1000);
+      }
       return;
     }
     scanTimerRef.current = setTimeout(webDoScan, 500);
@@ -459,11 +569,16 @@ export default function ApartmentDetail() {
     const val = await detectFile(file);
     const svc = scanServiceRef.current;
     if (val && svc) {
-      await saveScanResult(val, svc);
-      scanServiceRef.current = null;
-      setScanService(null);
+      try {
+        setScanStatus('QR detectado; guardando enlace…');
+        await saveScanResult(val, svc);
+        closeScanner();
+      } catch (error) {
+        setScanStatus(error.message || 'No se pudo guardar el QR.');
+        alert(error.message || 'No se pudo guardar el QR.');
+      }
     } else if (val && !svc) {
-      await saveScanResult(val, showQrModal);
+      try { await saveScanResult(val, showQrModal); } catch (error) { alert(error.message || 'No se pudo guardar el QR.'); }
     } else {
       alert('No se encontró un código QR en la imagen');
     }
@@ -1062,7 +1177,7 @@ export default function ApartmentDetail() {
                             </button>
                           </>
                         )}
-                        <input ref={scannerRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} className="hidden" />
+                        <input ref={scannerRef} type="file" accept="image/*" onChange={handleScanFile} className="hidden" />
                       </div>
                       {rec ? (
                         <button onClick={() => toggleUtilityPaid(rec)} className={`px-2 py-1 text-xs rounded transition-colors ${rec.paid ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}>
@@ -1104,10 +1219,10 @@ export default function ApartmentDetail() {
           </Modal>
 
           {/* Scanner modal */}
-          <Modal open={scanService !== null} onClose={() => { scanServiceRef.current = null; stopWebCam(); setScanService(null); }} title={scanService ? `Escaneando QR - ${serviceNames[scanService]}` : ''}>
+          <Modal open={scanService !== null} onClose={closeScanner} title={scanService ? `Escaneando QR - ${serviceNames[scanService]}` : ''}>
             <div className="p-4">
               <div className="relative bg-black rounded-xl overflow-hidden mb-3" style={{ minHeight: 280 }}>
-                <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+                <video ref={videoRef} className="w-full h-full object-cover" muted autoPlay playsInline />
                 {scanService !== null && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-48 h-48 border-2 border-emerald-400 rounded-xl opacity-70" />
@@ -1123,7 +1238,7 @@ export default function ApartmentDetail() {
                 <button onClick={() => scannerRef.current?.click()} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                   <Image className="w-4 h-4" /> Subir foto
                 </button>
-                <button onClick={() => { scanServiceRef.current = null; stopWebCam(); setScanService(null); }} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                <button onClick={closeScanner} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm">
                   Cancelar
                 </button>
               </div>

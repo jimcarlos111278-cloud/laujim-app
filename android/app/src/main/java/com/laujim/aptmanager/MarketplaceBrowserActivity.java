@@ -11,6 +11,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
+import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -39,6 +40,8 @@ import java.util.concurrent.Executors;
  */
 public class MarketplaceBrowserActivity extends Activity {
     static final String CREATE_URL = "https://www.facebook.com/marketplace/create/";
+    private static final String LOGIN_URL = "https://www.facebook.com/login/?next=%2Fmarketplace%2Fcreate%2F";
+    private static final String RECOVERY_URL = "https://www.facebook.com/login/identify/";
     private static final int PHOTO_PICKER_REQUEST = 31782;
 
     private static volatile MarketplaceBrowserActivity activeInstance;
@@ -84,11 +87,27 @@ public class MarketplaceBrowserActivity extends Activity {
         form.setText("Abrir formulario");
         form.setOnClickListener(view -> loadCreatePage());
         actions.addView(form, new LinearLayout.LayoutParams(0, -2, 1));
+        Button login = new Button(this);
+        login.setText("Iniciar sesión");
+        login.setOnClickListener(view -> loadLoginPage());
+        actions.addView(login, new LinearLayout.LayoutParams(0, -2, 1));
+        root.addView(actions, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout sessionActions = new LinearLayout(this);
+        sessionActions.setPadding(16, 0, 16, 8);
+        Button reset = new Button(this);
+        reset.setText("Reiniciar Facebook");
+        reset.setOnClickListener(view -> resetFacebookSession());
+        sessionActions.addView(reset, new LinearLayout.LayoutParams(0, -2, 1));
+        Button recovery = new Button(this);
+        recovery.setText("Recuperar en navegador");
+        recovery.setOnClickListener(view -> openRecoveryInBrowser());
+        sessionActions.addView(recovery, new LinearLayout.LayoutParams(0, -2, 1));
         Button close = new Button(this);
         close.setText("Volver a Laujim");
         close.setOnClickListener(view -> returnToLaujim());
-        actions.addView(close, new LinearLayout.LayoutParams(0, -2, 1));
-        root.addView(actions, new LinearLayout.LayoutParams(-1, -2));
+        sessionActions.addView(close, new LinearLayout.LayoutParams(0, -2, 1));
+        root.addView(sessionActions, new LinearLayout.LayoutParams(-1, -2));
 
         webView = new WebView(this);
         configureWebView(webView);
@@ -133,17 +152,10 @@ public class MarketplaceBrowserActivity extends Activity {
             public void onPageFinished(WebView page, String url) {
                 PortalSessionVault.flushCookies();
                 String current = url == null ? "" : url;
-                if (!storageRestoreAttempted && current.contains("facebook.com")) {
-                    storageRestoreAttempted = true;
-                    String state = PortalSessionVault.loadState(MarketplaceBrowserActivity.this, "facebook");
-                    if (!state.isEmpty()) {
-                        page.evaluateJavascript(PortalSessionVault.restoreScript(state), ignored ->
-                            mainHandler.postDelayed(() -> {
-                                if (webView != null) webView.loadUrl(CREATE_URL);
-                            }, 250L));
-                        return;
-                    }
-                }
+                // Facebook login/recovery pages are sensitive to replayed
+                // sessionStorage. WebView cookies are the authoritative
+                // session; restoring an old SPA snapshot can loop on the
+                // password-change spinner.
                 storageRestoreAttempted = true;
                 captureSession(800L);
                 captureSession(3_500L);
@@ -164,6 +176,51 @@ public class MarketplaceBrowserActivity extends Activity {
         webView.loadUrl(CREATE_URL);
     }
 
+    private void loadLoginPage() {
+        if (webView == null) return;
+        storageRestoreAttempted = true;
+        webView.loadUrl(LOGIN_URL);
+    }
+
+    private void resetFacebookSession() {
+        storageRestoreAttempted = true;
+        PortalSessionVault.clearProvider(this, "facebook");
+        clearFacebookCookies();
+        WebStorage.getInstance().deleteOrigin("https://www.facebook.com");
+        if (webView != null) {
+            webView.clearHistory();
+            webView.clearFormData();
+            webView.evaluateJavascript("try{localStorage.clear();sessionStorage.clear();}catch(e){}", ignored -> loadLoginPage());
+        } else {
+            loadLoginPage();
+        }
+    }
+
+    private void clearFacebookCookies() {
+        CookieManager manager = CookieManager.getInstance();
+        String[] origins = { "https://www.facebook.com", "https://facebook.com", "https://m.facebook.com" };
+        for (String origin : origins) {
+            String cookies = manager.getCookie(origin);
+            if (cookies == null) continue;
+            for (String part : cookies.split(";")) {
+                String name = part.split("=", 2)[0].trim();
+                if (!name.isEmpty()) {
+                    manager.setCookie(origin, name + "=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/");
+                    manager.setCookie(origin, name + "=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Domain=.facebook.com");
+                }
+            }
+        }
+        manager.flush();
+    }
+
+    private void openRecoveryInBrowser() {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(RECOVERY_URL)));
+        } catch (RuntimeException error) {
+            if (status != null) status.setText("No hay un navegador externo disponible para recuperar la cuenta.");
+        }
+    }
+
     private void captureSession(long delayMs) {
         mainHandler.postDelayed(() -> {
             if (webView == null || webView.getUrl() == null || !webView.getUrl().contains("facebook.com")) return;
@@ -177,8 +234,10 @@ public class MarketplaceBrowserActivity extends Activity {
         String lower = current.toLowerCase();
         if (lower.contains("/marketplace/create")) {
             status.setText("Sesión lista. Vuelve a Laujim y pulsa Publicar con el teléfono; el trabajo correrá en este mismo navegador.");
+        } else if (lower.contains("recover") || lower.contains("identify")) {
+            status.setText("Facebook está en recuperación. Termina el proceso en el navegador externo y luego vuelve a Iniciar sesión aquí.");
         } else if (lower.contains("login") || lower.contains("checkpoint") || lower.contains("two_factor")) {
-            status.setText("Completa el inicio de sesión, 2FA o verificación directamente en Facebook.");
+            status.setText("Completa el inicio de sesión o 2FA. Si aparece un bucle, pulsa Reiniciar Facebook.");
         } else {
             status.setText("Facebook abierto. Al terminar de autenticarte, pulsa Abrir formulario.");
         }

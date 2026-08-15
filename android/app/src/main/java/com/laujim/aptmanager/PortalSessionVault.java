@@ -57,6 +57,14 @@ final class PortalSessionVault {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply();
     }
 
+    static void clearProvider(Context context, String provider) {
+        String normalized = normalize(provider);
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .remove(KEY_STATE + normalized)
+            .remove(KEY_AUTH + normalized)
+            .apply();
+    }
+
     static String restoreScript(String encryptedStateJson) {
         String state = encryptedStateJson == null ? "" : encryptedStateJson.trim();
         if (state.isEmpty()) return "(function(){return false;})();";

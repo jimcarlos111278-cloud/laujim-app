@@ -212,18 +212,21 @@ export default function Utilities() {
 
   function normalizeReceiptQrUrl(raw, service) {
     if (!QR_SERVICES.has(service)) return '';
-    let value = String(raw || '').trim();
+    let value = String(raw || '').trim().replace(/[\s),.;]+$/g, '');
     if (!value) return '';
     if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
     try {
       const url = new URL(value);
+      if (url.protocol === 'http:') {
+        const knownPaymentHost = /(?:^|\.)portal\.aaa\.com\.co$|(?:^|\.)gascaribe\.com$/i.test(url.hostname);
+        if (!knownPaymentHost) return '';
+        url.protocol = 'https:';
+      }
       if (url.protocol !== 'https:') return '';
       const host = url.hostname.toLowerCase();
       const path = url.pathname.toLowerCase().replace(/\/+$/, '') || '/';
       if (service === 'water') {
-        const isReceipt = host.endsWith('portal.aaa.com.co') && path === '/pagos' &&
-          String(url.searchParams.get('tipoPago') || '').toLowerCase() === 'coupon' &&
-          Boolean(url.searchParams.get('numeroPago'));
+        const isReceipt = host.endsWith('portal.aaa.com.co') && /^\/pagos(?:\/|$)/i.test(path);
         return isReceipt ? url.toString() : '';
       }
       if (host.endsWith('gascaribe.com') && /^\/(?:login|contracts)(?:\/|$)/i.test(path)) return '';
@@ -242,6 +245,20 @@ export default function Utilities() {
     stopWebCam();
   }
 
+  function openWebQrScanner(apartmentId, service) {
+    scanServiceRef.current = service;
+    scanApartmentRef.current = apartmentId;
+    setScanService(service);
+    setScanApartmentId(apartmentId);
+    setScanStatus('Iniciando cámara…');
+    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+    scanTimerRef.current = setTimeout(startWebCam, 150);
+  }
+
+  function barcodeRawValue(barcode) {
+    return String(barcode?.rawValue || barcode?.displayValue || barcode?.urlBookmark?.url || '').trim();
+  }
+
   async function saveScannedPaymentUrl(apartmentId, service, rawValue) {
     const url = normalizeReceiptQrUrl(rawValue, service);
     if (!url) {
@@ -250,7 +267,8 @@ export default function Utilities() {
         : 'El QR no contiene un enlace de pago válido de Gases del Caribe.');
     }
     const field = qrPaymentField(service);
-    await api.apartments.update(Number(apartmentId), { [field]: url });
+    const saved = await api.apartments.update(Number(apartmentId), { [field]: url });
+    if (!saved || saved[field] !== url) throw new Error('Aiven no confirmó el enlace QR. Inténtalo de nuevo.');
     setApartments(current => current.map(apartment => (
       Number(apartment.id) === Number(apartmentId) ? { ...apartment, [field]: url } : apartment
     )));
@@ -260,24 +278,42 @@ export default function Utilities() {
   async function handleScanButton(apartmentId, service) {
     if (!QR_SERVICES.has(service)) return;
     if (isCapacitor()) {
+      let rawValue = '';
       try {
         const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
-        const result = await BarcodeScanner.scan();
-        const rawValue = result.barcodes?.[0]?.rawValue;
+        const supported = await BarcodeScanner.isSupported?.();
+        if (supported && supported.supported === false) throw new Error('Este dispositivo no tiene cámara disponible.');
+        const permission = await BarcodeScanner.checkPermissions?.();
+        if (permission && permission.camera !== 'granted' && permission.camera !== 'limited') {
+          const requested = await BarcodeScanner.requestPermissions?.();
+          if (requested && requested.camera !== 'granted' && requested.camera !== 'limited') {
+            throw new Error('Permiso de cámara denegado. Actívalo en Ajustes > Laujim > Cámara.');
+          }
+        }
+        const module = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable?.();
+        if (module && module.available === false) {
+          try { await BarcodeScanner.installGoogleBarcodeScannerModule?.(); } catch {}
+          throw new Error('El lector nativo se está instalando. Se abrirá el lector de respaldo.');
+        }
+        const { BarcodeFormat } = await import('@capacitor-mlkit/barcode-scanning');
+        const result = await BarcodeScanner.scan({ formats: [BarcodeFormat.QrCode], autoZoom: true });
+        rawValue = barcodeRawValue(result.barcodes?.[0]);
         if (!rawValue) return;
         await saveScannedPaymentUrl(apartmentId, service, rawValue);
       } catch (error) {
         console.error('QR payment scan error:', error);
-        alert(error.message || 'No se pudo guardar el QR de pago.');
+        if (rawValue) {
+          alert(error.message || 'Aiven no confirmó el enlace QR.');
+          return;
+        }
+        // Some Android devices do not have Google's ready-to-use module. Keep
+        // the same in-app camera flow as the web version instead of ending on
+        // an empty scanner screen.
+        openWebQrScanner(apartmentId, service);
       }
       return;
     }
-    scanServiceRef.current = service;
-    scanApartmentRef.current = apartmentId;
-    setScanService(service);
-    setScanApartmentId(apartmentId);
-    setScanStatus('Iniciando cámara...');
-    scanTimerRef.current = setTimeout(startWebCam, 100);
+    openWebQrScanner(apartmentId, service);
   }
 
   async function getScanDetector() {
@@ -286,7 +322,9 @@ export default function Utilities() {
       try {
         scanDetectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] });
         return scanDetectorRef.current;
-      } catch {}
+      } catch {
+        try { scanDetectorRef.current = new window.BarcodeDetector(); return scanDetectorRef.current; } catch {}
+      }
     }
     return null;
   }
@@ -297,7 +335,7 @@ export default function Utilities() {
     if (detector) {
       try {
         const detected = await detector.detect(video);
-        if (detected.length) return detected[0].rawValue;
+        if (detected.length) return barcodeRawValue(detected[0]);
       } catch {}
     }
     const width = Math.min(video.videoWidth || SCAN_MAX_WIDTH, SCAN_MAX_WIDTH);
@@ -317,40 +355,55 @@ export default function Utilities() {
   }
 
   async function detectQrInFile(file) {
+    let bitmap = null;
     try {
-      const bitmap = await createImageBitmap(file, { resizeWidth: SCAN_MAX_WIDTH, resizeQuality: 'high' });
+      if (typeof createImageBitmap === 'function') {
+        bitmap = await createImageBitmap(file, { resizeWidth: SCAN_MAX_WIDTH, resizeQuality: 'high' });
+      } else {
+        bitmap = await new Promise((resolve, reject) => {
+          const image = new Image();
+          const objectUrl = URL.createObjectURL(file);
+          image.onload = () => { URL.revokeObjectURL(objectUrl); resolve(image); };
+          image.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('No se pudo abrir la imagen.')); };
+          image.src = objectUrl;
+        });
+      }
       const detector = await getScanDetector();
       if (detector) {
         try {
           const detected = await detector.detect(bitmap);
           if (detected.length) {
-            bitmap.close();
-            return detected[0].rawValue;
+            if (typeof bitmap.close === 'function') bitmap.close();
+            return barcodeRawValue(detected[0]);
           }
         } catch {}
       }
       const canvas = document.createElement('canvas');
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
+      const sourceWidth = bitmap.width || bitmap.naturalWidth || SCAN_MAX_WIDTH;
+      const sourceHeight = bitmap.height || bitmap.naturalHeight || 480;
+      const scale = Math.min(1, SCAN_MAX_WIDTH / sourceWidth);
+      canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+      canvas.height = Math.max(1, Math.round(sourceHeight * scale));
       const context = canvas.getContext('2d', { willReadFrequently: true });
-      context.drawImage(bitmap, 0, 0);
-      bitmap.close();
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      if (typeof bitmap.close === 'function') bitmap.close();
       const image = context.getImageData(0, 0, canvas.width, canvas.height);
       const detected = jsQR(image.data, image.width, image.height);
       return detected?.data || null;
     } catch {
+      if (bitmap && typeof bitmap.close === 'function') bitmap.close();
       return null;
     }
   }
 
   function startWebCam() {
     if (!scanServiceRef.current || !navigator.mediaDevices?.getUserMedia) {
-      setScanStatus('Cámara no disponible; usa subir foto.');
-      setTimeout(() => scannerRef.current?.click(), 300);
+      setScanStatus('Cámara no disponible aquí; pulsa “Subir foto”.');
       return;
     }
     navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false,
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
     }).then(stream => {
       if (!videoRef.current || !scanServiceRef.current) {
         stream.getTracks().forEach(track => track.stop());
@@ -362,11 +415,10 @@ export default function Utilities() {
         video.play().then(() => {
           setScanStatus('Enfoca el QR del recibo.');
           scanTimerRef.current = setTimeout(scanVideoFrame, 500);
-        }).catch(() => setScanStatus('No se pudo iniciar la cámara; usa subir foto.'));
+        }).catch(() => setScanStatus('No se pudo iniciar la cámara; pulsa “Subir foto”.'));
       };
     }).catch(() => {
-      setScanStatus('Cámara no disponible; usa subir foto.');
-      setTimeout(() => scannerRef.current?.click(), 300);
+      setScanStatus('Permiso de cámara no disponible; pulsa “Subir foto”.');
     });
   }
 
@@ -615,14 +667,14 @@ export default function Utilities() {
                 const code = getCode(apt, svc);
                 const url = getUrl(apt, svc);
                 return (
-                  <div key={svc} className={`px-4 py-3 flex items-center gap-3 ${s.bgLight} dark:bg-transparent`}>
+                  <div key={svc} className={`px-3 py-2.5 flex items-center gap-2 ${s.bgLight} dark:bg-transparent`}>
                     {/* Icon */}
                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center shadow-sm shrink-0`}>
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{s.name}</p>
+                      <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{s.name}</p>
                       {code && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{s.codeLabel}: <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{code}</span></p>}
                       {(svc === 'water' || svc === 'gas') && debts[apt.id] && (() => {
                         const bill = debts[apt.id][svc];
@@ -647,24 +699,24 @@ export default function Utilities() {
                       )}
                     </div>
                     {/* Actions */}
-                    <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+                    <div className="flex items-center justify-end gap-1 shrink-0">
                       {svc === 'electricity' ? (
-                        <button onClick={() => handleElectricityPay(apt)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg hover:from-purple-600 hover:to-violet-700 transition-all shadow-sm">
-                          <ExternalLink className="w-3 h-3" /> Pagar
+                        <button onClick={() => handleElectricityPay(apt)} aria-label={`Pagar Air-e del apartamento ${apt.name}`} className="inline-flex h-8 w-8 sm:h-7 sm:w-auto sm:px-2 items-center justify-center gap-1 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-violet-600 rounded-md hover:from-purple-600 hover:to-violet-700 transition-all shadow-sm">
+                          <ExternalLink className="w-3 h-3" /><span className="hidden sm:inline">Pagar</span>
                         </button>
                       ) : (
                         <>
                           {url && (
-                            <button onClick={() => window.open(url, '_blank', 'noopener,noreferrer')} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm">
-                              <ExternalLink className="w-3 h-3" /> Pagar
+                            <button onClick={() => window.open(url, '_blank', 'noopener,noreferrer')} aria-label={`Pagar ${s.name} del apartamento ${apt.name}`} title="Pagar" className="inline-flex h-8 w-8 sm:h-7 sm:w-auto sm:px-2 items-center justify-center gap-1 text-xs font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-md hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm">
+                              <ExternalLink className="w-3 h-3" /><span className="hidden sm:inline">Pagar</span>
                             </button>
                           )}
-                          <button onClick={() => handleScanButton(apt.id, svc)} className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white/80 dark:bg-gray-700 hover:bg-white dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-lg transition-colors" title={url ? 'Reemplazar enlace QR' : 'Escanear QR del recibo'}>
-                            <Scan className="w-3 h-3" /> {url ? 'Escanear otro' : 'Escanear'}
+                          <button onClick={() => handleScanButton(apt.id, svc)} aria-label={`${url ? 'Reemplazar' : 'Escanear'} QR de ${s.name} del apartamento ${apt.name}`} className="inline-flex h-8 w-8 sm:h-7 sm:w-auto sm:px-2 items-center justify-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white/80 dark:bg-gray-700 hover:bg-white dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-md transition-colors" title={url ? 'Reemplazar enlace QR' : 'Escanear QR del recibo'}>
+                            <Scan className="w-3 h-3" /><span className="hidden sm:inline">{url ? 'Escanear otro' : 'Escanear'}</span>
                           </button>
                           {url && (
-                            <button onClick={() => handleDeletePaymentLink(apt, svc)} className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-lg transition-colors" title="Eliminar enlace QR">
-                              <Trash2 className="w-3 h-3" /> Eliminar
+                            <button onClick={() => handleDeletePaymentLink(apt, svc)} aria-label={`Eliminar enlace de ${s.name} del apartamento ${apt.name}`} className="inline-flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center text-red-600 dark:text-red-400 bg-white/80 dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-md transition-colors" title="Eliminar enlace QR">
+                              <Trash2 className="w-3 h-3" />
                             </button>
                           )}
                         </>
@@ -687,7 +739,7 @@ export default function Utilities() {
       >
         <div className="p-1">
           <div className="relative bg-black rounded-xl overflow-hidden mb-3" style={{ minHeight: 280 }}>
-            <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+            <video ref={videoRef} className="w-full h-full object-cover" muted autoPlay playsInline />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-52 h-52 border-2 border-emerald-400 rounded-xl opacity-80" />
             </div>
@@ -706,7 +758,7 @@ export default function Utilities() {
               Cancelar
             </button>
           </div>
-          <input ref={scannerRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} className="hidden" />
+          <input ref={scannerRef} type="file" accept="image/*" onChange={handleScanFile} className="hidden" />
         </div>
       </Modal>
 

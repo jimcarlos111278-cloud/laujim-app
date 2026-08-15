@@ -86,6 +86,15 @@ export async function refreshAllFromServer() {
 
 let lastDataVersion = 0;
 let versionPollInterval = null;
+let suppressDataReloadUntil = 0;
+
+// A local edit already updates the current screen. Do not let the generic
+// external-change poll reload that screen while the edit is being committed.
+// The server still remains the source of truth; this only avoids losing the
+// user's scanner context during the short persistence window.
+function markLocalMutation() {
+  suppressDataReloadUntil = Date.now() + 15_000;
+}
 
 async function getDataVersion() {
   try {
@@ -102,6 +111,10 @@ export function startDataVersionPolling(ms = 3000) {
     try {
       const res = await getDataVersion();
       if (res && res.version && lastDataVersion > 0 && res.version !== lastDataVersion) {
+        if (Date.now() < suppressDataReloadUntil) {
+          lastDataVersion = res.version;
+          return;
+        }
         // Skip reload within first 12 seconds (let initial sync settle)
         if (Date.now() - startTime < 12000) {
           lastDataVersion = res.version;
@@ -147,6 +160,7 @@ async function createItem(collection, data) {
 }
 
 async function updateItem(collection, id, data) {
+  markLocalMutation();
   const result = await serverReq('PUT', collection, id, data);
   replaceInCollection(collection, Number(id), result);
   return result;

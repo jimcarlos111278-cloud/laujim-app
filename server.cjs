@@ -2819,11 +2819,13 @@ async function saveToPostgres() {
 function queuePostgresSave() {
   // Serialize writes so a burst of page edits cannot finish out of order and
   // leave Aiven with an older snapshot than the last change in memory.
-  pgSaveChain = pgSaveChain
+  const write = pgSaveChain
     .catch(() => {})
-    .then(() => saveToPostgres())
-    .catch(error => console.error('PG save error:', error.message));
-  return pgSaveChain;
+    .then(() => saveToPostgres());
+  pgSaveChain = write.catch(error => {
+    console.error('PG save error:', error.message);
+  });
+  return write;
 }
 
 function loadData() {
@@ -2862,9 +2864,7 @@ function saveData() {
   const json = JSON.stringify(db, null, 2);
   fs.writeFileSync(DATA_FILE, json, 'utf-8');
   fs.writeFileSync(BACKUP_FILE, json, 'utf-8');
-  if (pgPool) {
-    queuePostgresSave();
-  }
+  return pgPool ? queuePostgresSave() : Promise.resolve();
 }
 
 let r2UsageCache = { checkedAt: 0, bytes: 0, objects: 0, source: 'tracked', error: null };
@@ -5201,13 +5201,17 @@ app.post('/api/:collection', (req, res) => {
   res.status(201).json(newItem);
 });
 
-app.put('/api/:collection/:id', (req, res) => {
+app.put('/api/:collection/:id', async (req, res) => {
   const { collection, id } = req.params;
   if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
   const index = db[collection].findIndex(i => i.id === Number(id));
   if (index === -1) return res.status(404).json({ error: 'Not found' });
   db[collection][index] = { ...db[collection][index], ...req.body };
-  saveData();
+  try {
+    await saveData();
+  } catch (error) {
+    return res.status(503).json({ error: 'El cambio se guardó localmente, pero Aiven no confirmó la persistencia.' });
+  }
   res.json(db[collection][index]);
 });
 
