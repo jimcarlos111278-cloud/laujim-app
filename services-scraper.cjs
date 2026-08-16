@@ -1015,6 +1015,13 @@ async function queryRenderedGasContract(page, code) {
     const body = String(document.body?.innerText || document.body?.textContent || '').replace(/\s+/g, ' ');
     const normalizedBody = body.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     if (/captcha|turnstile|no soy un robot/i.test(body)) return { challenge: true };
+    if (/pagad[oa]/i.test(normalizedBody) && new RegExp(String(contractCode).replace(/\D/g, '')).test(body)) {
+      const paidAmountMatch = body.match(/(?:total a pagar|pagad[oa])[^$0-9]{0,80}\$\s*([0-9][0-9.,]*)/i);
+      const invoiceAmount = paidAmountMatch ? Number(paidAmountMatch[1].replace(/\./g, '').replace(',', '.')) : null;
+      const invoiceMatch = body.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
+      const periodMatch = body.match(/\b(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+20\d{2}\b/i);
+      return { amount: 0, invoiceAmount: Number.isFinite(invoiceAmount) ? Math.round(invoiceAmount) : null, invoice: invoiceMatch?.[1] || null, dueDate: periodMatch?.[0] || null };
+    }
     if (/estas al dia|sin deuda|factura pagad/i.test(normalizedBody) && !/\$\s*[1-9][0-9.,]*/.test(body)) {
       const invoiceMatch = body.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
       const dueMatch = body.match(/vence[^.]{0,40}/i);
@@ -1032,7 +1039,7 @@ async function queryRenderedGasContract(page, code) {
   }, RENDERED_PORTAL_TIMEOUT_MS, String(code));
   if (parsed?.challenge) return { status: 'captcha', deudaCOP: null, error: 'Gases del Caribe mostro una verificacion durante la consulta.' };
   if (!parsed || parsed.amount === null) return { status: 'error', deudaCOP: null, error: `Gases del Caribe no mostro el total del contrato ${code}.` };
-  return { status: parsed.amount > 0 ? 'pending' : 'paid', deudaCOP: parsed.amount, factura: parsed.invoice || null, periodo: parsed.dueDate || null };
+  return { status: parsed.amount > 0 ? 'pending' : 'paid', deudaCOP: parsed.amount, factura: parsed.invoice || null, periodo: parsed.dueDate || null, facturaValorCOP: parsed.invoiceAmount ?? null };
 }
 
 async function scrapeTripleAFromRenderedUi() {
@@ -1112,7 +1119,7 @@ async function scrapeGasFromRenderedUi() {
       if (!target || used.has(String(target.apartmentId || target.apartment))) continue;
       used.add(String(target.apartmentId || target.apartment));
       const parsed = await queryRenderedGasContract(page, contract.code);
-      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: contract.code, gasPaymentUrl: gasContractPaymentUrl(contract.code), status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, factura: parsed.factura || null, periodo: parsed.periodo || null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: contract.code, gasPaymentUrl: gasContractPaymentUrl(contract.code), status: parsed.status, deudaCOP: parsed.deudaCOP, deudaTotalCOP: parsed.deudaCOP, deudaLabel: 'Deuda Total', numFacturas: parsed.status === 'pending' ? 1 : 0, factura: parsed.factura || null, periodo: parsed.periodo || null, facturaValorCOP: parsed.facturaValorCOP ?? null, error: parsed.error || null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
       console.log(`[GAS] UI ${target.apartment}: ${parsed.status} (${parsed.deudaCOP === null ? 'sin valor' : `$${parsed.deudaCOP.toLocaleString('es-CO')}`}).`);
     }
     for (const target of targets) {

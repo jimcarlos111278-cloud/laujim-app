@@ -751,19 +751,23 @@
 
   function parseGasHomeResult(text) {
     const source = String(text || '');
+    const normalized = clean(source);
     const dueLine = uiLines(source).find(line => /^vence\b/i.test(line)) || null;
+    const periodMatch = source.match(/\b(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+20\d{2}\b/i);
     const contractMatch = source.match(/contrato\s*n[^0-9]{0,8}(\d{4,})/i);
     const invoiceMatch = source.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
-    const rawAmount = uiAmountAfter(source, 'total a pagar');
-    // Paid Gascaribe receipts can omit the numeric "Total a pagar" value and
-    // only show the green "Estás al día"/"Sin deuda" state. Treat that
-    // authenticated receipt as a confirmed zero instead of timing out.
-    const paidByText = /est[aá]s\s+al\s+d[ií]a|al\s+d[ií]a|sin\s+deuda|factura\s+pagad[ao]|pago\s+realizad[ao]/i.test(source);
-    const amount = rawAmount === null && paidByText ? 0 : rawAmount;
+    // Gascaribe uses two card layouts: pending cards say "Total a pagar",
+    // while paid cards say only "Pagado" followed by the historical invoice
+    // amount. The historical amount is not current debt.
+    const receiptAmount = uiAmountAfter(source, 'total a pagar') ?? uiAmountAfter(source, 'pagado');
+    const paidByText = /estas\s+al\s+dia|al\s+dia|sin\s+deuda|pagad[oa]|pago\s+realizad[oa]/.test(normalized);
+    const amount = paidByText ? 0 : receiptAmount;
     return {
       contract: contractMatch ? contractMatch[1] : null,
       invoice: invoiceMatch ? invoiceMatch[1] : null,
       dueDate: dueLine,
+      periodo: periodMatch ? periodMatch[0] : null,
+      receiptAmount,
       amount,
       status: amount === null ? 'unknown' : amount > 0 ? 'pending' : 'paid',
     };
@@ -785,7 +789,7 @@
     const parsed = await waitForUi(() => {
       if (loginState().challenge) return { challenge: true };
       const text = uiBodyText();
-      const hasReceiptSummary = /total a pagar|tu deuda actual|est[aá]s\s+al\s+d[ií]a|sin\s+deuda/i.test(text);
+      const hasReceiptSummary = /total a pagar|tu deuda actual|est[aá]s\s+al\s+d[ií]a|sin\s+deuda|pagad[oa]/i.test(text);
       if (!hasReceiptSummary || !new RegExp(escapeRegex(contract.code)).test(text)) return null;
       const result = parseGasHomeResult(text);
       return result.amount !== null || result.status === 'paid' ? result : null;
@@ -1200,8 +1204,9 @@
           deudaTotalCOP: parsed.amount,
           numFacturas: parsed.status === 'pending' ? 1 : 0,
           factura: parsed.invoice || null,
-          periodo: parsed.dueDate || null,
+          periodo: parsed.periodo || parsed.dueDate || null,
           fechaVencimiento: parsed.dueDate || null,
+          facturaValorCOP: parsed.receiptAmount ?? null,
         }));
     }
 
