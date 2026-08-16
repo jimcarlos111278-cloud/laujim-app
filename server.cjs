@@ -1196,6 +1196,11 @@ function utilityResultHasConfirmedValue(record) {
   return ['pending', 'paid'].includes(status) && utilityDebtAmount(record) !== null;
 }
 
+function gasRecordHasNoVisibleInvoice(record) {
+  return utilityProviderKey(record?.provider) === 'gas'
+    && /no tiene este contrato asociado/i.test(String(record?.error || ''));
+}
+
 function mergeUtilityRecord(existing, incoming) {
   const merged = { ...(existing || {}), ...(incoming || {}) };
   if (!existing || !utilityResultHasConfirmedValue(existing) || utilityResultHasConfirmedValue(incoming)) {
@@ -1221,6 +1226,19 @@ function mergeUtilityRecord(existing, incoming) {
 function utilityPaymentView(record) {
   if (!record) return null;
   const checkedAt = utilityRecordValueTimestamp(record);
+  if (gasRecordHasNoVisibleInvoice(record)) {
+    return {
+      status: 'paid',
+      deudaCOP: 0,
+      numFacturas: 0,
+      factura: null,
+      periodo: null,
+      actualizado: checkedAt,
+      checkedAt,
+      error: null,
+      portalNoInvoice: true,
+    };
+  }
   return {
     status: record.status || 'unknown',
     deudaCOP: utilityDebtAmount(record),
@@ -1252,6 +1270,9 @@ function buildDebtReply(contact) {
     const when = checkedAt && !Number.isNaN(new Date(checkedAt).getTime())
       ? ` Datos del ${formatColombiaDateTime(checkedAt)}.`
       : '';
+    if (gasRecordHasNoVisibleInvoice(record)) {
+      return `${label}: Deuda Total de $0; sin factura pendiente visible.${when}`;
+    }
     if (debt !== null && debt > 0) {
       if (isTotalDebt) {
         return `${label}: Deuda Total de $${debt.toLocaleString('es-CO')}.${when}`;
@@ -1389,8 +1410,18 @@ function occupiedCloudApartments() {
   return source.sort((left, right) => String(left.name || '').localeCompare(String(right.name || ''), 'es', { numeric: true }));
 }
 
+function configuredCloudApartments() {
+  return (db.apartments || [])
+    .slice()
+    .sort((left, right) => String(left.name || '').localeCompare(String(right.name || ''), 'es', { numeric: true }));
+}
+
 function cloudApartmentsForFloor(floor) {
   return occupiedCloudApartments().filter(apartment => cloudApartmentFloor(apartment) === Number(floor));
+}
+
+function cloudServiceApartmentsForFloor(floor) {
+  return configuredCloudApartments().filter(apartment => cloudApartmentFloor(apartment) === Number(floor));
 }
 
 function cloudListSections(title, rows) {
@@ -1498,6 +1529,9 @@ function cloudServiceReference(apartment, record, service) {
 
 function cloudServiceState(record, _provider) {
   if (!record) return { label: 'Deuda Total: sin datos de consulta', debt: null, known: false, hasDebt: false };
+  if (gasRecordHasNoVisibleInvoice(record)) {
+    return { label: 'Deuda Total: $0 · Al día · sin factura pendiente visible', debt: 0, known: true, hasDebt: false };
+  }
   const debt = utilityDebtAmount(record);
   if (debt !== null && debt > 0) {
     return {
@@ -1563,7 +1597,7 @@ async function sendCloudServiceFloorsMenu(phone, body = '🏢 Servicios — elig
       ...[1, 2, 3, 4, 5].map(floor => ({
         id: `services_floor_${floor}`,
         title: `Piso ${floor}`,
-        description: `${cloudApartmentsForFloor(floor).length} apartamento(s) configurado(s)`,
+        description: `${cloudServiceApartmentsForFloor(floor).length} apartamento(s) configurado(s)`,
       })),
       { id: 'services_back', title: '↩️ Servicios', description: 'Volver a opciones de servicios' },
     ]));
@@ -1574,7 +1608,7 @@ async function sendCloudServiceFloorsMenu(phone, body = '🏢 Servicios — elig
 }
 
 async function sendCloudServiceApartmentsMenu(phone, floor) {
-  const apartments = cloudApartmentsForFloor(floor);
+  const apartments = cloudServiceApartmentsForFloor(floor);
   if (!apartments.length) {
     await sendCloudText(phone, `No hay apartamentos configurados en el piso ${floor}.`);
     await sendCloudServiceFloorsMenu(phone);
@@ -1645,7 +1679,7 @@ function cloudServiceDisplayBlock(summary) {
 }
 
 function buildCloudDetailedGlobalServicesReport() {
-  const summaries = occupiedCloudApartments().map(cloudApartmentServices);
+  const summaries = configuredCloudApartments().map(cloudApartmentServices);
   const debt = summaries.filter(summary => Object.values(summary.states).some(state => state.hasDebt));
   const pending = summaries.filter(summary => !debt.includes(summary) && Object.values(summary.states).some(state => !state.known));
   const paid = summaries.filter(summary => !debt.includes(summary) && !pending.includes(summary));
@@ -1690,9 +1724,7 @@ function cloudApartmentServicesLine(summary) {
 
 function buildCloudGlobalServicesReport() {
   if (process.env.LAUJIM_LEGACY_SERVICE_REPORT !== 'true') return buildCloudDetailedGlobalServicesReport();
-  const summaries = (db.apartments || [])
-    .map(cloudApartmentServices)
-    .sort((left, right) => String(left.apartment.name).localeCompare(String(right.apartment.name), 'es', { numeric: true }));
+  const summaries = configuredCloudApartments().map(cloudApartmentServices);
   const debt = summaries.filter(summary => Object.values(summary.states).some(state => state.hasDebt));
   const pending = summaries.filter(summary => !debt.includes(summary) && Object.values(summary.states).some(state => !state.known));
   const paid = summaries.filter(summary => !debt.includes(summary) && !pending.includes(summary));
@@ -1760,7 +1792,7 @@ function escapeCloudImageHtml(value) {
 }
 
 function buildCloudServicesImageData() {
-  const summaries = occupiedCloudApartments().map(cloudApartmentServices);
+  const summaries = configuredCloudApartments().map(cloudApartmentServices);
   const serviceKeys = ['electricity', 'water', 'gas'];
   const rows = summaries.map(summary => {
     const { apartment } = summary;
@@ -3643,8 +3675,15 @@ function mergePortableWorkerRecords(records) {
     );
     const index = db.utilityRecords.findIndex(record => {
       if (record.provider !== result.provider) return false;
-      if (result.provider === 'Air-e' && result.nic && record.nic) return String(record.nic) === String(result.nic);
-      return sameApartment(record);
+      if (sameApartment(record)) return true;
+      // A shared Air-e NIC is duplicated for every configured apartment. Only
+      // use the NIC as a fallback for legacy records that have no apartment
+      // identity at all; otherwise 101 and 501 overwrite each other.
+      if (result.provider === 'Air-e' && result.nic && record.nic
+        && !result.apartmentId && !result.apartment && !record.apartmentId && !record.apartment) {
+        return String(record.nic) === String(result.nic);
+      }
+      return false;
     });
     if (index >= 0) db.utilityRecords[index] = mergeUtilityRecord(db.utilityRecords[index], result);
     else db.utilityRecords.push(result);

@@ -774,7 +774,20 @@
   }
 
   function unmatchedPortalResult(provider, service, target, code, message) {
-    const extra = {
+    // Gases' authenticated list contains contracts with a current invoice;
+    // a configured contract absent from that list is the portal's way of
+    // indicating no invoice is pending. Keep genuine query failures as
+    // errors, but don't present a zero-debt contract as a scraper failure.
+    const noGasInvoice = provider === 'Gases del Caribe';
+    const extra = noGasInvoice ? {
+      status: 'paid',
+      deudaCOP: 0,
+      deudaTotalCOP: 0,
+      numFacturas: 0,
+      deudaText: 'Deuda Total: $0 (al día; sin factura pendiente visible).',
+      portalNoInvoice: true,
+      error: null,
+    } : {
       status: 'unknown',
       deudaCOP: null,
       deudaTotalCOP: null,
