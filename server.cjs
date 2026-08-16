@@ -3591,7 +3591,7 @@ function marketplaceListingSnapshot(apartment, req) {
     city: String(apartment.marketplaceCity || apartment.city || 'Barranquilla'),
     bedrooms: String(apartment.marketplaceBedrooms ?? apartment.rooms ?? ''),
     bathrooms: String(apartment.marketplaceBathrooms ?? apartment.bathrooms ?? ''),
-    title: `Arriendo Apartamento ${apartment.name || apartment.id}`,
+    title: String(apartment.marketplaceTitle || `Arriendo Apartamento ${apartment.name || apartment.id}`).trim(),
     price: String(Math.max(0, Math.round(Number(apartment.monthlyRent) || 0))),
     description: [
       `Apartamento ${apartment.name || apartment.id} en arriendo${specs ? `: ${specs}` : ''}.`,
@@ -4446,6 +4446,15 @@ app.get('/api/public/photos/:id', async (req, res) => {
       await streamR2Object(photo.storageKey, res, { fileName: photo.originalName || photo.filename, mimeType: photo.mimeType });
       return;
     } catch (error) { return res.status(502).json({ error: `No fue posible leer la foto permanente: ${error.message}` }); }
+  }
+  if (typeof photo.data === 'string' && /^data:image\//i.test(photo.data)) {
+    const match = photo.data.match(/^data:([^;,]+);base64,([\s\S]+)$/i);
+    if (!match) return res.status(422).json({ error: 'Formato de foto no compatible' });
+    try {
+      res.set('Content-Type', match[1]);
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.send(Buffer.from(match[2], 'base64'));
+    } catch (error) { return res.status(422).json({ error: 'No fue posible leer la foto guardada: ' + error.message }); }
   }
   const legacyPath = path.join(PHOTOS_DIR, photo.filename || '');
   if (!photo.filename || !fs.existsSync(legacyPath)) return res.status(404).json({ error: 'Foto no disponible' });

@@ -41,6 +41,14 @@
       element.dispatchEvent(new Event('change', { bubbles: true }));
       return true;
     }
+    try {
+      if (typeof element.select === 'function') element.select();
+      if (document.execCommand('insertText', false, String(value))) {
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        element.dispatchEvent(new Event('blur', { bubbles: true }));
+        return true;
+      }
+    } catch (_) {}
     var prototype = tag === 'textarea' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     var descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
     if (descriptor && descriptor.set) descriptor.set.call(element, String(value));
@@ -54,7 +62,7 @@
   function nearbyText(element) {
     var text = [
       element.getAttribute('aria-label'), element.getAttribute('placeholder'),
-      element.getAttribute('name'), element.getAttribute('data-testid')
+      element.getAttribute('name'), element.getAttribute('data-testid'), element.getAttribute('data-name')
     ].filter(Boolean).join(' ');
     String(element.getAttribute('aria-labelledby') || '').split(/\s+/).forEach(function (id) {
       var label = document.getElementById(id);
@@ -62,6 +70,7 @@
     });
     var current = element;
     for (var level = 0; level < 4 && current; level += 1) {
+      if (current.getAttribute('data-name')) text += ' ' + current.getAttribute('data-name');
       if (current.previousElementSibling) text += ' ' + (current.previousElementSibling.textContent || '');
       if (current.parentElement) text += ' ' + (current.parentElement.getAttribute('aria-label') || '');
       current = current.parentElement;
@@ -94,7 +103,7 @@
 
   function findControl(keywords) {
     var wanted = keywords.map(normalizeText);
-    return Array.from(document.querySelectorAll('select, [role="combobox"], input[aria-haspopup], button, [role="button"]'))
+    return Array.from(document.querySelectorAll('select, [role="combobox"], input[aria-haspopup], button, [role="button"], [tabindex][data-action-id]'))
       .filter(visible)
       .find(function (element) {
         var text = nearbyText(element) + ' ' + normalizeText(element.textContent || '');
@@ -171,7 +180,7 @@
 
   function findButton(labels) {
     var wanted = labels.map(normalizeText);
-    return Array.from(document.querySelectorAll('button, [role="button"], a[role="button"]'))
+    return Array.from(document.querySelectorAll('button, [role="button"], a[role="button"], [tabindex][data-action-id]'))
       .filter(visible)
       .find(function (button) {
         var text = normalizeText((button.textContent || '') + ' ' + (button.getAttribute('aria-label') || ''));
@@ -181,7 +190,7 @@
 
   function findButtonFromEnd(labels) {
     var wanted = labels.map(normalizeText);
-    var buttons = Array.from(document.querySelectorAll('button, [role="button"], a[role="button"]'))
+    var buttons = Array.from(document.querySelectorAll('button, [role="button"], a[role="button"], [tabindex][data-action-id]'))
       .filter(visible)
       .filter(function (button) {
         var text = normalizeText((button.textContent || '') + ' ' + (button.getAttribute('aria-label') || ''));
@@ -207,7 +216,7 @@
   function hasMobileComposer() {
     return Boolean(
       findControl(['categoria', 'category']) &&
-      findEditable(['que vendes', 'what are you selling', 'titulo del anuncio', 'listing title']) &&
+      findEditable(['que vendes', 'what are you selling', 'titulo del anuncio', 'listing title', 'title']) &&
       findEditable(['precio', 'price']) &&
       findEditable(['descripcion', 'description'])
     );
@@ -282,7 +291,6 @@
 
   async function openRentalComposer() {
     if (/\/marketplace\/create\/(rental|housing|property)/i.test(window.location.pathname)) return true;
-    if (!/\/marketplace\/create/i.test(window.location.pathname)) return false;
     if (hasMobileComposer()) {
       var mobileCategory = await selectMobileRentalCategory();
       if (mobileCategory || hasMobileComposer()) {
@@ -290,6 +298,7 @@
         return true;
       }
     }
+    if (!/\/marketplace\/(create|selling\/item)/i.test(window.location.pathname)) return false;
     var wanted = [
       'propiedad en alquiler', 'vivienda en alquiler', 'viviendas en venta o alquiler', 'alquiler o venta',
       'crear anuncio de alquiler', 'home for rent', 'property for rent',
@@ -339,8 +348,8 @@
 
     var mobileComposer = hasMobileComposer();
     var fields = [
-      { key: 'title', labels: ['que vendes', 'what are you selling', 'titulo del anuncio', 'listing title', 'titulo'] },
-      { key: 'price', labels: ['precio por mes', 'precio', 'price per month', 'monthly price'] },
+      { key: 'title', labels: ['que vendes', 'what are you selling', 'titulo del anuncio', 'listing title', 'title', 'titulo'] },
+      { key: 'price', labels: ['precio por mes', 'precio', 'price per month', 'monthly price', 'price'] },
       { key: 'description', labels: ['descripcion del alquiler', 'rental description', 'descripcion', 'description'] },
       { key: 'location', labels: ['lugar', 'ubicacion', 'location', 'direccion', 'address'] },
       { key: 'propertySquareFeet', labels: ['pies cuadrados', 'square feet', 'metros cuadrados', 'tamano de la propiedad'] },
@@ -353,7 +362,9 @@
       var element = findEditable(field.labels);
       var value = data[field.key] ||
         (field.key === 'title' ? ('Apartamento ' + String(data.apartmentName || 'en arriendo')) : '') ||
-        (field.key === 'location' ? (data.address || data.city || 'Barranquilla') : '') ||
+        (field.key === 'location'
+          ? (data.address && data.city ? data.address + ', ' + data.city : data.address || data.city || 'Barranquilla')
+          : '') ||
         (field.key === 'propertySquareFeet' ? data.area : '');
       if (element && setNativeValue(element, value)) filled.push(field.key);
     });

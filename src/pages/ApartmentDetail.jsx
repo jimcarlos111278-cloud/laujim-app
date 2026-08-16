@@ -6,7 +6,6 @@ import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
 import { photoUrl, isCapacitor, getBase, AUTH_TOKEN } from '../utils/config';
 import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate, servicePaymentUrl, gasContractPaymentUrl } from '../utils/helpers';
-import { generateMarketplaceJson } from '../utils/marketplaceBookmarklet';
 import { openAndroidMarketplace, runAndroidMarketplaceWorkerNow } from '../utils/androidScraperWorker';
 import { generateApartmentPDF } from '../utils/pdf';
 import { addCalendarReminder } from '../utils/calendar';
@@ -183,6 +182,8 @@ export default function ApartmentDetail() {
     setApt(a);
     setForm({
       ...a,
+      marketplaceTitle: a.marketplaceTitle || '',
+      marketplaceCity: a.marketplaceCity || a.city || 'Barranquilla',
       marketplaceBedrooms: a.marketplaceBedrooms !== undefined ? a.marketplaceBedrooms : a.rooms || '',
       marketplaceBathrooms: a.marketplaceBathrooms !== undefined ? a.marketplaceBathrooms : a.bathrooms || '',
       marketplaceRentalType: a.marketplaceRentalType || 'Departamento/condominio',
@@ -681,17 +682,20 @@ export default function ApartmentDetail() {
   }
 
   function generateMarketplaceText() {
-    const title = `🏠 Arriendo Apartamento ${apt.name}`;
+    const title = `🏠 ${apt.marketplaceTitle || `Arriendo Apartamento ${apt.name}`}`;
     const specs = [`${apt.rooms || '?'} habs`, `${apt.bathrooms || '?'} baños`, `${apt.area || '?'} m²`].join(' · ');
     const price = `💰 $${Number(apt.monthlyRent || 0).toLocaleString('es-CO')}/mes`;
+    const place = apt.marketplaceCity || apt.city || 'Barranquilla';
+    const address = apt.marketplaceAddress || apt.address || '';
     const lines = [
       title,
       '',
-      `📍 Apartamento ${apt.name}`,
+      `📍 ${place}`,
+      address ? `🧭 ${address}` : '',
       specs,
       price,
       '',
-      apt.description || '',
+      apt.marketplaceDescription || apt.description || '',
       '',
       '📞 Para más información, contáctame.',
     ];
@@ -737,53 +741,6 @@ export default function ApartmentDetail() {
       }
     }
     window.open('https://www.facebook.com/marketplace/you/selling', '_blank');
-  }
-
-  function autoFillMarketplace() {
-    try {
-      const photoUrls = photos.map(p => photoUrl(p)).filter(Boolean);
-      const data = generateMarketplaceJson(apt, photoUrls);
-      const jsonString = JSON.stringify(data);
-
-      window.postMessage({ type: 'LAUJIM_MARKETPLACE_DATA', data: data }, '*');
-
-      var el = document.getElementById('__LAUJIM_EXT_DATA__');
-      if (!el) {
-        el = document.createElement('div');
-        el.id = '__LAUJIM_EXT_DATA__';
-        el.style.display = 'none';
-        document.body.appendChild(el);
-      }
-      el.textContent = jsonString;
-
-      var wait = function (resolve) {
-        if (el.getAttribute('data-status') === 'saved') { resolve(); return; }
-        var observer = new MutationObserver(function () {
-          if (el.getAttribute('data-status') === 'saved') {
-            observer.disconnect();
-            resolve();
-          }
-        });
-        observer.observe(el, { attributes: true, attributeFilter: ['data-status'] });
-        setTimeout(function () { observer.disconnect(); resolve(); }, 2000);
-      };
-
-      new Promise(wait).then(function () {
-        setTimeout(function () {
-          var e = document.getElementById('__LAUJIM_EXT_DATA__');
-          if (e) e.remove();
-        }, 1000);
-        navigator.clipboard.writeText(jsonString).then(function () {
-          var w = window.open('https://web.facebook.com/marketplace/create/rental', '_blank');
-          if (w) setTimeout(function () { try { w.focus(); } catch {} }, 1000);
-        }).catch(function () {
-          var w = window.open('https://web.facebook.com/marketplace/create/rental', '_blank');
-          if (w) setTimeout(function () { try { w.focus(); } catch {} }, 1000);
-        });
-      });
-    } catch (e) {
-      alert('Error: ' + e.message);
-    }
   }
 
   function openPublishedAd() {
@@ -1315,9 +1272,6 @@ export default function ApartmentDetail() {
                   <button onClick={openMarketplace} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-700">
                     <Globe className="w-3.5 h-3.5" /> Abrir Marketplace
                   </button>
-                  <button onClick={autoFillMarketplace} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700">
-                    <Zap className="w-3.5 h-3.5" /> Auto-llenar
-                  </button>
                   <button onClick={queueMarketplacePublication} disabled={marketplaceBusy || ['queued', 'claimed', 'processing'].includes(marketplaceJob?.status)} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors bg-indigo-600 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
                     <Send className="w-3.5 h-3.5" /> {marketplaceBusy ? 'Enviando…' : 'Publicar con el teléfono'}
                   </button>
@@ -1534,87 +1488,27 @@ export default function ApartmentDetail() {
           </div>
 
           <div className="border-t border-gray-200 pt-4">
-            <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2"><Globe className="w-4 h-4" /> Facebook Marketplace — Arriendo</h4>
+            <h4 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2"><Globe className="w-4 h-4" /> Datos del anuncio para Facebook</h4>
+            <p className="text-xs text-gray-500 mb-3">Estos tres campos y las fotos guardadas arriba se sincronizan con el worker del teléfono. Ya no se usa la extensión de Chrome.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección para Facebook Marketplace</label>
-                <input type="text" value={form.marketplaceAddress || ''} onChange={e => setForm({...form, marketplaceAddress: e.target.value})} placeholder="Ej: Cra 1 #23-45, Barranquilla, Atlántico" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Qué vendes</label>
+                <input type="text" value={form.marketplaceTitle || ''} onChange={e => setForm({...form, marketplaceTitle: e.target.value})} placeholder={`Ej: Arriendo Apartamento ${apt?.name || '101'}`} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de alquiler</label>
-                <select value={form.marketplaceRentalType || 'Departamento/condominio'} onChange={e => setForm({...form, marketplaceRentalType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                  <option value="Departamento/condominio">Departamento/condominio</option>
-                  <option value="Casa">Casa</option>
-                  <option value="Townhouse">Townhouse</option>
-                  <option value="Solo habitación">Solo habitación</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Lugar</label>
+                <input type="text" value={form.marketplaceCity || ''} onChange={e => setForm({...form, marketplaceCity: e.target.value})} placeholder="Ej: Barranquilla" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Número de habitaciones</label>
-                <input type="number" min="0" max="20" value={form.marketplaceBedrooms ?? ''} onChange={e => setForm({...form, marketplaceBedrooms: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                <input type="text" value={form.marketplaceAddress || ''} onChange={e => setForm({...form, marketplaceAddress: e.target.value})} placeholder="Ej: Cra 1 #23-45" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Número de baños</label>
-                <input type="number" min="0" max="20" step="0.5" value={form.marketplaceBathrooms ?? ''} onChange={e => setForm({...form, marketplaceBathrooms: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilidad</label>
-                <input type="date" value={form.marketplaceAvailability || ''} onChange={e => setForm({...form, marketplaceAvailability: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de lavadero</label>
-                <select value={form.marketplaceLaundryType || 'Ninguno'} onChange={e => setForm({...form, marketplaceLaundryType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                  <option value="Lavadero en la unidad">Lavadero en la unidad</option>
-                  <option value="Lavadero en el edificio">Lavadero en el edificio</option>
-                  <option value="Lavadero disponible">Lavadero disponible</option>
-                  <option value="Ninguno">Ninguno</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de estacionamiento</label>
-                <select value={form.marketplaceParkingType || 'Ninguno'} onChange={e => setForm({...form, marketplaceParkingType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                  <option value="Ninguno">Ninguno</option>
-                  <option value="Estacionamiento cubierto">Estacionamiento cubierto</option>
-                  <option value="Estacionamiento en la vía pública">Estacionamiento en la vía pública</option>
-                  <option value="Estacionamiento privado">Estacionamiento privado</option>
-                  <option value="Estacionamiento disponible">Estacionamiento disponible</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de aire acondicionado</label>
-                <select value={form.marketplaceAirConditioningType || 'Ninguno'} onChange={e => setForm({...form, marketplaceAirConditioningType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                  <option value="Ninguno">Ninguno</option>
-                  <option value="Aire acondicionado central">Aire acondicionado central</option>
-                  <option value="Aire acondicionado disponible">Aire acondicionado disponible</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de calefacción</label>
-                <select value={form.marketplaceHeatingType || 'Ninguno'} onChange={e => setForm({...form, marketplaceHeatingType: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                  <option value="Ninguno">Ninguno</option>
-                  <option value="Calefacción central">Calefacción central</option>
-                  <option value="Calefacción eléctrica">Calefacción eléctrica</option>
-                  <option value="Calefacción de gas">Calefacción de gas</option>
-                  <option value="Calefacción por radiadores">Calefacción por radiadores</option>
-                  <option value="Calefacción disponible">Calefacción disponible</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pies cuadrados de la propiedad</label>
-                <input type="number" value={form.marketplaceSquareFeet || ''} onChange={e => setForm({...form, marketplaceSquareFeet: e.target.value})} placeholder="Opcional. Se calculará desde m² si se deja vacío" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-              </div>
-              <div className="flex items-center gap-6 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.marketplaceCatFriendly === true} onChange={e => setForm({...form, marketplaceCatFriendly: e.target.checked})} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                  <span className="text-sm text-gray-700">Se aceptan gatos</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.marketplaceDogFriendly === true} onChange={e => setForm({...form, marketplaceDogFriendly: e.target.checked})} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                  <span className="text-sm text-gray-700">Se aceptan perros</span>
-                </label>
+              <div className="sm:col-span-2 rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800">
+                Las fotos se administran en la sección <strong>Fotos del Apartamento</strong>. Al pulsar <strong>Publicar con el teléfono</strong>, el worker enviará hasta 10 fotos junto con estos datos.
               </div>
             </div>
           </div>
+
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud, Plus, CalendarCheck } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
-import { generateBookmarkletCode } from '../utils/marketplaceBookmarklet';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 import { requestNotificationPermission } from '../utils/notifications';
 import { isServerAvailable } from '../utils/sync';
@@ -240,7 +239,6 @@ export default function Settings() {
 
   const fileInputRef = useRef(null);
   const [restoring, setRestoring] = useState(false);
-  const [bmCopied, setBmCopied] = useState(false);
   const bulkInputRef = useRef(null);
   const [bulkStatus, setBulkStatus] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -681,32 +679,6 @@ export default function Settings() {
           </a>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Zap className="w-4 h-4" /> Auto-llenar Facebook Marketplace</h3>
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl mb-4">
-            <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300 mb-2">Extensión de Chrome (recomendado)</p>
-            <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-3">Auto-llena todos los campos <strong>incluyendo fotos</strong> automáticamente.</p>
-            <ol className="text-xs text-emerald-700 dark:text-emerald-400 space-y-1 ml-4 list-decimal">
-              <li>Abre <strong>chrome://extensions</strong> en Chrome</li>
-              <li>Activa <strong>Modo desarrollador</strong></li>
-              <li>Arrastra la carpeta <strong>extension/</strong> de Laujim a la ventana</li>
-              <li>Haz clic en <strong>"Auto-llenar"</strong> en el detalle del apto</li>
-            </ol>
-          </div>
-          <details className="group">
-            <summary className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
-              Bookmarklet (alternativa, sin fotos automáticas)
-            </summary>
-            <div className="space-y-3 mt-3">
-              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Paso 1: Instala el bookmarklet (una sola vez):</p>
-                <a href={generateBookmarkletCode()} onClick={e => { e.preventDefault(); navigator.clipboard.writeText(generateBookmarkletCode()).then(() => { setBmCopied(true); setTimeout(() => setBmCopied(false), 2000); }); }} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
-                  <Zap className="w-4 h-4" /> {bmCopied ? 'Copiado' : 'Copiar Bookmarklet'}
-                </a>
-              </div>
-            </div>
-          </details>
-        </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FileText className="w-4 h-4" /> Acerca de</h3>

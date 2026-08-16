@@ -58,13 +58,19 @@ async function run() {
     body: JSON.stringify({
       name: 'TEST-101', status: 'vacant', monthlyRent: 1_000_000,
       rooms: 2, bathrooms: 1, area: 55,
+      marketplaceTitle: 'Apartamento amoblado en arriendo',
+      marketplaceCity: 'Barranquilla',
       marketplaceAddress: 'Barranquilla, Atlantico',
     }),
   });
-  await request('/api/photos', {
+  const photo = await request('/api/photos', {
     method: 'POST', headers: adminHeaders,
     body: JSON.stringify({ apartmentId: apartment.id, data: 'data:image/jpeg;base64,AA==' }),
   });
+  const publicPhoto = await fetch(base + '/api/public/photos/' + photo.id);
+  if (!publicPhoto.ok || !String(publicPhoto.headers.get('content-type') || '').startsWith('image/jpeg')) {
+    throw new Error('La foto guardada como data URL no se puede descargar públicamente.');
+  }
   const queued = await request('/api/marketplace/jobs', {
     method: 'POST', headers: adminHeaders,
     body: JSON.stringify({ apartmentId: apartment.id, publish: true }),
@@ -84,6 +90,12 @@ async function run() {
   }
   if ('password' in claimed.job || 'cookies' in claimed.job || 'token' in claimed.job) {
     throw new Error('A secret field leaked into the worker job.');
+  }
+  if (claimed.job.listing.title !== 'Apartamento amoblado en arriendo'
+    || claimed.job.listing.city !== 'Barranquilla'
+    || claimed.job.listing.address !== 'Barranquilla, Atlantico'
+    || claimed.job.listing.photoUrls.length !== 1) {
+    throw new Error('Los datos configurables y las fotos no llegaron al worker.');
   }
   console.log(JSON.stringify({
     queued: queued.job.status,

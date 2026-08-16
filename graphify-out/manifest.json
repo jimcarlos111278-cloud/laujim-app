@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786914768.3208518,
-    "ast_hash": "0eb24c3556ed19fd04fbe1054439154e",
+    "mtime": 1786922772.9292552,
+    "ast_hash": "1096ede898704c4afa94476690eaaf0e",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786856514.8725238,
-    "ast_hash": "afec3defed0f6c2df66446e6bcbe2519",
+    "mtime": 1786922772.931328,
+    "ast_hash": "b56cdd1b4fac75fc3ef1871e50736c95",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,13 +235,13 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786856339.869568,
-    "ast_hash": "1e051b321bea00998349f0d0193ebeb3",
+    "mtime": 1786922731.055619,
+    "ast_hash": "ceeccfa9f0faa6837f2ce688ef453bdb",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1786916538.3628187,
-    "ast_hash": "d61a436b1802b3f8446c3dc89fecabad",
+    "mtime": 1786918117.737882,
+    "ast_hash": "fcd95926618bfcf14c7a74ee09013869",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
@@ -310,8 +310,8 @@
     "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
   },
   "src/pages/ApartmentDetail.jsx": {
-    "mtime": 1786812096.619208,
-    "ast_hash": "69bec92bbaf1a85c8198c74ff01221d2",
+    "mtime": 1786922650.9170935,
+    "ast_hash": "558e4968a9cf83e80026cd736ae581e3",
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "src/pages/Settings.jsx": {
-    "mtime": 1786397531.1030302,
-    "ast_hash": "6490b82cb8b08c94ee618d2ef0a4d59f",
+    "mtime": 1786922540.0967247,
+    "ast_hash": "c0f8b3be11c656326a3e0749ca2404d4",
     "semantic_hash": ""
   },
   "src/pages/ShareApartments.jsx": {
@@ -458,11 +458,6 @@
     "mtime": 1784437682.326316,
     "ast_hash": "9d14c0ac489b59385c392a5481226eea",
     "semantic_hash": "9d14c0ac489b59385c392a5481226eea"
-  },
-  "src/utils/marketplaceBookmarklet.js": {
-    "mtime": 1784847411.7964797,
-    "ast_hash": "0c0244a413508f171e3467847aefa781",
-    "semantic_hash": "0c0244a413508f171e3467847aefa781"
   },
   "src/utils/notifications.js": {
     "mtime": 1784523650.4618523,
@@ -910,8 +905,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1786916468.8205893,
-    "ast_hash": "7aa2f10e5da50ffa5b1190c4d56c831f",
+    "mtime": 1786918077.8908522,
+    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
@@ -975,8 +970,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/marketplace-worker.js": {
-    "mtime": 1786862560.8620355,
-    "ast_hash": "6135fe07237555ef6d19bbff3d636215",
+    "mtime": 1786922481.6586876,
+    "ast_hash": "86114b3578cfd77a2d3c90ddf4c758b8",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
@@ -1005,8 +1000,8 @@
     "semantic_hash": ""
   },
   "scripts/test-marketplace-api.cjs": {
-    "mtime": 1786576000.1010191,
-    "ast_hash": "19e838f3f6cbd012924e1f1def989734",
+    "mtime": 1786922738.8390832,
+    "ast_hash": "0c6e1eaf160dd39b9b1b82dd8fc7932b",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
