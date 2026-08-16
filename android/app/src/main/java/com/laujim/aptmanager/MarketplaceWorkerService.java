@@ -176,13 +176,6 @@ public class MarketplaceWorkerService extends Service {
     private JSONObject executeInAuthenticatedWebView(JSONObject job) throws Exception {
         JSONObject listing = job.optJSONObject("listing");
         if (listing == null) listing = new JSONObject();
-        if (!MarketplaceBrowserActivity.hasActiveBrowser()) {
-            openVisibleFacebook();
-            long deadline = System.currentTimeMillis() + 15_000L;
-            while (!MarketplaceBrowserActivity.hasActiveBrowser() && System.currentTimeMillis() < deadline) {
-                TimeUnit.MILLISECONDS.sleep(250L);
-            }
-        }
         if (MarketplaceBrowserActivity.hasActiveBrowser()) {
             String raw = MarketplaceBrowserActivity
                 .executeJob(listing, job.optBoolean("publish", true), automationScript)

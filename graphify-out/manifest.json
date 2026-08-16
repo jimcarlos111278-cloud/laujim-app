@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786769347.1621506,
-    "ast_hash": "2fe52e4002a583f48cc3320cdd70c63c",
+    "mtime": 1786914768.3208518,
+    "ast_hash": "0eb24c3556ed19fd04fbe1054439154e",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786770329.7703536,
-    "ast_hash": "395e4e36368afa87e1d47515fe4409bd",
+    "mtime": 1786856514.8725238,
+    "ast_hash": "afec3defed0f6c2df66446e6bcbe2519",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,13 +235,13 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786768890.48841,
-    "ast_hash": "799da8fbd26f1256ca03cdc817bf4dbd",
+    "mtime": 1786856339.869568,
+    "ast_hash": "1e051b321bea00998349f0d0193ebeb3",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1786688565.6546073,
-    "ast_hash": "64c485a32b28326c2a78e6de121706c8",
+    "mtime": 1786916538.3628187,
+    "ast_hash": "d61a436b1802b3f8446c3dc89fecabad",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
@@ -310,8 +310,8 @@
     "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
   },
   "src/pages/ApartmentDetail.jsx": {
-    "mtime": 1786770252.9203684,
-    "ast_hash": "d43de82f7cc6f59bc26e04eed3725830",
+    "mtime": 1786812096.619208,
+    "ast_hash": "69bec92bbaf1a85c8198c74ff01221d2",
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
@@ -390,8 +390,8 @@
     "semantic_hash": "429688cf1006d5eb8b337df244be0c02"
   },
   "src/pages/Utilities.jsx": {
-    "mtime": 1786769222.5966756,
-    "ast_hash": "71a0e3876b1ed047e9c7195a91f83a27",
+    "mtime": 1786776369.4972925,
+    "ast_hash": "c1bcb4704164e1647e76491be6bd5166",
     "semantic_hash": ""
   },
   "src/pages/WhatsAppContacts.jsx": {
@@ -450,8 +450,8 @@
     "semantic_hash": "c14175f18325eeaa20fec67342c1b350"
   },
   "src/utils/helpers.js": {
-    "mtime": 1786724178.647274,
-    "ast_hash": "bafd93e2d22ffaa41b3942c2728a39ba",
+    "mtime": 1786775792.3536339,
+    "ast_hash": "ca1e5af4dc1f7baeba4145df44b5663f",
     "semantic_hash": ""
   },
   "src/utils/localNotifications.js": {
@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "src/pages/ScraperWorker.jsx": {
-    "mtime": 1786605659.8797271,
-    "ast_hash": "25fd723e44482ac0e0cdb88e1c04e881",
+    "mtime": 1786812857.1704383,
+    "ast_hash": "cd5a97cdf73fc04fbd07f5095f84d1c9",
     "semantic_hash": ""
   },
   "src/utils/portableWorker.js": {
@@ -850,8 +850,8 @@
     "semantic_hash": ""
   },
   "worker-protocol.cjs": {
-    "mtime": 1786513633.1129377,
-    "ast_hash": "beb5a26e1c40bca641c924ed4521815e",
+    "mtime": 1786775805.3883886,
+    "ast_hash": "b64e5b90ed117d2ba2d5d7edbb6babd2",
     "semantic_hash": ""
   },
   "docs/scraper-worker.md": {
@@ -880,13 +880,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
-    "mtime": 1786685900.1137123,
-    "ast_hash": "8d12808844a495bd9ead59dd50dfe616",
+    "mtime": 1786811790.2173126,
+    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1786688584.868553,
-    "ast_hash": "95a1d2bd2b3ee4c0cd8a4ce8bddebdbd",
+    "mtime": 1786811769.9874046,
+    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
@@ -895,8 +895,8 @@
     "semantic_hash": ""
   },
   "src/utils/androidScraperWorker.js": {
-    "mtime": 1786575263.5685782,
-    "ast_hash": "d4156ae25e4ee378b709e2ee73ef4ce7",
+    "mtime": 1786811808.7564871,
+    "ast_hash": "91510e09fb6268420253af7ae18740a8",
     "semantic_hash": ""
   },
   "scripts/prepare-capacitor-assets.js": {
@@ -910,13 +910,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1786688584.868553,
-    "ast_hash": "f5f2b074f7d41e10d1231d55754496c3",
+    "mtime": 1786916468.8205893,
+    "ast_hash": "7aa2f10e5da50ffa5b1190c4d56c831f",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
-    "mtime": 1786603444.705922,
-    "ast_hash": "c52f6216a4ed3c68ec6475a881acd37f",
+    "mtime": 1786811687.202882,
+    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
     "semantic_hash": ""
   },
   ".tmp/gradle-off-onedrive.init.gradle": {
@@ -955,8 +955,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
-    "mtime": 1786573474.3779428,
-    "ast_hash": "441adad68e52d75c3360112a7d216181",
+    "mtime": 1786811790.1671598,
+    "ast_hash": "7f36e2a821273ac66f9be618f0873f50",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
@@ -975,13 +975,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/marketplace-worker.js": {
-    "mtime": 1786689076.0416775,
-    "ast_hash": "d99c4796fa2e497d4110d405cfe6cdd6",
+    "mtime": 1786862560.8620355,
+    "ast_hash": "6135fe07237555ef6d19bbff3d636215",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
-    "mtime": 1786769186.5654633,
-    "ast_hash": "38b23a864d2b4742b2be4d1e87e4a1a9",
+    "mtime": 1786914832.3493118,
+    "ast_hash": "d769a2b4b3778e7154b529993290462e",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
@@ -1000,8 +1000,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
-    "mtime": 1786688454.2784293,
-    "ast_hash": "a9a048855c48e85e0e8ea05b11a4f4b9",
+    "mtime": 1786862295.0404885,
+    "ast_hash": "b020b84fe09aafb21712c3f236d5a0e9",
     "semantic_hash": ""
   },
   "scripts/test-marketplace-api.cjs": {
@@ -1010,8 +1010,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
-    "mtime": 1786769076.5949647,
-    "ast_hash": "af7ba6c5b60acd20dcd2b7a8bef4d143",
+    "mtime": 1786811604.5441167,
+    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
     "semantic_hash": ""
   },
   "src/pages/SecurityCenter.jsx": {
@@ -2864,259 +2864,9 @@
     "ast_hash": "cc4d91681d13a8a9cf584e353c793ca1",
     "semantic_hash": ""
   },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-land-hdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-land-mdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "acc976d4a36479233371a53021525c0c",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-land-xhdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-land-xxhdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "f87e988387b07d843905f38b084929fb",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-land-xxxhdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-port-hdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-port-mdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-port-xhdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "df100b2a36bdb98b711cca58941728de",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-port-xxhdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable-port-xxxhdpi-v4/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/drawable/splash.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "acc976d4a36479233371a53021525c0c",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-hdpi-v4/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-hdpi-v4/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-hdpi-v4/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-mdpi-v4/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-mdpi-v4/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-mdpi-v4/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "a49547a32c7d9b529af607b033811d81",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-xhdpi-v4/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-xhdpi-v4/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-xhdpi-v4/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-xxhdpi-v4/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-xxhdpi-v4/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-xxhdpi-v4/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-xxxhdpi-v4/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-xxxhdpi-v4/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/packaged_res/debug/packageDebugResources/mipmap-xxxhdpi-v4/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/capacitor.config.json": {
-    "mtime": 1786725245.36095,
-    "ast_hash": "e37ca037656fe8ea26fcb8d69e8a9396",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/capacitor.plugins.json": {
-    "mtime": 1785660578.9505646,
-    "ast_hash": "e15a4f8eb20a95327361c8ea38444271",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/marketplace-worker.js": {
-    "mtime": 1786689076.0416775,
-    "ast_hash": "d99c4796fa2e497d4110d405cfe6cdd6",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/native-bridge.js": {
-    "mtime": 1784343787.8419633,
-    "ast_hash": "89283ba75bf16523cee6262537c59210",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/portal-scraper.js": {
-    "mtime": 1786688584.868553,
-    "ast_hash": "f5f2b074f7d41e10d1231d55754496c3",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/app-version.json": {
-    "mtime": 1786725244.2337825,
-    "ast_hash": "7406b0d822f93c64ca9acb11b3aa6de2",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/app.Dn2ibmoG.js": {
-    "mtime": 1786725244.0532422,
-    "ast_hash": "d4bb1677f1d7c01e131c3e33e491c74f",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/esm.DIoNvgKJ.js": {
-    "mtime": 1786725244.0532422,
-    "ast_hash": "d622cca17a7155f11b358c183c5ff20f",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/esm.iFjFcJtT.js": {
-    "mtime": 1786725244.0532422,
-    "ast_hash": "5c7e7ff156796c0cdf3237621c2a4153",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/esm.xgwF6RR2.js": {
-    "mtime": 1786725244.0532422,
-    "ast_hash": "f348f673697374a7e9ee1ca42e662305",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/html2canvas.HjR6ZbU2.js": {
-    "mtime": 1786725244.0601828,
-    "ast_hash": "b5267e39bd1d12304434df35c3cde0b6",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/index.es.nK7aW1RA.js": {
-    "mtime": 1786725244.0601828,
-    "ast_hash": "027e06ed45360deafcc8a233eb64c4b9",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/purify.es.DuRL7t6i.js": {
-    "mtime": 1786725244.0601828,
-    "ast_hash": "056831ffda676b17ae223e16d9ddde9b",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/web.4bqvqmWF.js": {
-    "mtime": 1786725244.0601828,
-    "ast_hash": "f862bc1526cfdf1695e70aa45bd83c70",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/web.BQ3iRXNX.js": {
-    "mtime": 1786725244.0601828,
-    "ast_hash": "1b241be19741b64d9092dd1a2fd6f908",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/web.CQBWxb1p.js": {
-    "mtime": 1786725244.0601828,
-    "ast_hash": "112f0dedbe4a6464397ceb3ed7680bfa",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/assets/web.CZpwSv9H.js": {
-    "mtime": 1786725244.0601828,
-    "ast_hash": "84a24afe512ec1f034e9faec855d89d4",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/cordova.js": {
-    "mtime": 1786725245.3657575,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/cordova_plugins.js": {
-    "mtime": 1786725245.3657575,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/manifest.json": {
-    "mtime": 1784437087.071502,
-    "ast_hash": "9d837f8c042b8d751ce72dd1221a3c26",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/sw.js": {
-    "mtime": 1784349052.567231,
-    "ast_hash": "40338c8f99cde3361d7de7583e4329c6",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/version.json": {
-    "mtime": 1786725244.2275074,
-    "ast_hash": "b0cfc3646aea1873c8755fed159a9ba6",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/linked_resources_binary_format/debug/processDebugResources/output-metadata.json": {
-    "mtime": 1786725266.0573773,
-    "ast_hash": "9d5f356356dd3cd629903916a2ecdb51",
-    "semantic_hash": ""
-  },
   ".tmp/android-build-1.0.26/app/intermediates/signing_config_versions/debug/writeDebugSigningConfigVersions/signing-config-versions.json": {
     "mtime": 1786725275.6503527,
     "ast_hash": "fdd7e4435a667de6d5c38df776a312fe",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/outputs/apk/debug/output-metadata.json": {
-    "mtime": 1786725281.7918234,
-    "ast_hash": "997c601ecc520b134f891df4e1166372",
     "semantic_hash": ""
   },
   ".tmp/android-build-1.0.26/capacitor-android/intermediates/assets/debug/mergeDebugAssets/native-bridge.js": {
@@ -3142,36 +2892,6 @@
   ".tmp/android-build-1.0.26/app/intermediates/apk_ide_redirect_file/debug/createDebugApkListingFileRedirect/redirect.txt": {
     "mtime": 1786725281.8725538,
     "ast_hash": "e131843d2802be1ffd7c549cbc3e90da",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/index.html": {
-    "mtime": 1786725244.296305,
-    "ast_hash": "6a57f64c608f49bad05bf4b59c75eab9",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/privacy.html": {
-    "mtime": 1785641888.3909152,
-    "ast_hash": "f3394a30a2b8354b9ce7cb4c8afe17a0",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/incremental/packageDebug/tmp/debug/dex-renamer-state.txt": {
-    "mtime": 1786725281.3350964,
-    "ast_hash": "c82ef2914a8dd6b518e544ba78e5ad8a",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/runtime_symbol_list/debug/processDebugResources/R.txt": {
-    "mtime": 1786725265.3837256,
-    "ast_hash": "b445edc3c4e49df876824016083875aa",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/stable_resource_ids_file/debug/processDebugResources/stableIds.txt": {
-    "mtime": 1786725265.218176,
-    "ast_hash": "f25a6e3de4a99597d779ca3a45b5ace1",
-    "semantic_hash": ""
-  },
-  ".tmp/android-build-1.0.26/app/intermediates/symbol_list_with_package_name/debug/processDebugResources/package-aware-r.txt": {
-    "mtime": 1786725266.0553675,
-    "ast_hash": "72767f2560db55b8588037ab6254a078",
     "semantic_hash": ""
   },
   ".tmp/android-build-1.0.26/capacitor-android/intermediates/annotations_typedef_file/debug/extractDebugAnnotations/typedefs.txt": {
@@ -3204,14 +2924,14 @@
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/favicon.svg": {
-    "mtime": 1784337544.1688738,
-    "ast_hash": "7e840862161341271697daa99a40d76b",
+  ".tmp/migrate-gas-contract-links.cjs": {
+    "mtime": 1786776179.8869739,
+    "ast_hash": "03e7f15dd6f38bdcdccf3ddbd37daf6d",
     "semantic_hash": ""
   },
-  ".tmp/android-build-1.0.26/app/intermediates/assets/debug/mergeDebugAssets/public/icons.svg": {
-    "mtime": 1784343345.74238,
-    "ast_hash": "958d8c22ce63c384916067c6c1386e91",
+  ".tmp/verify-gas-contract-links.cjs": {
+    "mtime": 1786776197.5613081,
+    "ast_hash": "2f34dbb479882672be5933f329dd9132",
     "semantic_hash": ""
   }
 }

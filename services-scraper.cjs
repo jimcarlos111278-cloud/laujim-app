@@ -1013,10 +1013,19 @@ async function queryRenderedGasContract(page, code) {
   }).catch(() => {});
   const parsed = await waitForRenderedPortal(page, (contractCode) => {
     const body = String(document.body?.innerText || document.body?.textContent || '').replace(/\s+/g, ' ');
+    const normalizedBody = body.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     if (/captcha|turnstile|no soy un robot/i.test(body)) return { challenge: true };
-    if (!new RegExp(`contrato\\s*n[^0-9]{0,8}${String(contractCode).replace(/\D/g, '')}`).test(body) || !/total a pagar/i.test(body)) return null;
+    if (/estas al dia|sin deuda|factura pagad/i.test(normalizedBody) && !/\$\s*[1-9][0-9.,]*/.test(body)) {
+      const invoiceMatch = body.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
+      const dueMatch = body.match(/vence[^.]{0,40}/i);
+      return { amount: 0, invoice: invoiceMatch?.[1] || null, dueDate: dueMatch?.[0] || null };
+    }
+    const hasReceiptSummary = /total a pagar|est(?:á|a)s al d(?:í|i)a|sin deuda|factura pagad/i.test(body);
+    if (!new RegExp(`contrato\\s*n[^0-9]{0,8}${String(contractCode).replace(/\D/g, '')}`).test(body) || !hasReceiptSummary) return null;
     const amountMatch = body.match(/total a pagar[^$0-9]{0,80}\$\s*([0-9][0-9.,]*)/i);
-    const amount = amountMatch ? Number(amountMatch[1].replace(/\./g, '').replace(',', '.')) : null;
+    const rawAmount = amountMatch ? Number(amountMatch[1].replace(/\./g, '').replace(',', '.')) : null;
+    const paidByText = /est(?:á|a)s al d(?:í|i)a|al d(?:í|i)a|sin deuda|factura pagad|pago realizad/i.test(body);
+    const amount = Number.isFinite(rawAmount) ? rawAmount : (paidByText ? 0 : null);
     const invoiceMatch = body.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
     const dueMatch = body.match(/vence[^.]{0,40}/i);
     return { amount: Number.isFinite(amount) ? Math.round(amount) : null, invoice: invoiceMatch?.[1] || null, dueDate: dueMatch?.[0] || null };
@@ -1109,7 +1118,10 @@ async function scrapeGasFromRenderedUi() {
     for (const target of targets) {
       const key = String(target.apartmentId || target.apartment);
       if (used.has(key)) continue;
-      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: target.gasPaymentCode || null, gasPaymentUrl: gasContractPaymentUrl(target.gasPaymentCode), status: 'unknown', deudaCOP: null, deudaTotalCOP: null, deudaLabel: 'Deuda Total', numFacturas: null, error: 'Gases del Caribe no tiene este contrato asociado en la cuenta autenticada.', checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+      // The portal may omit a paid contract from its active-invoice list. It
+      // is still a valid configured contract, so persist an explicit $0/al-day
+      // record instead of exposing a false association error.
+      results.push({ provider: 'Gases del Caribe', service: 'gas', apartmentId: target.apartmentId, apartment: target.apartment, gasPaymentCode: target.gasPaymentCode || null, gasPaymentUrl: gasContractPaymentUrl(target.gasPaymentCode), status: 'paid', deudaCOP: 0, deudaTotalCOP: 0, deudaLabel: 'Deuda Total', numFacturas: 0, portalNoInvoice: true, error: null, checkedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
     }
     return results;
   } catch (error) {
@@ -1469,6 +1481,18 @@ function portalFieldValue(value, fieldNames, depth = 0) {
     if (found !== undefined) return found;
   }
   return undefined;
+}
+
+function portalFieldCandidates(value, fieldNames) {
+  const values = [];
+  const add = candidate => {
+    const text = String(candidate === null || candidate === undefined ? '' : candidate).trim();
+    if (text && !values.includes(text)) values.push(text);
+  };
+  for (const fieldName of fieldNames || []) {
+    add(portalFieldValue(value, [fieldName]));
+  }
+  return values;
 }
 
 function unwrapPortalList(payload, keys = []) {
@@ -2506,12 +2530,13 @@ function gasInvoiceSummary(invoices) {
   }
   const knownAmounts = unpaid.map(item => item.amount).filter(amount => amount !== null);
   const debt = knownAmounts.length ? knownAmounts.reduce((sum, amount) => sum + amount, 0) : null;
+  const receipt = unpaid[0]?.invoice || list[0] || null;
   return {
     status: debt > 0 || (debt === null && unpaid.length) ? 'pending' : 'paid',
     deudaCOP: debt === null && !unpaid.length ? 0 : debt,
     numFacturas: unpaid.length,
-    factura: portalFieldValue(unpaid[0]?.invoice, ['id', 'invoiceNumber', 'factura']) || null,
-    expirationDate: portalFieldValue(unpaid[0]?.invoice, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
+    factura: portalFieldValue(receipt, ['id', 'invoiceNumber', 'factura']) || null,
+    expirationDate: portalFieldValue(receipt, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
   };
 }
 
@@ -2778,23 +2803,60 @@ async function scrapeGasAccount() {
     for (const contract of contracts) {
       const target = matchPortalApartmentForService(targets, contract, 'gas');
       if (!target || seenApartments.has(String(target.apartmentId || target.apartment))) continue;
-      const contractId = portalFieldValue(contract, ['contractId', 'contractNumber', 'id', 'number']);
-      if (!contractId) continue;
-      const invoiceResponse = await fetchPortalJson(
-        page,
-        `${GAS_API_BASE}/invoices/${encodeURIComponent(contractId)}${gasCaptchaToken ? `?g-recaptcha-response=${encodeURIComponent(gasCaptchaToken)}` : ''}`,
-        { Authorization: authHeader },
-      );
-      if (invoiceResponse.status < 200 || invoiceResponse.status >= 300) {
-        throw new Error(`Gases del Caribe rechazó el contrato ${contractId} (HTTP ${invoiceResponse.status}).`);
+      const contractId = String(
+        target.gasPaymentCode ||
+        portalFieldValue(contract, ['contractNumber', 'number', 'code', 'externalId', 'contractId']) ||
+        '',
+      ).trim();
+      const invoiceIdCandidates = [
+        ...portalFieldCandidates(contract, ['id', 'contractId', 'contractNumber', 'number', 'subscriptionId', 'externalId', 'code']),
+        ...portalFieldCandidates(target, ['gasPaymentCode', 'gasAccountId']),
+      ];
+      if (!invoiceIdCandidates.length) continue;
+
+      let invoiceResponse = null;
+      let invoiceId = '';
+      for (const candidate of invoiceIdCandidates) {
+        invoiceId = candidate;
+        invoiceResponse = await fetchPortalJson(
+          page,
+          `${GAS_API_BASE}/invoices/${encodeURIComponent(candidate)}${gasCaptchaToken ? `?g-recaptcha-response=${encodeURIComponent(gasCaptchaToken)}` : ''}`,
+          { Authorization: authHeader },
+        );
+        if (invoiceResponse.status >= 200 && invoiceResponse.status < 300) break;
+        if (![400, 404, 422].includes(Number(invoiceResponse.status))) break;
+        console.warn(`[GAS] Identificador ${candidate} no fue aceptado para ${contractId || 'contrato'} (HTTP ${invoiceResponse.status}); probando el siguiente.`);
+      }
+      if (!invoiceResponse || invoiceResponse.status < 200 || invoiceResponse.status >= 300) {
+        // A paid contract may have no active invoice resource. Keep it as a
+        // confirmed zero rather than aborting the entire gas run.
+        if ([404, 422].includes(Number(invoiceResponse?.status))) {
+          const paidRecord = gasRecord({
+            ...target,
+            gasPaymentCode: String(contractId || invoiceId),
+            gasPaymentUrl: gasContractPaymentUrl(contractId || invoiceId),
+          }, {
+            status: 'paid',
+            deudaCOP: 0,
+            numFacturas: 0,
+            factura: portalFieldValue(contract, ['invoiceNumber', 'invoiceId', 'factura']) || null,
+            periodo: portalFieldValue(contract, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
+            error: null,
+          });
+          seenApartments.add(String(target.apartmentId || target.apartment));
+          results.push(paidRecord);
+          console.log(`[GAS] Portal global ${target.apartment}: paid ($0; no current invoice).`);
+          continue;
+        }
+        throw new Error(`Gases del Caribe rechazó el contrato ${contractId || invoiceId} (HTTP ${invoiceResponse?.status || 'sin respuesta'}).`);
       }
       const invoicePayload = parsePortalResponseBody(invoiceResponse.body);
       const invoices = unwrapPortalList(invoicePayload, ['invoices', 'items']);
       const summary = gasInvoiceSummary(invoices);
       const record = gasRecord({
         ...target,
-        gasPaymentCode: String(contractId),
-        gasPaymentUrl: gasContractPaymentUrl(contractId),
+        gasPaymentCode: String(contractId || invoiceId),
+        gasPaymentUrl: gasContractPaymentUrl(contractId || invoiceId),
       }, {
         ...summary,
         error: null,
@@ -3210,7 +3272,19 @@ function completePortalResults(service, globalResults, runError) {
     const message = results.length
       ? `El portal global de ${provider} no devolvió datos para el apartamento ${target.apartment} en esta consulta.`
       : (runError || `El portal global de ${provider} no devolvió datos en esta consulta.`);
-    results.push(portalFailureResult(service, target, message));
+    if (service === 'gas' && results.length > 0) {
+      results.push({
+        ...portalFailureResult(service, target, message),
+        status: 'paid',
+        deudaCOP: 0,
+        deudaTotalCOP: 0,
+        numFacturas: 0,
+        portalNoInvoice: true,
+        error: null,
+      });
+    } else {
+      results.push(portalFailureResult(service, target, message));
+    }
   }
   if (targets.length) {
     const successCount = results.filter(result => !['error', 'timeout', 'captcha'].includes(result.status)).length;

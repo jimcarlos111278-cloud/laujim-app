@@ -2,19 +2,24 @@ package com.laujim.aptmanager;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.InputType;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
-import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -39,9 +44,9 @@ import java.util.concurrent.Executors;
  * split between the login screen and a background browser.
  */
 public class MarketplaceBrowserActivity extends Activity {
-    static final String CREATE_URL = "https://www.facebook.com/marketplace/create/";
-    private static final String LOGIN_URL = "https://www.facebook.com/login/?next=%2Fmarketplace%2Fcreate%2F";
-    private static final String RECOVERY_URL = "https://www.facebook.com/login/identify/";
+    static final String CREATE_URL = "https://m.facebook.com/marketplace/create/";
+    private static final String LOGIN_URL = "https://limited.facebook.com/login/";
+    private static final String FACEBOOK_HOME_URL = "https://limited.facebook.com/";
     private static final int PHOTO_PICKER_REQUEST = 31782;
 
     private static volatile MarketplaceBrowserActivity activeInstance;
@@ -52,11 +57,13 @@ public class MarketplaceBrowserActivity extends Activity {
     private final JSONArray stageEvents = new JSONArray();
     private WebView webView;
     private TextView status;
+    private EditText urlField;
     private CompletableFuture<String> pendingJobResult;
     private JSONObject currentListing;
     private ValueCallback<Uri[]> pendingFileCallback;
     private boolean jobEvaluationScheduled;
     private boolean storageRestoreAttempted;
+    private boolean limitedLoginFallbackAttempted;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -81,6 +88,29 @@ public class MarketplaceBrowserActivity extends Activity {
         status.setPadding(24, 0, 24, 12);
         root.addView(status, new LinearLayout.LayoutParams(-1, -2));
 
+        LinearLayout addressRow = new LinearLayout(this);
+        addressRow.setPadding(16, 0, 16, 4);
+        urlField = new EditText(this);
+        urlField.setSingleLine(true);
+        urlField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        urlField.setText(CREATE_URL);
+        urlField.setSelectAllOnFocus(false);
+        urlField.setHint("URL de Facebook");
+        addressRow.addView(urlField, new LinearLayout.LayoutParams(0, -2, 1));
+        Button go = new Button(this);
+        go.setText("Ir");
+        go.setOnClickListener(view -> loadManualFacebookUrl());
+        addressRow.addView(go, new LinearLayout.LayoutParams(-2, -2));
+        urlField.setOnEditorActionListener((view, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_GO
+                || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                loadManualFacebookUrl();
+                return true;
+            }
+            return false;
+        });
+        root.addView(addressRow, new LinearLayout.LayoutParams(-1, -2));
+
         LinearLayout actions = new LinearLayout(this);
         actions.setPadding(16, 0, 16, 8);
         Button form = new Button(this);
@@ -88,32 +118,44 @@ public class MarketplaceBrowserActivity extends Activity {
         form.setOnClickListener(view -> loadCreatePage());
         actions.addView(form, new LinearLayout.LayoutParams(0, -2, 1));
         Button login = new Button(this);
-        login.setText("Iniciar sesión");
-        login.setOnClickListener(view -> loadLoginPage());
+        login.setText("Login");
+        login.setOnClickListener(view -> loadManualFacebookUrl(LOGIN_URL));
         actions.addView(login, new LinearLayout.LayoutParams(0, -2, 1));
-        root.addView(actions, new LinearLayout.LayoutParams(-1, -2));
-
-        LinearLayout sessionActions = new LinearLayout(this);
-        sessionActions.setPadding(16, 0, 16, 8);
-        Button reset = new Button(this);
-        reset.setText("Reiniciar Facebook");
-        reset.setOnClickListener(view -> resetFacebookSession());
-        sessionActions.addView(reset, new LinearLayout.LayoutParams(0, -2, 1));
-        Button recovery = new Button(this);
-        recovery.setText("Recuperar en navegador");
-        recovery.setOnClickListener(view -> openRecoveryInBrowser());
-        sessionActions.addView(recovery, new LinearLayout.LayoutParams(0, -2, 1));
         Button close = new Button(this);
         close.setText("Volver a Laujim");
         close.setOnClickListener(view -> returnToLaujim());
-        sessionActions.addView(close, new LinearLayout.LayoutParams(0, -2, 1));
-        root.addView(sessionActions, new LinearLayout.LayoutParams(-1, -2));
+        actions.addView(close, new LinearLayout.LayoutParams(0, -2, 1));
+        root.addView(actions, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout browserActions = new LinearLayout(this);
+        browserActions.setPadding(16, 0, 16, 4);
+        Button back = new Button(this);
+        back.setText("Atras");
+        back.setOnClickListener(view -> {
+            if (webView != null && webView.canGoBack()) webView.goBack();
+            else if (status != null) status.setText("No hay una pagina anterior en Facebook.");
+        });
+        browserActions.addView(back, new LinearLayout.LayoutParams(0, -2, 1));
+        Button forward = new Button(this);
+        forward.setText("Adelante");
+        forward.setOnClickListener(view -> {
+            if (webView != null && webView.canGoForward()) webView.goForward();
+            else if (status != null) status.setText("No hay una pagina siguiente en Facebook.");
+        });
+        browserActions.addView(forward, new LinearLayout.LayoutParams(0, -2, 1));
+        Button reload = new Button(this);
+        reload.setText("Recargar");
+        reload.setOnClickListener(view -> {
+            if (webView != null) webView.reload();
+        });
+        browserActions.addView(reload, new LinearLayout.LayoutParams(0, -2, 1));
+        root.addView(browserActions, new LinearLayout.LayoutParams(-1, -2));
 
         webView = new WebView(this);
         configureWebView(webView);
         root.addView(webView, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(root);
-        loadCreatePage();
+        loadLoginPage();
     }
 
     @Override
@@ -127,8 +169,6 @@ public class MarketplaceBrowserActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
         settings.setSupportMultipleWindows(false);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setLoadWithOverviewMode(false);
@@ -140,25 +180,43 @@ public class MarketplaceBrowserActivity extends Activity {
         view.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onShowFileChooser(WebView page, ValueCallback<Uri[]> callback, FileChooserParams params) {
-                if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
                 pendingFileCallback = callback;
                 if (hasAutomatedPhotoSelection()) {
                     executor.execute(MarketplaceBrowserActivity.this::deliverJobPhotos);
                 } else {
-                    openSystemPhotoPicker(params);
+                    openSystemPhotoPicker();
                 }
                 return true;
             }
         });
         view.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageStarted(WebView page, String url, Bitmap favicon) {
+                updateAddress(url);
+                if (status != null) status.setText("Cargando Facebook...\n" + safeUrl(url));
+            }
+
+            @Override
             public void onPageFinished(WebView page, String url) {
+                updateAddress(url);
                 PortalSessionVault.flushCookies();
                 String current = url == null ? "" : url;
-                // Facebook login/recovery pages are sensitive to replayed
-                // sessionStorage. WebView cookies are the authoritative
-                // session; restoring an old SPA snapshot can loop on the
-                // password-change spinner.
+                if (shouldUseLimitedLogin(current)) {
+                    limitedLoginFallbackAttempted = true;
+                    page.loadUrl(LOGIN_URL);
+                    return;
+                }
+                if (!storageRestoreAttempted && current.contains("facebook.com")) {
+                    storageRestoreAttempted = true;
+                    String state = PortalSessionVault.loadState(MarketplaceBrowserActivity.this, "facebook");
+                    if (!state.isEmpty()) {
+                        page.evaluateJavascript(PortalSessionVault.restoreScript(state), ignored ->
+                            mainHandler.postDelayed(() -> {
+                                if (webView != null) webView.loadUrl(CREATE_URL);
+                            }, 250L));
+                        return;
+                    }
+                }
                 storageRestoreAttempted = true;
                 captureSession(800L);
                 captureSession(3_500L);
@@ -170,58 +228,94 @@ public class MarketplaceBrowserActivity extends Activity {
                     }
                 }
             }
+
+            @Override
+            public void onReceivedError(WebView page, WebResourceRequest request, WebResourceError error) {
+                if (request == null || request.isForMainFrame()) {
+                    String message = error == null ? "Error desconocido" : String.valueOf(error.getDescription());
+                    if (status != null) status.setText("Facebook no pudo cargar la pagina.\n" + message);
+                }
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView page, WebResourceRequest request, WebResourceResponse response) {
+                if (request != null && request.isForMainFrame() && response != null && status != null) {
+                    status.setText("Facebook respondio HTTP " + response.getStatusCode() + ".\n" + safeUrl(request.getUrl().toString()));
+                }
+            }
         });
     }
 
     private void loadCreatePage() {
         if (webView == null) return;
         storageRestoreAttempted = false;
+        limitedLoginFallbackAttempted = false;
+        updateAddress(CREATE_URL);
         webView.loadUrl(CREATE_URL);
     }
 
     private void loadLoginPage() {
         if (webView == null) return;
         storageRestoreAttempted = true;
+        limitedLoginFallbackAttempted = true;
+        updateAddress(LOGIN_URL);
         webView.loadUrl(LOGIN_URL);
     }
 
-    private void resetFacebookSession() {
+    private void loadManualFacebookUrl() {
+        if (urlField == null) return;
+        loadManualFacebookUrl(urlField.getText() == null ? "" : urlField.getText().toString());
+    }
+
+    private void loadManualFacebookUrl(String rawUrl) {
+        if (webView == null) return;
+        String value = rawUrl == null ? "" : rawUrl.trim();
+        if (value.isEmpty()) value = FACEBOOK_HOME_URL;
+        if (!value.contains("://")) value = "https://" + value;
+        if (!isWebUrl(value)) {
+            if (status != null) status.setText("La URL debe comenzar por http:// o https://.");
+            return;
+        }
+        if (value.equals(LOGIN_URL)) limitedLoginFallbackAttempted = true;
         storageRestoreAttempted = true;
-        PortalSessionVault.clearProvider(this, "facebook");
-        clearFacebookCookies();
-        WebStorage.getInstance().deleteOrigin("https://www.facebook.com");
-        if (webView != null) {
-            webView.clearHistory();
-            webView.clearFormData();
-            webView.evaluateJavascript("try{localStorage.clear();sessionStorage.clear();}catch(e){}", ignored -> loadLoginPage());
-        } else {
-            loadLoginPage();
-        }
+        updateAddress(value);
+        webView.loadUrl(value);
     }
 
-    private void clearFacebookCookies() {
-        CookieManager manager = CookieManager.getInstance();
-        String[] origins = { "https://www.facebook.com", "https://facebook.com", "https://m.facebook.com" };
-        for (String origin : origins) {
-            String cookies = manager.getCookie(origin);
-            if (cookies == null) continue;
-            for (String part : cookies.split(";")) {
-                String name = part.split("=", 2)[0].trim();
-                if (!name.isEmpty()) {
-                    manager.setCookie(origin, name + "=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/");
-                    manager.setCookie(origin, name + "=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Domain=.facebook.com");
-                }
-            }
-        }
-        manager.flush();
-    }
-
-    private void openRecoveryInBrowser() {
+    private boolean shouldUseLimitedLogin(String value) {
+        if (limitedLoginFallbackAttempted || value == null || value.isEmpty()) return false;
         try {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(RECOVERY_URL)));
-        } catch (RuntimeException error) {
-            if (status != null) status.setText("No hay un navegador externo disponible para recuperar la cuenta.");
+            Uri uri = Uri.parse(value);
+            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+            String path = uri.getPath() == null ? "" : uri.getPath().toLowerCase();
+            return ("facebook.com".equals(host) || host.endsWith(".facebook.com"))
+                && !"limited.facebook.com".equals(host)
+                && (path.contains("/login") || path.contains("/checkpoint") || path.contains("/two_step_verification"));
+        } catch (RuntimeException ignored) {
+            return false;
         }
+    }
+
+    private boolean isWebUrl(String value) {
+        try {
+            Uri uri = Uri.parse(value);
+            String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
+            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+            return ("https".equals(scheme) || "http".equals(scheme)) && !host.isEmpty();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private void updateAddress(String url) {
+        if (urlField == null || url == null || url.isEmpty()) return;
+        urlField.setText(url);
+        urlField.setSelection(urlField.length());
+    }
+
+    private String safeUrl(String url) {
+        if (url == null || url.isEmpty()) return "URL desconocida";
+        return url.length() > 180 ? url.substring(0, 180) + "..." : url;
     }
 
     private void captureSession(long delayMs) {
@@ -237,10 +331,8 @@ public class MarketplaceBrowserActivity extends Activity {
         String lower = current.toLowerCase();
         if (lower.contains("/marketplace/create")) {
             status.setText("Sesión lista. Vuelve a Laujim y pulsa Publicar con el teléfono; el trabajo correrá en este mismo navegador.");
-        } else if (lower.contains("recover") || lower.contains("identify")) {
-            status.setText("Facebook está en recuperación. Termina el proceso en el navegador externo y luego vuelve a Iniciar sesión aquí.");
         } else if (lower.contains("login") || lower.contains("checkpoint") || lower.contains("two_factor")) {
-            status.setText("Completa el inicio de sesión o 2FA. Si aparece un bucle, pulsa Reiniciar Facebook.");
+            status.setText("Completa el inicio de sesión, 2FA o verificación directamente en Facebook.");
         } else {
             status.setText("Facebook abierto. Al terminar de autenticarte, pulsa Abrir formulario.");
         }
@@ -344,23 +436,14 @@ public class MarketplaceBrowserActivity extends Activity {
         }
     }
 
-    private void openSystemPhotoPicker(WebChromeClient.FileChooserParams params) {
+    private void openSystemPhotoPicker() {
         try {
-            String[] accepted = params == null ? new String[0] : params.getAcceptTypes();
-            java.util.ArrayList<String> mimeTypes = new java.util.ArrayList<>();
-            if (accepted != null) {
-                for (String type : accepted) {
-                    if (type != null && type.contains("/")) mimeTypes.add(type);
-                }
-            }
-            if (mimeTypes.isEmpty()) mimeTypes.add("image/*");
-            Intent picker = new Intent(Intent.ACTION_GET_CONTENT)
+            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT)
                 .addCategory(Intent.CATEGORY_OPENABLE)
-                .setType(mimeTypes.size() == 1 ? mimeTypes.get(0) : "*/*")
+                .setType("image/*")
                 .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                .putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toArray(new String[0]))
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-            startActivityForResult(Intent.createChooser(picker, "Selecciona las fotos del apartamento"), PHOTO_PICKER_REQUEST);
+            startActivityForResult(picker, PHOTO_PICKER_REQUEST);
         } catch (RuntimeException error) {
             ValueCallback<Uri[]> callback = pendingFileCallback;
             pendingFileCallback = null;
@@ -377,13 +460,9 @@ public class MarketplaceBrowserActivity extends Activity {
             if (data.getClipData() != null) {
                 int count = data.getClipData().getItemCount();
                 selected = new Uri[count];
-                for (int index = 0; index < count; index += 1) {
-                    selected[index] = data.getClipData().getItemAt(index).getUri();
-                    try { getContentResolver().takePersistableUriPermission(selected[index], Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (RuntimeException ignored) { }
-                }
+                for (int index = 0; index < count; index += 1) selected[index] = data.getClipData().getItemAt(index).getUri();
             } else if (data.getData() != null) {
                 selected = new Uri[] { data.getData() };
-                try { getContentResolver().takePersistableUriPermission(selected[0], Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (RuntimeException ignored) { }
             }
         }
         ValueCallback<Uri[]> callback = pendingFileCallback;

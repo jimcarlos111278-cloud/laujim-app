@@ -93,6 +93,21 @@
     return field(value, names);
   }
 
+  function contractInvoiceIdCandidates(contract) {
+    const values = [];
+    const add = value => {
+      const text = String(value == null ? '' : value).trim();
+      if (text && !values.includes(text)) values.push(text);
+    };
+    // Gascaribe has returned both an internal id and a human-facing contract
+    // number. Depending on the account/portal build, /invoices/{id} accepts
+    // one or the other; retry the same contract with the alternate identity
+    // instead of turning a valid contract into a false 422 failure.
+    ['id', 'contractId', 'contractNumber', 'number', 'subscriptionId', 'externalId', 'code']
+      .forEach(name => add(topLevelField(contract, [name])));
+    return values;
+  }
+
   function list(value, keys, depth, seen) {
     if (Array.isArray(value)) return value;
     if (!value || typeof value !== 'object' || (depth || 0) > 6) return [];
@@ -739,7 +754,12 @@
     const dueLine = uiLines(source).find(line => /^vence\b/i.test(line)) || null;
     const contractMatch = source.match(/contrato\s*n[^0-9]{0,8}(\d{4,})/i);
     const invoiceMatch = source.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
-    const amount = uiAmountAfter(source, 'total a pagar');
+    const rawAmount = uiAmountAfter(source, 'total a pagar');
+    // Paid Gascaribe receipts can omit the numeric "Total a pagar" value and
+    // only show the green "Estás al día"/"Sin deuda" state. Treat that
+    // authenticated receipt as a confirmed zero instead of timing out.
+    const paidByText = /est[aá]s\s+al\s+d[ií]a|al\s+d[ií]a|sin\s+deuda|factura\s+pagad[ao]|pago\s+realizad[ao]/i.test(source);
+    const amount = rawAmount === null && paidByText ? 0 : rawAmount;
     return {
       contract: contractMatch ? contractMatch[1] : null,
       invoice: invoiceMatch ? invoiceMatch[1] : null,
@@ -765,9 +785,10 @@
     const parsed = await waitForUi(() => {
       if (loginState().challenge) return { challenge: true };
       const text = uiBodyText();
-      if (!/total a pagar/i.test(text) || !new RegExp(escapeRegex(contract.code)).test(text)) return null;
+      const hasReceiptSummary = /total a pagar|tu deuda actual|est[aá]s\s+al\s+d[ií]a|sin\s+deuda/i.test(text);
+      if (!hasReceiptSummary || !new RegExp(escapeRegex(contract.code)).test(text)) return null;
       const result = parseGasHomeResult(text);
-      return result.amount !== null ? result : null;
+      return result.amount !== null || result.status === 'paid' ? result : null;
     }, PORTAL_UI_TIMEOUT_MS);
     if (parsed?.challenge) return parsed;
     return parsed || { error: `Gases del Caribe no mostro la factura del contrato ${contract.code}.` };
@@ -927,18 +948,43 @@
         continue;
       }
       matchedContracts += 1;
-      // Gascaribe's own frontend calls /invoices/{contract.id}. Prefer the
-      // top-level id before human-facing contract numbers or nested ids.
-      const contractId = topLevelField(contract, ['id', 'contractId', 'contractNumber', 'number']);
-      if (!contractId) {
+      const invoiceIdCandidates = contractInvoiceIdCandidates(contract);
+      if (!invoiceIdCandidates.length) {
         missingContractIds += 1;
         continue;
       }
       // Match the official frontend: it always sends this query parameter,
       // even when the value is empty after the authenticated session exists.
-      const invoiceUrl = `${GAS_API}/invoices/${encodeURIComponent(contractId)}?g-recaptcha-response=${encodeURIComponent('')}`;
-      const invoiceResponse = await jsonWithAuthFallback(invoiceUrl, auth, gasRequestOptions);
-      if (!invoiceResponse.ok) {
+      let invoiceResponse = null;
+      let invoiceId = '';
+      for (const candidate of invoiceIdCandidates) {
+        invoiceId = candidate;
+        const invoiceUrl = `${GAS_API}/invoices/${encodeURIComponent(candidate)}?g-recaptcha-response=${encodeURIComponent('')}`;
+        invoiceResponse = await jsonWithAuthFallback(invoiceUrl, auth, gasRequestOptions);
+        if (invoiceResponse.ok) break;
+        // 400/404/422 means this identity is not the invoice resource key;
+        // try the next identifier. Auth/session failures must not be masked.
+        if (![400, 404, 422].includes(Number(invoiceResponse.status))) break;
+      }
+      if (!invoiceResponse || !invoiceResponse.ok) {
+        // A paid contract can remain visible after its current invoice is
+        // settled. Gascaribe may answer 404/422 for that invoice resource;
+        // preserve the authenticated contract as an explicit $0 result.
+        if ([404, 422].includes(Number(invoiceResponse?.status))) {
+          used.add(String(target.id || target.name));
+          results.push(resultBase('Gases del Caribe', 'gas', target, {
+            gasPaymentCode: String(target.gasPaymentCode || invoiceId),
+            status: 'paid',
+            deudaCOP: 0,
+            deudaTotalCOP: 0,
+            numFacturas: 0,
+            factura: field(contract, ['invoiceNumber', 'invoiceId', 'factura']) || null,
+            periodo: field(contract, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
+            portalNoInvoice: true,
+            error: null,
+          }));
+          continue;
+        }
         invoiceFailures += 1;
         if (!firstInvoiceStatus) firstInvoiceStatus = Number(invoiceResponse.status) || 0;
         if (!firstInvoiceError) firstInvoiceError = invoiceResponse.error || '';
@@ -958,15 +1004,16 @@
       });
       const amounts = unpaid.map(item => item.amount).filter(value => value !== null);
       const debt = amounts.length ? amounts.reduce((sum, value) => sum + value, 0) : (unpaid.length ? null : 0);
+      const receipt = (unpaid[0] && unpaid[0].invoice) || invoices[0] || null;
       used.add(String(target.id || target.name));
       results.push(resultBase('Gases del Caribe', 'gas', target, {
-        gasPaymentCode: String(contractId),
+        gasPaymentCode: String(target.gasPaymentCode || invoiceId),
         status: debt === null || debt > 0 ? 'pending' : 'paid',
         deudaCOP: debt,
         deudaTotalCOP: debt,
         numFacturas: unpaid.length,
-        factura: field(unpaid[0] && unpaid[0].invoice, ['id', 'invoiceNumber', 'factura']) || null,
-        periodo: field(unpaid[0] && unpaid[0].invoice, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
+        factura: field(receipt, ['id', 'invoiceNumber', 'factura']) || null,
+        periodo: field(receipt, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
       }));
     }
     const gasDiagnostics = {
@@ -1058,7 +1105,7 @@
       if (parsed?.challenge) {
         return { state: 'needs_verification', provider: 'water', stage: 'turnstile', message: 'Triple A mostro una verificacion durante la consulta. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
       }
-      if (parsed?.error || parsed?.amount === null || parsed?.amount === undefined) {
+      if (parsed?.error || ((parsed?.amount === null || parsed?.amount === undefined) && parsed?.status !== 'paid')) {
         uiFailures += 1;
         for (const target of targets) results.push(resultBase('Triple A', 'water', target, {
             waterPaymentCode: policy.code,
