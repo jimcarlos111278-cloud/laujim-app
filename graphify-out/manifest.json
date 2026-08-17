@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786941038.6344092,
-    "ast_hash": "774ebed557c573a9652e0eee5171cc3e",
+    "mtime": 1786943107.3479283,
+    "ast_hash": "2c85a2fe5a31fbe34ce9043798420af9",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -60,8 +60,8 @@
     "semantic_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45"
   },
   "android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
-    "mtime": 1786429238.439553,
-    "ast_hash": "f10e79b5e348d77686113382c8c9b306",
+    "mtime": 1786943155.869804,
+    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786941167.9195247,
-    "ast_hash": "759c4265476fe21edb5bdb7209bcc8fc",
+    "mtime": 1786944389.0856538,
+    "ast_hash": "8085952933eb2b2dadba2cfddcbb4139",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -310,8 +310,8 @@
     "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
   },
   "src/pages/ApartmentDetail.jsx": {
-    "mtime": 1786932926.7787838,
-    "ast_hash": "92a2e4d8d4c1e0ad0874733521787827",
+    "mtime": 1786944309.863721,
+    "ast_hash": "13303e672c7ebd6d5b9d3689fda44bc9",
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {

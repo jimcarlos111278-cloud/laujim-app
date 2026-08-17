@@ -118,7 +118,14 @@ function canvasBlob(canvas, type, quality) {
 }
 
 async function preparePhotoForUpload(file) {
-  if (!file || !String(file.type || '').startsWith('image/') || file.size <= MAX_BROWSER_PHOTO_BYTES) return file;
+  const fileName = String(file?.name || '').trim();
+  const looksLikeImage = String(file?.type || '').startsWith('image/') ||
+    /\.(?:jpe?g|png|webp|heic|heif|gif|bmp|avif)$/i.test(fileName);
+  if (!file || !looksLikeImage) return file;
+  // Re-encode any image selected by Android when its metadata is incomplete.
+  // Some Samsung WebView builds report an empty MIME type for content:// URIs;
+  // sending that object untouched can bypass the 2 MB client guard.
+  if (Number(file.size) > 0 && Number(file.size) <= MAX_BROWSER_PHOTO_BYTES && String(file.type || '').startsWith('image/')) return file;
   const objectUrl = URL.createObjectURL(file);
   let image = null;
   try {
@@ -154,7 +161,7 @@ async function preparePhotoForUpload(file) {
       scale *= 0.82;
     }
     if (!blob || blob.size > MAX_BROWSER_PHOTO_BYTES) throw new Error('La foto sigue superando 2 MB después de comprimirla.');
-    const baseName = String(file.name || 'foto').replace(/\.[^.]+$/, '') || 'foto';
+    const baseName = fileName.replace(/\.[^.]+$/, '') || 'foto';
     return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
   } finally {
     if (typeof image?.close === 'function') image.close();
@@ -206,6 +213,7 @@ export default function ApartmentDetail() {
   const [shareLoading, setShareLoading] = useState(false);
   const [shareFailed, setShareFailed] = useState(null);
   const [galleryIdx, setGalleryIdx] = useState(null);
+  const galleryTouchStartRef = useRef(null);
   const fileRef = useRef(null);
   const [scanService, setScanService] = useState(null);
   const scanServiceRef = useRef(null);
@@ -410,6 +418,23 @@ export default function ApartmentDetail() {
   function nextPhoto() {
     if (galleryIdx === null) return;
     setGalleryIdx(galleryIdx === photos.length - 1 ? 0 : galleryIdx + 1);
+  }
+
+  function handleGalleryTouchStart(event) {
+    const touch = event.touches?.[0];
+    galleryTouchStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }
+
+  function handleGalleryTouchEnd(event) {
+    const start = galleryTouchStartRef.current;
+    galleryTouchStartRef.current = null;
+    const touch = event.changedTouches?.[0];
+    if (!start || !touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    if (deltaX < 0) nextPhoto();
+    else prevPhoto();
   }
 
   useEffect(() => {
@@ -1337,14 +1362,47 @@ export default function ApartmentDetail() {
           </div>
 
           {galleryIdx !== null && photos[galleryIdx] && (
-            <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={closeGallery}>
-              <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
-                <button onClick={closeGallery} className="absolute -top-10 right-0 text-white/80 hover:text-white text-sm p-1 z-10">Cerrar [Esc]</button>
-                <img src={photoUrl(photos[galleryIdx])} alt={photos[galleryIdx].originalName || 'Foto'} className="max-w-full max-h-[80vh] object-contain rounded-lg" />
-                <div className="flex items-center justify-between w-full mt-3">
-                  <button onClick={prevPhoto} className="flex items-center gap-1 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors text-sm"><ChevronLeft className="w-4 h-4" /> Anterior</button>
-                  <span className="text-white/70 text-sm">{galleryIdx + 1} / {photos.length}</span>
-                  <button onClick={nextPhoto} className="flex items-center gap-1 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors text-sm">Siguiente <ChevronRight className="w-4 h-4" /></button>
+            <div
+              className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-3 sm:p-6"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Galería de fotos, ${galleryIdx + 1} de ${photos.length}`}
+              onClick={closeGallery}
+            >
+              <div className="relative w-full max-w-5xl max-h-[96vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+                <div className="w-full flex items-center justify-between gap-3 mb-2 text-white">
+                  <span className="text-sm font-medium">Foto {galleryIdx + 1} de {photos.length}</span>
+                  <button onClick={closeGallery} className="text-white/80 hover:text-white text-sm px-2 py-1 rounded-md hover:bg-white/10" aria-label="Cerrar galería">Cerrar [Esc]</button>
+                </div>
+                <div
+                  className="relative w-full flex items-center justify-center min-h-0 touch-pan-y"
+                  onTouchStart={handleGalleryTouchStart}
+                  onTouchEnd={handleGalleryTouchEnd}
+                >
+                  <button onClick={prevPhoto} className="absolute left-1 sm:left-3 z-10 p-2 sm:p-3 bg-black/45 text-white rounded-full hover:bg-black/70" aria-label="Foto anterior">
+                    <ChevronLeft className="w-5 h-5 sm:w-7 sm:h-7" />
+                  </button>
+                  <img src={photoUrl(photos[galleryIdx])} alt={photos[galleryIdx].originalName || 'Foto'} className="max-w-full max-h-[68vh] sm:max-h-[74vh] object-contain rounded-lg select-none" draggable="false" />
+                  <button onClick={nextPhoto} className="absolute right-1 sm:right-3 z-10 p-2 sm:p-3 bg-black/45 text-white rounded-full hover:bg-black/70" aria-label="Foto siguiente">
+                    <ChevronRight className="w-5 h-5 sm:w-7 sm:h-7" />
+                  </button>
+                </div>
+                {photos.length > 1 && (
+                  <div className="w-full flex gap-2 overflow-x-auto py-3 px-1" aria-label="Miniaturas de la galería">
+                    {photos.map((photo, index) => (
+                      <button
+                        key={photo.id}
+                        onClick={() => setGalleryIdx(index)}
+                        className={`shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 ${index === galleryIdx ? 'border-white' : 'border-white/25 opacity-70 hover:opacity-100'}`}
+                        aria-label={`Abrir foto ${index + 1}`}
+                      >
+                        <img src={photoUrl(photo)} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="w-full flex items-center justify-center text-white/70 text-xs truncate px-2">
+                  {photos[galleryIdx].originalName || 'Foto'} · {photoSizeLabel(photos[galleryIdx])}
                 </div>
               </div>
             </div>
