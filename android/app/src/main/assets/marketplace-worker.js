@@ -43,6 +43,9 @@
 
   function setNativeValue(element, value) {
     if (!element || value === null || value === undefined || value === '') return false;
+    // Normalize legacy form-url-encoded payloads at the final write point so
+    // every Facebook field receives spaces instead of visible plus signs.
+    value = decodeTransportText(value);
     var tag = element.tagName.toLowerCase();
     element.focus();
     if (element.isContentEditable || element.getAttribute('role') === 'textbox') {
@@ -335,6 +338,12 @@
 
   async function run(data, options) {
     options = options || {};
+    data = data || {};
+    // Older queued jobs may contain URL-encoded strings in any field. Decode
+    // the listing once before matching or filling Facebook controls.
+    Object.keys(data).forEach(function (key) {
+      if (typeof data[key] === 'string') data[key] = decodeTransportText(data[key]);
+    });
     emit('page_loaded', 'Facebook cargó la sesión local para iniciar la publicación.', {
       path: window.location.pathname, title: document.title || ''
     });
@@ -429,6 +438,21 @@
         emit('photos_partial', 'Facebook recibió solo parte de las fotos automáticas.', { expected: expectedPhotos, attached: photoInput.files.length });
         return { state: 'needs_review', stage: 'photos_partial', message: 'Facebook no recibió todas las fotos automáticas; revisa el selector abierto.', filled: filled };
       }
+      var photoSizes = Array.from(photoInput.files).slice(0, expectedPhotos).map(function (file) {
+        return Number(file && file.size) || 0;
+      });
+      var photoBytes = photoSizes.reduce(function (total, size) { return total + size; }, 0);
+      // Native Android targets 1.9 MB per image. Guard here as well so a
+      // stale WebView cannot pass originals to Facebook's 20 MB batch limit.
+      if (photoSizes.some(function (size) { return size > 1_900_000; }) || photoBytes > 19_000_000) {
+        emit('photos_size_invalid', 'Una foto no quedó comprimida antes de enviarla a Facebook.', {
+          attached: photoInput.files.length, expected: expectedPhotos, bytes: photoBytes, sizes: photoSizes
+        });
+        return { state: 'needs_review', stage: 'photos_size_invalid', message: 'Las fotos no quedaron comprimidas a tiempo; vuelve a abrir el selector para prepararlas de nuevo.', filled: filled };
+      }
+      emit('photos_size_validated', 'Tamaño de fotos validado antes de enviarlas a Facebook.', {
+        attached: photoInput.files.length, bytes: photoBytes, sizes: photoSizes
+      });
       emit('photos_attached', 'Fotos adjuntadas automáticamente al formulario.', { attached: photoInput.files.length });
     }
 

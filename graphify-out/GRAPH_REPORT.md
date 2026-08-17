@@ -1,16 +1,16 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-16)
 
 ## Corpus Check
-- 457 files · ~609,817 words
+- 457 files · ~610,014 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4134 nodes · 7024 edges · 386 communities (331 shown, 55 thin omitted)
+- 4134 nodes · 7025 edges · 387 communities (330 shown, 57 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 185 edges (avg confidence: 0.51)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `756260d2`
+- Built from commit: `6a93fdb5`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -166,7 +166,8 @@
 - react-router-dom
 - uninstall.test.js
 - .onReceive
-- @capacitor/filesystem
+- @capacitor/android
+- sendCloudCollectionTemplates
 - 3. Heal
 - Test generation (plan → generate → heal)
 - vendor/ponytail/hooks/ponytail-config.js
@@ -277,7 +278,7 @@
 - Install
 - plugins/ponytail/README.es.md
 - plugins/ponytail/tests/openclaw-skills.test.js
-- ScraperWorkerService.java
+- JavascriptResultBridge
 - plugins/ponytail/benchmarks/generate-examples.mjs
 - plugins/ponytail/ponytail-mcp/instructions.js
 - Install
@@ -348,7 +349,8 @@
 - plugins/ponytail/skills/ponytail-debt/SKILL.md
 - ScraperWorkerScheduleTest
 - plugins/ponytail/examples/react-countdown.md
-- @capacitor/android
+- PortalBridge
+- @capacitor/cli
 - @capacitor/core
 - node-cron
 - plugins/ponytail/after-install.md
@@ -392,7 +394,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (386 total, 55 thin omitted)
+## Communities (387 total, 57 thin omitted)
 
 ### Community 0 - "handleCloudAdminMessage"
 Cohesion: 0.28
@@ -407,8 +409,8 @@ Cohesion: 0.08
 Nodes (24): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, AuthorizedCallerScreeningService (+16 more)
 
 ### Community 3 - "server.cjs"
-Cohesion: 0.04
-Nodes (72): accessRateLimits, activeContractForTenant(), activeTenantForApartment(), app, BACKUP_DIR, BACKUP_FILE, buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo() (+64 more)
+Cohesion: 0.05
+Nodes (49): accessRateLimits, app, BACKUP_DIR, BACKUP_FILE, CLOUD_SERVICE_PRESENTATIONS, cloudImageMoney(), cloudNormaliseText(), cloudServicesReportImageHtml() (+41 more)
 
 ### Community 4 - "pre-whatsapp-bot/server.cjs"
 Cohesion: 0.08
@@ -428,7 +430,7 @@ Nodes (22): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudG
 
 ### Community 8 - "dependencies"
 Cohesion: 0.06
-Nodes (33): @aws-sdk/client-s3, @capacitor/android, @capacitor/cli, @capacitor-mlkit/barcode-scanning, @capacitor/share, docxtemplater, express, ffmpeg-static (+25 more)
+Nodes (33): @aws-sdk/client-s3, @capacitor/android, @capacitor/filesystem, @capacitor-mlkit/barcode-scanning, @capacitor/share, docxtemplater, express, ffmpeg-static (+25 more)
 
 ### Community 9 - "saveData"
 Cohesion: 0.24
@@ -639,8 +641,8 @@ Cohesion: 0.83
 Nodes (3): gradlew script, die(), warn()
 
 ### Community 64 - "ScraperWorkerService"
-Cohesion: 0.17
-Nodes (4): HttpResult, JSONArray, JSONObject, ScraperWorkerService
+Cohesion: 0.10
+Nodes (9): HttpResult, Handler, IBinder, Intent, JSONArray, JSONObject, Notification, WebView (+1 more)
 
 ### Community 66 - "Extensión de Chrome — Llenar Laujim"
 Cohesion: 0.12
@@ -764,7 +766,7 @@ Nodes (31): aggregate(), chat_code_loc(), _claude_version(), code_stats(), _coun
 
 ### Community 115 - "PortalBrowserActivity"
 Cohesion: 0.15
-Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+Nodes (7): Bundle, Handler, Intent, Override, TextView, WebView, PortalBrowserActivity
 
 ### Community 116 - "robustness-audit.js"
 Cohesion: 0.08
@@ -799,8 +801,8 @@ Cohesion: 0.07
 Nodes (29): Commands, Configuration file, Core, Demo, DevTools, Getting Started, Headed operation, Installation (+21 more)
 
 ### Community 126 - "sendCloudGlobalServices"
-Cohesion: 0.22
-Nodes (14): addCloudMessage(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), buildCloudServicesImageData(), cloudApartmentServices(), cloudApartmentServicesLine(), cloudPeriodLabel(), cloudReminderResultLine() (+6 more)
+Cohesion: 0.12
+Nodes (29): buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), buildCloudServicesImageData(), buildDebtReply(), cloudApartmentServices(), cloudApartmentServicesLine() (+21 more)
 
 ### Community 127 - "Browser Automation with playwright-cli"
 Cohesion: 0.14
@@ -898,6 +900,10 @@ Nodes (18): assert, claudeDir, configDir, configPath, env, flagPath, fs, home (+
 Cohesion: 0.16
 Nodes (13): AuthorizedMmsReceiver, Context, Intent, Override, Context, Intent, Override, ScraperWorkerAlarmReceiver (+5 more)
 
+### Community 168 - "sendCloudCollectionTemplates"
+Cohesion: 0.25
+Nodes (8): activeContractForTenant(), activeTenantForApartment(), addCloudMessage(), cloudReminderResultLine(), resolveCloudConversationContext(), sendCloudCollectionTemplates(), sendCloudTextChunks(), splitCloudText()
+
 ### Community 169 - "3. Heal"
 Cohesion: 0.33
 Nodes (6): 3.1 Find failing tests, 3.2 Debug one failure, 3.3 Apply the fix, 3.4 Reconcile with the spec, 3.5 Iteration and giving up, 3. Heal
@@ -923,8 +929,8 @@ Cohesion: 0.12
 Nodes (16): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+8 more)
 
 ### Community 175 - "vendor/ponytail/README.ko.md"
-Cohesion: 0.13
-Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Before / after, Commands, Development, FAQ (+5 more)
+Cohesion: 0.17
+Nodes (10): Ponytail, lazy senior dev mode, Before / after, Commands, Development, FAQ, How it works, License, Numbers (+2 more)
 
 ### Community 176 - "ponytail-mcp/package.json"
 Cohesion: 0.14
@@ -947,8 +953,8 @@ Cohesion: 0.15
 Nodes (13): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+5 more)
 
 ### Community 181 - "vendor/ponytail/README.es.md"
-Cohesion: 0.17
-Nodes (10): Ponytail, lazy senior dev mode, Antes / después, Comandos, Cómo funciona, Desarrollo, FAQ, Historial de estrellas, Licencia (+2 more)
+Cohesion: 0.13
+Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Antes / después, Comandos, Cómo funciona, Desarrollo (+5 more)
 
 ### Community 182 - "vendor/ponytail/.opencode/plugins/ponytail.mjs"
 Cohesion: 0.22
@@ -1292,10 +1298,6 @@ Nodes (10): Ponytail, lazy senior dev mode, Antes / después, Comandos, Cómo fu
 Cohesion: 0.21
 Nodes (12): DESCRIPTIONS, fs, NAMES, outPath(), path, render(), ROOT, sourceBody() (+4 more)
 
-### Community 289 - "ScraperWorkerService.java"
-Cohesion: 0.13
-Nodes (7): Handler, IBinder, Intent, JavascriptInterface, Notification, WebView, JavascriptResultBridge
-
 ### Community 290 - "plugins/ponytail/benchmarks/generate-examples.mjs"
 Cohesion: 0.18
 Nodes (10): isHaiku(), j, meta, pick(), rows, tbl, assert, cases (+2 more)
@@ -1585,12 +1587,12 @@ Nodes (3): CapacitorException, TODO: export as Cap function, TODO: export as Cap
 ## Knowledge Gaps
 - **1829 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `.opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs`, `type`, `npx.cmd` (+1824 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **55 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **57 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `package.json`, `react-router-dom`, `dexie`, `@capacitor/filesystem`, `tailwindcss`, `@tailwindcss/vite`, `@capacitor/core`, `node-cron`, `cors`, `jsqr`, `qrcode`, `recharts`, `contractGenerator.js`, `@capacitor/local-notifications`, `react-dom`?**
+- **Why does `dependencies` connect `dependencies` to `package.json`, `react-router-dom`, `dexie`, `tailwindcss`, `@capacitor/cli`, `@capacitor/core`, `node-cron`, `@tailwindcss/vite`, `cors`, `jsqr`, `qrcode`, `recharts`, `contractGenerator.js`, `@capacitor/local-notifications`, `react-dom`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **Why does `jspdf` connect `contractGenerator.js` to `dependencies`, `ApartmentDetail.jsx`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
@@ -1603,4 +1605,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `.status` be split into smaller, more focused modules?**
   _Cohesion score 0.0763888888888889 - nodes in this community are weakly interconnected._
 - **Should `server.cjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.04299847792998478 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.045714285714285714 - nodes in this community are weakly interconnected._

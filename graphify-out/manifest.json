@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786932983.245801,
-    "ast_hash": "2265eafd5ad47c0c09526ef8126abd97",
+    "mtime": 1786941038.6344092,
+    "ast_hash": "774ebed557c573a9652e0eee5171cc3e",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786932983.2478094,
-    "ast_hash": "d10cd44c464b132c4c6515c432fc4f0d",
+    "mtime": 1786941167.9195247,
+    "ast_hash": "759c4265476fe21edb5bdb7209bcc8fc",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -970,8 +970,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/marketplace-worker.js": {
-    "mtime": 1786927268.3487108,
-    "ast_hash": "68b456fb8ec5daaf6ef197f5115b5ad7",
+    "mtime": 1786941025.2328103,
+    "ast_hash": "5e7055296514353369a0ec9ac2adb7c1",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
