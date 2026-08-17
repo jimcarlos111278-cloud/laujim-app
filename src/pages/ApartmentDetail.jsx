@@ -108,7 +108,7 @@ function expandWhatsAppTemplate(template, values) {
     message.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value ?? '')), String(template || ''));
 }
 
-const MAX_BROWSER_PHOTO_BYTES = 8 * 1024 * 1024;
+const MAX_BROWSER_PHOTO_BYTES = 2 * 1024 * 1024;
 const MAX_BROWSER_PHOTO_SIDE = 2560;
 
 function canvasBlob(canvas, type, quality) {
@@ -135,21 +135,25 @@ async function preparePhotoForUpload(file) {
     const width = image.width || image.naturalWidth;
     const height = image.height || image.naturalHeight;
     if (!width || !height) throw new Error('La foto no tiene un tamaño válido.');
-    const scale = Math.min(1, MAX_BROWSER_PHOTO_SIDE / width, MAX_BROWSER_PHOTO_SIDE / height);
+    let scale = Math.min(1, MAX_BROWSER_PHOTO_SIDE / width, MAX_BROWSER_PHOTO_SIDE / height);
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(width * scale));
-    canvas.height = Math.max(1, Math.round(height * scale));
     const context = canvas.getContext('2d');
     if (!context) throw new Error('El navegador no pudo preparar la foto.');
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
     let blob = null;
-    for (const quality of [0.84, 0.74, 0.64, 0.54]) {
-      blob = await canvasBlob(canvas, 'image/jpeg', quality);
-      if (blob.size <= MAX_BROWSER_PHOTO_BYTES) break;
+    for (let pass = 0; pass < 4; pass++) {
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      for (const quality of [0.84, 0.74, 0.64, 0.54, 0.44]) {
+        blob = await canvasBlob(canvas, 'image/jpeg', quality);
+        if (blob.size <= MAX_BROWSER_PHOTO_BYTES) break;
+      }
+      if (blob && blob.size <= MAX_BROWSER_PHOTO_BYTES) break;
+      scale *= 0.82;
     }
-    if (!blob || blob.size > MAX_BROWSER_PHOTO_BYTES) throw new Error('La foto sigue superando 8 MB después de comprimirla.');
+    if (!blob || blob.size > MAX_BROWSER_PHOTO_BYTES) throw new Error('La foto sigue superando 2 MB después de comprimirla.');
     const baseName = String(file.name || 'foto').replace(/\.[^.]+$/, '') || 'foto';
     return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
   } finally {
@@ -357,7 +361,7 @@ export default function ApartmentDetail() {
       e.target.value = '';
     }
     if (fail > 0) alert(`${ok} foto(s) subida(s), ${fail} error(es). ${errors[0] || ''}`.trim());
-    else if (compressed > 0) alert(`${ok} foto(s) subida(s). ${compressed} se comprimieron automáticamente para Marketplace.`);
+    else if (compressed > 0) alert(`${ok} foto(s) subida(s). ${compressed} se comprimieron automáticamente a un máximo de 2 MB.`);
     load();
   }
 

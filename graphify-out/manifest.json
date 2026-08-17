@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786927343.987247,
-    "ast_hash": "2e361cbf33ae1e77f7bdb12d7e2b4289",
+    "mtime": 1786928769.7550464,
+    "ast_hash": "1b5b281c400c039283ea125d665e0a5c",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786927343.9893787,
-    "ast_hash": "bada6e17b545b19950e93916ffc74111",
+    "mtime": 1786928769.766493,
+    "ast_hash": "e8217b430d7eef6479956b8340be7d30",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -310,8 +310,8 @@
     "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
   },
   "src/pages/ApartmentDetail.jsx": {
-    "mtime": 1786927314.4738264,
-    "ast_hash": "18913cec8a01eefd6741764bb02a1d74",
+    "mtime": 1786928675.523873,
+    "ast_hash": "f6752276d12ccc57cf65b427b144a974",
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
@@ -2930,8 +2930,18 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
-    "mtime": 1786927121.2043169,
-    "ast_hash": "d02e488521a513cd6f6ec87bbac08006",
+    "mtime": 1786928893.1272085,
+    "ast_hash": "a40eb021e37fa8078e9124a5343b4c3f",
+    "semantic_hash": ""
+  },
+  ".tmp/photo-preview-2mb/compressed-2mb.jpg": {
+    "mtime": 1786929077.751455,
+    "ast_hash": "572a8ea16243563be73cf0442e55182b",
+    "semantic_hash": ""
+  },
+  ".tmp/photo-preview-2mb/original-highres.jpg": {
+    "mtime": 1786929077.6612296,
+    "ast_hash": "ab928431a9e4dc57a59d0e930fcad348",
     "semantic_hash": ""
   }
 }

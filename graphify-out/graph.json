@@ -16934,7 +16934,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_java_jsonarray",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": "jsonarray"
     },
@@ -16978,7 +16978,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_java_jsonobject",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": "jsonobject"
     },
@@ -17190,7 +17190,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_executejob",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": ".executejob()"
     },
@@ -17202,7 +17202,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_startjob",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": ".startjob()"
     },
@@ -17226,7 +17226,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_deliverjobphotos",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": ".deliverjobphotos()"
     },
@@ -17238,7 +17238,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_photodetails",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": ".photodetails()"
     },
@@ -17297,7 +17297,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_addstage",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": ".addstage()"
     },
@@ -17358,7 +17358,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": "marketplacebridge"
     },
@@ -17370,7 +17370,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_requestphotos",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": ".requestphotos()"
     },
@@ -17381,7 +17381,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_java_javascriptinterface",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": "javascriptinterface"
     },
@@ -17393,7 +17393,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_stage",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": ".stage()"
     },
@@ -17405,7 +17405,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_persistsession",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": ".persistsession()"
     },
@@ -17417,7 +17417,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_resolve",
-      "community": 122,
+      "community": 167,
       "community_name": "JSONObject",
       "norm_label": ".resolve()"
     },
@@ -17473,7 +17473,7 @@
       "label": ".sampleSize()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L64",
+      "source_location": "L90",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_samplesize",
@@ -17485,7 +17485,7 @@
       "label": ".download()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L72",
+      "source_location": "L98",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_download",
@@ -17614,7 +17614,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerdispatcher",
-      "community": 386,
+      "community": 387,
       "community_name": ".dispatch",
       "norm_label": "marketplaceworkerdispatcher.java"
     },
@@ -17627,7 +17627,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerdispatcher_marketplaceworkerdispatcher",
-      "community": 386,
+      "community": 387,
       "community_name": ".dispatch",
       "norm_label": "marketplaceworkerdispatcher"
     },
@@ -17639,7 +17639,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerdispatcher_marketplaceworkerdispatcher_marketplaceworkerdispatcher",
-      "community": 386,
+      "community": 387,
       "community_name": ".dispatch",
       "norm_label": ".marketplaceworkerdispatcher()"
     },
@@ -17651,7 +17651,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerdispatcher_marketplaceworkerdispatcher_dispatch",
-      "community": 386,
+      "community": 387,
       "community_name": ".dispatch",
       "norm_label": ".dispatch()"
     },
@@ -17662,7 +17662,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerdispatcher_java_context",
-      "community": 386,
+      "community": 387,
       "community_name": ".dispatch",
       "norm_label": "context"
     },
@@ -18143,7 +18143,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_marketplacebridge",
-      "community": 387,
+      "community": 388,
       "community_name": "MarketplaceBridge",
       "norm_label": "marketplacebridge"
     },
@@ -18155,7 +18155,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_marketplacebridge_requestphotos",
-      "community": 387,
+      "community": 388,
       "community_name": "MarketplaceBridge",
       "norm_label": ".requestphotos()"
     },
@@ -18166,7 +18166,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_java_javascriptinterface",
-      "community": 387,
+      "community": 388,
       "community_name": "MarketplaceBridge",
       "norm_label": "javascriptinterface"
     },
@@ -18178,7 +18178,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_marketplacebridge_resolve",
-      "community": 387,
+      "community": 388,
       "community_name": "MarketplaceBridge",
       "norm_label": ".resolve()"
     },
@@ -18389,8 +18389,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbrowseractivity_installauthorizationhook",
-      "community": 115,
-      "community_name": "PortalBrowserActivity",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".installauthorizationhook()"
     },
     {
@@ -18545,8 +18545,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbrowseractivity_portalurl",
-      "community": 115,
-      "community_name": "PortalBrowserActivity",
+      "community": 386,
+      "community_name": ".baseProvider",
       "norm_label": ".portalurl()"
     },
     {
@@ -18557,8 +18557,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbrowseractivity_portalworkurl",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 386,
+      "community_name": ".baseProvider",
       "norm_label": ".portalworkurl()"
     },
     {
@@ -18606,8 +18606,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge",
-      "community": 359,
-      "community_name": "PortalBridge",
+      "community": 115,
+      "community_name": "PortalBrowserActivity",
       "norm_label": "portalbridge"
     },
     {
@@ -18618,8 +18618,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_resolve",
-      "community": 359,
-      "community_name": "PortalBridge",
+      "community": 115,
+      "community_name": "PortalBrowserActivity",
       "norm_label": ".resolve()"
     },
     {
@@ -18629,8 +18629,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_java_javascriptinterface",
-      "community": 359,
-      "community_name": "PortalBridge",
+      "community": 115,
+      "community_name": "PortalBrowserActivity",
       "norm_label": "javascriptinterface"
     },
     {
@@ -18641,8 +18641,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_persistsession",
-      "community": 359,
-      "community_name": "PortalBridge",
+      "community": 137,
+      "community_name": "PortalSessionVault",
       "norm_label": ".persistsession()"
     },
     {
@@ -18653,8 +18653,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_captureauthorization",
-      "community": 359,
-      "community_name": "PortalBridge",
+      "community": 115,
+      "community_name": "PortalBrowserActivity",
       "norm_label": ".captureauthorization()"
     },
     {
@@ -18868,8 +18868,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalsessionvault_portalsessionvault_authorizationcapturescript",
-      "community": 115,
-      "community_name": "PortalBrowserActivity",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".authorizationcapturescript()"
     },
     {
@@ -18916,8 +18916,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalsessionvault_portalsessionvault_baseprovider",
-      "community": 137,
-      "community_name": "PortalSessionVault",
+      "community": 386,
+      "community_name": ".baseProvider",
       "norm_label": ".baseprovider()"
     },
     {
@@ -19839,8 +19839,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": "scraperworkerservice.java"
     },
     {
@@ -19863,8 +19863,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_handler",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": "handler"
     },
     {
@@ -19874,8 +19874,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_webview",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": "webview"
     },
     {
@@ -19886,8 +19886,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_oncreate",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".oncreate()"
     },
     {
@@ -19909,8 +19909,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_createlocalwebview",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".createlocalwebview()"
     },
     {
@@ -19932,8 +19932,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_intent",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": "intent"
     },
     {
@@ -20098,8 +20098,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_portalworkurl",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 386,
+      "community_name": ".baseProvider",
       "norm_label": ".portalworkurl()"
     },
     {
@@ -20122,8 +20122,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_installauthorizationhook",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".installauthorizationhook()"
     },
     {
@@ -20134,8 +20134,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_capturesessionlater",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 386,
+      "community_name": ".baseProvider",
       "norm_label": ".capturesessionlater()"
     },
     {
@@ -20146,8 +20146,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_isproviderurl",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 386,
+      "community_name": ".baseProvider",
       "norm_label": ".isproviderurl()"
     },
     {
@@ -20170,8 +20170,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_loadandevaluate",
-      "community": 137,
-      "community_name": "PortalSessionVault",
+      "community": 64,
+      "community_name": "ScraperWorkerService",
       "norm_label": ".loadandevaluate()"
     },
     {
@@ -20242,8 +20242,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_readasset",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".readasset()"
     },
     {
@@ -20290,8 +20290,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_providerlabel",
-      "community": 137,
-      "community_name": "PortalSessionVault",
+      "community": 64,
+      "community_name": "ScraperWorkerService",
       "norm_label": ".providerlabel()"
     },
     {
@@ -20302,8 +20302,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_notification",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".notification()"
     },
     {
@@ -20313,8 +20313,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_notification",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": "notification"
     },
     {
@@ -20325,8 +20325,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_updatenotification",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".updatenotification()"
     },
     {
@@ -20337,8 +20337,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_createnotificationchannel",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".createnotificationchannel()"
     },
     {
@@ -20373,8 +20373,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_onbind",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".onbind()"
     },
     {
@@ -20384,8 +20384,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_ibinder",
-      "community": 64,
-      "community_name": "ScraperWorkerService",
+      "community": 289,
+      "community_name": "ScraperWorkerService.java",
       "norm_label": "ibinder"
     },
     {
@@ -20398,7 +20398,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge",
       "community": 289,
-      "community_name": "JavascriptResultBridge",
+      "community_name": "ScraperWorkerService.java",
       "norm_label": "javascriptresultbridge"
     },
     {
@@ -20410,7 +20410,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge_captureauthorization",
       "community": 289,
-      "community_name": "JavascriptResultBridge",
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".captureauthorization()"
     },
     {
@@ -20421,7 +20421,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_javascriptinterface",
       "community": 289,
-      "community_name": "JavascriptResultBridge",
+      "community_name": "ScraperWorkerService.java",
       "norm_label": "javascriptinterface"
     },
     {
@@ -20445,7 +20445,7 @@
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge_resolve",
       "community": 289,
-      "community_name": "JavascriptResultBridge",
+      "community_name": "ScraperWorkerService.java",
       "norm_label": ".resolve()"
     },
     {
@@ -21173,7 +21173,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "android_app_src_test_java_com_laujim_aptmanager_scraperworkerscheduletest",
-      "community": 361,
+      "community": 359,
       "community_name": "ScraperWorkerScheduleTest",
       "norm_label": "scraperworkerscheduletest.java"
     },
@@ -21186,7 +21186,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_test_java_com_laujim_aptmanager_scraperworkerscheduletest_scraperworkerscheduletest",
-      "community": 361,
+      "community": 359,
       "community_name": "ScraperWorkerScheduleTest",
       "norm_label": "scraperworkerscheduletest"
     },
@@ -21197,7 +21197,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "timezone",
-      "community": 361,
+      "community": 359,
       "community_name": "ScraperWorkerScheduleTest",
       "norm_label": "timezone"
     },
@@ -21209,7 +21209,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_test_java_com_laujim_aptmanager_scraperworkerscheduletest_scraperworkerscheduletest_hourlyschedulealignstotopofhour",
-      "community": 361,
+      "community": 359,
       "community_name": "ScraperWorkerScheduleTest",
       "norm_label": ".hourlyschedulealignstotopofhour()"
     },
@@ -21220,7 +21220,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_test_java_com_laujim_aptmanager_scraperworkerscheduletest_java_test",
-      "community": 361,
+      "community": 359,
       "community_name": "ScraperWorkerScheduleTest",
       "norm_label": "test"
     },
@@ -21232,7 +21232,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_test_java_com_laujim_aptmanager_scraperworkerscheduletest_scraperworkerscheduletest_twelvehourscheduleusessevenandnineteen",
-      "community": 361,
+      "community": 359,
       "community_name": "ScraperWorkerScheduleTest",
       "norm_label": ".twelvehourscheduleusessevenandnineteen()"
     },
@@ -21244,7 +21244,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_test_java_com_laujim_aptmanager_scraperworkerscheduletest_scraperworkerscheduletest_schedulecontinuesacrossmidnightwithoutdrift",
-      "community": 361,
+      "community": 359,
       "community_name": "ScraperWorkerScheduleTest",
       "norm_label": ".schedulecontinuesacrossmidnightwithoutdrift()"
     },
@@ -21256,7 +21256,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_test_java_com_laujim_aptmanager_scraperworkerscheduletest_scraperworkerscheduletest_delayedworkmanagerwakeusessamehourlyslot",
-      "community": 361,
+      "community": 359,
       "community_name": "ScraperWorkerScheduleTest",
       "norm_label": ".delayedworkmanagerwakeusessamehourlyslot()"
     },
@@ -21268,7 +21268,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_test_java_com_laujim_aptmanager_scraperworkerscheduletest_scraperworkerscheduletest_localtime",
-      "community": 361,
+      "community": 359,
       "community_name": "ScraperWorkerScheduleTest",
       "norm_label": ".localtime()"
     },
@@ -29661,7 +29661,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_modal",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "modal.jsx"
     },
@@ -29673,7 +29673,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_components_modal_modal",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "modal()"
     },
@@ -30133,7 +30133,7 @@
       "label": "ApartmentDetail()",
       "file_type": "code",
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L161",
+      "source_location": "L165",
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_apartmentdetail",
@@ -30217,7 +30217,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contracts",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "contracts.jsx"
     },
@@ -30229,7 +30229,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contracts_contracts",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "contracts()"
     },
@@ -30263,7 +30263,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "login.jsx"
     },
@@ -30275,7 +30275,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "login()"
     },
@@ -30403,7 +30403,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_payments",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "payments.jsx"
     },
@@ -30415,7 +30415,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_payments_payments",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "payments()"
     },
@@ -30775,7 +30775,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_tenants",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "tenants.jsx"
     },
@@ -30787,7 +30787,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_tenants_tenants",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "tenants()"
     },
@@ -31270,7 +31270,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_clearauth",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "clearauth()"
     },
@@ -32285,7 +32285,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatshortdate",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "formatshortdate()"
     },
@@ -32899,7 +32899,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_viewmode",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "viewmode.js"
     },
@@ -32911,7 +32911,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_viewmode_getviewmode",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "getviewmode()"
     },
@@ -32923,7 +32923,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_viewmode_setviewmode",
-      "community": 167,
+      "community": 122,
       "community_name": "Login.jsx",
       "norm_label": "setviewmode()"
     },
@@ -33200,8 +33200,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_github_copilot_instructions",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "plugins/ponytail/.github/copilot-instructions.md"
     },
     {
@@ -33211,8 +33211,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_github_copilot_instructions_ponytail_lazy_senior_dev_mode",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "ponytail, lazy senior dev mode"
     },
     {
@@ -35719,8 +35719,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability",
-      "community": 293,
-      "community_name": "plugins/ponytail/README.ko.md",
+      "community": 287,
+      "community_name": "plugins/ponytail/README.es.md",
       "norm_label": "plugins/ponytail/docs/agent-portability.md"
     },
     {
@@ -35730,8 +35730,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_agent_portability",
-      "community": 293,
-      "community_name": "plugins/ponytail/README.ko.md",
+      "community": 287,
+      "community_name": "plugins/ponytail/README.es.md",
       "norm_label": "agent portability"
     },
     {
@@ -35741,8 +35741,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_supported_adapters",
-      "community": 293,
-      "community_name": "plugins/ponytail/README.ko.md",
+      "community": 287,
+      "community_name": "plugins/ponytail/README.es.md",
       "norm_label": "supported adapters"
     },
     {
@@ -35752,8 +35752,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_adapter_rule",
-      "community": 293,
-      "community_name": "plugins/ponytail/README.ko.md",
+      "community": 287,
+      "community_name": "plugins/ponytail/README.es.md",
       "norm_label": "adapter rule"
     },
     {
@@ -35763,8 +35763,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_portable_behavior",
-      "community": 293,
-      "community_name": "plugins/ponytail/README.ko.md",
+      "community": 287,
+      "community_name": "plugins/ponytail/README.es.md",
       "norm_label": "portable behavior"
     },
     {
@@ -39602,8 +39602,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_github_copilot_instructions",
-      "community": 175,
-      "community_name": "vendor/ponytail/README.ko.md",
+      "community": 181,
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "vendor/ponytail/.github/copilot-instructions.md"
     },
     {
@@ -39613,8 +39613,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_github_copilot_instructions_ponytail_lazy_senior_dev_mode",
-      "community": 175,
-      "community_name": "vendor/ponytail/README.ko.md",
+      "community": 181,
+      "community_name": "vendor/ponytail/README.es.md",
       "norm_label": "ponytail, lazy senior dev mode"
     },
     {
@@ -42121,8 +42121,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability",
-      "community": 181,
-      "community_name": "vendor/ponytail/README.es.md",
+      "community": 175,
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "vendor/ponytail/docs/agent-portability.md"
     },
     {
@@ -42132,8 +42132,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability_agent_portability",
-      "community": 181,
-      "community_name": "vendor/ponytail/README.es.md",
+      "community": 175,
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "agent portability"
     },
     {
@@ -42143,8 +42143,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability_supported_adapters",
-      "community": 181,
-      "community_name": "vendor/ponytail/README.es.md",
+      "community": 175,
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "supported adapters"
     },
     {
@@ -42154,8 +42154,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability_adapter_rule",
-      "community": 181,
-      "community_name": "vendor/ponytail/README.es.md",
+      "community": 175,
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "adapter rule"
     },
     {
@@ -42165,8 +42165,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "tmp_vendor_ponytail_docs_agent_portability_portable_behavior",
-      "community": 181,
-      "community_name": "vendor/ponytail/README.es.md",
+      "community": 175,
+      "community_name": "vendor/ponytail/README.ko.md",
       "norm_label": "portable behavior"
     },
     {
@@ -45959,8 +45959,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 361,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_mlkit_barcode_scanning"
     },
@@ -45970,8 +45970,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 361,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_mlkit_barcode_scanning"
     },
@@ -45981,8 +45981,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 388,
-      "community_name": "@capacitor/android",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_android"
     },
@@ -45992,8 +45992,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 388,
-      "community_name": "@capacitor/android",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_android"
     },
@@ -76704,7 +76704,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L72",
+      "source_location": "L98",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
@@ -76737,7 +76737,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L64",
+      "source_location": "L90",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
@@ -106810,7 +106810,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L161",
+      "source_location": "L165",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail",
@@ -107208,7 +107208,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L149",
+      "source_location": "L150",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_preparephotoforupload",
@@ -107221,7 +107221,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1019",
+      "source_location": "L1023",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107233,7 +107233,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1341",
+      "source_location": "L1345",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107245,7 +107245,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1290",
+      "source_location": "L1294",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107257,7 +107257,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L963",
+      "source_location": "L967",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107269,7 +107269,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1009",
+      "source_location": "L1013",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107281,7 +107281,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1042",
+      "source_location": "L1046",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107293,7 +107293,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1537",
+      "source_location": "L1541",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107305,7 +107305,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L183",
+      "source_location": "L187",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107317,7 +107317,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1157",
+      "source_location": "L1161",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107329,7 +107329,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1166",
+      "source_location": "L1170",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107341,7 +107341,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1158",
+      "source_location": "L1162",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107353,7 +107353,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1156",
+      "source_location": "L1160",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107365,7 +107365,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1169",
+      "source_location": "L1173",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107377,7 +107377,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L981",
+      "source_location": "L985",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -127464,5 +127464,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "ad12f9ce1b0bf9ce97408e8cfeca8b5b2991b684"
+  "built_at_commit": "b1b806474783dfb125f6e259abb11fa822cd6063"
 }

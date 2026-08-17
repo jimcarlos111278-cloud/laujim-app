@@ -12,7 +12,7 @@ import java.net.URL;
 /** Downloads Marketplace photos and produces small, browser-safe JPEG files. */
 final class MarketplacePhotoUtils {
     private static final int MAX_DIMENSION = 2048;
-    private static final long MAX_OUTPUT_BYTES = 10L * 1024L * 1024L;
+    private static final long MAX_OUTPUT_BYTES = 2L * 1024L * 1024L;
 
     private MarketplacePhotoUtils() { }
 
@@ -34,23 +34,49 @@ final class MarketplacePhotoUtils {
             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
             Bitmap bitmap = BitmapFactory.decodeFile(raw.getAbsolutePath(), options);
             if (bitmap == null) throw new IllegalArgumentException("No se pudo decodificar la imagen");
+            boolean withinLimit = false;
+            Bitmap prepared = bitmap;
             try {
-                int quality = 84;
-                do {
-                    if (output.exists()) output.delete();
-                    try (FileOutputStream stream = new FileOutputStream(output)) {
-                        if (!bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)) {
-                            throw new IllegalStateException("No se pudo comprimir la imagen");
+                int largestSide = Math.max(prepared.getWidth(), prepared.getHeight());
+                if (largestSide > MAX_DIMENSION) {
+                    float scale = MAX_DIMENSION / (float) largestSide;
+                    int width = Math.max(1, Math.round(prepared.getWidth() * scale));
+                    int height = Math.max(1, Math.round(prepared.getHeight() * scale));
+                    Bitmap smaller = Bitmap.createScaledBitmap(prepared, width, height, true);
+                    if (smaller != prepared) {
+                        prepared.recycle();
+                        prepared = smaller;
+                    }
+                }
+                for (int pass = 0; pass < 4 && !withinLimit; pass += 1) {
+                    for (int quality : new int[] { 84, 74, 64, 54, 44 }) {
+                        if (output.exists()) output.delete();
+                        try (FileOutputStream stream = new FileOutputStream(output)) {
+                            if (!prepared.compress(Bitmap.CompressFormat.JPEG, quality, stream)) {
+                                throw new IllegalStateException("No se pudo comprimir la imagen");
+                            }
+                        }
+                        if (output.length() <= MAX_OUTPUT_BYTES) {
+                            withinLimit = true;
+                            break;
                         }
                     }
-                    if (output.length() <= MAX_OUTPUT_BYTES || quality <= 44) break;
-                    quality -= 10;
-                } while (quality >= 44);
+                    if (!withinLimit && pass < 3) {
+                        int width = Math.max(1, Math.round(prepared.getWidth() * 0.82f));
+                        int height = Math.max(1, Math.round(prepared.getHeight() * 0.82f));
+                        Bitmap smaller = Bitmap.createScaledBitmap(prepared, width, height, true);
+                        if (smaller != prepared) prepared.recycle();
+                        prepared = smaller;
+                    }
+                }
             } finally {
-                bitmap.recycle();
+                prepared.recycle();
             }
             if (!output.exists() || output.length() == 0) {
                 throw new IllegalStateException("La imagen comprimida quedó vacía");
+            }
+            if (!withinLimit || output.length() > MAX_OUTPUT_BYTES) {
+                throw new IllegalStateException("La imagen supera 2 MB despues de comprimirla");
             }
             if (output.length() > MAX_OUTPUT_BYTES) {
                 throw new IllegalStateException("La imagen sigue superando 10 MB después de comprimirla");
@@ -63,7 +89,7 @@ final class MarketplacePhotoUtils {
 
     private static int sampleSize(int width, int height) {
         int sample = 1;
-        while (width / (sample * 2) >= MAX_DIMENSION && height / (sample * 2) >= MAX_DIMENSION) {
+        while (Math.max(width / (sample * 2), height / (sample * 2)) >= MAX_DIMENSION) {
             sample *= 2;
         }
         return sample;

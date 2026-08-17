@@ -1,16 +1,16 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-16)
 
 ## Corpus Check
-- 457 files · ~467,119 words
+- 457 files · ~475,630 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4126 nodes · 7000 edges · 392 communities (333 shown, 59 thin omitted)
+- 4126 nodes · 7000 edges · 392 communities (335 shown, 57 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 185 edges (avg confidence: 0.51)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ad12f9ce`
+- Built from commit: `b1b80647`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -122,7 +122,7 @@
 - plugins/ponytail/benchmarks/agentic/run.py
 - Worker portatil de servicios
 - plugins/ponytail/benchmarks/robustness-audit.js
-- JSONObject
+- Login.jsx
 - test-water-scraper.cjs
 - @capacitor/local-notifications
 - Commands
@@ -166,7 +166,7 @@
 - react-router-dom
 - uninstall.test.js
 - .onReceive
-- Login.jsx
+- JSONObject
 - Utilities.jsx
 - 3. Heal
 - Test generation (plan → generate → heal)
@@ -278,7 +278,7 @@
 - Install
 - plugins/ponytail/README.es.md
 - plugins/ponytail/tests/openclaw-skills.test.js
-- JavascriptResultBridge
+- ScraperWorkerService.java
 - plugins/ponytail/benchmarks/generate-examples.mjs
 - plugins/ponytail/ponytail-mcp/instructions.js
 - Install
@@ -347,9 +347,9 @@
 - plugins/ponytail/.openclaw/skills/ponytail-debt/SKILL.md
 - plugins/ponytail/opencode.json
 - plugins/ponytail/skills/ponytail-debt/SKILL.md
-- PortalBridge
-- plugins/ponytail/examples/react-countdown.md
 - ScraperWorkerScheduleTest
+- plugins/ponytail/examples/react-countdown.md
+- @capacitor-mlkit/barcode-scanning
 - MarketplacePhotoUtils
 - @capacitor/core
 - node-cron
@@ -367,7 +367,6 @@
 - portalFieldValue
 - .dispatch
 - MarketplaceBridge
-- @capacitor/android
 - @capacitor/cli
 - capacitor-android/intermediates/assets/debug/mergeDebugAssets/native-bridge.js
 - verify-gas-contract-links.cjs
@@ -399,7 +398,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (392 total, 59 thin omitted)
+## Communities (392 total, 57 thin omitted)
 
 ### Community 0 - "handleCloudAdminMessage"
 Cohesion: 0.28
@@ -443,7 +442,7 @@ Nodes (11): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getA
 
 ### Community 10 - "dependencies"
 Cohesion: 0.11
-Nodes (19): dependencies, @capacitor/cli, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share, express, pg, qrcode (+11 more)
+Nodes (19): dependencies, @capacitor/android, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, express, pg, qrcode (+11 more)
 
 ### Community 11 - "vendor/ponytail/benchmarks/agentic/tasks.py"
 Cohesion: 0.17
@@ -646,8 +645,8 @@ Cohesion: 0.83
 Nodes (3): gradlew script, die(), warn()
 
 ### Community 64 - "ScraperWorkerService"
-Cohesion: 0.10
-Nodes (9): HttpResult, Handler, IBinder, Intent, JSONArray, JSONObject, Notification, WebView (+1 more)
+Cohesion: 0.17
+Nodes (4): HttpResult, JSONArray, JSONObject, ScraperWorkerService
 
 ### Community 66 - "Extensión de Chrome — Llenar Laujim"
 Cohesion: 0.12
@@ -771,7 +770,7 @@ Nodes (31): aggregate(), chat_code_loc(), _claude_version(), code_stats(), _coun
 
 ### Community 115 - "PortalBrowserActivity"
 Cohesion: 0.15
-Nodes (7): Bundle, Handler, Intent, Override, TextView, WebView, PortalBrowserActivity
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
 
 ### Community 116 - "robustness-audit.js"
 Cohesion: 0.08
@@ -793,9 +792,9 @@ Nodes (7): Android, Cambiar de dispositivo, Configuracion de Render, Contrato HT
 Cohesion: 0.08
 Nodes (25): { checkPy, pyBlock, TASKS }, email, fs, kv, MODELS, path, skill, { checkPy, pyBlock, TASKS } (+17 more)
 
-### Community 122 - "JSONObject"
-Cohesion: 0.24
-Nodes (4): JavascriptInterface, JSONArray, JSONObject, MarketplaceBridge
+### Community 122 - "Login.jsx"
+Cohesion: 0.28
+Nodes (9): Modal(), Contracts(), Login(), Payments(), Tenants(), clearAuth(), formatShortDate(), getViewMode() (+1 more)
 
 ### Community 123 - "test-water-scraper.cjs"
 Cohesion: 0.50
@@ -905,9 +904,9 @@ Nodes (18): assert, claudeDir, configDir, configPath, env, flagPath, fs, home (+
 Cohesion: 0.16
 Nodes (13): AuthorizedMmsReceiver, Context, Intent, Override, Context, Intent, Override, ScraperWorkerAlarmReceiver (+5 more)
 
-### Community 167 - "Login.jsx"
-Cohesion: 0.28
-Nodes (9): Modal(), Contracts(), Login(), Payments(), Tenants(), clearAuth(), formatShortDate(), getViewMode() (+1 more)
+### Community 167 - "JSONObject"
+Cohesion: 0.24
+Nodes (4): JavascriptInterface, JSONArray, JSONObject, MarketplaceBridge
 
 ### Community 168 - "Utilities.jsx"
 Cohesion: 0.30
@@ -938,8 +937,8 @@ Cohesion: 0.12
 Nodes (16): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+8 more)
 
 ### Community 175 - "vendor/ponytail/README.ko.md"
-Cohesion: 0.17
-Nodes (10): Ponytail, lazy senior dev mode, Before / after, Commands, Development, FAQ, How it works, License, Numbers (+2 more)
+Cohesion: 0.13
+Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Before / after, Commands, Development, FAQ (+5 more)
 
 ### Community 176 - "ponytail-mcp/package.json"
 Cohesion: 0.14
@@ -962,8 +961,8 @@ Cohesion: 0.15
 Nodes (13): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+5 more)
 
 ### Community 181 - "vendor/ponytail/README.es.md"
-Cohesion: 0.13
-Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Antes / después, Comandos, Cómo funciona, Desarrollo (+5 more)
+Cohesion: 0.17
+Nodes (10): Ponytail, lazy senior dev mode, Antes / después, Comandos, Cómo funciona, Desarrollo, FAQ, Historial de estrellas, Licencia (+2 more)
 
 ### Community 182 - "vendor/ponytail/.opencode/plugins/ponytail.mjs"
 Cohesion: 0.22
@@ -1300,12 +1299,16 @@ Cohesion: 0.12
 Nodes (16): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+8 more)
 
 ### Community 287 - "plugins/ponytail/README.es.md"
-Cohesion: 0.17
-Nodes (10): Ponytail, lazy senior dev mode, Antes / después, Comandos, Cómo funciona, Desarrollo, FAQ, Historial de estrellas, Licencia (+2 more)
+Cohesion: 0.13
+Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Antes / después, Comandos, Cómo funciona, Desarrollo (+5 more)
 
 ### Community 288 - "plugins/ponytail/tests/openclaw-skills.test.js"
 Cohesion: 0.21
 Nodes (12): DESCRIPTIONS, fs, NAMES, outPath(), path, render(), ROOT, sourceBody() (+4 more)
+
+### Community 289 - "ScraperWorkerService.java"
+Cohesion: 0.13
+Nodes (7): Handler, IBinder, Intent, JavascriptInterface, Notification, WebView, JavascriptResultBridge
 
 ### Community 290 - "plugins/ponytail/benchmarks/generate-examples.mjs"
 Cohesion: 0.18
@@ -1320,8 +1323,8 @@ Cohesion: 0.15
 Nodes (13): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+5 more)
 
 ### Community 293 - "plugins/ponytail/README.ko.md"
-Cohesion: 0.13
-Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Before / after, Commands, Development, FAQ (+5 more)
+Cohesion: 0.17
+Nodes (10): Ponytail, lazy senior dev mode, Before / after, Commands, Development, FAQ, How it works, License, Numbers (+2 more)
 
 ### Community 294 - "plugins/ponytail/README.md"
 Cohesion: 0.17
@@ -1577,7 +1580,7 @@ Nodes (3): ./.opencode/plugins/ponytail.mjs, plugin, $schema
 Cohesion: 0.50
 Nodes (3): Boundaries, Output, Scan
 
-### Community 361 - "ScraperWorkerScheduleTest"
+### Community 359 - "ScraperWorkerScheduleTest"
 Cohesion: 0.47
 Nodes (3): Test, ScraperWorkerScheduleTest, TimeZone
 
@@ -1604,7 +1607,7 @@ Nodes (3): CapacitorException, TODO: export as Cap function, TODO: export as Cap
 ## Knowledge Gaps
 - **1829 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `.opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs`, `type`, `npx.cmd` (+1824 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **59 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **57 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
