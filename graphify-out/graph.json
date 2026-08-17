@@ -33200,8 +33200,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_github_copilot_instructions",
-      "community": 293,
-      "community_name": "plugins/ponytail/README.ko.md",
+      "community": 287,
+      "community_name": "plugins/ponytail/README.es.md",
       "norm_label": "plugins/ponytail/.github/copilot-instructions.md"
     },
     {
@@ -33211,8 +33211,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_github_copilot_instructions_ponytail_lazy_senior_dev_mode",
-      "community": 293,
-      "community_name": "plugins/ponytail/README.ko.md",
+      "community": 287,
+      "community_name": "plugins/ponytail/README.es.md",
       "norm_label": "ponytail, lazy senior dev mode"
     },
     {
@@ -35719,8 +35719,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "plugins/ponytail/docs/agent-portability.md"
     },
     {
@@ -35730,8 +35730,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_agent_portability",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "agent portability"
     },
     {
@@ -35741,8 +35741,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_supported_adapters",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "supported adapters"
     },
     {
@@ -35752,8 +35752,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_adapter_rule",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "adapter rule"
     },
     {
@@ -35763,8 +35763,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "opencode_plugins_ponytail_docs_agent_portability_portable_behavior",
-      "community": 287,
-      "community_name": "plugins/ponytail/README.es.md",
+      "community": 293,
+      "community_name": "plugins/ponytail/README.ko.md",
       "norm_label": "portable behavior"
     },
     {
@@ -45959,8 +45959,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 361,
-      "community_name": "@capacitor-mlkit/barcode-scanning",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_mlkit_barcode_scanning"
     },
@@ -45970,8 +45970,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 361,
-      "community_name": "@capacitor-mlkit/barcode-scanning",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_mlkit_barcode_scanning"
     },
@@ -45981,8 +45981,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 361,
+      "community_name": "@capacitor/android",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_android"
     },
@@ -45992,8 +45992,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 361,
+      "community_name": "@capacitor/android",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_android"
     },
@@ -127464,5 +127464,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "b1b806474783dfb125f6e259abb11fa822cd6063"
+  "built_at_commit": "d7b30f7545aa52252a845f9c1da2efa9a6f6a410"
 }

@@ -2943,5 +2943,35 @@
     "mtime": 1786929077.6612296,
     "ast_hash": "ab928431a9e4dc57a59d0e930fcad348",
     "semantic_hash": ""
+  },
+  ".tmp/adb-check/s23-install-correct.png": {
+    "mtime": 1786931996.941432,
+    "ast_hash": "25c054dcd3f10c6cb7f3501c4e4bb80f",
+    "semantic_hash": ""
+  },
+  ".tmp/adb-check/s23-laujim-1.0.38.png": {
+    "mtime": 1786932028.9815688,
+    "ast_hash": "aa15da50ee819a8c92271ef08e71ed99",
+    "semantic_hash": ""
+  },
+  ".tmp/adb-check/s23-laujim-after-load.png": {
+    "mtime": 1786932058.6292014,
+    "ast_hash": "9040cfb29f65d7d2d9960e33bae73223",
+    "semantic_hash": ""
+  },
+  ".tmp/adb-check/s23-screen-after-tap.png": {
+    "mtime": 1786931874.3171134,
+    "ast_hash": "2ef3204b22c2c4cc1bf38cde2ff81ebf",
+    "semantic_hash": ""
+  },
+  ".tmp/adb-check/s23-screen-install-result.png": {
+    "mtime": 1786931894.1915894,
+    "ast_hash": "30edff4c11e5dca11b15743e6a44e752",
+    "semantic_hash": ""
+  },
+  ".tmp/adb-check/s23-screen.png": {
+    "mtime": 1786931840.0047717,
+    "ast_hash": "867a7a3f52c3c9d20b8b2003f8df05fe",
+    "semantic_hash": ""
   }
 }

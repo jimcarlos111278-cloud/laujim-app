@@ -360,7 +360,7 @@
   "358": "plugins/ponytail/skills/ponytail-debt/SKILL.md",
   "359": "ScraperWorkerScheduleTest",
   "360": "plugins/ponytail/examples/react-countdown.md",
-  "361": "@capacitor-mlkit/barcode-scanning",
+  "361": "@capacitor/android",
   "362": "MarketplacePhotoUtils",
   "363": "@capacitor/core",
   "364": "node-cron",
