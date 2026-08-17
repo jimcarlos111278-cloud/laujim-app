@@ -245,7 +245,14 @@ export const api = {
     }
   },
   async deletePhoto(id) {
-    await deleteItem('photos', id);
+    const response = await fetch(`${getRawBase()}/api/photo/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'x-auth-token': AUTH_TOKEN },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `No se pudo eliminar la foto (${response.status}).`);
+    removeFromCollection('photos', Number(id));
+    return payload;
   },
   uploadContract(file, contractId) { return uploadFile('/api/upload/contract', { file, fieldname: 'contract' }, { contractId }); },
   async _init() {},

@@ -16934,8 +16934,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_java_jsonarray",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": "jsonarray"
     },
     {
@@ -16978,8 +16978,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_java_jsonobject",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": "jsonobject"
     },
     {
@@ -17178,8 +17178,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_hasactivebrowser",
-      "community": 40,
-      "community_name": "MarketplaceBrowserActivity",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": ".hasactivebrowser()"
     },
     {
@@ -17190,8 +17190,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_executejob",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".executejob()"
     },
     {
@@ -17202,8 +17202,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_startjob",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".startjob()"
     },
     {
@@ -17226,8 +17226,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_deliverjobphotos",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".deliverjobphotos()"
     },
     {
@@ -17238,8 +17238,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_photodetails",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".photodetails()"
     },
     {
@@ -17293,19 +17293,19 @@
       "label": ".addStage()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L486",
+      "source_location": "L511",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_addstage",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".addstage()"
     },
     {
       "label": ".completeJobException()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L498",
+      "source_location": "L523",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_completejobexception",
@@ -17317,7 +17317,7 @@
       "label": ".returnToLaujim()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L508",
+      "source_location": "L533",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_returntolaujim",
@@ -17329,7 +17329,7 @@
       "label": ".onBackPressed()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L514",
+      "source_location": "L539",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_onbackpressed",
@@ -17341,7 +17341,7 @@
       "label": ".onDestroy()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L520",
+      "source_location": "L545",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_ondestroy",
@@ -17353,25 +17353,25 @@
       "label": "MarketplaceBridge",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L537",
+      "source_location": "L562",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": "marketplacebridge"
     },
     {
       "label": ".requestPhotos()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L538",
+      "source_location": "L563",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_requestphotos",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".requestphotos()"
     },
     {
@@ -17381,44 +17381,44 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_java_javascriptinterface",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": "javascriptinterface"
     },
     {
       "label": ".stage()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L546",
+      "source_location": "L571",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_stage",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".stage()"
     },
     {
       "label": ".persistSession()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L555",
+      "source_location": "L580",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_persistsession",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".persistsession()"
     },
     {
       "label": ".resolve()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L561",
+      "source_location": "L586",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_resolve",
-      "community": 167,
-      "community_name": "JSONObject",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".resolve()"
     },
     {
@@ -17428,70 +17428,139 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils",
-      "community": 362,
-      "community_name": "MarketplacePhotoUtils",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": "marketplacephotoutils.java"
     },
     {
       "label": "MarketplacePhotoUtils",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L13",
+      "source_location": "L15",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
-      "community": 362,
-      "community_name": "MarketplacePhotoUtils",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": "marketplacephotoutils"
     },
     {
       "label": ".MarketplacePhotoUtils()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L17",
+      "source_location": "L21",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_marketplacephotoutils",
-      "community": 362,
-      "community_name": "MarketplacePhotoUtils",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".marketplacephotoutils()"
     },
     {
       "label": ".downloadAndPrepare()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L19",
+      "source_location": "L23",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_downloadandprepare",
-      "community": 362,
-      "community_name": "MarketplacePhotoUtils",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".downloadandprepare()"
+    },
+    {
+      "label": ".prepareUri()",
+      "file_type": "code",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L34",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareuri",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
+      "norm_label": ".prepareuri()"
+    },
+    {
+      "label": "ContentResolver",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "contentresolver",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
+      "norm_label": "contentresolver"
+    },
+    {
+      "label": "Uri",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_java_uri",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
+      "norm_label": "uri"
+    },
+    {
+      "label": ".prepareRaw()",
+      "file_type": "code",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L52",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareraw",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
+      "norm_label": ".prepareraw()"
     },
     {
       "label": ".sampleSize()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L90",
+      "source_location": "L115",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_samplesize",
-      "community": 362,
-      "community_name": "MarketplacePhotoUtils",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".samplesize()"
     },
     {
       "label": ".download()",
       "file_type": "code",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L98",
+      "source_location": "L121",
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_download",
-      "community": 362,
-      "community_name": "MarketplacePhotoUtils",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
       "norm_label": ".download()"
+    },
+    {
+      "label": ".copy()",
+      "file_type": "code",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L138",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_copy",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
+      "norm_label": ".copy()"
+    },
+    {
+      "label": "FileOutputStream",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "fileoutputstream",
+      "community": 40,
+      "community_name": "MarketplaceBrowserActivity",
+      "norm_label": "fileoutputstream"
     },
     {
       "label": "MarketplaceQueueWorker.java",
@@ -17768,8 +17837,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "service",
-      "community": 384,
-      "community_name": "Service",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": "service"
     },
     {
@@ -17929,8 +17998,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_marketplaceworkerservice_deliverjobphotos",
-      "community": 362,
-      "community_name": "MarketplacePhotoUtils",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": ".deliverjobphotos()"
     },
     {
@@ -18071,8 +18140,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_marketplaceworkerservice_updatenotification",
-      "community": 362,
-      "community_name": "MarketplacePhotoUtils",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": ".updatenotification()"
     },
     {
@@ -18143,8 +18212,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_marketplacebridge",
-      "community": 388,
-      "community_name": "MarketplaceBridge",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": "marketplacebridge"
     },
     {
@@ -18155,8 +18224,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_marketplacebridge_requestphotos",
-      "community": 388,
-      "community_name": "MarketplaceBridge",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": ".requestphotos()"
     },
     {
@@ -18166,8 +18235,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_java_javascriptinterface",
-      "community": 388,
-      "community_name": "MarketplaceBridge",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": "javascriptinterface"
     },
     {
@@ -18178,8 +18247,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_marketplacebridge_resolve",
-      "community": 388,
-      "community_name": "MarketplaceBridge",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": ".resolve()"
     },
     {
@@ -18997,8 +19066,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice",
-      "community": 384,
-      "community_name": "Service",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": "respondviamessageservice.java"
     },
     {
@@ -19010,8 +19079,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice",
-      "community": 384,
-      "community_name": "Service",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": "respondviamessageservice"
     },
     {
@@ -19022,8 +19091,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice_onbind",
-      "community": 384,
-      "community_name": "Service",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": ".onbind()"
     },
     {
@@ -19033,8 +19102,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_intent",
-      "community": 384,
-      "community_name": "Service",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": "intent"
     },
     {
@@ -19044,8 +19113,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_ibinder",
-      "community": 384,
-      "community_name": "Service",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": "ibinder"
     },
     {
@@ -19055,8 +19124,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_override",
-      "community": 384,
-      "community_name": "Service",
+      "community": 45,
+      "community_name": "MarketplaceWorkerService",
       "norm_label": "override"
     },
     {
@@ -22699,8 +22768,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 389,
-      "community_name": "@capacitor/cli",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -22710,8 +22779,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 389,
-      "community_name": "@capacitor/cli",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/cli"
     },
     {
@@ -22743,8 +22812,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_filesystem",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 167,
+      "community_name": "@capacitor/filesystem",
       "norm_label": "@capacitor/filesystem"
     },
     {
@@ -22754,8 +22823,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "capacitor_filesystem",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 167,
+      "community_name": "@capacitor/filesystem",
       "norm_label": "@capacitor/filesystem"
     },
     {
@@ -25956,8 +26025,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_addcloudmessage",
-      "community": 382,
-      "community_name": "sendCloudCollectionTemplates",
+      "community": 126,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "addcloudmessage()"
     },
     {
@@ -26184,8 +26253,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_formatcolombiadatetime",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "formatcolombiadatetime()"
     },
     {
@@ -26232,8 +26301,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_activecontractfortenant",
-      "community": 382,
-      "community_name": "sendCloudCollectionTemplates",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "activecontractfortenant()"
     },
     {
@@ -26244,8 +26313,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_resolvecloudconversationcontext",
-      "community": 382,
-      "community_name": "sendCloudCollectionTemplates",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "resolvecloudconversationcontext()"
     },
     {
@@ -26519,8 +26588,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_tenantutilityoverview",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "tenantutilityoverview()"
     },
     {
@@ -26543,8 +26612,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityproviderkey",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilityproviderkey()"
     },
     {
@@ -26555,8 +26624,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityrecordtimestamp",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilityrecordtimestamp()"
     },
     {
@@ -26567,8 +26636,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityrecordvaluetimestamp",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilityrecordvaluetimestamp()"
     },
     {
@@ -26579,8 +26648,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityrecordmatchesapartment",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilityrecordmatchesapartment()"
     },
     {
@@ -26591,8 +26660,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityrecordairenic",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilityrecordairenic()"
     },
     {
@@ -26603,8 +26672,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_latestutilityrecord",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "latestutilityrecord()"
     },
     {
@@ -26615,8 +26684,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilitydebtamount",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilitydebtamount()"
     },
     {
@@ -26639,8 +26708,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_gasrecordhasnovisibleinvoice",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "gasrecordhasnovisibleinvoice()"
     },
     {
@@ -26663,8 +26732,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilitypaymentview",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilitypaymentview()"
     },
     {
@@ -26675,8 +26744,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_builddebtreply",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "builddebtreply()"
     },
     {
@@ -26867,8 +26936,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_isreceiptpaymenturl",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "isreceiptpaymenturl()"
     },
     {
@@ -26915,8 +26984,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_publicservicepaymenturl",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "publicservicepaymenturl()"
     },
     {
@@ -26927,8 +26996,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicepaymentlink",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudservicepaymentlink()"
     },
     {
@@ -26939,8 +27008,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicereference",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudservicereference()"
     },
     {
@@ -26951,8 +27020,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicestate",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudservicestate()"
     },
     {
@@ -27023,8 +27092,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_splitcloudtext",
-      "community": 382,
-      "community_name": "sendCloudCollectionTemplates",
+      "community": 126,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "splitcloudtext()"
     },
     {
@@ -27035,8 +27104,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudtextchunks",
-      "community": 382,
-      "community_name": "sendCloudCollectionTemplates",
+      "community": 126,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "sendcloudtextchunks()"
     },
     {
@@ -27058,8 +27127,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicedisplayblock",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudservicedisplayblock()"
     },
     {
@@ -27082,8 +27151,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildclouddetailedapartmentservicesinfo",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "buildclouddetailedapartmentservicesinfo()"
     },
     {
@@ -27118,8 +27187,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildcloudapartmentservicesinfo",
-      "community": 126,
-      "community_name": "sendCloudGlobalServices",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "buildcloudapartmentservicesinfo()"
     },
     {
@@ -27238,8 +27307,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_activetenantforapartment",
-      "community": 382,
-      "community_name": "sendCloudCollectionTemplates",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "activetenantforapartment()"
     },
     {
@@ -27274,8 +27343,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudreminderresultline",
-      "community": 382,
-      "community_name": "sendCloudCollectionTemplates",
+      "community": 126,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudreminderresultline()"
     },
     {
@@ -27286,8 +27355,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_sendcloudcollectiontemplates",
-      "community": 382,
-      "community_name": "sendCloudCollectionTemplates",
+      "community": 126,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "sendcloudcollectiontemplates()"
     },
     {
@@ -29236,7 +29305,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "app.jsx"
     },
@@ -29248,8 +29317,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_protectedroute",
-      "community": 152,
-      "community_name": "auth.js",
+      "community": 67,
+      "community_name": "App.jsx",
       "norm_label": "protectedroute()"
     },
     {
@@ -29260,8 +29329,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_adminroute",
-      "community": 152,
-      "community_name": "auth.js",
+      "community": 67,
+      "community_name": "App.jsx",
       "norm_label": "adminroute()"
     },
     {
@@ -29272,7 +29341,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_privateapp",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "privateapp()"
     },
@@ -29284,7 +29353,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_app_appcontent",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "appcontent()"
     },
@@ -29308,7 +29377,7 @@
       "_origin": "ast",
       "id": "src_api",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "api.js"
     },
     {
@@ -29320,7 +29389,7 @@
       "_origin": "ast",
       "id": "src_api_refreshbase",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "refreshbase()"
     },
     {
@@ -29332,7 +29401,7 @@
       "_origin": "ast",
       "id": "src_api_serverreq",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "serverreq()"
     },
     {
@@ -29356,7 +29425,7 @@
       "_origin": "ast",
       "id": "src_api_uploadfile",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "uploadfile()"
     },
     {
@@ -29367,7 +29436,7 @@
       "_origin": "ast",
       "id": "src_api_cloud_collections",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "cloud_collections"
     },
     {
@@ -29378,7 +29447,7 @@
       "_origin": "ast",
       "id": "src_api_lastcloudsyncstatus",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "lastcloudsyncstatus"
     },
     {
@@ -29389,7 +29458,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_getcloudsyncstatus",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "getcloudsyncstatus()"
     },
@@ -29401,7 +29470,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_refreshallfromserver",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "refreshallfromserver()"
     },
@@ -29414,7 +29483,7 @@
       "_origin": "ast",
       "id": "src_api_marklocalmutation",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "marklocalmutation()"
     },
     {
@@ -29426,7 +29495,7 @@
       "_origin": "ast",
       "id": "src_api_getdataversion",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "getdataversion()"
     },
     {
@@ -29437,8 +29506,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_startdataversionpolling",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 152,
+      "community_name": "auth.js",
       "norm_label": "startdataversionpolling()"
     },
     {
@@ -29449,8 +29518,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopdataversionpolling",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 152,
+      "community_name": "auth.js",
       "norm_label": "stopdataversionpolling()"
     },
     {
@@ -29461,7 +29530,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_startcloudpolling",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "startcloudpolling()"
     },
@@ -29473,8 +29542,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_api_stopcloudpolling",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 152,
+      "community_name": "auth.js",
       "norm_label": "stopcloudpolling()"
     },
     {
@@ -29486,7 +29555,7 @@
       "_origin": "ast",
       "id": "src_api_createitem",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "createitem()"
     },
     {
@@ -29498,7 +29567,7 @@
       "_origin": "ast",
       "id": "src_api_updateitem",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "updateitem()"
     },
     {
@@ -29510,7 +29579,7 @@
       "_origin": "ast",
       "id": "src_api_deleteitem",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "deleteitem()"
     },
     {
@@ -29522,7 +29591,7 @@
       "_origin": "ast",
       "id": "src_api_fetchwhere",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "fetchwhere()"
     },
     {
@@ -29534,7 +29603,7 @@
       "_origin": "ast",
       "id": "src_api_fetchfirst",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "fetchfirst()"
     },
     {
@@ -29544,8 +29613,8 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "src_api_api",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 122,
+      "community_name": "api",
       "norm_label": "api"
     },
     {
@@ -29628,7 +29697,7 @@
       "_origin": "ast",
       "id": "src_components_layout",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "layout.jsx"
     },
     {
@@ -29639,7 +29708,7 @@
       "_origin": "ast",
       "id": "src_components_layout_navitems",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "navitems"
     },
     {
@@ -29651,7 +29720,7 @@
       "_origin": "ast",
       "id": "src_components_layout_layout",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "layout()"
     },
     {
@@ -29662,7 +29731,7 @@
       "_origin": "ast",
       "id": "src_components_modal",
       "community": 122,
-      "community_name": "Login.jsx",
+      "community_name": "api",
       "norm_label": "modal.jsx"
     },
     {
@@ -29674,7 +29743,7 @@
       "_origin": "ast",
       "id": "src_components_modal_modal",
       "community": 122,
-      "community_name": "Login.jsx",
+      "community_name": "api",
       "norm_label": "modal()"
     },
     {
@@ -29685,7 +29754,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "paymenthistorychart.jsx"
     },
     {
@@ -29696,7 +29765,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_colors",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "colors"
     },
     {
@@ -29708,7 +29777,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_getpaymentstatus",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "getpaymentstatus()"
     },
     {
@@ -29720,7 +29789,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_getchartdata",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "getchartdata()"
     },
     {
@@ -29732,7 +29801,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_customtooltip",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "customtooltip()"
     },
     {
@@ -29744,7 +29813,7 @@
       "_origin": "ast",
       "id": "src_components_paymenthistorychart_paymenthistorychart",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "paymenthistorychart()"
     },
     {
@@ -29755,7 +29824,7 @@
       "_origin": "ast",
       "id": "src_components_statscard",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "statscard.jsx"
     },
     {
@@ -29767,7 +29836,7 @@
       "_origin": "ast",
       "id": "src_components_statscard_statscard",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "statscard()"
     },
     {
@@ -29778,7 +29847,7 @@
       "_origin": "ast",
       "id": "src_components_themeselector",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "themeselector.jsx"
     },
     {
@@ -29789,7 +29858,7 @@
       "_origin": "ast",
       "id": "src_components_themeselector_iconmap",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "iconmap"
     },
     {
@@ -29801,7 +29870,7 @@
       "_origin": "ast",
       "id": "src_components_themeselector_themeselector",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "themeselector()"
     },
     {
@@ -29859,7 +29928,7 @@
       "_origin": "ast",
       "id": "src_db_database",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "database.js"
     },
     {
@@ -29870,7 +29939,7 @@
       "_origin": "ast",
       "id": "src_db_database_collections",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "collections"
     },
     {
@@ -29881,7 +29950,7 @@
       "_origin": "ast",
       "id": "src_db_database_data",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "data"
     },
     {
@@ -29893,7 +29962,7 @@
       "_origin": "ast",
       "id": "src_db_database_matches",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "matches()"
     },
     {
@@ -29905,7 +29974,7 @@
       "_origin": "ast",
       "id": "src_db_database_tablefor",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "tablefor()"
     },
     {
@@ -29916,7 +29985,7 @@
       "_origin": "ast",
       "id": "src_db_database_db",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "db"
     },
     {
@@ -29927,7 +29996,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_db_database_initdb",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "initdb()"
     },
@@ -29940,7 +30009,7 @@
       "_origin": "ast",
       "id": "src_db_database_setcollectiondata",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "setcollectiondata()"
     },
     {
@@ -29952,7 +30021,7 @@
       "_origin": "ast",
       "id": "src_db_database_pushtocollection",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "pushtocollection()"
     },
     {
@@ -29964,7 +30033,7 @@
       "_origin": "ast",
       "id": "src_db_database_removefromcollection",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "removefromcollection()"
     },
     {
@@ -29976,7 +30045,7 @@
       "_origin": "ast",
       "id": "src_db_database_replaceincollection",
       "community": 161,
-      "community_name": "App.jsx",
+      "community_name": "api.js",
       "norm_label": "replaceincollection()"
     },
     {
@@ -30009,7 +30078,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_apartmentdetail",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "apartmentdetail.jsx"
     },
@@ -30020,7 +30089,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_servicenames",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "servicenames"
     },
@@ -30031,7 +30100,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_serviceicons",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "serviceicons"
     },
@@ -30042,7 +30111,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_servicecolors",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "servicecolors"
     },
@@ -30053,7 +30122,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_utilitywebsites",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "utilitywebsites"
     },
@@ -30065,7 +30134,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_normalizescannedpaymenturl",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "normalizescannedpaymenturl()"
     },
@@ -30077,7 +30146,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_latestutilityrecord",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "latestutilityrecord()"
     },
@@ -30089,7 +30158,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_utilitydebttext",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "utilitydebttext()"
     },
@@ -30101,7 +30170,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_expandwhatsapptemplate",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "expandwhatsapptemplate()"
     },
@@ -30113,7 +30182,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_canvasblob",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "canvasblob()"
     },
@@ -30125,20 +30194,44 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartmentdetail_preparephotoforupload",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "preparephotoforupload()"
     },
     {
-      "label": "ApartmentDetail()",
+      "label": "photoSizeBytes()",
       "file_type": "code",
       "source_file": "src/pages/ApartmentDetail.jsx",
       "source_location": "L165",
       "_callable": true,
       "_origin": "ast",
+      "id": "src_pages_apartmentdetail_photosizebytes",
+      "community": 35,
+      "community_name": "ApartmentDetail.jsx",
+      "norm_label": "photosizebytes()"
+    },
+    {
+      "label": "photoSizeLabel()",
+      "file_type": "code",
+      "source_file": "src/pages/ApartmentDetail.jsx",
+      "source_location": "L172",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pages_apartmentdetail_photosizelabel",
+      "community": 35,
+      "community_name": "ApartmentDetail.jsx",
+      "norm_label": "photosizelabel()"
+    },
+    {
+      "label": "ApartmentDetail()",
+      "file_type": "code",
+      "source_file": "src/pages/ApartmentDetail.jsx",
+      "source_location": "L179",
+      "_callable": true,
+      "_origin": "ast",
       "id": "src_pages_apartmentdetail_apartmentdetail",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "apartmentdetail()"
     },
     {
@@ -30148,8 +30241,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_apartments",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 122,
+      "community_name": "api",
       "norm_label": "apartments.jsx"
     },
     {
@@ -30160,8 +30253,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_apartments_apartments",
-      "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community": 122,
+      "community_name": "api",
       "norm_label": "apartments()"
     },
     {
@@ -30194,8 +30287,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_contractgenerator",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 13,
+      "community_name": "getBase",
       "norm_label": "contractgenerator.jsx"
     },
     {
@@ -30206,8 +30299,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_contractgenerator_contractgenerator",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 13,
+      "community_name": "getBase",
       "norm_label": "contractgenerator()"
     },
     {
@@ -30218,7 +30311,7 @@
       "_origin": "ast",
       "id": "src_pages_contracts",
       "community": 122,
-      "community_name": "Login.jsx",
+      "community_name": "api",
       "norm_label": "contracts.jsx"
     },
     {
@@ -30230,7 +30323,7 @@
       "_origin": "ast",
       "id": "src_pages_contracts_contracts",
       "community": 122,
-      "community_name": "Login.jsx",
+      "community_name": "api",
       "norm_label": "contracts()"
     },
     {
@@ -30241,7 +30334,7 @@
       "_origin": "ast",
       "id": "src_pages_dashboard",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "dashboard.jsx"
     },
     {
@@ -30253,7 +30346,7 @@
       "_origin": "ast",
       "id": "src_pages_dashboard_dashboard",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "dashboard()"
     },
     {
@@ -30263,8 +30356,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 122,
-      "community_name": "Login.jsx",
+      "community": 152,
+      "community_name": "auth.js",
       "norm_label": "login.jsx"
     },
     {
@@ -30275,8 +30368,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 122,
-      "community_name": "Login.jsx",
+      "community": 152,
+      "community_name": "auth.js",
       "norm_label": "login()"
     },
     {
@@ -30287,7 +30380,7 @@
       "_origin": "ast",
       "id": "src_pages_miapto",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "miapto.jsx"
     },
     {
@@ -30298,7 +30391,7 @@
       "_origin": "ast",
       "id": "src_pages_miapto_providers",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "providers"
     },
     {
@@ -30310,7 +30403,7 @@
       "_origin": "ast",
       "id": "src_pages_miapto_colombiadate",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "colombiadate()"
     },
     {
@@ -30322,7 +30415,7 @@
       "_origin": "ast",
       "id": "src_pages_miapto_tenantrequest",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "tenantrequest()"
     },
     {
@@ -30334,7 +30427,7 @@
       "_origin": "ast",
       "id": "src_pages_miapto_servicecard",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "servicecard()"
     },
     {
@@ -30346,7 +30439,7 @@
       "_origin": "ast",
       "id": "src_pages_miapto_miapto",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "miapto()"
     },
     {
@@ -30403,8 +30496,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_payments",
-      "community": 122,
-      "community_name": "Login.jsx",
+      "community": 1,
+      "community_name": "Utilities.jsx",
       "norm_label": "payments.jsx"
     },
     {
@@ -30415,8 +30508,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_payments_payments",
-      "community": 122,
-      "community_name": "Login.jsx",
+      "community": 1,
+      "community_name": "Utilities.jsx",
       "norm_label": "payments()"
     },
     {
@@ -30426,8 +30519,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_predial",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 122,
+      "community_name": "api",
       "norm_label": "predial.jsx"
     },
     {
@@ -30437,8 +30530,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_pages_predial_ref_map",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 122,
+      "community_name": "api",
       "norm_label": "ref_map"
     },
     {
@@ -30449,8 +30542,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_lookupref",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 122,
+      "community_name": "api",
       "norm_label": "lookupref()"
     },
     {
@@ -30461,8 +30554,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_getpredialurl",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 122,
+      "community_name": "api",
       "norm_label": "getpredialurl()"
     },
     {
@@ -30473,8 +30566,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_predial_predial",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 122,
+      "community_name": "api",
       "norm_label": "predial()"
     },
     {
@@ -30554,7 +30647,7 @@
       "_origin": "ast",
       "id": "src_pages_reports",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "reports.jsx"
     },
     {
@@ -30566,7 +30659,7 @@
       "_origin": "ast",
       "id": "src_pages_reports_reports",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "reports()"
     },
     {
@@ -30752,8 +30845,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_shareapartments",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 13,
+      "community_name": "getBase",
       "norm_label": "shareapartments.jsx"
     },
     {
@@ -30764,8 +30857,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_shareapartments_shareapartments",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 13,
+      "community_name": "getBase",
       "norm_label": "shareapartments()"
     },
     {
@@ -30776,7 +30869,7 @@
       "_origin": "ast",
       "id": "src_pages_tenants",
       "community": 122,
-      "community_name": "Login.jsx",
+      "community_name": "api",
       "norm_label": "tenants.jsx"
     },
     {
@@ -30788,7 +30881,7 @@
       "_origin": "ast",
       "id": "src_pages_tenants_tenants",
       "community": 122,
-      "community_name": "Login.jsx",
+      "community_name": "api",
       "norm_label": "tenants()"
     },
     {
@@ -30798,7 +30891,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_utilities",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "utilities.jsx"
     },
@@ -30809,7 +30902,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_pages_utilities_services",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "services"
     },
@@ -30821,7 +30914,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_timeago",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "timeago()"
     },
@@ -30833,7 +30926,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_waterbilllabel",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "waterbilllabel()"
     },
@@ -30845,7 +30938,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillclass",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "waterbillclass()"
     },
@@ -30857,7 +30950,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_waterbillmeta",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "waterbillmeta()"
     },
@@ -30868,7 +30961,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_pages_utilities_portals",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "portals"
     },
@@ -30879,7 +30972,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_pages_utilities_qr_services",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "qr_services"
     },
@@ -30891,7 +30984,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_gascode",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "gascode()"
     },
@@ -30903,7 +30996,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_buildgasaccounts",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "buildgasaccounts()"
     },
@@ -30915,7 +31008,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_gasaccountlabel",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "gasaccountlabel()"
     },
@@ -30927,7 +31020,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_pages_utilities_utilities",
-      "community": 168,
+      "community": 1,
       "community_name": "Utilities.jsx",
       "norm_label": "utilities()"
     },
@@ -31270,8 +31363,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_auth_clearauth",
-      "community": 122,
-      "community_name": "Login.jsx",
+      "community": 152,
+      "community_name": "auth.js",
       "norm_label": "clearauth()"
     },
     {
@@ -31366,7 +31459,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "calendar.js"
     },
     {
@@ -31378,7 +31471,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_uidforapt",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "uidforapt()"
     },
     {
@@ -31390,7 +31483,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_getstoreduids",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "getstoreduids()"
     },
     {
@@ -31402,7 +31495,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_savestoreduids",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "savestoreduids()"
     },
     {
@@ -31414,7 +31507,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_fmtdate",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -31426,7 +31519,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_nextduedate",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "nextduedate()"
     },
     {
@@ -31438,7 +31531,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_generateics",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generateics()"
     },
     {
@@ -31450,7 +31543,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_downloadics",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "downloadics()"
     },
     {
@@ -31462,7 +31555,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_addcalendarreminder",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "addcalendarreminder()"
     },
     {
@@ -31474,7 +31567,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_generateallpaymentreminders",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "generateallpaymentreminders()"
     },
     {
@@ -31486,7 +31579,7 @@
       "_origin": "ast",
       "id": "src_utils_calendar_syncandgeneratereminders",
       "community": 35,
-      "community_name": "calendar.js",
+      "community_name": "ApartmentDetail.jsx",
       "norm_label": "syncandgeneratereminders()"
     },
     {
@@ -32190,8 +32283,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 13,
+      "community_name": "getBase",
       "norm_label": "generate-apartments-html.js"
     },
     {
@@ -32202,8 +32295,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_fetchasbase64",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 13,
+      "community_name": "getBase",
       "norm_label": "fetchasbase64()"
     },
     {
@@ -32214,8 +32307,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_generate_apartments_html_buildapartmentshtml",
-      "community": 161,
-      "community_name": "App.jsx",
+      "community": 13,
+      "community_name": "getBase",
       "norm_label": "buildapartmentshtml()"
     },
     {
@@ -32226,7 +32319,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "helpers.js"
     },
     {
@@ -32238,7 +32331,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_formatcurrency",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "formatcurrency()"
     },
     {
@@ -32250,7 +32343,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_gascontractpaymenturl",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "gascontractpaymenturl()"
     },
     {
@@ -32262,7 +32355,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_servicepaymenturl",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "servicepaymenturl()"
     },
     {
@@ -32274,7 +32367,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_formatdate",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "formatdate()"
     },
     {
@@ -32285,8 +32378,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_helpers_formatshortdate",
-      "community": 122,
-      "community_name": "Login.jsx",
+      "community": 1,
+      "community_name": "Utilities.jsx",
       "norm_label": "formatshortdate()"
     },
     {
@@ -32298,7 +32391,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_daysbetween",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "daysbetween()"
     },
     {
@@ -32310,7 +32403,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_monthsbetween",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "monthsbetween()"
     },
     {
@@ -32322,7 +32415,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getcurrentperiod",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "getcurrentperiod()"
     },
     {
@@ -32334,7 +32427,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getmonthname",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "getmonthname()"
     },
     {
@@ -32346,7 +32439,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getperiodlabel",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "getperiodlabel()"
     },
     {
@@ -32358,7 +32451,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_generateid",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "generateid()"
     },
     {
@@ -32370,7 +32463,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_daysuntil",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "daysuntil()"
     },
     {
@@ -32382,7 +32475,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_periodtodate",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "periodtodate()"
     },
     {
@@ -32394,7 +32487,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_nextperiod",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "nextperiod()"
     },
     {
@@ -32406,7 +32499,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_prevperiod",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "prevperiod()"
     },
     {
@@ -32418,7 +32511,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_getallperiodsfrom",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "getallperiodsfrom()"
     },
     {
@@ -32430,7 +32523,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_isoverduebyreadingdate",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "isoverduebyreadingdate()"
     },
     {
@@ -32442,7 +32535,7 @@
       "_origin": "ast",
       "id": "src_utils_helpers_formatrelativeduedate",
       "community": 1,
-      "community_name": "ApartmentDetail.jsx",
+      "community_name": "Utilities.jsx",
       "norm_label": "formatrelativeduedate()"
     },
     {
@@ -32511,7 +32604,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_notifications",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "notifications.js"
     },
@@ -32523,7 +32616,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_requestnotificationpermission",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "requestnotificationpermission()"
     },
@@ -32535,7 +32628,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notify",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "notify()"
     },
@@ -32547,7 +32640,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_notifications_notifypaymentreminder",
-      "community": 161,
+      "community": 67,
       "community_name": "App.jsx",
       "norm_label": "notifypaymentreminder()"
     },
@@ -32558,7 +32651,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_pdf",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "pdf.js"
     },
@@ -32570,7 +32663,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_pdf_generateapartmentpdf",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "generateapartmentpdf()"
     },
@@ -32582,7 +32675,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_pdf_generatepublichtml",
-      "community": 1,
+      "community": 35,
       "community_name": "ApartmentDetail.jsx",
       "norm_label": "generatepublichtml()"
     },
@@ -32737,7 +32830,7 @@
       "_origin": "ast",
       "id": "src_utils_resetapp",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "resetapp.js"
     },
     {
@@ -32749,7 +32842,7 @@
       "_origin": "ast",
       "id": "src_utils_resetapp_clearappdata",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "clearappdata()"
     },
     {
@@ -32760,7 +32853,7 @@
       "_origin": "ast",
       "id": "src_utils_sync",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "sync.js"
     },
     {
@@ -32772,7 +32865,7 @@
       "_origin": "ast",
       "id": "src_utils_sync_isserveravailable",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "isserveravailable()"
     },
     {
@@ -32783,7 +32876,7 @@
       "_origin": "ast",
       "id": "src_utils_theme",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "theme.js"
     },
     {
@@ -32794,7 +32887,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_themes",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "themes"
     },
     {
@@ -32805,7 +32898,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_thememap",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "thememap"
     },
     {
@@ -32817,7 +32910,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_gettheme",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "gettheme()"
     },
     {
@@ -32829,7 +32922,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_getthemeinfo",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "getthemeinfo()"
     },
     {
@@ -32841,7 +32934,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_settheme",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "settheme()"
     },
     {
@@ -32853,7 +32946,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_inittheme",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "inittheme()"
     },
     {
@@ -32865,7 +32958,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_applytheme",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "applytheme()"
     },
     {
@@ -32877,7 +32970,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_syncthemetoserver",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "syncthemetoserver()"
     },
     {
@@ -32889,7 +32982,7 @@
       "_origin": "ast",
       "id": "src_utils_theme_loadthemefromserver",
       "community": 67,
-      "community_name": "Layout.jsx",
+      "community_name": "App.jsx",
       "norm_label": "loadthemefromserver()"
     },
     {
@@ -32900,7 +32993,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode",
       "community": 122,
-      "community_name": "Login.jsx",
+      "community_name": "api",
       "norm_label": "viewmode.js"
     },
     {
@@ -32912,7 +33005,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode_getviewmode",
       "community": 122,
-      "community_name": "Login.jsx",
+      "community_name": "api",
       "norm_label": "getviewmode()"
     },
     {
@@ -32924,7 +33017,7 @@
       "_origin": "ast",
       "id": "src_utils_viewmode_setviewmode",
       "community": 122,
-      "community_name": "Login.jsx",
+      "community_name": "api",
       "norm_label": "setviewmode()"
     },
     {
@@ -75681,7 +75774,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L537",
+      "source_location": "L562",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity",
@@ -75692,7 +75785,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L486",
+      "source_location": "L511",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity",
@@ -75714,7 +75807,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L498",
+      "source_location": "L523",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity",
@@ -75846,7 +75939,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L514",
+      "source_location": "L539",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity",
@@ -75868,7 +75961,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L520",
+      "source_location": "L545",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity",
@@ -75912,7 +76005,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L508",
+      "source_location": "L533",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity",
@@ -76014,7 +76107,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L572",
+      "source_location": "L597",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_resolve",
@@ -76074,7 +76167,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L565",
+      "source_location": "L590",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_resolve",
@@ -76086,7 +76179,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L549",
+      "source_location": "L574",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_stage",
@@ -76098,7 +76191,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L486",
+      "source_location": "L511",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_addstage",
@@ -76253,7 +76346,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L514",
+      "source_location": "L539",
       "weight": 1.0,
       "context": "attribute",
       "_origin": "ast",
@@ -76265,7 +76358,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L520",
+      "source_location": "L545",
       "weight": 1.0,
       "context": "attribute",
       "_origin": "ast",
@@ -76350,7 +76443,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L578",
+      "source_location": "L603",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_resolve",
@@ -76374,7 +76467,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L522",
+      "source_location": "L547",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_ondestroy",
@@ -76386,7 +76479,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L509",
+      "source_location": "L534",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_returntolaujim",
@@ -76482,6 +76575,18 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
+      "source_location": "L500",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_onactivityresult",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_photodetails",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
       "source_location": "L454",
       "weight": 1.0,
       "_origin": "ast",
@@ -76506,7 +76611,31 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L511",
+      "source_location": "L499",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_onactivityresult",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_addstage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
+      "source_location": "L495",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_onactivityresult",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareuri"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
+      "source_location": "L536",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_returntolaujim",
@@ -76518,7 +76647,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L551",
+      "source_location": "L576",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_stage",
@@ -76530,7 +76659,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L524",
+      "source_location": "L549",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_ondestroy",
@@ -76542,7 +76671,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L517",
+      "source_location": "L542",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_onbackpressed",
@@ -76555,7 +76684,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L510",
+      "source_location": "L535",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_returntolaujim",
@@ -76567,7 +76696,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L526",
+      "source_location": "L551",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebrowseractivity_ondestroy",
@@ -76577,7 +76706,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L555",
+      "source_location": "L580",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge",
@@ -76588,7 +76717,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L538",
+      "source_location": "L563",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge",
@@ -76599,7 +76728,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L561",
+      "source_location": "L586",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge",
@@ -76610,7 +76739,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L546",
+      "source_location": "L571",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge",
@@ -76621,7 +76750,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L538",
+      "source_location": "L563",
       "weight": 1.0,
       "context": "attribute",
       "_origin": "ast",
@@ -76633,7 +76762,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L555",
+      "source_location": "L580",
       "weight": 1.0,
       "context": "attribute",
       "_origin": "ast",
@@ -76645,7 +76774,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L561",
+      "source_location": "L586",
       "weight": 1.0,
       "context": "attribute",
       "_origin": "ast",
@@ -76657,7 +76786,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L546",
+      "source_location": "L571",
       "weight": 1.0,
       "context": "attribute",
       "_origin": "ast",
@@ -76671,7 +76800,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L558",
+      "source_location": "L583",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_persistsession",
@@ -76683,17 +76812,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java",
-      "source_location": "L557",
+      "source_location": "L582",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacebrowseractivity_marketplacebridge_persistsession",
       "target": "android_app_src_main_java_com_laujim_aptmanager_portalsessionvault_portalsessionvault_savestate"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_java_uri",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L13",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils",
@@ -76701,10 +76842,45 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils",
+      "target": "contentresolver",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils",
+      "target": "fileoutputstream",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L98",
+      "source_location": "L138",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_copy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L121",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
@@ -76715,7 +76891,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L19",
+      "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
@@ -76726,7 +76902,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L17",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
@@ -76737,7 +76913,29 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L90",
+      "source_location": "L52",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareraw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L34",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareuri",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L115",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils",
@@ -76749,7 +76947,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L24",
+      "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_downloadandprepare",
@@ -76761,11 +76959,11 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
-      "source_location": "L33",
+      "source_location": "L28",
       "weight": 1.0,
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_downloadandprepare",
-      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_samplesize",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareraw",
       "confidence_score": 1.0
     },
     {
@@ -76779,6 +76977,126 @@
       "_origin": "ast",
       "source": "android_app_src_main_java_com_laujim_aptmanager_marketplaceworkerservice_marketplaceworkerservice_deliverjobphotos",
       "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_downloadandprepare"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L34",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareuri",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_java_uri",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L42",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareuri",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_copy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareuri",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareraw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L34",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareuri",
+      "target": "contentresolver",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L41",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareuri",
+      "target": "fileoutputstream",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L61",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareraw",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_samplesize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L84",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_prepareraw",
+      "target": "fileoutputstream",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L131",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_download",
+      "target": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_copy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L130",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_download",
+      "target": "fileoutputstream",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java",
+      "source_location": "L138",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "android_app_src_main_java_com_laujim_aptmanager_marketplacephotoutils_marketplacephotoutils_copy",
+      "target": "fileoutputstream",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -106810,7 +107128,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L165",
+      "source_location": "L179",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail",
@@ -106859,6 +107177,28 @@
       "_origin": "ast",
       "source": "src_pages_apartmentdetail",
       "target": "src_pages_apartmentdetail_normalizescannedpaymenturl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/pages/ApartmentDetail.jsx",
+      "source_location": "L165",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_apartmentdetail",
+      "target": "src_pages_apartmentdetail_photosizebytes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/pages/ApartmentDetail.jsx",
+      "source_location": "L172",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_apartmentdetail",
+      "target": "src_pages_apartmentdetail_photosizelabel",
       "confidence_score": 1.0
     },
     {
@@ -107219,9 +107559,45 @@
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
+      "source_file": "src/pages/ApartmentDetail.jsx",
+      "source_location": "L1322",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_apartmentdetail_apartmentdetail",
+      "target": "src_pages_apartmentdetail_photosizebytes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/pages/ApartmentDetail.jsx",
+      "source_location": "L173",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_apartmentdetail_photosizelabel",
+      "target": "src_pages_apartmentdetail_photosizebytes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/pages/ApartmentDetail.jsx",
+      "source_location": "L1322",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_pages_apartmentdetail_apartmentdetail",
+      "target": "src_pages_apartmentdetail_photosizelabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1023",
+      "source_location": "L1042",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107233,7 +107609,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1345",
+      "source_location": "L1372",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107245,7 +107621,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1294",
+      "source_location": "L1314",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107257,7 +107633,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L967",
+      "source_location": "L986",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107269,7 +107645,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1013",
+      "source_location": "L1032",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107281,7 +107657,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1046",
+      "source_location": "L1065",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107293,7 +107669,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1541",
+      "source_location": "L1568",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107305,7 +107681,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L187",
+      "source_location": "L201",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107317,7 +107693,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1161",
+      "source_location": "L1180",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107329,7 +107705,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1170",
+      "source_location": "L1189",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107341,7 +107717,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1162",
+      "source_location": "L1181",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107353,7 +107729,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1160",
+      "source_location": "L1179",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107365,7 +107741,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L1173",
+      "source_location": "L1192",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -107377,7 +107753,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ApartmentDetail.jsx",
-      "source_location": "L985",
+      "source_location": "L1004",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_apartmentdetail_apartmentdetail",
@@ -127464,5 +127840,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "d7b30f7545aa52252a845f9c1da2efa9a6f6a410"
+  "built_at_commit": "756260d2a38562071b17a97bd921d0ab04746069"
 }

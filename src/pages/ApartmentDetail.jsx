@@ -162,6 +162,20 @@ async function preparePhotoForUpload(file) {
   }
 }
 
+function photoSizeBytes(photo) {
+  const saved = Number(photo?.size);
+  if (Number.isFinite(saved) && saved > 0) return saved;
+  const data = typeof photo?.data === 'string' ? photo.data.split(',')[1] : '';
+  return data ? Math.floor(data.length * 3 / 4) : 0;
+}
+
+function photoSizeLabel(photo) {
+  const bytes = photoSizeBytes(photo);
+  if (!bytes) return 'Tamaño no registrado';
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 export default function ApartmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -366,8 +380,13 @@ export default function ApartmentDetail() {
   }
 
   async function deletePhoto(photoId) {
-    if (confirm('¿Eliminar esta foto?')) await api.deletePhoto(photoId);
-    load();
+    if (!confirm('¿Eliminar esta foto?')) return;
+    try {
+      await api.deletePhoto(photoId);
+      await load();
+    } catch (error) {
+      alert(error?.message || 'No se pudo eliminar la foto.');
+    }
   }
 
   function downloadPhoto(url, name) {
@@ -1290,12 +1309,20 @@ export default function ApartmentDetail() {
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Image className="w-4 h-4" /> Fotos del Apartamento</h3>
             <div className="grid grid-cols-3 gap-2 mb-3">
               {photos.map((p, i) => (
-                <div key={p.id} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer" onClick={() => openGallery(i)}>
-                  <img src={photoUrl(p)} alt={p.originalName || 'Foto'} className="w-full h-full object-cover" loading="lazy" onError={e => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }} />
-                  <div className="absolute inset-0 bg-gray-200 items-center justify-center hidden"><Image className="w-6 h-6 text-gray-400" /></div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                    <button onClick={e => { e.stopPropagation(); downloadPhoto(photoUrl(p), p.originalName || 'foto'); }} className="p-1.5 bg-white rounded-full text-gray-700 hover:text-blue-600" title="Descargar"><Download className="w-3.5 h-3.5" /></button>
-                    <button onClick={e => { e.stopPropagation(); deletePhoto(p.id); }} className="p-1.5 bg-white rounded-full text-gray-700 hover:text-red-600" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
+                <div key={p.id} className="min-w-0">
+                  <div className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer" onClick={() => openGallery(i)}>
+                    <img src={photoUrl(p)} alt={p.originalName || 'Foto'} className="w-full h-full object-cover" loading="lazy" onError={e => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }} />
+                    <div className="absolute inset-0 bg-gray-200 items-center justify-center hidden"><Image className="w-6 h-6 text-gray-400" /></div>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                      <button onClick={e => { e.stopPropagation(); downloadPhoto(photoUrl(p), p.originalName || 'foto'); }} className="p-1.5 bg-white rounded-full text-gray-700 hover:text-blue-600" title="Descargar"><Download className="w-3.5 h-3.5" /></button>
+                      <button onClick={e => { e.stopPropagation(); deletePhoto(p.id); }} className="p-1.5 bg-white rounded-full text-gray-700 hover:text-red-600" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-1">
+                    <span className={`min-w-0 truncate text-[10px] ${photoSizeBytes(p) > 20 * 1024 * 1024 ? 'text-red-600 font-semibold' : photoSizeBytes(p) > 2 * 1024 * 1024 ? 'text-amber-600' : 'text-gray-500'}`} title={p.originalName || 'Foto'}>{photoSizeLabel(p)}</span>
+                    <button onClick={e => { e.stopPropagation(); deletePhoto(p.id); }} className="shrink-0 inline-flex items-center gap-0.5 rounded-md px-1.5 py-1 text-[10px] font-medium text-red-600 hover:bg-red-50" title="Eliminar foto">
+                      <Trash2 className="w-3 h-3" /> Eliminar
+                    </button>
                   </div>
                 </div>
               ))}

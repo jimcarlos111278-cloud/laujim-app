@@ -480,7 +480,32 @@ public class MarketplaceBrowserActivity extends Activity {
         }
         ValueCallback<Uri[]> callback = pendingFileCallback;
         pendingFileCallback = null;
-        if (callback != null) callback.onReceiveValue(selected);
+        if (callback == null) return;
+        if (selected == null || selected.length == 0) {
+            callback.onReceiveValue(selected);
+            return;
+        }
+        Uri[] picked = selected;
+        executor.execute(() -> {
+            java.util.List<Uri> prepared = new java.util.ArrayList<>();
+            File directory = new File(getCacheDir(), "marketplace-photos");
+            if (!directory.exists()) directory.mkdirs();
+            for (int index = 0; index < Math.min(10, picked.length); index += 1) {
+                try {
+                    File target = MarketplacePhotoUtils.prepareUri(
+                        getContentResolver(), picked[index], directory,
+                        "manual_" + UUID.randomUUID());
+                    prepared.add(FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", target));
+                    addStage("photo_prepared", "Foto manual preparada automáticamente.",
+                        photoDetails(index + 1, target.length(), null));
+                } catch (Exception error) {
+                    addStage("photo_failed", "No se pudo preparar una foto manual.",
+                        photoDetails(index + 1, 0, String.valueOf(error.getMessage())));
+                }
+            }
+            Uri[] result = prepared.toArray(new Uri[0]);
+            mainHandler.post(() -> callback.onReceiveValue(result));
+        });
     }
 
     private void addStage(String stage, String message, JSONObject details) {

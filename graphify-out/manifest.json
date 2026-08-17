@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786928769.7550464,
-    "ast_hash": "1b5b281c400c039283ea125d665e0a5c",
+    "mtime": 1786932983.245801,
+    "ast_hash": "2265eafd5ad47c0c09526ef8126abd97",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786928769.766493,
-    "ast_hash": "e8217b430d7eef6479956b8340be7d30",
+    "mtime": 1786932983.2478094,
+    "ast_hash": "d10cd44c464b132c4c6515c432fc4f0d",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "src/api.js": {
-    "mtime": 1786927334.4602385,
-    "ast_hash": "75fe9e9f5cfa70670174a3089825c43e",
+    "mtime": 1786932899.3551743,
+    "ast_hash": "11b2affbcddb93aebc80026b3850d9c4",
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.jsx": {
@@ -310,8 +310,8 @@
     "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
   },
   "src/pages/ApartmentDetail.jsx": {
-    "mtime": 1786928675.523873,
-    "ast_hash": "f6752276d12ccc57cf65b427b144a974",
+    "mtime": 1786932926.7787838,
+    "ast_hash": "92a2e4d8d4c1e0ad0874733521787827",
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
@@ -975,8 +975,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
-    "mtime": 1786927193.7656205,
-    "ast_hash": "a0bfa76d1a51e1f92fb479eb264aef78",
+    "mtime": 1786932890.2649488,
+    "ast_hash": "ccba6c2bbaf9edb31e6a0d9abdb812f5",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
@@ -2930,8 +2930,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
-    "mtime": 1786928893.1272085,
-    "ast_hash": "a40eb021e37fa8078e9124a5343b4c3f",
+    "mtime": 1786932983.2437868,
+    "ast_hash": "a142383c41079e407183e2d22dd8234e",
     "semantic_hash": ""
   },
   ".tmp/photo-preview-2mb/compressed-2mb.jpg": {
@@ -2972,6 +2972,11 @@
   ".tmp/adb-check/s23-screen.png": {
     "mtime": 1786931840.0047717,
     "ast_hash": "867a7a3f52c3c9d20b8b2003f8df05fe",
+    "semantic_hash": ""
+  },
+  ".tmp/adb-check/s23-current.png": {
+    "mtime": 1786932303.371518,
+    "ast_hash": "ce84adc174cc4b195d179faae5955c5c",
     "semantic_hash": ""
   }
 }
