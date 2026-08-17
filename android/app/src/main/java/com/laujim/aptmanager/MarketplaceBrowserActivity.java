@@ -29,10 +29,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -403,23 +399,30 @@ public class MarketplaceBrowserActivity extends Activity {
 
     private void deliverJobPhotos() {
         java.util.List<Uri> uris = new java.util.ArrayList<>();
-        try {
-            JSONObject listing;
-            synchronized (jobLock) { listing = currentListing; }
-            JSONArray urls = listing == null ? null : listing.optJSONArray("photoUrls");
-            File directory = new File(getCacheDir(), "marketplace-photos");
-            if (!directory.exists()) directory.mkdirs();
-            if (urls != null) {
-                for (int index = 0; index < Math.min(10, urls.length()); index += 1) {
-                    String source = urls.optString(index, "");
-                    if (source.isEmpty()) continue;
-                    File target = new File(directory, "apartment_" + UUID.randomUUID() + ".jpg");
-                    download(source, target);
+        JSONObject listing;
+        synchronized (jobLock) { listing = currentListing; }
+        JSONArray urls = listing == null ? null : listing.optJSONArray("photoUrls");
+        File directory = new File(getCacheDir(), "marketplace-photos");
+        if (!directory.exists()) directory.mkdirs();
+        if (urls != null) {
+            for (int index = 0; index < Math.min(10, urls.length()); index += 1) {
+                String source = urls.optString(index, "");
+                if (source.isEmpty()) continue;
+                try {
+                    File target = MarketplacePhotoUtils.downloadAndPrepare(
+                        source, directory, "apartment_" + UUID.randomUUID(), 15_000, 40_000);
                     uris.add(FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", target));
+                    addStage("photo_prepared", "Foto preparada automáticamente.",
+                        photoDetails(index + 1, target.length(), null));
+                } catch (Exception error) {
+                    addStage("photo_failed", "No se pudo preparar una foto automáticamente.",
+                        photoDetails(index + 1, 0, String.valueOf(error.getMessage())));
                 }
             }
-        } catch (Exception error) {
-            addStage("photos_error", "No se pudieron preparar todas las fotos.", new JSONObject());
+        }
+        if (urls != null && urls.length() > 0 && uris.isEmpty()) {
+            addStage("photos_error", "No se pudo preparar ninguna foto del apartamento.",
+                photoDetails(Math.min(10, urls.length()), 0, "sin fotos preparadas"));
         }
         Uri[] selected = uris.toArray(new Uri[0]);
         mainHandler.post(() -> {
@@ -427,6 +430,16 @@ public class MarketplaceBrowserActivity extends Activity {
             pendingFileCallback = null;
             if (callback != null) callback.onReceiveValue(selected);
         });
+    }
+
+    private JSONObject photoDetails(int index, long bytes, String error) {
+        JSONObject details = new JSONObject();
+        try {
+            details.put("index", index);
+            if (bytes > 0) details.put("bytes", bytes);
+            if (error != null) details.put("error", error);
+        } catch (Exception ignored) { }
+        return details;
     }
 
     private boolean hasAutomatedPhotoSelection() {
@@ -468,20 +481,6 @@ public class MarketplaceBrowserActivity extends Activity {
         ValueCallback<Uri[]> callback = pendingFileCallback;
         pendingFileCallback = null;
         if (callback != null) callback.onReceiveValue(selected);
-    }
-
-    private void download(String source, File target) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(source).openConnection();
-        connection.setConnectTimeout(15_000);
-        connection.setReadTimeout(40_000);
-        connection.setRequestProperty("Accept", "image/*");
-        int response = connection.getResponseCode();
-        if (response < 200 || response >= 300) throw new IllegalStateException("Foto HTTP " + response);
-        try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(target)) {
-            byte[] buffer = new byte[16 * 1024];
-            int read;
-            while ((read = input.read(buffer)) >= 0) output.write(buffer, 0, read);
-        } finally { connection.disconnect(); }
     }
 
     private void addStage(String stage, String message, JSONObject details) {

@@ -108,6 +108,56 @@ function expandWhatsAppTemplate(template, values) {
     message.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value ?? '')), String(template || ''));
 }
 
+const MAX_BROWSER_PHOTO_BYTES = 8 * 1024 * 1024;
+const MAX_BROWSER_PHOTO_SIDE = 2560;
+
+function canvasBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('El navegador no pudo comprimir la foto.')), type, quality);
+  });
+}
+
+async function preparePhotoForUpload(file) {
+  if (!file || !String(file.type || '').startsWith('image/') || file.size <= MAX_BROWSER_PHOTO_BYTES) return file;
+  const objectUrl = URL.createObjectURL(file);
+  let image = null;
+  try {
+    if (typeof createImageBitmap === 'function') {
+      image = await createImageBitmap(file);
+    } else {
+      image = await new Promise((resolve, reject) => {
+        const element = new Image();
+        element.onload = () => resolve(element);
+        element.onerror = () => reject(new Error('No se pudo leer la foto seleccionada.'));
+        element.src = objectUrl;
+      });
+    }
+    const width = image.width || image.naturalWidth;
+    const height = image.height || image.naturalHeight;
+    if (!width || !height) throw new Error('La foto no tiene un tamaño válido.');
+    const scale = Math.min(1, MAX_BROWSER_PHOTO_SIDE / width, MAX_BROWSER_PHOTO_SIDE / height);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('El navegador no pudo preparar la foto.');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    let blob = null;
+    for (const quality of [0.84, 0.74, 0.64, 0.54]) {
+      blob = await canvasBlob(canvas, 'image/jpeg', quality);
+      if (blob.size <= MAX_BROWSER_PHOTO_BYTES) break;
+    }
+    if (!blob || blob.size > MAX_BROWSER_PHOTO_BYTES) throw new Error('La foto sigue superando 8 MB después de comprimirla.');
+    const baseName = String(file.name || 'foto').replace(/\.[^.]+$/, '') || 'foto';
+    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
+  } finally {
+    if (typeof image?.close === 'function') image.close();
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 export default function ApartmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -288,13 +338,26 @@ export default function ApartmentDetail() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
-    let ok = 0, fail = 0;
-    for (const file of files) {
-      try { await api.uploadPhoto(file, Number(id)); ok++; } catch { fail++; }
+    let ok = 0, fail = 0, compressed = 0;
+    const errors = [];
+    try {
+      for (const file of files) {
+        try {
+          const prepared = await preparePhotoForUpload(file);
+          if (prepared !== file) compressed++;
+          await api.uploadPhoto(prepared, Number(id));
+          ok++;
+        } catch (error) {
+          fail++;
+          errors.push(error?.message || 'No se pudo subir una foto');
+        }
+      }
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
-    setUploading(false);
-    e.target.value = '';
-    if (fail > 0) alert(ok + ' foto(s) subida(s), ' + fail + ' error(es)');
+    if (fail > 0) alert(`${ok} foto(s) subida(s), ${fail} error(es). ${errors[0] || ''}`.trim());
+    else if (compressed > 0) alert(`${ok} foto(s) subida(s). ${compressed} se comprimieron automáticamente para Marketplace.`);
     load();
   }
 

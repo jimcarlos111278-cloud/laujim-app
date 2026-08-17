@@ -36,7 +36,15 @@ function uploadFile(url, file, extra) {
   const fd = new FormData();
   fd.append(file.fieldname || 'photo', file.file || file);
   Object.entries(extra || {}).forEach(([k, v]) => fd.append(k, v));
-  return fetch((getRawBase()) + url, { method: 'POST', headers: { 'x-auth-token': AUTH_TOKEN }, body: fd }).then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); });
+  return fetch((getRawBase()) + url, { method: 'POST', headers: { 'x-auth-token': AUTH_TOKEN }, body: fd }).then(async r => {
+    if (!r.ok) {
+      const payload = await r.json().catch(() => ({}));
+      const error = new Error(payload.error || r.statusText || `Error ${r.status}`);
+      error.status = r.status;
+      throw error;
+    }
+    return r.json();
+  });
 }
 
 // ─── Cloud sync: fetch ALL data from server ───
@@ -220,6 +228,7 @@ export const api = {
     try {
       return await uploadFile('/api/upload/photo', file, { apartmentId });
     } catch (e) {
+      if (e?.status === 413 || /20\s*MB|demasiado grande|supera el l[ií]mite/i.test(String(e?.message || ''))) throw e;
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async () => {

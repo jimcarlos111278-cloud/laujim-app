@@ -7,6 +7,16 @@
       .replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
+  // Some older queue payloads were produced through form-url-encoding. Decode
+  // those values before writing them into Facebook so spaces stay spaces and
+  // not visible plus signs ("hola+mundo").
+  function decodeTransportText(value) {
+    var text = String(value === null || value === undefined ? '' : value);
+    if (!text || (!text.includes('+') && !text.includes('%'))) return text;
+    try { return decodeURIComponent(text.replace(/\+/g, ' ')); }
+    catch (_) { return text.replace(/\+/g, ' '); }
+  }
+
   function facebookRentalType(value) {
     var normalized = normalizeText(value);
     if (!normalized || /departamento|apartamento|piso|condominio/.test(normalized)) return 'Apartamento o piso';
@@ -360,18 +370,21 @@
     var filled = [];
     fields.forEach(function (field) {
       var element = findEditable(field.labels);
-      var value = data[field.key] ||
-        (field.key === 'title' ? ('Apartamento ' + String(data.apartmentName || 'en arriendo')) : '') ||
+      var suppliedValue = decodeTransportText(data[field.key]);
+      var value = suppliedValue ||
+        (field.key === 'title' ? ('Apartamento ' + decodeTransportText(data.apartmentName || 'en arriendo')) : '') ||
         (field.key === 'location'
-          ? (data.address && data.city ? data.address + ', ' + data.city : data.address || data.city || 'Barranquilla')
+          ? (data.address && data.city
+            ? decodeTransportText(data.address) + ', ' + decodeTransportText(data.city)
+            : decodeTransportText(data.address || data.city || 'Barranquilla'))
           : '') ||
-        (field.key === 'propertySquareFeet' ? data.area : '');
+        (field.key === 'propertySquareFeet' ? decodeTransportText(data.area) : '');
       if (element && setNativeValue(element, value)) filled.push(field.key);
     });
 
     var address = mobileComposer
-      ? (filled.includes('location') || !findEditable(['lugar', 'ubicacion', 'location', 'direccion', 'address']) || await fillAddress(data.address || data.city || 'Barranquilla'))
-      : await fillAddress(data.address);
+      ? (filled.includes('location') || !findEditable(['lugar', 'ubicacion', 'location', 'direccion', 'address']) || await fillAddress(decodeTransportText(data.address || data.city || 'Barranquilla')))
+      : await fillAddress(decodeTransportText(data.address));
     if (address && !filled.includes('location')) filled.push('address');
     var dropdowns = [
       { key: 'rentalType', labels: ['tipo de alquiler', 'rental type', 'property type'] },
@@ -403,15 +416,20 @@
       }
     }
     if (photoInput && data.photoUrls && data.photoUrls.length) {
-      emit('photos_requested', 'Preparando y adjuntando las fotos.', { requested: data.photoUrls.length });
+      var expectedPhotos = Math.min(10, data.photoUrls.length);
+      emit('photos_requested', 'Preparando y adjuntando las fotos automáticamente.', { requested: expectedPhotos });
       window.LaujimMarketplaceBridge.requestPhotos();
       var photoDeadline = Date.now() + 90_000;
-      while ((!photoInput.files || photoInput.files.length === 0) && Date.now() < photoDeadline) await wait(500);
+      while ((!photoInput.files || photoInput.files.length < expectedPhotos) && Date.now() < photoDeadline) await wait(500);
       if (!photoInput.files || photoInput.files.length === 0) {
         emit('photos_failed', 'El selector no recibió las fotos descargadas.', {});
         return { state: 'needs_review', stage: 'photos_failed', message: 'No fue posible adjuntar las fotos del apartamento.', filled: filled };
       }
-      emit('photos_attached', 'Fotos adjuntadas al formulario.', { attached: photoInput.files.length });
+      if (photoInput.files.length < expectedPhotos) {
+        emit('photos_partial', 'Facebook recibió solo parte de las fotos automáticas.', { expected: expectedPhotos, attached: photoInput.files.length });
+        return { state: 'needs_review', stage: 'photos_partial', message: 'Facebook no recibió todas las fotos automáticas; revisa el selector abierto.', filled: filled };
+      }
+      emit('photos_attached', 'Fotos adjuntadas automáticamente al formulario.', { attached: photoInput.files.length });
     }
 
     var requiredFieldsReady = mobileComposer

@@ -28,7 +28,6 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -227,43 +226,29 @@ public class MarketplaceWorkerService extends Service {
 
     private void deliverJobPhotos() {
         List<Uri> uris = new ArrayList<>();
-        try {
-            JSONObject listing = currentJob == null ? null : currentJob.optJSONObject("listing");
-            JSONArray urls = listing == null ? null : listing.optJSONArray("photoUrls");
-            File directory = new File(getCacheDir(), "marketplace-photos");
-            if (!directory.exists()) directory.mkdirs();
-            if (urls != null) {
-                for (int index = 0; index < Math.min(10, urls.length()); index += 1) {
-                    String source = urls.optString(index, "");
-                    if (source.isEmpty()) continue;
-                    File target = new File(directory, "apartment_" + UUID.randomUUID() + ".jpg");
-                    download(source, target);
+        JSONObject listing = currentJob == null ? null : currentJob.optJSONObject("listing");
+        JSONArray urls = listing == null ? null : listing.optJSONArray("photoUrls");
+        File directory = new File(getCacheDir(), "marketplace-photos");
+        if (!directory.exists()) directory.mkdirs();
+        if (urls != null) {
+            for (int index = 0; index < Math.min(10, urls.length()); index += 1) {
+                String source = urls.optString(index, "");
+                if (source.isEmpty()) continue;
+                try {
+                    File target = MarketplacePhotoUtils.downloadAndPrepare(
+                        source, directory, "apartment_" + UUID.randomUUID(), CONNECT_TIMEOUT_MS, READ_TIMEOUT_MS);
                     uris.add(FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", target));
+                } catch (Exception error) {
+                    updateNotification("No se pudo preparar una foto automáticamente.");
                 }
             }
-        } catch (Exception ignored) { }
+        }
         final Uri[] selected = uris.toArray(new Uri[0]);
         mainHandler.post(() -> {
             ValueCallback<Uri[]> callback = pendingFileCallback;
             pendingFileCallback = null;
             if (callback != null) callback.onReceiveValue(selected);
         });
-    }
-
-    private void download(String source, File target) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(source).openConnection();
-        connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
-        connection.setReadTimeout(READ_TIMEOUT_MS);
-        connection.setRequestProperty("Accept", "image/*");
-        int status = connection.getResponseCode();
-        if (status < 200 || status >= 300) throw new IOException("Foto HTTP " + status);
-        try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(target)) {
-            byte[] buffer = new byte[16 * 1024];
-            int read;
-            while ((read = input.read(buffer)) >= 0) output.write(buffer, 0, read);
-        } finally {
-            connection.disconnect();
-        }
     }
 
     private void postStatus(String server, String token, String deviceId, String jobId, String status, String message, String error, String listingUrl) throws Exception {

@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786922772.9292552,
-    "ast_hash": "1096ede898704c4afa94476690eaaf0e",
+    "mtime": 1786927343.987247,
+    "ast_hash": "2e361cbf33ae1e77f7bdb12d7e2b4289",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786922772.931328,
-    "ast_hash": "b56cdd1b4fac75fc3ef1871e50736c95",
+    "mtime": 1786927343.9893787,
+    "ast_hash": "bada6e17b545b19950e93916ffc74111",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "src/api.js": {
-    "mtime": 1786768874.2245052,
-    "ast_hash": "db959fc1b493571faf867011fd61b377",
+    "mtime": 1786927334.4602385,
+    "ast_hash": "75fe9e9f5cfa70670174a3089825c43e",
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.jsx": {
@@ -310,8 +310,8 @@
     "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
   },
   "src/pages/ApartmentDetail.jsx": {
-    "mtime": 1786922650.9170935,
-    "ast_hash": "558e4968a9cf83e80026cd736ae581e3",
+    "mtime": 1786927314.4738264,
+    "ast_hash": "18913cec8a01eefd6741764bb02a1d74",
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
@@ -970,13 +970,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/marketplace-worker.js": {
-    "mtime": 1786922481.6586876,
-    "ast_hash": "86114b3578cfd77a2d3c90ddf4c758b8",
+    "mtime": 1786927268.3487108,
+    "ast_hash": "68b456fb8ec5daaf6ef197f5115b5ad7",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
-    "mtime": 1786914832.3493118,
-    "ast_hash": "d769a2b4b3778e7154b529993290462e",
+    "mtime": 1786927193.7656205,
+    "ast_hash": "a0bfa76d1a51e1f92fb479eb264aef78",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
@@ -995,8 +995,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
-    "mtime": 1786862295.0404885,
-    "ast_hash": "b020b84fe09aafb21712c3f236d5a0e9",
+    "mtime": 1786927458.8694131,
+    "ast_hash": "d5f76658fc37cb1b3b728b61b1a644fb",
     "semantic_hash": ""
   },
   "scripts/test-marketplace-api.cjs": {
@@ -2927,6 +2927,11 @@
   ".tmp/verify-gas-contract-links.cjs": {
     "mtime": 1786776197.5613081,
     "ast_hash": "2f34dbb479882672be5933f329dd9132",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
+    "mtime": 1786927121.2043169,
+    "ast_hash": "d02e488521a513cd6f6ec87bbac08006",
     "semantic_hash": ""
   }
 }
