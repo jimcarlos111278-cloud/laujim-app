@@ -1,23 +1,23 @@
-# Graph Report - Proyecto Laujim APP fix  (2026-08-17)
+# Graph Report - Proyecto Laujim APP fix  (2026-08-19)
 
 ## Corpus Check
-- 457 files · ~610,505 words
+- 745 files · ~1,360,210 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4139 nodes · 7036 edges · 383 communities (328 shown, 55 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 185 edges (avg confidence: 0.51)
+- 8666 nodes · 17882 edges · 667 communities (580 shown, 87 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 382 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `81c278fa`
+- Built from commit: `6c438cfc`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - handleCloudAdminMessage
-- Utilities.jsx
-- .status
+- ApartmentDetail.jsx
+- Plugin
 - server.cjs
 - pre-whatsapp-bot/server.cjs
 - _head_server.cjs
@@ -28,12 +28,12 @@
 - dependencies
 - vendor/ponytail/benchmarks/agentic/tasks.py
 - handleCloudInbound
-- getBase
+- App.jsx
 - content-facebook.js
 - ScraperWorkerStore
 - handleCloudInbound
 - scripts
-- loginPortalPage
+- api.js
 - chrome-cdp.js
 - getR2Client
 - 5. ESPECIFICACIÓN DE INTEGRACIÓN (LO QUE CODEX DEBE CONSTRUIR)
@@ -50,7 +50,7 @@
 - devDependencies
 - scripts
 - backup.js
-- ApartmentDetail.jsx
+- PrivateApp
 - playwright-cli.js
 - worker-protocol.cjs
 - playwright
@@ -62,14 +62,14 @@
 - ScraperWorker.jsx
 - MarketplaceWorkerService
 - Gestión de Apartamentos — Laujim APP
-- collectRenderedWaterPolicies
+- BroadcastReceiver
 - generate-version.js
-- MainActivity.java
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/assets/portal-scraper.js
 - content-portals.js
 - popup.js
 - deploy-snapshot.cjs
 - seed-data.js
-- ExampleInstrumentedTest.java
+- android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
 - content-laujim.js
 - copy-apk.js
 - fix-html.js
@@ -82,11 +82,11 @@
 - ScraperWorkerService
 - clipboard.js
 - Extensión de Chrome — Llenar Laujim
-- App.jsx
+- auth.js
 - run-pc-worker-aiven.cjs
 - pre-whatsapp-bot/package.json
 - Plan — Cámaras + Timbre QR + Integración Laujim APP (RUTA SIN VPS)
-- scrapeGasAccount
+- loginPortalPage
 - cdp-driver.cjs
 - 2. Modos de ejecución
 - cdp-driver.mjs
@@ -122,7 +122,7 @@
 - plugins/ponytail/benchmarks/agentic/run.py
 - Worker portatil de servicios
 - plugins/ponytail/benchmarks/robustness-audit.js
-- api
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/assets/portal-scraper.js
 - test-water-scraper.cjs
 - @capacitor/local-notifications
 - Commands
@@ -135,8 +135,9 @@
 - Plantilla de WhatsApp: cobro_canon_servicios
 - vendor/ponytail/ponytail-mcp/instructions.js
 - Cookies
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/assets/portal-scraper.js
 - jsqr
-- PortalSessionVault
+- Storage State
 - multer
 - docker-start-render.sh
 - react-dom
@@ -145,27 +146,28 @@
 - @tailwindcss/vite
 - vendor/ponytail/hooks/ponytail-runtime.js
 - vendor/ponytail/__init__.py
-- .enabled
+- ScraperWorkerSchedule
 - jsqr
-- cors
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/assets/portal-scraper.js
 - .dispatchInternal
 - lucide-react
-- auth.js
+- ScraperWorkerService
 - prepare-capacitor-assets.js
-- ScraperWorkerPlugin
+- MarketplaceWorkerSchedule
 - GUÍA DEL INSTALADOR — Cableado y conexiones físicas (Cámaras + Timbre QR, ruta SIN VPS)
 - plugins/ponytail/benchmarks/agentic/tasks.py
 - test-marketplace-api.cjs
-- marketplace-worker.js
+- android/app/src/main/assets/marketplace-worker.js
 - react-dom
 - Local Storage
-- api.js
+- ScraperWorkerService
 - getR2Client
 - Browser Session Management
 - react-router-dom
 - uninstall.test.js
-- .onReceive
-- @capacitor/android
+- @capacitor/cli
+- ScraperWorkerStore
+- ScraperWorkerService
 - 3. Heal
 - Test generation (plan → generate → heal)
 - vendor/ponytail/hooks/ponytail-config.js
@@ -254,7 +256,7 @@
 - URL Parameters
 - .openclaw/skills/ponytail-debt/SKILL.md
 - ponytail/skills/ponytail-debt/SKILL.md
-- .schedule
+- ScraperWorkerStore
 - integration.spec.ts
 - react-countdown.md
 - dexie
@@ -276,7 +278,7 @@
 - Install
 - plugins/ponytail/README.es.md
 - plugins/ponytail/tests/openclaw-skills.test.js
-- ScraperWorkerService.java
+- ScraperWorkerStore
 - plugins/ponytail/benchmarks/generate-examples.mjs
 - plugins/ponytail/ponytail-mcp/instructions.js
 - Install
@@ -304,7 +306,7 @@
 - Ponytail
 - Ponytail
 - plugins/ponytail/tests/hooks-windows.test.js
-- .doWork
+- android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
 - plugins/ponytail/tests/behavior.test.js
 - plugins/ponytail/benchmarks/benchmark-local.py
 - plugins/ponytail/.claude-plugin/marketplace.json
@@ -333,7 +335,7 @@
 - plugins/ponytail/skills/ponytail-audit/SKILL.md
 - Ponytail Gain
 - plugins/ponytail/skills/ponytail-review/SKILL.md
-- @capacitor/core
+- MarketplaceBrowserActivity
 - plugins/ponytail/benchmarks/arms/caveman.js
 - plugins/ponytail/benchmarks/arms/ponytail.js
 - Deep Clone
@@ -345,10 +347,11 @@
 - plugins/ponytail/.openclaw/skills/ponytail-debt/SKILL.md
 - plugins/ponytail/opencode.json
 - plugins/ponytail/skills/ponytail-debt/SKILL.md
+- MarketplaceBrowserActivity
 - plugins/ponytail/examples/react-countdown.md
-- PortalBridge
-- @capacitor/cli
-- @capacitor/core
+- MarketplaceBrowserActivity
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java
 - node-cron
 - plugins/ponytail/after-install.md
 - plugins/ponytail/.agents/rules/ponytail.md
@@ -358,56 +361,289 @@
 - plugins/ponytail/.windsurf/rules/ponytail.md
 - qrcode
 - recharts
-- .calculateNextRunAt
-- Storage State
+- MarketplaceWorkerService
+- PortalBrowserActivity
+- PortalBrowserActivity
+- MarketplaceWorkerService
 - portalFieldValue
+- MarketplaceWorkerService
+- PortalSessionVault
+- PortalSessionVault
+- PortalSessionVault
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/assets/marketplace-worker.js
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/assets/marketplace-worker.js
+- PortalBrowserActivity
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/assets/portal-scraper.js
+- ScraperWorkerPlugin
+- Service
+- AuthorizedCallerStore
+- AuthorizedCallerStore
+- AuthorizedCallerStore
+- CallScreeningService
+- ScraperWorkerSchedule
+- ScraperWorkerSchedule
 - capacitor-android/intermediates/assets/debug/mergeDebugAssets/native-bridge.js
+- MarketplacePhotoUtils
+- MarketplacePhotoUtils
 - verify-gas-contract-links.cjs
+- MarketplacePhotoUtils
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
+- AuthorizedSmsStore
+- Worker
+- AuthorizedSmsStore
+- AuthorizedSmsStore
+- ScraperWorkerScheduleTest
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
+- ScraperWorkerScheduleTest
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
+- ScraperWorkerScheduleTest
+- PortalSessionVault
+- android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
+- ScraperWorkerDispatcher
+- ScraperWorkerDispatcher
+- android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
+- android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
+- MarketplaceWorkerSchedule
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
+- MarketplaceWorkerSchedule
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
+- MarketplaceWorkerDispatcher
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
+- MarketplaceWorkerDispatcher
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
+- MarketplaceWorkerDispatcher
+- ScraperWorkerStore
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/assets/portal-scraper.js
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/gradlew
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/gradlew
+- MarketplaceBrowserActivity
+- MarketplaceWorkerService
+- PortalBrowserActivity
+- ScraperWorkerService
+- PortalSessionVault
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/assets/marketplace-worker.js
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/assets/marketplace-worker.js
+- ScraperWorkerStore
+- ScraperWorkerPlugin
+- ScraperWorkerPlugin
+- AuthorizedCallerStore
+- ScraperWorkerSchedule
+- MarketplaceBrowserActivity
+- MarketplacePhotoUtils
+- android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
+- android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- AuthorizedSmsStore
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
+- ScraperWorkerScheduleTest
+- ScraperWorkerDispatcher
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
+- MarketplaceWorkerSchedule
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
+- MarketplaceWorkerService
+- PortalBrowserActivity
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
+- MarketplaceWorkerDispatcher
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
+- android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/gradlew
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/assets/portal-scraper.js
+- ScraperWorkerService
+- PortalSessionVault
+- AuthorizedCallerStore
+- ScraperWorkerSchedule
+- MarketplacePhotoUtils
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
+- AuthorizedSmsStore
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/assets/marketplace-worker.js
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
+- ScraperWorkerScheduleTest
+- ScraperWorkerDispatcher
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
+- MarketplaceWorkerSchedule
+- AuthorizedCallerPlugin
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
+- MarketplaceWorkerDispatcher
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/gradlew
+- AuthorizedCallerPlugin
+- AuthorizedCallerPlugin
+- AuthorizedCallerPlugin
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java
+- ScraperWorkerPlugin
+- AuthorizedCallerStore
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/assets/portal-scraper.js
+- ScraperWorkerSchedule
+- MarketplacePhotoUtils
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
+- AuthorizedSmsStore
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- Predial.jsx
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
+- ScraperWorkerScheduleTest
+- scrapeGasAccount
+- ScraperWorkerDispatcher
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java
+- MarketplaceBrowserActivity
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
+- MarketplaceWorkerSchedule
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
+- collectRenderedWaterPolicies
+- @capacitor-mlkit/barcode-scanning
+- ScraperWorkerService
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
+- MarketplaceWorkerDispatcher
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/gradlew
+- cors
+- ScraperWorkerStore
+- MarketplaceBrowserActivity
+- ScraperWorkerService
+- ScraperWorkerStore
+- MarketplaceBrowserActivity
+- ScraperWorkerService
+- ScraperWorkerStore
+- MarketplaceWorkerService
+- MarketplaceWorkerService
+- MarketplaceWorkerService
+- PortalBrowserActivity
+- PortalBrowserActivity
+- PortalBrowserActivity
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/assets/marketplace-worker.js
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/assets/marketplace-worker.js
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/assets/marketplace-worker.js
+- PortalSessionVault
+- PortalSessionVault
+- PortalSessionVault
+- AuthorizedCallerPlugin
+- AuthorizedCallerPlugin
+- AuthorizedCallerPlugin
+- AuthorizedCallerPlugin
+- ScraperWorkerPlugin
+- ScraperWorkerPlugin
+- ScraperWorkerPlugin
+- ScraperWorkerPlugin
+- ScraperWorkerPlugin
+- AuthorizedCallerStore
+- AuthorizedCallerStore
+- AuthorizedCallerStore
+- ScraperWorkerSchedule
+- ScraperWorkerSchedule
+- ScraperWorkerSchedule
+- MarketplacePhotoUtils
+- MarketplacePhotoUtils
+- MarketplacePhotoUtils
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
+- AuthorizedSmsStore
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- AuthorizedSmsStore
+- Activity
+- AuthorizedSmsStore
+- BridgeActivity
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
+- ScraperWorkerScheduleTest
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
+- ScraperWorkerScheduleTest
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
+- ScraperWorkerScheduleTest
+- ScraperWorkerDispatcher
+- ScraperWorkerDispatcher
+- ScraperWorkerDispatcher
+- @capacitor/filesystem
+- @capacitor/core
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
+- MarketplaceWorkerSchedule
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
+- MarketplaceWorkerSchedule
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
+- MarketplaceWorkerSchedule
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
+- MarketplaceWorkerDispatcher
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
+- MarketplaceWorkerDispatcher
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
+- MarketplaceWorkerDispatcher
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/gradlew
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
+- android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/gradlew
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
+- android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/gradlew
 
 ## God Nodes (most connected - your core abstractions)
-1. `startServer()` - 68 edges
+1. `startServer()` - 70 edges
 2. `ScraperWorkerStore` - 51 edges
-3. `startServer()` - 49 edges
-4. `ScraperWorkerService` - 43 edges
-5. `getBase()` - 40 edges
-6. `MarketplaceBrowserActivity` - 37 edges
-7. `handleCloudAdminMessage()` - 33 edges
-8. `PortalBrowserActivity` - 31 edges
-9. `scrapeGasAccount()` - 31 edges
-10. `MarketplaceWorkerService` - 30 edges
+3. `ScraperWorkerStore` - 51 edges
+4. `ScraperWorkerStore` - 51 edges
+5. `ScraperWorkerStore` - 51 edges
+6. `ScraperWorkerStore` - 51 edges
+7. `ScraperWorkerStore` - 51 edges
+8. `ScraperWorkerStore` - 51 edges
+9. `ScraperWorkerStore` - 51 edges
+10. `ScraperWorkerStore` - 51 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `portalFrameRoots()` --indirect_call--> `frame()`  [INFERRED]
   services-scraper.cjs → .tmp/vendor/playwright-cli/skillCheck.js
-- `portalFieldValue()` --indirect_call--> `field()`  [INFERRED]
-  services-scraper.cjs → android/app/src/main/assets/portal-scraper.js
 - `startServer()` --calls--> `scrapeAirE()`  [EXTRACTED]
   _head_server.cjs → services-scraper.cjs
 - `startServer()` --calls--> `startScheduler()`  [EXTRACTED]
   _head_server.cjs → services-scraper.cjs
 - `generateApartmentPDF()` --references--> `jspdf`  [EXTRACTED]
   src/utils/pdf.js → package.json
+- `utilityDebtAmount()` --calls--> `parseCopAmount()`  [EXTRACTED]
+  server.cjs → services-scraper.cjs
 
 ## Import Cycles
 - None detected.
 
-## Communities (383 total, 55 thin omitted)
+## Communities (667 total, 87 thin omitted)
 
 ### Community 0 - "handleCloudAdminMessage"
-Cohesion: 0.26
-Nodes (27): clearCloudAuthState(), cloudApartmentFloor(), cloudApartmentsForFloor(), cloudFindApartment(), cloudListSections(), cloudServiceApartmentsForFloor(), failCloudAuthentication(), handleCloudAdminMessage() (+19 more)
+Cohesion: 0.19
+Nodes (33): clearCloudAuthState(), cloudApartmentFloor(), cloudApartmentsForFloor(), cloudFindApartment(), cloudListSections(), cloudNormaliseText(), cloudServiceApartmentsForFloor(), constantTimeEqual() (+25 more)
 
-### Community 1 - "Utilities.jsx"
-Cohesion: 0.10
-Nodes (39): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), Dashboard() (+31 more)
+### Community 1 - "ApartmentDetail.jsx"
+Cohesion: 0.06
+Nodes (57): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), canvasBlob() (+49 more)
 
-### Community 2 - ".status"
-Cohesion: 0.08
-Nodes (24): ActivityCallback, ActivityResult, AuthorizedCallerPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, AuthorizedCallerScreeningService (+16 more)
+### Community 2 - "Plugin"
+Cohesion: 0.23
+Nodes (9): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod (+1 more)
 
 ### Community 3 - "server.cjs"
-Cohesion: 0.04
-Nodes (73): accessRateLimits, activeContractForTenant(), activeTenantForApartment(), app, BACKUP_DIR, BACKUP_FILE, buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo() (+65 more)
+Cohesion: 0.05
+Nodes (67): accessRateLimits, app, BACKUP_DIR, BACKUP_FILE, buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildDebtReply(), CLOUD_SERVICE_PRESENTATIONS (+59 more)
 
 ### Community 4 - "pre-whatsapp-bot/server.cjs"
 Cohesion: 0.08
@@ -427,7 +663,7 @@ Nodes (22): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudG
 
 ### Community 8 - "dependencies"
 Cohesion: 0.06
-Nodes (33): @aws-sdk/client-s3, @capacitor/android, @capacitor/filesystem, @capacitor-mlkit/barcode-scanning, @capacitor/share, docxtemplater, express, ffmpeg-static (+25 more)
+Nodes (33): @aws-sdk/client-s3, @capacitor/android, @capacitor/core, @capacitor-mlkit/barcode-scanning, @capacitor/share, docxtemplater, express, ffmpeg-static (+25 more)
 
 ### Community 9 - "saveData"
 Cohesion: 0.24
@@ -435,7 +671,7 @@ Nodes (11): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getA
 
 ### Community 10 - "dependencies"
 Cohesion: 0.11
-Nodes (19): dependencies, @capacitor/cli, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share, express, pg, qrcode (+11 more)
+Nodes (19): dependencies, @capacitor/android, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, express, pg, qrcode (+11 more)
 
 ### Community 11 - "vendor/ponytail/benchmarks/agentic/tasks.py"
 Cohesion: 0.17
@@ -445,29 +681,29 @@ Nodes (28): _contained(), _fail(), _find(), _find_class(), _import(), _import_pk
 Cohesion: 0.22
 Nodes (21): addCloudMessage(), authorizedCloudContact(), blockCloudUser(), clearCloudAuthState(), cloudInboundMedia(), cloudInteractiveReply(), ensureCloudCollections(), failCloudAuthentication() (+13 more)
 
-### Community 13 - "getBase"
+### Community 13 - "App.jsx"
 Cohesion: 0.08
-Nodes (29): react, getServerVersion(), App(), ErrorBoundary, readInstalledAndroidVersion(), VersionBanner(), versionIsNewer(), ContractGenerator() (+21 more)
+Nodes (40): react, api, getServerVersion(), Layout(), navItems, Modal(), readInstalledAndroidVersion(), VersionBanner() (+32 more)
 
 ### Community 14 - "content-facebook.js"
 Cohesion: 0.25
 Nodes (22): activate(), autoFill(), checkAndRun(), chooseDropdown(), fillAndConfirmAddress(), fillAndConfirmAddressReliable(), findAndSet(), findDropdown() (+14 more)
 
 ### Community 15 - "ScraperWorkerStore"
-Cohesion: 0.15
+Cohesion: 0.11
 Nodes (3): Context, SharedPreferences, ScraperWorkerStore
 
 ### Community 16 - "handleCloudInbound"
-Cohesion: 0.12
-Nodes (32): addCloudMessage(), authorizedCloudContact(), blockCloudUser(), cloudAdminGreeting(), cloudAdminPhones(), cloudApiRequest(), cloudInboundMedia(), cloudInteractiveReply() (+24 more)
+Cohesion: 0.11
+Nodes (34): activeContractForTenant(), activeTenantForApartment(), addCloudMessage(), authorizedCloudContact(), blockCloudUser(), cloudAdminGreeting(), cloudAdminPhones(), cloudInboundMedia() (+26 more)
 
 ### Community 17 - "scripts"
 Cohesion: 0.20
 Nodes (10): scripts, backup, build, build-apk, dev, lint, network, preview (+2 more)
 
-### Community 18 - "loginPortalPage"
-Cohesion: 0.39
-Nodes (9): clickVisibleButton(), loginPortalPage(), portalFrameRoots(), portalLoginDiagnostic(), submitPortalLoginForm(), typeVisibleField(), visibleHandle(), visibleSelectorExists() (+1 more)
+### Community 18 - "api.js"
+Cohesion: 0.12
+Nodes (24): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), lastCloudSyncStatus, markLocalMutation(), refreshAllFromServer(), serverReq() (+16 more)
 
 ### Community 19 - "chrome-cdp.js"
 Cohesion: 0.53
@@ -482,8 +718,8 @@ Cohesion: 0.07
 Nodes (27): 1.1 Identidad, 1.2 Stack (verificado en package.json + README), 1.3 Autenticación, 1.4 Colecciones existentes (13 núcleo), 1.5 Datos relevantes por apartamento, 1.6 Puntos de extensión existentes (patrones a imitar), 1. ESTADO ACTUAL DE LA APP, 2. LIMITACIONES DE HARDWARE / INFRAESTRUCTURA (CRÍTICAS) (+19 more)
 
 ### Community 22 - "Settings.jsx"
-Cohesion: 0.33
-Nodes (15): Settings(), callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus(), nativeAndroid(), normalizedPhone(), requestCallScreeningRole(), requestProtectedSmsRole() (+7 more)
+Cohesion: 0.26
+Nodes (17): callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus(), nativeAndroid(), normalizedPhone(), requestCallScreeningRole(), requestProtectedSmsRole(), setAllowCallsFromContacts() (+9 more)
 
 ### Community 23 - "services-scraper.cjs"
 Cohesion: 0.06
@@ -510,12 +746,12 @@ Cohesion: 0.24
 Nodes (9): collectionCount(), DATA_FILE, { execFileSync }, fs, localDataChanged(), path, { Pool }, ROOT (+1 more)
 
 ### Community 29 - "sendCloudGlobalServices"
-Cohesion: 0.12
-Nodes (33): activeContractForApartment(), buildAdminDebtReport(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), buildCloudServicesImageData(), cloudApartmentServices(), cloudApartmentServicesLine(), cloudCalendarDate() (+25 more)
+Cohesion: 0.10
+Nodes (36): activeContractForApartment(), buildAdminDebtReport(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), buildCloudServicesImageData(), cloudApartmentServices(), cloudApartmentServicesLine(), cloudApiRequest() (+28 more)
 
 ### Community 31 - "startServer"
-Cohesion: 0.08
-Nodes (36): accessRateAllowed(), appendAccessEvent(), archiveCloudInboundMedia(), cameraDefinitions(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudReady() (+28 more)
+Cohesion: 0.09
+Nodes (32): accessRateAllowed(), appendAccessEvent(), archiveCloudInboundMedia(), cameraDefinitions(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudReady() (+24 more)
 
 ### Community 32 - "devDependencies"
 Cohesion: 0.18
@@ -529,9 +765,9 @@ Nodes (14): scripts, backup, build, build-apk, dev, graphify, lint, network (+6 
 Cohesion: 0.20
 Nodes (9): backupDir, dataDir, __dirname, dst, files, now, root, src (+1 more)
 
-### Community 35 - "ApartmentDetail.jsx"
-Cohesion: 0.12
-Nodes (19): canvasBlob(), photoSizeBytes(), photoSizeLabel(), preparePhotoForUpload(), serviceColors, serviceIcons, serviceNames, utilityWebsites (+11 more)
+### Community 35 - "PrivateApp"
+Cohesion: 0.27
+Nodes (13): getCloudSyncStatus(), PrivateApp(), iconMap, ThemeSelector(), applyTheme(), getTheme(), getThemeInfo(), initTheme() (+5 more)
 
 ### Community 36 - "playwright-cli.js"
 Cohesion: 0.05
@@ -550,8 +786,8 @@ Cohesion: 0.12
 Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
 
 ### Community 40 - "MarketplaceBrowserActivity"
-Cohesion: 0.08
-Nodes (18): Bundle, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override, TextView (+10 more)
+Cohesion: 0.09
+Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
 
 ### Community 42 - ".oxlintrc.json"
 Cohesion: 0.25
@@ -562,28 +798,28 @@ Cohesion: 0.25
 Nodes (6): db, dbCjsPath, dbPath, __dirname, root, seedCopy
 
 ### Community 44 - "ScraperWorker.jsx"
-Cohesion: 0.16
-Nodes (35): DEFAULT_SCHEDULE, formatLogTime(), formatSchedule(), gasAccountGroups(), gasAccountLabel(), logLevelClass(), LogList(), ScraperWorker() (+27 more)
+Cohesion: 0.14
+Nodes (38): uploadFile(), DEFAULT_SCHEDULE, formatLogTime(), formatSchedule(), gasAccountGroups(), gasAccountLabel(), logLevelClass(), LogList() (+30 more)
 
 ### Community 45 - "MarketplaceWorkerService"
-Cohesion: 0.09
-Nodes (19): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+11 more)
+Cohesion: 0.11
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
 
 ### Community 46 - "Gestión de Apartamentos — Laujim APP"
 Cohesion: 0.12
 Nodes (16): Arquitectura del Sistema, Estructura del Proyecto, Flujo de Datos, Force Desktop Layout (APK + Mobile Web), Funcionamiento, Funciones Principales, Gestión de Apartamentos — Laujim APP, Impuesto Predial (+8 more)
 
-### Community 47 - "collectRenderedWaterPolicies"
-Cohesion: 0.67
-Nodes (3): collectRenderedWaterPolicies(), renderedWaterPolicies(), waitForRenderedReader()
+### Community 47 - "BroadcastReceiver"
+Cohesion: 0.43
+Nodes (5): AuthorizedMmsReceiver, Context, Intent, Override, BroadcastReceiver
 
 ### Community 48 - "generate-version.js"
 Cohesion: 0.15
 Nodes (11): androidGradle, apkVersion, appVersion, __dirname, dist, now, publicDir, publicVersionFile (+3 more)
 
-### Community 49 - "MainActivity.java"
-Cohesion: 0.31
-Nodes (7): Bundle, Intent, Override, Uri, ValueCallback, MainActivity, BridgeActivity
+### Community 49 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/assets/portal-scraper.js"
+Cohesion: 0.12
+Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
 
 ### Community 50 - "content-portals.js"
 Cohesion: 0.53
@@ -601,9 +837,9 @@ Nodes (5): BACKUP_FILE, DATA_FILE, { execSync }, fs, path
 Cohesion: 0.33
 Nodes (5): DATA, dataPath, dbCjsPath, __dirname, now
 
-### Community 54 - "ExampleInstrumentedTest.java"
+### Community 54 - "android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
 Cohesion: 0.60
-Nodes (3): ExampleInstrumentedTest, Test, RunWith
+Nodes (3): ExampleInstrumentedTest, RunWith, Test
 
 ### Community 55 - "content-laujim.js"
 Cohesion: 0.60
@@ -638,16 +874,16 @@ Cohesion: 0.83
 Nodes (3): gradlew script, die(), warn()
 
 ### Community 64 - "ScraperWorkerService"
-Cohesion: 0.22
-Nodes (4): HttpResult, JSONArray, JSONObject, ScraperWorkerService
+Cohesion: 0.09
+Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
 
 ### Community 66 - "Extensión de Chrome — Llenar Laujim"
 Cohesion: 0.12
 Nodes (16): Arquitectura, Backup de referencia, Configuración actual de dropdowns (v1.4.5), Extensión de Chrome — Llenar Laujim, Flujo de `chooseDropdown` (v1.4.5), Gestión de anuncios, Instalación, La app no carga en el navegador (+8 more)
 
-### Community 67 - "App.jsx"
-Cohesion: 0.12
-Nodes (25): getCloudSyncStatus(), refreshAllFromServer(), startCloudPolling(), AdminRoute(), PrivateApp(), ProtectedRoute(), Layout(), navItems (+17 more)
+### Community 67 - "auth.js"
+Cohesion: 0.17
+Nodes (27): AdminRoute(), ProtectedRoute(), Chat(), getAuth(), getTenantApartmentId(), isAdmin(), isTenant(), login() (+19 more)
 
 ### Community 68 - "run-pc-worker-aiven.cjs"
 Cohesion: 0.22
@@ -661,9 +897,9 @@ Nodes (6): engines, node, name, private, type, version
 Cohesion: 0.17
 Nodes (11): Arquitectura (resumen), Cambio de ruta — 2026-08-14 (sin VPS), Decisión tomada (2026-08-14), Equipos (compra el dueño, obra aparte ~$300), Funcionalidad, Integración en Laujim APP (alcance acordado), Orden de operaciones, Pendientes independientes de este plan (+3 more)
 
-### Community 71 - "scrapeGasAccount"
-Cohesion: 0.18
-Nodes (20): apartmentNumberFrom(), attachBrowserlessCaptchaSolver(), browserlessEndpointCandidates(), closeWaterBrowser(), configuredApartmentTargets(), gasContractPaymentUrl(), gasRecord(), launchBrowser() (+12 more)
+### Community 71 - "loginPortalPage"
+Cohesion: 0.39
+Nodes (9): clickVisibleButton(), loginPortalPage(), portalFrameRoots(), portalLoginDiagnostic(), submitPortalLoginForm(), typeVisibleField(), visibleHandle(), visibleSelectorExists() (+1 more)
 
 ### Community 72 - "cdp-driver.cjs"
 Cohesion: 0.60
@@ -762,8 +998,8 @@ Cohesion: 0.12
 Nodes (31): aggregate(), chat_code_loc(), _claude_version(), code_stats(), _count(), _git(), git_diff_stats(), _git_snapshot() (+23 more)
 
 ### Community 115 - "PortalBrowserActivity"
-Cohesion: 0.13
-Nodes (8): Activity, Bundle, Handler, Intent, Override, TextView, WebView, PortalBrowserActivity
+Cohesion: 0.11
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
 
 ### Community 116 - "robustness-audit.js"
 Cohesion: 0.08
@@ -785,9 +1021,9 @@ Nodes (7): Android, Cambiar de dispositivo, Configuracion de Render, Contrato HT
 Cohesion: 0.08
 Nodes (25): { checkPy, pyBlock, TASKS }, email, fs, kv, MODELS, path, skill, { checkPy, pyBlock, TASKS } (+17 more)
 
-### Community 122 - "api"
-Cohesion: 0.21
-Nodes (11): api, Modal(), Apartments(), Contracts(), getPredialUrl(), lookupRef(), Predial(), REF_MAP (+3 more)
+### Community 122 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/assets/portal-scraper.js"
+Cohesion: 0.12
+Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
 
 ### Community 123 - "test-water-scraper.cjs"
 Cohesion: 0.50
@@ -825,13 +1061,17 @@ Nodes (3): Cuerpo para Meta, Orden de variables, Plantilla de WhatsApp: `cobro_c
 Cohesion: 0.26
 Nodes (10): getDefaultMode(), modeArg, server, { version }, buildInstructions(), { getDefaultMode, normalizeMode }, { getPonytailInstructions }, MODES (+2 more)
 
-### Community 135 - "Cookies"
+### Community 134 - "Cookies"
 Cohesion: 0.22
 Nodes (9): Advanced: Multiple Cookies or Custom Options, Clear All Cookies, Cookies, Delete a Cookie, Filter Cookies by Domain, Filter Cookies by Path, Get Specific Cookie, List All Cookies (+1 more)
 
-### Community 137 - "PortalSessionVault"
-Cohesion: 0.17
-Nodes (4): Context, SharedPreferences, PortalSessionVault, SecretKey
+### Community 135 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/assets/portal-scraper.js"
+Cohesion: 0.12
+Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
+
+### Community 137 - "Storage State"
+Cohesion: 0.50
+Nodes (4): Restore Storage State, Save Storage State, Storage State, Storage State File Format
 
 ### Community 144 - "vendor/ponytail/hooks/ponytail-runtime.js"
 Cohesion: 0.13
@@ -841,17 +1081,17 @@ Nodes (20): isDeactivationCommand(), { clearMode, isQoder, readMode, setMode, wr
 Cohesion: 0.19
 Nodes (21): build_injected_context(), _config_dir(), _default_mode(), _fallback_instructions(), _filter_skill_body_for_mode(), _handle_mode_command(), _make_skill_command_handler(), _normalize_config_mode() (+13 more)
 
-### Community 146 - ".enabled"
-Cohesion: 0.24
-Nodes (4): Context, ScraperWorkerSchedule, Override, PendingIntent
+### Community 146 - "ScraperWorkerSchedule"
+Cohesion: 0.34
+Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
 
-### Community 152 - "auth.js"
-Cohesion: 0.16
-Nodes (30): startDataVersionPolling(), stopCloudPolling(), stopDataVersionPolling(), Chat(), Login(), clearAuth(), getAuth(), getTenantApartmentId() (+22 more)
+### Community 148 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/assets/portal-scraper.js"
+Cohesion: 0.12
+Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
 
-### Community 154 - "ScraperWorkerPlugin"
-Cohesion: 0.25
-Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+### Community 152 - "ScraperWorkerService"
+Cohesion: 0.09
+Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
 
 ### Community 155 - "GUÍA DEL INSTALADOR — Cableado y conexiones físicas (Cámaras + Timbre QR, ruta SIN VPS)"
 Cohesion: 0.22
@@ -865,17 +1105,17 @@ Nodes (28): _contained(), _fail(), _find(), _find_class(), _import(), _import_pk
 Cohesion: 0.22
 Nodes (10): child, fs, os, path, project, request(), run(), { spawn } (+2 more)
 
-### Community 158 - "marketplace-worker.js"
-Cohesion: 0.29
-Nodes (25): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+17 more)
+### Community 158 - "android/app/src/main/assets/marketplace-worker.js"
+Cohesion: 0.25
+Nodes (28): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+20 more)
 
 ### Community 160 - "Local Storage"
 Cohesion: 0.09
 Nodes (22): Advanced: Multiple Operations, Authentication State Reuse, Clear All localStorage, Clear sessionStorage, Common Patterns, Delete Database, Delete Single Item, Delete Single Item (+14 more)
 
-### Community 161 - "api.js"
-Cohesion: 0.14
-Nodes (18): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), lastCloudSyncStatus, markLocalMutation(), serverReq(), updateItem() (+10 more)
+### Community 161 - "ScraperWorkerService"
+Cohesion: 0.09
+Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
 
 ### Community 162 - "getR2Client"
 Cohesion: 0.38
@@ -889,9 +1129,13 @@ Nodes (20): 1. Name Browser Sessions Semantically, 2. Always Clean Up, 3. Delete
 Cohesion: 0.10
 Nodes (18): assert, claudeDir, configDir, configPath, env, flagPath, fs, home (+10 more)
 
-### Community 166 - ".onReceive"
-Cohesion: 0.16
-Nodes (13): AuthorizedMmsReceiver, Context, Intent, Override, Context, Intent, Override, ScraperWorkerAlarmReceiver (+5 more)
+### Community 167 - "ScraperWorkerStore"
+Cohesion: 0.11
+Nodes (3): Context, SharedPreferences, ScraperWorkerStore
+
+### Community 168 - "ScraperWorkerService"
+Cohesion: 0.09
+Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
 
 ### Community 169 - "3. Heal"
 Cohesion: 0.33
@@ -1251,6 +1495,10 @@ Nodes (3): Boundaries, Output, Scan
 Cohesion: 0.50
 Nodes (3): Boundaries, Output, Scan
 
+### Community 258 - "ScraperWorkerStore"
+Cohesion: 0.11
+Nodes (3): Context, SharedPreferences, ScraperWorkerStore
+
 ### Community 262 - "plugins/ponytail/benchmarks/correctness.js"
 Cohesion: 0.10
 Nodes (17): CHECKS, correctnessTimeoutMs(), exec(), { execSync }, fs, os, path, python() (+9 more)
@@ -1287,9 +1535,9 @@ Nodes (10): Ponytail, lazy senior dev mode, Antes / después, Comandos, Cómo fu
 Cohesion: 0.21
 Nodes (12): DESCRIPTIONS, fs, NAMES, outPath(), path, render(), ROOT, sourceBody() (+4 more)
 
-### Community 289 - "ScraperWorkerService.java"
-Cohesion: 0.13
-Nodes (7): Handler, IBinder, Intent, JavascriptInterface, Notification, WebView, JavascriptResultBridge
+### Community 289 - "ScraperWorkerStore"
+Cohesion: 0.11
+Nodes (3): Context, SharedPreferences, ScraperWorkerStore
 
 ### Community 290 - "plugins/ponytail/benchmarks/generate-examples.mjs"
 Cohesion: 0.18
@@ -1405,9 +1653,9 @@ Nodes (8): Boundaries, Intensity, Output, Persistence, Ponytail, Rules, The ladd
 Cohesion: 0.22
 Nodes (7): assert, fs, HOST_PLUGIN_MANIFESTS, path, root, { spawn }, test
 
-### Community 317 - ".doWork"
-Cohesion: 0.11
-Nodes (16): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker, Context, MarketplaceWorkerDispatcher (+8 more)
+### Community 317 - "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java"
+Cohesion: 0.27
+Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
 
 ### Community 318 - "plugins/ponytail/tests/behavior.test.js"
 Cohesion: 0.29
@@ -1517,6 +1765,10 @@ Nodes (4): Boundaries, Honesty boundary, Ponytail Gain, Scoreboard
 Cohesion: 0.40
 Nodes (4): Boundaries, Examples, Format, Scoring
 
+### Community 347 - "MarketplaceBrowserActivity"
+Cohesion: 0.09
+Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
+
 ### Community 348 - "plugins/ponytail/benchmarks/arms/caveman.js"
 Cohesion: 0.50
 Nodes (3): fs, path, system
@@ -1561,41 +1813,841 @@ Nodes (3): ./.opencode/plugins/ponytail.mjs, plugin, $schema
 Cohesion: 0.50
 Nodes (3): Boundaries, Output, Scan
 
-### Community 381 - ".calculateNextRunAt"
-Cohesion: 0.26
-Nodes (3): Test, ScraperWorkerScheduleTest, TimeZone
+### Community 359 - "MarketplaceBrowserActivity"
+Cohesion: 0.09
+Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
 
-### Community 383 - "Storage State"
-Cohesion: 0.50
-Nodes (4): Restore Storage State, Save Storage State, Storage State, Storage State File Format
+### Community 361 - "MarketplaceBrowserActivity"
+Cohesion: 0.09
+Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
+
+### Community 362 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java"
+Cohesion: 0.47
+Nodes (4): IBinder, Intent, Override, RespondViaMessageService
+
+### Community 363 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java"
+Cohesion: 0.47
+Nodes (4): IBinder, Intent, Override, RespondViaMessageService
+
+### Community 381 - "MarketplaceWorkerService"
+Cohesion: 0.11
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
+
+### Community 382 - "PortalBrowserActivity"
+Cohesion: 0.12
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+
+### Community 383 - "PortalBrowserActivity"
+Cohesion: 0.12
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+
+### Community 384 - "MarketplaceWorkerService"
+Cohesion: 0.11
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
 
 ### Community 385 - "portalFieldValue"
 Cohesion: 0.47
 Nodes (6): gasInvoiceSummary(), parsePortalAmount(), portalFieldCandidates(), portalFieldValue(), tripleARecord(), tripleAStatusValue()
 
+### Community 386 - "MarketplaceWorkerService"
+Cohesion: 0.11
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
+
+### Community 387 - "PortalSessionVault"
+Cohesion: 0.18
+Nodes (4): Context, SecretKey, SharedPreferences, PortalSessionVault
+
+### Community 388 - "PortalSessionVault"
+Cohesion: 0.18
+Nodes (4): Context, SecretKey, SharedPreferences, PortalSessionVault
+
+### Community 389 - "PortalSessionVault"
+Cohesion: 0.18
+Nodes (4): Context, SecretKey, SharedPreferences, PortalSessionVault
+
+### Community 390 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/assets/marketplace-worker.js"
+Cohesion: 0.29
+Nodes (25): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+17 more)
+
+### Community 391 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/assets/marketplace-worker.js"
+Cohesion: 0.29
+Nodes (25): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+17 more)
+
+### Community 392 - "PortalBrowserActivity"
+Cohesion: 0.12
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+
+### Community 393 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/assets/portal-scraper.js"
+Cohesion: 0.12
+Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
+
+### Community 394 - "ScraperWorkerPlugin"
+Cohesion: 0.30
+Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+
+### Community 395 - "Service"
+Cohesion: 0.12
+Nodes (17): IBinder, Intent, Override, RespondViaMessageService, Service, IBinder, Intent, Override (+9 more)
+
+### Community 396 - "AuthorizedCallerStore"
+Cohesion: 0.29
+Nodes (3): AuthorizedCallerStore, Context, SharedPreferences
+
+### Community 397 - "AuthorizedCallerStore"
+Cohesion: 0.29
+Nodes (3): AuthorizedCallerStore, Context, SharedPreferences
+
+### Community 398 - "AuthorizedCallerStore"
+Cohesion: 0.29
+Nodes (3): AuthorizedCallerStore, Context, SharedPreferences
+
+### Community 399 - "CallScreeningService"
+Cohesion: 0.05
+Nodes (28): AuthorizedCallerScreeningService, Details, Override, CallScreeningService, AuthorizedCallerScreeningService, Details, Override, AuthorizedCallerScreeningService (+20 more)
+
+### Community 400 - "ScraperWorkerSchedule"
+Cohesion: 0.34
+Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
+
+### Community 401 - "ScraperWorkerSchedule"
+Cohesion: 0.34
+Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
+
 ### Community 402 - "capacitor-android/intermediates/assets/debug/mergeDebugAssets/native-bridge.js"
 Cohesion: 0.33
 Nodes (3): CapacitorException, TODO: export as Cap function, TODO: export as Cap function
 
+### Community 403 - "MarketplacePhotoUtils"
+Cohesion: 0.35
+Nodes (4): ContentResolver, FileOutputStream, Uri, MarketplacePhotoUtils
+
+### Community 404 - "MarketplacePhotoUtils"
+Cohesion: 0.35
+Nodes (4): ContentResolver, FileOutputStream, Uri, MarketplacePhotoUtils
+
+### Community 406 - "MarketplacePhotoUtils"
+Cohesion: 0.35
+Nodes (4): ContentResolver, FileOutputStream, Uri, MarketplacePhotoUtils
+
+### Community 407 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java"
+Cohesion: 0.27
+Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
+
+### Community 408 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java"
+Cohesion: 0.27
+Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
+
+### Community 409 - "AuthorizedSmsStore"
+Cohesion: 0.44
+Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
+
+### Community 410 - "Worker"
+Cohesion: 0.29
+Nodes (7): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker, Worker
+
+### Community 411 - "AuthorizedSmsStore"
+Cohesion: 0.44
+Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
+
+### Community 412 - "AuthorizedSmsStore"
+Cohesion: 0.44
+Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
+
+### Community 413 - "ScraperWorkerScheduleTest"
+Cohesion: 0.47
+Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
+
+### Community 414 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"
+Cohesion: 0.31
+Nodes (6): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker
+
+### Community 415 - "ScraperWorkerScheduleTest"
+Cohesion: 0.47
+Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
+
+### Community 416 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"
+Cohesion: 0.31
+Nodes (6): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker
+
+### Community 417 - "ScraperWorkerScheduleTest"
+Cohesion: 0.47
+Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
+
+### Community 418 - "PortalSessionVault"
+Cohesion: 0.18
+Nodes (4): Context, SecretKey, SharedPreferences, PortalSessionVault
+
+### Community 419 - "android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
+
+### Community 422 - "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
+
+### Community 423 - "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
+
+### Community 424 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedMmsReceiver, Context, Intent, Override
+
+### Community 425 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
+
+### Community 427 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
+
+### Community 428 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
+
+### Community 429 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedMmsReceiver, Context, Intent, Override
+
+### Community 430 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
+
+### Community 432 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
+
+### Community 433 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
+
+### Community 435 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
+Cohesion: 0.60
+Nodes (3): ExampleInstrumentedTest, RunWith, Test
+
+### Community 437 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
+Cohesion: 0.60
+Nodes (3): ExampleInstrumentedTest, RunWith, Test
+
+### Community 439 - "ScraperWorkerStore"
+Cohesion: 0.11
+Nodes (3): Context, SharedPreferences, ScraperWorkerStore
+
+### Community 440 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/assets/portal-scraper.js"
+Cohesion: 0.12
+Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
+
+### Community 442 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/gradlew"
+Cohesion: 0.83
+Nodes (3): gradlew script, die(), warn()
+
+### Community 444 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/gradlew"
+Cohesion: 0.83
+Nodes (3): gradlew script, die(), warn()
+
+### Community 445 - "MarketplaceBrowserActivity"
+Cohesion: 0.09
+Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
+
+### Community 458 - "MarketplaceWorkerService"
+Cohesion: 0.11
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
+
+### Community 459 - "PortalBrowserActivity"
+Cohesion: 0.12
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+
+### Community 460 - "ScraperWorkerService"
+Cohesion: 0.09
+Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
+
+### Community 461 - "PortalSessionVault"
+Cohesion: 0.18
+Nodes (4): Context, SecretKey, SharedPreferences, PortalSessionVault
+
+### Community 462 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/assets/marketplace-worker.js"
+Cohesion: 0.29
+Nodes (25): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+17 more)
+
+### Community 463 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/assets/marketplace-worker.js"
+Cohesion: 0.29
+Nodes (25): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+17 more)
+
+### Community 464 - "ScraperWorkerStore"
+Cohesion: 0.11
+Nodes (3): Context, SharedPreferences, ScraperWorkerStore
+
+### Community 465 - "ScraperWorkerPlugin"
+Cohesion: 0.29
+Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+
+### Community 466 - "ScraperWorkerPlugin"
+Cohesion: 0.30
+Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+
+### Community 467 - "AuthorizedCallerStore"
+Cohesion: 0.29
+Nodes (3): AuthorizedCallerStore, Context, SharedPreferences
+
+### Community 468 - "ScraperWorkerSchedule"
+Cohesion: 0.34
+Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
+
+### Community 469 - "MarketplaceBrowserActivity"
+Cohesion: 0.09
+Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
+
+### Community 470 - "MarketplacePhotoUtils"
+Cohesion: 0.35
+Nodes (4): ContentResolver, FileOutputStream, Uri, MarketplacePhotoUtils
+
+### Community 471 - "android/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
+Cohesion: 0.33
+Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 472 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java"
+Cohesion: 0.27
+Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
+
+### Community 473 - "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
+Cohesion: 0.33
+Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 474 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
+Cohesion: 0.33
+Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 475 - "AuthorizedSmsStore"
+Cohesion: 0.44
+Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
+
+### Community 476 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
+Cohesion: 0.33
+Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 477 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"
+Cohesion: 0.31
+Nodes (6): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker
+
+### Community 478 - "ScraperWorkerScheduleTest"
+Cohesion: 0.47
+Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
+
+### Community 480 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedMmsReceiver, Context, Intent, Override
+
+### Community 481 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
+
+### Community 483 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
+
+### Community 484 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
+
+### Community 485 - "MarketplaceWorkerService"
+Cohesion: 0.11
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
+
+### Community 486 - "PortalBrowserActivity"
+Cohesion: 0.12
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+
+### Community 487 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
+Cohesion: 0.60
+Nodes (3): ExampleInstrumentedTest, RunWith, Test
+
+### Community 490 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/gradlew"
+Cohesion: 0.83
+Nodes (3): gradlew script, die(), warn()
+
+### Community 491 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/assets/portal-scraper.js"
+Cohesion: 0.12
+Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
+
+### Community 498 - "ScraperWorkerService"
+Cohesion: 0.09
+Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
+
+### Community 499 - "PortalSessionVault"
+Cohesion: 0.18
+Nodes (4): Context, SecretKey, SharedPreferences, PortalSessionVault
+
+### Community 500 - "AuthorizedCallerStore"
+Cohesion: 0.29
+Nodes (3): AuthorizedCallerStore, Context, SharedPreferences
+
+### Community 501 - "ScraperWorkerSchedule"
+Cohesion: 0.34
+Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
+
+### Community 502 - "MarketplacePhotoUtils"
+Cohesion: 0.35
+Nodes (4): ContentResolver, FileOutputStream, Uri, MarketplacePhotoUtils
+
+### Community 503 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java"
+Cohesion: 0.27
+Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
+
+### Community 504 - "AuthorizedSmsStore"
+Cohesion: 0.44
+Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
+
+### Community 505 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
+Cohesion: 0.33
+Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 506 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/assets/marketplace-worker.js"
+Cohesion: 0.29
+Nodes (25): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+17 more)
+
+### Community 507 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"
+Cohesion: 0.31
+Nodes (6): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker
+
+### Community 508 - "ScraperWorkerScheduleTest"
+Cohesion: 0.47
+Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
+
+### Community 510 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedMmsReceiver, Context, Intent, Override
+
+### Community 511 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
+
+### Community 513 - "AuthorizedCallerPlugin"
+Cohesion: 0.24
+Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+
+### Community 514 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
+
+### Community 515 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
+
+### Community 516 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
+Cohesion: 0.60
+Nodes (3): ExampleInstrumentedTest, RunWith, Test
+
+### Community 519 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/gradlew"
+Cohesion: 0.83
+Nodes (3): gradlew script, die(), warn()
+
+### Community 520 - "AuthorizedCallerPlugin"
+Cohesion: 0.24
+Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+
+### Community 521 - "AuthorizedCallerPlugin"
+Cohesion: 0.24
+Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+
+### Community 528 - "AuthorizedCallerPlugin"
+Cohesion: 0.24
+Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+
+### Community 529 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java"
+Cohesion: 0.47
+Nodes (4): IBinder, Intent, Override, RespondViaMessageService
+
+### Community 530 - "ScraperWorkerPlugin"
+Cohesion: 0.30
+Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+
+### Community 531 - "AuthorizedCallerStore"
+Cohesion: 0.29
+Nodes (3): AuthorizedCallerStore, Context, SharedPreferences
+
+### Community 532 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/assets/portal-scraper.js"
+Cohesion: 0.12
+Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
+
+### Community 533 - "ScraperWorkerSchedule"
+Cohesion: 0.34
+Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
+
+### Community 534 - "MarketplacePhotoUtils"
+Cohesion: 0.35
+Nodes (4): ContentResolver, FileOutputStream, Uri, MarketplacePhotoUtils
+
+### Community 535 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java"
+Cohesion: 0.27
+Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
+
+### Community 536 - "AuthorizedSmsStore"
+Cohesion: 0.44
+Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
+
+### Community 537 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
+Cohesion: 0.33
+Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 538 - "Predial.jsx"
+Cohesion: 0.16
+Nodes (6): App(), ErrorBoundary, getPredialUrl(), lookupRef(), Predial(), REF_MAP
+
+### Community 539 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"
+Cohesion: 0.31
+Nodes (6): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker
+
+### Community 540 - "ScraperWorkerScheduleTest"
+Cohesion: 0.47
+Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
+
+### Community 541 - "scrapeGasAccount"
+Cohesion: 0.18
+Nodes (20): apartmentNumberFrom(), attachBrowserlessCaptchaSolver(), browserlessEndpointCandidates(), closeWaterBrowser(), configuredApartmentTargets(), gasContractPaymentUrl(), gasRecord(), launchBrowser() (+12 more)
+
+### Community 543 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java"
+Cohesion: 0.47
+Nodes (4): IBinder, Intent, Override, RespondViaMessageService
+
+### Community 544 - "MarketplaceBrowserActivity"
+Cohesion: 0.09
+Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
+
+### Community 545 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedMmsReceiver, Context, Intent, Override
+
+### Community 546 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
+
+### Community 548 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
+
+### Community 549 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
+
+### Community 550 - "collectRenderedWaterPolicies"
+Cohesion: 0.67
+Nodes (3): collectRenderedWaterPolicies(), renderedWaterPolicies(), waitForRenderedReader()
+
+### Community 552 - "ScraperWorkerService"
+Cohesion: 0.09
+Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
+
+### Community 553 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
+Cohesion: 0.60
+Nodes (3): ExampleInstrumentedTest, RunWith, Test
+
+### Community 556 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/gradlew"
+Cohesion: 0.83
+Nodes (3): gradlew script, die(), warn()
+
+### Community 564 - "ScraperWorkerStore"
+Cohesion: 0.11
+Nodes (3): Context, SharedPreferences, ScraperWorkerStore
+
+### Community 565 - "MarketplaceBrowserActivity"
+Cohesion: 0.09
+Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
+
+### Community 566 - "ScraperWorkerService"
+Cohesion: 0.09
+Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
+
+### Community 567 - "ScraperWorkerStore"
+Cohesion: 0.11
+Nodes (3): Context, SharedPreferences, ScraperWorkerStore
+
+### Community 568 - "MarketplaceBrowserActivity"
+Cohesion: 0.09
+Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
+
+### Community 569 - "ScraperWorkerService"
+Cohesion: 0.09
+Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
+
+### Community 570 - "ScraperWorkerStore"
+Cohesion: 0.11
+Nodes (3): Context, SharedPreferences, ScraperWorkerStore
+
+### Community 571 - "MarketplaceWorkerService"
+Cohesion: 0.11
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
+
+### Community 572 - "MarketplaceWorkerService"
+Cohesion: 0.11
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
+
+### Community 573 - "MarketplaceWorkerService"
+Cohesion: 0.11
+Nodes (14): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+6 more)
+
+### Community 574 - "PortalBrowserActivity"
+Cohesion: 0.12
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+
+### Community 575 - "PortalBrowserActivity"
+Cohesion: 0.12
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+
+### Community 576 - "PortalBrowserActivity"
+Cohesion: 0.12
+Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+
+### Community 577 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/assets/marketplace-worker.js"
+Cohesion: 0.25
+Nodes (28): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+20 more)
+
+### Community 578 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/assets/marketplace-worker.js"
+Cohesion: 0.25
+Nodes (28): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+20 more)
+
+### Community 579 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/assets/marketplace-worker.js"
+Cohesion: 0.25
+Nodes (28): activate(), choose(), currentListingUrl(), decodeTransportText(), editableElements(), emit(), facebookRentalType(), fillAddress() (+20 more)
+
+### Community 580 - "PortalSessionVault"
+Cohesion: 0.18
+Nodes (4): Context, SecretKey, SharedPreferences, PortalSessionVault
+
+### Community 581 - "PortalSessionVault"
+Cohesion: 0.18
+Nodes (4): Context, SecretKey, SharedPreferences, PortalSessionVault
+
+### Community 582 - "PortalSessionVault"
+Cohesion: 0.18
+Nodes (4): Context, SecretKey, SharedPreferences, PortalSessionVault
+
+### Community 583 - "AuthorizedCallerPlugin"
+Cohesion: 0.24
+Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+
+### Community 584 - "AuthorizedCallerPlugin"
+Cohesion: 0.24
+Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+
+### Community 585 - "AuthorizedCallerPlugin"
+Cohesion: 0.24
+Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+
+### Community 586 - "AuthorizedCallerPlugin"
+Cohesion: 0.24
+Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+
+### Community 587 - "ScraperWorkerPlugin"
+Cohesion: 0.30
+Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+
+### Community 588 - "ScraperWorkerPlugin"
+Cohesion: 0.30
+Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+
+### Community 589 - "ScraperWorkerPlugin"
+Cohesion: 0.30
+Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+
+### Community 590 - "ScraperWorkerPlugin"
+Cohesion: 0.30
+Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+
+### Community 591 - "ScraperWorkerPlugin"
+Cohesion: 0.30
+Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
+
+### Community 592 - "AuthorizedCallerStore"
+Cohesion: 0.29
+Nodes (3): AuthorizedCallerStore, Context, SharedPreferences
+
+### Community 593 - "AuthorizedCallerStore"
+Cohesion: 0.29
+Nodes (3): AuthorizedCallerStore, Context, SharedPreferences
+
+### Community 594 - "AuthorizedCallerStore"
+Cohesion: 0.29
+Nodes (3): AuthorizedCallerStore, Context, SharedPreferences
+
+### Community 595 - "ScraperWorkerSchedule"
+Cohesion: 0.34
+Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
+
+### Community 596 - "ScraperWorkerSchedule"
+Cohesion: 0.34
+Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
+
+### Community 597 - "ScraperWorkerSchedule"
+Cohesion: 0.34
+Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
+
+### Community 598 - "MarketplacePhotoUtils"
+Cohesion: 0.35
+Nodes (4): ContentResolver, FileOutputStream, Uri, MarketplacePhotoUtils
+
+### Community 599 - "MarketplacePhotoUtils"
+Cohesion: 0.35
+Nodes (4): ContentResolver, FileOutputStream, Uri, MarketplacePhotoUtils
+
+### Community 600 - "MarketplacePhotoUtils"
+Cohesion: 0.35
+Nodes (4): ContentResolver, FileOutputStream, Uri, MarketplacePhotoUtils
+
+### Community 601 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java"
+Cohesion: 0.27
+Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
+
+### Community 602 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java"
+Cohesion: 0.27
+Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
+
+### Community 603 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java"
+Cohesion: 0.27
+Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
+
+### Community 604 - "AuthorizedSmsStore"
+Cohesion: 0.44
+Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
+
+### Community 605 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
+Cohesion: 0.33
+Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 606 - "AuthorizedSmsStore"
+Cohesion: 0.44
+Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
+
+### Community 607 - "Activity"
+Cohesion: 0.29
+Nodes (7): Activity, Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 608 - "AuthorizedSmsStore"
+Cohesion: 0.44
+Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
+
+### Community 609 - "BridgeActivity"
+Cohesion: 0.31
+Nodes (7): BridgeActivity, Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 610 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"
+Cohesion: 0.31
+Nodes (6): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker
+
+### Community 611 - "ScraperWorkerScheduleTest"
+Cohesion: 0.47
+Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
+
+### Community 612 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"
+Cohesion: 0.31
+Nodes (6): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker
+
+### Community 613 - "ScraperWorkerScheduleTest"
+Cohesion: 0.47
+Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
+
+### Community 614 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"
+Cohesion: 0.31
+Nodes (6): Context, NonNull, Override, Result, WorkerParameters, MarketplaceQueueWorker
+
+### Community 615 - "ScraperWorkerScheduleTest"
+Cohesion: 0.47
+Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
+
+### Community 621 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedMmsReceiver, Context, Intent, Override
+
+### Community 622 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
+
+### Community 624 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java"
+Cohesion: 0.47
+Nodes (4): IBinder, Intent, Override, RespondViaMessageService
+
+### Community 625 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
+
+### Community 626 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
+
+### Community 627 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedMmsReceiver, Context, Intent, Override
+
+### Community 628 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
+
+### Community 630 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
+
+### Community 631 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
+
+### Community 632 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedMmsReceiver, Context, Intent, Override
+
+### Community 633 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java"
+Cohesion: 0.47
+Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
+
+### Community 636 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
+
+### Community 637 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java"
+Cohesion: 0.47
+Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
+
+### Community 638 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
+Cohesion: 0.60
+Nodes (3): ExampleInstrumentedTest, RunWith, Test
+
+### Community 640 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
+Cohesion: 0.60
+Nodes (3): ExampleInstrumentedTest, RunWith, Test
+
+### Community 642 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
+Cohesion: 0.60
+Nodes (3): ExampleInstrumentedTest, RunWith, Test
+
+### Community 645 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/gradlew"
+Cohesion: 0.83
+Nodes (3): gradlew script, die(), warn()
+
+### Community 647 - "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/gradlew"
+Cohesion: 0.83
+Nodes (3): gradlew script, die(), warn()
+
+### Community 649 - "android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/gradlew"
+Cohesion: 0.83
+Nodes (3): gradlew script, die(), warn()
+
 ## Knowledge Gaps
 - **1829 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `.opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs`, `type`, `npx.cmd` (+1824 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **55 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **87 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `dependencies` to `package.json`, `react-router-dom`, `dexie`, `tailwindcss`, `@capacitor/cli`, `@capacitor/core`, `node-cron`, `@tailwindcss/vite`, `cors`, `jsqr`, `qrcode`, `recharts`, `contractGenerator.js`, `@capacitor/local-notifications`, `react-dom`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Why does `jspdf` connect `contractGenerator.js` to `dependencies`, `ApartmentDetail.jsx`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Why does `portalFieldValue()` connect `portalFieldValue` to `scrapeGasAccount`, `portal-scraper.js`, `waitForRenderedPortal`, `services-scraper.cjs`, `scrapeTripleAAccount`?**
+- **Why does `ScraperWorkerPlugin` connect `ScraperWorkerPlugin` to `Plugin`?**
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **Why does `MarketplaceBrowserActivity` connect `MarketplaceBrowserActivity` to `Activity`?**
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **Why does `MarketplaceBrowserActivity` connect `MarketplaceBrowserActivity` to `Activity`?**
   _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **What connects `$schema`, `.opencode/plugins/graphify.js`, `.opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs` to the rest of the system?**
   _1829 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Utilities.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.09653092006033183 - nodes in this community are weakly interconnected._
-- **Should `.status` be split into smaller, more focused modules?**
-  _Cohesion score 0.0763888888888889 - nodes in this community are weakly interconnected._
+- **Should `ApartmentDetail.jsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.063568010936432 - nodes in this community are weakly interconnected._
 - **Should `server.cjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.042206590151795634 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.046532045654082525 - nodes in this community are weakly interconnected._
+- **Should `pre-whatsapp-bot/server.cjs` be split into smaller, more focused modules?**
+  _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._

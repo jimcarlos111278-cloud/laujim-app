@@ -124,6 +124,25 @@ public class ScraperWorkerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void requestBatteryOptimizationExemption(PluginCall call) {
+        PowerManager power = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+        if (power == null || power.isIgnoringBatteryOptimizations(getContext().getPackageName())) {
+            call.resolve(status());
+            return;
+        }
+        try {
+            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                .setData(Uri.parse("package:" + getContext().getPackageName()))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            ScraperWorkerStore.setSchedulerEvent(getContext(), "battery_exemption_requested", "settings", "Se abrió la autorización para ejecutar Laujim sin optimización de batería.");
+            call.resolve(status());
+        } catch (RuntimeException error) {
+            call.reject("No se pudo abrir la autorización de batería: " + error.getMessage());
+        }
+    }
+
+    @PluginMethod
     public void openPortal(PluginCall call) {
         String provider = call.getString("provider", "air-e");
         Intent intent = new Intent(getContext(), PortalBrowserActivity.class)

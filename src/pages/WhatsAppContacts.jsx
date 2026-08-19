@@ -70,7 +70,7 @@ export default function WhatsAppContacts() {
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">{contact.name}</p>
                   <p className="text-sm text-gray-500">{contact.phone} · {contact.apartmentName ? `Apartamento ${contact.apartmentName}` : 'Sin apartamento asignado'}</p>
-                  {!contact.activeContract && <p className="text-xs text-amber-600 mt-1">Registrado sin contrato activo</p>}
+                  {!contact.hasApartmentAssociation && <p className="text-xs text-amber-600 mt-1">Registrado sin apartamento asociado</p>}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`text-xs font-medium ${contact.windowOpen ? 'text-emerald-600' : 'text-amber-600'}`}>{contact.windowOpen ? 'Puede responderse ahora' : 'Requiere plantilla para iniciar'}</span>

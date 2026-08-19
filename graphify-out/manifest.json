@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1786943107.3479283,
-    "ast_hash": "2c85a2fe5a31fbe34ce9043798420af9",
+    "mtime": 1787111154.0710576,
+    "ast_hash": "d1a4d9a48f7236bf6e612b1f4bb5ec9a",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1786944389.0856538,
-    "ast_hash": "8085952933eb2b2dadba2cfddcbb4139",
+    "mtime": 1787115890.9294548,
+    "ast_hash": "f9300cf734bb292bf27b694af25e9952",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1786922731.055619,
-    "ast_hash": "ceeccfa9f0faa6837f2ce688ef453bdb",
+    "mtime": 1787105560.655434,
+    "ast_hash": "4f87c8dfcbe7c39764dc5f9074ab5564",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -315,9 +315,9 @@
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
-    "mtime": 1785293991.048328,
-    "ast_hash": "77ad2b28274d197d6be9bdff22ae4b31",
-    "semantic_hash": "77ad2b28274d197d6be9bdff22ae4b31"
+    "mtime": 1786958418.2124915,
+    "ast_hash": "46360334cc6068f0acc85fca5df6aad0",
+    "semantic_hash": ""
   },
   "src/pages/Chat.jsx": {
     "mtime": 1784658079.0855865,
@@ -395,9 +395,9 @@
     "semantic_hash": ""
   },
   "src/pages/WhatsAppContacts.jsx": {
-    "mtime": 1785652742.017105,
-    "ast_hash": "d82b1206738f525a8b4abefc271ec0bf",
-    "semantic_hash": "d82b1206738f525a8b4abefc271ec0bf"
+    "mtime": 1787105520.021734,
+    "ast_hash": "fe387839f4d83e5c0fe4c8899edc7f1f",
+    "semantic_hash": ""
   },
   "src/pages/WhatsAppInbox.jsx": {
     "mtime": 1786394773.886552,
@@ -835,8 +835,8 @@
     "semantic_hash": ""
   },
   "src/pages/ScraperWorker.jsx": {
-    "mtime": 1786812857.1704383,
-    "ast_hash": "cd5a97cdf73fc04fbd07f5095f84d1c9",
+    "mtime": 1787105717.310566,
+    "ast_hash": "5bad2b109c119ca9f138bc6328c58515",
     "semantic_hash": ""
   },
   "src/utils/portableWorker.js": {
@@ -875,13 +875,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
-    "mtime": 1786811790.2173126,
-    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
+    "mtime": 1787105717.309565,
+    "ast_hash": "b1735f087f6770199b474e010622c208",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1786811769.9874046,
-    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
+    "mtime": 1787106639.265069,
+    "ast_hash": "1377354686abb932761831fc7b988408",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "src/utils/androidScraperWorker.js": {
-    "mtime": 1786811808.7564871,
-    "ast_hash": "91510e09fb6268420253af7ae18740a8",
+    "mtime": 1787105717.3075652,
+    "ast_hash": "e00e8a56419058cf3f21e9ca849f1317",
     "semantic_hash": ""
   },
   "scripts/prepare-capacitor-assets.js": {
@@ -905,13 +905,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1786918077.8908522,
-    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
+    "mtime": 1787111141.648305,
+    "ast_hash": "0a55e22a407af38925e7e65a8bc69310",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
-    "mtime": 1786811687.202882,
-    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
+    "mtime": 1787108810.0593164,
+    "ast_hash": "2d80b336ee3edd0cb90743f09ce4bbcb",
     "semantic_hash": ""
   },
   ".tmp/gradle-off-onedrive.init.gradle": {
@@ -970,13 +970,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/marketplace-worker.js": {
-    "mtime": 1786941025.2328103,
-    "ast_hash": "5e7055296514353369a0ec9ac2adb7c1",
+    "mtime": 1786957680.7718024,
+    "ast_hash": "eda15cb706118b24757a48a23a6f4e79",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
-    "mtime": 1786932890.2649488,
-    "ast_hash": "ccba6c2bbaf9edb31e6a0d9abdb812f5",
+    "mtime": 1786956500.8960252,
+    "ast_hash": "493bc388961f80fe22814d70b2a281e6",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
@@ -995,8 +995,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
-    "mtime": 1786927458.8694131,
-    "ast_hash": "d5f76658fc37cb1b3b728b61b1a644fb",
+    "mtime": 1786958471.2678442,
+    "ast_hash": "95035e540ea9ad24f05a97c4b990fb2b",
     "semantic_hash": ""
   },
   "scripts/test-marketplace-api.cjs": {
@@ -2977,6 +2977,2601 @@
   ".tmp/adb-check/s23-current.png": {
     "mtime": 1786932303.371518,
     "ast_hash": "ce84adc174cc4b195d179faae5955c5c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/build.gradle": {
+    "mtime": 1786952416.4597313,
+    "ast_hash": "455c5982137147964a1501b97bf725ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/capacitor.build.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "e940357ea6f9ea51513b7661a2eebc14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/assets/marketplace-worker.js": {
+    "mtime": 1786952402.1035798,
+    "ast_hash": "30cef46a8d1d63dcaf754ee5236ae3b2",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1786918077.8908522,
+    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerPlugin.java": {
+    "mtime": 1785685896.7872722,
+    "ast_hash": "506e6679a1e894ea73941e875e10b911",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerScreeningService.java": {
+    "mtime": 1785653825.5832536,
+    "ast_hash": "661a53f13bda5e32ba68a52057904185",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerStore.java": {
+    "mtime": 1785685896.779499,
+    "ast_hash": "059d7722db87d693523852e6e4f9b726",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "ff7b282d7aa3590aa28f8d02f85d64ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "5781e0404ddf7e24472167e8030af71b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsStore.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
+    "mtime": 1786943155.869804,
+    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
+    "mtime": 1786952402.1035798,
+    "ast_hash": "b726d2715bdd23cebfeba4918665bd6a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
+    "mtime": 1786932983.2437868,
+    "ast_hash": "a142383c41079e407183e2d22dd8234e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
+    "mtime": 1786575523.5687664,
+    "ast_hash": "b187f3cf288c48eb40ae1a242c340978",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerDispatcher.java": {
+    "mtime": 1786575523.5652575,
+    "ast_hash": "573f748179d2223304ce1c3aa8851b58",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerSchedule.java": {
+    "mtime": 1786575523.5707803,
+    "ast_hash": "21c0dbc441fa5bd1c0c33600e38e351e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
+    "mtime": 1786927458.8694131,
+    "ast_hash": "d5f76658fc37cb1b3b728b61b1a644fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1786811687.202882,
+    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1786811604.5441167,
+    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "0ec678ec6c08fed6e53ae33d7832244f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1786572603.1286643,
+    "ast_hash": "79bf9fe5881f402404e7f877263c22dd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1786811790.1671598,
+    "ast_hash": "7f36e2a821273ac66f9be618f0873f50",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1786572582.522002,
+    "ast_hash": "87fce31a6768330e4f7f79aced8b778b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1786811790.2173126,
+    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1786685001.4083085,
+    "ast_hash": "778877895999e1f6d50bfa2b4152112f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1786811769.9874046,
+    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1786605633.3381457,
+    "ast_hash": "35a7a05bc1d4027502de946c5c8a6e00",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/test/java/com/laujim/aptmanager/ScraperWorkerScheduleTest.java": {
+    "mtime": 1786573492.8217869,
+    "ast_hash": "465f00307bf064b6fc72da0720077b0a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/build.gradle": {
+    "mtime": 1786497994.3920586,
+    "ast_hash": "ed6ecb8ea80449ca2f11eae85035faac",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/capacitor.settings.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "caae8211d536637a16db5dc4708e1326",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/gradlew": {
+    "mtime": 1784050294.0,
+    "ast_hash": "794669d78aef1dd5c7d889ef618b311a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/settings.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/variables.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4b3fce8ea2a515a9d2e47e74757172ec",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/build.gradle": {
+    "mtime": 1786952416.4597313,
+    "ast_hash": "455c5982137147964a1501b97bf725ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/capacitor.build.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "e940357ea6f9ea51513b7661a2eebc14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/assets/marketplace-worker.js": {
+    "mtime": 1786952402.1035798,
+    "ast_hash": "30cef46a8d1d63dcaf754ee5236ae3b2",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1786918077.8908522,
+    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerPlugin.java": {
+    "mtime": 1785685896.7872722,
+    "ast_hash": "506e6679a1e894ea73941e875e10b911",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerScreeningService.java": {
+    "mtime": 1785653825.5832536,
+    "ast_hash": "661a53f13bda5e32ba68a52057904185",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerStore.java": {
+    "mtime": 1785685896.779499,
+    "ast_hash": "059d7722db87d693523852e6e4f9b726",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "ff7b282d7aa3590aa28f8d02f85d64ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "5781e0404ddf7e24472167e8030af71b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsStore.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
+    "mtime": 1786943155.869804,
+    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
+    "mtime": 1786952402.1035798,
+    "ast_hash": "b726d2715bdd23cebfeba4918665bd6a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
+    "mtime": 1786932983.2437868,
+    "ast_hash": "a142383c41079e407183e2d22dd8234e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
+    "mtime": 1786575523.5687664,
+    "ast_hash": "b187f3cf288c48eb40ae1a242c340978",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerDispatcher.java": {
+    "mtime": 1786575523.5652575,
+    "ast_hash": "573f748179d2223304ce1c3aa8851b58",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerSchedule.java": {
+    "mtime": 1786575523.5707803,
+    "ast_hash": "21c0dbc441fa5bd1c0c33600e38e351e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
+    "mtime": 1786927458.8694131,
+    "ast_hash": "d5f76658fc37cb1b3b728b61b1a644fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1786811687.202882,
+    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1786811604.5441167,
+    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "0ec678ec6c08fed6e53ae33d7832244f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1786572603.1286643,
+    "ast_hash": "79bf9fe5881f402404e7f877263c22dd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1786811790.1671598,
+    "ast_hash": "7f36e2a821273ac66f9be618f0873f50",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1786572582.522002,
+    "ast_hash": "87fce31a6768330e4f7f79aced8b778b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1786811790.2173126,
+    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1786685001.4083085,
+    "ast_hash": "778877895999e1f6d50bfa2b4152112f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1786811769.9874046,
+    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1786605633.3381457,
+    "ast_hash": "35a7a05bc1d4027502de946c5c8a6e00",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/test/java/com/laujim/aptmanager/ScraperWorkerScheduleTest.java": {
+    "mtime": 1786573492.8217869,
+    "ast_hash": "465f00307bf064b6fc72da0720077b0a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/build.gradle": {
+    "mtime": 1786497994.3920586,
+    "ast_hash": "ed6ecb8ea80449ca2f11eae85035faac",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/capacitor.settings.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "caae8211d536637a16db5dc4708e1326",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/gradlew": {
+    "mtime": 1784050294.0,
+    "ast_hash": "794669d78aef1dd5c7d889ef618b311a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/settings.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/variables.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4b3fce8ea2a515a9d2e47e74757172ec",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/drawable/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/drawable/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/build.gradle": {
+    "mtime": 1786953346.2804782,
+    "ast_hash": "77a41794b3a7a8a58df5a3f0323dc42b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/capacitor.build.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "e940357ea6f9ea51513b7661a2eebc14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/assets/marketplace-worker.js": {
+    "mtime": 1786953346.275615,
+    "ast_hash": "fa8891494b875b01697c9a5c6beda9bd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1786918077.8908522,
+    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerPlugin.java": {
+    "mtime": 1785685896.7872722,
+    "ast_hash": "506e6679a1e894ea73941e875e10b911",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerScreeningService.java": {
+    "mtime": 1785653825.5832536,
+    "ast_hash": "661a53f13bda5e32ba68a52057904185",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerStore.java": {
+    "mtime": 1785685896.779499,
+    "ast_hash": "059d7722db87d693523852e6e4f9b726",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "ff7b282d7aa3590aa28f8d02f85d64ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "5781e0404ddf7e24472167e8030af71b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsStore.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
+    "mtime": 1786943155.869804,
+    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
+    "mtime": 1786953346.275615,
+    "ast_hash": "c82dd415bee05195a55217c3067e2edd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
+    "mtime": 1786932983.2437868,
+    "ast_hash": "a142383c41079e407183e2d22dd8234e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
+    "mtime": 1786575523.5687664,
+    "ast_hash": "b187f3cf288c48eb40ae1a242c340978",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerDispatcher.java": {
+    "mtime": 1786575523.5652575,
+    "ast_hash": "573f748179d2223304ce1c3aa8851b58",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerSchedule.java": {
+    "mtime": 1786575523.5707803,
+    "ast_hash": "21c0dbc441fa5bd1c0c33600e38e351e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
+    "mtime": 1786927458.8694131,
+    "ast_hash": "d5f76658fc37cb1b3b728b61b1a644fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1786811687.202882,
+    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1786811604.5441167,
+    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "0ec678ec6c08fed6e53ae33d7832244f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1786572603.1286643,
+    "ast_hash": "79bf9fe5881f402404e7f877263c22dd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1786811790.1671598,
+    "ast_hash": "7f36e2a821273ac66f9be618f0873f50",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1786572582.522002,
+    "ast_hash": "87fce31a6768330e4f7f79aced8b778b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1786811790.2173126,
+    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1786685001.4083085,
+    "ast_hash": "778877895999e1f6d50bfa2b4152112f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1786811769.9874046,
+    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1786605633.3381457,
+    "ast_hash": "35a7a05bc1d4027502de946c5c8a6e00",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/test/java/com/laujim/aptmanager/ScraperWorkerScheduleTest.java": {
+    "mtime": 1786573492.8217869,
+    "ast_hash": "465f00307bf064b6fc72da0720077b0a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/build.gradle": {
+    "mtime": 1786497994.3920586,
+    "ast_hash": "ed6ecb8ea80449ca2f11eae85035faac",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/capacitor.settings.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "caae8211d536637a16db5dc4708e1326",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/gradlew": {
+    "mtime": 1784050294.0,
+    "ast_hash": "794669d78aef1dd5c7d889ef618b311a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/settings.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/variables.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4b3fce8ea2a515a9d2e47e74757172ec",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/drawable/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/build.gradle": {
+    "mtime": 1786954068.4662304,
+    "ast_hash": "81a2b106932c60b767a93a261f468901",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/capacitor.build.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "e940357ea6f9ea51513b7661a2eebc14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/assets/marketplace-worker.js": {
+    "mtime": 1786953346.275615,
+    "ast_hash": "fa8891494b875b01697c9a5c6beda9bd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1786918077.8908522,
+    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerPlugin.java": {
+    "mtime": 1785685896.7872722,
+    "ast_hash": "506e6679a1e894ea73941e875e10b911",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerScreeningService.java": {
+    "mtime": 1785653825.5832536,
+    "ast_hash": "661a53f13bda5e32ba68a52057904185",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerStore.java": {
+    "mtime": 1785685896.779499,
+    "ast_hash": "059d7722db87d693523852e6e4f9b726",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "ff7b282d7aa3590aa28f8d02f85d64ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "5781e0404ddf7e24472167e8030af71b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsStore.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
+    "mtime": 1786943155.869804,
+    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
+    "mtime": 1786954055.834027,
+    "ast_hash": "8f0ea7c0a57930f4c4da55edb0ab8f86",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
+    "mtime": 1786932983.2437868,
+    "ast_hash": "a142383c41079e407183e2d22dd8234e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
+    "mtime": 1786575523.5687664,
+    "ast_hash": "b187f3cf288c48eb40ae1a242c340978",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerDispatcher.java": {
+    "mtime": 1786575523.5652575,
+    "ast_hash": "573f748179d2223304ce1c3aa8851b58",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerSchedule.java": {
+    "mtime": 1786575523.5707803,
+    "ast_hash": "21c0dbc441fa5bd1c0c33600e38e351e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
+    "mtime": 1786927458.8694131,
+    "ast_hash": "d5f76658fc37cb1b3b728b61b1a644fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1786811687.202882,
+    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1786811604.5441167,
+    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "0ec678ec6c08fed6e53ae33d7832244f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1786572603.1286643,
+    "ast_hash": "79bf9fe5881f402404e7f877263c22dd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1786811790.1671598,
+    "ast_hash": "7f36e2a821273ac66f9be618f0873f50",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1786572582.522002,
+    "ast_hash": "87fce31a6768330e4f7f79aced8b778b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1786811790.2173126,
+    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1786685001.4083085,
+    "ast_hash": "778877895999e1f6d50bfa2b4152112f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1786811769.9874046,
+    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1786605633.3381457,
+    "ast_hash": "35a7a05bc1d4027502de946c5c8a6e00",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/test/java/com/laujim/aptmanager/ScraperWorkerScheduleTest.java": {
+    "mtime": 1786573492.8217869,
+    "ast_hash": "465f00307bf064b6fc72da0720077b0a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/build.gradle": {
+    "mtime": 1786497994.3920586,
+    "ast_hash": "ed6ecb8ea80449ca2f11eae85035faac",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/capacitor.settings.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "caae8211d536637a16db5dc4708e1326",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/gradlew": {
+    "mtime": 1784050294.0,
+    "ast_hash": "794669d78aef1dd5c7d889ef618b311a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/settings.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/variables.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4b3fce8ea2a515a9d2e47e74757172ec",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/drawable/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  ".tmp/fb-attempt6.png": {
+    "mtime": 1786954453.019232,
+    "ast_hash": "b132d33844051f4d40bbc914ac720acf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/build.gradle": {
+    "mtime": 1786954605.6437156,
+    "ast_hash": "3f7714eb10849e97f83f583ffa1a66aa",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/capacitor.build.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "e940357ea6f9ea51513b7661a2eebc14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/assets/marketplace-worker.js": {
+    "mtime": 1786954605.6389077,
+    "ast_hash": "b62e5ba5f58a95805db8a0c019642265",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1786918077.8908522,
+    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerPlugin.java": {
+    "mtime": 1785685896.7872722,
+    "ast_hash": "506e6679a1e894ea73941e875e10b911",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerScreeningService.java": {
+    "mtime": 1785653825.5832536,
+    "ast_hash": "661a53f13bda5e32ba68a52057904185",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerStore.java": {
+    "mtime": 1785685896.779499,
+    "ast_hash": "059d7722db87d693523852e6e4f9b726",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "ff7b282d7aa3590aa28f8d02f85d64ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "5781e0404ddf7e24472167e8030af71b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsStore.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
+    "mtime": 1786943155.869804,
+    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
+    "mtime": 1786954055.834027,
+    "ast_hash": "8f0ea7c0a57930f4c4da55edb0ab8f86",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
+    "mtime": 1786932983.2437868,
+    "ast_hash": "a142383c41079e407183e2d22dd8234e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
+    "mtime": 1786575523.5687664,
+    "ast_hash": "b187f3cf288c48eb40ae1a242c340978",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerDispatcher.java": {
+    "mtime": 1786575523.5652575,
+    "ast_hash": "573f748179d2223304ce1c3aa8851b58",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerSchedule.java": {
+    "mtime": 1786575523.5707803,
+    "ast_hash": "21c0dbc441fa5bd1c0c33600e38e351e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
+    "mtime": 1786927458.8694131,
+    "ast_hash": "d5f76658fc37cb1b3b728b61b1a644fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1786811687.202882,
+    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1786811604.5441167,
+    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "0ec678ec6c08fed6e53ae33d7832244f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1786572603.1286643,
+    "ast_hash": "79bf9fe5881f402404e7f877263c22dd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1786811790.1671598,
+    "ast_hash": "7f36e2a821273ac66f9be618f0873f50",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1786572582.522002,
+    "ast_hash": "87fce31a6768330e4f7f79aced8b778b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1786811790.2173126,
+    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1786685001.4083085,
+    "ast_hash": "778877895999e1f6d50bfa2b4152112f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1786811769.9874046,
+    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1786605633.3381457,
+    "ast_hash": "35a7a05bc1d4027502de946c5c8a6e00",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/test/java/com/laujim/aptmanager/ScraperWorkerScheduleTest.java": {
+    "mtime": 1786573492.8217869,
+    "ast_hash": "465f00307bf064b6fc72da0720077b0a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/build.gradle": {
+    "mtime": 1786497994.3920586,
+    "ast_hash": "ed6ecb8ea80449ca2f11eae85035faac",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/capacitor.settings.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "caae8211d536637a16db5dc4708e1326",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/gradlew": {
+    "mtime": 1784050294.0,
+    "ast_hash": "794669d78aef1dd5c7d889ef618b311a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/settings.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/variables.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4b3fce8ea2a515a9d2e47e74757172ec",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/drawable/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  ".tmp/device-alert.png": {
+    "mtime": 1786955157.651501,
+    "ast_hash": "329918bff7f1771556d74807069ca39b",
+    "semantic_hash": ""
+  },
+  ".tmp/fb-attempt7.png": {
+    "mtime": 1786954899.0531416,
+    "ast_hash": "3844317897a0011f46ea44afbac92027",
+    "semantic_hash": ""
+  },
+  ".tmp/fb-single-setinput.png": {
+    "mtime": 1786955332.134086,
+    "ast_hash": "4048391bb32824f3603d677117d33be3",
+    "semantic_hash": ""
+  },
+  ".tmp/native-test-after-one.png": {
+    "mtime": 1786955819.339046,
+    "ast_hash": "653f2e2ce400e15628a0e8b25e2484f2",
+    "semantic_hash": ""
+  },
+  ".tmp/native-test-menu.png": {
+    "mtime": 1786955738.9056115,
+    "ast_hash": "6a3bcea452de3e6aa5e24ad4bff4e267",
+    "semantic_hash": ""
+  },
+  ".tmp/native-test-open.png": {
+    "mtime": 1786955654.102974,
+    "ast_hash": "0acd4d0058708746ee8a106f76340c96",
+    "semantic_hash": ""
+  },
+  ".tmp/native-test-picker.png": {
+    "mtime": 1786955766.392884,
+    "ast_hash": "c2baed41f583919ab8232f673e1f9573",
+    "semantic_hash": ""
+  },
+  ".tmp/native-test-saved.png": {
+    "mtime": 1786955856.8177521,
+    "ast_hash": "93784555b653438b986194828b7a42e9",
+    "semantic_hash": ""
+  },
+  ".tmp/native-test-start.png": {
+    "mtime": 1786955602.4332132,
+    "ast_hash": "84bad7c3cf9c4a4b9d0ffb74caa3e77c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/build.gradle": {
+    "mtime": 1786955268.79313,
+    "ast_hash": "008b50f62cc7ec890700c63337eaab6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/capacitor.build.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "e940357ea6f9ea51513b7661a2eebc14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/assets/marketplace-worker.js": {
+    "mtime": 1786956413.9083953,
+    "ast_hash": "bd954f04079875506c144ceb46305d14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1786918077.8908522,
+    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerPlugin.java": {
+    "mtime": 1785685896.7872722,
+    "ast_hash": "506e6679a1e894ea73941e875e10b911",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerScreeningService.java": {
+    "mtime": 1785653825.5832536,
+    "ast_hash": "661a53f13bda5e32ba68a52057904185",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerStore.java": {
+    "mtime": 1785685896.779499,
+    "ast_hash": "059d7722db87d693523852e6e4f9b726",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "ff7b282d7aa3590aa28f8d02f85d64ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "5781e0404ddf7e24472167e8030af71b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsStore.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
+    "mtime": 1786943155.869804,
+    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
+    "mtime": 1786956500.8960252,
+    "ast_hash": "493bc388961f80fe22814d70b2a281e6",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
+    "mtime": 1786932983.2437868,
+    "ast_hash": "a142383c41079e407183e2d22dd8234e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
+    "mtime": 1786575523.5687664,
+    "ast_hash": "b187f3cf288c48eb40ae1a242c340978",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerDispatcher.java": {
+    "mtime": 1786575523.5652575,
+    "ast_hash": "573f748179d2223304ce1c3aa8851b58",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerSchedule.java": {
+    "mtime": 1786575523.5707803,
+    "ast_hash": "21c0dbc441fa5bd1c0c33600e38e351e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
+    "mtime": 1786927458.8694131,
+    "ast_hash": "d5f76658fc37cb1b3b728b61b1a644fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1786811687.202882,
+    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1786811604.5441167,
+    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "0ec678ec6c08fed6e53ae33d7832244f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1786572603.1286643,
+    "ast_hash": "79bf9fe5881f402404e7f877263c22dd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1786811790.1671598,
+    "ast_hash": "7f36e2a821273ac66f9be618f0873f50",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1786572582.522002,
+    "ast_hash": "87fce31a6768330e4f7f79aced8b778b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1786811790.2173126,
+    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1786685001.4083085,
+    "ast_hash": "778877895999e1f6d50bfa2b4152112f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1786811769.9874046,
+    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1786605633.3381457,
+    "ast_hash": "35a7a05bc1d4027502de946c5c8a6e00",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/test/java/com/laujim/aptmanager/ScraperWorkerScheduleTest.java": {
+    "mtime": 1786573492.8217869,
+    "ast_hash": "465f00307bf064b6fc72da0720077b0a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/build.gradle": {
+    "mtime": 1786497994.3920586,
+    "ast_hash": "ed6ecb8ea80449ca2f11eae85035faac",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/capacitor.settings.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "caae8211d536637a16db5dc4708e1326",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/gradlew": {
+    "mtime": 1784050294.0,
+    "ast_hash": "794669d78aef1dd5c7d889ef618b311a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/settings.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/variables.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4b3fce8ea2a515a9d2e47e74757172ec",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/build.gradle": {
+    "mtime": 1786955268.79313,
+    "ast_hash": "008b50f62cc7ec890700c63337eaab6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/capacitor.build.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "e940357ea6f9ea51513b7661a2eebc14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/assets/marketplace-worker.js": {
+    "mtime": 1786956413.9083953,
+    "ast_hash": "bd954f04079875506c144ceb46305d14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1786918077.8908522,
+    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerPlugin.java": {
+    "mtime": 1785685896.7872722,
+    "ast_hash": "506e6679a1e894ea73941e875e10b911",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerScreeningService.java": {
+    "mtime": 1785653825.5832536,
+    "ast_hash": "661a53f13bda5e32ba68a52057904185",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerStore.java": {
+    "mtime": 1785685896.779499,
+    "ast_hash": "059d7722db87d693523852e6e4f9b726",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "ff7b282d7aa3590aa28f8d02f85d64ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "5781e0404ddf7e24472167e8030af71b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsStore.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
+    "mtime": 1786943155.869804,
+    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
+    "mtime": 1786956500.8960252,
+    "ast_hash": "493bc388961f80fe22814d70b2a281e6",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
+    "mtime": 1786932983.2437868,
+    "ast_hash": "a142383c41079e407183e2d22dd8234e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
+    "mtime": 1786575523.5687664,
+    "ast_hash": "b187f3cf288c48eb40ae1a242c340978",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerDispatcher.java": {
+    "mtime": 1786575523.5652575,
+    "ast_hash": "573f748179d2223304ce1c3aa8851b58",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerSchedule.java": {
+    "mtime": 1786575523.5707803,
+    "ast_hash": "21c0dbc441fa5bd1c0c33600e38e351e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
+    "mtime": 1786927458.8694131,
+    "ast_hash": "d5f76658fc37cb1b3b728b61b1a644fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1786811687.202882,
+    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1786811604.5441167,
+    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "0ec678ec6c08fed6e53ae33d7832244f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1786572603.1286643,
+    "ast_hash": "79bf9fe5881f402404e7f877263c22dd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1786811790.1671598,
+    "ast_hash": "7f36e2a821273ac66f9be618f0873f50",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1786572582.522002,
+    "ast_hash": "87fce31a6768330e4f7f79aced8b778b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1786811790.2173126,
+    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1786685001.4083085,
+    "ast_hash": "778877895999e1f6d50bfa2b4152112f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1786811769.9874046,
+    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1786605633.3381457,
+    "ast_hash": "35a7a05bc1d4027502de946c5c8a6e00",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/test/java/com/laujim/aptmanager/ScraperWorkerScheduleTest.java": {
+    "mtime": 1786573492.8217869,
+    "ast_hash": "465f00307bf064b6fc72da0720077b0a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/build.gradle": {
+    "mtime": 1786497994.3920586,
+    "ast_hash": "ed6ecb8ea80449ca2f11eae85035faac",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/capacitor.settings.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "caae8211d536637a16db5dc4708e1326",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/gradlew": {
+    "mtime": 1784050294.0,
+    "ast_hash": "794669d78aef1dd5c7d889ef618b311a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/settings.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/variables.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4b3fce8ea2a515a9d2e47e74757172ec",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/build.gradle": {
+    "mtime": 1786958932.7615938,
+    "ast_hash": "960a9defb6944e1125d6b78a19158a4d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/capacitor.build.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "e940357ea6f9ea51513b7661a2eebc14",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "fbaf7cc870c663eb52dcf218531c439d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/assets/marketplace-worker.js": {
+    "mtime": 1786957680.7718024,
+    "ast_hash": "eda15cb706118b24757a48a23a6f4e79",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1786918077.8908522,
+    "ast_hash": "396592ee87e29a8e0a79dc8b07c4c22a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerPlugin.java": {
+    "mtime": 1785685896.7872722,
+    "ast_hash": "506e6679a1e894ea73941e875e10b911",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerScreeningService.java": {
+    "mtime": 1785653825.5832536,
+    "ast_hash": "661a53f13bda5e32ba68a52057904185",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedCallerStore.java": {
+    "mtime": 1785685896.779499,
+    "ast_hash": "059d7722db87d693523852e6e4f9b726",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "ff7b282d7aa3590aa28f8d02f85d64ee",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "5781e0404ddf7e24472167e8030af71b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsStore.java": {
+    "mtime": 1785685896.7815068,
+    "ast_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
+    "mtime": 1786943155.869804,
+    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MarketplaceBrowserActivity.java": {
+    "mtime": 1786956500.8960252,
+    "ast_hash": "493bc388961f80fe22814d70b2a281e6",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MarketplacePhotoUtils.java": {
+    "mtime": 1786932983.2437868,
+    "ast_hash": "a142383c41079e407183e2d22dd8234e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java": {
+    "mtime": 1786575523.5687664,
+    "ast_hash": "b187f3cf288c48eb40ae1a242c340978",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerDispatcher.java": {
+    "mtime": 1786575523.5652575,
+    "ast_hash": "573f748179d2223304ce1c3aa8851b58",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerSchedule.java": {
+    "mtime": 1786575523.5707803,
+    "ast_hash": "21c0dbc441fa5bd1c0c33600e38e351e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MarketplaceWorkerService.java": {
+    "mtime": 1786958815.3301606,
+    "ast_hash": "95035e540ea9ad24f05a97c4b990fb2b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1786811687.202882,
+    "ast_hash": "fd94397ccd23194b47e9e7075d24839f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1786811604.5441167,
+    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
+    "mtime": 1785685896.783514,
+    "ast_hash": "0ec678ec6c08fed6e53ae33d7832244f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1786572603.1286643,
+    "ast_hash": "79bf9fe5881f402404e7f877263c22dd",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1786811790.1671598,
+    "ast_hash": "7f36e2a821273ac66f9be618f0873f50",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1786572582.522002,
+    "ast_hash": "87fce31a6768330e4f7f79aced8b778b",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1786811790.2173126,
+    "ast_hash": "77e3c6213e5f05777593151254ea1f4e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1786685001.4083085,
+    "ast_hash": "778877895999e1f6d50bfa2b4152112f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1786811769.9874046,
+    "ast_hash": "f6c0aed87412e16e06b2728c25006618",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1786605633.3381457,
+    "ast_hash": "35a7a05bc1d4027502de946c5c8a6e00",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java": {
+    "mtime": 1784050294.0,
+    "ast_hash": "e91b4501c14da821682fa5c26a16d616",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/test/java/com/laujim/aptmanager/ScraperWorkerScheduleTest.java": {
+    "mtime": 1786573492.8217869,
+    "ast_hash": "465f00307bf064b6fc72da0720077b0a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/build.gradle": {
+    "mtime": 1786497994.3920586,
+    "ast_hash": "ed6ecb8ea80449ca2f11eae85035faac",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/capacitor.settings.gradle": {
+    "mtime": 1785660578.9938948,
+    "ast_hash": "caae8211d536637a16db5dc4708e1326",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/gradlew": {
+    "mtime": 1784050294.0,
+    "ast_hash": "794669d78aef1dd5c7d889ef618b311a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/settings.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f6cd925b3f859e23c3d819fe2459e0e4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/variables.gradle": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4b3fce8ea2a515a9d2e47e74757172ec",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/drawable/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/drawable/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-land-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f7a80786dd355bd39014e58027aa6e19",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-land-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-land-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b8c72969bc1f78aab71a76035360d4af",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-land-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f87e988387b07d843905f38b084929fb",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-land-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "055a69553b16b0bf5f72094a2e459fc7",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-port-hdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5eb10d16c81338abe8bbc033d49638a8",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-port-mdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "d855a76a5070c8e6fcfd83a27549bdce",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-port-xhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "df100b2a36bdb98b711cca58941728de",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-port-xxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "2c1b668364e815256f67b71dcdfa4d6e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable-port-xxxhdpi/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "b5b1b22b59abe686c1df0d74a423d034",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/drawable/splash.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "acc976d4a36479233371a53021525c0c",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "semantic_hash": ""
+  },
+  ".tmp/android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1784050294.0,
+    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-install-state.png": {
+    "mtime": 1786957166.6385558,
+    "ast_hash": "a23f2eb7ec8589593e5f2e4f8242a5b0",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-after-30.png": {
+    "mtime": 1787107306.3434741,
+    "ast_hash": "315e99ee6c3d922daf76b4dd277cc82a",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-after-fix-launch.png": {
+    "mtime": 1787107031.5344899,
+    "ast_hash": "13da62ee2873b9fe12915ca04b657f7a",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-after-fix-loaded.png": {
+    "mtime": 1787107089.1935349,
+    "ast_hash": "98fb624e7049d6e3b91349d048fc08eb",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-current.png": {
+    "mtime": 1787106502.6446493,
+    "ast_hash": "870a7b44fba466eadc62426744e94dcc",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-install-dialog.png": {
+    "mtime": 1787106965.872198,
+    "ast_hash": "9afe071a5cccf7cc1c11305ca21f7501",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-menu.png": {
+    "mtime": 1787107052.7995055,
+    "ast_hash": "5e6c920cd0f7fe8eb2267572e1a402fd",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-now.png": {
+    "mtime": 1787107240.988028,
+    "ast_hash": "6d55ebff74a54242227426594f32f9fc",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-worker-bottom.png": {
+    "mtime": 1787106551.667291,
+    "ast_hash": "680c8786644dba248057c650738bdca8",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-worker-fix.png": {
+    "mtime": 1787107068.0397775,
+    "ast_hash": "c10b6fce3abe0e0548f3573558499f70",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-worker-lower.png": {
+    "mtime": 1787107208.642585,
+    "ast_hash": "5af579b4584969787f145bfd17780d34",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-worker-status.png": {
+    "mtime": 1787106565.5132613,
+    "ast_hash": "d9a56951250afa354f6fec6f28073aa5",
+    "semantic_hash": ""
+  },
+  ".tmp/s23-worker-test-button.png": {
+    "mtime": 1787107109.194202,
+    "ast_hash": "dd3b4834e7849e39e81590f7943a617e",
     "semantic_hash": ""
   }
 }

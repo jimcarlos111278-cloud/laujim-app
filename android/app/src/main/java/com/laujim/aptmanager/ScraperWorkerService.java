@@ -505,11 +505,23 @@ public class ScraperWorkerService extends Service {
         }
         JSONObject outcome;
         if (PortalBrowserActivity.hasActiveBrowser()) {
-            String encoded = PortalBrowserActivity
-                .executeScraper(provider, config == null ? "{}" : config.toString(), runnerScript)
-                .get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            outcome = parseJsJson(encoded);
-            if (outcome != null) outcome.put("executionPath", "authenticated-visible-webview");
+            try {
+                String encoded = PortalBrowserActivity
+                    .executeScraper(provider, config == null ? "{}" : config.toString(), runnerScript)
+                    .get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                outcome = parseJsJson(encoded);
+                if (outcome != null) outcome.put("executionPath", "authenticated-visible-webview");
+            } catch (TimeoutException error) {
+                PortalBrowserActivity.cancelPendingScraper("La consulta de " + providerLabel(provider) + " agotó los 3 minutos y fue liberada.");
+                throw new IllegalStateException("Timeout ejecutando " + providerLabel(provider) + " en el teléfono.");
+            } catch (Exception error) {
+                Throwable cause = error.getCause() == null ? error : error.getCause();
+                String detail = cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
+                if (detail.toLowerCase().contains("ya hay una consulta de portal")) {
+                    PortalBrowserActivity.cancelPendingScraper("Se limpió una consulta anterior que quedó bloqueada.");
+                }
+                throw error;
+            }
         } else {
             outcome = loadAndEvaluate(provider, portalWorkUrl(provider), config);
             if (outcome != null) outcome.put("executionPath", "persistent-background-webview");

@@ -54,12 +54,20 @@
   function loginState() {
     const body = clean(uiBodyText());
     const password = Array.from(document.querySelectorAll('input[type="password"], input[name*="password" i], input[id*="password" i]')).find(domAvailable);
+    const route = clean(`${location.pathname || ''} ${location.search || ''}`);
+    const loginRoute = /(?:^|[\\/])login(?:[\\/?#]|$)|signin|sign-in|autentic/.test(route);
+    const loginText = /iniciar sesion|inicia sesion|iniciar sesi[oó]n|contrase[nñ]a|correo electr[oó]nico|ingresa a tu cuenta/.test(body);
+    const authenticatedPortalText = /mis facturas|listado de facturas|deuda total|tu deuda actual|contratos|polizas/.test(body);
     const challenge = Array.from(document.querySelectorAll(
       '.cf-turnstile, iframe[src*="challenges.cloudflare.com"], iframe[src*="recaptcha"], [id*="captcha" i]'
     )).find(visible);
     const hasChallengeText = /captcha|turnstile|no soy un robot|verificacion en dos pasos|codigo de verificacion/.test(body);
     return {
-      password: !!password,
+      // SPAs often leave a password input mounted but hidden after login.
+      // Treat it as a login page only when the URL or page copy also supports
+      // that conclusion; otherwise Air-e is incorrectly abandoned before its
+      // invoice request is made.
+      password: !!password && (loginRoute || (loginText && !authenticatedPortalText)),
       challenge: !!challenge || hasChallengeText,
       url: location.href,
       title: document.title || '',
@@ -847,7 +855,14 @@
       if (!contract) await wait(1000);
     }
     if (!contract) return { state: 'error', provider: 'air-e', stage: 'discover_contract', message: 'Air-e no mostró el contrato autenticado. Abre Listado de Facturas en el portal y vuelve a ejecutar.', results: [] };
-    const response = await json(`${AIR_E_ENDPOINT}?cd_Contrato=${encodeURIComponent(contract)}&pageIndex=1&pageSize=1000`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    // The visible Air-e SPA can keep its bearer token in JavaScript memory
+    // instead of a durable cookie. The background WebView restores that token
+    // through the native session vault; send it through the same auth fallback
+    // used by the other portal runners before declaring the session expired.
+    const token = await waitForStoredToken(3000);
+    const response = await jsonWithAuthFallback(`${AIR_E_ENDPOINT}?cd_Contrato=${encodeURIComponent(contract)}&pageIndex=1&pageSize=1000`, token, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
     if (!response.ok) return needsLogin('air-e', `Air-e rechazó la consulta (HTTP ${response.status}). Inicia sesión nuevamente desde la app.`, { stage: 'fetch_invoices', httpStatus: response.status, fetchError: response.error || null });
     const items = Array.isArray(response.payload && response.payload.items) ? response.payload.items : list(response.payload, ['items', 'documents', 'invoices']);
     const grouped = {};

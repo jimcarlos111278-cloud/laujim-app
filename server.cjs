@@ -383,13 +383,13 @@ function authorizedCloudContact(phone) {
 
   const tenant = (db.tenants || []).find(t => samePhone(t.phone, phone));
   if (!tenant) return null;
-  const contract = (db.contracts || []).find(c => Number(c.tenantId) === Number(tenant.id) &&
-    c.status !== 'terminated' && c.status !== 'cancelled' &&
-    (!c.endDate || new Date(c.endDate).getTime() >= Date.now()));
   return {
     phone: normalizePhone(phone),
     tenantId: tenant.id,
-    apartmentId: contract?.apartmentId ?? tenant.linkedAptId ?? null,
+    // Inquilinos created from the tenants screen keep the association in
+    // tenant.apartmentId. Older records may use linkedAptId, while a formal
+    // active contract should remain the strongest source of truth.
+    apartmentId: tenantApartmentId(tenant),
     source: 'database',
   };
 }
@@ -783,6 +783,12 @@ function activeContractForTenant(tenantId) {
     (!contract.endDate || new Date(contract.endDate).getTime() >= now));
 }
 
+function tenantApartmentId(tenant) {
+  if (!tenant) return null;
+  const contract = activeContractForTenant(tenant.id);
+  return contract?.apartmentId ?? tenant.apartmentId ?? tenant.linkedAptId ?? null;
+}
+
 function resolveCloudConversationContext(conversation = {}) {
   let tenant = (db.tenants || []).find(item => Number(item.id) === Number(conversation.tenantId)) || null;
   let apartment = (db.apartments || []).find(item => Number(item.id) === Number(conversation.apartmentId)) || null;
@@ -791,8 +797,7 @@ function resolveCloudConversationContext(conversation = {}) {
     tenant = (db.tenants || []).find(item => samePhone(item.phone, conversation.phone)) || null;
   }
   if (!apartment && tenant) {
-    const contract = activeContractForTenant(tenant.id);
-    apartment = (db.apartments || []).find(item => Number(item.id) === Number(contract?.apartmentId)) || null;
+    apartment = (db.apartments || []).find(item => Number(item.id) === Number(tenantApartmentId(tenant))) || null;
   }
   if (!tenant && apartment) tenant = activeTenantForApartment(apartment).tenant || null;
   return { tenant, apartment };
@@ -2035,7 +2040,8 @@ function cloudRentAmount(apartment, fallbackAmount = 0) {
 
 function activeTenantForApartment(apartment) {
   const contract = activeContractForApartment(apartment?.id);
-  const tenant = contract && (db.tenants || []).find(item => Number(item.id) === Number(contract.tenantId));
+  const tenant = (contract && (db.tenants || []).find(item => Number(item.id) === Number(contract.tenantId))) ||
+    (db.tenants || []).find(item => Number(item.apartmentId ?? item.linkedAptId) === Number(apartment?.id));
   return { contract, tenant };
 }
 
@@ -3569,6 +3575,10 @@ function marketplacePublicBase(req) {
   return `${protocol}://${req.get('host')}`;
 }
 
+function normalizeMarketplaceText(value) {
+  return String(value ?? '').replace(/\+/g, ' ').trim();
+}
+
 function marketplaceListingSnapshot(apartment, req) {
   const photos = (db.photos || [])
     .filter(photo => Number(photo.apartmentId) === Number(apartment.id))
@@ -3582,16 +3592,16 @@ function marketplaceListingSnapshot(apartment, req) {
     apartment.bathrooms ? `${apartment.bathrooms} baños` : '',
     apartment.area ? `${apartment.area} m²` : '',
   ].filter(Boolean).join(', ');
-  const description = String(apartment.marketplaceDescription || apartment.description || '').trim();
+  const description = normalizeMarketplaceText(apartment.marketplaceDescription || apartment.description || '');
   return {
     apartmentId: Number(apartment.id),
-    apartmentName: String(apartment.name || apartment.id),
-    address: String(apartment.marketplaceAddress || apartment.address || '').trim(),
-    rentalType: String(apartment.marketplaceRentalType || 'Apartamento o piso'),
-    city: String(apartment.marketplaceCity || apartment.city || 'Barranquilla'),
+    apartmentName: normalizeMarketplaceText(apartment.name || apartment.id),
+    address: normalizeMarketplaceText(apartment.marketplaceAddress || apartment.address || ''),
+    rentalType: normalizeMarketplaceText(apartment.marketplaceRentalType || 'Apartamento o piso'),
+    city: normalizeMarketplaceText(apartment.marketplaceCity || apartment.city || 'Barranquilla'),
     bedrooms: String(apartment.marketplaceBedrooms ?? apartment.rooms ?? ''),
     bathrooms: String(apartment.marketplaceBathrooms ?? apartment.bathrooms ?? ''),
-    title: String(apartment.marketplaceTitle || `Arriendo Apartamento ${apartment.name || apartment.id}`).trim(),
+    title: normalizeMarketplaceText(apartment.marketplaceTitle || `Arriendo Apartamento ${apartment.name || apartment.id}`),
     price: String(Math.max(0, Math.round(Number(apartment.monthlyRent) || 0))),
     description: [
       `Apartamento ${apartment.name || apartment.id} en arriendo${specs ? `: ${specs}` : ''}.`,
@@ -4846,13 +4856,14 @@ app.get('/api/whatsapp/cloud/contacts', (req, res) => {
     const contract = (db.contracts || []).find(c => Number(c.tenantId) === Number(tenant.id) &&
       c.status !== 'terminated' && c.status !== 'cancelled' && (!c.endDate || new Date(c.endDate).getTime() >= now));
     if (!tenant.phone) return null;
-    const apartmentId = contract?.apartmentId ?? tenant.linkedAptId ?? null;
+    const apartmentId = tenantApartmentId(tenant);
     const apartment = (db.apartments || []).find(a => Number(a.id) === Number(apartmentId));
     const conversation = (db.whatsappConversations || []).find(c => samePhone(c.phone, tenant.phone));
     const explicit = (db.whatsappContacts || []).find(c => samePhone(c.phone, tenant.phone));
     const windowOpen = !!conversation?.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil).getTime() > now;
     return { tenantId: tenant.id, name: tenant.name || 'Inquilino', phone: normalizePhone(tenant.phone), apartmentId,
-      apartmentName: apartment?.name || null, activeContract: !!contract, conversationId: conversation?.id || null,
+      apartmentName: apartment?.name || null, activeContract: !!contract, hasApartmentAssociation: apartmentId != null,
+      conversationId: conversation?.id || null,
       windowOpen, source: explicit?.source || 'database' };
   }).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, 'es'));
   res.json(contacts);
@@ -4882,6 +4893,41 @@ app.post('/api/whatsapp/cloud/start-conversation', async (req, res) => {
     saveData();
     res.json({ ok: true, conversationId: conversation.id, windowOpen: false, sentTemplate: true });
   } catch (error) { res.status(502).json({ error: `No fue posible enviar la plantilla de saludo: ${error.message}` }); }
+});
+
+// Send the approved rent/services template from an apartment card without
+// opening the administrator's personal WhatsApp account. The conversation is
+// returned so the UI can take the administrator directly to WhatsApp Cloud.
+app.post('/api/whatsapp/cloud/send-tenant-template', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const tenantId = Number(req.body?.tenantId);
+  const tenant = (db.tenants || []).find(item => Number(item.id) === tenantId);
+  if (!tenant?.phone) return res.status(404).json({ error: 'El inquilino no tiene un teléfono registrado' });
+  const contact = authorizedCloudContact(tenant.phone);
+  if (!contact) return res.status(409).json({ error: 'El inquilino no tiene un contrato activo autorizado' });
+  const contract = activeContractForTenant(tenant.id);
+  const apartmentId = Number(contact.apartmentId || contract?.apartmentId || 0);
+  const apartment = (db.apartments || []).find(item => Number(item.id) === apartmentId);
+  if (!apartment) return res.status(409).json({ error: 'El inquilino no tiene un apartamento activo asociado' });
+  const period = String(req.body?.period || colombiaDate().slice(0, 7));
+  try {
+    const result = await sendCloudPaymentReminderTemplate(tenant.phone, tenant.name, period, apartment);
+    const conversation = getCloudConversation({
+      ...contact,
+      tenantId: tenant.id,
+      apartmentId: apartment.id,
+    });
+    addCloudMessage(conversation, 'out', {
+      type: 'template',
+      text: `Cobro de canon y servicios — ${cloudPeriodLabel(period)}`,
+      template: process.env.WHATSAPP_PAYMENT_REMINDER_TEMPLATE || 'cobro_canon_servicios',
+      whatsappMessageId: result.messages?.[0]?.id || null,
+    });
+    saveData();
+    res.json({ ok: true, conversationId: conversation.id, sentTemplate: true, period });
+  } catch (error) {
+    res.status(502).json({ error: `No fue posible enviar la plantilla de cobro: ${error.message}` });
+  }
 });
 
 app.get('/api/whatsapp/cloud/conversations/:id/messages', (req, res) => {

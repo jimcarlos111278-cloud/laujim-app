@@ -41,6 +41,11 @@ public class PortalBrowserActivity extends Activity {
     private String provider = "air-e";
     private String currentUrl = "";
     private String nativeAuthorization = "";
+    // An Activity object can remain alive after returning to Laujim. The
+    // worker must not treat that paused WebView as the foreground browser:
+    // its SPA may be showing a stale login screen while the persistent
+    // worker WebView can restore the encrypted session and run in background.
+    private volatile boolean foreground;
     private boolean storageRestoreAttempted;
     private int navigationGeneration;
     private CompletableFuture<Boolean> pageReady = new CompletableFuture<>();
@@ -93,6 +98,25 @@ public class PortalBrowserActivity extends Activity {
     protected void onStart() {
         super.onStart();
         activeInstance = this;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        foreground = true;
+        activeInstance = this;
+    }
+
+    @Override
+    protected void onPause() {
+        foreground = false;
+        if (webView != null) {
+            try { webView.evaluateJavascript(PortalSessionVault.snapshotScript(provider, "LaujimAndroidBridge"), ignored -> { }); }
+            catch (RuntimeException ignored) { }
+        }
+        PortalSessionVault.saveCookieSnapshot(this, provider);
+        PortalSessionVault.flushCookies();
+        super.onPause();
     }
 
     @Override
@@ -266,7 +290,34 @@ public class PortalBrowserActivity extends Activity {
 
     static boolean hasActiveBrowser() {
         PortalBrowserActivity activity = activeInstance;
-        return activity != null && activity.webView != null;
+        return activity != null && activity.foreground && activity.webView != null;
+    }
+
+    /**
+     * A timed-out runner must release the visible WebView gate. Without this,
+     * the Java service can move on to the next provider while this Activity
+     * still holds the previous CompletableFuture, so every later provider is
+     * rejected as "already running" until the Activity is destroyed.
+     */
+    static void cancelPendingScraper(String reason) {
+        PortalBrowserActivity activity = activeInstance;
+        if (activity == null) return;
+        boolean released = false;
+        synchronized (activity.scraperLock) {
+            if (activity.pendingScraperResult != null && !activity.pendingScraperResult.isDone()) {
+                activity.completePendingExceptionLocked(new IllegalStateException(
+                    reason == null || reason.trim().isEmpty()
+                        ? "La consulta del portal fue cancelada por timeout."
+                        : reason
+                ));
+                released = true;
+            }
+        }
+        if (released) activity.mainHandler.post(() -> {
+            if (activity.status != null) {
+                activity.status.setText("La consulta agotó el tiempo y fue liberada. Puedes volver a ejecutar el worker.");
+            }
+        });
     }
 
     private void startScraper(String requestedProvider, String configJson, String runnerScript, CompletableFuture<String> result) {
