@@ -3323,7 +3323,7 @@ app.get('/api/public/apartments/:id', (req, res) => {
     services: [
       { id: 'water', name: 'Agua', provider: 'Triple A', url: 'https://portal.aaa.com.co/polizas' },
       { id: 'gas', name: 'Gas', provider: 'Gases del Caribe', url: 'https://www.gascaribe.com/' },
-      { id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List' },
+      { id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Pagar#/List' },
     ],
   });
 });
@@ -4332,7 +4332,7 @@ app.get('/api/public/utility-status/:apartmentId', (req, res) => {
   const svcConfig = {
     water: { id: 'water', name: 'Agua', provider: 'Triple A', url: 'https://portal.aaa.com.co/poliz' },
     gas: { id: 'gas', name: 'Gas', provider: 'Gases del Caribe', url: 'https://www.gascaribe.com/' },
-    electricity: { id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Mis-Facturas/Listado-de-Facturas#/List' },
+    electricity: { id: 'electricity', name: 'Energía', provider: 'Air-e', url: 'https://portal.air-e.com/Pagar#/List' },
   };
 
   let electricityInfo = null;
