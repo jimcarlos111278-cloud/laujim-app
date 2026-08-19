@@ -310,7 +310,7 @@ export default function ApartmentDetail() {
   async function handleSave(e) {
     e.preventDefault();
     const nic = form.nic || form.electricityPaymentCode || '';
-    const autoUrl = nic ? 'https://airepagos.st/' : '';
+    const autoUrl = nic ? 'https://portal.air-e.com/Pagar#/List' : '';
     await api.apartments.update(Number(id), {
       ...form,
       monthlyRent: Number(form.monthlyRent),
@@ -554,7 +554,7 @@ export default function ApartmentDetail() {
     if (!nic || !nic.trim()) return;
     const digits = nic.trim().replace(/\D/g, '');
     if (digits.length < 4) { alert('El NIC debe tener al menos 4 dígitos'); return; }
-    const url = 'https://airepagos.st/';
+    const url = 'https://portal.air-e.com/Pagar#/List';
     await api.apartments.update(Number(id), { nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url });
     const updated = { ...apt, nic: digits, electricityPaymentCode: digits, electricityPaymentUrl: url };
     setApt(updated);

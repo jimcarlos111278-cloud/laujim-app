@@ -1507,9 +1507,9 @@ function defaultGasAccountId(apartment, apartments = []) {
 
 function publicServicePaymentUrl(apartment, record, service) {
   if (service === 'electricity') {
-    // Air-e has no public receipt QR. Tenants use the public page and enter
-    // the NIC shown in the service details, so never expose the admin portal.
-    return 'https://airepagos.st/';
+    // Air-e payment entry point. Tenants can enter the NIC on the public
+    // payment page; never expose the authenticated invoice portal.
+    return 'https://portal.air-e.com/Pagar#/List';
   }
   if (service === 'gas') {
     return gasContractPaymentUrl(apartment?.gasPaymentCode || record?.gasPaymentCode);

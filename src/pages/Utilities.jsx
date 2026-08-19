@@ -68,7 +68,7 @@ const PORTALS = [
   { key: 'gas', name: 'Gas', icon: Flame, url: 'https://portal.gascaribe.com/login' },
 ];
 
-const AIR_E_PUBLIC_PAYMENT_URL = 'https://airepagos.st/';
+const AIR_E_PUBLIC_PAYMENT_URL = 'https://portal.air-e.com/Pagar#/List';
 // Gas payment links are now generated from the contract number. Only Triple A
 // still needs a receipt QR to give the tenant a public payment link.
 const QR_SERVICES = new Set(['water']);

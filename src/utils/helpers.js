@@ -12,9 +12,8 @@ export function gasContractPaymentUrl(contract) {
 
 export function servicePaymentUrl(apartment, service) {
   if (service === 'electricity') {
-    // Air-e has no receipt QR. Tenants use the public payment page and enter
-    // the NIC shown beside the service; never expose the admin portal URL.
-    return 'https://airepagos.st/';
+    // Air-e payment page. The tenant enters the NIC shown beside the service.
+    return 'https://portal.air-e.com/Pagar#/List';
   }
   if (service === 'gas') return gasContractPaymentUrl(apartment?.gasPaymentCode);
   const field = 'waterPaymentUrl';
