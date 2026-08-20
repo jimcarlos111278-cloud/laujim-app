@@ -68,11 +68,143 @@
       // that conclusion; otherwise Air-e is incorrectly abandoned before its
       // invoice request is made.
       password: !!password && (loginRoute || (loginText && !authenticatedPortalText)),
-      challenge: !!challenge || hasChallengeText,
+      challenge: !!challenge || (hasChallengeText && (loginRoute || !!password)),
       url: location.href,
       title: document.title || '',
       body: body.slice(0, 1200),
     };
+  }
+
+  function challengePending() {
+    const response = Array.from(document.querySelectorAll(
+      'input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"], input[name="g-recaptcha-response"], textarea[name="g-recaptcha-response"], textarea[name="h-captcha-response"]'
+    )).map(element => String(element.value || '').trim()).find(value => value.length > 20);
+    if (response) return false;
+    const challenge = Array.from(document.querySelectorAll(
+      '.cf-turnstile, iframe[src*="challenges.cloudflare.com"], iframe[src*="recaptcha"], iframe[src*="hcaptcha"], [id*="captcha" i]'
+    )).find(domAvailable);
+    return !!challenge;
+  }
+
+  function inputValue(element, value) {
+    if (!element) return false;
+    const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+    try {
+      element.focus();
+      if (setter) setter.call(element, String(value == null ? '' : value));
+      else element.value = String(value == null ? '' : value);
+      ['input', 'change', 'blur'].forEach(type => element.dispatchEvent(new Event(type, { bubbles: true })));
+      return String(element.value || '') === String(value == null ? '' : value);
+    } catch {
+      return false;
+    }
+  }
+
+  function firstAvailable(selectors, rejectPassword) {
+    for (const selector of selectors) {
+      const match = Array.from(document.querySelectorAll(selector)).find(element => {
+        if (!domAvailable(element) || element.disabled || element.readOnly) return false;
+        if (rejectPassword && String(element.type || '').toLowerCase() === 'password') return false;
+        return true;
+      });
+      if (match) return match;
+    }
+    return null;
+  }
+
+  function loginElements() {
+    const password = firstAvailable([
+      'input[type="password"]', 'input[autocomplete="current-password"]',
+      'input[name*="password" i]', 'input[id*="password" i]',
+      'input[name*="clave" i]', 'input[id*="clave" i]'
+    ]);
+    const username = firstAvailable([
+      'input[autocomplete="username"]', 'input[type="email"]',
+      'input[name*="txtUsername" i]', 'input[name*="username" i]',
+      'input[id*="username" i]', 'input[name*="usuario" i]',
+      'input[id*="usuario" i]', 'input[name*="email" i]',
+      'input[id*="email" i]', 'input[name*="correo" i]',
+      'input[id*="correo" i]', 'input[name*="login" i]',
+      'input[id*="login" i]', 'input[type="text"]'
+    ], true);
+    const submit = firstAvailable([
+      'button[type="submit"]', 'input[type="submit"]',
+      'button[id*="login" i]', 'button[name*="login" i]',
+      '[role="button"][id*="login" i]'
+    ]) || Array.from(document.querySelectorAll('button, [role="button"], input[type="button"]')).find(element =>
+      domAvailable(element) && /iniciar sesion|ingresar|entrar|acceder|continuar/.test(clean(element.innerText || element.value || element.getAttribute('aria-label')))
+    );
+    return { username, password, submit };
+  }
+
+  async function attemptAutoLogin(provider, config) {
+    const credentials = config && config.credentials;
+    if (!credentials || !String(credentials.username || '').trim() || !String(credentials.password || '')) {
+      return needsLogin(provider, `${providerLabel(provider)} solicita iniciar sesión y no tiene credenciales de autologin configuradas.`, { stage: 'credentials_missing' });
+    }
+
+    const elements = loginElements();
+    if (!elements.username || !elements.password || !elements.submit) {
+      return needsLogin(provider, `${providerLabel(provider)} cambió su formulario de acceso y no se pudieron identificar todos los controles.`, {
+        stage: 'login_form_not_found',
+        loginInputs: document.querySelectorAll('input').length,
+        loginButtons: document.querySelectorAll('button, [role="button"]').length,
+      });
+    }
+
+    const usernameFilled = inputValue(elements.username, credentials.username);
+    const passwordFilled = inputValue(elements.password, credentials.password);
+    if (!usernameFilled || !passwordFilled) {
+      return needsLogin(provider, `${providerLabel(provider)} no permitió completar el formulario de acceso.`, { stage: 'login_fill_failed' });
+    }
+
+    // Turnstile/Recaptcha is allowed to complete normally in the phone's real
+    // WebView. Never click or bypass the challenge; submit only after its own
+    // response token exists or the widget has disappeared.
+    const challengeStartedAt = Date.now();
+    while (challengePending() && Date.now() - challengeStartedAt < 30_000) await wait(750);
+    if (challengePending()) {
+      return {
+        state: 'needs_verification', provider, stage: 'turnstile_wait',
+        message: `${providerLabel(provider)} requiere completar la verificación visible antes del autologin.`, results: [],
+      };
+    }
+
+    let enabledAt = Date.now();
+    while (elements.submit.disabled && Date.now() - enabledAt < 5_000) await wait(250);
+    if (elements.submit.disabled) {
+      return needsLogin(provider, `${providerLabel(provider)} mantuvo deshabilitado el botón de acceso.`, { stage: 'login_submit_disabled' });
+    }
+
+    // Return through the Android bridge before navigation destroys this JS
+    // context, then let native code reopen the authenticated work URL.
+    setTimeout(() => {
+      try { elements.submit.click(); }
+      catch {
+        try { elements.submit.form?.requestSubmit(elements.submit); } catch { }
+      }
+    }, 180);
+    return {
+      state: 'login_submitted', provider, stage: 'auto_login_submit',
+      message: `Autologin enviado a ${providerLabel(provider)}; la app continuará la consulta al confirmar la sesión.`, results: [],
+    };
+  }
+
+  async function ensureAuthenticated(provider, config) {
+    const state = loginState();
+    if (state.password) return attemptAutoLogin(provider, config || {});
+    if (state.challenge || challengePending()) return {
+      state: 'needs_verification', provider, stage: 'turnstile',
+      message: `${providerLabel(provider)} muestra una verificación. Complétala en la pantalla visible y vuelve a ejecutar.`, results: [],
+    };
+    return null;
+  }
+
+  function providerLabel(provider) {
+    if (provider === 'water') return 'Triple A';
+    if (provider === 'gas') return 'Gases del Caribe';
+    return 'Air-e';
   }
 
   function field(value, names, depth) {
@@ -844,8 +976,8 @@
   }
 
   async function runAirE(config) {
-    const state = loginState();
-    if (state.password) return needsLogin('air-e', 'Air-e solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
+    const loginOutcome = await ensureAuthenticated('air-e', config);
+    if (loginOutcome) return loginOutcome;
     await wait(1800);
     let contract = null;
     for (let attempt = 0; attempt < 12 && !contract; attempt += 1) {
@@ -891,9 +1023,8 @@
   }
 
   async function runWater(config) {
-    const state = loginState();
-    if (state.password) return needsLogin('water', 'Triple A solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
-    if (state.challenge) return { state: 'needs_verification', provider: 'water', stage: 'turnstile', message: 'Triple A muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+    const loginOutcome = await ensureAuthenticated('water', config);
+    if (loginOutcome) return loginOutcome;
     // /polizas performs the real NextAuth/BFF request and exposes the
     // Authorization header to the local hook. The login route alone only
     // has an HttpOnly session cookie and made /bff/subscriptions return 401.
@@ -933,9 +1064,8 @@
   }
 
   async function runGas(config) {
-    const state = loginState();
-    if (state.password) return needsLogin('gas', 'Gases del Caribe solicita iniciar sesión. Abre el portal desde Laujim, inicia sesión y vuelve a ejecutar.', { stage: 'login_page' });
-    if (state.challenge) return { state: 'needs_verification', provider: 'gas', stage: 'turnstile', message: 'Gases del Caribe muestra una verificación. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+    const loginOutcome = await ensureAuthenticated('gas', config);
+    if (loginOutcome) return loginOutcome;
     // The protected contracts page hydrates currentUser/localStorage and lets
     // the native hook capture the exact token used by Gascaribe's Axios app.
     await wait(2500);
@@ -1082,9 +1212,8 @@
   }
 
   async function runWaterUi(config) {
-    const state = loginState();
-    if (state.password) return needsLogin('water', 'Triple A solicita iniciar sesion. Abre el portal desde Laujim, inicia sesion y vuelve a ejecutar.', { stage: 'login_page' });
-    if (state.challenge) return { state: 'needs_verification', provider: 'water', stage: 'turnstile', message: 'Triple A muestra una verificacion. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+    const loginOutcome = await ensureAuthenticated('water', config);
+    if (loginOutcome) return loginOutcome;
 
     const hydrationStartedAt = Date.now();
     await wait(1200);
@@ -1166,9 +1295,8 @@
   }
 
   async function runGasUi(config) {
-    const state = loginState();
-    if (state.password) return needsLogin('gas', 'Gases del Caribe solicita iniciar sesion. Abre el portal desde Laujim, inicia sesion y vuelve a ejecutar.', { stage: 'login_page' });
-    if (state.challenge) return { state: 'needs_verification', provider: 'gas', stage: 'turnstile', message: 'Gases del Caribe muestra una verificacion. Completa la pantalla visible y vuelve a ejecutar.', results: [] };
+    const loginOutcome = await ensureAuthenticated('gas', config);
+    if (loginOutcome) return loginOutcome;
 
     const hydrationStartedAt = Date.now();
     await wait(1200);

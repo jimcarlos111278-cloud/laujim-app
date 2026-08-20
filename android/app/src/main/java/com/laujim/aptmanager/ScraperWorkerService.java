@@ -225,6 +225,17 @@ public class ScraperWorkerService extends Service {
                 throw new IllegalStateException("Render respondió HTTP " + configResult.status + ".");
             }
             JSONObject config = parseObject(configResult.body);
+            HttpResult credentialResult = request(server + "/worker/v1/portal-credentials", "GET", token, deviceId, null);
+            if (credentialResult.status >= 200 && credentialResult.status < 300) {
+                JSONObject credentialPayload = parseObject(credentialResult.body);
+                JSONObject portalCredentials = credentialPayload.optJSONObject("credentials");
+                if (portalCredentials != null) config.put("portalCredentials", portalCredentials);
+                addAppEvent(diagnosticEvents, null, "credentials_fetch", "success", "La app recibió las credenciales privadas para recuperar sesiones vencidas.", credentialResult.status, 0, 0,
+                    new JSONObject().put("configuredProviders", portalCredentials == null ? 0 : portalCredentials.length()));
+            } else {
+                addAppEvent(diagnosticEvents, null, "credentials_fetch", "warn", "No se pudieron obtener credenciales para recuperar sesiones; se conservará el flujo de sesión existente.", credentialResult.status, 0, 0, null);
+            }
+            flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
             JSONObject schedule = config.optJSONObject("schedule");
             if (schedule != null) {
                 nextHours = ScraperWorkerStore.clampHours(schedule.optInt("intervalHours", nextHours));
@@ -461,8 +472,20 @@ public class ScraperWorkerService extends Service {
 
     /** Keeps a gas-account failure from generating errors for the other account. */
     private JSONObject scopedConfig(JSONObject config, String provider) throws JSONException {
-        if (config == null || !isGasAccountId(provider)) return config;
+        if (config == null) return null;
         JSONObject scoped = new JSONObject(config.toString());
+        JSONObject allCredentials = config.optJSONObject("portalCredentials");
+        if (allCredentials != null) {
+            String normalized = provider == null ? "" : provider.trim().toLowerCase();
+            String credentialKey = isGasAccountId(normalized)
+                ? normalized
+                : ("water".equals(normalized) ? "water" : "air-e");
+            JSONObject credentials = allCredentials.optJSONObject(credentialKey);
+            if (credentials == null && "gas-1".equals(normalized)) credentials = allCredentials.optJSONObject("gas-1");
+            if (credentials != null) scoped.put("credentials", new JSONObject(credentials.toString()));
+            scoped.remove("portalCredentials");
+        }
+        if (!isGasAccountId(provider)) return scoped;
         JSONArray source = config.optJSONArray("apartments");
         JSONArray selected = new JSONArray();
         if (source != null) {
@@ -489,6 +512,29 @@ public class ScraperWorkerService extends Service {
     }
 
     private JSONObject runProvider(String provider, JSONObject config) throws Exception {
+        JSONObject outcome = null;
+        // A successful form submission navigates away from the login page and
+        // destroys that JavaScript context. Re-enter the portal from native
+        // code, at most twice, so the authenticated scrape resumes safely.
+        for (int attempt = 0; attempt < 3; attempt += 1) {
+            outcome = runProviderAttempt(provider, config);
+            if (outcome == null || !"login_submitted".equals(outcome.optString("state", ""))) break;
+            if (attempt >= 1) {
+                return new JSONObject()
+                    .put("state", "needs_login")
+                    .put("provider", PortalSessionVault.baseProvider(provider))
+                    .put("stage", "auto_login_retry_limit")
+                    .put("message", providerLabel(provider) + " no confirmó el inicio de sesión automático. Revisa las credenciales o completa la verificación visible.")
+                    .put("results", new JSONArray());
+            }
+            Thread.sleep(10_000L);
+        }
+        return outcome == null
+            ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.")
+            : outcome;
+    }
+
+    private JSONObject runProviderAttempt(String provider, JSONObject config) throws Exception {
         String normalized = provider == null ? "" : provider.trim().toLowerCase();
         if (PortalSessionVault.isGasSession(normalized)) {
             // Gases is stable on the legacy background path. Keep it isolated

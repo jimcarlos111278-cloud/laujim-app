@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud, Plus, CalendarCheck } from 'lucide-react';
+import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud, Plus, CalendarCheck, KeyRound } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { AUTH_TOKEN, getBase } from '../utils/config';
@@ -78,6 +78,7 @@ export default function Settings() {
     'air-e': { username: '', password: '' },
     'triple-a': { username: '', password: '' },
     'gascaribe': { username: '', password: '' },
+    'gascaribe-2': { username: '', password: '' },
   });
   const [portalCredsSaving, setPortalCredsSaving] = useState(false);
   const [portalCredsMsg, setPortalCredsMsg] = useState('');
@@ -85,6 +86,9 @@ export default function Settings() {
   const [adminPhoneInput, setAdminPhoneInput] = useState('');
   const [adminPhonesSaving, setAdminPhonesSaving] = useState(false);
   const [adminPhonesMsg, setAdminPhonesMsg] = useState('');
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
 
   async function handleResetDb() {
     setResetting(true);
@@ -428,10 +432,35 @@ export default function Settings() {
         const res = await fetch(getBase() + '/portal-credentials/' + provider, { method: 'PUT', headers, body: JSON.stringify({ username: creds.username, password: creds.password }) });
         if (!res.ok) throw new Error(await res.text());
       }
-      setPortalCredsMsg('Credenciales guardadas. La extensión de Chrome autocompletará los 3 portales.');
+      setPortalCredsMsg('Credenciales guardadas. El worker local recuperará automáticamente las sesiones vencidas.');
     } catch (e) { setPortalCredsMsg('Error al guardar: ' + e.message); }
     setPortalCredsSaving(false);
     setTimeout(() => setPortalCredsMsg(''), 6000);
+  }
+
+  async function handleChangeAdminPassword(event) {
+    event.preventDefault();
+    setPasswordMessage('');
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMessage('Error: las contraseñas nuevas no coinciden.');
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      const response = await fetch(getBase() + '/admin/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        body: JSON.stringify({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'No se pudo cambiar la contraseña.');
+      setPasswordMessage(result.message || 'Contraseña actualizada.');
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => { clearAuth(); navigate('/login', { replace: true }); }, 1400);
+    } catch (error) {
+      setPasswordMessage('Error: ' + (error.message || 'No se pudo cambiar la contraseña.'));
+    }
+    setPasswordBusy(false);
   }
 
   function formatUptime(seconds) {
@@ -474,6 +503,22 @@ export default function Settings() {
             <ThemeSelector variant="swatches" />
           </div>
         </div>
+
+        {auth?.role === 'admin' && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><KeyRound className="w-4 h-4 text-blue-600" /> Seguridad del administrador</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Cambia la contraseña de administración. Se cerrarán las demás sesiones y deberás entrar nuevamente.</p>
+            <form onSubmit={handleChangeAdminPassword} className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <input type="password" value={passwordForm.currentPassword} onChange={event => setPasswordForm(current => ({ ...current, currentPassword: event.target.value }))} placeholder="Contraseña actual" autoComplete="current-password" className="rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" required />
+              <input type="password" value={passwordForm.newPassword} onChange={event => setPasswordForm(current => ({ ...current, newPassword: event.target.value }))} placeholder="Nueva contraseña (mín. 10)" minLength={10} autoComplete="new-password" className="rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" required />
+              <input type="password" value={passwordForm.confirmPassword} onChange={event => setPasswordForm(current => ({ ...current, confirmPassword: event.target.value }))} placeholder="Confirmar contraseña" minLength={10} autoComplete="new-password" className="rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white" required />
+              <button type="submit" disabled={passwordBusy} className="md:col-span-3 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50">
+                <KeyRound className="w-4 h-4" /> {passwordBusy ? 'Actualizando…' : 'Cambiar contraseña'}
+              </button>
+            </form>
+            {passwordMessage && <p className={`mt-3 text-sm ${passwordMessage.startsWith('Error') ? 'text-red-600' : 'text-emerald-600'}`}>{passwordMessage}</p>}
+          </div>
+        )}
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Bell className="w-4 h-4" /> Recordatorios Móviles</h3>
@@ -706,12 +751,13 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Zap className="w-4 h-4" /> Credenciales de Servicios (Autollenado)</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">La extensión de Chrome rellena automáticamente el usuario y la contraseña en cada portal. Solo llena los campos; tú haces clic en "Iniciar sesión".</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">El worker del teléfono usa estas credenciales únicamente cuando una sesión vence. Espera la verificación normal del portal, inicia sesión y continúa el scraper sin mostrar contraseñas en los logs.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
             {[
               { key: 'air-e', name: 'Air-e (Energía)', portal: 'portal.air-e.com' },
               { key: 'triple-a', name: 'Triple A (Agua)', portal: 'portal.aaa.com.co' },
-              { key: 'gascaribe', name: 'Gases del Caribe (Gas)', portal: 'portal.gascaribe.com' },
+              { key: 'gascaribe', name: 'Gases · Cuenta 1', portal: 'Hasta 10 contratos' },
+              { key: 'gascaribe-2', name: 'Gases · Cuenta 2', portal: 'Contratos adicionales' },
             ].map(svc => (
               <div key={svc.key} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{svc.name}</p>

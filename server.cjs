@@ -44,7 +44,8 @@ app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody =
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) requestCount++;
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
-    req.path === '/api/ready' || req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook';
+    req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
+    req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook';
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -197,6 +198,50 @@ function constantTimeEqual(left, right) {
   const a = Buffer.from(String(left || ''));
   const b = Buffer.from(String(right || ''));
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function storedAdminPasswordHash() {
+  return String((db.settings || []).find(item => item.key === 'admin_password_hash')?.value || '');
+}
+
+function hashAdminPassword(password) {
+  const salt = crypto.randomBytes(16).toString('base64url');
+  const digest = crypto.scryptSync(String(password || ''), salt, 32).toString('base64url');
+  return `scrypt$${salt}$${digest}`;
+}
+
+function verifyAdminPasswordHash(password, packed) {
+  const parts = String(packed || '').split('$');
+  if (parts.length !== 3 || parts[0] !== 'scrypt' || !parts[1] || !parts[2]) return false;
+  try {
+    const expected = Buffer.from(parts[2], 'base64url');
+    const actual = crypto.scryptSync(String(password || ''), parts[1], expected.length);
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  } catch {
+    return false;
+  }
+}
+
+function adminPasswordMatches(password) {
+  const stored = storedAdminPasswordHash();
+  if (stored) return verifyAdminPasswordHash(password, stored);
+  const configured = process.env.ADMIN_PASSWORD || '';
+  return Boolean(configured && constantTimeEqual(password, configured));
+}
+
+function saveAdminPassword(password) {
+  if (!Array.isArray(db.settings)) db.settings = [];
+  const value = hashAdminPassword(password);
+  const existing = db.settings.find(item => item.key === 'admin_password_hash');
+  if (existing) existing.value = value;
+  else {
+    const record = { id: nextId.settings || 1, key: 'admin_password_hash', value };
+    db.settings.push(record);
+    nextId.settings = record.id + 1;
+  }
+  // Remove the unreachable legacy plaintext override if an old build created it.
+  db.settings = db.settings.filter(item => item.key !== 'admin_password');
+  saveData();
 }
 
 // ─── Utility credentials (stored in plain text) ───────────────────────────
@@ -3113,8 +3158,7 @@ app.post('/api/login', (req, res) => {
   }
   const { username, password } = req.body || {};
   const adminUsername = process.env.ADMIN_USERNAME || '';
-  const adminPassword = process.env.ADMIN_PASSWORD || '';
-  if (adminUsername && adminPassword && constantTimeEqual(username, adminUsername) && constantTimeEqual(password, adminPassword)) {
+  if (adminUsername && constantTimeEqual(username, adminUsername) && adminPasswordMatches(password)) {
     const session = createAuthSession({ role: 'admin', name: 'Administrador' });
     return res.json({ authenticated: true, role: 'admin', name: 'Administrador', ...session });
   }
@@ -3555,6 +3599,28 @@ function portableWorkerApartments() {
   }));
 }
 
+// Portal credentials are delivered only to an authenticated portable worker,
+// over HTTPS, and are consumed in memory by the local WebView. They are never
+// written to scraper diagnostics or returned by the public utility APIs.
+function portableWorkerPortalCredentials() {
+  const credentials = {};
+  for (const record of db.portalCredentials || []) {
+    const storedProvider = String(record?.provider || '').trim().toLowerCase();
+    const username = String(decryptSecret(record?.username) || '').trim();
+    const password = String(decryptSecret(record?.password) || '');
+    if (!storedProvider || !username || !password) continue;
+
+    let workerProvider = storedProvider;
+    if (storedProvider === 'triple-a') workerProvider = 'water';
+    else if (storedProvider === 'gascaribe') workerProvider = 'gas-1';
+    else if (/^gascaribe-\d+$/.test(storedProvider)) workerProvider = storedProvider.replace('gascaribe-', 'gas-');
+    else if (storedProvider === 'gas') workerProvider = 'gas-1';
+
+    credentials[workerProvider] = { username, password };
+  }
+  return credentials;
+}
+
 function ensureMarketplaceJobs() {
   if (!Array.isArray(db.marketplaceJobs)) db.marketplaceJobs = [];
   return db.marketplaceJobs;
@@ -3782,6 +3848,19 @@ app.get('/worker/v1/config', requirePortableWorker, (req, res) => {
     apartments: portableWorkerApartments(),
     serverTime: new Date().toISOString(),
   });
+});
+
+app.get('/worker/v1/portal-credentials', requirePortableWorker, (req, res) => {
+  const deviceId = workerProtocol.normalizeWorkerId(req.headers['x-worker-id'] || req.query.deviceId);
+  const credentials = portableWorkerPortalCredentials();
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  appendScraperLog({
+    source: 'render', deviceId, stage: 'credentials', level: 'success',
+    message: `Credenciales de portales entregadas de forma privada a ${deviceId || 'worker sin identificar'}.`,
+    details: { configuredProviders: Object.keys(credentials) },
+  });
+  res.json({ ok: true, credentials, serverTime: new Date().toISOString() });
 });
 
 // The phone/PC sends only stage metadata here. Portal tokens, cookies, raw
@@ -5155,32 +5234,56 @@ app.post('/api/whatsapp/cloud/send-media', (req, res) => {
 // ─── ADMIN PASSWORD & SECURITY ───
 app.post('/api/admin/verify-password', (req, res) => {
   const { password } = req.body || {};
-  const adminPassword = process.env.ADMIN_PASSWORD || '';
-  if (adminPassword && constantTimeEqual(password, adminPassword)) {
+  if (adminPasswordMatches(password)) {
     return res.json({ ok: true, role: 'admin', name: 'Administrador' });
   }
   res.status(401).json({ error: 'Contraseña inválida' });
 });
 
 app.post('/api/admin/change-password', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
   const { currentPassword, newPassword } = req.body || {};
-  const adminPassword = process.env.ADMIN_PASSWORD || '';
-  if (!adminPassword || !constantTimeEqual(currentPassword, adminPassword)) {
+  if (!adminPasswordMatches(currentPassword)) {
     return res.status(401).json({ error: 'Contraseña actual inválida' });
   }
-  if (!newPassword || newPassword.length < 6) {
-    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+  if (!newPassword || String(newPassword).length < 10) {
+    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 10 caracteres' });
   }
-  return res.status(409).json({ error: 'Actualiza ADMIN_PASSWORD en Render; las contraseñas no se guardan en la base de datos.' });
-  const setting = (db.settings || []).find(s => s.key === 'admin_password');
-  if (setting) {
-    setting.value = newPassword;
-  } else {
-    db.settings.push({ id: nextId.settings || 1, key: 'admin_password', value: newPassword });
-    nextId.settings = (nextId.settings || 1) + 1;
-  }
+  saveAdminPassword(newPassword);
+  db.authSessions = (db.authSessions || []).filter(session => session.role !== 'admin');
   saveData();
-  res.json({ ok: true, message: 'Contraseña actualizada' });
+  res.json({ ok: true, message: 'Contraseña actualizada. Inicia sesión nuevamente.' });
+});
+
+const adminRecoveryAttempts = new Map();
+
+function adminRecoverySecret() {
+  return String(process.env.ADMIN_RECOVERY_CODE || process.env.SECURITY_QUESTION_ANSWER || '').trim();
+}
+
+app.get('/api/admin/recovery-status', (req, res) => {
+  res.json({ ok: true, enabled: Boolean(adminRecoverySecret()) });
+});
+
+app.post('/api/admin/recover-password', (req, res) => {
+  const identity = String(req.ip || req.socket?.remoteAddress || 'unknown');
+  const now = Date.now();
+  const recent = (adminRecoveryAttempts.get(identity) || []).filter(timestamp => now - timestamp < 15 * 60 * 1000);
+  if (recent.length >= 5) return res.status(429).json({ error: 'Demasiados intentos. Espera 15 minutos.' });
+  recent.push(now);
+  adminRecoveryAttempts.set(identity, recent);
+
+  const expected = adminRecoverySecret();
+  const { recoveryCode, newPassword } = req.body || {};
+  if (!expected) return res.status(503).json({ error: 'Configura ADMIN_RECOVERY_CODE en Render para habilitar la recuperación.' });
+  if (!constantTimeEqual(String(recoveryCode || '').trim(), expected)) return res.status(401).json({ error: 'Código de recuperación inválido' });
+  if (!newPassword || String(newPassword).length < 10) return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 10 caracteres' });
+
+  saveAdminPassword(newPassword);
+  db.authSessions = (db.authSessions || []).filter(session => session.role !== 'admin');
+  saveData();
+  adminRecoveryAttempts.delete(identity);
+  res.json({ ok: true, message: 'Contraseña recuperada. Ya puedes iniciar sesión.' });
 });
 
 app.post('/api/admin/verify-security-question', (req, res) => {

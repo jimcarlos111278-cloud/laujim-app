@@ -14,6 +14,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [recoveryMessage, setRecoveryMessage] = useState('');
 
   const [checkingStoredSession, setCheckingStoredSession] = useState(() => Boolean(getAuth()));
 
@@ -77,6 +82,34 @@ export default function Login() {
     setLoading(false);
   }
 
+  async function handleRecovery(e) {
+    e.preventDefault();
+    setError('');
+    setRecoveryMessage('');
+    if (newPassword !== confirmPassword) {
+      setError('Las contraseñas nuevas no coinciden.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(getBase() + '/admin/recover-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recoveryCode, newPassword }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'No se pudo recuperar la contraseña.');
+      setRecoveryMessage(result.message || 'Contraseña actualizada.');
+      setRecovering(false);
+      setRecoveryCode('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (recoveryError) {
+      setError(recoveryError.message || 'No se pudo recuperar la contraseña.');
+    }
+    setLoading(false);
+  }
+
   if (checkingStoredSession) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Verificando sesión…</div>;
   }
@@ -106,16 +139,31 @@ export default function Login() {
 
         <div className="login-card bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden login-enter login-enter-3">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
-            <button onClick={() => { setTab('admin'); setError(''); }} className={`flex-1 py-3.5 text-sm font-medium text-center transition-colors ${tab === 'admin' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
+            <button onClick={() => { setTab('admin'); setRecovering(false); setError(''); }} className={`flex-1 py-3.5 text-sm font-medium text-center transition-colors ${tab === 'admin' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 dark:bg-blue-900/20' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
               <ShieldCheck className="w-4 h-4 mx-auto mb-1" /> Administrador
             </button>
-            <button onClick={() => { setTab('tenant'); setError(''); }} className={`flex-1 py-3.5 text-sm font-medium text-center transition-colors ${tab === 'tenant' ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
+            <button onClick={() => { setTab('tenant'); setRecovering(false); setError(''); }} className={`flex-1 py-3.5 text-sm font-medium text-center transition-colors ${tab === 'tenant' ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
               <User className="w-4 h-4 mx-auto mb-1" /> Inquilino
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {tab === 'admin' ? (
+          <form onSubmit={recovering ? handleRecovery : handleSubmit} className="p-6 space-y-4">
+            {recovering ? (
+              <>
+                <div>
+                  <label htmlFor="admin-recovery-code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de recuperación</label>
+                  <input id="admin-recovery-code" type="password" value={recoveryCode} onChange={event => setRecoveryCode(event.target.value)} autoComplete="one-time-code" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" required />
+                </div>
+                <div>
+                  <label htmlFor="admin-recovery-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nueva contraseña</label>
+                  <input id="admin-recovery-password" type="password" value={newPassword} onChange={event => setNewPassword(event.target.value)} minLength={10} autoComplete="new-password" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" required />
+                </div>
+                <div>
+                  <label htmlFor="admin-recovery-confirm" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar contraseña</label>
+                  <input id="admin-recovery-confirm" type="password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} minLength={10} autoComplete="new-password" className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" required />
+                </div>
+              </>
+            ) : tab === 'admin' ? (
               <>
                 <div>
                   <label htmlFor="login-admin-username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Usuario</label>
@@ -146,10 +194,17 @@ export default function Login() {
             )}
 
             <button type="submit" disabled={loading} className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm">
-              {loading ? 'Entrando...' : 'Iniciar Sesión'}
+              {loading ? (recovering ? 'Actualizando...' : 'Entrando...') : (recovering ? 'Guardar nueva contraseña' : 'Iniciar Sesión')}
             </button>
+            {tab === 'admin' && (
+              <button type="button" onClick={() => { setRecovering(value => !value); setError(''); setRecoveryMessage(''); }} className="w-full text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                {recovering ? 'Volver al inicio de sesión' : 'Olvidé mi contraseña'}
+              </button>
+            )}
           </form>
         </div>
+
+        {recoveryMessage && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-700">{recoveryMessage}</p>}
 
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6 login-enter login-enter-4">
           Los inquilinos ingresan con el número de apartamento y su número de cédula

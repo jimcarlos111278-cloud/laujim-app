@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1787151978.2524004,
-    "ast_hash": "685e5bdf5ce7c869d968118f575e220b",
+    "mtime": 1787200430.3070967,
+    "ast_hash": "2a0e1c8c32be8e7987e4946ff8c5f68b",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1787152143.425246,
-    "ast_hash": "0b0602e04c396a03e52f232077b3b935",
+    "mtime": 1787200548.4867253,
+    "ast_hash": "ca92962f8f7109ca8110c9e2a1662330",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1787152711.3909054,
-    "ast_hash": "66e8ce794e2efed1db48a2e7cfa3ef76",
+    "mtime": 1787200147.4218469,
+    "ast_hash": "7e6dd35e0e190b16bc9bd5ccbd31a8d3",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -340,8 +340,8 @@
     "semantic_hash": ""
   },
   "src/pages/Login.jsx": {
-    "mtime": 1785997893.0286484,
-    "ast_hash": "3d5d20407cbf6cf37a1c9d7982649278",
+    "mtime": 1787200225.0569952,
+    "ast_hash": "14a978efe12baf0dbd66c90becbb4356",
     "semantic_hash": ""
   },
   "src/pages/MiApto.jsx": {
@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "src/pages/Settings.jsx": {
-    "mtime": 1786922540.0967247,
-    "ast_hash": "c0f8b3be11c656326a3e0749ca2404d4",
+    "mtime": 1787200265.930766,
+    "ast_hash": "45911deffbf42a7533925ac343310572",
     "semantic_hash": ""
   },
   "src/pages/ShareApartments.jsx": {
@@ -880,8 +880,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1787106639.265069,
-    "ast_hash": "1377354686abb932761831fc7b988408",
+    "mtime": 1787200075.5434604,
+    "ast_hash": "db8a7ba81f56f4e42cb3f412163b75f8",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
@@ -905,8 +905,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1787111141.648305,
-    "ast_hash": "0a55e22a407af38925e7e65a8bc69310",
+    "mtime": 1787200565.0698159,
+    "ast_hash": "ef21bb850a2a30078a889f62dc92fb52",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
