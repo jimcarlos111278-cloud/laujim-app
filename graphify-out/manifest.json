@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1787200430.3070967,
-    "ast_hash": "2a0e1c8c32be8e7987e4946ff8c5f68b",
+    "mtime": 1787206667.536276,
+    "ast_hash": "8e460a6e57d833690403b42d68fecc5a",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1787200548.4867253,
-    "ast_hash": "ca92962f8f7109ca8110c9e2a1662330",
+    "mtime": 1787206766.2759829,
+    "ast_hash": "f02e17ea2dd7346bfd83aaf9619a6e02",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -880,8 +880,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
-    "mtime": 1787200075.5434604,
-    "ast_hash": "db8a7ba81f56f4e42cb3f412163b75f8",
+    "mtime": 1787206667.5317068,
+    "ast_hash": "ccda3e2dce688e895850b82a864c6159",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
@@ -905,13 +905,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1787200565.0698159,
-    "ast_hash": "ef21bb850a2a30078a889f62dc92fb52",
+    "mtime": 1787206667.5317068,
+    "ast_hash": "c913f20079d78be0cbabfdfa79dba5df",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
-    "mtime": 1787108810.0593164,
-    "ast_hash": "2d80b336ee3edd0cb90743f09ce4bbcb",
+    "mtime": 1787206667.5317068,
+    "ast_hash": "b6f8ba49ee44256eb85ffe2c9db6e5da",
     "semantic_hash": ""
   },
   ".tmp/gradle-off-onedrive.init.gradle": {
@@ -1005,8 +1005,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
-    "mtime": 1786811604.5441167,
-    "ast_hash": "e5f502421a5a823d73815fb6ad370350",
+    "mtime": 1787203818.8550608,
+    "ast_hash": "86c9d0a0d29468d059e87d965235c122",
     "semantic_hash": ""
   },
   "src/pages/SecurityCenter.jsx": {

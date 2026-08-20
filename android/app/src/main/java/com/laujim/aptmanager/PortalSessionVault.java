@@ -114,7 +114,7 @@ final class PortalSessionVault {
         flushCookies();
     }
 
-    private static void clearGasCookies() {
+    static void clearGasCookies() {
         try {
             CookieManager cookies = CookieManager.getInstance();
             for (String origin : GAS_ORIGINS) {

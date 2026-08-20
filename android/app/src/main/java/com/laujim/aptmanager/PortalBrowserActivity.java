@@ -6,6 +6,10 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.os.SystemClock;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -41,11 +45,9 @@ public class PortalBrowserActivity extends Activity {
     private String provider = "air-e";
     private String currentUrl = "";
     private String nativeAuthorization = "";
-    // An Activity object can remain alive after returning to Laujim. The
-    // worker must not treat that paused WebView as the foreground browser:
-    // its SPA may be showing a stale login screen while the persistent
-    // worker WebView can restore the encrypted session and run in background.
-    private volatile boolean foreground;
+    // A paused Activity keeps its attached WebView and real browser profile.
+    // Reusing it lets portal security widgets finish normally without showing
+    // another window during an hourly run.
     private boolean storageRestoreAttempted;
     private int navigationGeneration;
     private CompletableFuture<Boolean> pageReady = new CompletableFuture<>();
@@ -103,13 +105,11 @@ public class PortalBrowserActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        foreground = true;
         activeInstance = this;
     }
 
     @Override
     protected void onPause() {
-        foreground = false;
         if (webView != null) {
             try { webView.evaluateJavascript(PortalSessionVault.snapshotScript(provider, "LaujimAndroidBridge"), ignored -> { }); }
             catch (RuntimeException ignored) { }
@@ -257,14 +257,16 @@ public class PortalBrowserActivity extends Activity {
             pageReady = new CompletableFuture<>();
         }
         PortalSessionVault.clear(this);
-        CookieManager.getInstance().removeAllCookies(value -> PortalSessionVault.flushCookies());
-        WebStorage.getInstance().deleteAllData();
-        if (webView != null) {
-            webView.clearCache(true);
-            webView.clearHistory();
-        }
-        if (status != null) status.setText("Cookies y sesión cifrada borradas. Cargando el portal nuevamente…");
-        beginLoad(provider);
+        CookieManager.getInstance().removeAllCookies(value -> {
+            PortalSessionVault.flushCookies();
+            WebStorage.getInstance().deleteAllData();
+            if (webView != null) {
+                webView.clearCache(true);
+                webView.clearHistory();
+            }
+            if (status != null) status.setText("Cookies y sesión cifrada borradas. Cargando el portal nuevamente…");
+            beginLoad(provider);
+        });
     }
 
     private void returnToLaujim() {
@@ -290,7 +292,97 @@ public class PortalBrowserActivity extends Activity {
 
     static boolean hasActiveBrowser() {
         PortalBrowserActivity activity = activeInstance;
-        return activity != null && activity.foreground && activity.webView != null;
+        return activity != null && !activity.isFinishing() && !activity.isDestroyed() && activity.webView != null;
+    }
+
+    /**
+     * Drops only the selected portal account when its saved browser snapshot
+     * belongs to another Gases account. Air-e and Triple A remain untouched.
+     */
+    static CompletableFuture<Boolean> resetProviderSession(String requestedProvider) {
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        PortalBrowserActivity activity = activeInstance;
+        if (activity == null || activity.webView == null) {
+            result.completeExceptionally(new IllegalStateException("El navegador compartido no está disponible."));
+            return result;
+        }
+        activity.mainHandler.post(() -> {
+            String nextProvider = normalize(requestedProvider);
+            try {
+                PortalSessionVault.clearProvider(activity, nextProvider);
+                if (PortalSessionVault.isGasSession(nextProvider)) PortalSessionVault.clearGasCookies();
+                activity.webView.evaluateJavascript(
+                    "(function(){try{localStorage.clear();sessionStorage.clear();return true;}catch(e){return false;}})();",
+                    ignored -> {
+                        PortalSessionVault.flushCookies();
+                        activity.beginLoad(nextProvider);
+                        result.complete(true);
+                    }
+                );
+            } catch (Exception error) {
+                result.completeExceptionally(error);
+            }
+        });
+        return result;
+    }
+
+    static boolean fillLoginWithNativeKeys(WebView target, Handler handler, String username, String password) {
+        if (target == null || handler == null || username == null || username.trim().isEmpty() || password == null || password.isEmpty()) return false;
+        handler.post(() -> focusLoginField(target, false, () -> dispatchText(target, handler, username, () ->
+            focusLoginField(target, true, () -> dispatchText(target, handler, password, null)))));
+        return true;
+    }
+
+    private static void focusLoginField(WebView target, boolean password, Runnable next) {
+        String selectors = password
+            ? "input[type='password'],input[autocomplete='current-password'],input[name*='password' i],input[id*='password' i],input[name*='clave' i],input[id*='clave' i]"
+            : "input[autocomplete='username'],input[type='email'],input[name*='username' i],input[id*='username' i],input[name*='usuario' i],input[id*='usuario' i],input[name*='correo' i],input[id*='correo' i],input[type='text']";
+        target.evaluateJavascript("(function(){const e=document.querySelector(" + quote(selectors) + ");if(!e)return false;e.focus();try{e.setSelectionRange(0,String(e.value||'').length);}catch(x){}return true;})();", ignored -> {
+            if (next != null) next.run();
+        });
+    }
+
+    private static void dispatchText(WebView target, Handler handler, String value, Runnable done) {
+        KeyEvent[] events = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD).getEvents(value.toCharArray());
+        if (events == null || events.length == 0) {
+            if (done != null) done.run();
+            return;
+        }
+        for (int index = 0; index < events.length; index += 1) {
+            KeyEvent event = events[index];
+            handler.postDelayed(() -> target.dispatchKeyEvent(event), index * 12L);
+        }
+        if (done != null) handler.postDelayed(done, events.length * 12L + 80L);
+    }
+
+    static boolean clickLoginWithNativeTouch(WebView target, Handler handler) {
+        if (target == null || handler == null) return false;
+        handler.post(() -> target.evaluateJavascript(
+            "(function(){const e=document.querySelector('button[type=submit],input[type=submit],button[id*=" + quote("login") + " i]');if(!e||e.disabled)return '';const r=e.getBoundingClientRect();return (r.left+r.width/2)+'|'+(r.top+r.height/2);})();",
+            encoded -> {
+                try {
+                    String value = encoded == null ? "" : encoded.replaceAll("^\\\"|\\\"$", "");
+                    String[] parts = value.split("\\|");
+                    if (parts.length != 2) return;
+                    float x = Float.parseFloat(parts[0]);
+                    float y = Float.parseFloat(parts[1]);
+                    long now = SystemClock.uptimeMillis();
+                    target.dispatchTouchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0));
+                    target.dispatchTouchEvent(MotionEvent.obtain(now, now + 60L, MotionEvent.ACTION_UP, x, y, 0));
+                } catch (Exception ignored) { }
+            }
+        ));
+        return true;
+    }
+
+    static boolean pressEnterWithNativeKey(WebView target, Handler handler) {
+        if (target == null || handler == null) return false;
+        handler.postDelayed(() -> {
+            long now = SystemClock.uptimeMillis();
+            target.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, 0));
+            target.dispatchKeyEvent(new KeyEvent(now, now + 60L, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, 0));
+        }, 80L);
+        return true;
     }
 
     /**
@@ -334,7 +426,10 @@ public class PortalBrowserActivity extends Activity {
         }
 
         String nextProvider = normalize(requestedProvider);
-        if (!nextProvider.equals(provider) || !isProviderUrl(currentUrl, nextProvider)) {
+        boolean reopenProtectedRoute = false;
+        try { reopenProtectedRoute = new JSONObject(configJson == null ? "{}" : configJson).optBoolean("autoLoginSubmitted", false); }
+        catch (Exception ignored) { }
+        if (reopenProtectedRoute || !nextProvider.equals(provider) || !isProviderUrl(currentUrl, nextProvider)) {
             persistThen(() -> {
                 beginLoad(nextProvider);
                 scheduleScraperEvaluation(nextProvider, configJson, runnerScript, result);
@@ -365,6 +460,7 @@ public class PortalBrowserActivity extends Activity {
             + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');"
             + "const outcome=await window.LaujimLocalPortalScraper.run(" + quote(PortalSessionVault.baseProvider(nextProvider)) + "," + (configJson == null ? "{}" : configJson) + ");"
             + "window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));"
+            + "if(outcome&&outcome.state==='login_submitted')setTimeout(()=>window.LaujimLocalPortalScraper.submitLogin(),350);"
             + "}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(nextProvider)
             + ",stage:'shared_webview',message:String(e&&e.message||e),results:[]}));}})();";
         try { webView.evaluateJavascript(expression, ignored -> { }); }
@@ -467,6 +563,21 @@ public class PortalBrowserActivity extends Activity {
             if (value == null || value.trim().isEmpty()) return;
             nativeAuthorization = value.trim();
             PortalSessionVault.saveAuthorization(PortalBrowserActivity.this, provider, nativeAuthorization);
+        }
+
+        @JavascriptInterface
+        public boolean fillLogin(String username, String password) {
+            return fillLoginWithNativeKeys(webView, mainHandler, username, password);
+        }
+
+        @JavascriptInterface
+        public boolean clickLogin() {
+            return clickLoginWithNativeTouch(webView, mainHandler);
+        }
+
+        @JavascriptInterface
+        public boolean pressEnter() {
+            return pressEnterWithNativeKey(webView, mainHandler);
         }
     }
 }

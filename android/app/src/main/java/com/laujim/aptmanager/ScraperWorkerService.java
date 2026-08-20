@@ -512,38 +512,51 @@ public class ScraperWorkerService extends Service {
     }
 
     private JSONObject runProvider(String provider, JSONObject config) throws Exception {
-        JSONObject outcome = null;
-        // A successful form submission navigates away from the login page and
-        // destroys that JavaScript context. Re-enter the portal from native
-        // code, at most twice, so the authenticated scrape resumes safely.
-        for (int attempt = 0; attempt < 3; attempt += 1) {
-            outcome = runProviderAttempt(provider, config);
-            if (outcome == null || !"login_submitted".equals(outcome.optString("state", ""))) break;
-            if (attempt >= 1) {
-                return new JSONObject()
-                    .put("state", "needs_login")
-                    .put("provider", PortalSessionVault.baseProvider(provider))
-                    .put("stage", "auto_login_retry_limit")
-                    .put("message", providerLabel(provider) + " no confirmó el inicio de sesión automático. Revisa las credenciales o completa la verificación visible.")
-                    .put("results", new JSONArray());
-            }
-            Thread.sleep(10_000L);
+        JSONObject outcome = runProviderWithLoginResume(provider, config);
+        if (isWrongGasAccountSession(provider, config, outcome)) {
+            PortalBrowserActivity.resetProviderSession(provider).get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            outcome = runProviderWithLoginResume(provider, config);
         }
+        return outcome;
+    }
+
+    private JSONObject runProviderWithLoginResume(String provider, JSONObject config) throws Exception {
+        JSONObject outcome;
+        // A successful form submission navigates away from the login page and
+        // destroys that JavaScript context. Some portals finish their redirect
+        // 15–20 seconds later. Submit only once, wait outside the page, then
+        // reopen the protected URL without risking repeated bad-password hits.
+        outcome = runProviderAttempt(provider, config);
+        if (outcome == null || !"login_submitted".equals(outcome.optString("state", ""))) {
+            return outcome == null
+                ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.")
+                : outcome;
+        }
+
+        Thread.sleep(25_000L);
+        JSONObject resumeConfig = config == null ? new JSONObject() : new JSONObject(config.toString());
+        resumeConfig.put("autoLoginSubmitted", true);
+        outcome = runProviderAttempt(provider, resumeConfig);
         return outcome == null
-            ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.")
+            ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta después del autologin.")
             : outcome;
     }
 
-    private JSONObject runProviderAttempt(String provider, JSONObject config) throws Exception {
-        String normalized = provider == null ? "" : provider.trim().toLowerCase();
-        if (PortalSessionVault.isGasSession(normalized)) {
-            // Gases is stable on the legacy background path. Keep it isolated
-            // while Air-e and Triple A reuse the authenticated visible view.
-            JSONObject outcome = loadAndEvaluate(provider, portalWorkUrl(provider), config);
-            return outcome == null ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta local.") : outcome;
-        }
+    private boolean isWrongGasAccountSession(String provider, JSONObject config, JSONObject outcome) {
+        if (!isGasAccountId(provider) || config == null || outcome == null) return false;
+        JSONArray apartments = config.optJSONArray("apartments");
+        JSONObject credentials = config.optJSONObject("credentials");
+        return apartments != null
+            && apartments.length() > 0
+            && credentials != null
+            && !credentials.optString("username", "").trim().isEmpty()
+            && !credentials.optString("password", "").isEmpty()
+            && outcome.optInt("contractCount", 0) > 0
+            && outcome.optInt("matchedContracts", -1) == 0;
+    }
 
-        // Air-e and Triple A first reuse the visible authenticated SPA. If
+    private JSONObject runProviderAttempt(String provider, JSONObject config) throws Exception {
+        // All providers first reuse the attached authenticated SPA. If
         // Android reclaimed it, recover the encrypted per-origin state in the
         // background WebView so an hourly run does not depend on RAM alone.
         if (runnerScript == null || runnerScript.isEmpty()) {
@@ -691,7 +704,7 @@ public class ScraperWorkerService extends Service {
         String configJson = config.toString();
         String nativeAuthorizationJson = quote(nativeAuthorization);
         String runnerProvider = PortalSessionVault.baseProvider(provider);
-        String expression = "(async()=>{try{window.__LaujimNativeAuthorization=" + nativeAuthorizationJson + ";" + runnerScript + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');const outcome=await window.LaujimLocalPortalScraper.run(" + quote(runnerProvider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(runnerProvider) + ",message:String(e&&e.message||e),results:[]}));}})();";
+        String expression = "(async()=>{try{window.__LaujimNativeAuthorization=" + nativeAuthorizationJson + ";" + runnerScript + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');const outcome=await window.LaujimLocalPortalScraper.run(" + quote(runnerProvider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));if(outcome&&outcome.state==='login_submitted')setTimeout(()=>window.LaujimLocalPortalScraper.submitLogin(),350);}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(runnerProvider) + ",message:String(e&&e.message||e),results:[]}));}})();";
         mainHandler.postDelayed(() -> {
             if (webView == null) {
                 result.completeExceptionally(new IllegalStateException("WebView local no inicializado."));
@@ -916,6 +929,21 @@ public class ScraperWorkerService extends Service {
                 nativeAuthorization = value.trim();
                 PortalSessionVault.saveAuthorization(ScraperWorkerService.this, webViewProvider, nativeAuthorization);
             }
+        }
+
+        @JavascriptInterface
+        public boolean fillLogin(String username, String password) {
+            return PortalBrowserActivity.fillLoginWithNativeKeys(webView, mainHandler, username, password);
+        }
+
+        @JavascriptInterface
+        public boolean clickLogin() {
+            return PortalBrowserActivity.clickLoginWithNativeTouch(webView, mainHandler);
+        }
+
+        @JavascriptInterface
+        public boolean pressEnter() {
+            return PortalBrowserActivity.pressEnterWithNativeKey(webView, mainHandler);
         }
 
         @JavascriptInterface

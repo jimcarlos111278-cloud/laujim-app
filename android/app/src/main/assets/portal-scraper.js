@@ -51,6 +51,16 @@
     return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
   }
 
+  function visibleThroughAncestors(element) {
+    let current = element;
+    while (current && current.nodeType === 1) {
+      const style = getComputedStyle(current);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' || current.getAttribute('aria-hidden') === 'true') return false;
+      current = current.parentElement;
+    }
+    return !!element && document.documentElement.contains(element);
+  }
+
   function loginState() {
     const body = clean(uiBodyText());
     const password = Array.from(document.querySelectorAll('input[type="password"], input[name*="password" i], input[id*="password" i]')).find(domAvailable);
@@ -76,6 +86,10 @@
   }
 
   function challengePending() {
+    const pendingTurnstile = Array.from(document.querySelectorAll(
+      'input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]'
+    )).find(element => String(element.value || '').trim().length <= 20);
+    if (pendingTurnstile) return true;
     const response = Array.from(document.querySelectorAll(
       'input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"], input[name="g-recaptcha-response"], textarea[name="g-recaptcha-response"], textarea[name="h-captcha-response"]'
     )).map(element => String(element.value || '').trim()).find(value => value.length > 20);
@@ -138,7 +152,41 @@
     return { username, password, submit };
   }
 
+  function submitLogin() {
+    const submit = loginElements().submit;
+    if (!submit || submit.disabled) return false;
+    const nativeBridge = window.LaujimAndroidBridge;
+    if (nativeBridge && typeof nativeBridge.clickLogin === 'function') {
+      try {
+        if (typeof nativeBridge.pressEnter === 'function' && nativeBridge.pressEnter()) return true;
+        if (nativeBridge.clickLogin()) return true;
+      } catch { }
+    }
+    try { submit.click(); }
+    catch {
+      try { submit.form?.requestSubmit(submit); }
+      catch { return false; }
+    }
+    return true;
+  }
+
   async function attemptAutoLogin(provider, config) {
+    if (config && config.autoLoginSubmitted) {
+      const pageText = clean(uiBodyText());
+      const otp = Array.from(document.querySelectorAll(
+        'input[autocomplete="one-time-code"], input[name*="otp" i], input[id*="otp" i], input[name*="codigo" i], input[id*="codigo" i]'
+      )).find(visibleThroughAncestors);
+      if (otp) return {
+        state: 'needs_verification', provider, stage: 'otp_required',
+        message: `${providerLabel(provider)} aceptó las credenciales y solicita un código de verificación.`, results: [],
+      };
+      const rejected = /credenciales invalidas|credenciales incorrectas|usuario o contrasena|contrasena incorrecta|incorrect password|invalid credentials|datos incorrectos/.test(pageText);
+      return needsLogin(provider, rejected
+        ? `${providerLabel(provider)} rechazó el usuario o la contraseña guardados.`
+        : `${providerLabel(provider)} no confirmó el inicio de sesión después de 25 segundos.`, {
+        stage: rejected ? 'credentials_rejected' : 'auto_login_not_confirmed',
+      });
+    }
     const credentials = config && config.credentials;
     if (!credentials || !String(credentials.username || '').trim() || !String(credentials.password || '')) {
       return needsLogin(provider, `${providerLabel(provider)} solicita iniciar sesión y no tiene credenciales de autologin configuradas.`, { stage: 'credentials_missing' });
@@ -153,8 +201,28 @@
       });
     }
 
-    const usernameFilled = inputValue(elements.username, credentials.username);
-    const passwordFilled = inputValue(elements.password, credentials.password);
+    let usernameFilled = false;
+    let passwordFilled = false;
+    const nativeBridge = window.LaujimAndroidBridge;
+    if (nativeBridge && typeof nativeBridge.fillLogin === 'function') {
+      try {
+        const requested = nativeBridge.fillLogin(String(credentials.username), String(credentials.password));
+        if (requested) {
+          const typed = await waitForUi(() => {
+            const current = loginElements();
+            return current.username && current.password
+              && String(current.username.value || '') === String(credentials.username)
+              && String(current.password.value || '') === String(credentials.password);
+          }, 12_000);
+          usernameFilled = !!typed;
+          passwordFilled = !!typed;
+        }
+      } catch { }
+    }
+    if (!usernameFilled || !passwordFilled) {
+      usernameFilled = inputValue(elements.username, credentials.username);
+      passwordFilled = inputValue(elements.password, credentials.password);
+    }
     if (!usernameFilled || !passwordFilled) {
       return needsLogin(provider, `${providerLabel(provider)} no permitió completar el formulario de acceso.`, { stage: 'login_fill_failed' });
     }
@@ -177,14 +245,9 @@
       return needsLogin(provider, `${providerLabel(provider)} mantuvo deshabilitado el botón de acceso.`, { stage: 'login_submit_disabled' });
     }
 
-    // Return through the Android bridge before navigation destroys this JS
-    // context, then let native code reopen the authenticated work URL.
-    setTimeout(() => {
-      try { elements.submit.click(); }
-      catch {
-        try { elements.submit.form?.requestSubmit(elements.submit); } catch { }
-      }
-    }, 180);
+    // The Android wrapper sends this outcome through its bridge before it
+    // calls submitLogin. That ordering prevents a navigation from destroying
+    // the JavaScript context before the worker receives the result.
     return {
       state: 'login_submitted', provider, stage: 'auto_login_submit',
       message: `Autologin enviado a ${providerLabel(provider)}; la app continuará la consulta al confirmar la sesión.`, results: [],
@@ -1383,5 +1446,5 @@
     }
   }
 
-  window.LaujimLocalPortalScraper = { run };
+  window.LaujimLocalPortalScraper = { run, submitLogin };
 })();
