@@ -8156,7 +8156,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/mainactivity.java"
     },
     {
@@ -8169,7 +8169,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity_mainactivity",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": "mainactivity"
     },
     {
@@ -8179,7 +8179,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "bridgeactivity",
-      "community": 473,
+      "community": 607,
       "community_name": "BridgeActivity",
       "norm_label": "bridgeactivity"
     },
@@ -8191,7 +8191,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_valuecallback",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": "valuecallback"
     },
     {
@@ -8202,7 +8202,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_uri",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": "uri"
     },
     {
@@ -8214,7 +8214,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity_mainactivity_oncreate",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": ".oncreate()"
     },
     {
@@ -8225,7 +8225,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_bundle",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": "bundle"
     },
     {
@@ -8236,7 +8236,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_override",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": "override"
     },
     {
@@ -8248,7 +8248,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity_mainactivity_onactivityresult",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": ".onactivityresult()"
     },
     {
@@ -8259,7 +8259,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_intent",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": "intent"
     },
     {
@@ -8271,7 +8271,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_79fff05b64e14cfca70b11051e2f8d03_android_app_src_main_java_com_laujim_aptmanager_mainactivity_mainactivity_ondestroy",
       "community": 473,
-      "community_name": "BridgeActivity",
+      "community_name": "android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
       "norm_label": ".ondestroy()"
     },
     {
@@ -17143,8 +17143,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_d5021e36f58141f990c9158b49e06ac3_app_src_main_java_com_laujim_aptmanager_respondviamessageservice",
-      "community": 395,
-      "community_name": "Service",
+      "community": 551,
+      "community_name": "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/respondviamessageservice.java"
     },
     {
@@ -17156,8 +17156,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_d5021e36f58141f990c9158b49e06ac3_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice",
-      "community": 395,
-      "community_name": "Service",
+      "community": 551,
+      "community_name": "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "respondviamessageservice"
     },
     {
@@ -17168,8 +17168,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_d5021e36f58141f990c9158b49e06ac3_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice_onbind",
-      "community": 395,
-      "community_name": "Service",
+      "community": 551,
+      "community_name": "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": ".onbind()"
     },
     {
@@ -17179,8 +17179,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_d5021e36f58141f990c9158b49e06ac3_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_intent",
-      "community": 395,
-      "community_name": "Service",
+      "community": 551,
+      "community_name": "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "intent"
     },
     {
@@ -17190,8 +17190,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_d5021e36f58141f990c9158b49e06ac3_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_ibinder",
-      "community": 395,
-      "community_name": "Service",
+      "community": 551,
+      "community_name": "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "ibinder"
     },
     {
@@ -17201,8 +17201,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_48_d5021e36f58141f990c9158b49e06ac3_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_override",
-      "community": 395,
-      "community_name": "Service",
+      "community": 551,
+      "community_name": "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "override"
     },
     {
@@ -23791,8 +23791,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_49_53f0a1b4b18c41cf84673f3ee5d245e3_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice",
-      "community": 395,
-      "community_name": "Service",
+      "community": 588,
+      "community_name": "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/respondviamessageservice.java"
     },
     {
@@ -23804,8 +23804,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_49_53f0a1b4b18c41cf84673f3ee5d245e3_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice",
-      "community": 395,
-      "community_name": "Service",
+      "community": 588,
+      "community_name": "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "respondviamessageservice"
     },
     {
@@ -23816,8 +23816,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_49_53f0a1b4b18c41cf84673f3ee5d245e3_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice_onbind",
-      "community": 395,
-      "community_name": "Service",
+      "community": 588,
+      "community_name": "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": ".onbind()"
     },
     {
@@ -23827,8 +23827,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_49_53f0a1b4b18c41cf84673f3ee5d245e3_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_intent",
-      "community": 395,
-      "community_name": "Service",
+      "community": 588,
+      "community_name": "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "intent"
     },
     {
@@ -23838,8 +23838,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_49_53f0a1b4b18c41cf84673f3ee5d245e3_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_ibinder",
-      "community": 395,
-      "community_name": "Service",
+      "community": 588,
+      "community_name": "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "ibinder"
     },
     {
@@ -23849,8 +23849,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_49_53f0a1b4b18c41cf84673f3ee5d245e3_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_override",
-      "community": 395,
-      "community_name": "Service",
+      "community": 588,
+      "community_name": "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
       "norm_label": "override"
     },
     {
@@ -30439,8 +30439,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_50_7d0f6e795d0d4ec89b76a18d4eda27d0_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice",
-      "community": 363,
-      "community_name": "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/respondviamessageservice.java"
     },
     {
@@ -30452,8 +30452,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_50_7d0f6e795d0d4ec89b76a18d4eda27d0_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice",
-      "community": 363,
-      "community_name": "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "respondviamessageservice"
     },
     {
@@ -30464,8 +30464,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_50_7d0f6e795d0d4ec89b76a18d4eda27d0_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice_onbind",
-      "community": 363,
-      "community_name": "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": ".onbind()"
     },
     {
@@ -30475,8 +30475,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_50_7d0f6e795d0d4ec89b76a18d4eda27d0_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_intent",
-      "community": 363,
-      "community_name": "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "intent"
     },
     {
@@ -30486,8 +30486,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_50_7d0f6e795d0d4ec89b76a18d4eda27d0_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_ibinder",
-      "community": 363,
-      "community_name": "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "ibinder"
     },
     {
@@ -30497,8 +30497,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_50_7d0f6e795d0d4ec89b76a18d4eda27d0_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_override",
-      "community": 363,
-      "community_name": "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "override"
     },
     {
@@ -37087,8 +37087,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_51_a1a69d71293948b3b28afd45124c0217_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice",
-      "community": 551,
-      "community_name": "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/respondviamessageservice.java"
     },
     {
@@ -37100,8 +37100,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_51_a1a69d71293948b3b28afd45124c0217_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice",
-      "community": 551,
-      "community_name": "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "respondviamessageservice"
     },
     {
@@ -37112,8 +37112,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_51_a1a69d71293948b3b28afd45124c0217_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_respondviamessageservice_onbind",
-      "community": 551,
-      "community_name": "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": ".onbind()"
     },
     {
@@ -37123,8 +37123,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_51_a1a69d71293948b3b28afd45124c0217_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_intent",
-      "community": 551,
-      "community_name": "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "intent"
     },
     {
@@ -37134,8 +37134,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_51_a1a69d71293948b3b28afd45124c0217_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_ibinder",
-      "community": 551,
-      "community_name": "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "ibinder"
     },
     {
@@ -37145,8 +37145,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_51_a1a69d71293948b3b28afd45124c0217_android_app_src_main_java_com_laujim_aptmanager_respondviamessageservice_java_override",
-      "community": 551,
-      "community_name": "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java",
+      "community": 395,
+      "community_name": "Service",
       "norm_label": "override"
     },
     {
@@ -44637,8 +44637,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/scraperworkerservice.java"
     },
     {
@@ -44661,8 +44661,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_handler",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": "handler"
     },
     {
@@ -44672,8 +44672,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_webview",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": "webview"
     },
     {
@@ -44684,8 +44684,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_oncreate",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".oncreate()"
     },
     {
@@ -44695,8 +44695,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_override",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": "override"
     },
     {
@@ -44707,8 +44707,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_createlocalwebview",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".createlocalwebview()"
     },
     {
@@ -44730,8 +44730,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_intent",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": "intent"
     },
     {
@@ -44920,8 +44920,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_installauthorizationhook",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".installauthorizationhook()"
     },
     {
@@ -45040,8 +45040,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_readasset",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".readasset()"
     },
     {
@@ -45100,8 +45100,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_notification",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".notification()"
     },
     {
@@ -45111,8 +45111,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_notification",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": "notification"
     },
     {
@@ -45135,8 +45135,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_createnotificationchannel",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".createnotificationchannel()"
     },
     {
@@ -45147,8 +45147,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_ontaskremoved",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".ontaskremoved()"
     },
     {
@@ -45159,8 +45159,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_ondestroy",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".ondestroy()"
     },
     {
@@ -45171,8 +45171,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_scraperworkerservice_onbind",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".onbind()"
     },
     {
@@ -45182,8 +45182,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_ibinder",
-      "community": 552,
-      "community_name": "ScraperWorkerService",
+      "community": 111,
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": "ibinder"
     },
     {
@@ -45196,7 +45196,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge",
       "community": 111,
-      "community_name": "JavascriptResultBridge",
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": "javascriptresultbridge"
     },
     {
@@ -45208,7 +45208,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge_captureauthorization",
       "community": 111,
-      "community_name": "JavascriptResultBridge",
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".captureauthorization()"
     },
     {
@@ -45219,7 +45219,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_java_javascriptinterface",
       "community": 111,
-      "community_name": "JavascriptResultBridge",
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": "javascriptinterface"
     },
     {
@@ -45231,7 +45231,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge_persistsession",
       "community": 111,
-      "community_name": "JavascriptResultBridge",
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".persistsession()"
     },
     {
@@ -45243,7 +45243,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_c8ba156f8b8f404f8382ba31945b0ef9_android_app_src_main_java_com_laujim_aptmanager_scraperworkerservice_javascriptresultbridge_resolve",
       "community": 111,
-      "community_name": "JavascriptResultBridge",
+      "community_name": "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java",
       "norm_label": ".resolve()"
     },
     {
@@ -48136,7 +48136,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/mainactivity.java"
     },
     {
@@ -48149,7 +48149,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity_mainactivity",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": "mainactivity"
     },
     {
@@ -48160,7 +48160,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_valuecallback",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": "valuecallback"
     },
     {
@@ -48171,7 +48171,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_uri",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": "uri"
     },
     {
@@ -48183,7 +48183,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity_mainactivity_oncreate",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": ".oncreate()"
     },
     {
@@ -48194,7 +48194,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_bundle",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": "bundle"
     },
     {
@@ -48205,7 +48205,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_override",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": "override"
     },
     {
@@ -48217,7 +48217,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity_mainactivity_onactivityresult",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": ".onactivityresult()"
     },
     {
@@ -48228,7 +48228,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity_java_intent",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": "intent"
     },
     {
@@ -48240,7 +48240,7 @@
       "_origin": "ast",
       "id": "tmp_android_build_1_0_52_clean_a906a14d01ad4065a522ce1af558e7d7_android_app_src_main_java_com_laujim_aptmanager_mainactivity_mainactivity_ondestroy",
       "community": 607,
-      "community_name": "android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java",
+      "community_name": "BridgeActivity",
       "norm_label": ".ondestroy()"
     },
     {
@@ -73085,7 +73085,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge",
-      "community": 635,
+      "community": 550,
       "community_name": "PortalBridge",
       "norm_label": "portalbridge"
     },
@@ -73097,7 +73097,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_resolve",
-      "community": 635,
+      "community": 550,
       "community_name": "PortalBridge",
       "norm_label": ".resolve()"
     },
@@ -73108,7 +73108,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_java_javascriptinterface",
-      "community": 635,
+      "community": 550,
       "community_name": "PortalBridge",
       "norm_label": "javascriptinterface"
     },
@@ -73120,7 +73120,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_persistsession",
-      "community": 635,
+      "community": 550,
       "community_name": "PortalBridge",
       "norm_label": ".persistsession()"
     },
@@ -73132,7 +73132,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_captureauthorization",
-      "community": 635,
+      "community": 550,
       "community_name": "PortalBridge",
       "norm_label": ".captureauthorization()"
     },
@@ -73144,7 +73144,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_filllogin",
-      "community": 635,
+      "community": 550,
       "community_name": "PortalBridge",
       "norm_label": ".filllogin()"
     },
@@ -73156,7 +73156,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_clicklogin",
-      "community": 635,
+      "community": 550,
       "community_name": "PortalBridge",
       "norm_label": ".clicklogin()"
     },
@@ -73168,7 +73168,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_portalbrowseractivity_portalbridge_pressenter",
-      "community": 635,
+      "community": 550,
       "community_name": "PortalBridge",
       "norm_label": ".pressenter()"
     },
@@ -77298,7 +77298,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_cli",
-      "community": 588,
+      "community": 671,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -77309,7 +77309,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "capacitor_cli",
-      "community": 588,
+      "community": 671,
       "community_name": "@capacitor/cli",
       "norm_label": "@capacitor/cli"
     },
@@ -77320,7 +77320,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "package_dependencies_capacitor_core",
-      "community": 672,
+      "community": 650,
       "community_name": "@capacitor/core",
       "norm_label": "@capacitor/core"
     },
@@ -77331,7 +77331,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "capacitor_core",
-      "community": 672,
+      "community": 650,
       "community_name": "@capacitor/core",
       "norm_label": "@capacitor/core"
     },
@@ -80279,8 +80279,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_constanttimeequal",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "constanttimeequal()"
     },
     {
@@ -80375,8 +80375,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_ensureauthsessions",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "ensureauthsessions()"
     },
     {
@@ -80387,8 +80387,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_pruneauthsessions",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "pruneauthsessions()"
     },
     {
@@ -80399,8 +80399,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_createauthsession",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "createauthsession()"
     },
     {
@@ -80411,8 +80411,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_getauthsession",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "getauthsession()"
     },
     {
@@ -80423,8 +80423,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_removeauthsession",
-      "community": 3,
-      "community_name": "server.cjs",
+      "community": 31,
+      "community_name": "startServer",
       "norm_label": "removeauthsession()"
     },
     {
@@ -80795,8 +80795,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudtemplatedebtvalue",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudtemplatedebtvalue()"
     },
     {
@@ -80807,8 +80807,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudpaymenttemplatedata",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudpaymenttemplatedata()"
     },
     {
@@ -80843,8 +80843,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_formatcolombiadatetime",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "formatcolombiadatetime()"
     },
     {
@@ -80855,8 +80855,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_paymentperiod",
-      "community": 29,
-      "community_name": "sendCloudGlobalServices",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "paymentperiod()"
     },
     {
@@ -80867,8 +80867,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_paymentcountsascollected",
-      "community": 29,
-      "community_name": "sendCloudGlobalServices",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "paymentcountsascollected()"
     },
     {
@@ -80879,8 +80879,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_activecontractforapartment",
-      "community": 29,
-      "community_name": "sendCloudGlobalServices",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "activecontractforapartment()"
     },
     {
@@ -80915,8 +80915,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_resolvecloudconversationcontext",
-      "community": 31,
-      "community_name": "startServer",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "resolvecloudconversationcontext()"
     },
     {
@@ -80987,8 +80987,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_creatependingpaymentfromproof",
-      "community": 29,
-      "community_name": "sendCloudGlobalServices",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "creatependingpaymentfromproof()"
     },
     {
@@ -81190,8 +81190,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_tenantutilityoverview",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "tenantutilityoverview()"
     },
     {
@@ -81214,8 +81214,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityproviderkey",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilityproviderkey()"
     },
     {
@@ -81226,8 +81226,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityrecordtimestamp",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilityrecordtimestamp()"
     },
     {
@@ -81238,8 +81238,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityrecordvaluetimestamp",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "utilityrecordvaluetimestamp()"
     },
     {
@@ -81250,8 +81250,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityrecordmatchesapartment",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilityrecordmatchesapartment()"
     },
     {
@@ -81262,8 +81262,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilityrecordairenic",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilityrecordairenic()"
     },
     {
@@ -81274,8 +81274,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_latestutilityrecord",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "latestutilityrecord()"
     },
     {
@@ -81286,8 +81286,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilitydebtamount",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilitydebtamount()"
     },
     {
@@ -81310,8 +81310,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_gasrecordhasnovisibleinvoice",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "gasrecordhasnovisibleinvoice()"
     },
     {
@@ -81334,8 +81334,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_utilitypaymentview",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "utilitypaymentview()"
     },
     {
@@ -81346,8 +81346,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_builddebtreply",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "builddebtreply()"
     },
     {
@@ -81538,8 +81538,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_isreceiptpaymenturl",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "isreceiptpaymenturl()"
     },
     {
@@ -81586,8 +81586,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_publicservicepaymenturl",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "publicservicepaymenturl()"
     },
     {
@@ -81598,8 +81598,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicepaymentlink",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudservicepaymentlink()"
     },
     {
@@ -81610,8 +81610,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicereference",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudservicereference()"
     },
     {
@@ -81622,8 +81622,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicestate",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 3,
+      "community_name": "server.cjs",
       "norm_label": "cloudservicestate()"
     },
     {
@@ -81634,8 +81634,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudapartmentservices",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudapartmentservices()"
     },
     {
@@ -81729,8 +81729,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudservicedisplayblock",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudservicedisplayblock()"
     },
     {
@@ -81753,8 +81753,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildclouddetailedapartmentservicesinfo",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "buildclouddetailedapartmentservicesinfo()"
     },
     {
@@ -81789,8 +81789,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildcloudapartmentservicesinfo",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "buildcloudapartmentservicesinfo()"
     },
     {
@@ -81801,8 +81801,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudreportdatelabel",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "cloudreportdatelabel()"
     },
     {
@@ -81837,8 +81837,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_buildcloudservicesimagedata",
-      "community": 550,
-      "community_name": "cloudPaymentTemplateData",
+      "community": 29,
+      "community_name": "sendCloudGlobalServices",
       "norm_label": "buildcloudservicesimagedata()"
     },
     {
@@ -81897,8 +81897,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_cloudrentamount",
-      "community": 29,
-      "community_name": "sendCloudGlobalServices",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "cloudrentamount()"
     },
     {
@@ -81909,8 +81909,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_activetenantforapartment",
-      "community": 31,
-      "community_name": "startServer",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "activetenantforapartment()"
     },
     {
@@ -81969,8 +81969,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_nextcloudcollectionid",
-      "community": 29,
-      "community_name": "sendCloudGlobalServices",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "nextcloudcollectionid()"
     },
     {
@@ -81981,8 +81981,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_registercloudrentpayment",
-      "community": 29,
-      "community_name": "sendCloudGlobalServices",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "registercloudrentpayment()"
     },
     {
@@ -81993,8 +81993,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "server_confirmcloudrentpayments",
-      "community": 29,
-      "community_name": "sendCloudGlobalServices",
+      "community": 16,
+      "community_name": "handleCloudInbound",
       "norm_label": "confirmcloudrentpayments()"
     },
     {
@@ -86154,7 +86154,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_calendar",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "calendar.js"
     },
@@ -86166,7 +86166,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_uidforapt",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "uidforapt()"
     },
@@ -86178,7 +86178,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_getstoreduids",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "getstoreduids()"
     },
@@ -86190,7 +86190,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_savestoreduids",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "savestoreduids()"
     },
@@ -86202,7 +86202,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_fmtdate",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "fmtdate()"
     },
@@ -86214,7 +86214,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_nextduedate",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "nextduedate()"
     },
@@ -86226,7 +86226,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateics",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "generateics()"
     },
@@ -86238,7 +86238,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_downloadics",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "downloadics()"
     },
@@ -86250,7 +86250,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_addcalendarreminder",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "addcalendarreminder()"
     },
@@ -86262,7 +86262,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_generateallpaymentreminders",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "generateallpaymentreminders()"
     },
@@ -86274,7 +86274,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_utils_calendar_syncandgeneratereminders",
-      "community": 624,
+      "community": 363,
       "community_name": "calendar.js",
       "norm_label": "syncandgeneratereminders()"
     },
@@ -100748,8 +100748,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 624,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_mlkit_barcode_scanning"
     },
@@ -100759,8 +100759,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
-      "community_name": "dependencies",
+      "community": 624,
+      "community_name": "@capacitor-mlkit/barcode-scanning",
       "norm_label": "@capacitor-mlkit/barcode-scanning",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_mlkit_barcode_scanning"
     },
@@ -100770,7 +100770,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 671,
+      "community": 635,
       "community_name": "@capacitor/android",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_android"
@@ -100781,7 +100781,7 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 671,
+      "community": 635,
       "community_name": "@capacitor/android",
       "norm_label": "@capacitor/android",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_android"
@@ -100814,8 +100814,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 650,
-      "community_name": "@capacitor/core",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/core",
       "id": "backups_pre_whatsapp_bot_package_dependencies_capacitor_core"
     },
@@ -100825,8 +100825,8 @@
       "source_file": "backups/pre-whatsapp-bot/package.json",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 650,
-      "community_name": "@capacitor/core",
+      "community": 10,
+      "community_name": "dependencies",
       "norm_label": "@capacitor/core",
       "id": "backups_pre_whatsapp_bot_package_json_capacitor_core"
     },
@@ -295169,7 +295169,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/WhatsAppInbox.jsx",
-      "source_location": "L123",
+      "source_location": "L126",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_whatsappinbox_whatsappinbox",
@@ -295181,7 +295181,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/WhatsAppInbox.jsx",
-      "source_location": "L293",
+      "source_location": "L377",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_whatsappinbox_whatsappinbox",
@@ -295205,7 +295205,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/WhatsAppInbox.jsx",
-      "source_location": "L291",
+      "source_location": "L341",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_whatsappinbox_whatsappinbox",
@@ -295217,7 +295217,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/WhatsAppInbox.jsx",
-      "source_location": "L333",
+      "source_location": "L384",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_whatsappinbox_whatsappinbox",
@@ -312115,5 +312115,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "b94d303c3a5eb8dfbee093f0279830c9bf76f0d9"
+  "built_at_commit": "9e515858aec726761575cd8c0212e694357b92b2"
 }

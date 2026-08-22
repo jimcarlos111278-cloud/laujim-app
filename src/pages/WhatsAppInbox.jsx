@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, AudioLines, Camera, Download, FileText, Image, Lock, MessageCircle, Mic, Paperclip, RefreshCw, Send, Square, Video, X } from 'lucide-react';
+import { Archive, ArrowLeft, AudioLines, Bell, Camera, CheckCheck, Download, FileText, Image, Lock, MessageCircle, Mic, Paperclip, RefreshCw, Search, Send, Settings2, Smile, Square, Video, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 
@@ -110,6 +110,9 @@ export default function WhatsAppInbox() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateSending, setTemplateSending] = useState('');
+  const [windowClock, setWindowClock] = useState(Date.now());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [listFilter, setListFilter] = useState('all');
   const fileInput = useRef(null);
   const cameraInput = useRef(null);
   const recorderRef = useRef(null);
@@ -143,9 +146,50 @@ export default function WhatsAppInbox() {
 
   useEffect(() => { loadConversations(); const timer = setInterval(loadConversations, 15000); return () => clearInterval(timer); }, [loadConversations]);
   useEffect(() => { loadMessages(selected); }, [selected, loadMessages]);
+  useEffect(() => {
+    const timer = setInterval(() => setWindowClock(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const selectedConversation = conversations.find(c => c.id === selected);
-  const windowOpen = selectedConversation?.customerServiceWindowUntil && new Date(selectedConversation.customerServiceWindowUntil) > new Date();
+  const windowUntil = selectedConversation?.customerServiceWindowUntil ? new Date(selectedConversation.customerServiceWindowUntil) : null;
+  const windowOpen = Boolean(windowUntil && windowUntil.getTime() > windowClock);
+  const windowRemainingMs = windowOpen ? windowUntil.getTime() - windowClock : 0;
+
+  function windowRemainingLabel() {
+    if (!windowOpen) return 'Ventana cerrada · usa una plantilla aprobada';
+    const totalMinutes = Math.max(1, Math.ceil(windowRemainingMs / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return hours ? `Ventana activa · quedan ${hours} h ${minutes} min` : `Ventana activa · quedan ${minutes} min`;
+  }
+
+  function listTime(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) return date.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+    return date.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' });
+  }
+
+  function previewText(conversation) {
+    const message = conversation?.messages?.[0];
+    if (!message) return 'Sin mensajes todavía';
+    if (message.text) return message.text;
+    if (message.type === 'image') return '📷 Foto';
+    if (message.type === 'video') return '🎥 Video';
+    if (message.type === 'audio') return '🎙 Nota de voz';
+    if (message.type === 'document') return '📄 Documento';
+    return 'Mensaje multimedia';
+  }
+
+  const visibleConversations = conversations.filter(conversation => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    const haystack = [conversation.tenantName, conversation.phone, conversation.apartmentName, conversation.apartmentId].filter(Boolean).join(' ').toLocaleLowerCase();
+    const matchesQuery = !query || haystack.includes(query);
+    const unread = Number(conversation.unreadCount || 0) > 0;
+    return matchesQuery && (listFilter !== 'unread' || unread);
+  });
 
   function openConversation(conversationId) {
     setSelected(conversationId);
@@ -270,87 +314,104 @@ export default function WhatsAppInbox() {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col gap-0 sm:gap-4">
-      <div className={`px-1 pb-4 sm:px-0 sm:pb-0 flex flex-wrap items-start justify-between gap-3 ${selected ? 'hidden lg:flex' : 'flex'}`}>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><MessageCircle className="w-6 h-6 text-emerald-600" /> WhatsApp Cloud</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Conversaciones de residentes autorizados. Los mensajes no autorizados no se muestran aquí.</p>
+    <div className={`wa-live-shell ${selected ? 'wa-live-selected' : ''}`}>
+      <aside className="wa-live-sidebar">
+        <div className="wa-live-list-top">
+          <h1><MessageCircle className="w-6 h-6" /> WhatsApp</h1>
+          <div className="wa-live-top-actions">
+            <button type="button" onClick={loadConversations} className="wa-live-icon" title="Actualizar conversaciones" aria-label="Actualizar conversaciones"><RefreshCw className="w-4 h-4" /></button>
+            <button type="button" onClick={() => navigate('/settings')} className="wa-live-icon" title="Configuración" aria-label="Configuración"><Settings2 className="w-4 h-4" /></button>
+          </div>
         </div>
-        <button onClick={loadConversations} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"><RefreshCw className="w-4 h-4" /> Actualizar</button>
-      </div>
+        <div className="wa-live-search"><Search className="w-4 h-4" /><input value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Buscar contactos o apartamentos" aria-label="Buscar contactos o apartamentos" /></div>
+        <div className="wa-live-tabs">
+          <button type="button" onClick={() => setListFilter('all')} className={listFilter === 'all' ? 'active' : ''}>Todos</button>
+          <button type="button" onClick={() => setListFilter('unread')} className={listFilter === 'unread' ? 'active' : ''}>No leídos</button>
+        </div>
+        <div className="wa-live-archived"><Archive className="w-5 h-5" /><strong>Archivados</strong><span>—</span></div>
+        <div className="wa-live-api-status">
+          <span className={status?.ready ? 'online' : 'offline'} />
+          {status?.ready ? 'Cloud API conectada' : 'Cloud API requiere configuración'}
+        </div>
+        {error && <div className="wa-live-error">{error}</div>}
+        <div className="wa-live-conversation-list">
+          {loading ? <p className="wa-live-empty">Cargando conversaciones…</p> : !visibleConversations.length ? <p className="wa-live-empty">{listFilter === 'unread' ? 'No hay conversaciones sin leer.' : conversations.length ? 'No hay coincidencias.' : 'Aún no hay mensajes autorizados.'}</p> : visibleConversations.map(conversation => {
+            const conversationWindowOpen = conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date();
+            return <button key={conversation.id} type="button" onClick={() => openConversation(conversation.id)} className={`wa-live-row ${selected === conversation.id ? 'selected' : ''}`}>
+              <span className="wa-live-avatar">{apartmentBadge(conversation)}</span>
+              <span className="wa-live-row-main">
+                <span className="wa-live-row-head"><strong>{conversation.tenantName || 'Inquilino autorizado'}</strong><time>{listTime(conversation.lastInboundAt || conversation.messages?.[0]?.createdAt)}</time></span>
+                <span className="wa-live-row-preview">{previewText(conversation)}</span>
+                <span className={`wa-live-row-status ${conversationWindowOpen ? 'open' : 'closed'}`}>{conversationWindowOpen ? 'Ventana activa' : 'Requiere plantilla'} · Apto. {conversation.apartmentName || conversation.apartmentId || '—'}</span>
+              </span>
+            </button>;
+          })}
+        </div>
+        <div className="wa-live-sidebar-note">Canal oficial · solo conversaciones de residentes autorizados</div>
+      </aside>
 
-      {status && <div className={`mb-4 sm:mb-0 text-sm rounded-lg px-3 py-2 ${selected ? 'hidden lg:block' : 'block'} ${status.ready ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-50 text-amber-800'}`}>
-        Cloud API: {status.ready ? 'conectada' : 'requiere configuración'} · {status.conversations} conversación(es) · {status.quarantined} autenticación(es) pendientes
-      </div>}
-      {error && <div className="mb-3 sm:mb-0 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm">{error}</div>}
-
-      <div className={`flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[320px_1fr] bg-white dark:bg-gray-800 overflow-hidden ${selected ? 'border-0 rounded-none lg:border lg:border-gray-200 lg:dark:border-gray-700 lg:rounded-xl' : 'border border-gray-200 dark:border-gray-700 rounded-xl'}`}>
-        <aside className={`${selected ? 'hidden lg:block' : 'block'} border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 overflow-auto min-h-0`}>
-          {loading ? <p className="p-4 text-sm text-gray-500">Cargando conversaciones…</p> : conversations.length === 0 ? <p className="p-4 text-sm text-gray-500">Aún no hay mensajes autorizados.</p> : conversations.map(conversation => (
-            <button key={conversation.id} onClick={() => openConversation(conversation.id)} className={`flex w-full gap-3 text-left p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${selected === conversation.id ? 'bg-emerald-50 dark:bg-emerald-950/30' : ''}`}>
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white">{apartmentBadge(conversation)}</span>
-              <span className="min-w-0 flex-1"><span className="block truncate font-medium text-gray-900 dark:text-white">{conversation.tenantName || 'Inquilino autorizado'}</span>
-              <span className="mt-1 block truncate text-xs text-gray-500">Apto. {conversation.apartmentName || conversation.apartmentId || '—'} · {formatDate(conversation.lastInboundAt)}</span>
-              <span className={`mt-1 block text-xs ${conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'text-emerald-600' : 'text-amber-600'}`}>{conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'Ventana de respuesta activa' : 'Se requiere plantilla'}</span></span>
-            </button>
-          ))}
-        </aside>
-
-        <section className={`${selected ? 'flex' : 'hidden lg:flex'} min-h-0 flex-col`}>
-          {!selectedConversation ? <div className="m-auto text-center text-gray-500"><Lock className="w-8 h-8 mx-auto mb-2" />Selecciona una conversación.</div> : <>
-            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-              <div className="p-3 sm:p-4 flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <button type="button" onClick={returnToConversationList} className="lg:hidden shrink-0 rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Volver a conversaciones"><ArrowLeft className="w-5 h-5" /></button>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white">{apartmentBadge(selectedConversation)}</span><div className="min-w-0"><p className="truncate font-semibold text-gray-900 dark:text-white">{selectedConversation.tenantName || 'Inquilino autorizado'}</p><p className="truncate text-xs text-gray-500">{selectedConversation.phone} · Apartamento {selectedConversation.apartmentName || selectedConversation.apartmentId || '—'}</p></div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <button type="button" onClick={() => setShowTemplates(open => !open)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium ${showTemplates ? 'bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-200' : 'border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'}`} title="Enviar plantilla"><FileText className="w-4 h-4" /><span className="hidden sm:inline">Plantillas</span></button>
-                </div>
-              </div>
-              {showTemplates && <div className="border-t border-gray-100 bg-violet-50/70 px-3 py-3 dark:border-gray-700 dark:bg-violet-950/20 sm:px-4">
-                <p className="mb-2 text-xs text-violet-900 dark:text-violet-200">Plantillas de WhatsApp (también funcionan fuera de la ventana de 24 horas).</p>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" disabled={!!templateSending} onClick={() => sendTemplate('greeting')} className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{templateSending === 'greeting' ? 'Enviando…' : 'Hola, ¿cómo estás?'}</button>
-                  <button type="button" disabled={!!templateSending} onClick={() => sendTemplate('payment_reminder')} className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-800 disabled:opacity-50 dark:border-violet-800 dark:bg-gray-800 dark:text-violet-200">{templateSending === 'payment_reminder' ? 'Enviando…' : 'Cobro + servicios'}</button>
-                </div>
-                <p className="mt-2 text-[11px] text-violet-700 dark:text-violet-300">Meta debe aprobarlas antes de que se puedan entregar.</p>
-              </div>}
+      <section className="wa-live-chat">
+        {!selectedConversation ? <div className="wa-live-empty-chat"><Lock className="w-10 h-10" /><strong>Selecciona una conversación</strong><span>Busca un inquilino o apartamento para comenzar.</span></div> : <>
+          <div className="wa-live-chat-head">
+            <button type="button" onClick={returnToConversationList} className="wa-live-icon wa-live-mobile-only" aria-label="Volver a conversaciones"><ArrowLeft className="w-5 h-5" /></button>
+            <span className="wa-live-avatar large">{apartmentBadge(selectedConversation)}</span>
+            <div className="wa-live-chat-person"><strong>{selectedConversation.tenantName || 'Inquilino autorizado'}</strong><span>{selectedConversation.phone} · Apartamento {selectedConversation.apartmentName || selectedConversation.apartmentId || '—'}</span></div>
+            <div className="wa-live-chat-actions">
+              <button type="button" onClick={() => setShowTemplates(open => !open)} className={`wa-live-icon ${!windowOpen ? 'danger' : ''}`} title={!windowOpen ? 'La ventana de Meta está cerrada: elegir plantilla' : 'Enviar plantilla'} aria-label={!windowOpen ? 'Elegir plantilla' : 'Enviar plantilla'}><FileText className="w-4 h-4" /></button>
             </div>
-            <div className="flex-1 min-h-0 overflow-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900/40">
-              {messages.length === 0 ? <p className="text-sm text-gray-500 text-center pt-8">Aún no hay mensajes.</p> : messages.map(message => (
-                <div key={message.id} className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${message.direction === 'out' ? 'ml-auto bg-emerald-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'}`}>
-                  {message.text && <p>{message.text}</p>}
-                  {!message.text && !message.mediaId && <p>{message.type === 'text' ? 'Mensaje sin texto' : `Mensaje ${message.type || ''}`}</p>}
-                  <MediaMessage message={message} />
-                  <p className={`text-[10px] mt-1 ${message.direction === 'out' ? 'text-emerald-100' : 'text-gray-400'}`}>{formatDate(message.createdAt)}</p>
-                </div>
-              ))}
+          </div>
+          <div className="wa-live-chat-state"><span className={windowOpen ? 'open' : 'closed'} />{windowRemainingLabel()}</div>
+          {showTemplates && <div className="wa-live-template-panel">
+            <div><strong>Plantillas aprobadas por Meta</strong><span>Úsalas cuando la ventana esté cerrada. La escritura se habilita cuando el inquilino responda.</span></div>
+            <div className="wa-live-template-actions">
+              <button type="button" disabled={!!templateSending} onClick={() => sendTemplate('greeting')}>{templateSending === 'greeting' ? 'Enviando…' : 'Hola, ¿cómo estás?'}</button>
+              <button type="button" disabled={!!templateSending} onClick={() => sendTemplate('payment_reminder')}>{templateSending === 'payment_reminder' ? 'Enviando…' : 'Cobro + servicios'}</button>
             </div>
-            <form onSubmit={sendMessage} className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-              {attachment && <div className="rounded-lg bg-gray-100 dark:bg-gray-700 px-3 py-2 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate flex items-center gap-2"><MediaIcon type={attachmentKind(attachment)} className="w-4 h-4" />{attachment.name} · {(attachment.size / (1024 * 1024)).toFixed(1)} MB</span>
-                  <button type="button" onClick={clearAttachment} className="p-1" aria-label="Quitar archivo"><X className="w-4 h-4" /></button>
-                </div>
-                {attachmentPreviewUrl && attachmentKind(attachment) === 'image' && <img src={attachmentPreviewUrl} alt="Vista previa del archivo" className="mt-2 max-h-48 max-w-full rounded-lg object-contain bg-black/10" />}
-                {attachmentPreviewUrl && attachmentKind(attachment) === 'video' && <video src={attachmentPreviewUrl} controls className="mt-2 max-h-48 max-w-full rounded-lg bg-black" />}
-                {attachmentPreviewUrl && attachmentKind(attachment) === 'audio' && <audio src={attachmentPreviewUrl} controls className="mt-2 max-w-full" />}
-              </div>}
-              <div className="flex gap-2">
-                {recording ? <button type="button" onClick={stopRecording} title="Detener grabación" className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-red-600 text-white"><Square className="w-4 h-4" /> <span className="text-xs tabular-nums">{String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}</span></button> : <button type="button" onClick={startRecording} disabled={!windowOpen || sending} title="Grabar nota de voz" className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"><Mic className="w-4 h-4" /></button>}
-                <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
-                <input ref={cameraInput} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
-                <button type="button" onClick={() => cameraInput.current?.click()} disabled={!windowOpen || sending || recording} title="Tomar foto o video" className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"><Camera className="w-4 h-4" /></button>
-                <button type="button" onClick={() => fileInput.current?.click()} disabled={!windowOpen || sending || recording} title="Adjuntar imagen, audio, video o documento (máx. 16 MB)" className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"><Paperclip className="w-4 h-4" /></button>
-                <input value={draft} onChange={e => setDraft(e.target.value)} disabled={!windowOpen || sending || recording} placeholder={recording ? 'Grabando nota de voz…' : windowOpen ? attachment ? 'Añade un texto opcional…' : 'Escribe una respuesta…' : 'La ventana de 24 h terminó: usa una plantilla aprobada'} className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm disabled:opacity-60" />
-                <button disabled={recording || (!draft.trim() && !attachment) || !windowOpen || sending} title={attachment ? 'Enviar archivo' : 'Enviar mensaje'} className="px-3 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-50"><Send className="w-4 h-4" /></button>
+          </div>}
+          <div className="wa-live-messages">
+            {messages.length === 0 ? <p className="wa-live-empty">Aún no hay mensajes.</p> : messages.map(message => (
+              <div key={message.id} className={`wa-live-bubble ${message.direction === 'out' ? 'out' : 'in'}`}>
+                {message.text && <p>{message.text}</p>}
+                {!message.text && !message.mediaId && <p>{message.type === 'text' ? 'Mensaje sin texto' : `Mensaje ${message.type || ''}`}</p>}
+                <MediaMessage message={message} />
+                <div className="wa-live-bubble-meta">{formatDate(message.createdAt)} {message.direction === 'out' && <CheckCheck className="w-3.5 h-3.5" />}</div>
               </div>
-              <p className="text-[11px] text-gray-500">Imágenes, notas de voz, videos y documentos · máximo 16 MB · solo durante la ventana activa de 24 h.</p>
-            </form>
-          </>}
-        </section>
-      </div>
+            ))}
+          </div>
+          <form onSubmit={sendMessage} className="wa-live-compose-wrap">
+            <div className={`wa-live-compose-status ${windowOpen ? 'open' : 'closed'}`}><span>{windowOpen ? 'Puedes responder libremente' : 'La ventana está cerrada'}</span><small>{windowOpen ? 'Mensajes, fotos, videos y notas de voz' : 'El botón rojo abre las plantillas'}</small></div>
+            {attachment && <div className="wa-live-attachment">
+              <div className="wa-live-attachment-head"><span><MediaIcon type={attachmentKind(attachment)} className="w-4 h-4" />{attachment.name} · {(attachment.size / (1024 * 1024)).toFixed(1)} MB</span><button type="button" onClick={clearAttachment} aria-label="Quitar archivo"><X className="w-4 h-4" /></button></div>
+              {attachmentPreviewUrl && attachmentKind(attachment) === 'image' && <img src={attachmentPreviewUrl} alt="Vista previa del archivo" />}
+              {attachmentPreviewUrl && attachmentKind(attachment) === 'video' && <video src={attachmentPreviewUrl} controls />}
+              {attachmentPreviewUrl && attachmentKind(attachment) === 'audio' && <audio src={attachmentPreviewUrl} controls />}
+            </div>}
+            <div className="wa-live-compose">
+              {recording ? <button type="button" onClick={stopRecording} title="Detener grabación" className="wa-live-control recording"><Square className="w-4 h-4" /><span>{String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}</span></button> : <button type="button" onClick={startRecording} disabled={!windowOpen || sending} title="Grabar nota de voz" className="wa-live-control"><Mic className="w-4 h-4" /></button>}
+              <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
+              <input ref={cameraInput} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
+              <button type="button" onClick={() => cameraInput.current?.click()} disabled={!windowOpen || sending || recording} title="Tomar foto o video" className="wa-live-control"><Camera className="w-4 h-4" /></button>
+              <button type="button" onClick={() => fileInput.current?.click()} disabled={!windowOpen || sending || recording} title="Adjuntar imagen, audio, video o documento (máx. 16 MB)" className="wa-live-control"><Paperclip className="w-4 h-4" /></button>
+              <button type="button" onClick={() => setDraft(current => `${current}😊`)} disabled={!windowOpen || sending || recording} title="Añadir emoji" className="wa-live-control wa-live-optional"><Smile className="w-4 h-4" /></button>
+              <input value={draft} onChange={event => setDraft(event.target.value)} disabled={!windowOpen || sending || recording} placeholder={recording ? 'Grabando nota de voz…' : windowOpen ? attachment ? 'Añade un texto opcional…' : 'Escribe un mensaje' : 'Escritura bloqueada hasta que respondan'} />
+              <button type={windowOpen ? 'submit' : 'button'} onClick={() => { if (!windowOpen) setShowTemplates(true); }} disabled={windowOpen ? (recording || (!draft.trim() && !attachment) || sending) : !!templateSending} title={windowOpen ? (attachment ? 'Enviar archivo' : 'Enviar mensaje') : 'La ventana de Meta está cerrada: elegir plantilla'} aria-label={windowOpen ? 'Enviar mensaje' : 'Elegir plantilla'} className={`wa-live-send ${windowOpen ? 'open' : 'closed'}`}>
+                {windowOpen ? <Send className="w-4 h-4" /> : <FileText className="w-4 h-4" />}<span>{windowOpen ? 'Enviar' : 'Plantillas'}</span>
+              </button>
+            </div>
+            <p className="wa-live-compose-help">Los archivos y mensajes libres solo se envían durante la ventana activa indicada por Meta.</p>
+          </form>
+        </>}
+      </section>
+
+      {selectedConversation && <aside className="wa-live-details">
+        <div className="wa-live-details-head"><strong>Información</strong><span>·</span></div>
+        <div className="wa-live-profile"><span className="wa-live-avatar xl">{apartmentBadge(selectedConversation)}</span><strong>{selectedConversation.tenantName || 'Inquilino autorizado'}</strong><span>Canal oficial · Apartamento {selectedConversation.apartmentName || selectedConversation.apartmentId || '—'}</span></div>
+        <div className="wa-live-details-section"><small>Estado de la conversación</small><p className={windowOpen ? 'open' : 'closed'}>● {windowOpen ? 'Ventana de respuesta activa' : 'Se requiere una plantilla'}</p></div>
+        <div className="wa-live-details-section"><small>Acciones disponibles</small><p>Mensajes, plantillas, imágenes, videos, documentos y notas de voz.</p></div>
+        <div className="wa-live-details-section"><small>Regla de Meta</small><p>La escritura libre vuelve a habilitarse cuando el inquilino responde dentro de la ventana de servicio.</p></div>
+      </aside>}
+
+      {!selected && <nav className="wa-live-mobile-nav"><button type="button" className="active" onClick={returnToConversationList}><MessageCircle /><span>Chats</span></button><button type="button" onClick={() => navigate('/settings')}><Bell /><span>Novedades</span></button><button type="button" onClick={() => navigate('/settings')}><Settings2 /><span>Ajustes</span></button></nav>}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2, Camera, UserPlus, ArrowLeft
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2, Camera, UserPlus
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
 import { clearAuth } from '../utils/auth';
@@ -104,16 +104,6 @@ const [installPrompt, setInstallPrompt] = useState(null);
   if (immersiveWhatsApp) {
     return (
       <div className="whatsapp-immersive-shell h-[100dvh] w-full overflow-hidden bg-[#efeae2] dark:bg-gray-950">
-        <button
-          type="button"
-          onClick={() => navigate('/dashboard')}
-          className="whatsapp-laujim-back"
-          aria-label="Volver a Laujim"
-          title="Volver a Laujim"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          <span className="sr-only">Volver a Laujim</span>
-        </button>
         {children}
       </div>
     );
