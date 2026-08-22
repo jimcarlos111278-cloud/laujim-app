@@ -5017,6 +5017,65 @@ app.get('/api/whatsapp/cloud/conversations/:id/messages', (req, res) => {
   res.json((db.whatsappMessages || []).filter(m => m.conversationId === id));
 });
 
+// Lightweight inbox feed used by the Android background notification service.
+// It returns metadata only; media remains behind the authenticated proxy above.
+app.get('/api/whatsapp/cloud/notifications', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const sinceValue = String(req.query?.since || '').trim();
+  const sinceMs = sinceValue ? new Date(sinceValue).getTime() : 0;
+  const items = (db.whatsappMessages || [])
+    .filter(message => message.direction === 'in' && Number.isFinite(new Date(message.createdAt).getTime()) && new Date(message.createdAt).getTime() > sinceMs)
+    .slice(-50)
+    .map(message => {
+      const conversation = db.whatsappConversations.find(item => Number(item.id) === Number(message.conversationId));
+      const tenant = (db.tenants || []).find(item => Number(item.id) === Number(conversation?.tenantId));
+      const apartment = (db.apartments || []).find(item => Number(item.id) === Number(conversation?.apartmentId));
+      return {
+        id: message.id,
+        conversationId: message.conversationId,
+        tenantName: tenant?.name || 'Inquilino autorizado',
+        apartmentName: apartment?.name || conversation?.apartmentId || '—',
+        type: message.type || 'text',
+        text: message.text || '',
+        createdAt: message.createdAt,
+      };
+    });
+  res.json({ items });
+});
+
+// The Android background service also consumes the durable scraper stream for
+// useful results/errors. Heartbeats, config reads and credential reads are
+// deliberately excluded so the phone only alerts on something actionable.
+app.get('/api/notifications/events', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const sinceValue = String(req.query?.since || '').trim();
+  const sinceMs = sinceValue ? new Date(sinceValue).getTime() : 0;
+  const ignoredStages = new Set(['register', 'heartbeat', 'config', 'credentials', 'events_received']);
+  const items = ensureScraperLogCollection()
+    .filter(log => !ignoredStages.has(String(log.stage || '').toLowerCase()))
+    .filter(log => ['success', 'warn', 'error'].includes(String(log.level || '').toLowerCase()))
+    .filter(log => {
+      const time = new Date(log.createdAt || log.eventAt || 0).getTime();
+      return Number.isFinite(time) && time > sinceMs;
+    })
+    .sort((left, right) => new Date(left.createdAt || left.eventAt || 0) - new Date(right.createdAt || right.eventAt || 0))
+    .slice(-50)
+    .map(log => {
+      const facebook = log.provider === 'Facebook Marketplace';
+      return {
+        id: `${facebook ? 'facebook' : 'scraper'}-${log.id}`,
+        category: facebook ? 'facebook' : 'scraper',
+        title: facebook ? 'Facebook Marketplace' : `Scraper · ${log.provider || 'Servicios públicos'}`,
+        text: log.message,
+        level: log.level,
+        provider: log.provider || null,
+        createdAt: log.createdAt || log.eventAt,
+      };
+    });
+  res.json({ items });
+});
+
 // Media is proxied through the authenticated backend so the browser never
 // receives the Cloud API access token.
 app.get('/api/whatsapp/cloud/messages/:messageId/media', async (req, res) => {
@@ -5154,6 +5213,25 @@ app.post('/api/whatsapp/cloud/send', async (req, res) => {
     const result = await sendCloudText(conversation.phone, String(text).trim());
     const message = addCloudMessage(conversation, 'out', { type: 'text', text: String(text).trim(), whatsappMessageId: result.messages?.[0]?.id || null });
     saveData(); res.json({ ok: true, id: result.messages?.[0]?.id || null, message });
+  } catch (error) { res.status(502).json({ error: error.message }); }
+});
+
+// Inline Android notification replies use the same Cloud API path as the
+// inbox, then persist the outgoing message so the conversation stays in sync.
+app.post('/api/whatsapp/cloud/quick-reply', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const conversation = db.whatsappConversations.find(c => c.id === Number(req.body?.conversationId));
+  const text = String(req.body?.text || '').trim();
+  if (!conversation || !text) return res.status(400).json({ error: 'Conversación y texto son requeridos' });
+  if (!conversation.customerServiceWindowUntil || new Date(conversation.customerServiceWindowUntil).getTime() < Date.now()) {
+    return res.status(409).json({ error: 'La ventana de 24 horas terminó; usa una plantilla aprobada.' });
+  }
+  try {
+    const result = await sendCloudText(conversation.phone, text);
+    const message = addCloudMessage(conversation, 'out', { type: 'text', text, whatsappMessageId: result.messages?.[0]?.id || null });
+    saveData();
+    res.json({ ok: true, id: result.messages?.[0]?.id || null, message });
   } catch (error) { res.status(502).json({ error: error.message }); }
 });
 

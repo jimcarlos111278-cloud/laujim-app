@@ -56,6 +56,7 @@ public class MarketplaceWorkerService extends Service {
     private static final int CONNECT_TIMEOUT_MS = 15_000;
     private static final int READ_TIMEOUT_MS = 40_000;
     private static final long WEBVIEW_TIMEOUT_MS = 240_000L;
+    private static final long BROWSER_START_TIMEOUT_MS = 12_000L;
     private static final AtomicBoolean RUNNING = new AtomicBoolean(false);
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -175,22 +176,44 @@ public class MarketplaceWorkerService extends Service {
     private JSONObject executeInAuthenticatedWebView(JSONObject job) throws Exception {
         JSONObject listing = job.optJSONObject("listing");
         if (listing == null) listing = new JSONObject();
-        if (MarketplaceBrowserActivity.hasActiveBrowser()) {
-            String raw = MarketplaceBrowserActivity
-                .executeJob(listing, job.optBoolean("publish", true), automationScript)
-                .get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            JSONObject outcome = new JSONObject(raw == null || raw.isEmpty() ? "{}" : raw);
-            outcome.put("executionPath", "authenticated-visible-webview");
-            return outcome;
+        if (!MarketplaceBrowserActivity.hasActiveBrowser()) {
+            // A remote trigger may arrive while Laujim is in the background.
+            // Start the same authenticated browser automatically; the user
+            // should not have to open Facebook or the composer first.
+            updateNotification("Activando Facebook autenticado para la publicación…");
+            if (!startBrowserForBackgroundRun()) {
+                return new JSONObject()
+                    .put("state", "needs_login")
+                    .put("stage", "background_browser_unavailable")
+                    .put("message", "No se pudo activar el navegador autenticado de Facebook en segundo plano.")
+                    .put("events", new JSONArray().put(new JSONObject()
+                        .put("stage", "background_browser_unavailable")
+                        .put("message", "El worker activó Facebook automáticamente, pero Android no dejó disponible la vista autenticada.")
+                        .put("eventAt", new java.util.Date().toInstant().toString())));
+            }
         }
-        return new JSONObject()
-            .put("state", "needs_login")
-            .put("stage", "shared_webview_missing")
-            .put("message", "Abre Facebook desde Laujim, conserva ese navegador y vuelve a pulsar Reintentar.")
-            .put("events", new JSONArray().put(new JSONObject()
-                .put("stage", "shared_webview_missing")
-                .put("message", "El navegador autenticado de Facebook no estaba activo.")
-                .put("eventAt", new java.util.Date().toInstant().toString())));
+        String raw = MarketplaceBrowserActivity
+            .executeJob(listing, job.optBoolean("publish", true), automationScript)
+            .get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        JSONObject outcome = new JSONObject(raw == null || raw.isEmpty() ? "{}" : raw);
+        outcome.put("executionPath", "authenticated-webview-background-trigger");
+        return outcome;
+    }
+
+    private boolean startBrowserForBackgroundRun() {
+        try {
+            mainHandler.post(this::openVisibleFacebook);
+            long deadline = System.currentTimeMillis() + BROWSER_START_TIMEOUT_MS;
+            while (System.currentTimeMillis() < deadline) {
+                if (MarketplaceBrowserActivity.hasActiveBrowser()) return true;
+                Thread.sleep(200L);
+            }
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+        } catch (RuntimeException ignored) {
+            // The caller will report a useful needs_login state to Render.
+        }
+        return MarketplaceBrowserActivity.hasActiveBrowser();
     }
 
     private JSONObject executeInWebView(JSONObject job) throws Exception {

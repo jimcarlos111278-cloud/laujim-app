@@ -7,7 +7,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.text.InputType;
+import android.view.InputDevice;
+import android.view.MotionEvent;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -41,6 +44,7 @@ import java.util.concurrent.Executors;
  */
 public class MarketplaceBrowserActivity extends Activity {
     static final String CREATE_URL = "https://m.facebook.com/marketplace/create/";
+    private static final String MOBILE_COMPOSER_URL = "https://m.facebook.com/marketplace/selling/item/?listing_id";
     private static final String LOGIN_URL = "https://limited.facebook.com/login/";
     private static final String FACEBOOK_HOME_URL = "https://limited.facebook.com/";
     private static final int PHOTO_PICKER_REQUEST = 31782;
@@ -57,6 +61,9 @@ public class MarketplaceBrowserActivity extends Activity {
     private CompletableFuture<String> pendingJobResult;
     private JSONObject currentListing;
     private ValueCallback<Uri[]> pendingFileCallback;
+    private final java.util.List<Uri> automatedPhotoUris = new java.util.ArrayList<>();
+    private int automatedPhotoIndex;
+    private boolean photoSaveGesturePending;
     private boolean jobEvaluationScheduled;
     private boolean storageRestoreAttempted;
     private boolean limitedLoginFallbackAttempted;
@@ -177,6 +184,7 @@ public class MarketplaceBrowserActivity extends Activity {
             @Override
             public boolean onShowFileChooser(WebView page, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 pendingFileCallback = callback;
+                addStage("photo_chooser_requested", "Android recibió la solicitud del selector de fotos.", null);
                 if (hasAutomatedPhotoSelection()) {
                     executor.execute(MarketplaceBrowserActivity.this::deliverJobPhotos);
                 } else {
@@ -325,7 +333,7 @@ public class MarketplaceBrowserActivity extends Activity {
     private void updateStatus(String current) {
         if (status == null) return;
         String lower = current.toLowerCase();
-        if (lower.contains("/marketplace/create")) {
+        if (lower.contains("/marketplace/create") || lower.contains("/marketplace/selling/item")) {
             status.setText("Sesión lista. Vuelve a Laujim y pulsa Publicar con el teléfono; el trabajo correrá en este mismo navegador.");
         } else if (lower.contains("login") || lower.contains("checkpoint") || lower.contains("two_factor")) {
             status.setText("Completa el inicio de sesión, 2FA o verificación directamente en Facebook.");
@@ -358,6 +366,9 @@ public class MarketplaceBrowserActivity extends Activity {
             }
             pendingJobResult = result;
             currentListing = listing == null ? new JSONObject() : listing;
+            automatedPhotoUris.clear();
+            automatedPhotoIndex = 0;
+            photoSaveGesturePending = false;
             jobEvaluationScheduled = false;
             while (stageEvents.length() > 0) stageEvents.remove(stageEvents.length() - 1);
             try {
@@ -366,8 +377,31 @@ public class MarketplaceBrowserActivity extends Activity {
             } catch (Exception ignored) { }
         }
         if (status != null) status.setText("Preparando el formulario de Marketplace en la sesión autenticada…");
-        storageRestoreAttempted = true;
-        webView.loadUrl(CREATE_URL);
+        // A file chooser cannot be opened by a paused WebView. The user starts
+        // the job from Laujim, so this activity may be behind MainActivity even
+        // though its authenticated session is still alive. Bring this exact
+        // browser instance to the foreground before navigating.
+        Runnable navigateToComposer = () -> {
+            synchronized (jobLock) {
+                if (pendingJobResult == null || pendingJobResult.isDone()) return;
+            }
+            storageRestoreAttempted = true;
+            String current = webView.getUrl() == null ? "" : webView.getUrl().toLowerCase();
+            if (current.contains("/marketplace/selling/item")) {
+                jobEvaluationScheduled = true;
+                mainHandler.postDelayed(MarketplaceBrowserActivity.this::evaluatePendingJob, 3_500L);
+            } else {
+                webView.loadUrl(MOBILE_COMPOSER_URL);
+            }
+        };
+        try {
+            startActivity(new Intent(this, MarketplaceBrowserActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+            addStage("browser_foreground", "Facebook volviÃ³ al frente para permitir el selector de fotos.", null);
+            mainHandler.postDelayed(navigateToComposer, 850L);
+        } catch (RuntimeException error) {
+            navigateToComposer.run();
+        }
     }
 
     private void evaluatePendingJob() {
@@ -398,20 +432,23 @@ public class MarketplaceBrowserActivity extends Activity {
     }
 
     private void deliverJobPhotos() {
-        java.util.List<Uri> uris = new java.util.ArrayList<>();
         JSONObject listing;
         synchronized (jobLock) { listing = currentListing; }
         JSONArray urls = listing == null ? null : listing.optJSONArray("photoUrls");
-        File directory = new File(getCacheDir(), "marketplace-photos");
-        if (!directory.exists()) directory.mkdirs();
-        if (urls != null) {
+        java.util.List<Uri> prepared = new java.util.ArrayList<>();
+        synchronized (jobLock) {
+            prepared.addAll(automatedPhotoUris);
+        }
+        if (prepared.isEmpty() && urls != null) {
+            File directory = new File(getCacheDir(), "marketplace-photos");
+            if (!directory.exists()) directory.mkdirs();
             for (int index = 0; index < Math.min(10, urls.length()); index += 1) {
                 String source = urls.optString(index, "");
                 if (source.isEmpty()) continue;
                 try {
                     File target = MarketplacePhotoUtils.downloadAndPrepare(
                         source, directory, "apartment_" + UUID.randomUUID(), 15_000, 40_000);
-                    uris.add(FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", target));
+                    prepared.add(FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", target));
                     addStage("photo_prepared", "Foto preparada automáticamente.",
                         photoDetails(index + 1, target.length(), null));
                 } catch (Exception error) {
@@ -419,16 +456,30 @@ public class MarketplaceBrowserActivity extends Activity {
                         photoDetails(index + 1, 0, String.valueOf(error.getMessage())));
                 }
             }
+            synchronized (jobLock) {
+                automatedPhotoUris.clear();
+                automatedPhotoUris.addAll(prepared);
+            }
         }
-        if (urls != null && urls.length() > 0 && uris.isEmpty()) {
-            addStage("photos_error", "No se pudo preparar ninguna foto del apartamento.",
-                photoDetails(Math.min(10, urls.length()), 0, "sin fotos preparadas"));
+        Uri selectedUri = null;
+        synchronized (jobLock) {
+            if (automatedPhotoIndex < automatedPhotoUris.size()) {
+                selectedUri = automatedPhotoUris.get(automatedPhotoIndex);
+                automatedPhotoIndex += 1;
+            }
         }
-        Uri[] selected = uris.toArray(new Uri[0]);
+        Uri[] selected = selectedUri == null ? new Uri[0] : new Uri[] { selectedUri };
+        final Uri[] callbackValue = selected;
         mainHandler.post(() -> {
             ValueCallback<Uri[]> callback = pendingFileCallback;
             pendingFileCallback = null;
-            if (callback != null) callback.onReceiveValue(selected);
+            if (callback != null) callback.onReceiveValue(callbackValue);
+            if (callbackValue.length > 0) {
+                addStage("photo_delivered", "Facebook recibió una foto preparada; esperando su vista previa.", null);
+            } else if (urls != null && urls.length() > 0) {
+                addStage("photos_error", "No se pudo preparar la siguiente foto del apartamento.",
+                    photoDetails(Math.min(10, urls.length()), 0, "sin fotos preparadas"));
+            }
         });
     }
 
@@ -462,6 +513,244 @@ public class MarketplaceBrowserActivity extends Activity {
             pendingFileCallback = null;
             if (callback != null) callback.onReceiveValue(null);
         }
+    }
+
+    /**
+     * Facebook Lite shows an HTML menu before it invokes the hidden file input.
+     * A JavaScript click on that menu is not considered a user gesture by
+     * Android WebView, so onShowFileChooser is never called. Resolve the
+     * visible menu element in CSS pixels and send one native touch sequence to
+     * it; the existing WebChromeClient then delivers the prepared files.
+     */
+    private void requestPhotoUploadGesture() {
+        requestPhotoUploadGesture(0);
+    }
+
+    private void requestPhotoUploadGesture(int attempt) {
+        if (webView == null) return;
+        String script = "(function(){"
+            + "var all=Array.from(document.querySelectorAll('[tabindex],button,[role=button],div,span'));"
+            + "var norm=function(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim()};"
+            + "var find=function(words){return all.filter(function(e){var t=norm(e.innerText||e.textContent);"
+            + "var r=e.getBoundingClientRect(),s=getComputedStyle(e);"
+            + "return words.some(function(w){return t===w})&&r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden';"
+            + "}).sort(function(a,b){return (a.innerText||a.textContent||'').length-(b.innerText||b.textContent||'').length})[0]};"
+            + "var upload=find(['subir foto','upload photo','choose photo']);"
+            + "var add=find(['anadir fotos','agregar fotos','add photos']);"
+            + "var e=upload||add;if(!e)return 'missing';var r=e.getBoundingClientRect();"
+            + "return (upload?'upload':'add')+'|'+(r.left+r.width/2)+'|'+(r.top+r.height/2);"
+            + "})()";
+        webView.evaluateJavascript(script, value -> {
+            String result = value == null ? "" : value.trim();
+            if (result.length() >= 2 && result.startsWith("\"") && result.endsWith("\"")) {
+                result = result.substring(1, result.length() - 1);
+            }
+            result = result.replace("\\\"", "\"");
+            if (result.isEmpty() || "missing".equals(result)) {
+                if (attempt < 20) mainHandler.postDelayed(() -> requestPhotoUploadGesture(attempt + 1), 250L);
+                return;
+            }
+            String[] parts = result.split("\\|");
+            if (parts.length != 3) return;
+            try {
+                float x = Float.parseFloat(parts[1]) * webView.getScale();
+                float y = Float.parseFloat(parts[2]) * webView.getScale();
+                float maxX = Math.max(1, webView.getWidth() - 2);
+                float maxY = Math.max(1, webView.getHeight() - 2);
+                x = Math.max(1, Math.min(maxX, x));
+                y = Math.max(1, Math.min(maxY, y));
+                if ("add".equals(parts[0])) {
+                    addStage("photo_native_gesture", "Abriendo el menú de fotos con un gesto nativo.", null);
+                    dispatchWebTouch(x, y);
+                    mainHandler.postDelayed(() -> requestPhotoUploadGesture(attempt + 1), 450L);
+                } else {
+                    addStage("photo_upload_gesture", "Seleccionando Subir foto con un gesto nativo.", null);
+                    dispatchWebTouch(x, y);
+                }
+            } catch (RuntimeException ignored) { }
+        });
+    }
+
+    private void dispatchWebTouch(float x, float y) {
+        if (webView == null) return;
+        long now = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0);
+        MotionEvent up = MotionEvent.obtain(now, now + 80L, MotionEvent.ACTION_UP, x, y, 0);
+        try {
+            down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+            up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+            webView.requestFocusFromTouch();
+            webView.dispatchTouchEvent(down);
+            webView.dispatchTouchEvent(up);
+        } finally {
+            down.recycle();
+            up.recycle();
+        }
+    }
+
+    /** Facebook Lite opens a trusted preview page after each selected image. */
+    private void requestPhotoPreviewSave() {
+        requestPhotoPreviewSave(0);
+    }
+
+    private void requestPhotoPreviewSave(int attempt) {
+        if (webView == null) return;
+        if (photoSaveGesturePending && attempt == 0) return;
+        String script = "(function(){"
+            + "var all=Array.from(document.querySelectorAll('[role=button],[tabindex],button,a,div,span'));"
+            + "var norm=function(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim()};"
+            + "var matches=all.filter(function(e){var t=norm(e.innerText||e.textContent||e.getAttribute('aria-label'));"
+            + "var r=e.getBoundingClientRect(),s=getComputedStyle(e);"
+            + "return t==='guardar'&&r.width>20&&r.height>20&&s.display!=='none'&&s.visibility!=='hidden';"
+            + "}).sort(function(a,b){var ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();"
+            + "return (br.width*br.height)-(ar.width*ar.height)||br.top-ar.top});"
+            + "var e=matches.length?matches[0]:null;if(!e)return 'missing';var r=e.getBoundingClientRect();"
+            + "return (r.left+r.width/2)+'|'+(r.top+r.height/2);"
+            + "})()";
+        webView.evaluateJavascript(script, value -> {
+            String result = value == null ? "" : value.trim();
+            if (result.length() >= 2 && result.startsWith("\"") && result.endsWith("\"")) {
+                result = result.substring(1, result.length() - 1);
+            }
+            result = result.replace("\\\"", "\"");
+            if (result.isEmpty() || "missing".equals(result)) {
+                if (attempt < 20) mainHandler.postDelayed(() -> requestPhotoPreviewSave(attempt + 1), 250L);
+                return;
+            }
+            String[] parts = result.split("\\|");
+            if (parts.length != 2) return;
+            try {
+                float x = Float.parseFloat(parts[0]) * webView.getScale();
+                float y = Float.parseFloat(parts[1]) * webView.getScale();
+                float maxX = Math.max(1, webView.getWidth() - 2);
+                float maxY = Math.max(1, webView.getHeight() - 2);
+                x = Math.max(1, Math.min(maxX, x));
+                y = Math.max(1, Math.min(maxY, y));
+                photoSaveGesturePending = true;
+                addStage("photo_preview_save_gesture", "Guardando la vista previa de Facebook con un gesto nativo.", null);
+                dispatchWebTouch(x, y);
+                mainHandler.postDelayed(() -> photoSaveGesturePending = false, 1_500L);
+            } catch (RuntimeException ignored) { }
+        });
+    }
+
+    /** Facebook Lite also treats the housing category menu as a user-only control. */
+    private void requestCategoryGesture() {
+        if (webView == null) return;
+        String script = "(function(){"
+            + "var all=Array.from(document.querySelectorAll('[role=button],[role=option],[role=menuitem],[tabindex],button,a,div,span'));"
+            + "var norm=function(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim()};"
+            + "var matches=all.filter(function(e){var t=norm(e.innerText||e.textContent||e.getAttribute('aria-label'));"
+            + "var r=e.getBoundingClientRect(),s=getComputedStyle(e);"
+            + "return t==='alquileres'&&r.top>80&&r.width>20&&r.height>20&&s.display!=='none'&&s.visibility!=='hidden';"
+            + "}).sort(function(a,b){return (b.getBoundingClientRect().width*b.getBoundingClientRect().height)-(a.getBoundingClientRect().width*a.getBoundingClientRect().height)});"
+            + "var e=matches.length?matches[0]:null;if(!e)return 'missing';var r=e.getBoundingClientRect();return (r.left+r.width/2)+'|'+(r.top+r.height/2);"
+            + "})()";
+        webView.evaluateJavascript(script, value -> {
+            String result = value == null ? "" : value.trim();
+            if (result.length() >= 2 && result.startsWith("\"") && result.endsWith("\"")) {
+                result = result.substring(1, result.length() - 1);
+            }
+            result = result.replace("\\\"", "\"");
+            String[] parts = result.split("\\|");
+            if (parts.length != 2) return;
+            try {
+                float x = Float.parseFloat(parts[0]) * webView.getScale();
+                float y = Float.parseFloat(parts[1]) * webView.getScale();
+                x = Math.max(1, Math.min(Math.max(1, webView.getWidth() - 2), x));
+                y = Math.max(1, Math.min(Math.max(1, webView.getHeight() - 2), y));
+                addStage("mobile_category_gesture", "Seleccionando Alquileres con un gesto nativo.", null);
+                dispatchWebTouch(x, y);
+            } catch (RuntimeException ignored) { }
+        });
+    }
+
+    /**
+     * Facebook Lite also requires a trusted touch for the final Publicar
+     * action. A synthetic DOM click can leave the completed form unchanged.
+     */
+    private void requestPublishGesture() {
+        requestPublishGesture(0);
+    }
+
+    private void requestPublishGesture(int attempt) {
+        if (webView == null) return;
+        String script = "(function(){"
+            + "var all=Array.from(document.querySelectorAll('[role=button],[tabindex],button,a,div,span'));"
+            + "var norm=function(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim()};"
+            + "var matches=all.filter(function(e){var t=norm(e.innerText||e.textContent||e.getAttribute('aria-label'));"
+            + "var r=e.getBoundingClientRect(),s=getComputedStyle(e);"
+            + "return t==='publicar'&&r.width>20&&r.height>20&&s.display!=='none'&&s.visibility!=='hidden'&&r.top>80;"
+            + "}).sort(function(a,b){return a.getBoundingClientRect().top-b.getBoundingClientRect().top});"
+            + "var actionable=matches.filter(function(e){return e.hasAttribute('data-action-id')});"
+            + "if(actionable.length)matches=actionable;"
+            + "matches.sort(function(a,b){var ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();"
+            + "return (br.width*br.height)-(ar.width*ar.height)||br.top-ar.top});"
+            + "var e=matches.length?matches[0]:null;if(!e)return 'missing';"
+            + "var r=e.getBoundingClientRect();return (r.left+r.width/2)+'|'+(r.top+r.height/2);"
+            + "})()";
+        webView.evaluateJavascript(script, value -> {
+            String result = value == null ? "" : value.trim();
+            if (result.length() >= 2 && result.startsWith("\"") && result.endsWith("\"")) {
+                result = result.substring(1, result.length() - 1);
+            }
+            result = result.replace("\\\"", "\"");
+            if (result.isEmpty() || "missing".equals(result)) {
+                if (attempt < 20) mainHandler.postDelayed(() -> requestPublishGesture(attempt + 1), 250L);
+                return;
+            }
+            String[] parts = result.split("\\|");
+            if (parts.length != 2) return;
+            try {
+                float x = Float.parseFloat(parts[0]) * webView.getScale();
+                float y = Float.parseFloat(parts[1]) * webView.getScale();
+                float maxX = Math.max(1, webView.getWidth() - 2);
+                float maxY = Math.max(1, webView.getHeight() - 2);
+                x = Math.max(1, Math.min(maxX, x));
+                y = Math.max(1, Math.min(maxY, y));
+                addStage("publish_native_gesture", "Enviando Publicar con un gesto nativo.", null);
+                dispatchWebTouch(x, y);
+                monitorNativePublishResult(0);
+            } catch (RuntimeException ignored) { }
+        });
+    }
+
+    /**
+     * The trusted touch can navigate away before the JavaScript worker gets
+     * to call resolve(). Observe the new page from Java so a successful
+     * Marketplace publication cannot leave the local job stuck in processing.
+     */
+    private void monitorNativePublishResult(int attempt) {
+        if (webView == null) return;
+        String script = "(function(){return JSON.stringify({url:location.href,body:(document.body&&document.body.innerText||'').slice(0,5000)});})()";
+        webView.evaluateJavascript(script, value -> {
+            String result = value == null ? "" : value.trim();
+            if (result.length() >= 2 && result.startsWith("\"") && result.endsWith("\"")) {
+                result = result.substring(1, result.length() - 1);
+            }
+            result = result.replace("\\\"", "\"");
+            try {
+                JSONObject page = new JSONObject(result);
+                String url = page.optString("url", "").toLowerCase();
+                String body = page.optString("body", "").toLowerCase();
+                boolean published = url.contains("/marketplace/item/")
+                    || body.contains("se ha publicado correctamente")
+                    || body.contains("publicado correctamente en marketplace");
+                if (published) {
+                    JSONObject outcome = new JSONObject()
+                        .put("state", "published")
+                        .put("stage", "published")
+                        .put("message", "Facebook confirmó la publicación.")
+                        .put("listingUrl", url.contains("/marketplace/item/") ? url : "");
+                    addStage("published", "Facebook confirmó la publicación desde el navegador local.", null);
+                    new MarketplaceBridge().resolve(outcome.toString());
+                    return;
+                }
+            } catch (Exception ignored) { }
+            if (attempt < 120) {
+                mainHandler.postDelayed(() -> monitorNativePublishResult(attempt + 1), 1000L);
+            }
+        });
     }
 
     @Override
@@ -564,7 +853,31 @@ public class MarketplaceBrowserActivity extends Activity {
         public void requestPhotos() {
             mainHandler.post(() -> {
                 if (webView == null) return;
-                webView.evaluateJavascript("(function(){const i=document.querySelector('input[type=file][accept*=image],input[type=file]');if(i)i.click();})();", ignored -> { });
+                requestPhotoUploadGesture();
+            });
+        }
+
+        @JavascriptInterface
+        public void requestPhotoPreviewSave() {
+            mainHandler.post(() -> {
+                if (webView == null) return;
+                MarketplaceBrowserActivity.this.requestPhotoPreviewSave();
+            });
+        }
+
+        @JavascriptInterface
+        public void requestCategory() {
+            mainHandler.post(() -> {
+                if (webView == null) return;
+                requestCategoryGesture();
+            });
+        }
+
+        @JavascriptInterface
+        public void requestPublish() {
+            mainHandler.post(() -> {
+                if (webView == null) return;
+                requestPublishGesture();
             });
         }
 

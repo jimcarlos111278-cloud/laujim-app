@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, AudioLines, Download, FileText, Image, Lock, MessageCircle, Mic, Paperclip, Phone, RefreshCw, Send, Square, Video, X } from 'lucide-react';
+import { ArrowLeft, AudioLines, Camera, Download, FileText, Image, Lock, MessageCircle, Mic, Paperclip, RefreshCw, Send, Square, Video, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 
@@ -32,6 +32,11 @@ function MediaMessage({ message }) {
   const hasMedia = Boolean(message.mediaId) && ['image', 'audio', 'video', 'document', 'sticker'].includes(message.type);
 
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  useEffect(() => {
+    if (!hasMedia || kind === 'document') return undefined;
+    loadMedia(false);
+    return undefined;
+  }, [message.id, message.mediaId, kind, hasMedia]);
   if (!hasMedia) return null;
 
   async function loadMedia(download = false) {
@@ -65,13 +70,26 @@ function MediaMessage({ message }) {
     {url && kind === 'video' && <video controls src={url} className="max-h-72 max-w-full rounded-lg bg-black" />}
     <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={() => loadMedia(kind === 'document')} disabled={loading} className="inline-flex items-center gap-1 rounded-md border border-current/25 px-2 py-1 text-xs hover:bg-black/5 disabled:opacity-60">
-        <MediaIcon type={kind} className="w-3.5 h-3.5" /> {loading ? 'Cargando…' : kind === 'document' ? 'Descargar archivo' : url ? 'Volver a cargar' : `Ver ${kind === 'audio' ? 'audio' : kind === 'video' ? 'video' : 'imagen'}`}
+        <MediaIcon type={kind} className="w-3.5 h-3.5" /> {loading ? 'Cargando vista previa…' : kind === 'document' ? 'Descargar archivo' : url ? 'Volver a cargar' : `Ver ${kind === 'audio' ? 'audio' : kind === 'video' ? 'video' : 'imagen'}`}
       </button>
       {kind !== 'document' && <button type="button" onClick={() => loadMedia(true)} disabled={loading} className="inline-flex items-center gap-1 rounded-md border border-current/25 px-2 py-1 text-xs hover:bg-black/5 disabled:opacity-60"><Download className="w-3.5 h-3.5" /> Descargar</button>}
       <span className="text-[10px] opacity-70 truncate max-w-52">{fileName}</span>
     </div>
     {error && <p className="text-xs text-red-600">{error}</p>}
   </div>;
+}
+
+function apartmentBadge(conversation) {
+  const value = String(conversation?.apartmentName || conversation?.apartmentId || '—');
+  const numbers = value.match(/\d+/g);
+  return numbers ? numbers.join('') : value.slice(0, 4);
+}
+
+function attachmentKind(file) {
+  if (file?.type?.startsWith('image/')) return 'image';
+  if (file?.type?.startsWith('audio/')) return 'audio';
+  if (file?.type?.startsWith('video/')) return 'video';
+  return 'document';
 }
 
 export default function WhatsAppInbox() {
@@ -84,6 +102,7 @@ export default function WhatsAppInbox() {
   const [status, setStatus] = useState(null);
   const [draft, setDraft] = useState('');
   const [attachment, setAttachment] = useState(null);
+  const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -92,6 +111,7 @@ export default function WhatsAppInbox() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateSending, setTemplateSending] = useState('');
   const fileInput = useRef(null);
+  const cameraInput = useRef(null);
   const recorderRef = useRef(null);
   const recorderStreamRef = useRef(null);
   const recordingTimerRef = useRef(null);
@@ -140,8 +160,16 @@ export default function WhatsAppInbox() {
   }
 
   function clearAttachment() {
+    if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
     setAttachment(null);
+    setAttachmentPreviewUrl('');
     if (fileInput.current) fileInput.current.value = '';
+  }
+
+  function handleAttachmentFile(file) {
+    if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+    setAttachment(file);
+    setAttachmentPreviewUrl(file && ['image', 'audio', 'video'].includes(attachmentKind(file)) ? URL.createObjectURL(file) : '');
   }
 
   function stopRecording() {
@@ -172,7 +200,7 @@ export default function WhatsAppInbox() {
         const type = recorder.mimeType || mimeType || 'audio/webm';
         const extension = type.includes('ogg') ? 'ogg' : 'webm';
         const blob = new Blob(recordingChunksRef.current, { type });
-        if (blob.size) setAttachment(new File([blob], `nota-de-voz.${extension}`, { type }));
+        if (blob.size) handleAttachmentFile(new File([blob], `nota-de-voz.${extension}`, { type }));
       };
       recorder.start(1000);
       recorderRef.current = recorder;
@@ -259,10 +287,11 @@ export default function WhatsAppInbox() {
       <div className={`flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[320px_1fr] bg-white dark:bg-gray-800 overflow-hidden ${selected ? 'border-0 rounded-none lg:border lg:border-gray-200 lg:dark:border-gray-700 lg:rounded-xl' : 'border border-gray-200 dark:border-gray-700 rounded-xl'}`}>
         <aside className={`${selected ? 'hidden lg:block' : 'block'} border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 overflow-auto min-h-0`}>
           {loading ? <p className="p-4 text-sm text-gray-500">Cargando conversaciones…</p> : conversations.length === 0 ? <p className="p-4 text-sm text-gray-500">Aún no hay mensajes autorizados.</p> : conversations.map(conversation => (
-            <button key={conversation.id} onClick={() => openConversation(conversation.id)} className={`w-full text-left p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${selected === conversation.id ? 'bg-emerald-50 dark:bg-emerald-950/30' : ''}`}>
-              <div className="font-medium text-gray-900 dark:text-white">{conversation.tenantName || 'Inquilino autorizado'}</div>
-              <div className="text-xs text-gray-500 mt-1">{conversation.phone} · Apto. {conversation.apartmentName || conversation.apartmentId || '—'} · {formatDate(conversation.lastInboundAt)}</div>
-              <div className={`text-xs mt-1 ${conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'text-emerald-600' : 'text-amber-600'}`}>{conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'Ventana de respuesta activa' : 'Se requiere plantilla'}</div>
+            <button key={conversation.id} onClick={() => openConversation(conversation.id)} className={`flex w-full gap-3 text-left p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${selected === conversation.id ? 'bg-emerald-50 dark:bg-emerald-950/30' : ''}`}>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white">{apartmentBadge(conversation)}</span>
+              <span className="min-w-0 flex-1"><span className="block truncate font-medium text-gray-900 dark:text-white">{conversation.tenantName || 'Inquilino autorizado'}</span>
+              <span className="mt-1 block truncate text-xs text-gray-500">Apto. {conversation.apartmentName || conversation.apartmentId || '—'} · {formatDate(conversation.lastInboundAt)}</span>
+              <span className={`mt-1 block text-xs ${conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'text-emerald-600' : 'text-amber-600'}`}>{conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date() ? 'Ventana de respuesta activa' : 'Se requiere plantilla'}</span></span>
             </button>
           ))}
         </aside>
@@ -273,11 +302,10 @@ export default function WhatsAppInbox() {
               <div className="p-3 sm:p-4 flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
                   <button type="button" onClick={returnToConversationList} className="lg:hidden shrink-0 rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Volver a conversaciones"><ArrowLeft className="w-5 h-5" /></button>
-                  <div className="min-w-0"><p className="truncate font-semibold text-gray-900 dark:text-white">{selectedConversation.tenantName || 'Inquilino autorizado'}</p><p className="truncate text-xs text-gray-500">{selectedConversation.phone} · Apartamento {selectedConversation.apartmentName || selectedConversation.apartmentId || '—'}</p></div>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white">{apartmentBadge(selectedConversation)}</span><div className="min-w-0"><p className="truncate font-semibold text-gray-900 dark:text-white">{selectedConversation.tenantName || 'Inquilino autorizado'}</p><p className="truncate text-xs text-gray-500">{selectedConversation.phone} · Apartamento {selectedConversation.apartmentName || selectedConversation.apartmentId || '—'}</p></div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <button type="button" onClick={() => setShowTemplates(open => !open)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium ${showTemplates ? 'bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-200' : 'border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'}`} title="Enviar plantilla"><FileText className="w-4 h-4" /><span className="hidden sm:inline">Plantillas</span></button>
-                  <a href={`tel:+${selectedConversation.phone}`} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-2 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"><Phone className="w-4 h-4" /><span className="hidden sm:inline">Llamar</span></a>
                 </div>
               </div>
               {showTemplates && <div className="border-t border-gray-100 bg-violet-50/70 px-3 py-3 dark:border-gray-700 dark:bg-violet-950/20 sm:px-4">
@@ -300,10 +328,20 @@ export default function WhatsAppInbox() {
               ))}
             </div>
             <form onSubmit={sendMessage} className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-              {attachment && <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-100 dark:bg-gray-700 px-3 py-2 text-xs"><span className="truncate flex items-center gap-2"><MediaIcon type={attachment.type.startsWith('image/') ? 'image' : attachment.type.startsWith('audio/') ? 'audio' : attachment.type.startsWith('video/') ? 'video' : 'document'} className="w-4 h-4" />{attachment.name} · {(attachment.size / (1024 * 1024)).toFixed(1)} MB</span><button type="button" onClick={clearAttachment} className="p-1"><X className="w-4 h-4" /></button></div>}
+              {attachment && <div className="rounded-lg bg-gray-100 dark:bg-gray-700 px-3 py-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate flex items-center gap-2"><MediaIcon type={attachmentKind(attachment)} className="w-4 h-4" />{attachment.name} · {(attachment.size / (1024 * 1024)).toFixed(1)} MB</span>
+                  <button type="button" onClick={clearAttachment} className="p-1" aria-label="Quitar archivo"><X className="w-4 h-4" /></button>
+                </div>
+                {attachmentPreviewUrl && attachmentKind(attachment) === 'image' && <img src={attachmentPreviewUrl} alt="Vista previa del archivo" className="mt-2 max-h-48 max-w-full rounded-lg object-contain bg-black/10" />}
+                {attachmentPreviewUrl && attachmentKind(attachment) === 'video' && <video src={attachmentPreviewUrl} controls className="mt-2 max-h-48 max-w-full rounded-lg bg-black" />}
+                {attachmentPreviewUrl && attachmentKind(attachment) === 'audio' && <audio src={attachmentPreviewUrl} controls className="mt-2 max-w-full" />}
+              </div>}
               <div className="flex gap-2">
                 {recording ? <button type="button" onClick={stopRecording} title="Detener grabación" className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-red-600 text-white"><Square className="w-4 h-4" /> <span className="text-xs tabular-nums">{String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}</span></button> : <button type="button" onClick={startRecording} disabled={!windowOpen || sending} title="Grabar nota de voz" className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"><Mic className="w-4 h-4" /></button>}
-                <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => setAttachment(event.target.files?.[0] || null)} />
+                <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
+                <input ref={cameraInput} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
+                <button type="button" onClick={() => cameraInput.current?.click()} disabled={!windowOpen || sending || recording} title="Tomar foto o video" className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"><Camera className="w-4 h-4" /></button>
                 <button type="button" onClick={() => fileInput.current?.click()} disabled={!windowOpen || sending || recording} title="Adjuntar imagen, audio, video o documento (máx. 16 MB)" className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"><Paperclip className="w-4 h-4" /></button>
                 <input value={draft} onChange={e => setDraft(e.target.value)} disabled={!windowOpen || sending || recording} placeholder={recording ? 'Grabando nota de voz…' : windowOpen ? attachment ? 'Añade un texto opcional…' : 'Escribe una respuesta…' : 'La ventana de 24 h terminó: usa una plantilla aprobada'} className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm disabled:opacity-60" />
                 <button disabled={recording || (!draft.trim() && !attachment) || !windowOpen || sending} title={attachment ? 'Enviar archivo' : 'Enviar mensaje'} className="px-3 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-50"><Send className="w-4 h-4" /></button>

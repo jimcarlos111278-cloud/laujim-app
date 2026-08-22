@@ -1,6 +1,15 @@
 let permission = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
 
 export async function requestNotificationPermission() {
+  if (window.Capacitor) {
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const current = await LocalNotifications.checkPermissions();
+      if (current.display === 'granted') return true;
+      const requested = await LocalNotifications.requestPermissions();
+      return requested.display === 'granted';
+    } catch (error) { console.warn('Native notification permission unavailable:', error?.message || error); }
+  }
   if (!('Notification' in window)) return false;
   if (permission === 'granted') return true;
   if (permission === 'denied') return false;

@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
@@ -13,11 +15,13 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     private static final int FILE_CHOOSER_REQUEST = 4817;
     private ValueCallback<Uri[]> pendingFileCallback;
+    private final Handler deepLinkHandler = new Handler(Looper.getMainLooper());
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(AuthorizedCallerPlugin.class);
         registerPlugin(ScraperWorkerPlugin.class);
+        registerPlugin(BackgroundNotificationsPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Capacitor's default WebView does not consistently return the result of
@@ -52,6 +56,25 @@ public class MainActivity extends BridgeActivity {
                 }
             });
         }
+        dispatchWhatsAppIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        dispatchWhatsAppIntent(intent);
+    }
+
+    private void dispatchWhatsAppIntent(Intent intent) {
+        if (intent == null || !BackgroundNotificationService.ACTION_OPEN_WHATSAPP.equals(intent.getAction())) return;
+        int conversationId = intent.getIntExtra(BackgroundNotificationService.EXTRA_CONVERSATION_ID, 0);
+        if (conversationId <= 0) return;
+        deepLinkHandler.postDelayed(() -> {
+            WebView webView = getBridge() == null ? null : getBridge().getWebView();
+            if (webView == null) return;
+            webView.evaluateJavascript("(function(){window.__laujimPendingConversation=" + conversationId + ";window.dispatchEvent(new CustomEvent('laujim:open-whatsapp',{detail:{conversationId:" + conversationId + "}}));})();", null);
+        }, 650L);
     }
 
     @Override

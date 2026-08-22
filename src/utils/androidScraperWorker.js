@@ -46,6 +46,11 @@ export function openAndroidBatterySettings() {
   return NativeScraperWorker.openBatterySettings();
 }
 
+export function requestAndroidBatteryOptimizationExemption() {
+  if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
+  return NativeScraperWorker.requestBatteryOptimizationExemption();
+}
+
 export function getAndroidScraperWorkerStatus() {
   if (!supportsAndroidScraperWorker()) return Promise.resolve({ supported: false });
   return NativeScraperWorker.getStatus();

@@ -1,4 +1,15 @@
 @import "tailwindcss";
+
+/* Settings is intentionally a sub-menu: keep only the selected group in the
+   DOM flow so the mobile screen does not become one very long form. */
+.settings-root [data-settings-panel] { display: none; }
+.settings-root[data-settings-section="general"] [data-settings-panel="general"],
+.settings-root[data-settings-section="notifications"] [data-settings-panel="notifications"],
+.settings-root[data-settings-section="server"] [data-settings-panel="server"],
+.settings-root[data-settings-section="scraper"] [data-settings-panel="scraper"],
+.settings-root[data-settings-section="whatsapp"] [data-settings-panel="whatsapp"],
+.settings-root[data-settings-section="data"] [data-settings-panel="data"],
+.settings-root[data-settings-section="device"] [data-settings-panel="device"] { display: block; }
 @custom-variant dark (&:where(.dark, .dark *));
 
 * { box-sizing: border-box; }
@@ -35,6 +46,46 @@
 html, body, #root {
   overflow-x: hidden;
   max-width: 100vw;
+}
+
+/* WhatsApp has its own full-screen shell. Keep the Laujim escape hatch
+   available without making the admin navigation part of the chat UI. */
+.whatsapp-immersive-shell {
+  position: relative;
+  isolation: isolate;
+}
+.whatsapp-immersive-shell > *:not(.whatsapp-laujim-back) {
+  height: 100%;
+}
+.whatsapp-laujim-back {
+  position: fixed;
+  z-index: 60;
+  top: calc(env(safe-area-inset-top, 0px) + 4px);
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 9999px;
+  color: rgba(71, 85, 105, .42);
+  background: transparent;
+  transition: color .15s ease, background-color .15s ease, opacity .15s ease;
+  opacity: .72;
+}
+.whatsapp-laujim-back:hover,
+.whatsapp-laujim-back:focus-visible {
+  color: rgba(15, 23, 42, .92);
+  background: rgba(255, 255, 255, .72);
+  outline: none;
+  opacity: 1;
+}
+.dark .whatsapp-laujim-back { color: rgba(203, 213, 225, .38); }
+.dark .whatsapp-laujim-back:hover,
+.dark .whatsapp-laujim-back:focus-visible {
+  color: rgba(248, 250, 252, .92);
+  background: rgba(15, 23, 42, .72);
 }
 
 table { width: 100%; }

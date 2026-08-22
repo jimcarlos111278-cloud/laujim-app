@@ -1,5 +1,6 @@
 import { AUTH_TOKEN, getBase, setApiToken } from './config';
 import { stopCloudPolling, stopDataVersionPolling } from '../api';
+import { stopBackgroundNotifications } from './backgroundNotifications';
 
 const STORAGE_KEY = 'apt_auth';
 
@@ -19,6 +20,7 @@ export function setAuth(data) {
 
 export function clearAuth() {
   const token = AUTH_TOKEN;
+  stopBackgroundNotifications().catch(() => {});
   localStorage.removeItem(STORAGE_KEY);
   setApiToken('');
   // A Render deploy or a restored database can invalidate server sessions.

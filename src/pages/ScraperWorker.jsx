@@ -29,6 +29,7 @@ import {
   rescheduleAndroidScraperWorker,
   requestAndroidExactAlarmPermission,
   openAndroidBatterySettings,
+  requestAndroidBatteryOptimizationExemption,
   startAndroidScraperWorker,
   stopAndroidScraperWorker,
   supportsAndroidScraperWorker,
@@ -457,10 +458,18 @@ export default function ScraperWorker() {
 
   async function handleBatterySettings() {
     try {
-      await openAndroidBatterySettings();
-      setMessage({ type: 'success', text: 'En Batería, selecciona “Sin restricciones” y regresa a Laujim.' });
+      const status = await requestAndroidBatteryOptimizationExemption();
+      setNativeStatus(status);
+      setMessage({ type: 'success', text: status.batteryOptimizationExempt
+        ? 'Laujim ya está sin optimización de batería.'
+        : 'Autoriza a Laujim a funcionar sin optimización de batería y regresa a la app.' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'No se pudieron abrir los ajustes de batería.' });
+      try {
+        await openAndroidBatterySettings();
+        setMessage({ type: 'success', text: 'En Batería, selecciona “Sin restricciones” y regresa a Laujim.' });
+      } catch (fallbackError) {
+        setMessage({ type: 'error', text: fallbackError.message || error.message || 'No se pudieron abrir los ajustes de batería.' });
+      }
     }
   }
 
@@ -593,7 +602,7 @@ export default function ScraperWorker() {
               </button>
             )}
             <button onClick={handleBatterySettings} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
-              <ShieldCheck className="h-4 w-4" /> Ajustes de batería
+              <ShieldCheck className="h-4 w-4" /> Quitar optimización de batería
             </button>
           </div>
           <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">

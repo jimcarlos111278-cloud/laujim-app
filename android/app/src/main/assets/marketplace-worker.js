@@ -283,7 +283,11 @@
       }) || null;
     }
     if (rental) {
-      activate(rental);
+      if (window.LaujimMarketplaceBridge && typeof window.LaujimMarketplaceBridge.requestCategory === 'function') {
+        window.LaujimMarketplaceBridge.requestCategory();
+      } else {
+        activate(rental);
+      }
       await wait(1200);
       emit('mobile_category_selected', 'Facebook seleccionó Vivienda > Alquileres.', {});
       return true;
@@ -300,6 +304,23 @@
   function currentListingUrl() {
     var match = window.location.href.match(/^https:\/\/(?:www\.|web\.|m\.)?facebook\.com\/marketplace\/item\/[^?#/]+/i);
     return match ? match[0] : '';
+  }
+
+  function photoUploadErrorText() {
+    var body = normalizeText(document.body && document.body.innerText || '');
+    return /error al subir el archivo|los archivos no pueden superar los 20 mb|sube un archivo mas pequeno|upload error|files cannot exceed 20 mb/i.test(body);
+  }
+
+  function photoPreviewVisible() {
+    var body = normalizeText(document.body && document.body.innerText || '');
+    return /vista previa|preview/i.test(body) && /guardar|save/i.test(body);
+  }
+
+  function visibleMarketplacePhotoCount() {
+    return Array.from(document.images || []).filter(function (image) {
+      var rect = image.getBoundingClientRect();
+      return rect.width >= 70 && rect.height >= 70 && image.naturalWidth > 0 && image.naturalHeight > 0;
+    }).length;
   }
 
   async function openRentalComposer() {
@@ -411,12 +432,28 @@
     setToggle(['se aceptan perros', 'dog friendly', 'perros'], data.dogFriendly);
 
     var photoInput = document.querySelector('input[type="file"][accept*="image"], input[type="file"]');
-    if (data.photoUrls && data.photoUrls.length && !photoInput) {
-      var addPhotos = findButton(['añadir fotos', 'agregar fotos', 'add photos']);
-      if (addPhotos) {
-        emit('photo_button_opened', 'Abriendo el selector de fotos de Marketplace.', {});
-        activate(addPhotos);
-        await wait(700);
+    if (data.photoUrls && data.photoUrls.length) {
+      var expectedPhotos = Math.min(10, data.photoUrls.length);
+      var attachedPhotos = photoInput && photoInput.files ? photoInput.files.length : 0;
+      if (attachedPhotos < expectedPhotos) {
+        // Facebook Lite keeps the real input hidden and opens an intermediate
+        // menu. Always open that menu, even when the hidden input already
+        // exists, then let the native bridge tap "Subir foto".
+        var addPhotos = findExactVisibleText(['añadir fotos', 'anadir fotos', 'agregar fotos', 'add photos']) ||
+          findButton(['añadir fotos', 'anadir fotos', 'agregar fotos', 'add photos']);
+        if (addPhotos) {
+          emit('photo_button_opened', 'Abriendo el selector de fotos de Marketplace.', {});
+          activate(addPhotos);
+          await wait(700);
+        }
+        var uploadPhoto = null;
+        for (var uploadAttempt = 0; uploadAttempt < 12 && !uploadPhoto; uploadAttempt += 1) {
+          uploadPhoto = findExactVisibleText(['subir foto', 'upload photo', 'choose photo']);
+          if (!uploadPhoto) await wait(250);
+        }
+        if (uploadPhoto) {
+          emit('photo_upload_option_opened', 'Facebook mostró la opción Subir foto.', {});
+        }
         photoInput = document.querySelector('input[type="file"][accept*="image"], input[type="file"]');
       }
       if (!photoInput) {
@@ -425,35 +462,112 @@
       }
     }
     if (photoInput && data.photoUrls && data.photoUrls.length) {
+      // Facebook Lite does not reliably accept a multi-file FileList injected
+      // by WebView. It first opens its own "Vista previa > Guardar" page for
+      // one image, then commits that image to the composer. Repeat that
+      // trusted flow for each apartment photo instead of trusting files.length.
       var expectedPhotos = Math.min(10, data.photoUrls.length);
-      emit('photos_requested', 'Preparando y adjuntando las fotos automáticamente.', { requested: expectedPhotos });
-      window.LaujimMarketplaceBridge.requestPhotos();
-      var photoDeadline = Date.now() + 90_000;
-      while ((!photoInput.files || photoInput.files.length < expectedPhotos) && Date.now() < photoDeadline) await wait(500);
-      if (!photoInput.files || photoInput.files.length === 0) {
-        emit('photos_failed', 'El selector no recibió las fotos descargadas.', {});
-        return { state: 'needs_review', stage: 'photos_failed', message: 'No fue posible adjuntar las fotos del apartamento.', filled: filled };
-      }
-      if (photoInput.files.length < expectedPhotos) {
-        emit('photos_partial', 'Facebook recibió solo parte de las fotos automáticas.', { expected: expectedPhotos, attached: photoInput.files.length });
-        return { state: 'needs_review', stage: 'photos_partial', message: 'Facebook no recibió todas las fotos automáticas; revisa el selector abierto.', filled: filled };
-      }
-      var photoSizes = Array.from(photoInput.files).slice(0, expectedPhotos).map(function (file) {
-        return Number(file && file.size) || 0;
-      });
-      var photoBytes = photoSizes.reduce(function (total, size) { return total + size; }, 0);
-      // Native Android targets 1.9 MB per image. Guard here as well so a
-      // stale WebView cannot pass originals to Facebook's 20 MB batch limit.
-      if (photoSizes.some(function (size) { return size > 1_900_000; }) || photoBytes > 19_000_000) {
-        emit('photos_size_invalid', 'Una foto no quedó comprimida antes de enviarla a Facebook.', {
-          attached: photoInput.files.length, expected: expectedPhotos, bytes: photoBytes, sizes: photoSizes
+      var photoSizes = [];
+      var photoNames = [];
+      var photoBytes = 0;
+      for (var photoIndex = 0; photoIndex < expectedPhotos; photoIndex += 1) {
+        var beforeImages = visibleMarketplacePhotoCount();
+        var previousName = photoInput && photoInput.files && photoInput.files.length
+          ? String(photoInput.files[0].name || '') : '';
+        emit('photos_requested', 'Preparando y adjuntando las fotos automáticamente.', {
+          requested: expectedPhotos, current: photoIndex + 1
         });
-        return { state: 'needs_review', stage: 'photos_size_invalid', message: 'Las fotos no quedaron comprimidas a tiempo; vuelve a abrir el selector para prepararlas de nuevo.', filled: filled };
+        if (!window.LaujimMarketplaceBridge || typeof window.LaujimMarketplaceBridge.requestPhotos !== 'function') {
+          emit('photos_failed', 'El navegador no tiene habilitado el selector de fotos.', { current: photoIndex + 1 });
+          return { state: 'needs_review', stage: 'photos_failed', message: 'No fue posible abrir el selector de fotos del apartamento.', filled: filled };
+        }
+        window.LaujimMarketplaceBridge.requestPhotos();
+        var photoDeadline = Date.now() + 90_000;
+        var saveRequested = false;
+        var photoReady = false;
+        while (Date.now() < photoDeadline) {
+          if (photoUploadErrorText()) {
+            emit('photos_rejected', 'Facebook rechazó las fotos durante la carga.', { current: photoIndex + 1 });
+            return { state: 'needs_review', stage: 'photos_rejected', message: 'Facebook rechazó las fotos; no se intentará publicar hasta que el portal las acepte.', filled: filled };
+          }
+          if (photoPreviewVisible()) {
+            if (!saveRequested && window.LaujimMarketplaceBridge && typeof window.LaujimMarketplaceBridge.requestPhotoPreviewSave === 'function') {
+              saveRequested = true;
+              emit('photo_preview_opened', 'Facebook abrió la vista previa de la foto.', { current: photoIndex + 1 });
+              window.LaujimMarketplaceBridge.requestPhotoPreviewSave();
+            }
+            await wait(500);
+            continue;
+          }
+          var currentInput = document.querySelector('input[type="file"][accept*="image"], input[type="file"]');
+          var currentFiles = currentInput && currentInput.files ? Array.from(currentInput.files) : [];
+          var currentName = currentFiles.length ? String(currentFiles[0].name || '') : '';
+          var currentImages = visibleMarketplacePhotoCount();
+          var newFile = currentFiles.length > 0 && (!previousName || currentName !== previousName);
+          if (saveRequested && /\/marketplace\/selling\/item/i.test(window.location.pathname) && currentImages > beforeImages && newFile) {
+            photoInput = currentInput;
+            photoReady = true;
+            break;
+          }
+          await wait(500);
+        }
+        if (!photoReady) {
+          emit('photos_partial', 'Facebook no confirmó la foto en su vista previa.', {
+            expected: expectedPhotos, completed: photoIndex, current: photoIndex + 1
+          });
+          return { state: 'needs_review', stage: 'photos_partial', message: 'Facebook no confirmó todas las fotos; se detuvo antes de publicar.', filled: filled };
+        }
+        var acceptedFile = photoInput && photoInput.files && photoInput.files.length ? photoInput.files[0] : null;
+        var acceptedSize = Number(acceptedFile && acceptedFile.size) || 0;
+        var acceptedName = String(acceptedFile && acceptedFile.name || '');
+        if (acceptedSize <= 0 || acceptedSize > 1_900_000) {
+          emit('photos_size_invalid', 'Una foto no quedó comprimida antes de enviarla a Facebook.', {
+            current: photoIndex + 1, bytes: acceptedSize
+          });
+          return { state: 'needs_review', stage: 'photos_size_invalid', message: 'Las fotos no quedaron comprimidas a tiempo; se detuvo la publicación.', filled: filled };
+        }
+        if (!/^apartment_[0-9a-f-]+\.jpg$/i.test(acceptedName)) {
+          emit('photos_wrong_source', 'Facebook conservó una foto manual o anterior.', { current: photoIndex + 1, name: acceptedName });
+          return { state: 'needs_review', stage: 'photos_wrong_source', message: 'Facebook conservó una foto manual; se detuvo para no publicar una imagen equivocada.', filled: filled };
+        }
+        photoSizes.push(acceptedSize);
+        photoNames.push(acceptedName);
+        photoBytes += acceptedSize;
+        emit('photo_accepted', 'Facebook confirmó una foto en el formulario.', {
+          current: photoIndex + 1, accepted: photoIndex + 1, bytes: acceptedSize
+        });
       }
       emit('photos_size_validated', 'Tamaño de fotos validado antes de enviarlas a Facebook.', {
-        attached: photoInput.files.length, bytes: photoBytes, sizes: photoSizes
+        attached: photoNames.length, bytes: photoBytes, sizes: photoSizes
       });
-      emit('photos_attached', 'Fotos adjuntadas automáticamente al formulario.', { attached: photoInput.files.length });
+      emit('photos_attached', 'Fotos del apartamento confirmadas en el formulario.', {
+        attached: photoNames.length, names: photoNames
+      });
+      emit('photos_processing', 'Facebook terminó de procesar las fotos del apartamento.', { attached: photoNames.length });
+      await wait(1200);
+      if (photoUploadErrorText()) {
+        emit('photos_rejected', 'Facebook rechazó las fotos durante la carga.', { attached: photoNames.length, sizes: photoSizes });
+        return { state: 'needs_review', stage: 'photos_rejected', message: 'Facebook rechazó las fotos; no se intentará publicar hasta que el portal las acepte.', filled: filled };
+      }
+    }
+
+    // Facebook Lite rebuilds the composer after each "Vista previa > Guardar"
+    // photo step. That rebuild can restore text from a form-url-encoded state
+    // and turn spaces into visible plus signs. Re-apply only the textual fields
+    // after photos are committed, immediately before the publish gesture.
+    var restoredTextFields = [];
+    ['title', 'description'].forEach(function (key) {
+      var descriptor = fields.find(function (field) { return field.key === key; });
+      var element = descriptor ? findEditable(descriptor.labels) : null;
+      var value = decodeTransportText(data[key]);
+      if (element && value && setNativeValue(element, value)) restoredTextFields.push(key);
+    });
+    if (restoredTextFields.length) {
+      emit('text_fields_restored', 'Texto restaurado después de cargar las fotos.', {
+        fields: restoredTextFields,
+        plusSignsRemoved: true
+      });
+      await wait(350);
     }
 
     var requiredFieldsReady = mobileComposer
@@ -469,7 +583,11 @@
     var next = mobileComposer ? findButtonFromEnd(['publicar', 'publish']) : findButton(['siguiente', 'next']);
     if (!next) return { state: 'needs_review', stage: 'next_missing', message: 'Formulario completado, pero no se encontró el botón Siguiente.', filled: filled };
     emit(mobileComposer ? 'publish_clicked' : 'next_clicked', mobileComposer ? 'Publicando el anuncio desde el formulario móvil.' : 'Avanzando a la revisión final.', { filled: filled });
-    activate(next);
+    if (mobileComposer && window.LaujimMarketplaceBridge && typeof window.LaujimMarketplaceBridge.requestPublish === 'function') {
+      window.LaujimMarketplaceBridge.requestPublish();
+    } else {
+      activate(next);
+    }
     await wait(2500);
 
     if (mobileComposer) {
@@ -477,7 +595,7 @@
       while (Date.now() < mobileResultDeadline) {
         var mobileListingUrl = currentListingUrl();
         var mobileBody = normalizeText(document.body && document.body.innerText || '');
-        if (mobileListingUrl || /publicacion (creada|publicada)|anuncio (creado|publicado)|tu publicacion|listing (created|published)/.test(mobileBody)) {
+        if (mobileListingUrl || /publicacion (creada|publicada)|anuncio (creado|publicado)|publicado correctamente|tu publicacion|listing (created|published)/.test(mobileBody)) {
           emit('published', 'Facebook confirmó la publicación móvil.', { listingUrl: mobileListingUrl });
           return { state: 'published', stage: 'published', message: 'Facebook confirmó la publicación.', listingUrl: mobileListingUrl, filled: filled };
         }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { initDB } from './db/database';
-import { isCapacitor } from './utils/config';
+import { getBase, isCapacitor } from './utils/config';
 import Layout from './components/Layout';
 import VersionBanner from './components/VersionBanner';
 import Dashboard from './pages/Dashboard';
@@ -32,6 +32,8 @@ import { initTheme, loadThemeFromServer } from './utils/theme';
 import { clearAuth, getAuth } from './utils/auth';
 import { syncAuthorizedCallerNumbers } from './utils/callScreening';
 import { clearAppData } from './utils/resetApp';
+import { configureBackgroundNotifications, stopBackgroundNotifications } from './utils/backgroundNotifications';
+import { getNotifConfig } from './utils/localNotifications';
 
 function ProtectedRoute({ children }) {
   const auth = getAuth();
@@ -49,6 +51,20 @@ function AdminRoute({ children }) {
 function PrivateApp() {
   const [loading, setLoading] = useState(true);
   const [cloudError, setCloudError] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const openWhatsAppConversation = event => {
+      const conversationId = Number(event?.detail?.conversationId || window.__laujimPendingConversation || 0);
+      if (!conversationId) return;
+      delete window.__laujimPendingConversation;
+      navigate(`/whatsapp?conversation=${conversationId}`);
+    };
+    window.addEventListener('laujim:open-whatsapp', openWhatsAppConversation);
+    if (window.__laujimPendingConversation) openWhatsAppConversation({ detail: { conversationId: window.__laujimPendingConversation } });
+    return () => window.removeEventListener('laujim:open-whatsapp', openWhatsAppConversation);
+  }, [navigate]);
 
   useEffect(() => {
     try { initDB(); } catch (e) { console.error('DB init error:', e); }
@@ -59,6 +75,12 @@ function PrivateApp() {
       return;
     }
     requestNotificationPermission();
+    const notificationConfig = getNotifConfig();
+    if (notificationConfig.backgroundEnabled !== false) {
+      configureBackgroundNotifications({ serverUrl: getBase(), token: auth.token, preferences: notificationConfig });
+    } else {
+      stopBackgroundNotifications();
+    }
     const syncCallScreening = async () => {
       try { await syncAuthorizedCallerNumbers(await api.tenants.toArray()); } catch (e) { console.warn('Call screening sync failed'); }
     };
@@ -166,7 +188,7 @@ function PrivateApp() {
                   <Route path="/whatsapp-contactos" element={<WhatsAppContacts />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
-                <VersionBanner />
+                {location.pathname !== '/whatsapp' && <VersionBanner />}
               </Layout>
             </AdminRoute>
           </ProtectedRoute>

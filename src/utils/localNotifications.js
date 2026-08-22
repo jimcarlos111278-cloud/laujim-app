@@ -5,7 +5,15 @@ export function getNotifConfig() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
-  return { enabled: false, daysBefore: 3 };
+  return {
+    enabled: false,
+    daysBefore: 3,
+    backgroundEnabled: true,
+    whatsapp: true,
+    scraper: true,
+    facebook: true,
+    sound: true,
+  };
 }
 
 export function saveNotifConfig(config) {

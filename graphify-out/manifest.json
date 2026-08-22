@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1787206667.536276,
-    "ast_hash": "8e460a6e57d833690403b42d68fecc5a",
+    "mtime": 1787376872.335306,
+    "ast_hash": "d37d73cbfd126a1c09ad888d229e2089",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -60,8 +60,8 @@
     "semantic_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45"
   },
   "android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
-    "mtime": 1786943155.869804,
-    "ast_hash": "ebdf142498a577cca5d7b483546d8207",
+    "mtime": 1787376434.2928224,
+    "ast_hash": "b31fd29a3a6dc1d7da9ca9680e3380c7",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1787206766.2759829,
-    "ast_hash": "f02e17ea2dd7346bfd83aaf9619a6e02",
+    "mtime": 1787377664.738472,
+    "ast_hash": "df3a4f203863cdcee3ba83707cbf6aab",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1787200147.4218469,
-    "ast_hash": "7e6dd35e0e190b16bc9bd5ccbd31a8d3",
+    "mtime": 1787376729.6072392,
+    "ast_hash": "53911e79556b9cd7991fec4803e8cf46",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -255,8 +255,8 @@
     "semantic_hash": "29cdee1095d1f60e9d9f4d8d4cec3bde"
   },
   "src/App.jsx": {
-    "mtime": 1786604992.626681,
-    "ast_hash": "ade4042f2bcd01cb2cc0150d50c11aff",
+    "mtime": 1787376473.1333637,
+    "ast_hash": "932244dddd7038dbaeaf466b491a4fef",
     "semantic_hash": ""
   },
   "src/api.js": {
@@ -270,8 +270,8 @@
     "semantic_hash": "3d82f6b120b2a5ba30ebc89bd6d8f817"
   },
   "src/components/Layout.jsx": {
-    "mtime": 1786604992.6294625,
-    "ast_hash": "b1d6aa727f87089810284d0626298c99",
+    "mtime": 1787373712.3690016,
+    "ast_hash": "b81e924083d2c62c7670e297731ce5ab",
     "semantic_hash": ""
   },
   "src/components/Modal.jsx": {
@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "src/pages/Settings.jsx": {
-    "mtime": 1787200265.930766,
-    "ast_hash": "45911deffbf42a7533925ac343310572",
+    "mtime": 1787377090.7847824,
+    "ast_hash": "0fe01f8f81b2e5a7995af28eb311788c",
     "semantic_hash": ""
   },
   "src/pages/ShareApartments.jsx": {
@@ -400,13 +400,13 @@
     "semantic_hash": ""
   },
   "src/pages/WhatsAppInbox.jsx": {
-    "mtime": 1786394773.886552,
-    "ast_hash": "90cdcbe19ac415a444ecf2bec6e2d006",
+    "mtime": 1787377546.666848,
+    "ast_hash": "36e7e35cbaa6c6b278000fc68db089a7",
     "semantic_hash": ""
   },
   "src/utils/auth.js": {
-    "mtime": 1785997827.3526518,
-    "ast_hash": "012cb6f69f35e2fa5875414a6d823e27",
+    "mtime": 1787376618.868325,
+    "ast_hash": "ce9f409e84fb0651e45f7750931779a9",
     "semantic_hash": ""
   },
   "src/utils/calendar.js": {
@@ -455,14 +455,14 @@
     "semantic_hash": ""
   },
   "src/utils/localNotifications.js": {
-    "mtime": 1784437682.326316,
-    "ast_hash": "9d14c0ac489b59385c392a5481226eea",
-    "semantic_hash": "9d14c0ac489b59385c392a5481226eea"
+    "mtime": 1787376456.9578493,
+    "ast_hash": "ffb31a51e9498379cd938fd05831ba8d",
+    "semantic_hash": ""
   },
   "src/utils/notifications.js": {
-    "mtime": 1784523650.4618523,
-    "ast_hash": "131b8e56af73bd9fe032e046048d0a00",
-    "semantic_hash": "131b8e56af73bd9fe032e046048d0a00"
+    "mtime": 1787376456.95885,
+    "ast_hash": "bbf2e69ba30d0daed35094a340fd30f7",
+    "semantic_hash": ""
   },
   "src/utils/pdf.js": {
     "mtime": 1784523650.4618523,
@@ -5572,6 +5572,41 @@
   ".tmp/s23-worker-test-button.png": {
     "mtime": 1787107109.194202,
     "ast_hash": "dd3b4834e7849e39e81590f7943a617e",
+    "semantic_hash": ""
+  },
+  ".tmp/validate-whatsapp-prototype.mjs": {
+    "mtime": 1787375704.2576804,
+    "ast_hash": "75719cd5098499b5e6dd6aab18ff8569",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/BackgroundNotificationBootReceiver.java": {
+    "mtime": 1787376416.1358392,
+    "ast_hash": "7b72caf71654d669e375015842eac906",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/BackgroundNotificationService.java": {
+    "mtime": 1787376729.6082394,
+    "ast_hash": "f7b8789630afd1da2c488ab03ddd7615",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/BackgroundNotificationsPlugin.java": {
+    "mtime": 1787376416.1328413,
+    "ast_hash": "322a25b55ecae2f8088dc6d52483e46e",
+    "semantic_hash": ""
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/NotificationActionReceiver.java": {
+    "mtime": 1787376441.2104263,
+    "ast_hash": "3fa10bece3add45082a4589f641ef1cb",
+    "semantic_hash": ""
+  },
+  "src/utils/backgroundNotifications.js": {
+    "mtime": 1787376456.9548476,
+    "ast_hash": "257c2c9c682863ba73dccb2c4e1f34b8",
+    "semantic_hash": ""
+  },
+  "design-proposals/whatsapp-inbox-prototype.html": {
+    "mtime": 1787377133.0148997,
+    "ast_hash": "71899d1ff299637a4af6b41c06df2e87",
     "semantic_hash": ""
   }
 }

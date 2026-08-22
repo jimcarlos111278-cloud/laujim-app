@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud, Plus, CalendarCheck, KeyRound } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
-import { AUTH_TOKEN, getBase } from '../utils/config';
+import { AUTH_TOKEN, getBase, isCapacitor } from '../utils/config';
 import { requestNotificationPermission } from '../utils/notifications';
 import { isServerAvailable } from '../utils/sync';
 import { refreshAllFromServer } from '../api';
 import { getNotifConfig, saveNotifConfig, schedulePaymentReminders, cancelAllNotifications } from '../utils/localNotifications';
+import { configureBackgroundNotifications, stopBackgroundNotifications } from '../utils/backgroundNotifications';
 import { syncAndGenerateReminders } from '../utils/calendar';
 import ThemeSelector from '../components/ThemeSelector';
 import { clearAuth, getAuth } from '../utils/auth';
@@ -59,6 +60,7 @@ export default function Settings() {
   const [notifStatus, setNotifStatus] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
   const [syncStatus, setSyncStatus] = useState({ syncing: false, error: null, serverAvailable: null });
   const [notifConfig, setNotifConfig] = useState(getNotifConfig());
+  const [settingsSection, setSettingsSection] = useState('general');
   const [backupInfo, setBackupInfo] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -111,6 +113,19 @@ export default function Settings() {
     setNotifConfig(next); saveNotifConfig(next);
     if (next.enabled) { const a = await api.apartments.toArray(); await schedulePaymentReminders(a); }
     else { await cancelAllNotifications(); }
+  }
+
+  async function updateBackgroundNotificationPreference(key, value) {
+    const next = { ...notifConfig, [key]: value };
+    setNotifConfig(next);
+    saveNotifConfig(next);
+    if (key === 'backgroundEnabled' && value === false) {
+      await stopBackgroundNotifications();
+      return;
+    }
+    if (auth?.role === 'admin' && auth.token) {
+      await configureBackgroundNotifications({ serverUrl: getBase(), token: auth.token, preferences: next });
+    }
   }
 
   async function handleDaysChange(days) {
@@ -483,7 +498,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="settings-root space-y-6" data-settings-section={settingsSection}>
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
@@ -494,9 +509,27 @@ export default function Settings() {
         </button>
       </div>
 
+      <nav className="rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800" aria-label="Submenú de configuración">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[
+            ['general', 'General', Palette],
+            ['notifications', 'Notificaciones', Bell],
+            ['server', 'Servidor', Server],
+            ['scraper', 'Scraper', Zap],
+            ['whatsapp', 'WhatsApp', MessageCircle],
+            ['data', 'Datos', Database],
+            ['device', 'Dispositivo', Smartphone],
+          ].map(([key, label, Icon]) => (
+            <button key={key} type="button" onClick={() => setSettingsSection(key)} className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${settingsSection === key ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
+              <Icon className="h-4 w-4" /> {label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+        <div data-settings-panel="general" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Palette className="w-4 h-4" /> Modo de visualización</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Elige el estilo visual completo de la aplicación.</p>
           <div className="flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -505,7 +538,7 @@ export default function Settings() {
         </div>
 
         {auth?.role === 'admin' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+          <div data-settings-panel="general" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><KeyRound className="w-4 h-4 text-blue-600" /> Seguridad del administrador</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Cambia la contraseña de administración. Se cerrarán las demás sesiones y deberás entrar nuevamente.</p>
             <form onSubmit={handleChangeAdminPassword} className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -520,7 +553,7 @@ export default function Settings() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div data-settings-panel="notifications" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Bell className="w-4 h-4" /> Recordatorios Móviles</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Programa recordatorios automáticos de cobro en el teléfono.</p>
           <div className="space-y-3">
@@ -552,7 +585,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div data-settings-panel="notifications" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Bell className="w-4 h-4" /> Notificaciones del Navegador</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Recibe recordatorios incluso con el navegador en segundo plano.</p>
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -568,7 +601,39 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div data-settings-panel="notifications" className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-200 dark:border-emerald-900/60 p-5 col-span-1 lg:col-span-2">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><Smartphone className="w-4 h-4 text-emerald-600" /> Notificaciones de Laujim</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Controla qué eventos puede avisarte la aplicación, incluso cuando la APK esté cerrada.</p>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+            {[
+              ['backgroundEnabled', 'Servicio en segundo plano', 'Mantener la revisión activa con una notificación fija'],
+              ['whatsapp', 'WhatsApp', 'Mensajes, fotos, videos y notas de voz'],
+              ['scraper', 'Scraper', 'Resultados y errores de los servicios públicos'],
+              ['facebook', 'Facebook Marketplace', 'Resultado de publicaciones y errores'],
+              ['sound', 'Sonido y vibración', 'Alertas audibles para mensajes nuevos'],
+            ].map(([key, label, description]) => {
+              const checked = notifConfig[key] !== false;
+              return (
+                <div key={key} className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
+                  </div>
+                  <button type="button" aria-label={`${label}: ${checked ? 'activado' : 'desactivado'}`} onClick={() => updateBackgroundNotificationPreference(key, !checked)} className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${checked ? 'bg-emerald-600' : 'bg-gray-300'}`}>
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            {isCapacitor()
+              ? 'En Android funciona con un servicio activo y una notificación permanente. Si Samsung lo pausa, permite a Laujim usar batería sin restricciones.'
+              : 'En el navegador necesitas conceder permiso. Las alertas de la APK requieren abrir Laujim al menos una vez e iniciar sesión.'}
+          </p>
+        </div>
+
+        <div data-settings-panel="server" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Database className="w-4 h-4" /> Base de Datos</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Todos los datos se guardan automáticamente en la nube en tiempo real.</p>
           <div className="space-y-2 text-sm mb-3">
@@ -613,7 +678,7 @@ export default function Settings() {
           </div>
         </Modal>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+        <div data-settings-panel="data" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Carga Masiva (BULK)</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga una plantilla, complétala y súbela para crear/actualizar múltiples aptos, inquilinos y contratos.</p>
           <div className="flex flex-wrap gap-3">
@@ -629,7 +694,7 @@ export default function Settings() {
         </div>
 
         {/* WhatsApp API Config */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+        <div data-settings-panel="whatsapp" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp API</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Configuración para el bot de auto-respuesta y envío de mensajes.</p>
           <div className="space-y-3">
@@ -682,7 +747,7 @@ export default function Settings() {
         </div>
 
         {/* WhatsApp Proxy Bot */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div data-settings-panel="general" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Globe className="w-4 h-4" /> Link Público</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Comparte aptos disponibles con posibles inquilinos.</p>
           <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -692,7 +757,7 @@ export default function Settings() {
         </div>
 
         {/* WhatsApp Admins */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div data-settings-panel="whatsapp" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Administradores WhatsApp</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Números que pueden consultar el reporte de cobros y validar pagos desde el chat del bot. Formato: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">57XXXXXXXXXX</code> (código de país + número, sin + ni espacios).</p>
           <div className="flex gap-2 mb-3">
@@ -716,7 +781,7 @@ export default function Settings() {
           {adminPhonesMsg && <p className="text-xs text-emerald-600 mt-2">{adminPhonesMsg}</p>}
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div data-settings-panel="device" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Smartphone className="w-4 h-4" /> App Móvil (APK)</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga la app Android.</p>
           <a href="/app-debug.apk" download className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-2">
@@ -725,7 +790,7 @@ export default function Settings() {
         </div>
 
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div data-settings-panel="general" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FileText className="w-4 h-4" /> Acerca de</h3>
           <div className="space-y-2 text-sm">
             <p><span className="text-gray-500 dark:text-gray-400">App:</span> <span className="text-gray-900 dark:text-white">Gestión Laujim</span></p>
@@ -734,7 +799,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+        <div data-settings-panel="scraper" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Globe className="w-4 h-4" /> Enlaces Servicios</h3>
           <div className="space-y-2 text-sm">
             <a href="https://portal.aaa.com.co/pagos" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
@@ -749,9 +814,12 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+        <div data-settings-panel="scraper" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Zap className="w-4 h-4" /> Credenciales de Servicios (Autollenado)</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">El worker del teléfono usa estas credenciales únicamente cuando una sesión vence. Espera la verificación normal del portal, inicia sesión y continúa el scraper sin mostrar contraseñas en los logs.</p>
+          <button type="button" onClick={() => navigate('/scraper-worker')} className="mb-4 inline-flex items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/30">
+            <ClipboardList className="h-4 w-4" /> Abrir worker y logs del scraper
+          </button>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
             {[
               { key: 'air-e', name: 'Air-e (Energía)', portal: 'portal.air-e.com' },
@@ -796,7 +864,7 @@ export default function Settings() {
         </div>
 
         {/* ─── Server Monitor Dashboard ─── */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
+        <div data-settings-panel="device" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Smartphone className="w-4 h-4 text-emerald-600" /> Filtro de llamadas (Android)</h3>
@@ -842,7 +910,7 @@ export default function Settings() {
           </>}
         </div>
 
-        <div className="bg-[#0f172a] rounded-xl border border-[#1e293b] p-4 sm:p-5 col-span-1 lg:col-span-2">
+        <div data-settings-panel="server" className="bg-[#0f172a] rounded-xl border border-[#1e293b] p-4 sm:p-5 col-span-1 lg:col-span-2">
           <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="font-semibold text-white flex items-center gap-2"><Server className="w-4 h-4 text-blue-400" /> Estado de tus servicios</h3>
