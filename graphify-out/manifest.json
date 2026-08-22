@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1787385116.2108884,
-    "ast_hash": "49885f58d48ad978f93f901e5955bb53",
+    "mtime": 1787386189.6801324,
+    "ast_hash": "18fd3efeff9e9ff7b30ac2fa372fa9a5",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1787385229.5586593,
-    "ast_hash": "221aa86f719f8784f426be20b0bae687",
+    "mtime": 1787386807.2420597,
+    "ast_hash": "6d8049d851e4226c3d588a246322031c",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -400,8 +400,8 @@
     "semantic_hash": ""
   },
   "src/pages/WhatsAppInbox.jsx": {
-    "mtime": 1787385040.9746003,
-    "ast_hash": "d2129d9fbf9c574fae6906edfd81a793",
+    "mtime": 1787386189.6781237,
+    "ast_hash": "e4b8bd980069804211be820af22a0c42",
     "semantic_hash": ""
   },
   "src/utils/auth.js": {

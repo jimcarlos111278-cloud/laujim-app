@@ -70511,8 +70511,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "android_app_src_main_java_com_laujim_aptmanager_backgroundnotificationservice_backgroundnotificationservice_lastseenat",
-      "community": 35,
-      "community_name": "BackgroundNotificationService",
+      "community": 476,
+      "community_name": "Plugin",
       "norm_label": ".lastseenat()"
     },
     {
@@ -312150,5 +312150,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "e8ae593d86f9b39c094077787138f722415d1490"
+  "built_at_commit": "27998e85a52cefb6d833cb9a07de77db91b677a5"
 }

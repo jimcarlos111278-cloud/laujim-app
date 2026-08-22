@@ -1,7 +1,7 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-22)
 
 ## Corpus Check
-- 751 files · ~1,370,658 words
+- 751 files · ~1,384,244 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e8ae593d`
+- Built from commit: `27998e85`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -771,7 +771,7 @@ Cohesion: 0.20
 Nodes (9): backupDir, dataDir, __dirname, dst, files, now, root, src (+1 more)
 
 ### Community 35 - "BackgroundNotificationService"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (8): BackgroundNotificationService, Context, IBinder, Intent, JSONObject, Notification, Override, SharedPreferences
 
 ### Community 36 - "playwright-cli.js"
@@ -2135,7 +2135,7 @@ Cohesion: 0.44
 Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
 
 ### Community 476 - "Plugin"
-Cohesion: 0.31
+Cohesion: 0.27
 Nodes (6): BackgroundNotificationsPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, Plugin
 
 ### Community 477 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"

@@ -164,7 +164,10 @@ html, body, #root {
 .wa-live-row-status { display: block; margin-top: 4px; font-size: 10px; }
 .wa-live-row-status.open { color: #67d8bb; }
 .wa-live-row-status.closed { color: #d5a068; }
-.wa-live-sidebar-note { padding: 10px 16px 12px; border-top: 1px solid #1c2a30; color: #65757c; font-size: 10px; text-align: center; }
+.wa-live-sidebar-note { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px 10px; border-top: 1px solid #1c2a30; color: #65757c; font-size: 10px; text-align: center; }
+.wa-live-sidebar-note span { min-width: 0; }
+.wa-live-sidebar-exit { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 3px; padding: 5px 8px; border: 1px solid rgba(217,61,79,.55); border-radius: 999px; color: #ff8991; background: rgba(190,48,65,.14); font-size: 10px; }
+.wa-live-sidebar-exit:hover, .wa-live-sidebar-exit:focus-visible { color: #fff; background: #bd3948; outline: none; }
 .wa-live-empty { padding: 28px 20px; color: var(--wa-muted); font-size: 13px; text-align: center; }
 .wa-live-chat { display: flex; min-width: 0; min-height: 0; flex: 1 1 auto; flex-direction: column; background: #0b1418; }
 .wa-live-empty-chat { display: grid; min-height: 100%; place-content: center; justify-items: center; gap: 8px; color: #84949b; text-align: center; }
@@ -284,8 +287,11 @@ html, body, #root {
   .wa-live-mobile-nav { display: flex; position: absolute; right: 0; bottom: 0; left: 0; z-index: 5; height: 59px; align-items: stretch; justify-content: space-around; padding: 5px 10px max(5px, env(safe-area-inset-bottom)); border-top: 1px solid var(--wa-border); background: var(--wa-panel); }
   .wa-live-mobile-nav button { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; border-radius: 15px; color: #a7b4b9; background: transparent; font-size: 10px; }
   .wa-live-mobile-nav button.active { color: #86e7cb; background: #123e35; }
+  .wa-live-mobile-nav .wa-live-mobile-exit { color: #ff7d86; }
+  .wa-live-mobile-nav .wa-live-mobile-exit:hover, .wa-live-mobile-nav .wa-live-mobile-exit:focus-visible { color: #fff; background: #bd3948; outline: none; }
   .wa-live-mobile-nav svg { width: 18px; height: 18px; }
   .wa-live-sidebar { padding-bottom: 59px; }
+  .wa-live-sidebar-exit { display: none; }
   .wa-live-template-panel { display: block; }
   .wa-live-template-actions { justify-content: flex-start; margin-top: 9px; }
   .wa-live-messages { padding: 18px 13px 12px; }

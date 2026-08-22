@@ -438,7 +438,7 @@ export default function WhatsAppInbox() {
             </button>;
           })}
         </div>
-        <div className="wa-live-sidebar-note">Canal oficial · solo conversaciones de residentes autorizados</div>
+        <div className="wa-live-sidebar-note"><button type="button" onClick={() => navigate('/dashboard')} className="wa-live-sidebar-exit" title="Salir de WhatsApp y volver al dashboard"><X className="w-3.5 h-3.5" /> Salir</button><span>Canal oficial · solo conversaciones de residentes autorizados</span></div>
       </aside>
 
       <section className="wa-live-chat">
@@ -507,7 +507,7 @@ export default function WhatsAppInbox() {
         <div className="wa-live-details-section"><small>Regla de Meta</small><p>La escritura libre vuelve a habilitarse cuando el inquilino responde dentro de la ventana de servicio.</p></div>
       </aside>}
 
-      {!selected && <nav className="wa-live-mobile-nav"><button type="button" className={!activePanel ? 'active' : ''} onClick={returnToConversationList}><MessageCircle /><span>Chats</span></button><button type="button" className={activePanel === 'notifications' ? 'active' : ''} onClick={() => openPanel('notifications')}><Bell /><span>Novedades</span></button><button type="button" className={activePanel === 'settings' ? 'active' : ''} onClick={() => openPanel('settings')}><Settings2 /><span>Ajustes</span></button></nav>}
+      {!selected && <nav className="wa-live-mobile-nav"><button type="button" className="wa-live-mobile-exit" onClick={() => navigate('/dashboard')} title="Salir de WhatsApp y volver al dashboard"><X /><span>Salir</span></button><button type="button" className={!activePanel ? 'active' : ''} onClick={returnToConversationList}><MessageCircle /><span>Chats</span></button><button type="button" className={activePanel === 'notifications' ? 'active' : ''} onClick={() => openPanel('notifications')}><Bell /><span>Novedades</span></button><button type="button" className={activePanel === 'settings' ? 'active' : ''} onClick={() => openPanel('settings')}><Settings2 /><span>Ajustes</span></button></nav>}
 
       {activePanel && <div className="wa-live-panel-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setActivePanel(null); }}>
         <section className="wa-live-panel" role="dialog" aria-modal="true" aria-labelledby="wa-live-panel-title">
