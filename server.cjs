@@ -343,13 +343,49 @@ function samePhone(a, b) {
   return left && right && (left === right || left.slice(-10) === right.slice(-10));
 }
 
+function apartmentIdFromReference(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'object') {
+    return apartmentIdFromReference(value.apartmentId ?? value.id ?? value.name ?? value.number);
+  }
+  const text = String(value).trim();
+  if (!text) return null;
+  const numeric = Number(text);
+  if (Number.isInteger(numeric) && (db.apartments || []).some(apartment => Number(apartment.id) === numeric)) return numeric;
+  const normalized = text.toLocaleLowerCase();
+  const exact = (db.apartments || []).find(apartment => String(apartment.name || '').trim().toLocaleLowerCase() === normalized);
+  if (exact) return Number(exact.id);
+  const digits = text.replace(/\D/g, '');
+  if (!digits) return null;
+  const byDigits = (db.apartments || []).find(apartment => String(apartment.name || '').replace(/\D/g, '') === digits);
+  return byDigits ? Number(byDigits.id) : null;
+}
+
+function contractDateMs(value, endOfDay = false) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const suffix = endOfDay ? 'T23:59:59.999-05:00' : 'T00:00:00.000-05:00';
+    return new Date(`${raw}${suffix}`).getTime();
+  }
+  const parsed = new Date(raw).getTime();
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isCurrentContract(contract, now = Date.now()) {
+  if (!contract || contract.status === 'terminated' || contract.status === 'cancelled') return false;
+  const startsAt = contractDateMs(contract.startDate);
+  const endsAt = contractDateMs(contract.endDate, true);
+  return (!startsAt || startsAt <= now) && (!endsAt || endsAt >= now);
+}
+
 function tenantBelongsToApartment(tenant, apartmentId) {
-  if (Number(tenant?.apartmentId) === Number(apartmentId)) return true;
+  const directApartmentId = apartmentIdFromReference(tenant?.apartmentId ?? tenant?.linkedAptId ?? tenant?.apartment);
+  if (directApartmentId !== null && Number(directApartmentId) === Number(apartmentId)) return true;
   return (db.contracts || []).some(c =>
     Number(c.tenantId) === Number(tenant?.id) &&
     Number(c.apartmentId) === Number(apartmentId) &&
-    c.status !== 'terminated' && c.status !== 'cancelled' &&
-    (!c.endDate || new Date(c.endDate).getTime() >= Date.now())
+    isCurrentContract(c)
   );
 }
 
@@ -863,36 +899,67 @@ function paymentCountsAsCollected(payment) {
 
 function activeContractForApartment(apartmentId) {
   const now = Date.now();
-  return (db.contracts || []).find(contract => Number(contract.apartmentId) === Number(apartmentId) &&
-    contract.status !== 'terminated' && contract.status !== 'cancelled' &&
-    (!contract.endDate || new Date(contract.endDate).getTime() >= now));
+  return (db.contracts || [])
+    .filter(contract => Number(contract.apartmentId) === Number(apartmentId) && isCurrentContract(contract, now))
+    .sort((left, right) => (contractDateMs(right.startDate) || contractDateMs(right.createdAt) || 0) - (contractDateMs(left.startDate) || contractDateMs(left.createdAt) || 0))[0] || null;
 }
 
 function activeContractForTenant(tenantId) {
   const now = Date.now();
-  return (db.contracts || []).find(contract => Number(contract.tenantId) === Number(tenantId) &&
-    contract.status !== 'terminated' && contract.status !== 'cancelled' &&
-    (!contract.endDate || new Date(contract.endDate).getTime() >= now));
+  return (db.contracts || [])
+    .filter(contract => Number(contract.tenantId) === Number(tenantId) && isCurrentContract(contract, now))
+    .sort((left, right) => (contractDateMs(right.startDate) || contractDateMs(right.createdAt) || 0) - (contractDateMs(left.startDate) || contractDateMs(left.createdAt) || 0))[0] || null;
 }
 
 function tenantApartmentId(tenant) {
   if (!tenant) return null;
+  const direct = [
+    tenant.apartmentId,
+    tenant.linkedAptId,
+    tenant.apartment,
+    tenant.apartmentName,
+    tenant.apartmentNumber,
+  ].map(apartmentIdFromReference).find(value => value !== null);
+  if (direct !== undefined) return direct;
   const contract = activeContractForTenant(tenant.id);
-  return contract?.apartmentId ?? tenant.apartmentId ?? tenant.linkedAptId ?? null;
+  return apartmentIdFromReference(contract?.apartmentId ?? contract?.apartment ?? contract?.apartmentName);
 }
 
 function resolveCloudConversationContext(conversation = {}) {
-  let tenant = (db.tenants || []).find(item => Number(item.id) === Number(conversation.tenantId)) || null;
-  let apartment = (db.apartments || []).find(item => Number(item.id) === Number(conversation.apartmentId)) || null;
-
-  if (!tenant && conversation.phone) {
-    tenant = (db.tenants || []).find(item => samePhone(item.phone, conversation.phone)) || null;
-  }
+  // The phone is the stable WhatsApp identity. Prefer it over stale tenantId
+  // metadata so an old conversation cannot keep displaying another resident.
+  let tenant = conversation.phone
+    ? (db.tenants || []).find(item => samePhone(item.phone, conversation.phone)) || null
+    : null;
+  tenant ||= (db.tenants || []).find(item => Number(item.id) === Number(conversation.tenantId)) || null;
+  let apartment = null;
   if (!apartment && tenant) {
     apartment = (db.apartments || []).find(item => Number(item.id) === Number(tenantApartmentId(tenant))) || null;
   }
+  // If the tenant is known but has no association, do not fall back to an old
+  // apartmentId from the conversation; that would mislabel an unassigned user.
+  if (!apartment && !tenant) apartment = (db.apartments || []).find(item => Number(item.id) === Number(conversation.apartmentId)) || null;
   if (!tenant && apartment) tenant = activeTenantForApartment(apartment).tenant || null;
   return { tenant, apartment };
+}
+
+function repairCloudConversationContext(conversation) {
+  const context = resolveCloudConversationContext(conversation);
+  let changed = false;
+  const tenantId = context.tenant?.id ?? null;
+  const apartmentId = context.tenant ? tenantApartmentId(context.tenant) : context.apartment?.id ?? null;
+  if (tenantId !== null && Number(conversation.tenantId) !== Number(tenantId)) {
+    conversation.tenantId = tenantId;
+    changed = true;
+  }
+  if (apartmentId !== null && Number(conversation.apartmentId) !== Number(apartmentId)) {
+    conversation.apartmentId = apartmentId;
+    changed = true;
+  } else if (context.tenant && apartmentId === null && conversation.apartmentId != null) {
+    conversation.apartmentId = null;
+    changed = true;
+  }
+  return { ...context, changed };
 }
 
 function paymentReminderOffsets(apartment) {
@@ -4966,25 +5033,28 @@ app.get('/api/whatsapp/cloud/status', (req, res) => {
 app.get('/api/whatsapp/cloud/conversations', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   ensureCloudCollections();
-  res.json(db.whatsappConversations.map(c => {
+  let repaired = false;
+  const conversations = db.whatsappConversations.map(c => {
+    const context = repairCloudConversationContext(c);
+    repaired ||= context.changed;
     cloudServiceWindowOpen(c);
-    const tenant = (db.tenants || []).find(t => Number(t.id) === Number(c.tenantId));
-    const apartment = (db.apartments || []).find(a => Number(a.id) === Number(c.apartmentId));
+    const tenant = context.tenant;
+    const apartment = context.apartment;
     const conversationMessages = (db.whatsappMessages || []).filter(m => m.conversationId === c.id);
     const lastMessage = conversationMessages[conversationMessages.length - 1] || null;
     return { ...c, tenantName: tenant?.name || 'Inquilino autorizado', apartmentName: apartment?.name || null,
       lastMessageAt: lastMessage?.createdAt || c.lastInboundAt || c.createdAt,
       messages: lastMessage ? [lastMessage] : [] };
-  }));
+  });
+  if (repaired) saveData();
+  res.json(conversations);
 });
 
 app.get('/api/whatsapp/cloud/contacts', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   ensureCloudCollections();
-  const now = Date.now();
   const contacts = (db.tenants || []).map(tenant => {
-    const contract = (db.contracts || []).find(c => Number(c.tenantId) === Number(tenant.id) &&
-      c.status !== 'terminated' && c.status !== 'cancelled' && (!c.endDate || new Date(c.endDate).getTime() >= now));
+    const contract = activeContractForTenant(tenant.id);
     if (!tenant.phone) return null;
     const apartmentId = tenantApartmentId(tenant);
     const apartment = (db.apartments || []).find(a => Number(a.id) === Number(apartmentId));
@@ -5131,13 +5201,16 @@ app.get('/api/whatsapp/cloud/notifications', (req, res) => {
   ensureCloudCollections();
   const sinceValue = String(req.query?.since || '').trim();
   const sinceMs = sinceValue ? new Date(sinceValue).getTime() : 0;
+  let repaired = false;
   const items = (db.whatsappMessages || [])
     .filter(message => message.direction === 'in' && Number.isFinite(new Date(message.createdAt).getTime()) && new Date(message.createdAt).getTime() > sinceMs)
     .slice(-50)
     .map(message => {
       const conversation = db.whatsappConversations.find(item => Number(item.id) === Number(message.conversationId));
-      const tenant = (db.tenants || []).find(item => Number(item.id) === Number(conversation?.tenantId));
-      const apartment = (db.apartments || []).find(item => Number(item.id) === Number(conversation?.apartmentId));
+      const context = conversation ? repairCloudConversationContext(conversation) : { tenant: null, apartment: null, changed: false };
+      repaired ||= context.changed;
+      const tenant = context.tenant;
+      const apartment = context.apartment;
       return {
         id: message.id,
         conversationId: message.conversationId,
@@ -5148,6 +5221,7 @@ app.get('/api/whatsapp/cloud/notifications', (req, res) => {
         createdAt: message.createdAt,
       };
     });
+  if (repaired) saveData();
   res.json({ items });
 });
 
