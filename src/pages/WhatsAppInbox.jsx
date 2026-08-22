@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Archive, ArrowLeft, AudioLines, Bell, Camera, CheckCheck, Download, FileText, Image, Lock, MessageCircle, Mic, Paperclip, RefreshCw, Search, Send, Settings2, Smile, Square, Video, X } from 'lucide-react';
+import { Archive, ArrowLeft, AudioLines, Bell, Camera, CheckCheck, Download, FileText, Image, Info, Lock, MessageCircle, Mic, Paperclip, RefreshCw, Search, Send, Settings2, Smile, Square, Video, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 
@@ -113,6 +113,14 @@ export default function WhatsAppInbox() {
   const [windowClock, setWindowClock] = useState(Date.now());
   const [searchQuery, setSearchQuery] = useState('');
   const [listFilter, setListFilter] = useState('all');
+  const [activePanel, setActivePanel] = useState(null);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [notificationPrefs, setNotificationPrefs] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('whatsapp-notification-preferences') || '{}');
+      return { whatsapp: saved.whatsapp !== false, scraper: saved.scraper !== false, facebook: saved.facebook !== false, sound: saved.sound === true };
+    } catch { return { whatsapp: true, scraper: true, facebook: true, sound: false }; }
+  });
   const fileInput = useRef(null);
   const cameraInput = useRef(null);
   const recorderRef = useRef(null);
@@ -145,14 +153,34 @@ export default function WhatsAppInbox() {
   }, []);
 
   useEffect(() => { loadConversations(); const timer = setInterval(loadConversations, 15000); return () => clearInterval(timer); }, [loadConversations]);
-  useEffect(() => { loadMessages(selected); }, [selected, loadMessages]);
+  useEffect(() => {
+    loadMessages(selected);
+    if (!selected) return undefined;
+    const timer = setInterval(() => loadMessages(selected), 5000);
+    return () => clearInterval(timer);
+  }, [selected, loadMessages]);
   useEffect(() => {
     const timer = setInterval(() => setWindowClock(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
+  useEffect(() => {
+    try { localStorage.setItem('whatsapp-notification-preferences', JSON.stringify(notificationPrefs)); } catch { /* almacenamiento local no disponible */ }
+  }, [notificationPrefs]);
+  useEffect(() => {
+    if (!activePanel) return undefined;
+    const onKeyDown = event => { if (event.key === 'Escape') setActivePanel(null); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activePanel]);
 
   const selectedConversation = conversations.find(c => c.id === selected);
-  const windowUntil = selectedConversation?.customerServiceWindowUntil ? new Date(selectedConversation.customerServiceWindowUntil) : null;
+  const latestInbound = messages.filter(message => message.direction === 'in' && Number.isFinite(new Date(message.createdAt).getTime())).reduce((latest, message) => {
+    const current = new Date(message.createdAt).getTime();
+    return current > latest ? current : latest;
+  }, 0);
+  const inferredWindowUntil = latestInbound ? latestInbound + 24 * 60 * 60 * 1000 : 0;
+  const configuredWindowUntil = selectedConversation?.customerServiceWindowUntil ? new Date(selectedConversation.customerServiceWindowUntil).getTime() : 0;
+  const windowUntil = Math.max(configuredWindowUntil, inferredWindowUntil) ? new Date(Math.max(configuredWindowUntil, inferredWindowUntil)) : null;
   const windowOpen = Boolean(windowUntil && windowUntil.getTime() > windowClock);
   const windowRemainingMs = windowOpen ? windowUntil.getTime() - windowClock : 0;
 
@@ -194,14 +222,31 @@ export default function WhatsAppInbox() {
   function openConversation(conversationId) {
     setSelected(conversationId);
     setShowTemplates(false);
+    setActivePanel(null);
+    setChatSearchQuery('');
     navigate(`/whatsapp?conversation=${conversationId}`);
   }
 
   function returnToConversationList() {
     setSelected(null);
     setShowTemplates(false);
+    setActivePanel(null);
     navigate('/whatsapp');
   }
+
+  function openPanel(panel) {
+    setShowTemplates(false);
+    setActivePanel(panel);
+  }
+
+  function toggleNotification(key) {
+    setNotificationPrefs(current => ({ ...current, [key]: !current[key] }));
+  }
+
+  const visibleMessages = messages.filter(message => {
+    const query = chatSearchQuery.trim().toLocaleLowerCase();
+    return !query || [message.text, message.type, message.media?.fileName].filter(Boolean).join(' ').toLocaleLowerCase().includes(query);
+  });
 
   function clearAttachment() {
     if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
@@ -320,7 +365,7 @@ export default function WhatsAppInbox() {
           <h1><MessageCircle className="w-6 h-6" /> WhatsApp</h1>
           <div className="wa-live-top-actions">
             <button type="button" onClick={loadConversations} className="wa-live-icon" title="Actualizar conversaciones" aria-label="Actualizar conversaciones"><RefreshCw className="w-4 h-4" /></button>
-            <button type="button" onClick={() => navigate('/settings')} className="wa-live-icon" title="Configuración" aria-label="Configuración"><Settings2 className="w-4 h-4" /></button>
+            <button type="button" onClick={() => openPanel('settings')} className="wa-live-icon" title="Ajustes de WhatsApp" aria-label="Ajustes de WhatsApp"><Settings2 className="w-4 h-4" /></button>
           </div>
         </div>
         <div className="wa-live-search"><Search className="w-4 h-4" /><input value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Buscar contactos o apartamentos" aria-label="Buscar contactos o apartamentos" /></div>
@@ -328,7 +373,7 @@ export default function WhatsAppInbox() {
           <button type="button" onClick={() => setListFilter('all')} className={listFilter === 'all' ? 'active' : ''}>Todos</button>
           <button type="button" onClick={() => setListFilter('unread')} className={listFilter === 'unread' ? 'active' : ''}>No leídos</button>
         </div>
-        <div className="wa-live-archived"><Archive className="w-5 h-5" /><strong>Archivados</strong><span>—</span></div>
+        <button type="button" className="wa-live-archived" onClick={() => openPanel('archived')} title="Ver chats archivados"><Archive className="w-5 h-5" /><strong>Archivados</strong><span>›</span></button>
         <div className="wa-live-api-status">
           <span className={status?.ready ? 'online' : 'offline'} />
           {status?.ready ? 'Cloud API conectada' : 'Cloud API requiere configuración'}
@@ -336,7 +381,9 @@ export default function WhatsAppInbox() {
         {error && <div className="wa-live-error">{error}</div>}
         <div className="wa-live-conversation-list">
           {loading ? <p className="wa-live-empty">Cargando conversaciones…</p> : !visibleConversations.length ? <p className="wa-live-empty">{listFilter === 'unread' ? 'No hay conversaciones sin leer.' : conversations.length ? 'No hay coincidencias.' : 'Aún no hay mensajes autorizados.'}</p> : visibleConversations.map(conversation => {
-            const conversationWindowOpen = conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil) > new Date();
+            const latestConversationInbound = conversation.lastInboundAt ? new Date(conversation.lastInboundAt).getTime() : 0;
+            const conversationWindowUntil = conversation.customerServiceWindowUntil ? new Date(conversation.customerServiceWindowUntil).getTime() : 0;
+            const conversationWindowOpen = Math.max(conversationWindowUntil, latestConversationInbound + 24 * 60 * 60 * 1000) > Date.now();
             return <button key={conversation.id} type="button" onClick={() => openConversation(conversation.id)} className={`wa-live-row ${selected === conversation.id ? 'selected' : ''}`}>
               <span className="wa-live-avatar">{apartmentBadge(conversation)}</span>
               <span className="wa-live-row-main">
@@ -357,6 +404,8 @@ export default function WhatsAppInbox() {
             <span className="wa-live-avatar large">{apartmentBadge(selectedConversation)}</span>
             <div className="wa-live-chat-person"><strong>{selectedConversation.tenantName || 'Inquilino autorizado'}</strong><span>{selectedConversation.phone} · Apartamento {selectedConversation.apartmentName || selectedConversation.apartmentId || '—'}</span></div>
             <div className="wa-live-chat-actions">
+              <button type="button" onClick={() => openPanel('chat-search')} className="wa-live-icon" title="Buscar en esta conversación" aria-label="Buscar en esta conversación"><Search className="w-4 h-4" /></button>
+              <button type="button" onClick={() => openPanel('info')} className="wa-live-icon" title="Información del contacto" aria-label="Información del contacto"><Info className="w-4 h-4" /></button>
               <button type="button" onClick={() => setShowTemplates(open => !open)} className={`wa-live-icon ${!windowOpen ? 'danger' : ''}`} title={!windowOpen ? 'La ventana de Meta está cerrada: elegir plantilla' : 'Enviar plantilla'} aria-label={!windowOpen ? 'Elegir plantilla' : 'Enviar plantilla'}><FileText className="w-4 h-4" /></button>
             </div>
           </div>
@@ -369,7 +418,7 @@ export default function WhatsAppInbox() {
             </div>
           </div>}
           <div className="wa-live-messages">
-            {messages.length === 0 ? <p className="wa-live-empty">Aún no hay mensajes.</p> : messages.map(message => (
+            {messages.length === 0 ? <p className="wa-live-empty">Aún no hay mensajes.</p> : !visibleMessages.length ? <p className="wa-live-empty">No hay mensajes que coincidan con la búsqueda.</p> : visibleMessages.map(message => (
               <div key={message.id} className={`wa-live-bubble ${message.direction === 'out' ? 'out' : 'in'}`}>
                 {message.text && <p>{message.text}</p>}
                 {!message.text && !message.mediaId && <p>{message.type === 'text' ? 'Mensaje sin texto' : `Mensaje ${message.type || ''}`}</p>}
@@ -411,7 +460,32 @@ export default function WhatsAppInbox() {
         <div className="wa-live-details-section"><small>Regla de Meta</small><p>La escritura libre vuelve a habilitarse cuando el inquilino responde dentro de la ventana de servicio.</p></div>
       </aside>}
 
-      {!selected && <nav className="wa-live-mobile-nav"><button type="button" className="active" onClick={returnToConversationList}><MessageCircle /><span>Chats</span></button><button type="button" onClick={() => navigate('/settings')}><Bell /><span>Novedades</span></button><button type="button" onClick={() => navigate('/settings')}><Settings2 /><span>Ajustes</span></button></nav>}
+      {!selected && <nav className="wa-live-mobile-nav"><button type="button" className={!activePanel ? 'active' : ''} onClick={returnToConversationList}><MessageCircle /><span>Chats</span></button><button type="button" className={activePanel === 'notifications' ? 'active' : ''} onClick={() => openPanel('notifications')}><Bell /><span>Novedades</span></button><button type="button" className={activePanel === 'settings' ? 'active' : ''} onClick={() => openPanel('settings')}><Settings2 /><span>Ajustes</span></button></nav>}
+
+      {activePanel && <div className="wa-live-panel-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setActivePanel(null); }}>
+        <section className="wa-live-panel" role="dialog" aria-modal="true" aria-labelledby="wa-live-panel-title">
+          <div className="wa-live-panel-head"><div><small>WhatsApp de Laujim</small><h2 id="wa-live-panel-title">{activePanel === 'settings' ? 'Ajustes' : activePanel === 'notifications' ? 'Novedades y notificaciones' : activePanel === 'archived' ? 'Chats archivados' : activePanel === 'chat-search' ? 'Buscar en la conversación' : 'Información del contacto'}</h2></div><button type="button" onClick={() => setActivePanel(null)} className="wa-live-icon" aria-label="Cerrar panel"><X className="w-5 h-5" /></button></div>
+
+          {activePanel === 'settings' && <div className="wa-live-panel-body">
+            <p className="wa-live-panel-copy">Configura las alertas de este canal sin salir de la bandeja de WhatsApp.</p>
+            {[['whatsapp', 'Mensajes de WhatsApp', 'Avisos de mensajes nuevos y respuestas rápidas.'], ['scraper', 'Scraper de servicios', 'Resultados y errores de Air-e, Triple A y Gases.'], ['facebook', 'Facebook Marketplace', 'Publicaciones, fotos y errores del worker.'], ['sound', 'Sonido', 'Reproducir sonido cuando llegue una alerta.']].map(([key, title, description]) => <label key={key} className="wa-live-setting-row"><span><strong>{title}</strong><small>{description}</small></span><input type="checkbox" checked={notificationPrefs[key]} onChange={() => toggleNotification(key)} /><i /></label>)}
+            <div className="wa-live-panel-actions"><button type="button" onClick={() => { loadConversations(); setActivePanel(null); }} className="wa-live-panel-primary"><RefreshCw className="w-4 h-4" /> Actualizar bandeja</button><button type="button" onClick={() => setActivePanel(null)} className="wa-live-panel-secondary">Cerrar</button></div>
+          </div>}
+
+          {activePanel === 'notifications' && <div className="wa-live-panel-body">
+            <div className="wa-live-notice-card"><span className="online" /><div><strong>Conexión del canal</strong><p>{status?.ready ? 'Cloud API conectada y lista para recibir mensajes.' : 'La Cloud API requiere configuración o no está disponible.'}</p></div></div>
+            <div className="wa-live-notice-card"><Bell className="w-5 h-5" /><div><strong>Alertas activas</strong><p>{Object.values(notificationPrefs).filter(Boolean).length} de 4 preferencias habilitadas en este dispositivo.</p></div></div>
+            <div className="wa-live-notice-card"><MessageCircle className="w-5 h-5" /><div><strong>Conversaciones</strong><p>{conversations.length ? `${conversations.length} conversación(es) cargada(s).` : 'No hay conversaciones cargadas.'} {conversations.filter(item => Number(item.unreadCount || 0) > 0).length ? 'Hay mensajes sin leer.' : 'No hay mensajes sin leer.'}</p></div></div>
+            <div className="wa-live-panel-actions"><button type="button" onClick={() => openPanel('settings')} className="wa-live-panel-primary"><Settings2 className="w-4 h-4" /> Configurar alertas</button></div>
+          </div>}
+
+          {activePanel === 'archived' && <div className="wa-live-panel-body"><div className="wa-live-notice-card"><Archive className="w-5 h-5" /><div><strong>No hay chats archivados</strong><p>Las conversaciones archivadas aparecerán aquí cuando se conecte el historial correspondiente.</p></div></div><div className="wa-live-panel-actions"><button type="button" onClick={() => { setListFilter('all'); setActivePanel(null); }} className="wa-live-panel-primary">Volver a todos los chats</button></div></div>}
+
+          {activePanel === 'chat-search' && <div className="wa-live-panel-body"><label className="wa-live-panel-search"><Search className="w-4 h-4" /><input autoFocus value={chatSearchQuery} onChange={event => setChatSearchQuery(event.target.value)} placeholder="Buscar texto, archivo o tipo de mensaje" /></label><p className="wa-live-panel-copy">{chatSearchQuery ? `${visibleMessages.length} resultado(s) en esta conversación.` : 'Escribe para filtrar los mensajes visibles.'}</p><div className="wa-live-panel-actions"><button type="button" onClick={() => setActivePanel(null)} className="wa-live-panel-primary">Ver resultados</button><button type="button" onClick={() => { setChatSearchQuery(''); setActivePanel(null); }} className="wa-live-panel-secondary">Limpiar</button></div></div>}
+
+          {activePanel === 'info' && <div className="wa-live-panel-body"><div className="wa-live-panel-profile"><span className="wa-live-avatar xl">{apartmentBadge(selectedConversation)}</span><strong>{selectedConversation?.tenantName || 'Inquilino autorizado'}</strong><span>{selectedConversation?.phone || 'Teléfono no disponible'}</span><span>Apartamento {selectedConversation?.apartmentName || selectedConversation?.apartmentId || '—'}</span></div><div className="wa-live-notice-card"><Info className="w-5 h-5" /><div><strong>Estado de la conversación</strong><p>{windowOpen ? windowRemainingLabel() : 'Ventana cerrada: usa una plantilla aprobada.'}</p></div></div><div className="wa-live-panel-actions"><button type="button" onClick={() => setActivePanel(null)} className="wa-live-panel-primary">Volver al chat</button></div></div>}
+        </section>
+      </div>}
     </div>
   );
 }

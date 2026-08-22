@@ -461,6 +461,24 @@ function addCloudMessage(conversation, direction, message) {
   return record;
 }
 
+// Keep the inbox usable when a webhook delivered the tenant reply before the
+// conversation metadata was persisted (or when an older record has no window
+// timestamp). The inbound message itself is the source of truth for Meta's
+// 24-hour customer-service window.
+function cloudServiceWindowOpen(conversation) {
+  const now = Date.now();
+  const configuredUntil = conversation?.customerServiceWindowUntil ? new Date(conversation.customerServiceWindowUntil).getTime() : 0;
+  if (configuredUntil > now) return true;
+  const latestInbound = (db.whatsappMessages || [])
+    .filter(message => Number(message.conversationId) === Number(conversation?.id) && message.direction === 'in')
+    .map(message => new Date(message.createdAt).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0];
+  if (!latestInbound || latestInbound + 24 * 60 * 60 * 1000 <= now) return false;
+  conversation.customerServiceWindowUntil = new Date(latestInbound + 24 * 60 * 60 * 1000).toISOString();
+  return true;
+}
+
 function cloudApiRequest(pathname, method, payload) {
   const c = cloudConfig();
   if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no está configurada'));
@@ -4920,6 +4938,7 @@ app.get('/api/whatsapp/cloud/conversations', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   ensureCloudCollections();
   res.json(db.whatsappConversations.map(c => {
+    cloudServiceWindowOpen(c);
     const tenant = (db.tenants || []).find(t => Number(t.id) === Number(c.tenantId));
     const apartment = (db.apartments || []).find(a => Number(a.id) === Number(c.apartmentId));
     return { ...c, tenantName: tenant?.name || 'Inquilino autorizado', apartmentName: apartment?.name || null,
@@ -4939,7 +4958,7 @@ app.get('/api/whatsapp/cloud/contacts', (req, res) => {
     const apartment = (db.apartments || []).find(a => Number(a.id) === Number(apartmentId));
     const conversation = (db.whatsappConversations || []).find(c => samePhone(c.phone, tenant.phone));
     const explicit = (db.whatsappContacts || []).find(c => samePhone(c.phone, tenant.phone));
-    const windowOpen = !!conversation?.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil).getTime() > now;
+    const windowOpen = cloudServiceWindowOpen(conversation);
     return { tenantId: tenant.id, name: tenant.name || 'Inquilino', phone: normalizePhone(tenant.phone), apartmentId,
       apartmentName: apartment?.name || null, activeContract: !!contract, hasApartmentAssociation: apartmentId != null,
       conversationId: conversation?.id || null,
@@ -4959,7 +4978,7 @@ app.post('/api/whatsapp/cloud/start-conversation', async (req, res) => {
   if (!contact) return res.status(409).json({ error: 'El inquilino no tiene un contrato activo autorizado' });
   const conversation = getCloudConversation(contact);
   const now = Date.now();
-  if (conversation.customerServiceWindowUntil && new Date(conversation.customerServiceWindowUntil).getTime() > now) {
+  if (cloudServiceWindowOpen(conversation)) {
     return res.json({ ok: true, conversationId: conversation.id, windowOpen: true, sentTemplate: false });
   }
   try {
@@ -5206,7 +5225,7 @@ app.post('/api/whatsapp/cloud/send', async (req, res) => {
   const { conversationId, text } = req.body || {};
   const conversation = db.whatsappConversations.find(c => c.id === Number(conversationId));
   if (!conversation || !text || !String(text).trim()) return res.status(400).json({ error: 'Conversación y texto son requeridos' });
-  if (!conversation.customerServiceWindowUntil || new Date(conversation.customerServiceWindowUntil).getTime() < Date.now()) {
+  if (!cloudServiceWindowOpen(conversation)) {
     return res.status(409).json({ error: 'La ventana gratuita de servicio terminó; se requiere una plantilla aprobada.' });
   }
   try {
@@ -5224,7 +5243,7 @@ app.post('/api/whatsapp/cloud/quick-reply', async (req, res) => {
   const conversation = db.whatsappConversations.find(c => c.id === Number(req.body?.conversationId));
   const text = String(req.body?.text || '').trim();
   if (!conversation || !text) return res.status(400).json({ error: 'Conversación y texto son requeridos' });
-  if (!conversation.customerServiceWindowUntil || new Date(conversation.customerServiceWindowUntil).getTime() < Date.now()) {
+  if (!cloudServiceWindowOpen(conversation)) {
     return res.status(409).json({ error: 'La ventana de 24 horas terminó; usa una plantilla aprobada.' });
   }
   try {
@@ -5282,7 +5301,7 @@ app.post('/api/whatsapp/cloud/send-media', (req, res) => {
     const { conversationId, caption } = req.body || {};
     const conversation = db.whatsappConversations.find(c => c.id === Number(conversationId));
     if (!conversation || !req.file) return res.status(400).json({ error: 'Conversación y archivo son requeridos' });
-    if (!conversation.customerServiceWindowUntil || new Date(conversation.customerServiceWindowUntil).getTime() < Date.now()) {
+    if (!cloudServiceWindowOpen(conversation)) {
       return res.status(409).json({ error: 'La ventana de 24 h terminó; no se puede enviar un archivo libre sin una plantilla aprobada.' });
     }
     try {
