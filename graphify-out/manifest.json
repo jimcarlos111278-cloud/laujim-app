@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1787381801.6015863,
-    "ast_hash": "dc961b3df09c45daeadd974f8465175b",
+    "mtime": 1787385116.2108884,
+    "ast_hash": "49885f58d48ad978f93f901e5955bb53",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1787381912.3486507,
-    "ast_hash": "e309bd448b700c1cee35c6cc141056e0",
+    "mtime": 1787385229.5586593,
+    "ast_hash": "221aa86f719f8784f426be20b0bae687",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1787381533.0472946,
-    "ast_hash": "601983a772be58a2808f247500122a55",
+    "mtime": 1787384559.2394783,
+    "ast_hash": "709daaa02bc812b9aceff3569dc14a94",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -400,8 +400,8 @@
     "semantic_hash": ""
   },
   "src/pages/WhatsAppInbox.jsx": {
-    "mtime": 1787381553.0006065,
-    "ast_hash": "1c653404e35c6c40213992ef76cf38b8",
+    "mtime": 1787385040.9746003,
+    "ast_hash": "d2129d9fbf9c574fae6906edfd81a793",
     "semantic_hash": ""
   },
   "src/utils/auth.js": {
@@ -660,78 +660,78 @@
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-hdpi/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "1956941339dd5fe36d5c66601c89a08d",
+    "mtime": 1787385101.8267329,
+    "ast_hash": "e07bdd51ab1e5d86d90ebd1bec79927d",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "73b1e06d769fa08a9c3b8328cc15fd75",
+    "mtime": 1787385102.010358,
+    "ast_hash": "e07bdd51ab1e5d86d90ebd1bec79927d",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "f43e5674865a00186dd76183cf1f2f8e",
+    "mtime": 1787385101.9182448,
+    "ast_hash": "e07bdd51ab1e5d86d90ebd1bec79927d",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-mdpi/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "7ed1b3739b83215d0c4a0b4a7f2dcab4",
+    "mtime": 1787385102.1101477,
+    "ast_hash": "497f33e6f6e44d7699ea01c459e6d904",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "5b77e8aec8b17eed320a97567c7cb8bf",
+    "mtime": 1787385102.2954447,
+    "ast_hash": "497f33e6f6e44d7699ea01c459e6d904",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "a49547a32c7d9b529af607b033811d81",
+    "mtime": 1787385102.2043564,
+    "ast_hash": "497f33e6f6e44d7699ea01c459e6d904",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "5689511ee4e41a367d0342f37ac48bdf",
+    "mtime": 1787385102.6578472,
+    "ast_hash": "5ebd878be0c5189bde59bcea7d6668c3",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "15cdded29b9877ac98c5931024c5da5d",
+    "mtime": 1787385102.8332803,
+    "ast_hash": "5ebd878be0c5189bde59bcea7d6668c3",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "c890fa4af62a63486d5dea62441ce7ab",
+    "mtime": 1787385102.746128,
+    "ast_hash": "5ebd878be0c5189bde59bcea7d6668c3",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "a3285eeaedda8201f04e7737b9df8421",
+    "mtime": 1787385101.5766008,
+    "ast_hash": "110f7c58c2cbbaeec23cb9bf59835012",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "4e9584ecc16d1fc75afb798688ce576f",
+    "mtime": 1787385101.737617,
+    "ast_hash": "110f7c58c2cbbaeec23cb9bf59835012",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "14cde87848553e24d7106f56eb8ceb6f",
+    "mtime": 1787385101.658548,
+    "ast_hash": "110f7c58c2cbbaeec23cb9bf59835012",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "9e029293ab1ae8e3a6a7b7d0b7177e46",
+    "mtime": 1787385102.3888624,
+    "ast_hash": "a439b63a80cbc4eb9cca5f0947fc3de9",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "ed3696b7c52d9747411a475dbe3fa34a",
+    "mtime": 1787385102.56801,
+    "ast_hash": "a439b63a80cbc4eb9cca5f0947fc3de9",
     "semantic_hash": ""
   },
   "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png": {
-    "mtime": 1784050294.0,
-    "ast_hash": "85addb4159ecd3f76f02fbacd5ec86de",
+    "mtime": 1787385102.4771206,
+    "ast_hash": "a439b63a80cbc4eb9cca5f0947fc3de9",
     "semantic_hash": ""
   },
   "extension/icons/icon128.png": {
@@ -5607,6 +5607,11 @@
   "design-proposals/whatsapp-inbox-prototype.html": {
     "mtime": 1787377133.0148997,
     "ast_hash": "71899d1ff299637a4af6b41c06df2e87",
+    "semantic_hash": ""
+  },
+  "assets/branding/laujim-concept-02-icon.png": {
+    "mtime": 1787384951.4245727,
+    "ast_hash": "040f1df50ff33f8ae76fc74df9b4c273",
     "semantic_hash": ""
   }
 }

@@ -186,12 +186,15 @@ html, body, #root {
 .wa-live-template-actions button + button { border-color: #4a7770; background: #214b45; }
 .wa-live-template-actions button:disabled { opacity: .6; }
 .wa-live-messages { display: flex; flex: 1 1 auto; min-height: 0; flex-direction: column; overflow-y: auto; padding: 24px 6%; background-color: #0b1418; background-image: radial-gradient(#263239 1px, transparent 1px), radial-gradient(#263239 1px, transparent 1px); background-position: 0 0, 16px 16px; background-size: 32px 32px; }
-.wa-live-bubble { width: fit-content; max-width: min(78%, 460px); margin: 5px 0; padding: 9px 11px 6px; border-radius: 8px; color: #e9edef; font-size: 13px; line-height: 1.4; box-shadow: 0 1px 1px rgba(0,0,0,.14); }
+.wa-live-bubble { position: relative; width: fit-content; max-width: min(78%, 460px); margin: 5px 0; padding: 9px 11px 6px; border-radius: 8px; color: #e9edef; font-size: 13px; line-height: 1.4; box-shadow: 0 1px 1px rgba(0,0,0,.14); }
 .wa-live-bubble.in { margin-right: auto; border-top-left-radius: 2px; background: #202c33; }
 .wa-live-bubble.out { margin-left: auto; border-top-right-radius: 2px; background: #005c4b; }
 .wa-live-bubble p { margin: 0; white-space: pre-wrap; }
 .wa-live-bubble-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 4px; color: #a5b3b8; font-size: 9px; }
 .wa-live-bubble.out .wa-live-bubble-meta svg { color: #53bdeb; }
+.wa-live-bubble-delete { position: absolute; top: 4px; right: 4px; display: inline-grid; width: 24px; height: 24px; place-items: center; border: 0; border-radius: 50%; color: #c8d4d8; background: rgba(0,0,0,.24); opacity: 0; transition: opacity .15s ease, background .15s ease; }
+.wa-live-bubble:hover .wa-live-bubble-delete, .wa-live-bubble:focus-within .wa-live-bubble-delete { opacity: 1; }
+.wa-live-bubble-delete:hover, .wa-live-bubble-delete:focus-visible { color: #fff; background: #b83343; outline: none; }
 .wa-live-compose-wrap { flex: 0 0 auto; padding: 8px 14px 10px; border-top: 1px solid var(--wa-border); background: var(--wa-panel-2); }
 .wa-live-compose-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 3px 7px; font-size: 10px; }
 .wa-live-compose-status span { font-weight: 700; }
@@ -210,6 +213,8 @@ html, body, #root {
 .wa-live-control:hover:not(:disabled) { background: rgba(255,255,255,.1); }
 .wa-live-control:disabled { color: #586870; opacity: .55; }
 .wa-live-control.recording { width: auto; gap: 6px; padding: 0 10px; color: #fff; background: #d93d4f; }
+.wa-live-control.wa-live-exit { color: #ff7d86; background: rgba(190, 48, 65, .16); }
+.wa-live-control.wa-live-exit:hover, .wa-live-control.wa-live-exit:focus-visible { color: #fff; background: #bd3948; outline: none; }
 .wa-live-compose input { min-width: 0; height: 40px; flex: 1; padding: 0 14px; border: 0; border-radius: 21px; outline: 0; color: var(--wa-text); background: #2a3941; font-size: 13px; }
 .wa-live-compose input::placeholder { color: #91a2a9; }
 .wa-live-compose input:disabled { color: #7a898f; background: #202c33; }

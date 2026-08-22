@@ -424,7 +424,30 @@ function authorizedCloudContact(phone) {
   const now = Date.now();
   const explicit = db.whatsappContacts.find(c => c.enabled !== false && samePhone(c.phone, phone) &&
     (!c.expiresAt || new Date(c.expiresAt).getTime() > now));
-  if (explicit) return explicit;
+  if (explicit) {
+    const tenant = (db.tenants || []).find(item => Number(item.id) === Number(explicit.tenantId));
+    const currentApartmentId = tenant ? tenantApartmentId(tenant) : null;
+    const phoneStillBelongsToTenant = Boolean(tenant?.phone) && samePhone(tenant.phone, explicit.phone);
+    const apartmentStillMatches = !currentApartmentId || !explicit.apartmentId || Number(currentApartmentId) === Number(explicit.apartmentId);
+    if (!phoneStillBelongsToTenant || !apartmentStillMatches) {
+      // Do not let a previous authentication keep impersonating a tenant after
+      // the phone or its apartment association changes in the administration DB.
+      explicit.enabled = false;
+      explicit.revokedAt = new Date().toISOString();
+      explicit.revocationReason = 'phone_or_apartment_mismatch';
+      const staleConversation = db.whatsappConversations.find(c => samePhone(c.phone, phone));
+      if (staleConversation) {
+        staleConversation.tenantId = null;
+        staleConversation.apartmentId = null;
+        staleConversation.status = 'pending_authentication';
+        staleConversation.lastInboundAt = null;
+        staleConversation.customerServiceWindowUntil = null;
+      }
+      console.warn(`[WHATSAPP CLOUD] Revoked stale identity for ${normalizePhone(phone)}: contact tenant ${explicit.tenantId} no longer matches the tenant phone.`);
+      return null;
+    }
+    return { ...explicit, phone: normalizePhone(phone), apartmentId: currentApartmentId || explicit.apartmentId };
+  }
 
   const tenant = (db.tenants || []).find(t => samePhone(t.phone, phone));
   if (!tenant) return null;
@@ -447,6 +470,12 @@ function getCloudConversation(contact) {
       apartmentId: contact.apartmentId, status: 'active', createdAt: new Date().toISOString(), lastInboundAt: null,
       customerServiceWindowUntil: null };
     db.whatsappConversations.push(conversation);
+  } else {
+    // A successful re-authentication repairs a conversation that was previously
+    // detached because its phone was linked to the wrong tenant.
+    if (contact.tenantId != null) conversation.tenantId = contact.tenantId;
+    if (contact.apartmentId != null) conversation.apartmentId = contact.apartmentId;
+    conversation.status = 'active';
   }
   return conversation;
 }
@@ -4941,8 +4970,11 @@ app.get('/api/whatsapp/cloud/conversations', (req, res) => {
     cloudServiceWindowOpen(c);
     const tenant = (db.tenants || []).find(t => Number(t.id) === Number(c.tenantId));
     const apartment = (db.apartments || []).find(a => Number(a.id) === Number(c.apartmentId));
+    const conversationMessages = (db.whatsappMessages || []).filter(m => m.conversationId === c.id);
+    const lastMessage = conversationMessages[conversationMessages.length - 1] || null;
     return { ...c, tenantName: tenant?.name || 'Inquilino autorizado', apartmentName: apartment?.name || null,
-      messages: (db.whatsappMessages || []).filter(m => m.conversationId === c.id).slice(-1) };
+      lastMessageAt: lastMessage?.createdAt || c.lastInboundAt || c.createdAt,
+      messages: lastMessage ? [lastMessage] : [] };
   }));
 });
 
@@ -5034,6 +5066,62 @@ app.get('/api/whatsapp/cloud/conversations/:id/messages', (req, res) => {
   const id = Number(req.params.id);
   if (!db.whatsappConversations.some(c => c.id === id)) return res.status(404).json({ error: 'Conversación no encontrada' });
   res.json((db.whatsappMessages || []).filter(m => m.conversationId === id));
+});
+
+// Cloud API no puede retirar un mensaje del WhatsApp del destinatario. This
+// cleanup only removes Laujim's local record and any copies of the media that
+// Laujim archived; the response makes that boundary explicit to the inbox.
+async function purgeCloudMessageMedia(message) {
+  const warnings = [];
+  if (message?.media?.storageKey && r2Ready()) {
+    try { await deleteR2Object(message.media.storageKey, message.media.size); }
+    catch (error) { warnings.push(`R2: ${error.message}`); }
+  }
+  if (message?.mediaId && cloudReady()) {
+    try { await cloudGraphRequest(`/${encodeURIComponent(message.mediaId)}`, 'DELETE'); }
+    catch (error) { warnings.push(`Media de Meta: ${error.message}`); }
+  }
+  return warnings;
+}
+
+app.delete('/api/whatsapp/cloud/messages/:messageId', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const messageId = Number(req.params.messageId);
+  const index = db.whatsappMessages.findIndex(item => Number(item.id) === messageId);
+  if (index < 0) return res.status(404).json({ error: 'Mensaje no encontrado' });
+  const [message] = db.whatsappMessages.splice(index, 1);
+  const warnings = await purgeCloudMessageMedia(message);
+  await saveData();
+  res.json({
+    ok: true,
+    localDeleted: true,
+    remoteMessageDeleted: false,
+    mediaDeleted: !warnings.some(warning => warning.startsWith('R2:') || warning.startsWith('Media de Meta:')),
+    warnings,
+    notice: 'El mensaje ya no aparece en Laujim; Meta no permite retirarlo del WhatsApp del destinatario.',
+  });
+});
+
+app.delete('/api/whatsapp/cloud/conversations/:id', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const conversationId = Number(req.params.id);
+  const conversationIndex = db.whatsappConversations.findIndex(item => Number(item.id) === conversationId);
+  if (conversationIndex < 0) return res.status(404).json({ error: 'Conversación no encontrada' });
+  const messages = db.whatsappMessages.filter(item => Number(item.conversationId) === conversationId);
+  const warnings = (await Promise.all(messages.map(purgeCloudMessageMedia))).flat();
+  db.whatsappMessages = db.whatsappMessages.filter(item => Number(item.conversationId) !== conversationId);
+  db.whatsappConversations.splice(conversationIndex, 1);
+  await saveData();
+  res.json({
+    ok: true,
+    localDeleted: true,
+    remoteMessagesDeleted: false,
+    messageCount: messages.length,
+    warnings,
+    notice: 'La conversación ya no aparece en Laujim; Meta no permite borrar sus mensajes del WhatsApp del destinatario.',
+  });
 });
 
 // Lightweight inbox feed used by the Android background notification service.

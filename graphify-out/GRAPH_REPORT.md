@@ -1,7 +1,7 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-22)
 
 ## Corpus Check
-- 751 files · ~1,369,984 words
+- 751 files · ~1,370,658 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d20b9dee`
+- Built from commit: `e8ae593d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -28,7 +28,7 @@
 - dependencies
 - vendor/ponytail/benchmarks/agentic/tasks.py
 - handleCloudInbound
-- App.jsx
+- getBase
 - content-facebook.js
 - ScraperWorkerStore
 - handleCloudInbound
@@ -37,7 +37,7 @@
 - chrome-cdp.js
 - getR2Client
 - 5. ESPECIFICACIÓN DE INTEGRACIÓN (LO QUE CODEX DEBE CONSTRUIR)
-- Settings.jsx
+- App.jsx
 - services-scraper.cjs
 - contractGenerator.js
 - setup-graphify-hooks.cjs
@@ -263,7 +263,7 @@
 - plugins/ponytail/benchmarks/correctness.js
 - plugins/ponytail/__init__.py
 - plugins/ponytail/benchmarks/agentic/complete.py
-- @tailwindcss/vite
+- AuthorizedCallerPlugin
 - CLAUDE.md
 - SECURITY.md
 - after-install.md
@@ -444,7 +444,7 @@
 - android-build-1.0.48-79fff05b64e14cfca70b11051e2f8d03/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
 - android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MainActivity.java
 - AuthorizedSmsStore
-- AuthorizedCallerPlugin
+- Plugin
 - android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
 - ScraperWorkerScheduleTest
 - ScraperWorkerDispatcher
@@ -570,7 +570,7 @@
 - ScraperWorkerDispatcher
 - ScraperWorkerDispatcher
 - ScraperWorkerPlugin
-- Plugin
+- @tailwindcss/vite
 - android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java
 - android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedSmsReceiver.java
 - MarketplaceWorkerSchedule
@@ -640,7 +640,7 @@ Nodes (29): cloudAdminGreeting(), cloudApartmentFloor(), cloudApartmentsForFloor
 
 ### Community 1 - "ApartmentDetail.jsx"
 Cohesion: 0.07
-Nodes (52): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), canvasBlob() (+44 more)
+Nodes (46): COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail(), canvasBlob() (+38 more)
 
 ### Community 2 - "AuthorizedCallerPlugin"
 Cohesion: 0.24
@@ -686,9 +686,9 @@ Nodes (28): _contained(), _fail(), _find(), _find_class(), _import(), _import_pk
 Cohesion: 0.22
 Nodes (21): addCloudMessage(), authorizedCloudContact(), blockCloudUser(), clearCloudAuthState(), cloudInboundMedia(), cloudInteractiveReply(), ensureCloudCollections(), failCloudAuthentication() (+13 more)
 
-### Community 13 - "App.jsx"
-Cohesion: 0.08
-Nodes (41): react, api, AdminRoute(), ProtectedRoute(), Layout(), navItems, Modal(), ContractGenerator() (+33 more)
+### Community 13 - "getBase"
+Cohesion: 0.09
+Nodes (29): react, api, Modal(), ContractGenerator(), Login(), Onboarding(), templateRequest(), PublicApartment() (+21 more)
 
 ### Community 14 - "content-facebook.js"
 Cohesion: 0.25
@@ -708,7 +708,7 @@ Nodes (10): scripts, backup, build, build-apk, dev, lint, network, preview (+2 m
 
 ### Community 18 - "api.js"
 Cohesion: 0.11
-Nodes (25): CLOUD_COLLECTIONS, createItem(), deleteItem(), getCloudSyncStatus(), getDataVersion(), getServerVersion(), lastCloudSyncStatus, markLocalMutation() (+17 more)
+Nodes (24): CLOUD_COLLECTIONS, createItem(), deleteItem(), getDataVersion(), getServerVersion(), lastCloudSyncStatus, markLocalMutation(), serverReq() (+16 more)
 
 ### Community 19 - "chrome-cdp.js"
 Cohesion: 0.53
@@ -722,9 +722,9 @@ Nodes (10): deleteR2Object(), ensureR2Usage(), getR2Client(), getR2Usage(), putR
 Cohesion: 0.07
 Nodes (27): 1.1 Identidad, 1.2 Stack (verificado en package.json + README), 1.3 Autenticación, 1.4 Colecciones existentes (13 núcleo), 1.5 Datos relevantes por apartamento, 1.6 Puntos de extensión existentes (patrones a imitar), 1. ESTADO ACTUAL DE LA APP, 2. LIMITACIONES DE HARDWARE / INFRAESTRUCTURA (CRÍTICAS) (+19 more)
 
-### Community 22 - "Settings.jsx"
-Cohesion: 0.20
-Nodes (23): PrivateApp(), BackgroundNotifications, configureBackgroundNotifications(), getBackgroundNotificationStatus(), stopBackgroundNotifications(), callerScreeningPlugin(), getAuthorizedSmsMessages(), getCallScreeningStatus() (+15 more)
+### Community 22 - "App.jsx"
+Cohesion: 0.13
+Nodes (34): getCloudSyncStatus(), refreshAllFromServer(), startCloudPolling(), stopCloudPolling(), PrivateApp(), Layout(), navItems, initDB() (+26 more)
 
 ### Community 23 - "services-scraper.cjs"
 Cohesion: 0.06
@@ -887,8 +887,8 @@ Cohesion: 0.12
 Nodes (16): Arquitectura, Backup de referencia, Configuración actual de dropdowns (v1.4.5), Extensión de Chrome — Llenar Laujim, Flujo de `chooseDropdown` (v1.4.5), Gestión de anuncios, Instalación, La app no carga en el navegador (+8 more)
 
 ### Community 67 - "auth.js"
-Cohesion: 0.20
-Nodes (23): Chat(), getAuth(), isAdmin(), login(), loginAdmin(), loginTenant(), requireAuth(), setAuth() (+15 more)
+Cohesion: 0.13
+Nodes (31): AdminRoute(), ProtectedRoute(), Chat(), colombiaDate(), PROVIDERS, ServiceCard(), tenantRequest(), getAuth() (+23 more)
 
 ### Community 68 - "run-pc-worker-aiven.cjs"
 Cohesion: 0.22
@@ -1520,6 +1520,10 @@ Nodes (21): build_injected_context(), _config_dir(), _default_mode(), _fallback_
 Cohesion: 0.21
 Nodes (19): main(), parse_complete(), _rank_ok(), scores: {(task_id, label): {SCORE_KEY: int}}. For each task the 'complete'…, Live: the judge model must rank each complete ref above its stub., No API, no key: prove the GATE catches under-delivery. A well-ordered matrix…, run(), selftest() (+11 more)
 
+### Community 265 - "AuthorizedCallerPlugin"
+Cohesion: 0.24
+Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+
 ### Community 283 - "vendor/ponytail/benchmarks/agentic/complete.py"
 Cohesion: 0.21
 Nodes (19): main(), parse_complete(), _rank_ok(), scores: {(task_id, label): {SCORE_KEY: int}}. For each task the 'complete'…, Live: the judge model must rank each complete ref above its stub., No API, no key: prove the GATE catches under-delivery. A well-ordered matrix…, run(), selftest() (+11 more)
@@ -2130,9 +2134,9 @@ Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
 Cohesion: 0.44
 Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
 
-### Community 476 - "AuthorizedCallerPlugin"
-Cohesion: 0.24
-Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
+### Community 476 - "Plugin"
+Cohesion: 0.31
+Nodes (6): BackgroundNotificationsPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, Plugin
 
 ### Community 477 - "android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java"
 Cohesion: 0.31
@@ -2566,10 +2570,6 @@ Nodes (3): Test, TimeZone, ScraperWorkerScheduleTest
 Cohesion: 0.30
 Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
 
-### Community 620 - "Plugin"
-Cohesion: 0.31
-Nodes (6): BackgroundNotificationsPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, Plugin
-
 ### Community 621 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/AuthorizedMmsReceiver.java"
 Cohesion: 0.47
 Nodes (4): AuthorizedMmsReceiver, Context, Intent, Override
@@ -2665,7 +2665,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `$schema`, `.opencode/plugins/graphify.js`, `.opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs` to the rest of the system?**
   _1829 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ApartmentDetail.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.06639839034205232 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0744047619047619 - nodes in this community are weakly interconnected._
 - **Should `server.cjs` be split into smaller, more focused modules?**
   _Cohesion score 0.037719298245614034 - nodes in this community are weakly interconnected._
 - **Should `pre-whatsapp-bot/server.cjs` be split into smaller, more focused modules?**
