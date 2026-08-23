@@ -97,6 +97,7 @@ export default function WhatsAppInbox() {
   const [searchParams] = useSearchParams();
   const requestedConversation = Number(searchParams.get('conversation')) || null;
   const [conversations, setConversations] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
   const [status, setStatus] = useState(null);
@@ -110,6 +111,7 @@ export default function WhatsAppInbox() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateSending, setTemplateSending] = useState('');
+  const [startingContactId, setStartingContactId] = useState(null);
   const [deleting, setDeleting] = useState('');
   const [windowClock, setWindowClock] = useState(Date.now());
   const [searchQuery, setSearchQuery] = useState('');
@@ -135,8 +137,11 @@ export default function WhatsAppInbox() {
         cloudRequest('/whatsapp/cloud/status'),
         cloudRequest('/whatsapp/cloud/conversations'),
       ]);
+      let nextContacts = [];
+      try { nextContacts = await cloudRequest('/whatsapp/cloud/contacts'); } catch { /* La bandeja existente sigue funcionando aunque no cargue el directorio. */ }
       setStatus(nextStatus);
       setConversations(nextConversations);
+      setContacts(nextContacts);
       setError('');
       setSelected(current => {
         if (requestedConversation && nextConversations.some(c => c.id === requestedConversation)) return requestedConversation;
@@ -223,6 +228,15 @@ export default function WhatsAppInbox() {
   }
 
   const orderedConversations = [...conversations].sort((left, right) => conversationActivityTime(right) - conversationActivityTime(left));
+  const conversationPhones = new Set(conversations.map(conversation => String(conversation.phone || '').replace(/\D/g, '').slice(-10)).filter(Boolean));
+  const contactSearchResults = searchQuery.trim()
+    ? contacts.filter(contact => {
+      const query = searchQuery.trim().toLocaleLowerCase();
+      const haystack = [contact.name, contact.phone, contact.apartmentName, contact.apartmentId].filter(Boolean).join(' ').toLocaleLowerCase();
+      const phone = String(contact.phone || '').replace(/\D/g, '').slice(-10);
+      return haystack.includes(query) && !conversationPhones.has(phone);
+    }).slice(0, 8)
+    : [];
   const visibleConversations = orderedConversations.filter(conversation => {
     const query = searchQuery.trim().toLocaleLowerCase();
     const haystack = [conversation.tenantName, conversation.phone, conversation.apartmentName, conversation.apartmentId].filter(Boolean).join(' ').toLocaleLowerCase();
@@ -237,6 +251,21 @@ export default function WhatsAppInbox() {
     setActivePanel(null);
     setChatSearchQuery('');
     navigate(`/whatsapp?conversation=${conversationId}`);
+  }
+
+  async function startNewConversation(contact) {
+    if (!contact?.tenantId || startingContactId) return;
+    setStartingContactId(contact.tenantId);
+    setError('');
+    try {
+      const result = await cloudRequest('/whatsapp/cloud/start-conversation', {
+        method: 'POST',
+        body: JSON.stringify({ tenantId: contact.tenantId }),
+      });
+      await loadConversations();
+      if (result?.conversationId) openConversation(result.conversationId);
+    } catch (err) { setError(err.message); }
+    finally { setStartingContactId(null); }
   }
 
   function returnToConversationList() {
@@ -424,7 +453,18 @@ export default function WhatsAppInbox() {
         </div>
         {error && <div className="wa-live-error">{error}</div>}
         <div className="wa-live-conversation-list">
-          {loading ? <p className="wa-live-empty">Cargando conversaciones…</p> : !visibleConversations.length ? <p className="wa-live-empty">{listFilter === 'unread' ? 'No hay conversaciones sin leer.' : conversations.length ? 'No hay coincidencias.' : 'Aún no hay mensajes autorizados.'}</p> : visibleConversations.map(conversation => {
+          {loading ? <p className="wa-live-empty">Cargando conversaciones…</p> : <>
+            {contactSearchResults.length > 0 && <div className="wa-live-new-contacts">
+              <div className="wa-live-section-label">Nuevas conversaciones</div>
+              {contactSearchResults.map(contact => <div key={contact.tenantId} className="wa-live-new-contact">
+                <span className="wa-live-avatar">{String(contact.apartmentName || contact.apartmentId || '—').replace(/\D/g, '').slice(0, 4) || '·'}</span>
+                <span className="wa-live-row-main"><strong>{contact.name || 'Inquilino'}</strong><small>{contact.phone}{contact.apartmentName ? ` · Apto. ${contact.apartmentName}` : ' · Sin apartamento'}</small></span>
+                <button type="button" onClick={() => startNewConversation(contact)} disabled={startingContactId === contact.tenantId} className="wa-live-new-contact-action" title="Iniciar conversación">
+                  <Send className="w-3.5 h-3.5" /> {startingContactId === contact.tenantId ? 'Abriendo…' : 'Iniciar'}
+                </button>
+              </div>)}
+            </div>}
+            {!visibleConversations.length ? <p className="wa-live-empty">{contactSearchResults.length ? 'Selecciona un inquilino para iniciar el chat.' : listFilter === 'unread' ? 'No hay conversaciones sin leer.' : conversations.length ? 'No hay coincidencias.' : 'Aún no hay mensajes autorizados.'}</p> : visibleConversations.map(conversation => {
             const latestConversationInbound = conversation.lastInboundAt ? new Date(conversation.lastInboundAt).getTime() : 0;
             const conversationWindowUntil = conversation.customerServiceWindowUntil ? new Date(conversation.customerServiceWindowUntil).getTime() : 0;
             const conversationWindowOpen = Math.max(conversationWindowUntil, latestConversationInbound + 24 * 60 * 60 * 1000) > Date.now();
@@ -436,7 +476,8 @@ export default function WhatsAppInbox() {
                 <span className={`wa-live-row-status ${conversationWindowOpen ? 'open' : 'closed'}`}>{conversationWindowOpen ? 'Ventana activa' : 'Requiere plantilla'} · Apto. {conversation.apartmentName || conversation.apartmentId || '—'}</span>
               </span>
             </button>;
-          })}
+            })}
+          </>}
         </div>
         <div className="wa-live-sidebar-note"><button type="button" onClick={() => navigate('/dashboard')} className="wa-live-sidebar-exit" title="Salir de WhatsApp y volver al dashboard"><X className="w-3.5 h-3.5" /> Salir</button><span>Canal oficial · solo conversaciones de residentes autorizados</span></div>
       </aside>

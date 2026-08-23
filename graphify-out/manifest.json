@@ -175,7 +175,7 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1787386807.2420597,
+    "mtime": 1787449033.0081897,
     "ast_hash": "6d8049d851e4226c3d588a246322031c",
     "semantic_hash": ""
   },
@@ -400,8 +400,8 @@
     "semantic_hash": ""
   },
   "src/pages/WhatsAppInbox.jsx": {
-    "mtime": 1787386189.6781237,
-    "ast_hash": "e4b8bd980069804211be820af22a0c42",
+    "mtime": 1787448880.846541,
+    "ast_hash": "b2515190a247ce72131e094a211b9caf",
     "semantic_hash": ""
   },
   "src/utils/auth.js": {
