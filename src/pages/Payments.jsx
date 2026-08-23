@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, DollarSign, Filter, Trash2, Check, X, Eye, Clock3 } from 'lucide-react';
+import { Plus, Search, DollarSign, Filter, Trash2, Check, X, Eye, Clock3, RefreshCw, Smartphone, BellRing, ShieldCheck, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { formatCurrency, formatShortDate } from '../utils/helpers';
 import { AUTH_TOKEN, getBase } from '../utils/config';
+import { configurePaymentWatcher, getPaymentWatcherStatus, openPaymentWatcherSettings, stopPaymentWatcher } from '../utils/paymentWatcher';
 
 export default function Payments() {
   const [payments, setPayments] = useState([]);
@@ -18,11 +19,23 @@ export default function Payments() {
   const [paymentMode, setPaymentMode] = useState(null);
   const [reviewingId, setReviewingId] = useState(null);
   const [fullRent, setFullRent] = useState(0);
+  const [automation, setAutomation] = useState({ events: [], rules: [], alerts: [], pending: 0, autoConfirmed: 0 });
+  const [automationTab, setAutomationTab] = useState('queue');
+  const [automationError, setAutomationError] = useState('');
+  const [automationBusy, setAutomationBusy] = useState('');
+  const [watcherStatus, setWatcherStatus] = useState(null);
+  const [associationChoices, setAssociationChoices] = useState({});
   const [form, setForm] = useState({ apartmentId: '', contractId: '', amount: '', date: new Date().toISOString().split('T')[0], type: 'rent', description: '', category: '', isUnexpected: false });
 
   const expenseCategories = ['Mantenimiento', 'Reparación', 'Limpieza', 'Impuesto', 'Seguro', 'Adecuación', 'Otro'];
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    loadAutomation();
+    getPaymentWatcherStatus().then(setWatcherStatus);
+    const interval = setInterval(loadAutomation, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function load() {
     const [p, e, a, t, c] = await Promise.all([
@@ -107,6 +120,40 @@ export default function Payments() {
       await api.expenses.delete(id);
     }
     load();
+  }
+
+  async function loadAutomation() {
+    try {
+      const result = await api.paymentAutomation.summary();
+      setAutomation(result);
+      setAutomationError('');
+    } catch (error) { setAutomationError(error.message || 'No se pudo cargar la cola automática.'); }
+  }
+
+  async function associateEvent(eventId, apartmentId, remember = true) {
+    if (!apartmentId) return;
+    setAutomationBusy(`associate-${eventId}`);
+    try { await api.paymentAutomation.associate(eventId, apartmentId, remember); await Promise.all([loadAutomation(), load()]); }
+    catch (error) { window.alert(error.message); }
+    finally { setAutomationBusy(''); }
+  }
+
+  async function dismissEvent(eventId) {
+    setAutomationBusy(`dismiss-${eventId}`);
+    try { await api.paymentAutomation.dismiss(eventId); await loadAutomation(); }
+    catch (error) { window.alert(error.message); }
+    finally { setAutomationBusy(''); }
+  }
+
+  async function activatePaymentWatcher() {
+    const next = await configurePaymentWatcher({ serverUrl: getBase(), token: AUTH_TOKEN, enabled: true });
+    setWatcherStatus(next);
+    if (next?.accessGranted === false) await openPaymentWatcherSettings();
+  }
+
+  async function disablePaymentWatcher() {
+    const next = await stopPaymentWatcher();
+    setWatcherStatus(next);
   }
 
   async function reviewPayment(payment, action) {
@@ -200,6 +247,54 @@ export default function Payments() {
         <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500 font-medium">Total Gastos</p><p className="text-xl font-bold text-red-600 mt-1">{formatCurrency(totalExpenses)}</p></div>
         <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500 font-medium">Balance Neto</p><p className={`text-xl font-bold mt-1 ${totalPayments - totalExpenses >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{formatCurrency(totalPayments - totalExpenses)}</p></div>
       </div>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><ShieldCheck className="h-5 w-5 text-emerald-500" /> Pagos automáticos</h2>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">Laujim toma la notificación bancaria como señal. Solo confirma automáticamente una regla aprendida cuyo remitente y valor coincidan; todo lo demás queda en cola para que tú lo decidas.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={loadAutomation} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"><RefreshCw className="h-3.5 w-3.5" /> Actualizar</button>
+            {watcherStatus?.supported && watcherStatus?.enabled ? (
+              <button type="button" onClick={disablePaymentWatcher} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"><BellRing className="h-3.5 w-3.5" /> Captura activa</button>
+            ) : (
+              <button type="button" onClick={activatePaymentWatcher} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"><Smartphone className="h-3.5 w-3.5" /> Activar en este celular</button>
+            )}
+          </div>
+        </div>
+
+        {watcherStatus?.supported && watcherStatus?.enabled && !watcherStatus?.accessGranted && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"><span><AlertTriangle className="mr-1 inline h-4 w-4" />Falta conceder acceso a notificaciones de Android.</span><button type="button" onClick={openPaymentWatcherSettings} className="font-bold underline">Abrir configuración</button></div>}
+        {watcherStatus && !watcherStatus.supported && <p className="mt-3 text-xs text-slate-500">En la web se pueden revisar y asociar eventos. La captura automática requiere la APK y el permiso de acceso a notificaciones.</p>}
+        {automationError && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{automationError}</p>}
+
+        <div className="mt-4 flex flex-wrap gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
+          {[['queue', 'Pagos en cola', automation.pending], ['confirmed', 'Confirmados', automation.autoConfirmed], ['rules', 'Reglas aprendidas', automation.rules?.length || 0]].map(([id, label, count]) => <button key={id} type="button" onClick={() => setAutomationTab(id)} className={`rounded-lg px-3 py-2 text-xs font-semibold ${automationTab === id ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'}`}>{label} <span className="ml-1 opacity-70">{count}</span></button>)}
+        </div>
+
+        {automationTab === 'queue' && <div className="mt-3 space-y-3">
+          {(automation.events || []).filter(event => event.status === 'pending_association').map(event => {
+            const candidates = event.candidates || [];
+            const selected = associationChoices[event.id] || candidates[0]?.apartmentId || '';
+            return <div key={event.id} className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0"><p className="font-semibold text-slate-900 dark:text-white">{formatCurrency(event.amount)} · {event.provider || 'Origen no identificado'}</p><p className="text-xs text-slate-600 dark:text-slate-300">{event.payerIdentifierMasked || event.payerName || 'Remitente no visible'} · {event.transferChannel === 'llave' ? 'por llave' : event.transferChannel === 'cuenta' ? 'por cuenta' : event.transferChannel === 'otro_banco' ? 'desde otro banco' : 'canal no informado'} · {formatShortDate(event.receivedAt || event.createdAt)}</p><p className="mt-1 text-xs text-amber-800 dark:text-amber-200">No se pudo determinar el apartamento con seguridad.</p></div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select value={selected} onChange={e => setAssociationChoices(prev => ({ ...prev, [event.id]: e.target.value }))} className="min-w-[170px] rounded-lg border border-amber-300 bg-white px-2.5 py-2 text-xs text-slate-900 dark:border-amber-800 dark:bg-slate-900 dark:text-white"><option value="">Seleccionar apartamento</option>{apartments.map(apt => <option key={apt.id} value={apt.id}>{apt.name}</option>)}</select>
+                  <button type="button" disabled={!selected || automationBusy === `associate-${event.id}`} onClick={() => associateEvent(event.id, Number(selected), true)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"><CheckCircle2 className="h-3.5 w-3.5" /> Asociar</button>
+                  <button type="button" disabled={automationBusy === `dismiss-${event.id}`} onClick={() => dismissEvent(event.id)} className="inline-flex items-center gap-1 rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300"><XCircle className="h-3.5 w-3.5" /> Falsa alarma</button>
+                </div>
+              </div>
+              {candidates.length > 0 && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Coincidencias parciales: {candidates.map(item => item.apartmentName || 'Apartamento').join(', ')}. Se requiere confirmación.</p>}
+            </div>;
+          })}
+          {(automation.events || []).filter(event => event.status === 'pending_association').length === 0 && <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No hay pagos pendientes de asociación.</div>}
+        </div>}
+
+        {automationTab === 'confirmed' && <div className="mt-3 space-y-2">{(automation.events || []).filter(event => ['auto_confirmed', 'manually_confirmed'].includes(event.status)).map(event => <div key={event.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-900/60 dark:bg-emerald-950/20"><span className="font-medium text-slate-900 dark:text-white">{formatCurrency(event.amount)} · Apartamento {event.apartmentName || 'asociado'}</span><span className="text-xs text-emerald-700 dark:text-emerald-300">{event.status === 'auto_confirmed' ? 'Confirmado por regla' : 'Confirmado manualmente'} · {formatShortDate(event.receivedAt || event.createdAt)}</span></div>)}{(automation.events || []).filter(event => ['auto_confirmed', 'manually_confirmed'].includes(event.status)).length === 0 && <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">Aún no hay pagos confirmados por este flujo.</div>}</div>}
+
+        {automationTab === 'rules' && <div className="mt-3 space-y-2">{(automation.rules || []).map(rule => <div key={rule.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"><span className="text-slate-900 dark:text-white">{rule.provider || 'Origen'} · {rule.identifierMasked || 'identificador protegido'}</span><span className="text-xs text-slate-500 dark:text-slate-400">Apartamento {apartments.find(apt => Number(apt.id) === Number(rule.apartmentId))?.name || '—'} · {rule.amountMode === 'fixed' ? formatCurrency(rule.amount) : 'canon vigente'}</span></div>)}{(automation.rules || []).length === 0 && <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">Las reglas aparecen después de confirmar un pago y elegir “recordar asociación”.</div>}</div>}
+      </section>
 
       {pendingValidations.length > 0 && (
         <section className="bg-amber-50 border border-amber-200 rounded-xl p-4">

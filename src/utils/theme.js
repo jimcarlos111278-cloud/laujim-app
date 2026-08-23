@@ -10,6 +10,8 @@ export const THEMES = [
   { id: 'violeta', label: 'Violeta',  color: '#7c3aed',  bg: '#f5f3ff',    textColor: '#4c1d95',  icon: 'Palette' },
   { id: 'turquesa', label: 'Turquesa', color: '#0f766e', bg: '#f0fdfa',    textColor: '#134e4a',  icon: 'Palette' },
   { id: 'coral',   label: 'Coral',    color: '#ea580c',  bg: '#fff7ed',    textColor: '#7c2d12',  icon: 'Palette' },
+  { id: 'amoled',  label: 'AMOLED',   color: '#00d2a8',  bg: '#000000',    textColor: '#f4fffc',  icon: 'Moon' },
+  { id: 'grafito', label: 'Grafito',  color: '#7dd3fc',  bg: '#080b10',    textColor: '#f7fafc',  icon: 'Moon' },
 ];
 
 const themeMap = Object.fromEntries(THEMES.map(t => [t.id, t]));
@@ -35,9 +37,9 @@ export function initTheme() {
 function applyTheme(id) {
   const doc = document.documentElement;
   doc.classList.remove(...THEMES.map(t => 'theme-' + t.id));
-  if (id === 'oscuro') {
+  if (['oscuro', 'amoled', 'grafito'].includes(id)) {
     doc.classList.add('dark');
-    doc.classList.add('theme-oscuro');
+    doc.classList.add('theme-' + id);
   } else {
     doc.classList.remove('dark');
     if (id !== 'claro') doc.classList.add('theme-' + id);

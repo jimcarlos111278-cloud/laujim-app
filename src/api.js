@@ -49,7 +49,7 @@ function uploadFile(url, file, extra) {
 
 // ─── Cloud sync: fetch ALL data from server ───
 
-const CLOUD_COLLECTIONS = ['apartments', 'tenants', 'contracts', 'payments', 'expenses', 'utilityPayments', 'vacancies', 'familyMembers', 'settings', 'passwords', 'photos'];
+const CLOUD_COLLECTIONS = ['apartments', 'tenants', 'contracts', 'payments', 'expenses', 'utilityPayments', 'vacancies', 'familyMembers', 'settings', 'passwords', 'photos', 'paymentRules', 'paymentEvents', 'paymentAlerts'];
 
 let lastCloudSyncStatus = {
   ok: false,
@@ -295,6 +295,40 @@ export const api = {
     async toArray() { return db.payments.toArray(); },
     async add(data) { return createItem('payments', data); },
     async delete(id) { return deleteItem('payments', id); },
+  },
+  paymentAutomation: {
+    async summary() {
+      const response = await fetch(`${getBase()}/payments/automation`, { headers: { 'x-auth-token': AUTH_TOKEN }, signal: AbortSignal.timeout(8000) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'No se pudo cargar la conciliación de pagos.');
+      return payload;
+    },
+    async associate(eventId, apartmentId, remember = true) {
+      const response = await fetch(`${getBase()}/payments/automation/events/${encodeURIComponent(eventId)}/associate`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        body: JSON.stringify({ apartmentId, remember }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'No se pudo asociar el pago.');
+      return payload;
+    },
+    async dismiss(eventId) {
+      const response = await fetch(`${getBase()}/payments/automation/events/${encodeURIComponent(eventId)}/dismiss`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'No se pudo descartar el evento.');
+      return payload;
+    },
+    async addRule(rule) {
+      const response = await fetch(`${getBase()}/payments/automation/rules`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        body: JSON.stringify(rule),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'No se pudo guardar la regla.');
+      return payload;
+    },
   },
   expenses: {
     async toArray() { return db.expenses.toArray(); },

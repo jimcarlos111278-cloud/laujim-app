@@ -2,7 +2,7 @@
 const collections = [
   'apartments', 'tenants', 'contracts', 'payments', 'expenses',
   'utilityPayments', 'vacancies', 'familyMembers', 'settings',
-  'passwords', 'photos', 'messages', 'users'
+  'passwords', 'photos', 'messages', 'users', 'paymentRules', 'paymentEvents', 'paymentAlerts'
 ];
 
 const data = Object.fromEntries(collections.map(name => [name, []]));

@@ -50,6 +50,7 @@ public class BackgroundNotificationService extends Service {
     private static final String KEY_WHATSAPP = "whatsapp";
     private static final String KEY_SCRAPER = "scraper";
     private static final String KEY_FACEBOOK = "facebook";
+    private static final String KEY_PAYMENTS = "payments";
     private static final String KEY_SOUND = "sound";
     private static final String KEY_LAST_SEEN = "lastSeenAt";
     private static final String KEY_LAST_EVENT = "lastEventAt";
@@ -61,7 +62,7 @@ public class BackgroundNotificationService extends Service {
     private static volatile boolean serviceRunning;
     private ScheduledExecutorService executor;
 
-    public static void configure(Context context, String serverUrl, String token, boolean whatsapp, boolean scraper, boolean facebook, boolean sound) {
+    public static void configure(Context context, String serverUrl, String token, boolean whatsapp, boolean scraper, boolean facebook, boolean payments, boolean sound) {
         android.content.SharedPreferences current = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         android.content.SharedPreferences.Editor editor = current.edit()
             .putBoolean(KEY_ENABLED, true)
@@ -70,6 +71,7 @@ public class BackgroundNotificationService extends Service {
             .putBoolean(KEY_WHATSAPP, whatsapp)
             .putBoolean(KEY_SCRAPER, scraper)
             .putBoolean(KEY_FACEBOOK, facebook)
+            .putBoolean(KEY_PAYMENTS, payments)
             .putBoolean(KEY_SOUND, sound);
         String cursor = nowIso();
         if (current.getString(KEY_LAST_SEEN, "").isEmpty()) editor.putString(KEY_LAST_SEEN, cursor);
@@ -134,7 +136,7 @@ public class BackgroundNotificationService extends Service {
     }
 
     private void pollEvents(android.content.SharedPreferences prefs) {
-        if (!prefs.getBoolean(KEY_SCRAPER, true) && !prefs.getBoolean(KEY_FACEBOOK, true)) return;
+        if (!prefs.getBoolean(KEY_SCRAPER, true) && !prefs.getBoolean(KEY_FACEBOOK, true) && !prefs.getBoolean(KEY_PAYMENTS, true)) return;
         try {
             String since = prefs.getString(KEY_LAST_EVENT, "");
             String server = prefs.getString(KEY_SERVER_URL, "");
@@ -151,7 +153,8 @@ public class BackgroundNotificationService extends Service {
                     if (createdAt.compareTo(newest) > 0) newest = createdAt;
                     String category = item.optString("category", "scraper");
                     if (("facebook".equals(category) && prefs.getBoolean(KEY_FACEBOOK, true))
-                        || ("scraper".equals(category) && prefs.getBoolean(KEY_SCRAPER, true))) {
+                        || ("scraper".equals(category) && prefs.getBoolean(KEY_SCRAPER, true))
+                        || ("payments".equals(category) && prefs.getBoolean(KEY_PAYMENTS, true))) {
                         showEvent(item, prefs.getBoolean(KEY_SOUND, true));
                     }
                 }

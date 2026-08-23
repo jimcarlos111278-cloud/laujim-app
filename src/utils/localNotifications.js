@@ -12,6 +12,7 @@ export function getNotifConfig() {
     whatsapp: true,
     scraper: true,
     facebook: true,
+    payments: true,
     sound: true,
   };
 }

@@ -422,6 +422,17 @@ td, th { word-break: normal; overflow-wrap: normal; }
   --c-500: #7c3aed; --c-600: #6d28d9; --c-700: #5b21b6;
   --c-50-900-30: rgba(91, 33, 182, 0.3);
 }
+
+.theme-amoled {
+  --c-50: #071e1a; --c-100: #0b3a31; --c-200: #68e8cc;
+  --c-500: #00d2a8; --c-600: #00ad8c; --c-700: #9bf5df;
+  --c-50-900-30: rgba(0, 210, 168, .22);
+}
+.theme-grafito {
+  --c-50: #102235; --c-100: #193852; --c-200: #a7ddff;
+  --c-500: #7dd3fc; --c-600: #38bdf8; --c-700: #bae6fd;
+  --c-50-900-30: rgba(14, 116, 144, .28);
+}
 :root.theme-violeta .bg-gray-100 { background-color: #f0edff; }
 :root.theme-violeta .bg-white { background-color: #faf9ff; }
 :root.theme-violeta .bg-gray-50 { background-color: #f5f3ff; }
@@ -473,6 +484,36 @@ td, th { word-break: normal; overflow-wrap: normal; }
 .dark .app-layout .text-gray-700 { color: #e5e7eb; }
 .dark .app-layout .text-gray-600 { color: #d1d5db; }
 .dark .app-layout .text-gray-500 { color: #9ca3af; }
+.dark body { background: #05070a; color: #edf6f8; }
+.dark .app-layout .bg-white { background-color: #10161d; color: #edf6f8; }
+.dark .app-layout .bg-gray-50 { background-color: #0c1218; }
+.dark .app-layout .bg-gray-100 { background-color: #080d12; }
+.dark .app-layout .border-gray-100,
+.dark .app-layout .border-gray-200,
+.dark .app-layout .border-gray-300 { border-color: #293943; }
+.dark .app-layout input,
+.dark .app-layout select,
+.dark .app-layout textarea { border-color: #344b57; background-color: #0d151b; color: #f4fafb; }
+.dark .app-layout input::placeholder,
+.dark .app-layout textarea::placeholder { color: #8ea3ad; }
+.dark .app-layout .hover\:bg-gray-50:hover { background-color: #17232b; }
+.dark .app-layout .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #293943; }
+
+.theme-amoled body { background: #000; }
+.theme-amoled .app-layout .bg-white { background-color: #000; }
+.theme-amoled .app-layout .bg-gray-50 { background-color: #050505; }
+.theme-amoled .app-layout .bg-gray-100 { background-color: #020202; }
+.theme-amoled .app-layout .border-gray-100,
+.theme-amoled .app-layout .border-gray-200,
+.theme-amoled .app-layout .border-gray-300 { border-color: #18312d; }
+.theme-amoled .app-layout input,
+.theme-amoled .app-layout select,
+.theme-amoled .app-layout textarea { background-color: #030706; border-color: #245249; }
+
+.theme-grafito body { background: #080b10; }
+.theme-grafito .app-layout .bg-white { background-color: #0e141c; }
+.theme-grafito .app-layout .bg-gray-50 { background-color: #0a1017; }
+.theme-grafito .app-layout .bg-gray-100 { background-color: #080d13; }
 
 /* ========== FONT SCALE ========== */
 :root { --font-scale: 1; }

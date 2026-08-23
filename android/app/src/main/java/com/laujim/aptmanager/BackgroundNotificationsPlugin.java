@@ -16,12 +16,13 @@ public class BackgroundNotificationsPlugin extends Plugin {
         boolean whatsapp = Boolean.TRUE.equals(call.getBoolean("whatsapp", true));
         boolean scraper = Boolean.TRUE.equals(call.getBoolean("scraper", true));
         boolean facebook = Boolean.TRUE.equals(call.getBoolean("facebook", true));
+        boolean payments = Boolean.TRUE.equals(call.getBoolean("payments", true));
         boolean sound = Boolean.TRUE.equals(call.getBoolean("sound", true));
         if (serverUrl.trim().isEmpty() || token.trim().isEmpty()) {
             call.reject("El servidor y la sesión son obligatorios para las notificaciones.");
             return;
         }
-        BackgroundNotificationService.configure(getContext(), serverUrl.trim(), token.trim(), whatsapp, scraper, facebook, sound);
+        BackgroundNotificationService.configure(getContext(), serverUrl.trim(), token.trim(), whatsapp, scraper, facebook, payments, sound);
         call.resolve(status());
     }
 

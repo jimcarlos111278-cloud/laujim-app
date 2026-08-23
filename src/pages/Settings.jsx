@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud, Plus, CalendarCheck, KeyRound } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
-import { AUTH_TOKEN, getBase, isCapacitor } from '../utils/config';
+import { AUTH_TOKEN, getBase, getRawBase, isCapacitor } from '../utils/config';
 import { requestNotificationPermission } from '../utils/notifications';
 import { isServerAvailable } from '../utils/sync';
 import { refreshAllFromServer } from '../api';
@@ -54,6 +54,8 @@ Te saluda la administración de apartamentos Laujim.
 
 Cuando realices el pago del canon, responde adjuntando el comprobante para validarlo. ¡Gracias!`;
 
+const PAYMENT_REVIEW_TEMPLATE_NAME = 'pago_por_asociar';
+
 export default function Settings() {
   const navigate = useNavigate();
   const auth = getAuth();
@@ -70,6 +72,7 @@ export default function Settings() {
   const [waSaving, setWaSaving] = useState(false);
   const [waSaved, setWaSaved] = useState(false);
   const [waTemplateNames, setWaTemplateNames] = useState({ name1: 'Servicios y deudas', name2: 'Cobro de canon y servicios' });
+  const [paymentReviewTemplateName, setPaymentReviewTemplateName] = useState(PAYMENT_REVIEW_TEMPLATE_NAME);
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState(false);
   const [callScreening, setCallScreening] = useState(null);
@@ -368,6 +371,7 @@ export default function Settings() {
     const n1 = getVal('whatsapp_template_name1', 'Servicios y deudas');
     const n2 = getVal('whatsapp_template_name2', 'Cobro de canon y servicios');
     setWaTemplateNames({ name1: n1, name2: n2 });
+    setPaymentReviewTemplateName(getVal('whatsapp_payment_review_template', PAYMENT_REVIEW_TEMPLATE_NAME));
     localStorage.setItem('wa_template_name1', n1);
     localStorage.setItem('wa_template_name2', n2);
   }
@@ -424,6 +428,7 @@ export default function Settings() {
       await upsertSetting('whatsapp_template_reminder', waTemplates.reminder);
       await upsertSetting('whatsapp_template_name1', waTemplateNames.name1);
       await upsertSetting('whatsapp_template_name2', waTemplateNames.name2);
+      await upsertSetting('whatsapp_payment_review_template', paymentReviewTemplateName || PAYMENT_REVIEW_TEMPLATE_NAME);
       localStorage.setItem('wa_template_services', waTemplates.services);
       localStorage.setItem('wa_template_reminder', waTemplates.reminder);
       localStorage.setItem('wa_template_name1', waTemplateNames.name1);
@@ -610,6 +615,7 @@ export default function Settings() {
               ['whatsapp', 'WhatsApp', 'Mensajes, fotos, videos y notas de voz'],
               ['scraper', 'Scraper', 'Resultados y errores de los servicios públicos'],
               ['facebook', 'Facebook Marketplace', 'Resultado de publicaciones y errores'],
+              ['payments', 'Pagos recibidos', 'Avisos cuando llega una transferencia y requiere asociación'],
               ['sound', 'Sonido y vibración', 'Alertas audibles para mensajes nuevos'],
             ].map(([key, label, description]) => {
               const checked = notifConfig[key] !== false;
@@ -724,7 +730,7 @@ export default function Settings() {
         <div className="hidden" aria-hidden="true">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Plantillas WhatsApp</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Edita los mensajes manuales que se abren en WhatsApp. Las plantillas Cloud aprobadas se envían desde la bandeja y desde el bot.</p>
-          <p className="mb-4 rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:bg-violet-950/30 dark:text-violet-200">Plantillas Cloud pendientes en Meta: <code>saludo_inquilino</code> y <code>cobro_canon_servicios</code>. Deben existir y estar aprobadas con el mismo nombre y variables.</p>
+          <p className="mb-4 rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:bg-violet-950/30 dark:text-violet-200">Plantillas Cloud pendientes en Meta: <code>saludo_inquilino</code>, <code>cobro_canon_servicios</code> y <code>{paymentReviewTemplateName || PAYMENT_REVIEW_TEMPLATE_NAME}</code>. Deben existir y estar aprobadas con el mismo nombre y variables.</p>
           <div className="space-y-4">
             <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de la plantilla</label>
@@ -739,6 +745,11 @@ export default function Settings() {
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mensaje</label>
               <p className="text-xs text-gray-400 mb-1">Variables: {'{nombre}'}, {'{apto}'}, {'{periodo}'}, {'{valor_canon}'}, {'{fecha_vencimiento}'}, {'{estado_canon}'}, {'{deuda_aire}'}, {'{deuda_agua}'}, {'{deuda_gas}'}, {'{link_aire}'}, {'{link_triplea}'}, {'{link_gases}'}</p>
               <textarea value={waTemplates.reminder} onChange={e => setWaTemplates({...waTemplates, reminder: e.target.value})} rows={5} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-xs" />
+            </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+              <label className="block text-xs font-medium text-amber-900 dark:text-amber-200 mb-1">Plantilla de pago recibido sin apartamento</label>
+              <input type="text" value={paymentReviewTemplateName} onChange={e => setPaymentReviewTemplateName(e.target.value.replace(/[^a-z0-9_]/gi, '_').toLowerCase())} className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm bg-white text-gray-900 dark:border-amber-800 dark:bg-gray-900 dark:text-white" />
+              <p className="mt-2 text-xs text-amber-800 dark:text-amber-200">Créala y apruébala en Meta con cuatro variables de cuerpo: valor, origen, remitente enmascarado y fecha. Añade botones de respuesta rápida con IDs <code>payment_unknown_yes</code> y <code>payment_unknown_no</code>. Al guardar, Laujim usará este nombre cuando la ventana de 24 horas esté cerrada.</p>
             </div>
             <button onClick={handleSaveTemplates} disabled={waSaving} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium">
               <Save className="w-4 h-4" /> {waSaving ? 'Guardando...' : waSaved ? '✓ Guardado' : 'Guardar Plantillas'}
@@ -783,9 +794,9 @@ export default function Settings() {
 
         <div data-settings-panel="device" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Smartphone className="w-4 h-4" /> App Móvil (APK)</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga la app Android.</p>
-          <a href="/app-debug.apk" download className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-2">
-            <Download className="w-4 h-4" /> Descargar APK
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga siempre la versión publicada más reciente de Laujim para Android.</p>
+          <a href={`${getRawBase()}/app-debug.apk?v=1.0.74`} download className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-2">
+            <Download className="w-4 h-4" /> Descargar APK 1.0.74
           </a>
         </div>
 

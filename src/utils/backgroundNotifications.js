@@ -12,6 +12,7 @@ export async function configureBackgroundNotifications({ serverUrl, token, prefe
       whatsapp: preferences.whatsapp !== false,
       scraper: preferences.scraper !== false,
       facebook: preferences.facebook !== false,
+      payments: preferences.payments !== false,
       sound: preferences.sound !== false,
     });
   } catch (error) {

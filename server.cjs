@@ -897,6 +897,280 @@ function paymentCountsAsCollected(payment) {
   return payment?.status !== 'pending_validation' && payment?.status !== 'rejected';
 }
 
+function existingCollectedRent(apartmentId, period) {
+  return (db.payments || []).find(payment =>
+    Number(payment.apartmentId) === Number(apartmentId) &&
+    payment.type === 'rent' &&
+    paymentPeriod(payment) === String(period || '').slice(0, 7) &&
+    paymentCountsAsCollected(payment)
+  ) || null;
+}
+
+// ─── Automatic payment reconciliation ─────────────────────────────────────
+// Notifications are evidence, not bank webhooks. A payment is auto-confirmed
+// only when a configured sender identity and the current rent uniquely match.
+// Amount alone never confirms a payment.
+function ensurePaymentAutomationCollections() {
+  for (const name of ['paymentRules', 'paymentEvents', 'paymentAlerts']) {
+    if (!Array.isArray(db[name])) db[name] = [];
+    if (!nextId[name]) nextId[name] = db[name].reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+  }
+}
+
+function paymentProviderKey(value) {
+  return String(value || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function normalisePaymentIdentifier(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function paymentIdentifiersMatch(left, right) {
+  const a = normalisePaymentIdentifier(left);
+  const b = normalisePaymentIdentifier(right);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const aDigits = a.replace(/\D/g, '');
+  const bDigits = b.replace(/\D/g, '');
+  if (aDigits && bDigits) return aDigits.endsWith(bDigits) || bDigits.endsWith(aDigits);
+  return false;
+}
+
+function parseAutomaticPaymentAmount(value) {
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+  const text = String(value || '').replace(/\s/g, '').replace(/\$/g, '').replace(/COP/ig, '');
+  const match = text.match(/\d[\d.,]*/);
+  if (!match) return null;
+  const raw = match[0];
+  const numeric = raw.includes('.') || raw.includes(',')
+    ? Number(raw.replace(/[.,]/g, ''))
+    : Number(raw);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.round(numeric) : null;
+}
+
+function maskedPaymentIdentifier(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length >= 4) return `••••${digits.slice(-4)}`;
+  return raw.slice(0, 42);
+}
+
+function automaticPaymentPeriod(value) {
+  const parsed = new Date(value || Date.now());
+  return Number.isNaN(parsed.getTime()) ? colombiaDate().slice(0, 7) : colombiaDate(parsed).slice(0, 7);
+}
+
+function rentForPaymentApartment(apartment) {
+  const contract = apartment ? activeContractForApartment(apartment.id) : null;
+  return Number(contract?.monthlyRent || apartment?.monthlyRent || 0);
+}
+
+function extractPaymentReference(text) {
+  const value = String(text || '');
+  const match = value.match(/(?:referencia|transacci[oó]n|comprobante|operaci[oó]n|id)\s*[:#-]?\s*([a-z0-9-]{4,})/i);
+  return match ? match[1].slice(0, 80) : null;
+}
+
+function normaliseAutomaticPaymentEvent(input = {}) {
+  const text = String(input.text || input.body || '').replace(/\s+/g, ' ').trim().slice(0, 1200);
+  const amount = parseAutomaticPaymentAmount(input.amount ?? text);
+  const receivedAt = input.receivedAt && !Number.isNaN(new Date(input.receivedAt).getTime())
+    ? new Date(input.receivedAt).toISOString() : new Date().toISOString();
+  const provider = String(input.provider || input.sourceApp || 'desconocido').trim().slice(0, 80);
+  const identifier = String(input.payerIdentifier || input.sender || input.sourceIdentifier || '').trim().slice(0, 120);
+  const transactionId = String(input.transactionId || input.reference || extractPaymentReference(text) || '').trim().slice(0, 100) || null;
+  const direction = String(input.direction || '').toLowerCase();
+  const likelyOutgoing = /\b(enviaste|envio|envias|transferiste|debito|retiro|salida|pagaste)\b/i.test(text);
+  const incoming = direction ? ['in', 'incoming', 'received', 'recibido'].includes(direction) : !likelyOutgoing;
+  const fingerprint = String(input.eventId || '').trim().slice(0, 160) || crypto.createHash('sha256')
+    .update([provider, identifier, amount || '', transactionId || '', text, receivedAt.slice(0, 16)].join('|'))
+    .digest('hex');
+  return {
+    externalId: String(input.eventId || transactionId || '').trim().slice(0, 160) || null,
+    fingerprint,
+    provider,
+    providerKey: paymentProviderKey(provider),
+    sourceApp: String(input.sourceApp || '').trim().slice(0, 120) || null,
+    sourceType: String(input.sourceType || 'notification').trim().slice(0, 40),
+    transferChannel: String(input.transferChannel || '').trim().slice(0, 40) || null,
+    title: String(input.title || '').trim().slice(0, 180) || null,
+    amount,
+    currency: String(input.currency || 'COP').toUpperCase().slice(0, 8),
+    payerName: String(input.payerName || '').trim().slice(0, 120) || null,
+    payerIdentifier: identifier || null,
+    payerIdentifierMasked: maskedPaymentIdentifier(identifier),
+    transactionId,
+    reference: transactionId,
+    textPreview: text ? text.slice(0, 280) : null,
+    incoming,
+    receivedAt,
+    period: automaticPaymentPeriod(receivedAt),
+  };
+}
+
+function automaticPaymentCandidates(event) {
+  ensurePaymentAutomationCollections();
+  if (!event.incoming || !event.amount) return [];
+  const candidates = [];
+  for (const rule of db.paymentRules.filter(item => item.active !== false)) {
+    if (rule.providerKey && event.providerKey && rule.providerKey !== event.providerKey) continue;
+    if (!paymentIdentifiersMatch(rule.identifier, event.payerIdentifier)) continue;
+    const apartment = (db.apartments || []).find(item => Number(item.id) === Number(rule.apartmentId));
+    if (!apartment) continue;
+    const expected = rule.amountMode === 'fixed' ? Number(rule.amount) : rentForPaymentApartment(apartment);
+    const tolerance = Math.max(0, Number(rule.tolerance) || 0);
+    const amountMatch = expected > 0 && Math.abs(Number(event.amount) - expected) <= tolerance;
+    candidates.push({
+      apartmentId: apartment.id,
+      apartmentName: apartment.name,
+      ruleId: rule.id,
+      rule,
+      expectedAmount: expected,
+      amountMatch,
+      confidence: amountMatch ? 100 : 82,
+    });
+  }
+  return candidates.sort((a, b) => b.confidence - a.confidence || Number(a.apartmentId) - Number(b.apartmentId));
+}
+
+function paymentEventAlreadySeen(event) {
+  ensurePaymentAutomationCollections();
+  return db.paymentEvents.find(item =>
+    (event.externalId && item.externalId === event.externalId) || item.fingerprint === event.fingerprint
+  ) || null;
+}
+
+function makeAutomaticPaymentRecord(event, apartment, status, details = {}) {
+  const period = event.period || automaticPaymentPeriod(event.receivedAt);
+  const contract = activeContractForApartment(apartment.id);
+  const record = {
+    id: nextId.payments++, apartmentId: Number(apartment.id), contractId: contract?.id || null,
+    tenantId: contract?.tenantId || null, amount: Number(event.amount), date: event.receivedAt.slice(0, 10), period,
+    type: 'rent', paymentMode: 'full', status, origin: 'automatic_notification',
+    sourceProvider: event.provider, sourceApp: event.sourceApp, sourceIdentifier: event.payerIdentifierMasked,
+    transactionId: event.transactionId, paymentEventId: details.eventId || null, automationConfidence: details.confidence || 0,
+    approvedAt: status === 'approved' ? new Date().toISOString() : null,
+    approvedBy: status === 'approved' ? 'Regla automática' : null,
+    description: `Transferencia recibida · ${event.provider} · ${apartment.name}`,
+    createdAt: new Date().toISOString(),
+  };
+  db.payments.push(record);
+  return record;
+}
+
+async function notifyPaymentAssociationRequired(event) {
+  ensurePaymentAutomationCollections();
+  const existingAlert = db.paymentAlerts.find(item => Number(item.eventId) === Number(event.id) && item.status === 'open');
+  if (existingAlert) return;
+  const alert = {
+    id: nextId.paymentAlerts++, eventId: event.id, kind: 'payment_needs_association', status: 'open',
+    createdAt: new Date().toISOString(), message: `Pago recibido por $${Number(event.amount || 0).toLocaleString('es-CO')} sin apartamento identificado.`,
+  };
+  db.paymentAlerts.unshift(alert);
+  saveData();
+
+  const phones = cloudAdminPhones();
+  if (!phones.length || !cloudReady()) return;
+  const body = `💳 *Pago recibido sin asociar*\n\nValor: $${Number(event.amount || 0).toLocaleString('es-CO')}\nOrigen: ${event.provider}\nRemitente: ${event.payerIdentifierMasked || event.payerName || 'No visible'}\nFecha: ${formatColombiaDateTime(event.receivedAt)}\n\n¿Es un pago de los apartamentos? Responde *Sí* o *No*.`;
+  for (const phone of phones) {
+    try {
+      const conversation = db.whatsappConversations.find(item => samePhone(item.phone, phone));
+      if (conversation && cloudServiceWindowOpen(conversation)) {
+        await sendCloudText(phone, body);
+      } else {
+        await sendCloudPaymentReviewTemplate(phone, event);
+      }
+      // Keep only this payment-association flow alive for one day. The normal
+      // admin authentication window remains unchanged.
+      setCloudAuthState(phone, { step: 'payment_unknown_confirm', paymentEventId: event.id, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() });
+    } catch (error) {
+      console.error('[PAYMENTS] No se pudo notificar al administrador por WhatsApp:', error.message);
+    }
+  }
+  saveData();
+}
+
+function evaluateAutomaticPayment(input = {}) {
+  ensurePaymentAutomationCollections();
+  const event = normaliseAutomaticPaymentEvent(input);
+  const seen = paymentEventAlreadySeen(event);
+  if (seen) return { event: seen, duplicate: true, status: seen.status, payment: null, candidates: seen.candidates || [] };
+  const candidates = automaticPaymentCandidates(event);
+  const exact = candidates.filter(candidate => candidate.confidence === 100 && candidate.amountMatch);
+  const availableExact = exact.filter(candidate => !existingCollectedRent(candidate.apartmentId, event.period));
+  const unique = availableExact.length === 1 ? availableExact[0] : null;
+  const eventRecord = {
+    id: nextId.paymentEvents++, ...event, status: unique ? 'auto_confirmed' : 'pending_association',
+    confidence: unique ? 100 : candidates.length ? Math.max(...candidates.map(item => item.confidence)) : 0,
+    candidates: candidates.map(item => ({ apartmentId: item.apartmentId, apartmentName: item.apartmentName, ruleId: item.ruleId, expectedAmount: item.expectedAmount, amountMatch: item.amountMatch, confidence: item.confidence })),
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), paymentId: null,
+  };
+  db.paymentEvents.unshift(eventRecord);
+  let payment = null;
+  if (unique) {
+    payment = makeAutomaticPaymentRecord(eventRecord, (db.apartments || []).find(item => Number(item.id) === Number(unique.apartmentId)), 'approved', { eventId: eventRecord.id, confidence: 100 });
+    eventRecord.paymentId = payment.id;
+    eventRecord.apartmentId = unique.apartmentId;
+    eventRecord.apartmentName = unique.apartmentName;
+    eventRecord.matchedRuleId = unique.ruleId;
+  }
+  saveData();
+  if (!unique) notifyPaymentAssociationRequired(eventRecord).catch(error => console.error('[PAYMENTS] alert error:', error.message));
+  return { event: eventRecord, duplicate: false, status: eventRecord.status, payment, candidates: eventRecord.candidates };
+}
+
+function associateAutomaticPaymentEvent(eventId, apartmentId, remember = true, by = 'Administrador') {
+  ensurePaymentAutomationCollections();
+  const event = db.paymentEvents.find(item => Number(item.id) === Number(eventId));
+  const apartment = (db.apartments || []).find(item => Number(item.id) === Number(apartmentId));
+  if (!event) throw new Error('Evento de pago no encontrado.');
+  if (!apartment) throw new Error('Apartamento no encontrado.');
+  if (event.status === 'false_alarm') throw new Error('Este evento fue marcado como falsa alarma.');
+  let payment = event.paymentId ? db.payments.find(item => Number(item.id) === Number(event.paymentId)) : null;
+  if (!payment) payment = makeAutomaticPaymentRecord(event, apartment, 'approved', { eventId: event.id, confidence: 100 });
+  else Object.assign(payment, { apartmentId: apartment.id, status: 'approved', approvedAt: new Date().toISOString(), approvedBy: by });
+  event.status = 'manually_confirmed'; event.confidence = 100; event.apartmentId = apartment.id; event.apartmentName = apartment.name; event.paymentId = payment.id; event.updatedAt = new Date().toISOString();
+  if (remember && event.payerIdentifier) {
+    const providerKey = event.providerKey;
+    const existing = db.paymentRules.find(rule => rule.active !== false && rule.providerKey === providerKey && paymentIdentifiersMatch(rule.identifier, event.payerIdentifier) && Number(rule.apartmentId) === Number(apartment.id));
+    if (existing) existing.updatedAt = new Date().toISOString();
+    else db.paymentRules.push({ id: nextId.paymentRules++, provider: event.provider, providerKey, identifier: event.payerIdentifier, identifierMasked: event.payerIdentifierMasked, apartmentId: apartment.id, amountMode: 'current_rent', tolerance: 0, active: true, source: 'learned_manual_association', createdAt: new Date().toISOString() });
+  }
+  db.paymentAlerts.filter(item => Number(item.eventId) === Number(event.id) && item.status === 'open').forEach(item => { item.status = 'resolved'; item.resolvedAt = new Date().toISOString(); });
+  saveData();
+  return { event, payment, apartment };
+}
+
+function dismissAutomaticPaymentEvent(eventId, reason = 'Falsa alarma') {
+  ensurePaymentAutomationCollections();
+  const event = db.paymentEvents.find(item => Number(item.id) === Number(eventId));
+  if (!event) throw new Error('Evento de pago no encontrado.');
+  event.status = 'false_alarm'; event.updatedAt = new Date().toISOString(); event.dismissReason = String(reason).slice(0, 180);
+  db.paymentAlerts.filter(item => Number(item.eventId) === Number(event.id) && item.status === 'open').forEach(item => { item.status = 'resolved'; item.resolvedAt = new Date().toISOString(); });
+  saveData();
+  return event;
+}
+
+function sendCloudPaymentReviewTemplate(to, event) {
+  const configured = (db.settings || []).find(item => item.key === 'whatsapp_payment_review_template')?.value;
+  const templateName = String(process.env.WHATSAPP_PAYMENT_REVIEW_TEMPLATE || configured || 'pago_por_asociar').trim();
+  return cloudApiRequest('/messages', 'POST', {
+    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'template',
+    template: {
+      name: templateName, language: { code: 'es_CO' },
+      components: [{ type: 'body', parameters: [
+        { type: 'text', text: `$${Number(event.amount || 0).toLocaleString('es-CO')}` },
+        { type: 'text', text: event.provider || 'desconocido' },
+        { type: 'text', text: event.payerIdentifierMasked || event.payerName || 'No visible' },
+        { type: 'text', text: formatColombiaDateTime(event.receivedAt) },
+      ] }],
+    },
+  });
+}
+
 function activeContractForApartment(apartmentId) {
   const now = Date.now();
   return (db.contracts || [])
@@ -2526,6 +2800,51 @@ async function handleCloudAdminMessage(phone, message) {
     return;
   }
 
+  // A notification without a unique association is resolved conversationally
+  // with the administrator. A confirmed apartment also teaches the rule engine
+  // for the next payment from the same sender.
+  if (state?.step === 'payment_unknown_confirm') {
+    const event = (db.paymentEvents || []).find(item => Number(item.id) === Number(state.paymentEventId));
+    if (!event) {
+      clearCloudAuthState(phone); saveData();
+      await sendCloudText(phone, 'Ese pago ya no está pendiente de asociación.');
+      await sendCloudAdminMenu(phone); return;
+    }
+    if (buttonId === 'payment_unknown_no' || /^(?:no|falsa(?:\s+alarma)?|no\s+es)$/i.test(text)) {
+      dismissAutomaticPaymentEvent(event.id, 'Falsa alarma confirmada por administrador');
+      clearCloudAuthState(phone); saveData();
+      await sendCloudText(phone, 'Ok, fue una falsa alarma. No se registró como pago.');
+      await sendCloudAdminMenu(phone); return;
+    }
+    if (buttonId === 'payment_unknown_yes' || /^(?:s[ií]|si\s+es|es\s+un\s+pago)$/i.test(text)) {
+      setCloudAuthState(phone, { ...state, step: 'payment_unknown_apartment', expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() });
+      saveData();
+      await sendCloudText(phone, 'Sí, digite el número del apartamento al que desea asociar el pago. Ejemplo: 202.');
+      return;
+    }
+    await sendCloudText(phone, 'Responde *Sí* si es un pago de los apartamentos o *No* si fue una falsa alarma.');
+    return;
+  }
+
+  if (state?.step === 'payment_unknown_apartment') {
+    const event = (db.paymentEvents || []).find(item => Number(item.id) === Number(state.paymentEventId));
+    const apartment = /^\d{3,}$/.test(text) ? cloudFindApartment(text) : null;
+    if (!event) {
+      clearCloudAuthState(phone); saveData();
+      await sendCloudText(phone, 'Ese pago ya no está pendiente de asociación.');
+      await sendCloudAdminMenu(phone); return;
+    }
+    if (!apartment) {
+      await sendCloudText(phone, 'No encontré ese apartamento. Escribe únicamente su número, por ejemplo 202.');
+      return;
+    }
+    const result = associateAutomaticPaymentEvent(event.id, apartment.id, true, 'Administrador WhatsApp');
+    clearCloudAuthState(phone); saveData();
+    await sendCloudText(phone, `Gracias por confirmar. El pago de $${Number(event.amount || 0).toLocaleString('es-CO')} quedó asociado al apartamento ${result.apartment.name}. Guardé esta asociación para futuros pagos del mismo remitente.`);
+    await sendCloudAdminMenu(phone);
+    return;
+  }
+
   if (buttonId === 'menu_enviar_cobros' || /^(?:enviar\s+(?:cobros|recordatorios)|plantillas?\s+de\s+cobro)$/i.test(text)) {
     await sendCloudReminderSelectionMenu(phone);
     return;
@@ -3079,6 +3398,21 @@ function queuePostgresSave() {
   return write;
 }
 
+function repairApartmentFloors() {
+  let repaired = false;
+  for (const apartment of db.apartments || []) {
+    const match = String(apartment.name || '').trim().match(/^(\d)(\d{2})$/);
+    if (!match) continue;
+    const canonicalFloor = Number(match[1]);
+    if (Number(apartment.floor) !== canonicalFloor) {
+      apartment.floor = canonicalFloor;
+      repaired = true;
+    }
+  }
+  if (repaired) console.log('[DATA] Se corrigieron pisos a partir del número del apartamento.');
+  return repaired;
+}
+
 function loadData() {
   try {
     if (fs.existsSync(DATA_FILE)) {
@@ -3092,7 +3426,8 @@ function loadData() {
       db = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
   } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
-  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs', 'utilityRecords', 'scraperWorkers', 'scraperLogs', 'marketplaceJobs', 'accessEvents', 'contractTemplates'].forEach(k => { if (!db[k]) db[k] = []; });
+  ['messages', 'payments', 'expenses', 'leads', 'settings', 'authSessions', 'presence', 'paymentReminderLogs', 'utilityRecords', 'scraperWorkers', 'scraperLogs', 'marketplaceJobs', 'accessEvents', 'contractTemplates', 'paymentRules', 'paymentEvents', 'paymentAlerts'].forEach(k => { if (!db[k]) db[k] = []; });
+  repairApartmentFloors();
   if (pruneAuthSessions()) console.log('Expired authentication sessions removed');
   recalcNextId();
 }
@@ -5194,6 +5529,83 @@ app.delete('/api/whatsapp/cloud/conversations/:id', async (req, res) => {
   });
 });
 
+// ─── AUTOMATIC PAYMENT EVENTS ─────────────────────────────────────────────
+// The Android worker sends a short-lived notification event here. The server
+// stores only the parsed/masked fields needed for reconciliation.
+app.get('/api/payments/automation', (req, res) => {
+  ensurePaymentAutomationCollections();
+  const events = db.paymentEvents.slice(0, 120).map(event => ({
+    ...event,
+    apartmentName: event.apartmentName || (db.apartments || []).find(item => Number(item.id) === Number(event.apartmentId))?.name || null,
+    candidates: (event.candidates || []).map(candidate => ({
+      ...candidate,
+      apartmentName: candidate.apartmentName || (db.apartments || []).find(item => Number(item.id) === Number(candidate.apartmentId))?.name || 'Apartamento',
+    })),
+  }));
+  const rules = db.paymentRules.map(rule => ({
+    ...rule,
+    apartmentName: (db.apartments || []).find(item => Number(item.id) === Number(rule.apartmentId))?.name || 'Apartamento',
+  }));
+  res.json({
+    ok: true,
+    events,
+    rules,
+    alerts: db.paymentAlerts.slice(0, 80),
+    pending: events.filter(event => event.status === 'pending_association').length,
+    autoConfirmed: events.filter(event => event.status === 'auto_confirmed').length,
+  });
+});
+
+app.post('/api/payments/automation/events', (req, res) => {
+  const input = req.body || {};
+  const result = evaluateAutomaticPayment(input);
+  const event = result.event;
+  const apartment = event.apartmentId ? (db.apartments || []).find(item => Number(item.id) === Number(event.apartmentId)) : null;
+  res.status(result.duplicate ? 200 : 201).json({
+    ok: true,
+    duplicate: result.duplicate,
+    status: result.status,
+    event: { ...event, apartmentName: event.apartmentName || apartment?.name || null },
+    payment: result.payment,
+    candidates: result.candidates,
+    message: result.status === 'auto_confirmed'
+      ? `Pago registrado automáticamente para el apartamento ${event.apartmentName || apartment?.name || 'asociado'}.`
+      : 'Pago recibido y enviado a la cola de asociación.',
+  });
+});
+
+app.post('/api/payments/automation/events/:id/associate', (req, res) => {
+  try {
+    const result = associateAutomaticPaymentEvent(req.params.id, req.body?.apartmentId, req.body?.remember !== false, req.auth?.name || 'Administrador');
+    res.json({ ok: true, ...result, message: `Gracias por confirmar. El pago quedó asociado al apartamento ${result.apartment.name}.` });
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
+
+app.post('/api/payments/automation/events/:id/dismiss', (req, res) => {
+  try {
+    const event = dismissAutomaticPaymentEvent(req.params.id, req.body?.reason || 'Falsa alarma');
+    res.json({ ok: true, event, message: 'Ok, fue marcada como falsa alarma y no se registró como pago.' });
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
+
+app.post('/api/payments/automation/rules', (req, res) => {
+  ensurePaymentAutomationCollections();
+  const body = req.body || {};
+  const apartment = (db.apartments || []).find(item => Number(item.id) === Number(body.apartmentId));
+  const identifier = String(body.identifier || '').trim();
+  if (!apartment || !identifier) return res.status(400).json({ error: 'Apartamento e identificador del remitente son obligatorios.' });
+  const rule = {
+    id: nextId.paymentRules++, provider: String(body.provider || 'desconocido').trim().slice(0, 80),
+    providerKey: paymentProviderKey(body.provider), identifier: identifier.slice(0, 120),
+    identifierMasked: maskedPaymentIdentifier(identifier), apartmentId: apartment.id,
+    amountMode: body.amountMode === 'fixed' ? 'fixed' : 'current_rent', amount: body.amountMode === 'fixed' ? parseAutomaticPaymentAmount(body.amount) : null,
+    tolerance: Math.max(0, Number(body.tolerance) || 0), active: true, source: 'manual', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  };
+  if (rule.amountMode === 'fixed' && !rule.amount) return res.status(400).json({ error: 'El valor fijo de la regla no es válido.' });
+  db.paymentRules.unshift(rule); saveData();
+  res.status(201).json({ ok: true, rule: { ...rule, apartmentName: apartment.name } });
+});
+
 // Lightweight inbox feed used by the Android background notification service.
 // It returns metadata only; media remains behind the authenticated proxy above.
 app.get('/api/whatsapp/cloud/notifications', (req, res) => {
@@ -5254,6 +5666,25 @@ app.get('/api/notifications/events', (req, res) => {
         createdAt: log.createdAt || log.eventAt,
       };
     });
+  const paymentItems = (db.paymentEvents || [])
+    .filter(event => {
+      const time = new Date(event.createdAt || event.receivedAt || 0).getTime();
+      return Number.isFinite(time) && time > sinceMs;
+    })
+    .slice(0, 50)
+    .map(event => ({
+      id: `payment-${event.id}`,
+      category: 'payments',
+      title: 'Pagos automáticos',
+      text: event.status === 'pending_association'
+        ? `Pago recibido por $${Number(event.amount || 0).toLocaleString('es-CO')} sin apartamento identificado.`
+        : `Pago de $${Number(event.amount || 0).toLocaleString('es-CO')} · ${event.apartmentName || 'apartamento asociado'} · ${event.status}`,
+      level: event.status === 'pending_association' ? 'warn' : 'success',
+      provider: event.provider || null,
+      createdAt: event.createdAt || event.receivedAt,
+    }));
+  items.push(...paymentItems);
+  items.sort((left, right) => new Date(left.createdAt || 0) - new Date(right.createdAt || 0));
   res.json({ items });
 });
 
@@ -5862,8 +6293,10 @@ app.use((req, res) => {
           // after a Render checkout: a stale tracked JSON gets a fresh mtime
           // and would otherwise overwrite newer production data on every deploy.
           db = pgData.data;
+          const repairedApartmentFloors = repairApartmentFloors();
           recalcNextId();
           console.log('Data loaded from PostgreSQL (Aiven is source of truth)');
+          if (repairedApartmentFloors) await saveToPostgres();
           loaded = true;
           databaseState = 'postgresql';
         }

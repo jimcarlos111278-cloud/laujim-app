@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Building2, Home, Users, DollarSign, Search, Phone, MessageCircle, Bot } from 'lucide-react';
+import { Plus, Building2, Home, Users, DollarSign, Search, Phone, MessageCircle, Bot, ChevronLeft, ChevronRight, Image as ImageIcon, X } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 import { formatCurrency } from '../utils/helpers';
+import { photoUrl } from '../utils/config';
 
 export default function Apartments() {
   const navigate = useNavigate();
   const [apartments, setApartments] = useState([]);
   const [tenants, setTenants] = useState([]);
   const [contracts, setContracts] = useState([]);
+  const [photos, setPhotos] = useState([]);
+  const [gallery, setGallery] = useState(null);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [whatsappBusy, setWhatsappBusy] = useState('');
@@ -19,8 +22,8 @@ export default function Apartments() {
   useEffect(() => { load(); }, []);
 
   async function load() {
-    const [apts, tnts, cnts] = await Promise.all([api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray()]);
-    setApartments(apts); setTenants(tnts); setContracts(cnts);
+    const [apts, tnts, cnts, allPhotos] = await Promise.all([api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(), api.photos.toArray()]);
+    setApartments(apts); setTenants(tnts); setContracts(cnts); setPhotos(allPhotos);
   }
 
   function getCurrentTenants(aptId) {
@@ -106,8 +109,10 @@ export default function Apartments() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map(apt => {
           const currentTenants = getCurrentTenants(apt.id);
+          const aptPhotos = photos.filter(photo => Number(photo.apartmentId) === Number(apt.id));
           return (
             <Link key={apt.id} to={`/apartments/${apt.id}`} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md hover:border-blue-200 transition-all group">
+              {aptPhotos.length > 0 && <button type="button" onClick={event => { event.preventDefault(); event.stopPropagation(); setGallery({ apartmentId: apt.id, index: 0 }); }} className="relative mb-4 block h-36 w-full overflow-hidden rounded-lg bg-gray-100 text-left" aria-label={`Ver galería del apartamento ${apt.name}`}><img src={photoUrl(aptPhotos[0])} alt={`Apartamento ${apt.name}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" /><span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[11px] font-semibold text-white"><ImageIcon className="h-3.5 w-3.5" /> {aptPhotos.length}</span></button>}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-gray-400" />
@@ -152,6 +157,14 @@ export default function Apartments() {
           );
         })}
       </div>
+
+      {gallery && (() => {
+        const galleryPhotos = photos.filter(photo => Number(photo.apartmentId) === Number(gallery.apartmentId));
+        const current = galleryPhotos[gallery.index];
+        if (!current) return null;
+        const move = delta => setGallery({ ...gallery, index: (gallery.index + delta + galleryPhotos.length) % galleryPhotos.length });
+        return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" role="dialog" aria-modal="true" onClick={() => setGallery(null)}><div className="relative flex w-full max-w-4xl flex-col items-center gap-3" onClick={event => event.stopPropagation()}><div className="flex w-full items-center justify-between text-white"><span className="text-sm font-semibold">Apartamento {apartments.find(apt => Number(apt.id) === Number(gallery.apartmentId))?.name || ''} · Foto {gallery.index + 1} de {galleryPhotos.length}</span><button type="button" onClick={() => setGallery(null)} className="rounded-full p-2 hover:bg-white/10" aria-label="Cerrar galería"><X className="h-5 w-5" /></button></div><div className="relative flex w-full items-center justify-center"><button type="button" onClick={() => move(-1)} className="absolute left-1 z-10 rounded-full bg-black/55 p-3 text-white hover:bg-black/80" aria-label="Foto anterior"><ChevronLeft className="h-6 w-6" /></button><img src={photoUrl(current)} alt={current.originalName || 'Foto'} className="max-h-[72vh] max-w-full rounded-xl object-contain" /><button type="button" onClick={() => move(1)} className="absolute right-1 z-10 rounded-full bg-black/55 p-3 text-white hover:bg-black/80" aria-label="Foto siguiente"><ChevronRight className="h-6 w-6" /></button></div><div className="flex max-w-full gap-2 overflow-x-auto pb-1">{galleryPhotos.map((photo, index) => <button type="button" key={photo.id} onClick={() => setGallery({ ...gallery, index })} className={`h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 ${index === gallery.index ? 'border-white' : 'border-white/30 opacity-70'}`}><img src={photoUrl(photo)} alt="" className="h-full w-full object-cover" /></button>)}</div></div></div>;
+      })()}
 
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Nuevo Apartamento" size="lg">
         <form onSubmit={handleAdd} className="space-y-4">

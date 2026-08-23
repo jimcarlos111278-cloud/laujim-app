@@ -22,6 +22,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AuthorizedCallerPlugin.class);
         registerPlugin(ScraperWorkerPlugin.class);
         registerPlugin(BackgroundNotificationsPlugin.class);
+        registerPlugin(PaymentWatcherPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Capacitor's default WebView does not consistently return the result of

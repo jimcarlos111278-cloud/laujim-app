@@ -25,6 +25,9 @@ const INITIAL_DATA = {
   marketplaceJobs: [],
   accessEvents: [],
   contractTemplates: [],
+  paymentRules: [],
+  paymentEvents: [],
+  paymentAlerts: [],
 };
 
 module.exports = { INITIAL_DATA };
