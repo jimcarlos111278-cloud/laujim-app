@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1787547948.1839266,
-    "ast_hash": "c02ed1269a80603ebc90e25e56d4f874",
+    "mtime": 1787449276.5513039,
+    "ast_hash": "b59446e88ae44b3262764abd67ececd1",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -60,8 +60,8 @@
     "semantic_hash": "f4e44f7bca4dd2e1ab5cffb09f9e0a45"
   },
   "android/app/src/main/java/com/laujim/aptmanager/MainActivity.java": {
-    "mtime": 1787547876.2460878,
-    "ast_hash": "0e62a6eb7af31a3dd759db7163c3e646",
+    "mtime": 1787376434.2928224,
+    "ast_hash": "b31fd29a3a6dc1d7da9ca9680e3380c7",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/RespondViaMessageService.java": {
@@ -125,8 +125,8 @@
     "semantic_hash": "9bd25f44f8255f4a9af580f3b89bc797"
   },
   "db.cjs": {
-    "mtime": 1787453058.1289332,
-    "ast_hash": "f26a3c2354f57447c753bfa4cf064f34",
+    "mtime": 1786604834.7050931,
+    "ast_hash": "90600173736bd5da9adedf5fdc896d8d",
     "semantic_hash": ""
   },
   "exportar-backup.ps1": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1787548219.125334,
-    "ast_hash": "e4b0f723d35fd63ad6736b1adbf1c067",
+    "mtime": 1787449379.0238543,
+    "ast_hash": "f3aa97da187abc855029f034da1d7f6a",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,8 +235,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1787547858.9206116,
-    "ast_hash": "2b0da62314bc6ed5d4128bab5d735c78",
+    "mtime": 1787387661.7655737,
+    "ast_hash": "a3babb7697413ef7a84d6ad8eb0855bb",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "src/api.js": {
-    "mtime": 1787453058.1319335,
-    "ast_hash": "9f8ca4459fd14c7da3e2b0fecacf8fc3",
+    "mtime": 1786932899.3551743,
+    "ast_hash": "11b2affbcddb93aebc80026b3850d9c4",
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.jsx": {
@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "src/db/database.js": {
-    "mtime": 1787453058.129936,
-    "ast_hash": "a4dc0745cab17146cf8ac52c0ef36843",
-    "semantic_hash": ""
+    "mtime": 1785527079.5526433,
+    "ast_hash": "8ad21c25990d80c95367510b3b5b4cb7",
+    "semantic_hash": "8ad21c25990d80c95367510b3b5b4cb7"
   },
   "src/main.jsx": {
     "mtime": 1784356082.2433405,
@@ -315,8 +315,8 @@
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
-    "mtime": 1787453771.2783973,
-    "ast_hash": "3f76172e67e6a090bd9326b3ef784e72",
+    "mtime": 1786958418.2124915,
+    "ast_hash": "46360334cc6068f0acc85fca5df6aad0",
     "semantic_hash": ""
   },
   "src/pages/Chat.jsx": {
@@ -350,9 +350,9 @@
     "semantic_hash": ""
   },
   "src/pages/Payments.jsx": {
-    "mtime": 1787454191.8122892,
-    "ast_hash": "9d099426f0430b2488b8e4456745e406",
-    "semantic_hash": ""
+    "mtime": 1785657923.7275558,
+    "ast_hash": "bddab6a0911887b792930f427c6ad141",
+    "semantic_hash": "bddab6a0911887b792930f427c6ad141"
   },
   "src/pages/Predial.jsx": {
     "mtime": 1784697672.7309265,
@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "src/pages/Settings.jsx": {
-    "mtime": 1787547948.1849294,
-    "ast_hash": "7c0e885beff71c2d00eeb030137c299e",
+    "mtime": 1787377090.7847824,
+    "ast_hash": "0fe01f8f81b2e5a7995af28eb311788c",
     "semantic_hash": ""
   },
   "src/pages/ShareApartments.jsx": {
@@ -400,8 +400,8 @@
     "semantic_hash": ""
   },
   "src/pages/WhatsAppInbox.jsx": {
-    "mtime": 1787547912.19055,
-    "ast_hash": "6c74c53e312def0f3e279d2c91bc0d2c",
+    "mtime": 1787448880.846541,
+    "ast_hash": "b2515190a247ce72131e094a211b9caf",
     "semantic_hash": ""
   },
   "src/utils/auth.js": {
@@ -455,8 +455,8 @@
     "semantic_hash": ""
   },
   "src/utils/localNotifications.js": {
-    "mtime": 1787453792.0371394,
-    "ast_hash": "0c4e769a8793debfb42a5104ff9e7c86",
+    "mtime": 1787376456.9578493,
+    "ast_hash": "ffb31a51e9498379cd938fd05831ba8d",
     "semantic_hash": ""
   },
   "src/utils/notifications.js": {
@@ -475,9 +475,9 @@
     "semantic_hash": "0487e4c9233a522c3b70777b7a660d31"
   },
   "src/utils/theme.js": {
-    "mtime": 1787453465.6154633,
-    "ast_hash": "ed45f5d7a997289a21b0597258a043a0",
-    "semantic_hash": ""
+    "mtime": 1785685181.4767778,
+    "ast_hash": "3d4ecceeb98ea4c96bd61e8be3e87755",
+    "semantic_hash": "3d4ecceeb98ea4c96bd61e8be3e87755"
   },
   "src/utils/viewMode.js": {
     "mtime": 1784826122.3261342,
@@ -5585,13 +5585,13 @@
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/BackgroundNotificationService.java": {
-    "mtime": 1787453685.2586274,
-    "ast_hash": "5882fb5e044aa5a96887bba56969bbf0",
+    "mtime": 1787376729.6082394,
+    "ast_hash": "f7b8789630afd1da2c488ab03ddd7615",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/BackgroundNotificationsPlugin.java": {
-    "mtime": 1787453685.2596288,
-    "ast_hash": "c79ae191038a448e0bf41fab824b0ceb",
+    "mtime": 1787376416.1328413,
+    "ast_hash": "322a25b55ecae2f8088dc6d52483e46e",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/NotificationActionReceiver.java": {
@@ -5600,8 +5600,8 @@
     "semantic_hash": ""
   },
   "src/utils/backgroundNotifications.js": {
-    "mtime": 1787453685.261629,
-    "ast_hash": "1f03d6bdab12b1ca1acd35511d125d3a",
+    "mtime": 1787376456.9548476,
+    "ast_hash": "257c2c9c682863ba73dccb2c4e1f34b8",
     "semantic_hash": ""
   },
   "design-proposals/whatsapp-inbox-prototype.html": {
@@ -5612,21 +5612,6 @@
   "assets/branding/laujim-concept-02-icon.png": {
     "mtime": 1787384951.4245727,
     "ast_hash": "040f1df50ff33f8ae76fc74df9b4c273",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/java/com/laujim/aptmanager/PaymentNotificationListenerService.java": {
-    "mtime": 1787454389.590772,
-    "ast_hash": "9fd9926a03d75dac751dd0a61a7cf7cc",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/java/com/laujim/aptmanager/PaymentWatcherPlugin.java": {
-    "mtime": 1787453551.8532932,
-    "ast_hash": "6de4e06683dc8772c55e3c6d0a5ece1b",
-    "semantic_hash": ""
-  },
-  "src/utils/paymentWatcher.js": {
-    "mtime": 1787453563.6375551,
-    "ast_hash": "6ef28884563ec11b9d6898288a0ed21c",
     "semantic_hash": ""
   }
 }
