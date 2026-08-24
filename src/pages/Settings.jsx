@@ -795,8 +795,8 @@ export default function Settings() {
         <div data-settings-panel="device" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Smartphone className="w-4 h-4" /> App Móvil (APK)</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Descarga siempre la versión publicada más reciente de Laujim para Android.</p>
-          <a href={`${getRawBase()}/app-debug.apk?v=1.0.75`} download className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-2">
-            <Download className="w-4 h-4" /> Descargar APK 1.0.75
+            <a href={`${getRawBase()}/app-debug.apk?v=1.0.76`} download className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-2">
+              <Download className="w-4 h-4" /> Descargar APK 1.0.76
           </a>
         </div>
 

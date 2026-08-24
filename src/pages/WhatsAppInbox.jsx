@@ -125,7 +125,10 @@ export default function WhatsAppInbox() {
     } catch { return { whatsapp: true, scraper: true, facebook: true, sound: false }; }
   });
   const fileInput = useRef(null);
-  const cameraInput = useRef(null);
+  const cameraPhotoInput = useRef(null);
+  const cameraVideoInput = useRef(null);
+  const cameraHoldTimer = useRef(null);
+  const cameraHoldTriggered = useRef(false);
   const recorderRef = useRef(null);
   const recorderStreamRef = useRef(null);
   const recordingTimerRef = useRef(null);
@@ -301,6 +304,35 @@ export default function WhatsAppInbox() {
     if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
     setAttachment(file);
     setAttachmentPreviewUrl(file && ['image', 'audio', 'video'].includes(attachmentKind(file)) ? URL.createObjectURL(file) : '');
+  }
+
+  function clearCameraHoldTimer() {
+    if (cameraHoldTimer.current) clearTimeout(cameraHoldTimer.current);
+    cameraHoldTimer.current = null;
+  }
+
+  function startCameraPress() {
+    if (!windowOpen || sending || recording) return;
+    cameraHoldTriggered.current = false;
+    clearCameraHoldTimer();
+    cameraHoldTimer.current = setTimeout(() => {
+      cameraHoldTriggered.current = true;
+      cameraVideoInput.current?.click();
+    }, 520);
+  }
+
+  function finishCameraPress() {
+    clearCameraHoldTimer();
+    if (cameraHoldTriggered.current) {
+      cameraHoldTriggered.current = false;
+      return;
+    }
+    cameraPhotoInput.current?.click();
+  }
+
+  function cancelCameraPress() {
+    clearCameraHoldTimer();
+    cameraHoldTriggered.current = false;
   }
 
   function stopRecording({ discard = false } = {}) {
@@ -552,8 +584,9 @@ export default function WhatsAppInbox() {
               <button type="button" onClick={() => navigate('/dashboard')} title="Salir de WhatsApp y volver al dashboard" aria-label="Salir de WhatsApp y volver al dashboard" className="wa-live-control wa-live-exit"><X className="w-4 h-4" /></button>
               {recording ? <button type="button" onClick={() => stopRecording()} title="Detener grabación" className="wa-live-control recording"><Square className="w-4 h-4" /><span>Detener</span></button> : <button type="button" onClick={startRecording} disabled={!windowOpen || sending} title="Grabar nota de voz" className="wa-live-control"><Mic className="w-4 h-4" /></button>}
               <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
-              <input ref={cameraInput} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
-              <button type="button" onClick={() => cameraInput.current?.click()} disabled={!windowOpen || sending || recording} title="Tomar foto o video" className="wa-live-control"><Camera className="w-4 h-4" /></button>
+              <input ref={cameraPhotoInput} type="file" className="hidden" accept="image/*" capture="environment" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
+              <input ref={cameraVideoInput} type="file" className="hidden" accept="video/*" capture="environment" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
+              <button type="button" onClick={event => { if (event.detail === 0) cameraPhotoInput.current?.click(); }} onPointerDown={startCameraPress} onPointerUp={finishCameraPress} onPointerCancel={cancelCameraPress} onPointerLeave={cancelCameraPress} disabled={!windowOpen || sending || recording} title="Toca para tomar una foto · mantén presionado para grabar video" aria-label="Tomar foto o grabar video" className="wa-live-control"><Camera className="w-4 h-4" /></button>
               <button type="button" onClick={() => fileInput.current?.click()} disabled={!windowOpen || sending || recording} title="Adjuntar imagen, audio, video o documento (máx. 16 MB)" className="wa-live-control"><Paperclip className="w-4 h-4" /></button>
               <button type="button" onClick={() => setDraft(current => `${current}😊`)} disabled={!windowOpen || sending || recording} title="Añadir emoji" className="wa-live-control wa-live-optional"><Smile className="w-4 h-4" /></button>
               <input value={draft} onChange={event => setDraft(event.target.value)} disabled={!windowOpen || sending || recording} placeholder={recording ? 'Grabando nota de voz…' : windowOpen ? attachment ? 'Añade un texto opcional…' : 'Escribe un mensaje' : 'Escritura bloqueada hasta que respondan'} />
