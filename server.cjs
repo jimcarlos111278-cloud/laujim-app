@@ -467,10 +467,21 @@ function authorizedCloudContact(phone) {
     const storedApartmentExists = storedApartmentId !== null &&
       (db.apartments || []).some(apartment => Number(apartment.id) === Number(storedApartmentId));
     const phoneStillBelongsToTenant = Boolean(tenant?.phone) && samePhone(tenant.phone, explicit.phone);
-    const trustedApartmentId = currentApartmentId ?? (storedApartmentExists ? storedApartmentId : null);
-    const apartmentStillMatches = trustedApartmentId !== null && trustedApartmentId !== undefined &&
-      (!currentApartmentId || !explicit.apartmentId || Number(currentApartmentId) === Number(explicit.apartmentId));
-    if (!phoneStillBelongsToTenant || !apartmentStillMatches) {
+    // A number authenticated with apartment + document is intentionally
+    // allowed to be different from the phone stored on the tenant record.
+    // Requiring phoneStillBelongsToTenant here made the very next message
+    // restart authentication for new but successfully verified numbers.
+    const verifiedByIdentity = explicit.source === 'authenticated' && Boolean(explicit.verifiedAt);
+    const tenantStillOwnsStoredApartment = Boolean(tenant) && storedApartmentExists &&
+      tenantBelongsToApartment(tenant, storedApartmentId);
+    const identityStillValid = verifiedByIdentity
+      ? tenantStillOwnsStoredApartment
+      : phoneStillBelongsToTenant && (tenantStillOwnsStoredApartment ||
+        (currentApartmentId !== null && Number(currentApartmentId) === Number(storedApartmentId)));
+    const trustedApartmentId = verifiedByIdentity
+      ? (storedApartmentExists ? storedApartmentId : null)
+      : (currentApartmentId ?? (storedApartmentExists ? storedApartmentId : null));
+    if (!identityStillValid || trustedApartmentId === null || trustedApartmentId === undefined) {
       // Do not let a previous authentication keep impersonating a tenant after
       // the phone or its apartment association changes in the administration DB.
       explicit.enabled = false;
@@ -487,7 +498,7 @@ function authorizedCloudContact(phone) {
       console.warn(`[WHATSAPP CLOUD] Revoked stale identity for ${normalizePhone(phone)}: contact tenant ${explicit.tenantId} no longer matches the tenant phone.`);
       return null;
     }
-    if (!apartmentStillMatches || Number(explicit.tenantId) !== Number(tenant.id) || Number(explicit.apartmentId) !== Number(trustedApartmentId)) {
+    if (Number(explicit.tenantId) !== Number(tenant.id) || Number(explicit.apartmentId) !== Number(trustedApartmentId)) {
       // The phone is still the current tenant's phone, so repair a changed
       // apartment association instead of forcing a needless re-authentication.
       explicit.tenantId = tenant.id;
