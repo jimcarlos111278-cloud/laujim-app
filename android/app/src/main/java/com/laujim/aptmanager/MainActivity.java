@@ -106,13 +106,19 @@ public class MainActivity extends BridgeActivity {
                     boolean capture = fileChooserParams != null && fileChooserParams.isCaptureEnabled();
                     if (capture && ("image/*".equals(acceptedType) || "video/*".equals(acceptedType))) {
                         launchCaptureIntent("video/*".equals(acceptedType));
-                    } else {
-                        Intent chooser = fileChooserParams == null
-                            ? new Intent(Intent.ACTION_OPEN_DOCUMENT)
-                            : fileChooserParams.createIntent();
-                        chooser.addCategory(Intent.CATEGORY_OPENABLE);
-                        chooser.setType(acceptedType);
-                        chooser.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, fileChooserParams == null || !fileChooserParams.isCaptureEnabled());
+                        } else {
+                            Intent chooser = fileChooserParams == null
+                                ? new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                                : fileChooserParams.createIntent();
+                            chooser.addCategory(Intent.CATEGORY_OPENABLE);
+                            String[] acceptedTypes = acceptedMimeTypes(fileChooserParams);
+                            if (acceptedTypes.length > 1) {
+                                chooser.setType("*/*");
+                                chooser.putExtra(Intent.EXTRA_MIME_TYPES, acceptedTypes);
+                            } else {
+                                chooser.setType(acceptedType);
+                            }
+                            chooser.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, fileChooserParams == null || !fileChooserParams.isCaptureEnabled());
                         startActivityForResult(chooser, FILE_CHOOSER_REQUEST);
                     }
                     return true;
@@ -228,6 +234,18 @@ public class MainActivity extends BridgeActivity {
         if (audio && !image && !video) return "audio/*";
         if (image && !video && !audio) return "image/*";
         return "*/*";
+    }
+
+    private String[] acceptedMimeTypes(WebChromeClient.FileChooserParams params) {
+        if (params == null || params.getAcceptTypes() == null) return new String[0];
+        ArrayList<String> types = new ArrayList<>();
+        for (String value : params.getAcceptTypes()) {
+            String type = value == null ? "" : value.toLowerCase();
+            if ((type.startsWith("image/") || type.startsWith("video/") || type.startsWith("audio/")) && !types.contains(type)) {
+                types.add(type);
+            }
+        }
+        return types.toArray(new String[0]);
     }
 
     private void launchCaptureIntent(boolean video) throws IOException {

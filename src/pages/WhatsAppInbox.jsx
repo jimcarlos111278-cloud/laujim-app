@@ -125,6 +125,7 @@ export default function WhatsAppInbox() {
     } catch { return { whatsapp: true, scraper: true, facebook: true, sound: false }; }
   });
   const fileInput = useRef(null);
+  const galleryInput = useRef(null);
   const cameraPhotoInput = useRef(null);
   const cameraVideoInput = useRef(null);
   const cameraHoldTimer = useRef(null);
@@ -298,6 +299,9 @@ export default function WhatsAppInbox() {
     setAttachment(null);
     setAttachmentPreviewUrl('');
     if (fileInput.current) fileInput.current.value = '';
+    if (galleryInput.current) galleryInput.current.value = '';
+    if (cameraPhotoInput.current) cameraPhotoInput.current.value = '';
+    if (cameraVideoInput.current) cameraVideoInput.current.value = '';
   }
 
   function handleAttachmentFile(file) {
@@ -584,9 +588,11 @@ export default function WhatsAppInbox() {
               <button type="button" onClick={() => navigate('/dashboard')} title="Salir de WhatsApp y volver al dashboard" aria-label="Salir de WhatsApp y volver al dashboard" className="wa-live-control wa-live-exit"><X className="w-4 h-4" /></button>
               {recording ? <button type="button" onClick={() => stopRecording()} title="Detener grabación" className="wa-live-control recording"><Square className="w-4 h-4" /><span>Detener</span></button> : <button type="button" onClick={startRecording} disabled={!windowOpen || sending} title="Grabar nota de voz" className="wa-live-control"><Mic className="w-4 h-4" /></button>}
               <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
+              <input ref={galleryInput} type="file" className="hidden" accept="image/*,video/*" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
               <input ref={cameraPhotoInput} type="file" className="hidden" accept="image/*" capture="environment" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
               <input ref={cameraVideoInput} type="file" className="hidden" accept="video/*" capture="environment" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
               <button type="button" onClick={event => { if (event.detail === 0) cameraPhotoInput.current?.click(); }} onPointerDown={startCameraPress} onPointerUp={finishCameraPress} onPointerCancel={cancelCameraPress} onPointerLeave={cancelCameraPress} disabled={!windowOpen || sending || recording} title="Toca para tomar una foto · mantén presionado para grabar video" aria-label="Tomar foto o grabar video" className="wa-live-control"><Camera className="w-4 h-4" /></button>
+              <button type="button" onClick={() => galleryInput.current?.click()} disabled={!windowOpen || sending || recording} title="Elegir foto o video de la galería" aria-label="Elegir foto o video de la galería" className="wa-live-control"><Image className="w-4 h-4" /></button>
               <button type="button" onClick={() => fileInput.current?.click()} disabled={!windowOpen || sending || recording} title="Adjuntar imagen, audio, video o documento (máx. 16 MB)" className="wa-live-control"><Paperclip className="w-4 h-4" /></button>
               <button type="button" onClick={() => setDraft(current => `${current}😊`)} disabled={!windowOpen || sending || recording} title="Añadir emoji" className="wa-live-control wa-live-optional"><Smile className="w-4 h-4" /></button>
               <input value={draft} onChange={event => setDraft(event.target.value)} disabled={!windowOpen || sending || recording} placeholder={recording ? 'Grabando nota de voz…' : windowOpen ? attachment ? 'Añade un texto opcional…' : 'Escribe un mensaje' : 'Escritura bloqueada hasta que respondan'} />
