@@ -337,6 +337,17 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
+// Tenant records are often entered locally as 10-digit Colombian mobile
+// numbers, while Meta sends webhook numbers and expects outbound recipients
+// with the country code. Keep matching permissive, but always send a valid
+// international recipient to the Cloud API.
+function whatsappRecipientPhone(phone) {
+  const normalized = normalizePhone(phone);
+  const countryCode = normalizePhone(process.env.WHATSAPP_DEFAULT_COUNTRY_CODE || '57');
+  if (/^3\d{9}$/.test(normalized) && countryCode) return `${countryCode}${normalized}`;
+  return normalized;
+}
+
 function samePhone(a, b) {
   const left = normalizePhone(a);
   const right = normalizePhone(b);
@@ -434,9 +445,9 @@ function clearCloudAuthState(phone) {
   db.whatsappAuthStates = db.whatsappAuthStates.filter(state => !samePhone(state.phone, phone));
 }
 
-function isCloudBlocked(phone) {
+function getCloudBlockedUser(phone) {
   ensureCloudCollections();
-  return db.whatsappBlockedUsers.some(item => samePhone(item.phone, phone));
+  return db.whatsappBlockedUsers.find(item => samePhone(item.phone, phone)) || null;
 }
 
 function isCloudMessageProcessed(messageId) {
@@ -538,7 +549,7 @@ function getCloudConversation(contact) {
   ensureCloudCollections();
   let conversation = db.whatsappConversations.find(c => samePhone(c.phone, contact.phone));
   if (!conversation) {
-    conversation = { id: nextId.whatsappConversations++, phone: normalizePhone(contact.phone), tenantId: contact.tenantId,
+    conversation = { id: nextId.whatsappConversations++, phone: whatsappRecipientPhone(contact.phone), tenantId: contact.tenantId,
       apartmentId: contact.apartmentId, status: 'active', createdAt: new Date().toISOString(), lastInboundAt: null,
       customerServiceWindowUntil: null };
     db.whatsappConversations.push(conversation);
@@ -547,6 +558,8 @@ function getCloudConversation(contact) {
     // detached because its phone was linked to the wrong tenant.
     if (contact.tenantId != null) conversation.tenantId = contact.tenantId;
     if (contact.apartmentId != null) conversation.apartmentId = contact.apartmentId;
+    const recipientPhone = whatsappRecipientPhone(contact.phone);
+    if (recipientPhone && conversation.phone !== recipientPhone) conversation.phone = recipientPhone;
     conversation.status = 'active';
   }
   return conversation;
@@ -758,19 +771,19 @@ function sendCloudMedia(to, media, caption = '') {
   if ((type === 'image' || type === 'video' || type === 'document') && caption) content.caption = caption;
   if (type === 'document' && media.fileName) content.filename = media.fileName;
   return cloudApiRequest('/messages', 'POST', {
-    messaging_product: 'whatsapp', to: normalizePhone(to), type, [type]: content,
+    messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type, [type]: content,
   });
 }
 
 function sendCloudText(to, body) {
   return cloudApiRequest('/messages', 'POST', {
-    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'text', text: { body },
+    messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type: 'text', text: { body },
   });
 }
 
 function sendCloudInteractiveList(to, body, buttonTitle, sections) {
   return cloudApiRequest('/messages', 'POST', {
-    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'interactive',
+    messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type: 'interactive',
     interactive: {
       type: 'list',
       body: { text: body },
@@ -793,7 +806,7 @@ const CLOUD_ADMIN_WHATSAPP_URL = 'https://laujim-app.onrender.com/whatsapp';
 
 function sendCloudAdminAccessButton(to, body) {
   return cloudApiRequest('/messages', 'POST', {
-    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'interactive',
+    messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type: 'interactive',
     interactive: {
       type: 'cta_url',
       body: { text: body },
@@ -815,7 +828,7 @@ function firstName(name) {
 function sendCloudGreetingTemplate(to, name) {
   const templateName = String(process.env.WHATSAPP_GREETING_TEMPLATE || 'saludo_inquilino').trim();
   return cloudApiRequest('/messages', 'POST', {
-    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'template',
+    messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type: 'template',
     template: {
       name: templateName, language: { code: 'es_CO' },
       components: [{ type: 'body', parameters: [{ type: 'text', text: firstName(name) }] }],
@@ -898,7 +911,7 @@ function sendCloudPaymentReminderTemplate(to, name, period, apartment = null) {
   console.log(`[WHATSAPP CLOUD] Payment template context: apartment=${resolvedApartment.name || resolvedApartment.id}, period=${period || colombiaDate().slice(0, 7)}, rent=${data.parameters[3].text}.`);
   if (name) data.parameters[0].text = firstName(name);
   return cloudApiRequest('/messages', 'POST', {
-    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'template',
+    messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type: 'template',
     template: {
       name: templateName, language: { code: 'es_CO' },
       components: [{ type: 'body', parameters: data.parameters }],
@@ -1200,7 +1213,7 @@ function sendCloudPaymentReviewTemplate(to, event) {
   const configured = (db.settings || []).find(item => item.key === 'whatsapp_payment_review_template')?.value;
   const templateName = String(process.env.WHATSAPP_PAYMENT_REVIEW_TEMPLATE || configured || 'pago_por_asociar').trim();
   return cloudApiRequest('/messages', 'POST', {
-    messaging_product: 'whatsapp', to: normalizePhone(to), type: 'template',
+    messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type: 'template',
     template: {
       name: templateName, language: { code: 'es_CO' },
       components: [{ type: 'body', parameters: [
@@ -1412,7 +1425,7 @@ async function blockCloudUser(phone, reason) {
 
   try {
     await cloudApiRequest('/block_users', 'POST', {
-      messaging_product: 'whatsapp', block_users: [{ user: normalized }],
+      messaging_product: 'whatsapp', block_users: [{ user: whatsappRecipientPhone(normalized) }],
     });
     record.remoteBlocked = true;
   } catch (error) {
@@ -1420,6 +1433,33 @@ async function blockCloudUser(phone, reason) {
   }
   saveData();
   return record;
+}
+
+async function unblockCloudUser(phone) {
+  ensureCloudCollections();
+  const normalized = normalizePhone(phone);
+  const index = db.whatsappBlockedUsers.findIndex(item => samePhone(item.phone, normalized));
+  if (index < 0) return false;
+  const blocked = db.whatsappBlockedUsers[index];
+
+  // The old authentication flow also called Meta's block_users endpoint. A
+  // local delete alone would make the inbox look fixed while Meta could still
+  // reject outgoing replies, so remove the remote block when possible.
+  try {
+    if (blocked.remoteBlocked) {
+      await cloudApiRequest('/block_users', 'DELETE', {
+        messaging_product: 'whatsapp', block_users: [{ user: whatsappRecipientPhone(normalized) }],
+      });
+    }
+    db.whatsappBlockedUsers.splice(index, 1);
+    console.info(`[WHATSAPP CLOUD] recovered blocked contact ending ${normalized.slice(-4)} · reason=${blocked.reason || 'unknown'}`);
+  } catch (error) {
+    // Keep the local record so the remote unblock is retried on the next valid
+    // message. The current message is still processed by the caller.
+    console.error('[WHATSAPP CLOUD] remote unblock failed:', error.message);
+  }
+  saveData();
+  return true;
 }
 
 async function failCloudAuthentication(phone, state, response) {
@@ -3244,11 +3284,6 @@ async function handleCloudInbound(message) {
   markCloudMessageProcessed(message.id);
   pruneCloudCollections();
 
-  if (isCloudBlocked(phone)) {
-    saveData();
-    return;
-  }
-
   if (isCloudAdminPhone(phone)) {
     await handleCloudAdminMessage(phone, message);
     return;
@@ -3265,6 +3300,19 @@ async function handleCloudInbound(message) {
   }
 
   const known = authorizedCloudContact(phone);
+  const blocked = getCloudBlockedUser(phone);
+  if (blocked) {
+    const recoverableReason = ['authentication_failed', 'tenant_removed'].includes(String(blocked.reason || ''));
+    if (!known || !recoverableReason) {
+      console.warn(`[WHATSAPP CLOUD] ignored blocked contact ending ${phone.slice(-4)} · reason=${blocked.reason || 'unknown'}`);
+      saveData();
+      return;
+    }
+    // A number that is now present in the tenant database must not remain
+    // trapped by a historical failed-authentication block. This is also what
+    // lets a re-added tenant contact recover without a manual database edit.
+    await unblockCloudUser(phone);
+  }
   if (known) {
     console.info(`[WHATSAPP CLOUD] accepted known contact ending ${phone.slice(-4)} · source=${known.source || 'contact'} · apartment=${known.apartmentId || '—'}`);
     const conversation = getCloudConversation(known);
