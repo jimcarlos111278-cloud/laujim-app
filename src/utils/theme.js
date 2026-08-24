@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'laujim-theme';
+const DEFAULT_THEME = 'amoled';
 
 export const THEMES = [
   { id: 'claro',   label: 'Claro',    color: '#ffffff',  bg: '#f3f4f6',    textColor: '#111827',  icon: 'Sun' },
@@ -17,11 +18,11 @@ export const THEMES = [
 const themeMap = Object.fromEntries(THEMES.map(t => [t.id, t]));
 
 export function getTheme() {
-  return localStorage.getItem(STORAGE_KEY) || 'claro';
+  return localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
 }
 
 export function getThemeInfo(id) {
-  return themeMap[id] || themeMap.claro;
+  return themeMap[id] || themeMap[DEFAULT_THEME];
 }
 
 export function setTheme(id, syncToServer) {
