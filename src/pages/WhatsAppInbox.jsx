@@ -130,6 +130,7 @@ export default function WhatsAppInbox() {
   const recorderStreamRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const recordingChunksRef = useRef([]);
+  const discardRecordingRef = useRef(false);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -302,8 +303,13 @@ export default function WhatsAppInbox() {
     setAttachmentPreviewUrl(file && ['image', 'audio', 'video'].includes(attachmentKind(file)) ? URL.createObjectURL(file) : '');
   }
 
-  function stopRecording() {
+  function stopRecording({ discard = false } = {}) {
+    discardRecordingRef.current = discard;
     if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+  }
+
+  function cancelRecording() {
+    stopRecording({ discard: true });
   }
 
   async function startRecording() {
@@ -321,16 +327,23 @@ export default function WhatsAppInbox() {
       recordingChunksRef.current = [];
       recorderStreamRef.current = stream;
       recorder.ondataavailable = event => { if (event.data.size) recordingChunksRef.current.push(event.data); };
+      recorder.onerror = () => {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+        setError('La grabación se interrumpió. Revisa el permiso del micrófono e inténtalo nuevamente.');
+      };
       recorder.onstop = () => {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
         stream.getTracks().forEach(track => track.stop());
         recorderStreamRef.current = null;
         setRecording(false);
+        const discard = discardRecordingRef.current;
+        discardRecordingRef.current = false;
         const type = recorder.mimeType || mimeType || 'audio/webm';
         const extension = type.includes('ogg') ? 'ogg' : 'webm';
         const blob = new Blob(recordingChunksRef.current, { type });
-        if (blob.size) handleAttachmentFile(new File([blob], `nota-de-voz.${extension}`, { type }));
+        if (!discard && blob.size) handleAttachmentFile(new File([blob], `nota-de-voz.${extension}`, { type }));
       };
       recorder.start(1000);
       recorderRef.current = recorder;
@@ -341,7 +354,13 @@ export default function WhatsAppInbox() {
         if (next >= 600) stopRecording();
         return next;
       }), 1000);
-    } catch (err) { setError(err.name === 'NotAllowedError' ? 'Necesitas permitir el micrófono para grabar.' : err.message || 'No fue posible iniciar la grabación.'); }
+    } catch (err) {
+      recorderStreamRef.current?.getTracks().forEach(track => track.stop());
+      recorderStreamRef.current = null;
+      setError(err.name === 'NotAllowedError' || err.name === 'SecurityError'
+        ? 'Necesitas permitir el micrófono para grabar. En Android acepta el permiso de Laujim.'
+        : err.message || 'No fue posible iniciar la grabación.');
+    }
   }
 
   useEffect(() => () => {
@@ -516,6 +535,13 @@ export default function WhatsAppInbox() {
           </div>
           <form onSubmit={sendMessage} className="wa-live-compose-wrap">
             <div className={`wa-live-compose-status ${windowOpen ? 'open' : 'closed'}`}><span>{windowOpen ? 'Puedes responder libremente' : 'La ventana está cerrada'}</span><small>{windowOpen ? 'Mensajes, fotos, videos y notas de voz' : 'El botón rojo abre las plantillas'}</small></div>
+            {recording && <div className="wa-live-recording-banner" role="status" aria-live="polite">
+              <span className="wa-live-recording-pulse" />
+              <div className="wa-live-recording-copy"><strong>Grabando nota de voz</strong><small>Habla ahora · toca Listo para detener</small></div>
+              <strong className="wa-live-recording-time">{String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}</strong>
+              <button type="button" onClick={cancelRecording} className="wa-live-recording-cancel">Cancelar</button>
+              <button type="button" onClick={() => stopRecording()} className="wa-live-recording-stop"><Square className="w-3.5 h-3.5" /> Listo</button>
+            </div>}
             {attachment && <div className="wa-live-attachment">
               <div className="wa-live-attachment-head"><span><MediaIcon type={attachmentKind(attachment)} className="w-4 h-4" />{attachment.name} · {(attachment.size / (1024 * 1024)).toFixed(1)} MB</span><button type="button" onClick={clearAttachment} aria-label="Quitar archivo"><X className="w-4 h-4" /></button></div>
               {attachmentPreviewUrl && attachmentKind(attachment) === 'image' && <img src={attachmentPreviewUrl} alt="Vista previa del archivo" />}
@@ -524,7 +550,7 @@ export default function WhatsAppInbox() {
             </div>}
             <div className="wa-live-compose">
               <button type="button" onClick={() => navigate('/dashboard')} title="Salir de WhatsApp y volver al dashboard" aria-label="Salir de WhatsApp y volver al dashboard" className="wa-live-control wa-live-exit"><X className="w-4 h-4" /></button>
-              {recording ? <button type="button" onClick={stopRecording} title="Detener grabación" className="wa-live-control recording"><Square className="w-4 h-4" /><span>{String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}</span></button> : <button type="button" onClick={startRecording} disabled={!windowOpen || sending} title="Grabar nota de voz" className="wa-live-control"><Mic className="w-4 h-4" /></button>}
+              {recording ? <button type="button" onClick={() => stopRecording()} title="Detener grabación" className="wa-live-control recording"><Square className="w-4 h-4" /><span>Detener</span></button> : <button type="button" onClick={startRecording} disabled={!windowOpen || sending} title="Grabar nota de voz" className="wa-live-control"><Mic className="w-4 h-4" /></button>}
               <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
               <input ref={cameraInput} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={event => handleAttachmentFile(event.target.files?.[0] || null)} />
               <button type="button" onClick={() => cameraInput.current?.click()} disabled={!windowOpen || sending || recording} title="Tomar foto o video" className="wa-live-control"><Camera className="w-4 h-4" /></button>

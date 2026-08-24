@@ -463,39 +463,64 @@ function authorizedCloudContact(phone) {
   if (explicit) {
     const tenant = (db.tenants || []).find(item => Number(item.id) === Number(explicit.tenantId));
     const currentApartmentId = tenant ? tenantApartmentId(tenant) : null;
+    const storedApartmentId = apartmentIdFromReference(explicit.apartmentId);
+    const storedApartmentExists = storedApartmentId !== null &&
+      (db.apartments || []).some(apartment => Number(apartment.id) === Number(storedApartmentId));
     const phoneStillBelongsToTenant = Boolean(tenant?.phone) && samePhone(tenant.phone, explicit.phone);
-    const apartmentStillMatches = !currentApartmentId || !explicit.apartmentId || Number(currentApartmentId) === Number(explicit.apartmentId);
+    const trustedApartmentId = currentApartmentId ?? (storedApartmentExists ? storedApartmentId : null);
+    const apartmentStillMatches = trustedApartmentId !== null && trustedApartmentId !== undefined &&
+      (!currentApartmentId || !explicit.apartmentId || Number(currentApartmentId) === Number(explicit.apartmentId));
     if (!phoneStillBelongsToTenant || !apartmentStillMatches) {
       // Do not let a previous authentication keep impersonating a tenant after
       // the phone or its apartment association changes in the administration DB.
       explicit.enabled = false;
       explicit.revokedAt = new Date().toISOString();
-      explicit.revocationReason = 'phone_or_apartment_mismatch';
+      explicit.revocationReason = !tenant ? 'tenant_removed' : 'phone_or_apartment_mismatch';
       const staleConversation = db.whatsappConversations.find(c => samePhone(c.phone, phone));
       if (staleConversation) {
         staleConversation.tenantId = null;
         staleConversation.apartmentId = null;
-        staleConversation.status = 'pending_authentication';
+        staleConversation.status = 'revoked';
         staleConversation.lastInboundAt = null;
         staleConversation.customerServiceWindowUntil = null;
       }
       console.warn(`[WHATSAPP CLOUD] Revoked stale identity for ${normalizePhone(phone)}: contact tenant ${explicit.tenantId} no longer matches the tenant phone.`);
       return null;
     }
-    return { ...explicit, phone: normalizePhone(phone), apartmentId: currentApartmentId || explicit.apartmentId };
+    if (!apartmentStillMatches || Number(explicit.tenantId) !== Number(tenant.id) || Number(explicit.apartmentId) !== Number(trustedApartmentId)) {
+      // The phone is still the current tenant's phone, so repair a changed
+      // apartment association instead of forcing a needless re-authentication.
+      explicit.tenantId = tenant.id;
+      explicit.apartmentId = trustedApartmentId;
+      explicit.enabled = true;
+      explicit.updatedAt = new Date().toISOString();
+      saveData();
+    }
+    return { ...explicit, phone: normalizePhone(phone), apartmentId: trustedApartmentId };
   }
 
   const tenant = (db.tenants || []).find(t => samePhone(t.phone, phone));
-  if (!tenant) return null;
+  const apartmentId = tenantApartmentId(tenant);
+  // A phone registered on a tenant with a current apartment association is
+  // trusted directly. A tenant row without an apartment is not enough to
+  // expose messages to the administrator, so it follows authentication.
+  if (!tenant || apartmentId === null || apartmentId === undefined) return null;
   return {
     phone: normalizePhone(phone),
     tenantId: tenant.id,
     // Inquilinos created from the tenants screen keep the association in
     // tenant.apartmentId. Older records may use linkedAptId, while a formal
     // active contract should remain the strongest source of truth.
-    apartmentId: tenantApartmentId(tenant),
+    apartmentId,
     source: 'database',
   };
+}
+
+function isCloudRevokedContact(phone) {
+  ensureCloudCollections();
+  const stored = db.whatsappContacts.find(contact => samePhone(contact.phone, phone));
+  if (!stored || stored.enabled !== false || stored.revocationReason !== 'tenant_removed') return false;
+  return !(db.tenants || []).some(tenant => Number(tenant.id) === Number(stored.tenantId) && samePhone(tenant.phone, phone));
 }
 
 function getCloudConversation(contact) {
@@ -523,6 +548,12 @@ function addCloudMessage(conversation, direction, message) {
     media: message.media || null,
     whatsappMessageId: message.whatsappMessageId || null, createdAt: new Date().toISOString() };
   db.whatsappMessages.push(record);
+  if (direction === 'in') {
+    conversation.lastInboundAt = record.createdAt;
+    conversation.customerServiceWindowUntil = new Date(Date.parse(record.createdAt) + 24 * 60 * 60 * 1000).toISOString();
+  } else if (direction === 'out') {
+    conversation.lastOutboundAt = record.createdAt;
+  }
   return record;
 }
 
@@ -3212,11 +3243,20 @@ async function handleCloudInbound(message) {
     return;
   }
 
+  // A tenant deleted from Laujim must not be able to re-enter through the old
+  // authenticated contact. Keep this separate from unknown numbers, which may
+  // still start the normal apartment + document verification flow.
+  if (isCloudRevokedContact(phone)) {
+    console.warn(`[WHATSAPP CLOUD] ignored message from revoked tenant phone ending ${phone.slice(-4)}`);
+    await blockCloudUser(phone, 'tenant_removed');
+    saveData();
+    return;
+  }
+
   const known = authorizedCloudContact(phone);
   if (known) {
+    console.info(`[WHATSAPP CLOUD] accepted known contact ending ${phone.slice(-4)} · source=${known.source || 'contact'} · apartment=${known.apartmentId || '—'}`);
     const conversation = getCloudConversation(known);
-    conversation.lastInboundAt = new Date().toISOString();
-    conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const type = message.type || 'unknown';
     const interactive = cloudInteractiveReply(message);
     // Content and media identifiers are persisted only after authorization.
@@ -3279,6 +3319,7 @@ async function handleCloudInbound(message) {
   const state = getCloudAuthState(phone);
   const text = message.type === 'text' ? String(message.text?.body || '').trim() : '';
   if (!state || new Date(state.expiresAt).getTime() < Date.now()) {
+    console.info(`[WHATSAPP CLOUD] authentication requested for phone ending ${phone.slice(-4)}`);
     setCloudAuthState(phone, { step: 'apartment', expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString(), attempts: 0 });
     saveData();
     await sendCloudText(phone, '🤖 Laujim Bot: este canal requiere autenticación. Tus mensajes y archivos no se entregan ni se guardan hasta verificar tu identidad. Escribe tu número de apartamento.');
@@ -3315,8 +3356,23 @@ async function handleCloudInbound(message) {
   const conversation = getCloudConversation(contact);
   conversation.lastInboundAt = new Date().toISOString();
   conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  saveData();
-  await sendCloudText(phone, '✅ Identidad verificada. Desde ahora tus mensajes llegarán al administrador por este canal.');
+  conversation.authenticatedAt = now;
+  conversation.authenticationSource = 'apartment_document';
+  // Wait for Aiven before acknowledging success. Otherwise a fast follow-up
+  // message can arrive after the reply but before the new contact exists in
+  // the durable store after a worker restart.
+  await saveData();
+  console.info(`[WHATSAPP CLOUD] authentication completed for phone ending ${phone.slice(-4)} · apartment=${state.apartmentId} · contact=${contact.id}`);
+  const confirmation = '✅ Identidad verificada. Desde ahora tus mensajes llegarán al administrador por este canal.';
+  try {
+    const sent = await sendCloudText(phone, confirmation);
+    addCloudMessage(conversation, 'out', {
+      type: 'text', text: confirmation, whatsappMessageId: sent.messages?.[0]?.id || null,
+    });
+    await saveData();
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] authentication confirmation error:', error.message);
+  }
 }
 
 // ─── PostgreSQL persistence ───
@@ -5372,12 +5428,13 @@ app.get('/api/whatsapp/cloud/conversations', (req, res) => {
   const conversations = db.whatsappConversations.map(c => {
     const context = repairCloudConversationContext(c);
     repaired ||= context.changed;
-    cloudServiceWindowOpen(c);
+    const windowOpen = cloudServiceWindowOpen(c);
     const tenant = context.tenant;
     const apartment = context.apartment;
     const conversationMessages = (db.whatsappMessages || []).filter(m => m.conversationId === c.id);
     const lastMessage = conversationMessages[conversationMessages.length - 1] || null;
     return { ...c, tenantName: tenant?.name || 'Inquilino autorizado', apartmentName: apartment?.name || null,
+      windowOpen, windowUntil: c.customerServiceWindowUntil || null,
       lastMessageAt: lastMessage?.createdAt || c.lastInboundAt || c.createdAt,
       messages: lastMessage ? [lastMessage] : [] };
   });
@@ -6074,10 +6131,29 @@ app.post('/api/contracts', (req, res) => {
 });
 
 // ─── DELETE TENANT + CLEANUP ───
-app.delete('/api/tenants/:id', (req, res) => {
+app.delete('/api/tenants/:id', async (req, res) => {
   const id = Number(req.params.id);
   const index = (db.tenants || []).findIndex(t => t.id === id);
   if (index === -1) return res.status(404).json({ error: 'Not found' });
+  const removedTenant = db.tenants[index];
+  const removedPhones = [removedTenant?.phone].filter(Boolean).map(normalizePhone).filter(Boolean);
+  ensureCloudCollections();
+  const revokedAt = new Date().toISOString();
+  for (const contact of db.whatsappContacts) {
+    if (Number(contact.tenantId) !== id) continue;
+    contact.enabled = false;
+    contact.revokedAt = revokedAt;
+    contact.revocationReason = 'tenant_removed';
+  }
+  db.whatsappAuthStates = db.whatsappAuthStates.filter(state => !removedPhones.some(phone => samePhone(phone, state.phone)));
+  for (const conversation of db.whatsappConversations) {
+    if (Number(conversation.tenantId) !== id && !removedPhones.some(phone => samePhone(phone, conversation.phone))) continue;
+    conversation.tenantId = null;
+    conversation.apartmentId = null;
+    conversation.status = 'revoked';
+    conversation.lastInboundAt = null;
+    conversation.customerServiceWindowUntil = null;
+  }
   db.tenants.splice(index, 1);
   const linkedContracts = (db.contracts || []).filter(c => c.tenantId === id);
   for (const contract of linkedContracts) {
@@ -6085,6 +6161,12 @@ app.delete('/api/tenants/:id', (req, res) => {
     if (pwdIdx !== -1) db.passwords.splice(pwdIdx, 1);
   }
   saveData();
+  // Best effort remote block. The local revoke is authoritative even if Meta
+  // is temporarily unavailable.
+  for (const phone of removedPhones) {
+    try { await blockCloudUser(phone, 'tenant_removed'); }
+    catch (error) { console.error('[WHATSAPP CLOUD] tenant removal block error:', error.message); }
+  }
   res.json({ success: true });
 });
 

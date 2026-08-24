@@ -1,6 +1,8 @@
 package com.laujim.aptmanager;
 
 import android.app.Activity;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -8,13 +10,16 @@ import android.os.Handler;
 import android.os.Looper;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.PermissionRequest;
 import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     private static final int FILE_CHOOSER_REQUEST = 4817;
+    private static final int MICROPHONE_PERMISSION_REQUEST = 4818;
     private ValueCallback<Uri[]> pendingFileCallback;
+    private PermissionRequest pendingWebPermissionRequest;
     private final Handler deepLinkHandler = new Handler(Looper.getMainLooper());
 
     @Override
@@ -32,6 +37,31 @@ public class MainActivity extends BridgeActivity {
         WebView webView = getBridge() == null ? null : getBridge().getWebView();
         if (webView != null) {
             webView.setWebChromeClient(new WebChromeClient() {
+                @Override
+                public void onPermissionRequest(PermissionRequest request) {
+                    runOnUiThread(() -> {
+                        if (request == null) return;
+                        boolean needsAudio = false;
+                        for (String resource : request.getResources()) {
+                            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) {
+                                needsAudio = true;
+                                break;
+                            }
+                        }
+                        if (!needsAudio) {
+                            request.deny();
+                            return;
+                        }
+                        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            request.grant(new String[] { PermissionRequest.RESOURCE_AUDIO_CAPTURE });
+                        } else {
+                            if (pendingWebPermissionRequest != null) pendingWebPermissionRequest.deny();
+                            pendingWebPermissionRequest = request;
+                            requestPermissions(new String[] { Manifest.permission.RECORD_AUDIO }, MICROPHONE_PERMISSION_REQUEST);
+                        }
+                    });
+                }
+
                 @Override
                 public boolean onShowFileChooser(
                     WebView view,
@@ -58,6 +88,19 @@ public class MainActivity extends BridgeActivity {
             });
         }
         dispatchWhatsAppIntent(getIntent());
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != MICROPHONE_PERMISSION_REQUEST || pendingWebPermissionRequest == null) return;
+        PermissionRequest request = pendingWebPermissionRequest;
+        pendingWebPermissionRequest = null;
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            request.grant(new String[] { PermissionRequest.RESOURCE_AUDIO_CAPTURE });
+        } else {
+            request.deny();
+        }
     }
 
     @Override
@@ -105,6 +148,10 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onDestroy() {
+        if (pendingWebPermissionRequest != null) {
+            pendingWebPermissionRequest.deny();
+            pendingWebPermissionRequest = null;
+        }
         if (pendingFileCallback != null) {
             pendingFileCallback.onReceiveValue(null);
             pendingFileCallback = null;
