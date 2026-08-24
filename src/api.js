@@ -5,21 +5,41 @@ export function refreshBase() {}
 
 // ─── Server API helpers ───
 
+// A stalled request used to keep the whole SPA on the loading screen forever.
+// Keep the timeout at the transport layer so reads and writes fail visibly
+// instead of leaving callers waiting indefinitely.
+const SERVER_REQUEST_TIMEOUT_MS = 12_000;
+
 async function serverReq(method, collection, id, body) {
   const base = getBase();
   let url = base + '/' + collection;
   if (id) url += '/' + id;
   const opts = { method, headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN } };
   if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(url, opts);
-  if (!res.ok) {
-    const message = await res.text();
-    const error = new Error(message || `Server responded with ${res.status}`);
-    error.status = res.status;
-    error.url = url;
-    throw error;
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), SERVER_REQUEST_TIMEOUT_MS) : null;
+  try {
+    const res = await fetch(url, controller ? { ...opts, signal: controller.signal } : opts);
+    if (!res.ok) {
+      const message = await res.text();
+      const error = new Error(message || `Server responded with ${res.status}`);
+      error.status = res.status;
+      error.url = url;
+      throw error;
+    }
+    return res.json();
+  } catch (cause) {
+    if (cause?.name === 'AbortError') {
+      const error = new Error(`Tiempo de espera agotado al consultar ${collection}.`);
+      error.code = 'ETIMEDOUT';
+      error.status = 408;
+      error.url = url;
+      throw error;
+    }
+    throw cause;
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
-  return res.json();
 }
 
 async function getServerVersion() {
@@ -59,35 +79,62 @@ let lastCloudSyncStatus = {
   completedAt: null,
 };
 
+let cloudSyncPromise = null;
+
 export function getCloudSyncStatus() {
   return { ...lastCloudSyncStatus, failedCollections: [...lastCloudSyncStatus.failedCollections] };
 }
 
-export async function refreshAllFromServer() {
-  const failures = [];
-  for (const col of CLOUD_COLLECTIONS) {
-    try {
-      const serverData = await serverReq('GET', col);
-      if (Array.isArray(serverData)) {
-        setCollectionData(col, serverData);
-      } else {
-        const error = new Error('El servidor devolvió una colección inválida');
-        error.status = 502;
-        throw error;
+export async function refreshAllFromServer(collections = CLOUD_COLLECTIONS) {
+  // Prevent the 15-second poller from starting a second full sync while a
+  // slower one is still in flight. The same promise is safe for startup,
+  // polling and manual refreshes.
+  if (cloudSyncPromise) return cloudSyncPromise;
+
+  cloudSyncPromise = (async () => {
+    // Requests are independent reads. Fetch them together, but only replace a
+    // local collection after that collection returned a valid array. A failed
+    // collection therefore never erases the last valid in-memory value.
+    const requestedCollections = Array.isArray(collections) && collections.length
+      ? [...new Set(collections.filter(collection => CLOUD_COLLECTIONS.includes(collection)))]
+      : CLOUD_COLLECTIONS;
+    const outcomes = await Promise.all(requestedCollections.map(async collection => {
+      try {
+        const serverData = await serverReq('GET', collection);
+        if (!Array.isArray(serverData)) {
+          const error = new Error('El servidor devolvió una colección inválida');
+          error.status = 502;
+          throw error;
+        }
+        setCollectionData(collection, serverData);
+        return { collection, ok: true };
+      } catch (e) {
+        return {
+          collection,
+          ok: false,
+          status: e.status || null,
+          message: e.message || 'Error de sincronización',
+        };
       }
-    } catch (e) {
-      failures.push({ collection: col, status: e.status || null, message: e.message || 'Error de sincronización' });
-    }
+    }));
+
+    const failures = outcomes.filter(item => !item.ok);
+    const firstFailure = failures.find(item => [401, 403].includes(item.status)) || failures[0] || null;
+    lastCloudSyncStatus = {
+      ok: failures.length === 0,
+      status: firstFailure?.status || null,
+      error: firstFailure?.message || null,
+      failedCollections: failures.map(item => item.collection),
+      completedAt: new Date().toISOString(),
+    };
+    return lastCloudSyncStatus.ok;
+  })();
+
+  try {
+    return await cloudSyncPromise;
+  } finally {
+    cloudSyncPromise = null;
   }
-  const firstFailure = failures[0] || null;
-  lastCloudSyncStatus = {
-    ok: failures.length === 0,
-    status: firstFailure?.status || null,
-    error: firstFailure?.message || null,
-    failedCollections: failures.map(item => item.collection),
-    completedAt: new Date().toISOString(),
-  };
-  return lastCloudSyncStatus.ok;
 }
 
 // ─── Data version polling: reload page when data changes on server ───

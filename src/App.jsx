@@ -87,11 +87,14 @@ function PrivateApp() {
     // Fetch ALL data from server on startup (cloud-first)
     (async function startup() {
       let cloudSyncOk = false;
+      let collectionsToSync = undefined;
       for (let i = 0; i < 3; i++) {
         try {
-          cloudSyncOk = await refreshAllFromServer();
+          cloudSyncOk = await refreshAllFromServer(collectionsToSync);
           if (cloudSyncOk) break;
         } catch (e) { console.warn('Cloud startup attempt ' + (i+1) + ' failed'); }
+        const failedCollections = getCloudSyncStatus().failedCollections;
+        collectionsToSync = failedCollections.length ? failedCollections : undefined;
         if (i < 2) await new Promise(r => setTimeout(r, 5000));
       }
       const syncStatus = getCloudSyncStatus();
@@ -106,8 +109,6 @@ function PrivateApp() {
         setCloudError(syncStatus.status === 503
           ? 'Render está activo, pero la base de datos todavía no está lista o no responde.'
           : 'No se pudieron sincronizar los datos de la base de datos.');
-      } else {
-        await syncCallScreening();
       }
       setLoading(false);
       if (cloudSyncOk) {
@@ -115,6 +116,10 @@ function PrivateApp() {
         startCloudPolling(15000);
         // Auto-reload cuando otro cliente hace cambios
         startDataVersionPolling(3000);
+        // Caller screening is useful but not required to render the dashboard.
+        // Run it after the first screen is available so Android does not make
+        // the user wait for native contact synchronization.
+        void syncCallScreening();
       }
       // Load theme preference from server
       try { await loadThemeFromServer(); } catch (e) { /* ignore */ }
