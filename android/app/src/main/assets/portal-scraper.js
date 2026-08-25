@@ -968,9 +968,16 @@
     const total = uiAmountForLabel(source, /^(?:total\s+a\s+pagar|deuda\s+total|total\s+por\s+pagar)$/i)
       ?? fallbackTotal
       ?? null;
+    // Air-e calls this balance “Estado de Cuenta”. It is not a financed
+    // agreement, but it is the accumulated part of the account total. The
+    // standardized Laujim report needs that residual so it does not display
+    // a misleading $0 when Total a Pagar is greater than Total Mes.
+    const convenio = month !== null && total !== null && total > month
+      ? total - month
+      : 0;
     return {
       month: month ?? (total === 0 ? 0 : null),
-      convenio: 0,
+      convenio,
       total,
     };
   }
@@ -1006,20 +1013,48 @@
     return String(text || '').match(/((?:AP|Casa)\s*\d{3})\s*(?:[-\u2013\u2014:\u2022\u00b7]\s*)?(\d{4,})/i);
   }
 
+  function waterPolicyPairs(text) {
+    const source = String(text || '').replace(/\u00a0/g, ' ');
+    const pattern = /((?:AP|Casa)\s*\d{3})\s*(?:[-\u2013\u2014:\u2022\u00b7]\s*|\s+)(\d{4,})/gi;
+    const pairs = [];
+    const seen = new Set();
+    let match;
+    while ((match = pattern.exec(source))) {
+      const code = digits(match[2]);
+      if (!code || seen.has(code)) continue;
+      seen.add(code);
+      pairs.push({ name: match[1].replace(/\s+/g, ' ').trim(), code });
+    }
+    return pairs;
+  }
+
   function waterPolicyMenuItems() {
-    return Array.from(document.querySelectorAll('[role="menuitem"], [role="option"]'))
+    // Triple A currently renders the drop-down entries as plain MUI divs on
+    // Android. They do not have role=option/menuitem, so the old selector
+    // returned an empty list even though the entries were on screen.
+    const selectors = '[role="menuitem"], [role="option"], [role="menuitemradio"], li, button, [role="button"], a, div, span';
+    const candidates = Array.from(document.querySelectorAll(selectors))
       .filter(domAvailable)
-      .map(element => {
-        const text = uiText(element);
-        const match = portalPair(text);
-        return match ? {
-          element,
-          text,
-          name: match[1],
-          code: digits(match[2]),
-        } : null;
-      })
-      .filter(Boolean);
+      .map(element => ({
+        element,
+        text: uiText(element).replace(/\s+/g, ' ').trim(),
+        descendants: element.querySelectorAll('*').length,
+        hasArrow: !!element.querySelector('.material-icons, [class*="arrow-down"], [class*="ri-arrow-down"]'),
+      }))
+      .filter(item => item.text && item.text.length < 180 && !item.hasArrow)
+      .flatMap(item => waterPolicyPairs(item.text).map(pair => ({ ...item, ...pair })));
+
+    const bestByCode = new Map();
+    for (const candidate of candidates) {
+      const current = bestByCode.get(candidate.code);
+      // Prefer an actual menu control over a nested text span, then prefer
+      // the smallest element so clicking it reaches the portal handler.
+      const semantic = /^(LI|BUTTON|A)$/.test(candidate.element.tagName)
+        || candidate.element.getAttribute('role');
+      const score = (semantic ? 0 : 1) * 100000 + candidate.descendants;
+      if (!current || score < current.score) bestByCode.set(candidate.code, { ...candidate, score });
+    }
+    return [...bestByCode.values()].map(({ score, ...item }) => item);
   }
 
   function waterPolicySelectorTrigger() {
@@ -1071,13 +1106,16 @@
       records.push({ name, code, address, status: cells[6] || '' });
     }
     if (!records.length) {
-      const candidates = Array.from(document.querySelectorAll('p, li, [role="cell"]')).filter(domAvailable).map(uiText)
-        .concat(uiLines(uiBodyText()));
+      const candidates = Array.from(document.querySelectorAll('p, li, [role="cell"], div, span'))
+        .filter(domAvailable)
+        .map(uiText)
+        .concat(uiLines(uiBodyText()), [uiBodyText()]);
       for (const value of candidates) {
-        const match = portalPair(value);
-        if (!match || seen.has(digits(match[2]))) continue;
-        seen.add(digits(match[2]));
-        records.push({ name: match[1], code: digits(match[2]), address: '', status: '' });
+        for (const pair of waterPolicyPairs(value)) {
+          if (seen.has(pair.code)) continue;
+          seen.add(pair.code);
+          records.push({ name: pair.name, code: pair.code, address: '', status: '' });
+        }
       }
     }
     return records;

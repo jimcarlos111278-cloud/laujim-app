@@ -1752,7 +1752,16 @@ function utilityQuotaAmount(record) {
 function cloudServiceAmounts(record) {
   const month = utilityMonthDebtAmount(record);
   const total = utilityDebtAmount(record);
-  const financed = utilityFinancedAmount(record);
+  const explicitFinanced = utilityFinancedAmount(record);
+  // Air-e calls the accumulated portion “Estado de Cuenta”, not a
+  // financing plan. The report nevertheless has one standardized secondary
+  // column, so derive that residual for Air-e instead of rendering a false
+  // $0 when Total a Pagar is greater than Total Mes. Other providers keep the
+  // portal's explicit financing value untouched.
+  const financed = utilityProviderKey(record?.provider) === 'air-e'
+    && month !== null && total !== null && total > month
+    ? total - month
+    : explicitFinanced;
   const quota = utilityQuotaAmount(record);
   return {
     month,

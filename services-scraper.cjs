@@ -3469,18 +3469,27 @@ function aggregateAirEInvoices(items) {
     const financedValues = rows.map(row => row.financed).filter(value => value !== null);
     const quotaValues = rows.map(row => row.quota).filter(value => value !== null);
     const financingPayload = portalFinancingSummary(group.invoices);
+    const monthTotal = monthValues.length ? monthValues.reduce((sum, amount) => sum + amount, 0) : null;
+    const explicitFinanced = financedValues.length
+      ? Math.max(...financedValues)
+      : (financingPayload.financiadaCOP ?? null);
+    // The Air-e receipt exposes the non-current part as “Estado de Cuenta”.
+    // It is not a financing plan, but the unified three-column report still
+    // needs the residual between Total a Pagar and Total Mes. Keep explicit
+    // financing when the portal supplies it; otherwise derive that residual.
+    const accountResidual = debt !== null && monthTotal !== null && debt > monthTotal
+      ? debt - monthTotal
+      : 0;
     const factura = portalFieldValue(latest?.invoice, ['invoiceNumber', 'invoiceId', 'factura', 'id']) || null;
     return [nic, {
       debt,
       source: hasTotalField ? 'Deuda Total' : 'SaldoConsulta',
-      deudaMesCOP: monthValues.length ? monthValues.reduce((sum, amount) => sum + amount, 0) : null,
+      deudaMesCOP: monthTotal,
       deudaTotalCOP: debt,
       numFacturas: group.invoices.length,
       factura,
       periodo: portalFieldValue(latest?.invoice, ['invoiceDate', 'billingPeriod', 'periodo', 'fechaFactura']) || null,
-      // Air-e's Estado de Cuenta is accumulated debt, not a convenio. Only
-      // explicit financing fields belong in this column.
-      financiadaCOP: financedValues.length ? Math.max(...financedValues) : (financingPayload.financiadaCOP ?? 0),
+      financiadaCOP: explicitFinanced && explicitFinanced > 0 ? explicitFinanced : accountResidual,
       cuotaFinanciadaCOP: quotaValues.length ? Math.max(...quotaValues) : financingPayload.cuotaFinanciadaCOP,
       financiacion: financingPayload.financiacion,
     }];
