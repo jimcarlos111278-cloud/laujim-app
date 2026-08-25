@@ -896,31 +896,41 @@
   }
 
   function uiSectionText(text, heading, nextHeading) {
-    const lines = uiLines(text);
-    const start = lines.findIndex(line => heading.test(line));
-    if (start < 0) return '';
-    const end = nextHeading
-      ? lines.findIndex((line, index) => index > start && nextHeading.test(line))
-      : -1;
-    return lines.slice(start, end > start ? end : lines.length).join('\n');
+    const source = String(text || '');
+    const flags = pattern => String(pattern.flags || '').replace(/g/g, '');
+    const startPattern = new RegExp(heading.source, flags(heading));
+    const startMatch = startPattern.exec(source);
+    if (!startMatch) return '';
+    const start = startMatch.index;
+    if (!nextHeading) return source.slice(start);
+    const endPattern = new RegExp(nextHeading.source, flags(nextHeading));
+    endPattern.lastIndex = start + startMatch[0].length;
+    const endMatch = endPattern.exec(source);
+    return source.slice(start, endMatch ? endMatch.index : source.length);
   }
 
   function detailedUiDebt(text, fallbackAmount) {
     const source = String(text || '');
     // Keep each card isolated. Looking through a large character window can
     // accidentally use the financing card's balance as the monthly debt.
-    const currentSection = uiSectionText(source, /^(?:deuda\s+actual|facturas?\s+pendientes)$/i, /^(?:deuda\s+financiada|deuda\s+diferida)$/i);
-    const financingSection = uiSectionText(source, /^(?:deuda\s+financiada|deuda\s+diferida)$/i);
-    const month = uiAmountForLabel(currentSection, /^(?:saldo\s+total|total\s+a\s+pagar)$/i)
-      ?? uiAmountNearHeading(source, /deuda\s+actual|facturas?\s+pendientes/i)
+    const currentSection = uiSectionText(source, /deuda\s+actual|facturas?\s+pendientes/i, /deuda\s+financiada|deuda\s+diferida/i);
+    const financingSection = uiSectionText(source, /deuda\s+financiada|deuda\s+diferida/i);
+    const month = uiAmountForLabel(currentSection, /saldo\s+total|total\s+a\s+pagar/i)
+      ?? uiAmountNearHeading(currentSection, /deuda\s+actual|facturas?\s+pendientes/i)
       ?? uiAmountAfter(source, 'total a pagar');
-    const convenio = uiAmountForLabel(financingSection, /^(?:saldo\s+por\s+facturar|saldo\s+total|valor\s+total)$/i)
-      ?? uiAmountNearHeading(source, /deuda\s+(?:financiada|diferida)|convenio|financiaci[oó]n/i);
-    const total = uiAmountForLabel(source, /^saldo\s+total$/i)
-      ?? uiAmountNearHeading(source, /saldo\s+total/i)
-      ?? uiAmountAfter(source, 'total a pagar')
-      ?? fallbackAmount
-      ?? null;
+    const convenio = uiAmountForLabel(financingSection, /saldo\s+por\s+facturar|saldo\s+total|valor\s+total/i)
+      ?? uiAmountNearHeading(financingSection, /deuda\s+(?:financiada|diferida)|convenio|financiaci[oó]n/i);
+    const currentTotal = uiAmountForLabel(currentSection, /saldo\s+total|total\s+a\s+pagar/i)
+      ?? uiAmountNearHeading(currentSection, /saldo\s+total|total\s+a\s+pagar/i);
+    // The portal renders the current bill and deferred balance in separate
+    // cards. Its individual “Saldo total” labels are not the account total;
+    // combine the two only after each card has been parsed independently.
+    const total = month !== null && convenio !== null
+      ? month + convenio
+      : currentTotal
+        ?? uiAmountAfter(source, 'total a pagar')
+        ?? fallbackAmount
+        ?? null;
     return {
       month,
       convenio,
@@ -1276,7 +1286,10 @@
     // amount. The historical amount is not current debt.
     const receiptAmount = uiAmountAfter(source, 'total a pagar') ?? uiAmountAfter(source, 'pagado');
     const detailed = detailedUiDebt(source, receiptAmount);
-    const paidByText = /estas\s+al\s+dia|al\s+dia|sin\s+deuda|pagad[oa]|pago\s+realizad[oa]/.test(normalized);
+    const currentSection = uiSectionText(source, /deuda\s+actual|facturas?\s+pendientes/i, /deuda\s+financiada|deuda\s+diferida/i);
+    const statusSource = clean(currentSection || source);
+    const paidByText = /estas\s+al\s+dia|al\s+dia|sin\s+deuda|pagad[oa]|pago\s+realizad[oa]/.test(statusSource)
+      && !/saldo\s+total\s*\$\s*[1-9]/.test(statusSource);
     const amount = paidByText ? 0 : (detailed.total ?? receiptAmount);
     return {
       contract: contractMatch ? contractMatch[1] : null,
@@ -1573,11 +1586,19 @@
     const financing = financingSummary(financingPayloads.length ? financingPayloads : (debtPayload || invoicesResponse.payload));
     const convenio = financing.financiadaCOP ?? (financingPayloads.length ? 0 : null);
     const invoiceTotal = invoiceSummary.deudaTotalCOP ?? invoiceSummary.deudaMesCOP;
-    const combinedTotal = total ?? (
-      convenio !== null && invoiceTotal !== null ? invoiceTotal + convenio : invoiceTotal
-    );
+    const month = invoiceSummary.deudaMesCOP ?? debtMonth;
+    const currentTotal = invoiceTotal ?? month ?? total;
+    const expectedCombined = convenio !== null && currentTotal !== null
+      ? currentTotal + convenio
+      : currentTotal;
+    // Triple A's debt endpoint reports the current billed balance while the
+    // deferred-debt endpoint reports the agreement balance. Only keep the
+    // endpoint total as-is when it already includes both amounts.
+    const combinedTotal = convenio !== null && convenio > 0 && total !== null && total >= expectedCombined
+      ? total
+      : expectedCombined;
     return {
-      deudaMesCOP: debtMonth ?? invoiceSummary.deudaMesCOP,
+      deudaMesCOP: month,
       deudaConveniosCOP: convenio,
       deudaTotalCOP: combinedTotal,
       numFacturas: invoiceSummary.numFacturas,
@@ -1621,11 +1642,10 @@
       'deudaActual', 'currentBalance', 'balanceCurrent', 'totalMes', 'totalMesSinTasa',
     ]) ?? amountFromKeyPattern(rows[0], /(?:deudames|monthdebt|monthly|currentdebt|currentinvoice|invoicevalue|valormes|totalmes|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i) : null);
     const financing = financingSummary(response.payload);
-    const total = explicitTotal ?? (
-      month !== null && financing.financiadaCOP !== null
-        ? month + financing.financiadaCOP
-        : month
-    );
+    const currentTotal = explicitTotal ?? month;
+    const total = financing.financiadaCOP !== null && financing.financiadaCOP > 0 && month !== null
+      ? Math.max(currentTotal ?? 0, month + financing.financiadaCOP)
+      : currentTotal;
     return {
       deudaTotalCOP: total,
       deudaMesCOP: month,

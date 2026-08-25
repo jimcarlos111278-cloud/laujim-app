@@ -1051,7 +1051,9 @@ async function queryRenderedGasContract(page, code) {
     const amount = Number.isFinite(rawAmount) ? rawAmount : (paidByText ? 0 : null);
     const invoiceMatch = body.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
     const dueMatch = body.match(/vence[^.]{0,40}/i);
-    return { amount, total: amount, month: month ?? amount, convenio: convenio ?? 0, invoice: invoiceMatch?.[1] || null, dueDate: dueMatch?.[0] || null };
+    const current = month ?? amount;
+    const total = current !== null && convenio !== null ? current + convenio : amount;
+    return { amount: total, total, month: current, convenio: convenio ?? 0, invoice: invoiceMatch?.[1] || null, dueDate: dueMatch?.[0] || null };
   }, RENDERED_PORTAL_TIMEOUT_MS, String(code));
   if (parsed?.challenge) return { status: 'captcha', deudaCOP: null, error: 'Gases del Caribe mostro una verificacion durante la consulta.' };
   if (!parsed || parsed.amount === null) return { status: 'error', deudaCOP: null, error: `Gases del Caribe no mostro el total del contrato ${code}.` };
@@ -2186,14 +2188,19 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
   const financing = portalFinancingSummary(financingPayloads.length ? financingPayloads : (debtPayload || invoicePayload));
   const convenio = financing.financiadaCOP;
   const invoiceTotal = invoiceSummary.deudaTotalCOP ?? invoiceSummary.deudaMesCOP;
+  const month = invoiceSummary.deudaMesCOP ?? debtMonth;
   // Triple A exposes deferred/convenio balances in a separate route. When
-  // the ordinary debt route is unavailable, combine that balance with the
-  // invoice balance instead of silently presenting the invoice as the total.
-  const combinedTotal = debtTotal ?? (
-    convenio !== null && invoiceTotal !== null ? invoiceTotal + convenio : invoiceTotal
-  );
+  // the ordinary debt route returns only the current invoice, combine that
+  // balance with the deferred agreement instead of silently dropping it.
+  const currentTotal = invoiceTotal ?? month ?? debtTotal;
+  const expectedCombined = convenio !== null && currentTotal !== null
+    ? currentTotal + convenio
+    : currentTotal;
+  const combinedTotal = convenio !== null && convenio > 0 && debtTotal !== null && debtTotal >= expectedCombined
+    ? debtTotal
+    : expectedCombined;
   return {
-    deudaMesCOP: debtMonth ?? invoiceSummary.deudaMesCOP,
+    deudaMesCOP: month,
     deudaConveniosCOP: convenio,
     deudaTotalCOP: combinedTotal,
     numFacturas: invoiceSummary.numFacturas,
