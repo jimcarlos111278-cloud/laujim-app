@@ -492,6 +492,8 @@
       'financedDebt', 'deudaFinanciada', 'saldoFinanciado', 'valorFinanciado',
       'financingValue', 'financedAmount', 'amountFinanced', 'totalFinanced',
       'totalFinancing', 'montoFinanciado', 'saldoDeudaFinanciada',
+      'financedBalance', 'balanceFinanced', 'debtFinanced', 'deferredDebt',
+      'deudaDiferida', 'saldoConvenio', 'deudaConvenio', 'saldoPorFacturar',
     ]);
     const explicitQuota = amountFromFields(payload, [
       'quotaValue', 'cuotaValue', 'cuotaFinanciada', 'installmentValue',
@@ -500,9 +502,9 @@
     const rows = [];
     objectRecords(payload).forEach(record => {
       const text = Object.entries(record).map(([key, value]) => `${key}:${typeof value === 'object' ? '' : String(value || '')}`).join(' ');
-      if (!/financ|refinanc|diferid|cuota|acuerdo|convenio|plan\s+de\s+pago|brilla/i.test(text)) return;
-      const amount = amountFromFields(record, ['pendingBalance', 'saldoPendiente', 'saldoPorFacturar', 'totalValue', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'balance', 'amount', 'value', 'financingValue', 'financedAmount']);
-      const quota = amountFromFields(record, ['quotaValue', 'cuotaValue', 'installmentValue', 'monthlyQuota', 'valorCuota']);
+      if (!/financ|refinanc|diferid|cuota|acuerdo|convenio|plan\s+de\s+pago|brilla|saldoPorFacturar|saldoFinanciado|debtFinanc|deferred/i.test(text)) return;
+      const amount = amountFromFields(record, ['pendingBalance', 'saldoPendiente', 'saldoPorFacturar', 'totalValue', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'balance', 'amount', 'value', 'financingValue', 'financedAmount', 'financedBalance', 'balanceFinanced', 'debtFinanced', 'deferredDebt', 'deudaDiferida', 'saldoConvenio', 'deudaConvenio']);
+      const quota = amountFromFields(record, ['quotaValue', 'cuotaValue', 'installmentValue', 'monthlyQuota', 'valorCuota', 'nextPayment', 'proximoPago', 'nextInstallment', 'cuotaProxima']);
       if (amount === null && quota === null) return;
       const label = field(record, ['conceptDescription', 'productDescription', 'description', 'concept', 'name', 'type', 'status']);
       const key = `${amount ?? ''}|${quota ?? ''}|${String(label || '')}`;
@@ -540,7 +542,7 @@
       })
       : unpaid.slice(0, 1);
     const rows = current.length ? current : unpaid.slice(0, 1);
-    const monthValues = rows.map(invoice => amountFromFields(invoice, ['monthValue', 'monthlyValue', 'valorMes', 'deudaMes', 'invoiceValue', 'valorFactura', 'amountDue', 'pendingValue', 'pendingAmount', 'totalToPay'])).filter(value => value !== null);
+    const monthValues = rows.map(invoice => amountFromFields(invoice, ['monthValue', 'monthlyValue', 'valorMes', 'deudaMes', 'invoiceValue', 'valorFactura', 'currentInvoiceAmount', 'currentAmount', 'saldoActual', 'saldoDeudaActual', 'deudaActual', 'currentBalance', 'balanceCurrent', 'amountDue', 'pendingValue', 'pendingAmount', 'totalToPay'])).filter(value => value !== null);
     const totalValues = unpaid.map(invoice => amountFromFields(invoice, ['totalValue', 'pendingBalance', 'pendingValue', 'totalToPay', 'amountDue', 'totalDebt', 'deudaTotal', 'balanceDue', 'balance', 'amount', 'value'])).filter(value => value !== null);
     return {
       deudaMesCOP: monthValues.length ? monthValues.reduce((sum, value) => sum + value, 0) : null,
@@ -1244,8 +1246,6 @@
       `/bff/debts/subscription/${encodeURIComponent(String(id))}`,
       `/bff/debt/subscription/${encodeURIComponent(String(id))}`,
       `/bff/subscriptions/${encodeURIComponent(String(id))}/debt`,
-      `/bff/deferred-debts/subscription/${encodeURIComponent(String(id))}`,
-      `/bff/financing/subscription/${encodeURIComponent(String(id))}`,
     ]) {
       const response = await jsonWithAuthFallback(url, token, { headers });
       debtEndpointStatus = response.status || 0;
@@ -1256,6 +1256,14 @@
       }
       if (![404, 405].includes(Number(response.status))) break;
     }
+    const financingPayloads = [];
+    for (const url of [
+      `/bff/deferred-debts/subscription/${encodeURIComponent(String(id))}`,
+      `/bff/financing/subscription/${encodeURIComponent(String(id))}`,
+    ]) {
+      const response = await jsonWithAuthFallback(url, token, { headers });
+      if (response.ok) financingPayloads.push(response.payload);
+    }
     const debtRows = debtPayload ? list(debtPayload, ['debts', 'items']) : [];
     const total = debtPayload && !/deferred|financ/i.test(debtRoute)
       ? amountFromFields(debtPayload, ['totalDebts', 'totalDebt', 'deudaTotal', 'totalPending', 'totalPendingDebt', 'totalDebtValue'])
@@ -1264,10 +1272,12 @@
     const debtMonth = debtPayload && !/deferred|financ/i.test(debtRoute)
       ? amountFromFields(debtPayload, [
         'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
-        'currentInvoice', 'currentInvoiceValue', 'invoiceValue', 'valorMes', 'valorFactura',
+        'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
+        'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
+        'deudaActual', 'currentBalance', 'balanceCurrent',
       ])
       : null;
-    const financing = financingSummary(debtPayload || invoicesResponse.payload);
+    const financing = financingSummary(financingPayloads.length ? financingPayloads : (debtPayload || invoicesResponse.payload));
     const convenio = financing.financiadaCOP;
     const invoiceTotal = invoiceSummary.deudaTotalCOP ?? invoiceSummary.deudaMesCOP;
     const combinedTotal = total ?? (
@@ -1301,10 +1311,14 @@
       ?? (rows.length ? rows.map(row => amountFromFields(row, ['pendingBalance', 'saldoPendiente', 'saldoPorFacturar', 'totalValue', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'totalToPay', 'amount', 'value'])).filter(value => value !== null).reduce((sum, value) => sum + value, 0) : null);
     const month = amountFromFields(response.payload, [
       'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
-      'currentInvoice', 'currentInvoiceValue', 'invoiceValue', 'valorMes', 'valorFactura',
+      'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
+      'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
+      'deudaActual', 'currentBalance', 'balanceCurrent',
     ]) ?? (rows.length ? amountFromFields(rows[0], [
       'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
-      'currentInvoice', 'currentInvoiceValue', 'invoiceValue', 'valorMes', 'valorFactura',
+      'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
+      'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
+      'deudaActual', 'currentBalance', 'balanceCurrent',
     ]) : null);
     const financing = financingSummary(response.payload);
     const total = explicitTotal ?? (

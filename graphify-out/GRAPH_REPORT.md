@@ -1,16 +1,16 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-08-24)
 
 ## Corpus Check
-- 796 files · ~1,546,142 words
+- 810 files · ~1,596,274 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 12708 nodes · 34170 edges · 742 communities (647 shown, 95 thin omitted)
-- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 4612 edges (avg confidence: 0.55)
+- 13988 nodes · 39384 edges · 768 communities (671 shown, 97 thin omitted)
+- Extraction: 85% EXTRACTED · 15% INFERRED · 0% AMBIGUOUS · INFERRED: 5999 edges (avg confidence: 0.55)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `fd251f0d`
+- Built from commit: `abbb88bf`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -44,14 +44,14 @@
 - runPaymentReminders
 - public/manifest.json
 - sync-aiven-before-push.cjs
-- sendCloudGlobalServices
+- colombiaDate
 - graphify.js
 - app.n-Q1onEc.js
 - devDependencies
 - scripts
 - backup.js
-- Plugin
-- playwright-cli.js
+- BackgroundNotificationService
+- playwright-cli/package.json
 - worker-protocol.cjs
 - playwright
 - android/app/src/main/assets/portal-scraper.js
@@ -124,9 +124,9 @@
 - plugins/ponytail/benchmarks/robustness-audit.js
 - android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/assets/portal-scraper.js
 - test-water-scraper.cjs
-- Activity
+- BridgeActivity
 - Commands
-- app.CkctgRqo.js
+- .vite-build-debt-check/assets/app.CkctgRqo.js
 - Browser Automation with playwright-cli
 - Plantillas de WhatsApp Cloud de Laujim
 - _scrape-diagnostic.cjs
@@ -161,7 +161,7 @@
 - react-dom
 - Local Storage
 - ScraperWorkerService
-- i
+- s
 - Browser Session Management
 - react-router-dom
 - uninstall.test.js
@@ -259,7 +259,7 @@
 - ScraperWorkerStore
 - integration.spec.ts
 - react-countdown.md
-- n
+- r
 - plugins/ponytail/benchmarks/correctness.js
 - plugins/ponytail/__init__.py
 - plugins/ponytail/benchmarks/agentic/complete.py
@@ -350,7 +350,7 @@
 - MarketplaceBrowserActivity
 - plugins/ponytail/examples/react-countdown.md
 - MarketplaceBrowserActivity
-- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- mu
 - startServer
 - node-cron
 - plugins/ponytail/after-install.md
@@ -441,8 +441,8 @@
 - MarketplacePhotoUtils
 - MainActivity
 - android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java
-- n
-- android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- k
+- .vite-build-debt-fix-check/assets/app.CkctgRqo.js
 - AuthorizedSmsStore
 - PaymentWatcherPlugin
 - android-build-1.0.49-53f0a1b4b18c41cf84673f3ee5d245e3/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
@@ -506,14 +506,14 @@
 - MarketplaceWorkerSchedule
 - android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java
 - android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java
-- scrapeAirE
+- r
 - @capacitor/local-notifications
 - ScraperWorkerService
 - android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
 - MarketplaceWorkerDispatcher
 - android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
 - android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/gradlew
-- r
+- n
 - ScraperWorkerStore
 - MarketplaceBrowserActivity
 - ScraperWorkerService
@@ -526,7 +526,7 @@
 - MarketplaceWorkerService
 - PortalBrowserActivity
 - PortalBrowserActivity
-- PortalBrowserActivity
+- Activity
 - android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/assets/marketplace-worker.js
 - android-build-1.0.52-clean-a906a14d01ad4065a522ce1af558e7d7/android/app/src/main/assets/marketplace-worker.js
 - android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/assets/marketplace-worker.js
@@ -557,7 +557,7 @@
 - AuthorizedSmsStore
 - u
 - AuthorizedSmsStore
-- r
+- Iu
 - AuthorizedSmsStore
 - android-build-1.0.53-clean-37726f90c6a24096a75a3cc29113239b/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
 - android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MarketplaceQueueWorker.java
@@ -603,45 +603,45 @@
 - s
 - .onReceive
 - .onReceive
-- @capacitor/cli
-- get
+- s
+- r
 - cors
 - index.es.DpXJBi4-.js
 - @capacitor/core
 - index.es.dZBL6Fw2.js
-- t
-- index.es.BmM-oV_B.js
-- c1
-- render
-- render
-- k
-- So
-- So
-- Iu
-- mu
-- render
-- i
-- constructor
-- path
 - tc
+- .vite-build-debt-check/assets/index.es.BmM-oV_B.js
+- So
+- render
+- render
+- n
+- So
+- c1
+- mu
+- wd
+- render
+- constructor
+- sendCloudGlobalServices
+- path
+- t
 - path
 - path
 - mu
 - web.BTrR7Yah.js
 - web.D-yGWM8z.js
-- mu
+- dexie
 - web.CSAZT7uM.js
 - web.CYCpFGMd.js
 - web.C0JHHk59.js
 - web.DK4TiQhG.js
 - web.BeTYDb81.js
-- c1
-- web.DXGH8c6E.js
-- hc
-- web.byj_Pjm6.js
-- renderChildren
 - er
-- constructor
+- web.DXGH8c6E.js
+- t
+- web.byj_Pjm6.js
+- apply
+- c1
+- n
 - Utilities.jsx
 - constructor
 - constructor
@@ -655,13 +655,13 @@
 - .vite-build-check/manifest.json
 - .vite-build-debt-check/manifest.json
 - er
-- esm.BJRuCHhI.js
+- .vite-build-debt-fix-check/assets/index.es.BmM-oV_B.js
 - n
 - n
-- activeContractForApartment
-- scrapeGasFromRenderedUi
-- Predial.jsx
-- @capacitor/android
+- t
+- So
+- render
+- mu
 - @capacitor/share
 - express
 - ffmpeg-static
@@ -673,39 +673,65 @@
 - .vite-build-check-2/sw.js
 - .vite-build-check/sw.js
 - .vite-build-debt-check/sw.js
+- constructor
+- path
+- wd
+- .vite-build-debt-fix-check/assets/web.C0JHHk59.js
+- .vite-build-debt-fix-check/assets/web.DK4TiQhG.js
+- .vite-build-debt-fix-check/assets/web.byj_Pjm6.js
+- android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java
+- playwright-cli.js
+- Iu
+- constructor
+- Iu
+- Ue
+- apply
+- .onCreate
+- .vite-build-debt-fix-check/manifest.json
+- Plugin
+- er
+- android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java
+- n
+- n
+- activeContractForApartment
+- Predial.jsx
+- JavascriptResultBridge
+- @capacitor/cli
+- .vite-build-debt-fix-check/sw.js
 
 ## God Nodes (most connected - your core abstractions)
 1. `n()` - 213 edges
 2. `n()` - 213 edges
 3. `n()` - 211 edges
-4. `r()` - 182 edges
+4. `n()` - 211 edges
 5. `r()` - 182 edges
-6. `r()` - 181 edges
-7. `t()` - 167 edges
-8. `t()` - 167 edges
+6. `r()` - 182 edges
+7. `r()` - 181 edges
+8. `r()` - 181 edges
 9. `t()` - 167 edges
-10. `i()` - 163 edges
+10. `t()` - 167 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `portalFrameRoots()` --indirect_call--> `frame()`  [INFERRED]
   services-scraper.cjs → .tmp/vendor/playwright-cli/skillCheck.js
-- `a1()` --indirect_call--> `w1()`  [INFERRED]
-  .vite-build-check-2/assets/app.DD3DVDW3.js → .vite-build-debt-check/assets/app.CkctgRqo.js
-- `c1()` --indirect_call--> `y1()`  [INFERRED]
-  .vite-build-check-2/assets/app.DD3DVDW3.js → .vite-build-debt-check/assets/app.CkctgRqo.js
-- `k1()` --indirect_call--> `w1()`  [INFERRED]
-  .vite-build-check-2/assets/app.DD3DVDW3.js → .vite-build-debt-check/assets/app.CkctgRqo.js
-- `y0()` --indirect_call--> `v0()`  [INFERRED]
-  .vite-build-check-2/assets/app.DD3DVDW3.js → .vite-build-debt-check/assets/app.CkctgRqo.js
+- `bo()` --indirect_call--> `Cn()`  [INFERRED]
+  .vite-build-check-2/assets/app.DD3DVDW3.js → .vite-build-check-2/assets/index.es.DpXJBi4-.js
+- `oq()` --indirect_call--> `jn()`  [INFERRED]
+  .vite-build-check-2/assets/app.DD3DVDW3.js → .vite-build-check-2/assets/index.es.DpXJBi4-.js
+- `oq()` --indirect_call--> `Mn()`  [INFERRED]
+  .vite-build-check-2/assets/app.DD3DVDW3.js → .vite-build-check-2/assets/index.es.DpXJBi4-.js
+- `oq()` --indirect_call--> `Pn()`  [INFERRED]
+  .vite-build-check-2/assets/app.DD3DVDW3.js → .vite-build-check-2/assets/index.es.DpXJBi4-.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (742 total, 95 thin omitted)
+## Communities (768 total, 97 thin omitted)
 
 ### Community 0 - "handleCloudAdminMessage"
-Cohesion: 0.21
-Nodes (31): cloudAdminGreeting(), cloudApartmentFloor(), cloudApartmentsForFloor(), cloudFindApartment(), cloudListSections(), cloudNormaliseText(), cloudServiceApartmentsForFloor(), dismissAutomaticPaymentEvent() (+23 more)
+Cohesion: 0.23
+Nodes (30): clearCloudAuthState(), cloudApartmentFloor(), cloudApartmentsForFloor(), cloudFindApartment(), cloudListSections(), cloudServiceApartmentsForFloor(), dismissAutomaticPaymentEvent(), failCloudAuthentication() (+22 more)
 
 ### Community 1 - "ApartmentDetail.jsx"
 Cohesion: 0.07
@@ -717,7 +743,7 @@ Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPl
 
 ### Community 3 - "server.cjs"
 Cohesion: 0.04
-Nodes (82): accessRateLimits, adminPasswordMatches(), app, BACKUP_DIR, BACKUP_FILE, buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildCloudServicesImageData() (+74 more)
+Nodes (85): accessRateLimits, adminPasswordMatches(), app, BACKUP_DIR, BACKUP_FILE, buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildCloudServicesImageData() (+77 more)
 
 ### Community 4 - "pre-whatsapp-bot/server.cjs"
 Cohesion: 0.08
@@ -732,8 +758,8 @@ Cohesion: 0.07
 Nodes (29): action, default_icon, default_popup, default_title, background, service_worker, content_scripts, 128 (+21 more)
 
 ### Community 7 - "startServer"
-Cohesion: 0.15
-Nodes (22): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudPeriodLabel(), cloudReady(), downloadCloudMedia() (+14 more)
+Cohesion: 0.16
+Nodes (21): archiveCloudInboundMedia(), cloudApiRequest(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudPeriodLabel(), cloudReady(), downloadCloudMedia() (+13 more)
 
 ### Community 8 - "dependencies"
 Cohesion: 0.09
@@ -745,7 +771,7 @@ Nodes (11): constantTimeEqual(), createAuthSession(), ensureAuthSessions(), getA
 
 ### Community 10 - "dependencies"
 Cohesion: 0.11
-Nodes (19): dependencies, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, dexie, express, pg, qrcode (+11 more)
+Nodes (19): dependencies, @capacitor/android, @capacitor/cli, @capacitor/local-notifications, @capacitor/share, express, pg, qrcode (+11 more)
 
 ### Community 11 - "vendor/ponytail/benchmarks/agentic/tasks.py"
 Cohesion: 0.17
@@ -768,8 +794,8 @@ Cohesion: 0.11
 Nodes (3): Context, SharedPreferences, ScraperWorkerStore
 
 ### Community 16 - "handleCloudInbound"
-Cohesion: 0.18
-Nodes (25): apartmentIdFromReference(), authorizedCloudContact(), blockCloudUser(), clearCloudAuthState(), cloudAdminPhones(), cloudInboundMedia(), cloudInteractiveReply(), ensureCloudCollections() (+17 more)
+Cohesion: 0.19
+Nodes (23): apartmentIdFromReference(), authorizedCloudContact(), blockCloudUser(), cloudAdminPhones(), cloudInboundMedia(), cloudInteractiveReply(), ensureCloudCollections(), getCloudAdminSession() (+15 more)
 
 ### Community 17 - "scripts"
 Cohesion: 0.20
@@ -796,8 +822,8 @@ Cohesion: 0.15
 Nodes (30): getCloudSyncStatus(), PrivateApp(), Layout(), navItems, initDB(), Settings(), BackgroundNotifications, configureBackgroundNotifications() (+22 more)
 
 ### Community 23 - "services-scraper.cjs"
-Cohesion: 0.07
-Nodes (34): AIR_E_NIC_MAP, AIR_E_URLS, BROWSERLESS_REGION, BROWSERLESS_SOLVE_CAPTCHAS, BROWSERLESS_STEALTH, BROWSERLESS_TIMEOUT_MS, BROWSERLESS_TOKENS, BROWSERLESS_WS_ENDPOINT (+26 more)
+Cohesion: 0.06
+Nodes (46): AIR_E_NIC_MAP, AIR_E_URLS, BROWSERLESS_PROFILES, BROWSERLESS_REGION, BROWSERLESS_SOLVE_CAPTCHAS, BROWSERLESS_STEALTH, BROWSERLESS_TIMEOUT_MS, BROWSERLESS_TOKENS (+38 more)
 
 ### Community 24 - "contractGenerator.js"
 Cohesion: 0.17
@@ -819,13 +845,13 @@ Nodes (13): background_color, categories, description, display, icons, productiv
 Cohesion: 0.24
 Nodes (9): collectionCount(), DATA_FILE, { execFileSync }, fs, localDataChanged(), path, { Pool }, ROOT (+1 more)
 
-### Community 29 - "sendCloudGlobalServices"
-Cohesion: 0.10
-Nodes (40): addCloudMessage(), buildAdminDebtReport(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), cloudApiRequest(), cloudCalendarDate(), cloudCapitalise(), cloudDateKey() (+32 more)
+### Community 29 - "colombiaDate"
+Cohesion: 0.09
+Nodes (39): addCloudMessage(), buildAdminDebtReport(), buildCloudDetailedGlobalServicesReport(), buildCloudGlobalServicesReport(), cloudApiRequest(), cloudCalendarDate(), cloudCapitalise(), cloudDateKey() (+31 more)
 
 ### Community 31 - "app.n-Q1onEc.js"
 Cohesion: 0.01
-Nodes (272): $1(), A0(), ab(), addAngleAxis(), addFrameDataToCanvas(), addListener(), addRadiusAxis(), addRule() (+264 more)
+Nodes (264): $1(), A0(), ab(), addAngleAxis(), addFrameDataToCanvas(), addListener(), addRadiusAxis(), addRule() (+256 more)
 
 ### Community 32 - "devDependencies"
 Cohesion: 0.18
@@ -839,13 +865,13 @@ Nodes (14): scripts, backup, build, build-apk, dev, graphify, lint, network (+6 
 Cohesion: 0.20
 Nodes (9): backupDir, dataDir, __dirname, dst, files, now, root, src (+1 more)
 
-### Community 35 - "Plugin"
-Cohesion: 0.12
-Nodes (14): BackgroundNotificationService, Context, IBinder, Intent, JSONObject, Notification, Override, SharedPreferences (+6 more)
+### Community 35 - "BackgroundNotificationService"
+Cohesion: 0.16
+Nodes (8): BackgroundNotificationService, Context, IBinder, Intent, JSONObject, Notification, Override, SharedPreferences
 
-### Community 36 - "playwright-cli.js"
-Cohesion: 0.05
-Nodes (46): playwright-core, @playwright/test, author, name, bin, playwright-cli, dependencies, playwright (+38 more)
+### Community 36 - "playwright-cli/package.json"
+Cohesion: 0.07
+Nodes (26): playwright-core, @playwright/test, author, name, bin, playwright-cli, dependencies, playwright (+18 more)
 
 ### Community 37 - "worker-protocol.cjs"
 Cohesion: 0.20
@@ -996,8 +1022,8 @@ Cohesion: 0.25
 Nodes (8): `capacitor.config.json` — Capacitor 8, Configuración Específica por Archivo, `index.html` — Entry Point, `server.cjs` — Servidor Express, `src/App.jsx` — Router e Inicialización, `src/main.jsx` — Bootstrap React, `src/utils/config.js` — Conexión al Servidor, `vite.config.js` — Build & Dev Server
 
 ### Community 94 - "scrapeGasAccount"
-Cohesion: 0.19
-Nodes (27): attachBrowserlessCaptchaSolver(), clickVisiblePortalButtonByText(), closeWaterBrowser(), closeWaterResource(), executePortalTurnstile(), fetchGasDebtSummary(), fetchPortalJson(), gasRecord() (+19 more)
+Cohesion: 0.18
+Nodes (28): attachBrowserlessCaptchaSolver(), clickVisiblePortalButtonByText(), closeWaterBrowser(), closeWaterResource(), executePortalTurnstile(), fetchGasDebtSummary(), fetchPortalJson(), gasRecord() (+20 more)
 
 ### Community 95 - "Sistema de Temas (6 Temas Visuales)"
 Cohesion: 0.29
@@ -1056,8 +1082,8 @@ Cohesion: 0.50
 Nodes (4): Login Admin, Login Inquilino, Sesión, Sistema de Autenticación
 
 ### Community 109 - "runGasScrapeOnce"
-Cohesion: 0.33
-Nodes (9): enqueueServiceBrowserRun(), isTransientPortalRunError(), persistGasResults(), persistResults(), persistWaterResults(), runGasScrapeOnce(), runScrapeOnce(), runWaterScrapeOnce() (+1 more)
+Cohesion: 0.19
+Nodes (15): apartmentNumberFrom(), completePortalResults(), configuredApartmentTargets(), enqueueServiceBrowserRun(), gasContractPaymentUrl(), isTransientPortalRunError(), persistGasResults(), persistResults() (+7 more)
 
 ### Community 110 - "ponytail/package.json"
 Cohesion: 0.05
@@ -1103,17 +1129,17 @@ Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), aut
 Cohesion: 0.22
 Nodes (8): airSummary, assert, db, financing, gasSummary, gasWithAgreement, scraper, tripleSummary
 
-### Community 124 - "Activity"
+### Community 124 - "BridgeActivity"
 Cohesion: 0.16
-Nodes (14): Activity, BridgeActivity, Bundle, Intent, Override, Uri, ValueCallback, MainActivity (+6 more)
+Nodes (13): BridgeActivity, Bundle, Intent, Override, Uri, ValueCallback, MainActivity, Bundle (+5 more)
 
 ### Community 125 - "Commands"
 Cohesion: 0.07
 Nodes (29): Commands, Configuration file, Core, Demo, DevTools, Getting Started, Headed operation, Installation (+21 more)
 
-### Community 126 - "app.CkctgRqo.js"
+### Community 126 - ".vite-build-debt-check/assets/app.CkctgRqo.js"
 Cohesion: 0.01
-Nodes (270): a1(), a2(), ab(), addAngleAxis(), addFrameDataToCanvas(), addListener(), addRadiusAxis(), addRule() (+262 more)
+Nodes (277): A0(), a1(), a2(), ab(), addAngleAxis(), addFrameDataToCanvas(), addListener(), addRadiusAxis() (+269 more)
 
 ### Community 127 - "Browser Automation with playwright-cli"
 Cohesion: 0.14
@@ -1169,7 +1195,7 @@ Nodes (3): Context, PendingIntent, ScraperWorkerSchedule
 
 ### Community 147 - "app.DD3DVDW3.js"
 Cohesion: 0.01
-Nodes (264): $1(), A0(), ab(), addAngleAxis(), addFrameDataToCanvas(), addListener(), addRadiusAxis(), addRule() (+256 more)
+Nodes (272): $1(), A0(), ab(), addAngleAxis(), addFrameDataToCanvas(), addListener(), addRadiusAxis(), addRule() (+264 more)
 
 ### Community 148 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/assets/portal-scraper.js"
 Cohesion: 0.12
@@ -1203,9 +1229,9 @@ Nodes (22): Advanced: Multiple Operations, Authentication State Reuse, Clear All
 Cohesion: 0.09
 Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
 
-### Community 162 - "i"
+### Community 162 - "s"
 Cohesion: 0.07
-Nodes (143): _0(), $1(), a(), A0(), at(), b(), b0(), Ba() (+135 more)
+Nodes (105): $1(), al(), at(), b(), b0(), Be(), bi(), bo() (+97 more)
 
 ### Community 163 - "Browser Session Management"
 Cohesion: 0.10
@@ -1252,8 +1278,8 @@ Cohesion: 0.12
 Nodes (16): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+8 more)
 
 ### Community 175 - "vendor/ponytail/README.ko.md"
-Cohesion: 0.17
-Nodes (10): Ponytail, lazy senior dev mode, Before / after, Commands, Development, FAQ, How it works, License, Numbers (+2 more)
+Cohesion: 0.13
+Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Before / after, Commands, Development, FAQ (+5 more)
 
 ### Community 176 - "ponytail-mcp/package.json"
 Cohesion: 0.14
@@ -1276,8 +1302,8 @@ Cohesion: 0.15
 Nodes (13): Antigravity CLI, Claude Code, CodeWhale, Codex, Devin CLI, Gemini CLI, GitHub Copilot CLI, Grok Build (+5 more)
 
 ### Community 181 - "vendor/ponytail/README.es.md"
-Cohesion: 0.13
-Nodes (13): Adapter Rule, Agent Portability, Portable Behavior, Supported Adapters, Antes / después, Comandos, Cómo funciona, Desarrollo (+5 more)
+Cohesion: 0.17
+Nodes (10): Ponytail, lazy senior dev mode, Antes / después, Comandos, Cómo funciona, Desarrollo, FAQ, Historial de estrellas, Licencia (+2 more)
 
 ### Community 182 - "vendor/ponytail/.opencode/plugins/ponytail.mjs"
 Cohesion: 0.22
@@ -1589,9 +1615,9 @@ Nodes (3): Boundaries, Output, Scan
 Cohesion: 0.11
 Nodes (3): Context, SharedPreferences, ScraperWorkerStore
 
-### Community 261 - "n"
+### Community 261 - "r"
 Cohesion: 0.06
-Nodes (118): a(), add(), af(), aQ(), aR(), Au(), bc(), bh() (+110 more)
+Nodes (104): a(), a2(), add(), af(), applyPatches(), Au(), bc(), bf() (+96 more)
 
 ### Community 262 - "plugins/ponytail/benchmarks/correctness.js"
 Cohesion: 0.10
@@ -1919,13 +1945,13 @@ Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, J
 Cohesion: 0.09
 Nodes (14): Bundle, EditText, Handler, Intent, JavascriptInterface, JSONArray, JSONObject, Override (+6 more)
 
-### Community 362 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
-Cohesion: 0.33
-Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+### Community 362 - "mu"
+Cohesion: 0.07
+Nodes (51): ap(), bu(), ci(), delete(), deleteProperty(), deref(), dp(), Du() (+43 more)
 
 ### Community 363 - "startServer"
-Cohesion: 0.07
-Nodes (48): accessRateAllowed(), appendAccessEvent(), archiveCloudInboundMedia(), cameraDefinitions(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudReady() (+40 more)
+Cohesion: 0.08
+Nodes (38): accessRateAllowed(), appendAccessEvent(), archiveCloudInboundMedia(), cameraDefinitions(), cloudConfig(), cloudGraphRequest(), cloudMediaKind(), cloudReady() (+30 more)
 
 ### Community 381 - "MarketplaceWorkerService"
 Cohesion: 0.11
@@ -2207,13 +2233,13 @@ Nodes (9): Bundle, Handler, Intent, Override, Uri, ValueCallback, MainActivity, 
 Cohesion: 0.27
 Nodes (7): Context, ForegroundInfo, NonNull, Override, Result, WorkerParameters, ScraperWorkerKickWorker
 
-### Community 473 - "n"
-Cohesion: 0.05
-Nodes (110): aE(), ai(), an(), aQ(), aR(), Az(), bm(), bn() (+102 more)
+### Community 473 - "k"
+Cohesion: 0.08
+Nodes (56): ai(), an(), Az(), bn(), bt(), c2(), ce(), ci() (+48 more)
 
-### Community 474 - "android-build-1.0.48-d5021e36f58141f990c9158b49e06ac3/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
-Cohesion: 0.33
-Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+### Community 474 - ".vite-build-debt-fix-check/assets/app.CkctgRqo.js"
+Cohesion: 0.01
+Nodes (277): A0(), a1(), a2(), ab(), addAngleAxis(), addFrameDataToCanvas(), addListener(), addRadiusAxis() (+269 more)
 
 ### Community 475 - "AuthorizedSmsStore"
 Cohesion: 0.44
@@ -2268,8 +2294,8 @@ Cohesion: 0.12
 Nodes (59): allStrings(), apartmentNumber(), appendUnmatchedPortalResults(), authorizationVariants(), bestTargetMatch(), clean(), contractInvoiceIdCandidates(), currentGasContractButton() (+51 more)
 
 ### Community 498 - "ScraperWorkerService"
-Cohesion: 0.09
-Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
+Cohesion: 0.17
+Nodes (4): HttpResult, JSONArray, JSONObject, ScraperWorkerService
 
 ### Community 499 - "PortalSessionVault"
 Cohesion: 0.18
@@ -2348,8 +2374,8 @@ Cohesion: 0.33
 Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
 
 ### Community 528 - "loginPortalPage"
-Cohesion: 0.43
-Nodes (8): clickVisibleButton(), loginPortalPage(), portalFrameRoots(), portalLoginDiagnostic(), typeVisibleField(), visibleHandle(), visibleSelectorExists(), waitForPortalAuthCompletion()
+Cohesion: 0.39
+Nodes (9): clickVisibleButton(), loginPortalPage(), portalFrameRoots(), portalLoginDiagnostic(), submitPortalLoginForm(), typeVisibleField(), visibleHandle(), visibleSelectorExists() (+1 more)
 
 ### Community 529 - "AuthorizedCallerPlugin"
 Cohesion: 0.24
@@ -2404,8 +2430,8 @@ Cohesion: 0.24
 Nodes (8): AuthorizedCallerPlugin, ActivityCallback, ActivityResult, CapacitorPlugin, JSObject, PermissionCallback, PluginCall, PluginMethod
 
 ### Community 543 - "n"
-Cohesion: 0.05
-Nodes (109): aE(), an(), aQ(), aR(), Az(), bc(), Be(), bm() (+101 more)
+Cohesion: 0.06
+Nodes (85): an(), aQ(), aR(), Az(), bn(), bt(), Bx(), c2() (+77 more)
 
 ### Community 544 - "MarketplaceBrowserActivity"
 Cohesion: 0.09
@@ -2427,13 +2453,13 @@ Nodes (4): Context, Intent, Override, ScraperWorkerAlarmReceiver
 Cohesion: 0.47
 Nodes (4): Context, Intent, Override, ScraperWorkerBootReceiver
 
-### Community 550 - "scrapeAirE"
-Cohesion: 0.18
-Nodes (12): BROWSERLESS_PROFILES, browserlessEndpointCandidates(), browserlessEndpointFor(), configuredAirETargets(), contractFromAirEResources(), firstExistingPath(), getAirECredentials(), launchBrowser() (+4 more)
+### Community 550 - "r"
+Cohesion: 0.06
+Nodes (127): _0(), a(), ad(), add(), af(), applyPatches(), Au(), bc() (+119 more)
 
 ### Community 552 - "ScraperWorkerService"
-Cohesion: 0.09
-Nodes (12): HttpResult, Handler, IBinder, Intent, JavascriptInterface, JSONArray, JSONObject, Notification (+4 more)
+Cohesion: 0.15
+Nodes (6): HttpResult, Handler, JSONArray, JSONObject, WebView, ScraperWorkerService
 
 ### Community 553 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
 Cohesion: 0.60
@@ -2443,9 +2469,9 @@ Nodes (3): ExampleInstrumentedTest, RunWith, Test
 Cohesion: 0.83
 Nodes (3): gradlew script, die(), warn()
 
-### Community 557 - "r"
+### Community 557 - "n"
 Cohesion: 0.06
-Nodes (104): a(), a2(), add(), af(), applyPatches(), Au(), bc(), bf() (+96 more)
+Nodes (118): a(), add(), af(), aQ(), aR(), Au(), bc(), bh() (+110 more)
 
 ### Community 564 - "ScraperWorkerStore"
 Cohesion: 0.11
@@ -2495,9 +2521,9 @@ Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, Web
 Cohesion: 0.12
 Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
 
-### Community 576 - "PortalBrowserActivity"
+### Community 576 - "Activity"
 Cohesion: 0.12
-Nodes (9): Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView, PortalBridge (+1 more)
+Nodes (10): Activity, Bundle, Handler, Intent, JavascriptInterface, Override, TextView, WebView (+2 more)
 
 ### Community 577 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/assets/marketplace-worker.js"
 Cohesion: 0.25
@@ -2544,8 +2570,8 @@ Cohesion: 0.30
 Nodes (5): CapacitorPlugin, JSObject, PluginCall, PluginMethod, ScraperWorkerPlugin
 
 ### Community 588 - "u"
-Cohesion: 0.08
-Nodes (92): _0(), b(), b0(), Be(), bi(), bo(), C(), cc() (+84 more)
+Cohesion: 0.07
+Nodes (87): _0(), b(), b0(), Be(), bi(), bo(), BR(), cc() (+79 more)
 
 ### Community 589 - "ScraperWorkerPlugin"
 Cohesion: 0.30
@@ -2612,16 +2638,16 @@ Cohesion: 0.44
 Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
 
 ### Community 605 - "u"
-Cohesion: 0.07
-Nodes (87): _0(), b(), b0(), Be(), bi(), bo(), BR(), cc() (+79 more)
+Cohesion: 0.08
+Nodes (92): _0(), b(), b0(), Be(), bi(), bo(), C(), cc() (+84 more)
 
 ### Community 606 - "AuthorizedSmsStore"
 Cohesion: 0.44
 Nodes (4): AuthorizedSmsStore, Context, JSONArray, SharedPreferences
 
-### Community 607 - "r"
-Cohesion: 0.04
-Nodes (85): ad(), al(), bd(), bl(), bu(), ci(), cl(), Cm() (+77 more)
+### Community 607 - "Iu"
+Cohesion: 0.14
+Nodes (21): clear(), Dm(), dz(), Em(), fz(), Gh(), Gz(), Iu() (+13 more)
 
 ### Community 608 - "AuthorizedSmsStore"
 Cohesion: 0.44
@@ -2669,7 +2695,7 @@ Nodes (4): AuthorizedSmsReceiver, Context, Intent, Override
 
 ### Community 624 - "s"
 Cohesion: 0.06
-Nodes (80): ad(), al(), at(), bd(), bl(), bu(), C(), DI() (+72 more)
+Nodes (78): ac(), ad(), al(), at(), bd(), bezierCurveTo(), bl(), bu() (+70 more)
 
 ### Community 625 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java"
 Cohesion: 0.47
@@ -2737,7 +2763,7 @@ Nodes (3): gradlew script, die(), warn()
 
 ### Community 650 - "s"
 Cohesion: 0.06
-Nodes (78): ac(), ad(), al(), at(), bd(), bezierCurveTo(), bl(), bu() (+70 more)
+Nodes (80): ad(), al(), at(), bd(), bl(), bu(), C(), DI() (+72 more)
 
 ### Community 669 - ".onReceive"
 Cohesion: 0.43
@@ -2747,9 +2773,13 @@ Nodes (4): Context, Intent, Override, NotificationActionReceiver
 Cohesion: 0.47
 Nodes (4): BackgroundNotificationBootReceiver, Context, Intent, Override
 
-### Community 672 - "get"
+### Community 671 - "s"
+Cohesion: 0.07
+Nodes (105): $1(), al(), at(), b(), b0(), Be(), bi(), bo() (+97 more)
+
+### Community 672 - "r"
 Cohesion: 0.06
-Nodes (84): add(), af(), applyPatches(), Au(), bf(), cf(), constructor(), createDraft() (+76 more)
+Nodes (127): _0(), a(), ad(), add(), af(), applyPatches(), Au(), bc() (+119 more)
 
 ### Community 675 - "index.es.DpXJBi4-.js"
 Cohesion: 0.04
@@ -2759,17 +2789,17 @@ Nodes (60): addStylesFromStyleDefinition(), addX(), addY(), angleTo(), applyToPo
 Cohesion: 0.04
 Nodes (60): addStylesFromStyleDefinition(), addX(), addY(), angleTo(), applyToPoint(), applyTransform(), bezierCurveAdd(), br() (+52 more)
 
-### Community 678 - "t"
-Cohesion: 0.06
-Nodes (72): ac(), aE(), Ba(), bezierCurveTo(), Cu(), da(), dc(), deletePhoto() (+64 more)
+### Community 678 - "tc"
+Cohesion: 0.09
+Nodes (36): Ba(), da(), deletePhoto(), Fi(), Ga(), Hi(), ja(), Jn() (+28 more)
 
-### Community 679 - "index.es.BmM-oV_B.js"
-Cohesion: 0.05
-Nodes (55): addStylesFromStyleDefinition(), angleTo(), applyToPoint(), applyTransform(), br(), buildEquidistantCache(), calcLength(), checkBoundingBox() (+47 more)
+### Community 679 - ".vite-build-debt-check/assets/index.es.BmM-oV_B.js"
+Cohesion: 0.04
+Nodes (60): addStylesFromStyleDefinition(), addX(), addY(), angleTo(), applyToPoint(), applyTransform(), bezierCurveAdd(), br() (+52 more)
 
-### Community 680 - "c1"
-Cohesion: 0.05
-Nodes (63): a1(), aa(), Ao(), as(), b1(), bf(), c1(), Co() (+55 more)
+### Community 680 - "So"
+Cohesion: 0.07
+Nodes (51): aa(), Ao(), as(), Co(), cs(), displayable(), Do(), ds() (+43 more)
 
 ### Community 681 - "render"
 Cohesion: 0.11
@@ -2779,53 +2809,53 @@ Nodes (61): addOpacity(), addParentOpacity(), adjustChildCoordinates(), adjustCh
 Cohesion: 0.11
 Nodes (61): addOpacity(), addParentOpacity(), adjustChildCoordinates(), adjustChildCoordinatesRecursive(), adjustChildCoordinatesRecursiveCore(), applyAnchoring(), applyEffects(), calculateOpacity() (+53 more)
 
-### Community 683 - "k"
-Cohesion: 0.08
-Nodes (56): ai(), an(), Az(), bn(), bt(), c2(), ce(), ci() (+48 more)
+### Community 683 - "n"
+Cohesion: 0.05
+Nodes (110): aE(), ai(), an(), aQ(), aR(), Az(), bm(), bn() (+102 more)
 
 ### Community 684 - "So"
 Cohesion: 0.06
-Nodes (57): aa(), Ao(), as(), clear(), Co(), cs(), displayable(), Do() (+49 more)
+Nodes (57): aa(), Ao(), as(), Co(), cs(), displayable(), Do(), ds() (+49 more)
 
-### Community 685 - "So"
-Cohesion: 0.07
-Nodes (51): aa(), Ao(), as(), Co(), cs(), displayable(), Do(), ds() (+43 more)
+### Community 685 - "c1"
+Cohesion: 0.05
+Nodes (63): a1(), aa(), Ao(), as(), b1(), bf(), c1(), Co() (+55 more)
 
-### Community 686 - "Iu"
-Cohesion: 0.06
-Nodes (49): bP(), Bz(), clear(), divide(), Dm(), dz(), Em(), fz() (+41 more)
+### Community 686 - "mu"
+Cohesion: 0.13
+Nodes (24): ap(), copy(), delete(), dp(), fm(), fp(), hp(), ip() (+16 more)
 
-### Community 687 - "mu"
-Cohesion: 0.07
-Nodes (43): ap(), bP(), Bz(), copy(), dp(), fm(), fp(), gp() (+35 more)
+### Community 687 - "wd"
+Cohesion: 0.08
+Nodes (34): bd(), bP(), Bz(), dd(), Ed(), gp(), Hz(), il() (+26 more)
 
 ### Community 688 - "render"
-Cohesion: 0.17
-Nodes (40): addParentOpacity(), adjustChildCoordinates(), applyAnchoring(), applyEffects(), calculateOpacity(), calcValue(), clearContext(), createGradient() (+32 more)
+Cohesion: 0.11
+Nodes (61): addOpacity(), addParentOpacity(), adjustChildCoordinates(), adjustChildCoordinatesRecursive(), adjustChildCoordinatesRecursiveCore(), applyAnchoring(), applyEffects(), calculateOpacity() (+53 more)
 
-### Community 689 - "i"
-Cohesion: 0.09
-Nodes (39): bindCreateImage(), checkDocument(), e(), ea(), en(), fetch(), fork(), forkString() (+31 more)
+### Community 689 - "constructor"
+Cohesion: 0.16
+Nodes (18): addChild(), bindCreateImage(), checkDocument(), constructor(), createTextNode(), e(), fetch(), Fi() (+10 more)
 
-### Community 690 - "constructor"
-Cohesion: 0.06
-Nodes (38): applyPatches(), bP(), Bz(), constructor(), createDraft(), defineProperty(), finishDraft(), fv() (+30 more)
+### Community 690 - "sendCloudGlobalServices"
+Cohesion: 0.35
+Nodes (12): deleteR2Object(), ensureR2Usage(), getR2Buffer(), getR2Client(), getR2Usage(), putR2Buffer(), r2Config(), r2Key() (+4 more)
 
 ### Community 691 - "path"
 Cohesion: 0.15
 Nodes (36): a(), addBezierCurve(), addMarker(), addMarkerAngle(), addPoint(), addQuadraticCurve(), getAsControlPoint(), getAsCurrentPoint() (+28 more)
 
-### Community 692 - "tc"
-Cohesion: 0.09
-Nodes (36): Ba(), da(), deletePhoto(), Fi(), Ga(), Hi(), ja(), Jn() (+28 more)
+### Community 692 - "t"
+Cohesion: 0.06
+Nodes (72): ac(), aE(), Ba(), bezierCurveTo(), Cu(), da(), dc(), deletePhoto() (+64 more)
 
 ### Community 693 - "path"
 Cohesion: 0.15
 Nodes (36): a(), addBezierCurve(), addMarker(), addMarkerAngle(), addPoint(), addQuadraticCurve(), getAsControlPoint(), getAsCurrentPoint() (+28 more)
 
 ### Community 694 - "path"
-Cohesion: 0.18
-Nodes (30): a(), addBezierCurve(), addMarker(), addMarkerAngle(), addPoint(), addQuadraticCurve(), addX(), addY() (+22 more)
+Cohesion: 0.15
+Nodes (36): a(), addBezierCurve(), addMarker(), addMarkerAngle(), addPoint(), addQuadraticCurve(), getAsControlPoint(), getAsCurrentPoint() (+28 more)
 
 ### Community 695 - "mu"
 Cohesion: 0.13
@@ -2838,10 +2868,6 @@ Nodes (19): convertDetectedBarcodesToBarcodes(), createUnavailableException(), c
 ### Community 697 - "web.D-yGWM8z.js"
 Cohesion: 0.23
 Nodes (19): appendFile(), clear(), constructor(), copy(), dbIndexRequest(), dbRequest(), deleteFile(), getPath() (+11 more)
-
-### Community 698 - "mu"
-Cohesion: 0.13
-Nodes (24): ap(), copy(), delete(), dp(), fm(), fp(), hp(), ip() (+16 more)
 
 ### Community 699 - "web.CSAZT7uM.js"
 Cohesion: 0.23
@@ -2863,33 +2889,33 @@ Nodes (19): appendFile(), clear(), constructor(), copy(), dbIndexRequest(), dbRe
 Cohesion: 0.11
 Nodes (8): areEnabled(), buildNotification(), checkPermissions(), requestPermissions(), schedule(), sendNotification(), sendPending(), transformNotificationPermission()
 
-### Community 704 - "c1"
-Cohesion: 0.12
-Nodes (23): a1(), b1(), c1(), cr(), d1(), dr(), e1(), er() (+15 more)
+### Community 704 - "er"
+Cohesion: 0.14
+Nodes (20): a2(), cr(), deleteProperty(), dr(), e1(), er(), Gf(), j1() (+12 more)
 
 ### Community 705 - "web.DXGH8c6E.js"
 Cohesion: 0.11
 Nodes (8): areEnabled(), buildNotification(), checkPermissions(), requestPermissions(), schedule(), sendNotification(), sendPending(), transformNotificationPermission()
 
-### Community 706 - "hc"
-Cohesion: 0.15
-Nodes (23): ac(), ai(), bezierCurveTo(), da(), deletePhoto(), Eu(), fa(), Fi() (+15 more)
+### Community 706 - "t"
+Cohesion: 0.06
+Nodes (69): ac(), aE(), ai(), Ba(), bezierCurveTo(), Cu(), da(), dc() (+61 more)
 
 ### Community 707 - "web.byj_Pjm6.js"
 Cohesion: 0.11
 Nodes (8): areEnabled(), buildNotification(), checkPermissions(), requestPermissions(), schedule(), sendNotification(), sendPending(), transformNotificationPermission()
 
-### Community 708 - "renderChildren"
-Cohesion: 0.13
-Nodes (22): addBoundingBox(), adjustChildCoordinatesRecursive(), adjustChildCoordinatesRecursiveCore(), apply(), checkPath(), computeSize(), elementTransform(), getBoundingBox() (+14 more)
+### Community 708 - "apply"
+Cohesion: 0.15
+Nodes (17): addBoundingBox(), apply(), computeSize(), ea(), elementTransform(), getBoundingBox(), getChildBoundingBox(), getDpi() (+9 more)
 
-### Community 709 - "er"
-Cohesion: 0.14
-Nodes (20): a2(), cr(), deleteProperty(), dr(), e1(), er(), Gf(), j1() (+12 more)
+### Community 709 - "c1"
+Cohesion: 0.12
+Nodes (23): a1(), b1(), c1(), cr(), d1(), dr(), e1(), er() (+15 more)
 
-### Community 710 - "constructor"
-Cohesion: 0.16
-Nodes (20): addChild(), addOpacity(), constructor(), createTextNode(), element(), Fi(), findSegmentToFitChar(), getFontSize() (+12 more)
+### Community 710 - "n"
+Cohesion: 0.06
+Nodes (85): an(), aQ(), aR(), Az(), bn(), bt(), Bx(), c2() (+77 more)
 
 ### Community 711 - "Utilities.jsx"
 Cohesion: 0.22
@@ -2904,8 +2930,8 @@ Cohesion: 0.16
 Nodes (18): addChild(), bindCreateImage(), checkDocument(), constructor(), createTextNode(), e(), fetch(), Fi() (+10 more)
 
 ### Community 714 - "Iu"
-Cohesion: 0.18
-Nodes (17): clear(), Dm(), dz(), Em(), fz(), Gz(), Iu(), iV() (+9 more)
+Cohesion: 0.06
+Nodes (49): bP(), Bz(), clear(), divide(), Dm(), dz(), Em(), fz() (+41 more)
 
 ### Community 715 - "apply"
 Cohesion: 0.15
@@ -2940,12 +2966,12 @@ Cohesion: 0.14
 Nodes (13): background_color, categories, description, display, icons, productivity, utilities, name (+5 more)
 
 ### Community 723 - "er"
-Cohesion: 0.29
-Nodes (11): cr(), dr(), e1(), er(), lr(), n1(), or(), sr() (+3 more)
+Cohesion: 0.26
+Nodes (12): cr(), dr(), e1(), er(), ja(), lr(), n1(), or() (+4 more)
 
-### Community 724 - "esm.BJRuCHhI.js"
-Cohesion: 0.22
-Nodes (9): gs(), jx(), ks(), Na(), qx(), i(), n(), r() (+1 more)
+### Community 724 - ".vite-build-debt-fix-check/assets/index.es.BmM-oV_B.js"
+Cohesion: 0.04
+Nodes (60): addStylesFromStyleDefinition(), addX(), addY(), angleTo(), applyToPoint(), applyTransform(), bezierCurveAdd(), br() (+52 more)
 
 ### Community 725 - "n"
 Cohesion: 0.31
@@ -2955,37 +2981,133 @@ Nodes (10): en(), gr(), hr(), mapXY(), n(), onClick(), onMouseMove(), t() (+2 mo
 Cohesion: 0.31
 Nodes (10): en(), gr(), hr(), mapXY(), n(), onClick(), onMouseMove(), t() (+2 more)
 
-### Community 727 - "activeContractForApartment"
+### Community 727 - "t"
+Cohesion: 0.06
+Nodes (69): ac(), aE(), ai(), Ba(), bezierCurveTo(), Cu(), da(), dc() (+61 more)
+
+### Community 728 - "So"
+Cohesion: 0.06
+Nodes (57): aa(), Ao(), as(), Co(), cs(), displayable(), Do(), ds() (+49 more)
+
+### Community 729 - "render"
+Cohesion: 0.11
+Nodes (61): addOpacity(), addParentOpacity(), adjustChildCoordinates(), adjustChildCoordinatesRecursive(), adjustChildCoordinatesRecursiveCore(), applyAnchoring(), applyEffects(), calculateOpacity() (+53 more)
+
+### Community 730 - "mu"
+Cohesion: 0.07
+Nodes (51): ap(), bu(), ci(), delete(), deleteProperty(), deref(), dp(), Du() (+43 more)
+
+### Community 742 - "constructor"
+Cohesion: 0.06
+Nodes (38): applyPatches(), bP(), Bz(), constructor(), createDraft(), defineProperty(), finishDraft(), fv() (+30 more)
+
+### Community 743 - "path"
+Cohesion: 0.15
+Nodes (36): a(), addBezierCurve(), addMarker(), addMarkerAngle(), addPoint(), addQuadraticCurve(), getAsControlPoint(), getAsCurrentPoint() (+28 more)
+
+### Community 744 - "wd"
+Cohesion: 0.08
+Nodes (34): bd(), bP(), Bz(), dd(), Ed(), gp(), Hz(), il() (+26 more)
+
+### Community 745 - ".vite-build-debt-fix-check/assets/web.C0JHHk59.js"
+Cohesion: 0.14
+Nodes (19): convertDetectedBarcodesToBarcodes(), createUnavailableException(), createUnimplementedException(), disableTorch(), enableTorch(), getMaxZoomRatio(), getMinZoomRatio(), getZoomRatio() (+11 more)
+
+### Community 746 - ".vite-build-debt-fix-check/assets/web.DK4TiQhG.js"
+Cohesion: 0.23
+Nodes (19): appendFile(), clear(), constructor(), copy(), dbIndexRequest(), dbRequest(), deleteFile(), getPath() (+11 more)
+
+### Community 747 - ".vite-build-debt-fix-check/assets/web.byj_Pjm6.js"
+Cohesion: 0.11
+Nodes (8): areEnabled(), buildNotification(), checkPermissions(), requestPermissions(), schedule(), sendNotification(), sendPending(), transformNotificationPermission()
+
+### Community 748 - "android-build-1.0.51-a1a69d71293948b3b28afd45124c0217/android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java"
+Cohesion: 0.13
+Nodes (8): Handler, IBinder, Intent, JavascriptInterface, Notification, Override, WebView, JavascriptResultBridge
+
+### Community 749 - "playwright-cli.js"
+Cohesion: 0.16
+Nodes (20): cacheFile(), checkForUpdates(), { checkInstalledSkills, frame }, coreBundle, fetchLatestVersion(), fs, main(), packageJson (+12 more)
+
+### Community 750 - "Iu"
+Cohesion: 0.14
+Nodes (21): clear(), Dm(), dz(), Em(), fz(), Gh(), Gz(), Iu() (+13 more)
+
+### Community 751 - "constructor"
+Cohesion: 0.16
+Nodes (18): addChild(), bindCreateImage(), checkDocument(), constructor(), createTextNode(), e(), fetch(), Fi() (+10 more)
+
+### Community 752 - "Iu"
+Cohesion: 0.18
+Nodes (17): clear(), Dm(), dz(), Em(), fz(), Gz(), Iu(), iV() (+9 more)
+
+### Community 753 - "Ue"
+Cohesion: 0.26
+Nodes (14): oe(), a(), D(), e(), i(), k(), me(), n() (+6 more)
+
+### Community 754 - "apply"
+Cohesion: 0.15
+Nodes (17): addBoundingBox(), apply(), computeSize(), ea(), elementTransform(), getBoundingBox(), getChildBoundingBox(), getDpi() (+9 more)
+
+### Community 755 - ".onCreate"
+Cohesion: 0.19
+Nodes (4): IBinder, Intent, Notification, Override
+
+### Community 756 - ".vite-build-debt-fix-check/manifest.json"
+Cohesion: 0.14
+Nodes (13): background_color, categories, description, display, icons, productivity, utilities, name (+5 more)
+
+### Community 757 - "Plugin"
+Cohesion: 0.35
+Nodes (6): BackgroundNotificationsPlugin, CapacitorPlugin, JSObject, PluginCall, PluginMethod, Plugin
+
+### Community 758 - "er"
+Cohesion: 0.26
+Nodes (12): cr(), dr(), e1(), er(), ja(), lr(), n1(), or() (+4 more)
+
+### Community 759 - "android-build-1.0.50-7d0f6e795d0d4ec89b76a18d4eda27d0/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
+Cohesion: 0.33
+Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 760 - "android-build-1.0.52-c8ba156f8b8f404f8382ba31945b0ef9/android/app/src/main/java/com/laujim/aptmanager/MainActivity.java"
+Cohesion: 0.33
+Nodes (6): Bundle, Intent, Override, Uri, ValueCallback, MainActivity
+
+### Community 761 - "n"
+Cohesion: 0.31
+Nodes (10): en(), gr(), hr(), mapXY(), n(), onClick(), onMouseMove(), t() (+2 more)
+
+### Community 762 - "n"
+Cohesion: 0.31
+Nodes (10): en(), gr(), hr(), mapXY(), n(), onClick(), onMouseMove(), t() (+2 more)
+
+### Community 763 - "activeContractForApartment"
 Cohesion: 0.33
 Nodes (9): activeContractForApartment(), activeContractForTenant(), activeTenantForApartment(), contractDateMs(), isCurrentContract(), rentForPaymentApartment(), repairCloudConversationContext(), resolveCloudConversationContext() (+1 more)
 
-### Community 728 - "scrapeGasFromRenderedUi"
-Cohesion: 0.32
-Nodes (8): apartmentNumberFrom(), completePortalResults(), configuredApartmentTargets(), gasContractPaymentUrl(), portalFailureResult(), renderedGasContracts(), scrapeGasFromRenderedUi(), serviceResultMatchesApartment()
-
-### Community 729 - "Predial.jsx"
+### Community 764 - "Predial.jsx"
 Cohesion: 0.60
 Nodes (4): getPredialUrl(), lookupRef(), Predial(), REF_MAP
 
 ## Knowledge Gaps
-- **1872 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `.opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs`, `type`, `npx.cmd` (+1867 more)
+- **1885 isolated node(s):** `$schema`, `.opencode/plugins/graphify.js`, `.opencode/plugins/ponytail/.opencode/plugins/ponytail.mjs`, `type`, `npx.cmd` (+1880 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **95 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **97 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `BackgroundNotificationService` connect `Plugin` to `Service`?**
-  _High betweenness centrality (0.021) - this node is a cross-community bridge._
-- **Why does `w1()` connect `i` to `c1`, `get`, `c1`, `s`, `n`, `So`, `Ue`, `mu`, `s`, `app.CkctgRqo.js`, `r`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+- **Why does `BackgroundNotificationService` connect `BackgroundNotificationService` to `Service`, `Plugin`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+- **Why does `BackgroundNotificationBootReceiver` connect `.onReceive` to `BroadcastReceiver`?**
+  _High betweenness centrality (0.010) - this node is a cross-community bridge._
 - **Are the 156 inferred relationships involving `n()` (e.g. with `app.DD3DVDW3.js` and `aQ()`) actually correct?**
   _`n()` has 156 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 156 inferred relationships involving `n()` (e.g. with `app.n-Q1onEc.js` and `aQ()`) actually correct?**
   _`n()` has 156 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 154 inferred relationships involving `n()` (e.g. with `app.CkctgRqo.js` and `aQ()`) actually correct?**
+- **Are the 154 inferred relationships involving `n()` (e.g. with `.vite-build-debt-check/assets/app.CkctgRqo.js` and `aQ()`) actually correct?**
+  _`n()` has 154 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 154 inferred relationships involving `n()` (e.g. with `.vite-build-debt-fix-check/assets/app.CkctgRqo.js` and `aQ()`) actually correct?**
   _`n()` has 154 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 152 inferred relationships involving `r()` (e.g. with `app.DD3DVDW3.js` and `ad()`) actually correct?**
-  _`r()` has 152 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 152 inferred relationships involving `r()` (e.g. with `app.n-Q1onEc.js` and `ad()`) actually correct?**
   _`r()` has 152 INFERRED edges - model-reasoned connections that need verification._

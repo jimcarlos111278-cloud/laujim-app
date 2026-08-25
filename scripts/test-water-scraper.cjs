@@ -39,7 +39,7 @@ assert.equal(financing.cuotaFinanciadaCOP, 20000);
 
 const gasWithAgreement = scraper.portalFinancingSummary({
   currentDebt: 16846,
-  financedDebt: 149890,
+  saldoPorFacturar: 149890,
   quotaValue: 5047,
 });
 assert.equal(gasWithAgreement.financiadaCOP, 149890);

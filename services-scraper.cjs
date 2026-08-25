@@ -1572,6 +1572,8 @@ function portalFinancingSummary(payload) {
     'financedDebt', 'deudaFinanciada', 'saldoFinanciado', 'valorFinanciado',
     'financingValue', 'financedAmount', 'amountFinanced', 'totalFinanced',
     'totalFinancing', 'montoFinanciado', 'saldoDeudaFinanciada',
+    'financedBalance', 'balanceFinanced', 'debtFinanced', 'deferredDebt',
+    'deudaDiferida', 'saldoConvenio', 'deudaConvenio', 'saldoPorFacturar',
   ]);
   const explicitQuota = portalAmountFromFields(payload, [
     'quotaValue', 'cuotaValue', 'cuotaFinanciada', 'installmentValue',
@@ -1582,15 +1584,18 @@ function portalFinancingSummary(payload) {
     const text = Object.entries(record)
       .map(([key, value]) => `${key}:${typeof value === 'object' ? '' : String(value || '')}`)
       .join(' ');
-    const hasFinancingHint = /financ|refinanc|diferid|cuota|acuerdo|convenio|plan\s+de\s+pago|brilla/i.test(text);
+    const hasFinancingHint = /financ|refinanc|diferid|cuota|acuerdo|convenio|plan\s+de\s+pago|brilla|saldoPorFacturar|saldoFinanciado|debtFinanc|deferred/i.test(text);
     if (!hasFinancingHint) continue;
     const amount = portalAmountFromFields(record, [
       'pendingBalance', 'saldoPendiente', 'saldoPorFacturar', 'totalValue',
       'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'balance',
       'amount', 'value', 'financingValue', 'financedAmount',
+      'financedBalance', 'balanceFinanced', 'debtFinanced', 'deferredDebt',
+      'deudaDiferida', 'saldoConvenio', 'deudaConvenio',
     ]);
     const quota = portalAmountFromFields(record, [
       'quotaValue', 'cuotaValue', 'installmentValue', 'monthlyQuota', 'valorCuota',
+      'nextPayment', 'proximoPago', 'nextInstallment', 'cuotaProxima',
     ]);
     if (amount === null && quota === null) continue;
     const label = portalFieldValue(record, [
@@ -2022,7 +2027,9 @@ function tripleAInvoiceSummary(invoices) {
   const monthRows = currentRows.length ? currentRows : unpaid.slice(0, 1);
   const monthValues = monthRows.map(invoice => portalAmountFromFields(invoice, [
     'monthValue', 'monthlyValue', 'valorMes', 'deudaMes', 'invoiceValue',
-    'valorFactura', 'amountDue', 'pendingValue', 'pendingAmount', 'totalToPay',
+    'valorFactura', 'currentInvoiceAmount', 'currentAmount', 'saldoActual',
+    'saldoDeudaActual', 'deudaActual', 'currentBalance', 'balanceCurrent',
+    'amountDue', 'pendingValue', 'pendingAmount', 'totalToPay',
   ])).filter(value => value !== null);
   const totalValues = unpaid.map(invoice => portalAmountFromFields(invoice, [
     'totalValue', 'pendingBalance', 'pendingValue', 'totalToPay', 'amountDue',
@@ -2110,15 +2117,13 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
   let debtPayload = null;
   let debtEndpointStatus = 0;
   let debtRoute = '';
-  // This is the route used by the portal's debt view. Keep two harmless route
-  // variants for older portal deployments; a 404 means "not available", not a
-  // failed session, so the invoice result remains usable.
+  // Query the ordinary balance route first. Deferred/convenio data lives in a
+  // different view, so it must be queried independently instead of stopping
+  // after the first successful debt response.
   for (const route of [
     `/bff/debts/subscription/${encodeURIComponent(String(id))}`,
     `/bff/debt/subscription/${encodeURIComponent(String(id))}`,
     `/bff/subscriptions/${encodeURIComponent(String(id))}/debt`,
-    `/bff/deferred-debts/subscription/${encodeURIComponent(String(id))}`,
-    `/bff/financing/subscription/${encodeURIComponent(String(id))}`,
   ]) {
     const debtResponse = await fetchPortalJson(page, route, headers);
     debtEndpointStatus = debtResponse.status || 0;
@@ -2129,6 +2134,16 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
     }
     if (![404, 405].includes(Number(debtResponse.status))) break;
   }
+  const financingPayloads = [];
+  for (const route of [
+    `/bff/deferred-debts/subscription/${encodeURIComponent(String(id))}`,
+    `/bff/financing/subscription/${encodeURIComponent(String(id))}`,
+  ]) {
+    const financingResponse = await fetchPortalJson(page, route, headers);
+    if (financingResponse.status >= 200 && financingResponse.status < 300) {
+      financingPayloads.push(parsePortalResponseBody(financingResponse.body));
+    }
+  }
   const debtRows = debtPayload ? unwrapPortalList(debtPayload, ['debts', 'items']) : [];
   const debtTotal = debtPayload && !/deferred|financ/i.test(debtRoute)
     ? portalAmountFromFields(debtPayload, ['totalDebts', 'totalDebt', 'deudaTotal', 'totalPending', 'totalPendingDebt', 'totalDebtValue'])
@@ -2137,10 +2152,12 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
   const debtMonth = debtPayload && !/deferred|financ/i.test(debtRoute)
     ? portalAmountFromFields(debtPayload, [
       'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
-      'currentInvoice', 'currentInvoiceValue', 'invoiceValue', 'valorMes', 'valorFactura',
+      'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
+      'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
+      'deudaActual', 'currentBalance', 'balanceCurrent',
     ])
     : null;
-  const financing = portalFinancingSummary(debtPayload || invoicePayload);
+  const financing = portalFinancingSummary(financingPayloads.length ? financingPayloads : (debtPayload || invoicePayload));
   const convenio = financing.financiadaCOP;
   const invoiceTotal = invoiceSummary.deudaTotalCOP ?? invoiceSummary.deudaMesCOP;
   // Triple A exposes deferred/convenio balances in a separate route. When
@@ -2858,11 +2875,15 @@ function gasDebtSummary(payload) {
   const financing = portalFinancingSummary(payload);
   const month = portalAmountFromFields(payload, [
     'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
-    'currentInvoice', 'currentInvoiceValue', 'invoiceValue', 'valorMes', 'valorFactura',
+    'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
+    'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
+    'deudaActual', 'currentBalance', 'balanceCurrent',
   ]) ?? (rows.length
     ? portalAmountFromFields(rows[0], [
       'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
-      'currentInvoice', 'currentInvoiceValue', 'invoiceValue', 'valorMes', 'valorFactura',
+      'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
+      'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
+      'deudaActual', 'currentBalance', 'balanceCurrent',
     ])
     : null);
   const baseTotal = explicitTotal ?? (rowTotal.length ? rowTotal.reduce((sum, value) => sum + value, 0) : null);
