@@ -1210,10 +1210,13 @@
     const statusLine = lines.find(line => /pago pendiente|pago en mora|est[aá]s al d[ií]a/i.test(line)) || '';
     const dueDate = uiLineAfter(lines, /^fecha de vencimiento$/i);
     const status = statusFrom(detailed.total ?? detailed.amount, statusLine);
+    const month = detailed.month === 0 && (detailed.convenio === null || detailed.convenio === 0) && detailed.total > 0
+      ? detailed.total
+      : detailed.month;
     return {
       policy: policyMatch ? policyMatch[1] : null,
       amount: detailed.amount === null && status === 'paid' ? 0 : detailed.amount,
-      month: detailed.month,
+      month,
       convenio: detailed.convenio,
       total: detailed.total,
       status,
@@ -1335,7 +1338,7 @@
     await wait(500);
     const inicio = findVisibleUiElement('button', label => clean(label) === 'inicio');
     if (inicio) inicio.click();
-    const parsed = await waitForUi(() => {
+    let parsed = await waitForUi(() => {
       if (loginState().challenge) return { challenge: true };
       const text = uiBodyText();
       const hasReceiptSummary = /total a pagar|tu deuda actual|est[aá]s\s+al\s+d[ií]a|sin\s+deuda|pagad[oa]/i.test(text);
@@ -1344,6 +1347,23 @@
       return result.amount !== null || result.status === 'paid' ? result : null;
     }, PORTAL_UI_TIMEOUT_MS);
     if (parsed?.challenge) return parsed;
+    // The current invoice and the financed balance are exposed in separate
+    // authenticated screens. If the home card did not contain a convenio,
+    // open the portal's Deudas/Mis deudas section before accepting a zero.
+    if (parsed && (parsed.convenio == null || parsed.convenio === 0)) {
+      const debtLink = findVisibleUiElement('a, button, [role="link"], [role="menuitem"]', label => {
+        const value = clean(label);
+        return /^(?:mis\s+)?deudas(?:\s+(?:diferidas|financiadas))?$/.test(value)
+          || /deudas\s+(?:diferidas|financiadas)/.test(value);
+      });
+      if (debtLink) {
+        debtLink.click();
+        await waitForUi(() => /deuda\s+(?:financiada|diferida)|saldo\s+por\s+facturar/i.test(uiBodyText()) ? true : null, 10_000);
+        const debtText = uiBodyText();
+        const debtParsed = parseGasHomeResult(debtText);
+        if (debtParsed?.convenio > 0 || /deuda\s+(?:financiada|diferida)|saldo\s+por\s+facturar/i.test(debtText)) parsed = debtParsed;
+      }
+    }
     return parsed || { error: `Gases del Caribe no mostro la factura del contrato ${contract.code}.` };
   }
 
@@ -1603,8 +1623,11 @@
     const financing = financingSummary(financingPayloads.length ? financingPayloads : (debtPayload || invoicesResponse.payload));
     const convenio = financing.financiadaCOP ?? (financingPayloads.length ? 0 : null);
     const invoiceTotal = invoiceSummary.deudaTotalCOP ?? invoiceSummary.deudaMesCOP;
-    const month = invoiceSummary.deudaMesCOP ?? debtMonth;
-    const currentTotal = invoiceTotal ?? month ?? total;
+    const rawMonth = invoiceSummary.deudaMesCOP ?? debtMonth;
+    const currentTotal = invoiceTotal ?? rawMonth ?? total;
+    const month = rawMonth === 0 && (convenio === null || convenio === 0) && currentTotal > 0
+      ? currentTotal
+      : rawMonth;
     const expectedCombined = convenio !== null && currentTotal !== null
       ? currentTotal + convenio
       : currentTotal;
@@ -1963,10 +1986,14 @@
           waterPaymentUrl: target.waterPaymentUrl || null,
           status: parsed.status,
           deudaCOP: parsed.amount,
-          deudaMesCOP: parsed.month ?? (parsed.total === 0 ? 0 : parsed.amount),
           deudaConveniosCOP: parsed.convenio ?? 0,
           deudaTotalCOP: parsed.total ?? parsed.amount,
-          facturaValorCOP: parsed.month ?? (parsed.total === 0 ? 0 : parsed.amount),
+          deudaMesCOP: parsed.month === 0 && (parsed.convenio == null || parsed.convenio === 0) && (parsed.total ?? 0) > 0
+            ? parsed.total
+            : (parsed.month ?? (parsed.total === 0 ? 0 : parsed.amount)),
+          facturaValorCOP: parsed.month === 0 && (parsed.convenio == null || parsed.convenio === 0) && (parsed.total ?? 0) > 0
+            ? parsed.total
+            : (parsed.month ?? (parsed.total === 0 ? 0 : parsed.amount)),
           numFacturas: parsed.status === 'pending' ? 1 : 0,
           periodo: parsed.dueDate || null,
           fechaVencimiento: parsed.dueDate || null,

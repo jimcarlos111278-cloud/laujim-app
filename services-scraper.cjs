@@ -1011,6 +1011,20 @@ async function queryRenderedGasContract(page, code) {
     const inicio = [...document.querySelectorAll('button')].find(element => available(element) && /^inicio$/i.test((element.innerText || '').trim()));
     if (inicio) inicio.click();
   }).catch(() => {});
+  // Gascaribe separates the current invoice from financed/deferred debt. The
+  // “Mis deudas/Deudas” screen is the authoritative source for the latter;
+  // open it when the authenticated navigation exposes it before parsing.
+  await page.evaluate(() => {
+    const available = element => {
+      if (!element) return false;
+      const style = getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && document.documentElement.contains(element);
+    };
+    const link = [...document.querySelectorAll('a,button,[role="link"],[role="menuitem"]')]
+      .find(element => available(element) && /^(?:mis\s+)?deudas(?:\s+(?:diferidas|financiadas))?$/i.test((element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim()));
+    if (link) { link.click(); return true; }
+    return false;
+  }).then(opened => opened ? sleep(700) : null).catch(() => {});
   const parsed = await waitForRenderedPortal(page, (contractCode) => {
     const body = String(document.body?.innerText || document.body?.textContent || '').replace(/\s+/g, ' ');
     const normalizedBody = body.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -2103,7 +2117,10 @@ function tripleARecord(target, subscription, checkedAt = new Date().toISOString(
   const paidState = /paid|al_day|up_to_date|sin_deuda/.test(statusValue) ||
     paidValue === true || /^(?:true|1|paid|pagad[ao]|al dia)$/i.test(String(paidValue || ''));
   const amount = details.deudaTotalCOP ?? details.deudaMesCOP ?? legacyAmount;
-  const deudaMesCOP = details.deudaMesCOP ?? (legacyAmount === null ? (debtState ? null : 0) : Math.max(0, legacyAmount));
+  const rawMonth = details.deudaMesCOP ?? (legacyAmount === null ? (debtState ? null : 0) : Math.max(0, legacyAmount));
+  const deudaMesCOP = rawMonth === 0 && (details.deudaConveniosCOP === null || details.deudaConveniosCOP === undefined || details.deudaConveniosCOP === 0) && amount > 0
+    ? amount
+    : rawMonth;
   const deudaTotalCOP = details.deudaTotalCOP ?? (legacyAmount === null ? (debtState ? null : 0) : Math.max(0, legacyAmount));
   const deudaCOP = amount === null ? (debtState ? null : 0) : Math.max(0, amount);
   const status = deudaTotalCOP > 0 || (deudaTotalCOP === null && debtState)
@@ -2203,11 +2220,14 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
   const financing = portalFinancingSummary(financingPayloads.length ? financingPayloads : (debtPayload || invoicePayload));
   const convenio = financing.financiadaCOP;
   const invoiceTotal = invoiceSummary.deudaTotalCOP ?? invoiceSummary.deudaMesCOP;
-  const month = invoiceSummary.deudaMesCOP ?? debtMonth;
+  const rawMonth = invoiceSummary.deudaMesCOP ?? debtMonth;
   // Triple A exposes deferred/convenio balances in a separate route. When
   // the ordinary debt route returns only the current invoice, combine that
   // balance with the deferred agreement instead of silently dropping it.
-  const currentTotal = invoiceTotal ?? month ?? debtTotal;
+  const currentTotal = invoiceTotal ?? rawMonth ?? debtTotal;
+  const month = rawMonth === 0 && (convenio === null || convenio === 0) && currentTotal > 0
+    ? currentTotal
+    : rawMonth;
   const expectedCombined = convenio !== null && currentTotal !== null
     ? currentTotal + convenio
     : currentTotal;
