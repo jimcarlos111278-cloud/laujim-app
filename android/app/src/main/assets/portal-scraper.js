@@ -12,6 +12,11 @@
 
   const AIR_E_ENDPOINT = 'https://portal.air-e.com/DesktopModules/GatewayOficinaVirtual.Maestro.MisFacturas/API/Documento/Get';
   const GAS_API = 'https://pagosweb-production-api.innovacion-gascaribe.com';
+  // A hidden/background WebView cannot complete an interactive Turnstile.
+  // Keep the credentials filled briefly, then release this provider so the
+  // other portals can still be scraped and the user can finish verification
+  // in the visible portal screen before the next run.
+  const TURNSTILE_BACKGROUND_WAIT_MS = 30_000;
 
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -105,10 +110,11 @@
     const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
     try {
-      element.focus();
+      element.focus({ preventScroll: true });
+      try { element.click(); } catch { }
       if (setter) setter.call(element, String(value == null ? '' : value));
       else element.value = String(value == null ? '' : value);
-      ['input', 'change', 'blur'].forEach(type => element.dispatchEvent(new Event(type, { bubbles: true })));
+      ['input', 'change', 'blur'].forEach(type => element.dispatchEvent(new Event(type, { bubbles: true, composed: true })));
       return String(element.value || '') === String(value == null ? '' : value);
     } catch {
       return false;
@@ -152,13 +158,57 @@
     return { username, password, submit };
   }
 
+  function loginFormDiagnostics() {
+    const inputs = Array.from(document.querySelectorAll('input, textarea')).slice(0, 20).map((element, index) => ({
+      index,
+      type: String(element.type || element.tagName || '').toLowerCase(),
+      name: String(element.name || '').slice(0, 80),
+      id: String(element.id || '').slice(0, 80),
+      autocomplete: String(element.autocomplete || '').slice(0, 80),
+      placeholder: String(element.placeholder || '').slice(0, 80),
+      available: domAvailable(element),
+      valueLength: String(element.value || '').length,
+    }));
+    const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], input[type="button"], [role="button"]'))
+      .slice(0, 20).map((element, index) => ({
+        index,
+        type: String(element.type || element.tagName || '').toLowerCase(),
+        id: String(element.id || '').slice(0, 80),
+        name: String(element.name || '').slice(0, 80),
+        text: uiText(element).slice(0, 100),
+        disabled: !!element.disabled,
+        available: domAvailable(element),
+      }));
+    return {
+      url: String(location.href || '').slice(0, 240),
+      title: String(document.title || '').slice(0, 120),
+      inputCount: document.querySelectorAll('input, textarea').length,
+      buttonCount: document.querySelectorAll('button, input[type="submit"], input[type="button"], [role="button"]').length,
+      inputs,
+      buttons,
+    };
+  }
+
   function submitLogin() {
     const submit = loginElements().submit;
     if (!submit || submit.disabled) return false;
     const nativeBridge = window.LaujimAndroidBridge;
+    let nativeAttempted = false;
     if (nativeBridge && typeof nativeBridge.clickLogin === 'function') {
       try {
-        if (typeof nativeBridge.pressEnter === 'function' && nativeBridge.pressEnter()) return true;
+        if (typeof nativeBridge.pressEnter === 'function') nativeAttempted = !!nativeBridge.pressEnter();
+        // Hidden/off-screen Android WebViews can accept the key event without
+        // dispatching the SPA submit handler. Give the DOM a short fallback
+        // opportunity while avoiding a second submit after navigation.
+        setTimeout(() => {
+          try {
+            const current = loginElements().submit;
+            if (!current || current.disabled || !document.documentElement.contains(current)) return;
+            if (current.form && typeof current.form.requestSubmit === 'function') current.form.requestSubmit(current);
+            else current.click();
+          } catch { }
+        }, 550);
+        if (nativeAttempted) return true;
         if (nativeBridge.clickLogin()) return true;
       } catch { }
     }
@@ -171,33 +221,41 @@
   }
 
   async function attemptAutoLogin(provider, config) {
-    if (config && config.autoLoginSubmitted) {
-      const pageText = clean(uiBodyText());
-      const otp = Array.from(document.querySelectorAll(
-        'input[autocomplete="one-time-code"], input[name*="otp" i], input[id*="otp" i], input[name*="codigo" i], input[id*="codigo" i]'
-      )).find(visibleThroughAncestors);
-      if (otp) return {
-        state: 'needs_verification', provider, stage: 'otp_required',
-        message: `${providerLabel(provider)} aceptó las credenciales y solicita un código de verificación.`, results: [],
-      };
-      const rejected = /credenciales invalidas|credenciales incorrectas|usuario o contrasena|contrasena incorrecta|incorrect password|invalid credentials|datos incorrectos/.test(pageText);
-      return needsLogin(provider, rejected
-        ? `${providerLabel(provider)} rechazó el usuario o la contraseña guardados.`
-        : `${providerLabel(provider)} no confirmó el inicio de sesión después de 25 segundos.`, {
-        stage: rejected ? 'credentials_rejected' : 'auto_login_not_confirmed',
-      });
-    }
     const credentials = config && config.credentials;
     if (!credentials || !String(credentials.username || '').trim() || !String(credentials.password || '')) {
       return needsLogin(provider, `${providerLabel(provider)} solicita iniciar sesión y no tiene credenciales de autologin configuradas.`, { stage: 'credentials_missing' });
     }
 
-    const elements = loginElements();
+    const pageText = clean(uiBodyText());
+    const otp = Array.from(document.querySelectorAll(
+      'input[autocomplete="one-time-code"], input[name*="otp" i], input[id*="otp" i], input[name*="codigo" i], input[id*="codigo" i]'
+    )).find(visibleThroughAncestors);
+    if (otp) return {
+      state: 'needs_verification', provider, stage: 'otp_required',
+      message: `${providerLabel(provider)} aceptó las credenciales y solicita un código de verificación.`, results: [],
+    };
+    const rejected = /credenciales invalidas|credenciales incorrectas|usuario o contrasena|contrasena incorrecta|incorrect password|invalid credentials|datos incorrectos/.test(pageText);
+    if (rejected) return needsLogin(provider, `${providerLabel(provider)} rechazó el usuario o la contraseña guardados.`, {
+      stage: 'credentials_rejected', form: loginFormDiagnostics(),
+    });
+
+    const loginAttempt = Number(config?.loginAttempt || 0);
+    const elements = await waitForUi(() => {
+      const current = loginElements();
+      return current.username && current.password && current.submit ? current : null;
+    }, 15_000);
     if (!elements.username || !elements.password || !elements.submit) {
       return needsLogin(provider, `${providerLabel(provider)} cambió su formulario de acceso y no se pudieron identificar todos los controles.`, {
         stage: 'login_form_not_found',
         loginInputs: document.querySelectorAll('input').length,
         loginButtons: document.querySelectorAll('button, [role="button"]').length,
+        form: loginFormDiagnostics(),
+      });
+    }
+    if (config?.autoLoginSubmitted && loginAttempt > 0) {
+      return needsLogin(provider, `${providerLabel(provider)} mantuvo el formulario de acceso después del reintento automático.`, {
+        stage: 'auto_login_not_confirmed',
+        form: loginFormDiagnostics(),
       });
     }
 
@@ -232,7 +290,7 @@
     // response token exists or the visible widget has disappeared. Keep the
     // fields filled while the user completes the visible challenge.
     const challengeStartedAt = Date.now();
-    while (challengePending() && Date.now() - challengeStartedAt < 180_000) {
+    while (challengePending() && Date.now() - challengeStartedAt < TURNSTILE_BACKGROUND_WAIT_MS) {
       const current = loginElements();
       if (current.username && String(current.username.value || '') !== String(credentials.username)) inputValue(current.username, credentials.username);
       if (current.password && String(current.password.value || '') !== String(credentials.password)) inputValue(current.password, credentials.password);
@@ -299,6 +357,48 @@
       if (found !== undefined) return found;
     }
     return undefined;
+  }
+
+  function normalizedFieldKey(value) {
+    return clean(value).replace(/[^a-z0-9]/g, '');
+  }
+
+  // The portals have changed casing and names between account builds. Keep
+  // exact aliases first, then inspect primitive fields whose key clearly says
+  // what the amount represents. This avoids treating a generic `total` from
+  // a wrapper object as the monthly bill or as a financing balance.
+  function amountFromKeyPattern(value, include, exclude) {
+    for (const record of objectRecords(value)) {
+      for (const [key, child] of Object.entries(record)) {
+        if (child == null || typeof child === 'object') continue;
+        const normalized = normalizedFieldKey(key);
+        if (!include.test(normalized) || (exclude && exclude.test(normalized))) continue;
+        const amount = parseAmount(child);
+        if (amount !== null) return amount;
+      }
+    }
+    return null;
+  }
+
+  function fieldKeys(value) {
+    const keys = new Set();
+    for (const record of objectRecords(value)) Object.keys(record).forEach(key => keys.add(String(key)));
+    return Array.from(keys).sort().slice(0, 120);
+  }
+
+  function airContractFromPage() {
+    const pattern = /(?:[?&]|\bcd[_-]?)contrato[=:]([0-9a-f-]{36})/i;
+    const sources = [String(window.__LaujimNativeAirContract || ''), String(location.href || '')];
+    try {
+      for (const item of performance.getEntriesByType('resource') || []) sources.push(String(item.name || ''));
+    } catch {}
+    const html = String(document.documentElement?.outerHTML || '').slice(0, 4_000_000);
+    sources.push(html);
+    for (const source of sources) {
+      const match = source.match(pattern) || source.match(/cd_Contrato=([0-9a-f-]{36})/i);
+      if (match) return { value: match[1], source: source === String(window.__LaujimNativeAirContract || '') ? 'native_request' : 'page_request' };
+    }
+    return { value: '', source: '' };
   }
 
   function topLevelField(value, names) {
@@ -494,6 +594,7 @@
       'totalFinancing', 'montoFinanciado', 'saldoDeudaFinanciada',
       'financedBalance', 'balanceFinanced', 'debtFinanced', 'deferredDebt',
       'deudaDiferida', 'saldoConvenio', 'deudaConvenio', 'saldoPorFacturar',
+      'saldoDeuda', 'saldoPendienteFinanciado', 'saldoPendienteConvenio',
     ]);
     const explicitQuota = amountFromFields(payload, [
       'quotaValue', 'cuotaValue', 'cuotaFinanciada', 'installmentValue',
@@ -542,8 +643,17 @@
       })
       : unpaid.slice(0, 1);
     const rows = current.length ? current : unpaid.slice(0, 1);
-    const monthValues = rows.map(invoice => amountFromFields(invoice, ['monthValue', 'monthlyValue', 'valorMes', 'deudaMes', 'invoiceValue', 'valorFactura', 'currentInvoiceAmount', 'currentAmount', 'saldoActual', 'saldoDeudaActual', 'deudaActual', 'currentBalance', 'balanceCurrent', 'amountDue', 'pendingValue', 'pendingAmount', 'totalToPay'])).filter(value => value !== null);
-    const totalValues = unpaid.map(invoice => amountFromFields(invoice, ['totalValue', 'pendingBalance', 'pendingValue', 'totalToPay', 'amountDue', 'totalDebt', 'deudaTotal', 'balanceDue', 'balance', 'amount', 'value'])).filter(value => value !== null);
+    const monthValues = rows.map(invoice => amountFromFields(invoice, [
+      'monthValue', 'monthlyValue', 'valorMes', 'deudaMes', 'invoiceValue', 'valorFactura',
+      'currentInvoiceAmount', 'currentAmount', 'saldoActual', 'saldoDeudaActual',
+      'deudaActual', 'currentBalance', 'balanceCurrent', 'amt_TotalMes', 'totalMes',
+      'totalMesSinTasa', 'amountDue', 'pendingValue', 'pendingAmount', 'totalToPay',
+    ]) ?? amountFromKeyPattern(invoice, /(?:valormes|totalmes|monthly|currentinvoice|invoicevalue|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i)).filter(value => value !== null);
+    const totalValues = unpaid.map(invoice => amountFromFields(invoice, [
+      'totalValue', 'pendingBalance', 'pendingValue', 'totalToPay', 'amountDue', 'totalDebt',
+      'deudaTotal', 'balanceDue', 'balance', 'amount', 'value', 'amt_DeudaTotal',
+      'saldoTotal', 'totalAPagar',
+    ]) ?? amountFromKeyPattern(invoice, /(?:deudatotal|totalapagar|totaldebt|saldototal|totalpending)/i, /(?:mes|month|cuota|quota)/i)).filter(value => value !== null);
     return {
       deudaMesCOP: monthValues.length ? monthValues.reduce((sum, value) => sum + value, 0) : null,
       deudaTotalCOP: totalValues.length ? totalValues.reduce((sum, value) => sum + value, 0) : null,
@@ -758,6 +868,84 @@
     const fragment = source.slice(start, start + 180);
     const match = fragment.match(/\$\s*([0-9][0-9.,]*)/);
     return match ? parseAmount(match[1]) : null;
+  }
+
+  function uiAmountForLabel(text, label) {
+    const lines = uiLines(text);
+    const matcher = label instanceof RegExp ? label : new RegExp(escapeRegex(label), 'i');
+    for (let index = 0; index < lines.length; index += 1) {
+      if (!matcher.test(lines[index])) continue;
+      const sameLine = lines[index].match(/\$\s*([0-9][0-9.,]*)/);
+      if (sameLine) return parseAmount(sameLine[1]);
+      for (const next of lines.slice(index + 1, index + 4)) {
+        const match = next.match(/\$\s*([0-9][0-9.,]*)/);
+        if (match) return parseAmount(match[1]);
+      }
+    }
+    return null;
+  }
+
+  function uiAmountNearHeading(text, heading, limit) {
+    const source = String(text || '');
+    const start = source.search(heading);
+    if (start < 0) return null;
+    const fragment = source.slice(start, start + (limit || 650));
+    const matches = Array.from(fragment.matchAll(/\$\s*([0-9][0-9.,]*)/g));
+    if (!matches.length) return null;
+    return parseAmount(matches[matches.length - 1][1]);
+  }
+
+  function uiSectionText(text, heading, nextHeading) {
+    const lines = uiLines(text);
+    const start = lines.findIndex(line => heading.test(line));
+    if (start < 0) return '';
+    const end = nextHeading
+      ? lines.findIndex((line, index) => index > start && nextHeading.test(line))
+      : -1;
+    return lines.slice(start, end > start ? end : lines.length).join('\n');
+  }
+
+  function detailedUiDebt(text, fallbackAmount) {
+    const source = String(text || '');
+    // Keep each card isolated. Looking through a large character window can
+    // accidentally use the financing card's balance as the monthly debt.
+    const currentSection = uiSectionText(source, /^(?:deuda\s+actual|facturas?\s+pendientes)$/i, /^(?:deuda\s+financiada|deuda\s+diferida)$/i);
+    const financingSection = uiSectionText(source, /^(?:deuda\s+financiada|deuda\s+diferida)$/i);
+    const month = uiAmountForLabel(currentSection, /^(?:saldo\s+total|total\s+a\s+pagar)$/i)
+      ?? uiAmountNearHeading(source, /deuda\s+actual|facturas?\s+pendientes/i)
+      ?? uiAmountAfter(source, 'total a pagar');
+    const convenio = uiAmountForLabel(financingSection, /^(?:saldo\s+por\s+facturar|saldo\s+total|valor\s+total)$/i)
+      ?? uiAmountNearHeading(source, /deuda\s+(?:financiada|diferida)|convenio|financiaci[oó]n/i);
+    const total = uiAmountForLabel(source, /^saldo\s+total$/i)
+      ?? uiAmountNearHeading(source, /saldo\s+total/i)
+      ?? uiAmountAfter(source, 'total a pagar')
+      ?? fallbackAmount
+      ?? null;
+    return {
+      month,
+      convenio,
+      total,
+      amount: total ?? month ?? fallbackAmount ?? null,
+    };
+  }
+
+  function airEUiDebt(text, fallbackTotal) {
+    const source = String(text || '');
+    // The receipt/detail screen uses these labels. “Total Mes” is the
+    // current period including the applicable public-light/security charge;
+    // “Estado de Cuenta” is an accumulated balance already included in
+    // “Total a Pagar”, not a financing/convenio balance.
+    const month = uiAmountForLabel(source, /^(?:total\s+mes|total\s+mes\s+con\s+tasa)$/i)
+      ?? uiAmountForLabel(source, /^(?:energ[ií]a\s+mes|energ[ií]a\s+mes)$/i)
+      ?? uiAmountForLabel(source, /^(?:total\s+mes\s+sin\s+tasa)$/i);
+    const total = uiAmountForLabel(source, /^(?:total\s+a\s+pagar|deuda\s+total|total\s+por\s+pagar)$/i)
+      ?? fallbackTotal
+      ?? null;
+    return {
+      month: month ?? (total === 0 ? 0 : null),
+      convenio: 0,
+      total,
+    };
   }
 
   function uiLineAfter(lines, matcher) {
@@ -991,13 +1179,16 @@
     const source = String(text || '');
     const lines = uiLines(source);
     const policyMatch = source.match(/p[oó]liza\s*[^0-9]{0,30}(\d{4,})/i);
-    const amount = uiAmountAfter(source, 'total a pagar');
+    const detailed = detailedUiDebt(source, uiAmountAfter(source, 'total a pagar'));
     const statusLine = lines.find(line => /pago pendiente|pago en mora|est[aá]s al d[ií]a/i.test(line)) || '';
     const dueDate = uiLineAfter(lines, /^fecha de vencimiento$/i);
-    const status = statusFrom(amount, statusLine);
+    const status = statusFrom(detailed.total ?? detailed.amount, statusLine);
     return {
       policy: policyMatch ? policyMatch[1] : null,
-      amount: amount === null && status === 'paid' ? 0 : amount,
+      amount: detailed.amount === null && status === 'paid' ? 0 : detailed.amount,
+      month: detailed.month,
+      convenio: detailed.convenio,
+      total: detailed.total,
       status,
       dueDate,
     };
@@ -1084,14 +1275,18 @@
     // while paid cards say only "Pagado" followed by the historical invoice
     // amount. The historical amount is not current debt.
     const receiptAmount = uiAmountAfter(source, 'total a pagar') ?? uiAmountAfter(source, 'pagado');
+    const detailed = detailedUiDebt(source, receiptAmount);
     const paidByText = /estas\s+al\s+dia|al\s+dia|sin\s+deuda|pagad[oa]|pago\s+realizad[oa]/.test(normalized);
-    const amount = paidByText ? 0 : receiptAmount;
+    const amount = paidByText ? 0 : (detailed.total ?? receiptAmount);
     return {
       contract: contractMatch ? contractMatch[1] : null,
       invoice: invoiceMatch ? invoiceMatch[1] : null,
       dueDate: dueLine,
       periodo: periodMatch ? periodMatch[0] : null,
       receiptAmount,
+      month: paidByText ? 0 : detailed.month,
+      convenio: paidByText ? 0 : detailed.convenio,
+      total: amount,
       amount,
       status: amount === null ? 'unknown' : amount > 0 ? 'pending' : 'paid',
     };
@@ -1131,6 +1326,8 @@
     const extra = noGasInvoice ? {
       status: 'paid',
       deudaCOP: 0,
+      deudaMesCOP: 0,
+      deudaConveniosCOP: 0,
       deudaTotalCOP: 0,
       numFacturas: 0,
       deudaText: 'Deuda Total: $0 (al día; sin factura pendiente visible).',
@@ -1163,14 +1360,14 @@
     const loginOutcome = await ensureAuthenticated('air-e', config);
     if (loginOutcome) return loginOutcome;
     await wait(1800);
-    let contract = null;
+    let contractInfo = airContractFromPage();
+    let contract = contractInfo.value || null;
     for (let attempt = 0; attempt < 12 && !contract; attempt += 1) {
-      const resources = performance.getEntriesByType('resource') || [];
-      const found = resources.map(item => String(item.name || '').match(/cd_Contrato=([0-9a-f-]{36})/i)).find(Boolean);
-      contract = found && found[1];
+      contractInfo = airContractFromPage();
+      contract = contractInfo.value || null;
       if (!contract) await wait(1000);
     }
-    if (!contract) return { state: 'error', provider: 'air-e', stage: 'discover_contract', message: 'Air-e no mostró el contrato autenticado. Abre Listado de Facturas en el portal y vuelve a ejecutar.', results: [] };
+    if (!contract) return { state: 'error', provider: 'air-e', stage: 'discover_contract', pageUrl: location.href, pageTitle: document.title || '', resourceCount: (() => { try { return (performance.getEntriesByType('resource') || []).length; } catch { return 0; } })(), message: 'Air-e no mostró el contrato autenticado. Abre Listado de Facturas en el portal y vuelve a ejecutar.', results: [] };
     // The visible Air-e SPA can keep its bearer token in JavaScript memory
     // instead of a durable cookie. The background WebView restores that token
     // through the native session vault; send it through the same auth fallback
@@ -1185,11 +1382,28 @@
     items.forEach(invoice => {
       const nic = String(invoice && invoice.cd_Poliza || '').trim();
       if (!nic || /PAGAD[AO]/.test(String(invoice.cd_EstadosPagoDocumento || '').toUpperCase())) return;
-      const total = parseAmount(field(invoice, ['amt_DeudaTotal', 'deudaTotal', 'DeudaTotal']));
+      const total = parseAmount(field(invoice, [
+        'amt_DeudaTotal', 'deudaTotal', 'DeudaTotal', 'amt_TotalAPagar',
+        'totalAPagar', 'totalPagar', 'totalToPay', 'totalDebt', 'saldoTotal',
+      ])) ?? amountFromKeyPattern(invoice, /(?:deudatotal|totalapagar|totalpagar|totaldebt|saldototal|totalpending)/i, /(?:mes|month|cuota|quota|status|date|number|id)/i);
       const balance = parseAmount(field(invoice, ['amt_SaldoConsulta', 'saldoConsulta', 'SaldoConsulta']));
-      const month = parseAmount(field(invoice, ['amt_ValorMes', 'valorMes', 'ValorMes', 'amt_ValorFactura', 'valorFactura', 'ValorFactura', 'amt_Valor', 'valor', 'Valor']));
-      const financed = parseAmount(field(invoice, ['amt_ValorFinanciado', 'valorFinanciado', 'saldoFinanciado', 'deudaFinanciada', 'financedDebt', 'financingValue']));
-      const quota = parseAmount(field(invoice, ['amt_ValorCuota', 'valorCuota', 'cuotaFinanciada', 'quotaValue']));
+      const month = parseAmount(field(invoice, [
+        // Prefer the portal's “Total Mes” over “Energía Mes”. The latter can
+        // exclude the security/public-light charge while the former is the
+        // amount the current period actually requires.
+        'amt_TotalMes', 'totalMes', 'TotalMes', 'amt_ValorMes', 'valorMes', 'ValorMes',
+        'amt_TotalMesSinTasa', 'totalMesSinTasa', 'amt_ValorFactura', 'valorFactura',
+        'ValorFactura', 'amt_EnergiaMes', 'energiaMes', 'amt_Valor', 'valor', 'Valor',
+      ])) ?? amountFromKeyPattern(invoice, /(?:valormes|totalmes|energiames|valorfactura|invoicevalue|monthlyvalue|monthlyamount|currentinvoice)/i, /(?:totalmesdesdetasa|sinimpuesto)/i);
+      // Air-e's “Estado de Cuenta” is accumulated/current-account debt, not
+      // a financing agreement. Do not expose it as “Deuda de convenios”.
+      const financed = parseAmount(field(invoice, [
+        'amt_ValorFinanciado', 'valorFinanciado', 'saldoFinanciado', 'deudaFinanciada',
+        'financedDebt', 'financingValue', 'financedBalance', 'balanceFinanced',
+        'debtFinanced', 'deferredDebt', 'deudaDiferida', 'saldoConvenio', 'deudaConvenio',
+      ])) ?? amountFromKeyPattern(invoice, /(?:financ|conveni|acuerdo|saldoconvenio|debtfinanc|deferred)/i, /(?:status|date|number|id)/i);
+      const quota = parseAmount(field(invoice, ['amt_ValorCuota', 'valorCuota', 'cuotaFinanciada', 'quotaValue']))
+        ?? amountFromKeyPattern(invoice, /(?:cuota|quota|installment)/i, /(?:status|date|number|id)/i);
       const group = grouped[nic] || { total: [], balance: [], rows: [], invoices: [] };
       if (total !== null) group.total.push(total); else if (balance !== null) group.balance.push(balance);
       group.rows.push({ invoice, month, financed, quota, date: recordDate(invoice) });
@@ -1199,7 +1413,11 @@
     const results = (config.apartments || []).filter(target => target.electricityPaymentCode).map(target => {
       const nic = String(target.electricityPaymentCode).replace(/\D/g, '');
       const group = grouped[nic] || { total: [], balance: [], rows: [], invoices: [] };
-      const debt = group.total.length ? Math.max.apply(Math, group.total) : group.balance.reduce((sum, value) => sum + value, 0);
+      // Air-e returns one row per unpaid invoice.  `amt_DeudaTotal` is the
+      // balance of that invoice, not a NIC-wide aggregate, so taking only the
+      // maximum hides overdue periods and partial balances.  Sum all unpaid
+      // rows; the current month is calculated separately below.
+      const debt = group.total.length ? group.total.reduce((sum, value) => sum + value, 0) : group.balance.reduce((sum, value) => sum + value, 0);
       const rows = group.rows.slice().sort((left, right) => (right.date?.getTime() || 0) - (left.date?.getTime() || 0));
       const latest = rows[0] || null;
       const latestPeriod = latest?.date ? `${latest.date.getUTCFullYear()}-${latest.date.getUTCMonth()}` : null;
@@ -1216,7 +1434,7 @@
         status: deudaTotalCOP > 0 ? 'pending' : 'paid',
         deudaCOP: deudaTotalCOP,
         deudaMesCOP,
-        deudaConveniosCOP: financedValues.length ? Math.max.apply(Math, financedValues) : financing.financiadaCOP,
+        deudaConveniosCOP: financedValues.length ? Math.max.apply(Math, financedValues) : (financing.financiadaCOP ?? 0),
         deudaTotalCOP,
         factura: field(latest?.invoice, ['invoiceNumber', 'invoiceId', 'factura', 'id']) || null,
         periodo: field(latest?.invoice, ['invoiceDate', 'billingPeriod', 'periodo', 'fechaFactura']) || null,
@@ -1228,7 +1446,81 @@
         deudaText: deudaTotalCOP > 0 ? `Deuda Total del NIC: $${deudaTotalCOP.toLocaleString('es-CO')}.` : 'Deuda Total del NIC: $0 (al día).',
       });
     });
-    return { state: 'ok', provider: 'air-e', stage: 'fetch_invoices', records: results.length, results };
+    // Documento/Get reliably exposes the accumulated “Total a Pagar”, but on
+    // some Air-e account builds the current-period breakdown is rendered only
+    // after opening the NIC detail. Read that detail when the API omitted the
+    // month instead of publishing a misleading blank value.
+    let uiHydrationFailures = 0;
+    for (const record of results) {
+      if (record.deudaMesCOP !== null && record.deudaMesCOP !== undefined) continue;
+      const target = (config.apartments || []).find(item => String(item.id) === String(record.apartmentId)
+        || digits(item.electricityPaymentCode) === digits(record.nic));
+      if (!target) {
+        uiHydrationFailures += 1;
+        continue;
+      }
+      const parsed = await queryAirEDetail(target, record.deudaTotalCOP);
+      if (parsed.month === null || parsed.month === undefined) {
+        uiHydrationFailures += 1;
+        continue;
+      }
+      record.deudaMesCOP = parsed.month;
+      record.facturaValorCOP = parsed.month;
+      record.deudaConveniosCOP = 0;
+      record.financiadaCOP = 0;
+    }
+    const incomplete = results.some(record => record.deudaMesCOP === null || record.deudaMesCOP === undefined);
+    return {
+      state: incomplete ? 'warning' : 'ok',
+      provider: 'air-e',
+      stage: incomplete ? 'fetch_invoices_ui' : 'fetch_invoices',
+      records: results.length,
+      contractSource: contractInfo.source,
+      invoiceItemCount: items.length,
+      uiHydrationFailures,
+      message: incomplete
+        ? `Air-e devolvió el total acumulado, pero no confirmó la Deuda del mes de ${uiHydrationFailures} registro(s) en la vista detallada.`
+        : `Air-e confirmó Deuda del mes, convenios y Deuda Total para ${results.length} registro(s).`,
+      results,
+    };
+  }
+
+  async function queryAirEDetail(target, fallbackTotal) {
+    const nic = digits(target?.electricityPaymentCode);
+    if (!nic) return { month: null, convenio: 0, total: fallbackTotal ?? null };
+
+    const currentText = uiBodyText();
+    const current = airEUiDebt(currentText, fallbackTotal);
+    if (current.month !== null && current.month !== undefined && new RegExp(`\\b${escapeRegex(nic)}\\b`).test(currentText)) {
+      return current;
+    }
+
+    const candidates = Array.from(document.querySelectorAll('a, button, [role="link"], [role="button"], td, span'))
+      .filter(domAvailable)
+      .map(element => ({ element, label: uiText(element) }))
+      .filter(item => digits(item.label) === nic)
+      .sort((left, right) => left.label.length - right.label.length);
+    const link = candidates[0]?.element || null;
+    if (!link) return current;
+    const beforeUrl = location.href;
+    try { link.click(); } catch { return current; }
+    const parsed = await waitForUi(() => {
+      const text = uiBodyText();
+      if (!new RegExp(`\\b${escapeRegex(nic)}\\b`).test(text)) return null;
+      if (!/(?:total\\s+mes|energ[ií]a\\s+mes|estado\\s+de\\s+cuenta|total\\s+a\\s+pagar)/i.test(text)) return null;
+      const value = airEUiDebt(text, fallbackTotal);
+      return value.month !== null || value.total !== null ? value : null;
+    }, PORTAL_UI_TIMEOUT_MS) || current;
+
+    // Return to the authenticated list so the next NIC can be opened. This is
+    // safe for the portal SPA and avoids leaving the worker on the last unit.
+    try {
+      if (location.href !== beforeUrl) {
+        history.back();
+        await waitForUi(() => location.href === beforeUrl || /list|factura|contrato/i.test(location.href) ? true : null, 8_000);
+      }
+    } catch {}
+    return parsed;
   }
 
   async function fetchTripleASummary(subscription, token) {
@@ -1267,18 +1559,19 @@
     const debtRows = debtPayload ? list(debtPayload, ['debts', 'items']) : [];
     const total = debtPayload && !/deferred|financ/i.test(debtRoute)
       ? amountFromFields(debtPayload, ['totalDebts', 'totalDebt', 'deudaTotal', 'totalPending', 'totalPendingDebt', 'totalDebtValue'])
+        ?? amountFromKeyPattern(debtPayload, /(?:deudatotal|totaldebt|totalpending|totalapagar|saldototal)/i, /(?:mes|month|cuota|quota)/i)
         ?? (debtRows.length ? debtRows.map(row => amountFromFields(row, ['totalValue', 'pendingBalance', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'amount', 'value'])).filter(value => value !== null).reduce((sum, value) => sum + value, 0) : null)
       : null;
     const debtMonth = debtPayload && !/deferred|financ/i.test(debtRoute)
       ? amountFromFields(debtPayload, [
         'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
         'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
-        'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
+        'invoiceValue', 'valorMes', 'valorFactura', 'totalMes', 'totalMesSinTasa', 'saldoActual', 'saldoDeudaActual',
         'deudaActual', 'currentBalance', 'balanceCurrent',
-      ])
+      ]) ?? amountFromKeyPattern(debtPayload, /(?:deudames|monthdebt|monthly|currentdebt|currentinvoice|invoic|valormes|totalmes|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i)
       : null;
     const financing = financingSummary(financingPayloads.length ? financingPayloads : (debtPayload || invoicesResponse.payload));
-    const convenio = financing.financiadaCOP;
+    const convenio = financing.financiadaCOP ?? (financingPayloads.length ? 0 : null);
     const invoiceTotal = invoiceSummary.deudaTotalCOP ?? invoiceSummary.deudaMesCOP;
     const combinedTotal = total ?? (
       convenio !== null && invoiceTotal !== null ? invoiceTotal + convenio : invoiceTotal
@@ -1296,6 +1589,12 @@
       financiacion: financing.financiacion,
       debtSource: total !== null ? 'debt_endpoint' : 'invoice_fallback',
       debtEndpointStatus,
+      invoiceEndpointStatus: invoicesResponse.status || 0,
+      invoiceItemCount: invoiceItems.length,
+      financingEndpointCount: financingPayloads.length,
+      detectedInvoiceKeys: fieldKeys(invoicesResponse.payload),
+      detectedDebtKeys: fieldKeys(debtPayload),
+      detectedFinancingKeys: fieldKeys(financingPayloads),
     };
   }
 
@@ -1308,18 +1607,19 @@
     if (!response.ok) return { debtEndpointStatus: response.status || 0, debtSource: 'invoice_fallback' };
     const rows = list(response.payload, ['debts', 'items', 'invoices', 'contracts']);
     const explicitTotal = amountFromFields(response.payload, ['totalDebts', 'totalDebt', 'deudaTotal', 'totalDebtValue', 'totalToPay', 'totalValue', 'totalAmount', 'saldoTotal', 'totalCurrentDebt', 'total'])
+      ?? amountFromKeyPattern(response.payload, /(?:deudatotal|totaldebt|totalpay|totalto|saldototal|totalcurrentdebt)/i, /(?:mes|month|cuota|quota)/i)
       ?? (rows.length ? rows.map(row => amountFromFields(row, ['pendingBalance', 'saldoPendiente', 'saldoPorFacturar', 'totalValue', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'totalToPay', 'amount', 'value'])).filter(value => value !== null).reduce((sum, value) => sum + value, 0) : null);
     const month = amountFromFields(response.payload, [
       'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
       'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
       'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
-      'deudaActual', 'currentBalance', 'balanceCurrent',
-    ]) ?? (rows.length ? amountFromFields(rows[0], [
+      'deudaActual', 'currentBalance', 'balanceCurrent', 'totalMes', 'totalMesSinTasa',
+    ]) ?? amountFromKeyPattern(response.payload, /(?:deudames|monthdebt|monthly|currentdebt|currentinvoice|invoicevalue|valormes|totalmes|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i) ?? (rows.length ? amountFromFields(rows[0], [
       'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
       'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
       'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
-      'deudaActual', 'currentBalance', 'balanceCurrent',
-    ]) : null);
+      'deudaActual', 'currentBalance', 'balanceCurrent', 'totalMes', 'totalMesSinTasa',
+    ]) ?? amountFromKeyPattern(rows[0], /(?:deudames|monthdebt|monthly|currentdebt|currentinvoice|invoicevalue|valormes|totalmes|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i) : null);
     const financing = financingSummary(response.payload);
     const total = explicitTotal ?? (
       month !== null && financing.financiadaCOP !== null
@@ -1335,6 +1635,8 @@
       financiacion: financing.financiacion,
       debtSource: total !== null ? 'debt_endpoint' : 'invoice_fallback',
       debtEndpointStatus: response.status || 0,
+      debtKeys: fieldKeys(response.payload),
+      debtRowCount: rows.length,
     };
   }
 
@@ -1366,7 +1668,10 @@
       const rawAmount = field(subscription, ['pendingValue', 'pendingAmount', 'debt', 'deudaTotal', 'totalDebt', 'amountDue', 'totalDue', 'balanceDue', 'saldoTotal', 'saldoPendiente', 'total', 'amount', 'balance', 'saldo']);
       const amount = parseAmount(rawAmount);
       const rawStatus = field(subscription, ['status', 'state', 'paymentStatus']);
-      const code = field(subscription, ['subscriptionExternalId', 'externalId', 'subscriptionId', 'policyNumber', 'poliza', 'policy', 'id']);
+      // The visible policy number is the stable value configured by the user.
+      // `subscriptionId`/`id` are internal BFF identifiers and must never be
+      // shown or written back as the apartment's policy number.
+      const code = field(subscription, ['policyNumber', 'poliza', 'policy', 'subscriptionExternalId', 'externalId', 'subscriptionId', 'id']);
       const total = summary.deudaTotalCOP ?? (amount === null && /pending|pendiente|vencid|mora/i.test(String(rawStatus || '')) ? null : (amount === null ? 0 : Math.max(0, amount)));
       const month = summary.deudaMesCOP ?? (amount === null && /pending|pendiente|vencid|mora/i.test(String(rawStatus || '')) ? null : (amount === null ? 0 : Math.max(0, amount)));
       results.push(resultBase('Triple A', 'water', target, {
@@ -1374,7 +1679,7 @@
         status: total === null ? statusFrom(amount, rawStatus || field(subscription, ['isPending', 'pending', 'pendiente'])) : (total > 0 ? 'pending' : 'paid'),
         deudaCOP: total,
         deudaMesCOP: month,
-        deudaConveniosCOP: summary.deudaConveniosCOP ?? summary.financiadaCOP ?? null,
+        deudaConveniosCOP: summary.deudaConveniosCOP ?? summary.financiadaCOP ?? 0,
         deudaTotalCOP: total,
         facturaValorCOP: summary.facturaValorCOP ?? month,
         numFacturas: summary.numFacturas ?? null,
@@ -1458,7 +1763,7 @@
             status: total > 0 ? 'pending' : 'paid',
             deudaCOP: total,
             deudaMesCOP: debtSummary.deudaMesCOP ?? 0,
-            deudaConveniosCOP: debtSummary.deudaConveniosCOP ?? debtSummary.financiadaCOP ?? null,
+            deudaConveniosCOP: debtSummary.deudaConveniosCOP ?? debtSummary.financiadaCOP ?? 0,
             deudaTotalCOP: total,
             financiadaCOP: debtSummary.financiadaCOP ?? null,
             cuotaFinanciadaCOP: debtSummary.cuotaFinanciadaCOP ?? null,
@@ -1504,7 +1809,7 @@
         status: total === null || total > 0 ? 'pending' : 'paid',
         deudaCOP: total,
         deudaMesCOP: debtSummary.deudaMesCOP ?? month ?? total,
-        deudaConveniosCOP: debtSummary.deudaConveniosCOP ?? debtSummary.financiadaCOP ?? null,
+        deudaConveniosCOP: debtSummary.deudaConveniosCOP ?? debtSummary.financiadaCOP ?? 0,
         deudaTotalCOP: total,
         facturaValorCOP: debtSummary.deudaMesCOP ?? month ?? total,
         financiadaCOP: debtSummary.financiadaCOP ?? null,
@@ -1621,9 +1926,10 @@
           waterPaymentUrl: target.waterPaymentUrl || null,
           status: parsed.status,
           deudaCOP: parsed.amount,
-          deudaMesCOP: parsed.amount,
-          deudaTotalCOP: parsed.amount,
-          facturaValorCOP: parsed.amount,
+          deudaMesCOP: parsed.month ?? (parsed.total === 0 ? 0 : parsed.amount),
+          deudaConveniosCOP: parsed.convenio ?? 0,
+          deudaTotalCOP: parsed.total ?? parsed.amount,
+          facturaValorCOP: parsed.month ?? (parsed.total === 0 ? 0 : parsed.amount),
           numFacturas: parsed.status === 'pending' ? 1 : 0,
           periodo: parsed.dueDate || null,
           fechaVencimiento: parsed.dueDate || null,
@@ -1699,13 +2005,14 @@
           gasPaymentUrl: target.gasPaymentUrl || null,
           status: parsed.status,
           deudaCOP: parsed.amount,
-          deudaMesCOP: parsed.amount,
-          deudaTotalCOP: parsed.amount,
+          deudaMesCOP: parsed.month ?? (parsed.total === 0 ? 0 : parsed.amount),
+          deudaConveniosCOP: parsed.convenio ?? 0,
+          deudaTotalCOP: parsed.total ?? parsed.amount,
           numFacturas: parsed.status === 'pending' ? 1 : 0,
           factura: parsed.invoice || null,
           periodo: parsed.periodo || parsed.dueDate || null,
           fechaVencimiento: parsed.dueDate || null,
-          facturaValorCOP: parsed.receiptAmount ?? null,
+          facturaValorCOP: parsed.month ?? (parsed.total === 0 ? 0 : parsed.receiptAmount ?? null),
         }));
     }
 
@@ -1728,23 +2035,74 @@
     };
   }
 
+  function resultIdentity(record) {
+    return [
+      record?.apartmentId,
+      clean(record?.apartment),
+      digits(record?.nic),
+      digits(record?.waterPaymentCode),
+      digits(record?.gasPaymentCode),
+    ].find(value => value !== null && value !== undefined && String(value).trim() !== '') || '';
+  }
+
+  function mergeUiDebt(primary, fallback) {
+    const primaryResults = Array.isArray(primary?.results) ? primary.results : [];
+    const fallbackResults = Array.isArray(fallback?.results) ? fallback.results : [];
+    const merged = primaryResults.map(record => {
+      const identity = resultIdentity(record);
+      const match = fallbackResults.find(candidate => {
+        const candidateIdentity = resultIdentity(candidate);
+        return (record.apartmentId != null && candidate.apartmentId != null && String(record.apartmentId) === String(candidate.apartmentId))
+          || (identity && candidateIdentity && identity === candidateIdentity)
+          || (clean(record.apartment) && clean(record.apartment) === clean(candidate.apartment));
+      });
+      if (!match) return record;
+      const next = Object.assign({}, record);
+      ['deudaMesCOP', 'deudaConveniosCOP', 'deudaTotalCOP', 'facturaValorCOP', 'financiadaCOP', 'cuotaFinanciadaCOP', 'factura', 'periodo'].forEach(key => {
+        if ((next[key] === null || next[key] === undefined || next[key] === '') && match[key] !== null && match[key] !== undefined && match[key] !== '') next[key] = match[key];
+      });
+      if (next.deudaTotalCOP == null && next.deudaMesCOP != null && next.deudaConveniosCOP != null) next.deudaTotalCOP = next.deudaMesCOP + next.deudaConveniosCOP;
+      if (next.deudaCOP == null && next.deudaTotalCOP != null) next.deudaCOP = next.deudaTotalCOP;
+      return next;
+    });
+    const stillMissing = merged.some(record => record.deudaMesCOP == null || record.deudaConveniosCOP == null || record.deudaTotalCOP == null);
+    return Object.assign({}, primary, {
+      state: stillMissing ? 'warning' : primary?.state,
+      results: merged,
+      message: stillMissing
+        ? `${primary?.message || 'Consulta completada.'} Se conservaron como pendientes los campos que el portal no confirmó.`
+        : primary?.message,
+    });
+  }
+
+  function needsUiDebtHydration(result) {
+    return ['ok', 'warning'].includes(result?.state)
+      && Array.isArray(result?.results)
+      && result.results.some(record => record.deudaMesCOP == null || record.deudaConveniosCOP == null || record.deudaTotalCOP == null);
+  }
+
   async function run(provider, config) {
     try {
       if (provider === 'air-e') return await runAirE(config || {});
       if (provider === 'water') {
-        // Prefer the authenticated BFF: it exposes the current invoice and
-        // accumulated debt without scraping a changing card layout. Keep the
-        // visible reader as a compatibility fallback for old portal builds.
-        const apiResult = await runWater(config || {});
-        if (['ok', 'warning'].includes(apiResult?.state)) return apiResult;
+        // The authenticated UI exposes the human-facing policy number and
+        // the actual debt card. Prefer it so internal BFF IDs cannot corrupt
+        // the apartment mapping. Missing policies are returned as explicit
+        // unmatched records and do not abort the other policies.
         const uiResult = await runWaterUi(config || {});
-        return uiResult?.results?.length || uiResult?.state === 'needs_verification' ? uiResult : apiResult;
+        if (uiResult?.results?.length || uiResult?.state === 'needs_verification') return uiResult;
+        const apiResult = await runWater(config || {});
+        return apiResult;
       }
       if (provider === 'gas') {
-        const apiResult = await runGas(config || {});
-        if (['ok', 'warning'].includes(apiResult?.state)) return apiResult;
+        // The gas debt endpoint currently mixes current-invoice and financed
+        // balances on some accounts. The authenticated "Mis deudas" cards
+        // are the authoritative split: Deuda actual, Deuda financiada and
+        // Saldo total. Fall back to the API only if the UI cannot hydrate.
         const uiResult = await runGasUi(config || {});
-        return uiResult?.results?.length || uiResult?.state === 'needs_verification' ? uiResult : apiResult;
+        if (uiResult?.results?.length || uiResult?.state === 'needs_verification') return uiResult;
+        const apiResult = await runGas(config || {});
+        return apiResult;
       }
       return { state: 'error', provider, message: 'Servicio no soportado.', results: [] };
     } catch (error) {

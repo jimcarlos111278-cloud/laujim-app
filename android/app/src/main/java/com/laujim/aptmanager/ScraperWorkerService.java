@@ -80,6 +80,11 @@ public class ScraperWorkerService extends Service {
     // Provider portals keep bearer tokens in JavaScript memory. Capture the
     // authorization header inside this phone WebView for the local runner.
     private volatile String nativeAuthorization = "";
+    // Air-e puts the UUID required by Documento/Get in the request query,
+    // not in the rendered DOM. Android WebView can discard performance
+    // entries while the worker is backgrounded, so retain the request value
+    // natively and expose only this non-secret identifier to the runner.
+    private volatile String nativeAirContract = "";
 
     @Override
     public void onCreate() {
@@ -257,6 +262,7 @@ public class ScraperWorkerService extends Service {
             for (String provider : executionProviders) {
                 JSONObject providerConfig = scopedConfig(config, provider);
                 nativeAuthorization = "";
+                nativeAirContract = "";
                 ScraperWorkerStore.setCurrentProvider(this, provider);
                 updateNotification("Consultando " + providerLabel(provider) + " en el teléfono…", provider);
                 ScraperWorkerStore.setRunState(this, "running-" + provider, "");
@@ -399,7 +405,7 @@ public class ScraperWorkerService extends Service {
     private JSONObject diagnosticDetails(JSONObject outcome) {
         if (outcome == null) return null;
         JSONObject details = new JSONObject();
-        String[] keys = {"state", "stage", "executionPath", "policyCount", "matchedPolicies", "unmatchedPolicies", "contractCount", "matchedContracts", "unmatchedContracts", "unmatchedApartments", "uiFailures", "invoiceFailures", "missingContractIds", "domRows", "domParagraphs", "domTextLength", "hydrationWaitMs", "url", "title", "fetchError"};
+        String[] keys = {"state", "stage", "executionPath", "policyCount", "matchedPolicies", "unmatchedPolicies", "contractCount", "matchedContracts", "unmatchedContracts", "unmatchedApartments", "uiFailures", "invoiceFailures", "missingContractIds", "domRows", "domParagraphs", "domTextLength", "hydrationWaitMs", "url", "title", "pageUrl", "pageTitle", "resourceCount", "contractSource", "invoiceItemCount", "invoiceEndpointStatus", "financingEndpointCount", "detectedInvoiceKeys", "detectedDebtKeys", "detectedFinancingKeys", "debtKeys", "debtRowCount", "fetchError"};
         for (String key : keys) {
             if (!outcome.has(key)) continue;
             try { details.put(key, outcome.opt(key)); } catch (JSONException ignored) { }
@@ -533,13 +539,22 @@ public class ScraperWorkerService extends Service {
                 : outcome;
         }
 
-        Thread.sleep(25_000L);
-        JSONObject resumeConfig = config == null ? new JSONObject() : new JSONObject(config.toString());
-        resumeConfig.put("autoLoginSubmitted", true);
-        outcome = runProviderAttempt(provider, resumeConfig);
-        return outcome == null
-            ? new JSONObject().put("state", "error").put("message", "El portal no devolvió una respuesta después del autologin.")
-            : outcome;
+        // A hidden WebView can receive the Enter key while the portal SPA is
+        // still on its form. Give the first submission time to redirect, then
+        // allow one form re-submit and one final authenticated evaluation.
+        for (int loginAttempt = 0; loginAttempt < 2; loginAttempt++) {
+            Thread.sleep(25_000L);
+            JSONObject resumeConfig = config == null ? new JSONObject() : new JSONObject(config.toString());
+            resumeConfig.put("autoLoginSubmitted", true);
+            resumeConfig.put("loginAttempt", loginAttempt);
+            outcome = runProviderAttempt(provider, resumeConfig);
+            if (outcome == null || !"login_submitted".equals(outcome.optString("state", ""))) return outcome;
+        }
+        return new JSONObject().put("state", "needs_login")
+            .put("provider", provider)
+            .put("stage", "auto_login_not_confirmed")
+            .put("message", providerLabel(provider) + " no confirmó el inicio de sesión después de los reintentos automáticos.")
+            .put("results", new JSONArray());
     }
 
     private boolean isWrongGasAccountSession(String provider, JSONObject config, JSONObject outcome) {
@@ -593,12 +608,19 @@ public class ScraperWorkerService extends Service {
     }
 
     private void captureAuthorization(String url, java.util.Map<String, String> headers) {
-        if (url == null || headers == null) return;
+        if (url == null) return;
         String lowerUrl = url.toLowerCase();
         if (!lowerUrl.contains("portal.aaa.com.co")
             && !lowerUrl.contains("portal.air-e.com")
             && !lowerUrl.contains("gascaribe")
             && !lowerUrl.contains("innovacion-gascaribe.com")) return;
+        if (lowerUrl.contains("portal.air-e.com")) {
+            java.util.regex.Matcher contract = java.util.regex.Pattern
+                .compile("(?:[?&]cd_contrato=)([0-9a-f-]{36})", java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(url);
+            if (contract.find()) nativeAirContract = contract.group(1);
+        }
+        if (headers == null) return;
         for (java.util.Map.Entry<String, String> entry : headers.entrySet()) {
             if (entry.getKey() != null && "authorization".equalsIgnoreCase(entry.getKey())
                 && entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
@@ -703,8 +725,9 @@ public class ScraperWorkerService extends Service {
         }
         String configJson = config.toString();
         String nativeAuthorizationJson = quote(nativeAuthorization);
+        String nativeAirContractJson = quote(nativeAirContract);
         String runnerProvider = PortalSessionVault.baseProvider(provider);
-        String expression = "(async()=>{try{window.__LaujimNativeAuthorization=" + nativeAuthorizationJson + ";" + runnerScript + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');const outcome=await window.LaujimLocalPortalScraper.run(" + quote(runnerProvider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));if(outcome&&outcome.state==='login_submitted')setTimeout(()=>window.LaujimLocalPortalScraper.submitLogin(),350);}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(runnerProvider) + ",message:String(e&&e.message||e),results:[]}));}})();";
+        String expression = "(async()=>{try{window.__LaujimNativeAuthorization=" + nativeAuthorizationJson + ";window.__LaujimNativeAirContract=" + nativeAirContractJson + ";" + runnerScript + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');const outcome=await window.LaujimLocalPortalScraper.run(" + quote(runnerProvider) + "," + configJson + ");window.LaujimAndroidBridge.resolve(JSON.stringify(outcome));if(outcome&&outcome.state==='login_submitted')setTimeout(()=>window.LaujimLocalPortalScraper.submitLogin(),350);}catch(e){window.LaujimAndroidBridge.resolve(JSON.stringify({state:'error',provider:" + quote(runnerProvider) + ",message:String(e&&e.message||e),results:[]}));}})();";
         mainHandler.postDelayed(() -> {
             if (webView == null) {
                 result.completeExceptionally(new IllegalStateException("WebView local no inicializado."));

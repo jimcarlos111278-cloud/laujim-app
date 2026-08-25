@@ -45,6 +45,7 @@ public class PortalBrowserActivity extends Activity {
     private String provider = "air-e";
     private String currentUrl = "";
     private String nativeAuthorization = "";
+    private String nativeAirContract = "";
     // A paused Activity keeps its attached WebView and real browser profile.
     // Reusing it lets portal security widgets finish normally without showing
     // another window during an hourly run.
@@ -204,6 +205,7 @@ public class PortalBrowserActivity extends Activity {
         navigationGeneration += 1;
         storageRestoreAttempted = false;
         nativeAuthorization = PortalSessionVault.loadAuthorization(this, provider);
+        nativeAirContract = "";
         synchronized (scraperLock) { pageReady = new CompletableFuture<>(); }
         currentUrl = "";
         PortalSessionVault.flushCookies();
@@ -240,7 +242,14 @@ public class PortalBrowserActivity extends Activity {
     }
 
     private void captureAuthorization(String url, Map<String, String> headers) {
-        if (url == null || headers == null || !isProviderUrl(url, provider)) return;
+        if (url == null || !isProviderUrl(url, provider)) return;
+        if (url.toLowerCase().contains("portal.air-e.com")) {
+            java.util.regex.Matcher contract = java.util.regex.Pattern
+                .compile("(?:[?&]cd_contrato=)([0-9a-f-]{36})", java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(url);
+            if (contract.find()) nativeAirContract = contract.group(1);
+        }
+        if (headers == null) return;
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             if (entry.getKey() != null && "authorization".equalsIgnoreCase(entry.getKey())
                 && entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
@@ -454,8 +463,10 @@ public class PortalBrowserActivity extends Activity {
         String savedAuth = nativeAuthorization == null || nativeAuthorization.isEmpty()
             ? PortalSessionVault.loadAuthorization(this, nextProvider)
             : nativeAuthorization;
+        String savedAirContract = nativeAirContract == null ? "" : nativeAirContract;
         String expression = "(async()=>{try{"
             + "window.__LaujimNativeAuthorization=" + quote(savedAuth) + ";"
+            + "window.__LaujimNativeAirContract=" + quote(savedAirContract) + ";"
             + (runnerScript == null ? "" : runnerScript)
             + "if(!window.LaujimLocalPortalScraper||typeof window.LaujimLocalPortalScraper.run!=='function')throw new Error('Motor local de portales no disponible.');"
             + "const outcome=await window.LaujimLocalPortalScraper.run(" + quote(PortalSessionVault.baseProvider(nextProvider)) + "," + (configJson == null ? "{}" : configJson) + ");"

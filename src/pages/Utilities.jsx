@@ -70,6 +70,8 @@ function billMonthDebt(bill) {
   return firstBillAmount(bill, [
     'deudaMesCOP', 'valorMesCOP', 'monthValueCOP', 'facturaValorCOP',
     'invoiceValueCOP', 'valorFacturaCOP', 'amt_ValorMes', 'amt_Valor',
+    'amt_TotalMes', 'totalMes', 'TotalMes', 'amt_TotalMesSinTasa',
+    'totalMesSinTasa', 'amt_EnergiaMes', 'energiaMes',
     'deudaMes', 'valorMes', 'monthValue', 'facturaValor', 'invoiceValue',
   ]);
 }
