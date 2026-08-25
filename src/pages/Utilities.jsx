@@ -4,6 +4,7 @@ import Modal from '../components/Modal';
 import { api } from '../api';
 import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, servicePaymentUrl } from '../utils/helpers';
 import { getBase, AUTH_TOKEN, isCapacitor } from '../utils/config';
+import { openAndroidPortal, supportsAndroidScraperWorker } from '../utils/androidScraperWorker';
 import jsQR from 'jsqr';
 
 const services = {
@@ -35,31 +36,79 @@ function timeAgo(iso) {
   return `hace ${Math.floor(hours / 24)} d`;
 }
 
-function waterBillLabel(bill) {
-  if (!bill) return '';
-  const debt = Number(bill.deudaCOP);
-  if (Number.isFinite(debt) && debt > 0) return `Deuda Total: $${debt.toLocaleString('es-CO')}`;
-  if (bill.status === 'pending') return 'Deuda Total pendiente · valor no informado';
-  if (bill.status === 'paid') return 'Al día · Sin deuda';
-  if (bill.status === 'captcha') return 'Requiere verificación manual';
-  if (bill.status === 'timeout') return 'Consulta agotó el tiempo';
-  if (bill.status === 'error') return 'Portal sin datos confirmados';
-  return 'Estado no identificado';
-}
-
 function waterBillClass(bill) {
-  if (bill?.status === 'pending' && Number(bill.deudaCOP) > 0) return 'text-red-600 dark:text-red-400';
+  if (bill?.status === 'pending' && Number(billTotalDebt(bill)) > 0) return 'text-red-600 dark:text-red-400';
   if (bill?.status === 'paid') return 'text-emerald-600 dark:text-emerald-400';
   return 'text-amber-600 dark:text-amber-400';
 }
 
-function waterBillMeta(bill) {
+function parseBillAmount(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.max(0, Math.round(value)) : null;
+  const raw = String(value).replace(/[^0-9,.-]/g, '');
+  const normalized = raw.includes(',')
+    ? (raw.includes('.')
+      ? (raw.lastIndexOf(',') > raw.lastIndexOf('.')
+        ? raw.replace(/\./g, '').replace(',', '.')
+        : raw.replace(/,/g, ''))
+      : (raw.split(',')[1]?.length === 3 ? raw.replace(',', '') : raw.replace(',', '.')))
+    : raw.replace(/\./g, '');
+  const amount = Number(normalized);
+  return Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : null;
+}
+
+function firstBillAmount(bill, fields) {
+  if (!bill) return null;
+  for (const field of fields) {
+    const amount = parseBillAmount(bill[field]);
+    if (amount !== null) return amount;
+  }
+  return null;
+}
+
+function billMonthDebt(bill) {
+  return firstBillAmount(bill, [
+    'deudaMesCOP', 'valorMesCOP', 'monthValueCOP', 'facturaValorCOP',
+    'invoiceValueCOP', 'valorFacturaCOP', 'amt_ValorMes', 'amt_Valor',
+    'deudaMes', 'valorMes', 'monthValue', 'facturaValor', 'invoiceValue',
+  ]);
+}
+
+function billTotalDebt(bill) {
+  return firstBillAmount(bill, [
+    'deudaTotalCOP', 'totalDeudaCOP', 'saldoTotalCOP', 'deudaCOP',
+    'totalCOP', 'saldoCOP', 'amountCOP', 'valorCOP', 'deudaTotal',
+    'deuda', 'total', 'amount', 'valor',
+  ]);
+}
+
+function billConvenioDebt(bill) {
+  return firstBillAmount(bill, [
+    'deudaConveniosCOP', 'financiadaCOP', 'deudaFinanciada', 'saldoFinanciado',
+    'financedDebt', 'valorFinanciado', 'financingValue', 'financedAmount',
+  ]);
+}
+
+function billMoney(value) {
+  return value === null ? 'Sin dato confirmado' : `$${value.toLocaleString('es-CO')}`;
+}
+
+function billMeta(bill) {
   if (!bill) return '';
   const parts = [];
-  if (bill.factura) parts.push(`factura ${bill.factura}`);
-  if (bill.periodo) parts.push(`periodo ${bill.periodo}`);
+  const count = Number(bill.numFacturas);
+  if (Number.isFinite(count) && count > 0) parts.push(`${count} ${count === 1 ? 'factura' : 'facturas'}`);
   if (bill.actualizado) parts.push(`datos ${timeAgo(bill.actualizado)}`);
   return parts.join(' · ');
+}
+
+function billStatusText(bill) {
+  if (!bill) return 'Sin datos de consulta';
+  if (bill.status === 'captcha') return 'Requiere verificación manual';
+  if (bill.status === 'timeout') return 'Consulta agotó el tiempo';
+  if (bill.status === 'error') return 'Portal sin datos confirmados';
+  if (bill.status === 'paid' && billTotalDebt(bill) === 0) return 'Al día';
+  return '';
 }
 
 const PORTALS = [
@@ -73,6 +122,15 @@ const AIR_E_PUBLIC_PAYMENT_URL = 'https://portal.air-e.com/Pagar#/List';
 // still needs a receipt QR to give the tenant a public payment link.
 const QR_SERVICES = new Set(['water']);
 const SCAN_MAX_WIDTH = 640;
+
+async function openUtilityPortal(portal) {
+  if (supportsAndroidScraperWorker()) {
+    const provider = portal.key === 'water' ? 'water' : portal.key === 'gas' ? 'gas-1' : 'air-e';
+    await openAndroidPortal(provider);
+    return;
+  }
+  window.open(portal.url, '_blank', 'noopener');
+}
 const GAS_ACCOUNT_LIMIT = 10;
 
 function gasCode(apartment) {
@@ -145,23 +203,24 @@ export default function Utilities() {
       api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(),
     ]);
     setApartments(a); setTenants(t); setContracts(c);
-    await loadDebts(a);
+    await loadDebts();
   }
 
-  async function loadDebts(apts) {
-    const entries = {};
-    await Promise.all((apts || []).map(async apt => {
-      try {
-        const res = await fetch(getBase() + '/public/utility-status/' + apt.id, { signal: AbortSignal.timeout(8000) });
-        if (!res.ok) return;
-        const data = await res.json();
-        const electricity = data?.services?.electricity?.payment;
-        const water = data?.services?.water?.payment;
-        const gas = data?.services?.gas?.payment;
-        entries[apt.id] = { electricity, water, gas };
-      } catch {}
-    }));
-    setDebts(entries);
+  async function loadDebts() {
+    try {
+      const res = await fetch(getBase() + '/utility-status', {
+        headers: { 'x-auth-token': AUTH_TOKEN },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) return;
+      const rows = await res.json();
+      const entries = Object.fromEntries((rows || []).map(row => [row.id, {
+        electricity: row.electricity,
+        water: row.water,
+        gas: row.gas,
+      }]));
+      setDebts(entries);
+    } catch {}
   }
 
   async function handleSync() {
@@ -185,7 +244,7 @@ export default function Utilities() {
       }
       setSyncNote('Scrape en curso, actualizando datos…');
       setTimeout(async () => {
-        try { await loadDebts(apartments); } catch {}
+        try { await loadDebts(); } catch {}
         setSyncingNow(false);
         setSyncNote('');
       }, 45000);
@@ -212,7 +271,7 @@ export default function Utilities() {
       }
       setWaterSyncNote('Consulta en curso; actualizando resultados…');
       setTimeout(async () => {
-        try { await loadDebts(apartments); } catch {}
+        try { await loadDebts(); } catch {}
         setWaterSyncingNow(false);
         setWaterSyncNote('');
       }, 120000);
@@ -239,7 +298,7 @@ export default function Utilities() {
       }
       setGasSyncNote('Consulta en curso; actualizando resultados…');
       setTimeout(async () => {
-        try { await loadDebts(apartments); } catch {}
+        try { await loadDebts(); } catch {}
         setGasSyncingNow(false);
         setGasSyncNote('');
       }, 120000);
@@ -249,7 +308,7 @@ export default function Utilities() {
     }
   }
 
-  function qrPaymentField(service) {
+  function qrPaymentField(_service) {
     return 'waterPaymentUrl';
   }
 
@@ -689,7 +748,7 @@ export default function Utilities() {
         {PORTALS.map(p => {
           const Icon = p.icon;
           return (
-            <button key={p.key} onClick={() => window.open(p.url, '_blank', 'noopener')} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors shadow-sm">
+            <button key={p.key} onClick={() => openUtilityPortal(p)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors shadow-sm">
               <Icon className="w-3.5 h-3.5" /> Portal {p.name}
             </button>
           );
@@ -796,27 +855,29 @@ export default function Utilities() {
                       <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{s.name}</p>
                       {code && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{s.codeLabel}: <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{code}</span></p>}
                       {gasAccount && <p className="text-[11px] text-amber-700 dark:text-amber-300">{gasAccountLabel(gasAccount.id)} · pago por contrato</p>}
-                      {(svc === 'water' || svc === 'gas') && debts[apt.id] && (() => {
+                      {debts[apt.id] && (() => {
                         const bill = debts[apt.id][svc];
+                        const monthDebt = billMonthDebt(bill);
+                        const convenioDebt = billConvenioDebt(bill);
+                        const totalDebt = billTotalDebt(bill);
+                        const meta = billMeta(bill);
+                        const statusText = billStatusText(bill);
                         return (
-                          <>
-                            <p className={`text-xs font-semibold mt-1 ${waterBillClass(bill)}`} title={bill?.error || ''}>
-                              {bill ? waterBillLabel(bill) : 'Sin datos de consulta'}
-                              {bill?.status === 'pending' && bill.numFacturas > 0 && ` · ${bill.numFacturas} ${bill.numFacturas === 1 ? 'factura' : 'facturas'}`}
-                              <span className="text-gray-400 dark:text-gray-500 font-normal"> · {bill ? (waterBillMeta(bill) || `datos ${timeAgo(bill.actualizado)}`) : 'nunca sincronizado'}</span>
+                          <div className="mt-1 space-y-0.5 text-xs" title={bill?.error || ''}>
+                            <p className="text-gray-600 dark:text-gray-300">
+                              Deuda del mes: <span className="font-semibold text-gray-900 dark:text-white">{billMoney(monthDebt)}</span>
                             </p>
-                            {bill?.error && <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate" title={bill.error}>Último error: {bill.error}</p>}
-                          </>
+                            <p className="text-gray-600 dark:text-gray-300">
+                              Deuda de convenios: <span className="font-semibold text-gray-900 dark:text-white">{billMoney(convenioDebt ?? (totalDebt !== null ? 0 : null))}</span>
+                            </p>
+                            <p className={`${waterBillClass(bill)} font-semibold`}>
+                              Deuda Total: <span className="font-bold">{billMoney(totalDebt)}</span>
+                              {meta && <span className="font-normal text-gray-400 dark:text-gray-500"> · {meta}</span>}
+                            </p>
+                            {!meta && bill && statusText && <p className="text-[11px] text-gray-400 dark:text-gray-500">{statusText}</p>}
+                          </div>
                         );
                       })()}
-                      {svc === 'electricity' && debts[apt.id]?.electricity && (
-                        <p className={`text-xs font-semibold mt-1 ${debts[apt.id].electricity.deudaCOP > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                          {debts[apt.id].electricity.deudaCOP > 0
-                            ? <>Deuda Total: <span className="font-bold">${Number(debts[apt.id].electricity.deudaCOP).toLocaleString('es-CO')}</span></>
-                            : 'Al día · Sin deuda'}
-                          <span className="text-gray-400 dark:text-gray-500 font-normal"> · datos {timeAgo(debts[apt.id].electricity.actualizado)}</span>
-                        </p>
-                      )}
                     </div>
                     {/* Actions */}
                     <div className="flex items-center justify-end gap-1 shrink-0">

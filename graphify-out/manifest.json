@@ -15,8 +15,8 @@
     "semantic_hash": "cddd6763a1cabd33ef503ef52cc4e8b2"
   },
   "android/app/build.gradle": {
-    "mtime": 1787559414.4468105,
-    "ast_hash": "630be28cfcbf1db9776339bc03e2397d",
+    "mtime": 1787619978.6419806,
+    "ast_hash": "7dbd7912852069d73fa2ee4094a396b5",
     "semantic_hash": ""
   },
   "android/app/capacitor.build.gradle": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1787559439.956948,
-    "ast_hash": "c081ae13ce487340bbd3c62488c57240",
+    "mtime": 1787619978.642983,
+    "ast_hash": "f7ff20d3b9a8cd50e9e2cb80986d5d9f",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -235,13 +235,13 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1787549641.772454,
-    "ast_hash": "8584b250f04af345da3e8efa630472ee",
+    "mtime": 1787619890.833137,
+    "ast_hash": "9fbd325fb03e4b5a3a6f1b609192bef8",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
-    "mtime": 1786918117.737882,
-    "ast_hash": "fcd95926618bfcf14c7a74ee09013869",
+    "mtime": 1787619654.682216,
+    "ast_hash": "4be98037d1427525b2b41f6480ce3664",
     "semantic_hash": ""
   },
   "setup-android-sdk.ps1": {
@@ -345,8 +345,8 @@
     "semantic_hash": ""
   },
   "src/pages/MiApto.jsx": {
-    "mtime": 1786605008.8394785,
-    "ast_hash": "76e1961a997154bf49475559f15c9bb2",
+    "mtime": 1787610351.6565986,
+    "ast_hash": "5f2e9e18e90d490fdd9166e452d5d1a9",
     "semantic_hash": ""
   },
   "src/pages/Payments.jsx": {
@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "src/pages/Settings.jsx": {
-    "mtime": 1787559414.44882,
-    "ast_hash": "97f4415c1d6b70dbe7a6c5f0bee2e8c2",
+    "mtime": 1787595611.9695067,
+    "ast_hash": "82465b6eb957f968cda9109107545258",
     "semantic_hash": ""
   },
   "src/pages/ShareApartments.jsx": {
@@ -390,8 +390,8 @@
     "semantic_hash": "429688cf1006d5eb8b337df244be0c02"
   },
   "src/pages/Utilities.jsx": {
-    "mtime": 1787151970.70585,
-    "ast_hash": "1f52505a4acb48a605db224fc4103998",
+    "mtime": 1787619906.7746675,
+    "ast_hash": "cfb2737b84701c343976afb3a61582cd",
     "semantic_hash": ""
   },
   "src/pages/WhatsAppContacts.jsx": {
@@ -475,8 +475,8 @@
     "semantic_hash": "0487e4c9233a522c3b70777b7a660d31"
   },
   "src/utils/theme.js": {
-    "mtime": 1787453465.6154633,
-    "ast_hash": "ed45f5d7a997289a21b0597258a043a0",
+    "mtime": 1787560440.5585053,
+    "ast_hash": "b3b454f3c27d017a46f5bb8002b53ad9",
     "semantic_hash": ""
   },
   "src/utils/viewMode.js": {
@@ -790,8 +790,8 @@
     "semantic_hash": ""
   },
   "scripts/test-water-scraper.cjs": {
-    "mtime": 1786406267.9785137,
-    "ast_hash": "0ca6f5a5c6a4744888da7fdd437bdc17",
+    "mtime": 1787620160.7673955,
+    "ast_hash": "0bafe06b3b2c8fcde7d8b69e2514dc8a",
     "semantic_hash": ""
   },
   "hooks/pre-push": {
@@ -905,8 +905,8 @@
     "semantic_hash": ""
   },
   "android/app/src/main/assets/portal-scraper.js": {
-    "mtime": 1787206667.5317068,
-    "ast_hash": "c913f20079d78be0cbabfdfa79dba5df",
+    "mtime": 1787619760.859848,
+    "ast_hash": "123b8de1522e6a853fba53cbfd267ffc",
     "semantic_hash": ""
   },
   "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
@@ -5627,6 +5627,276 @@
   "src/utils/paymentWatcher.js": {
     "mtime": 1787453563.6375551,
     "ast_hash": "6ef28884563ec11b9d6898288a0ed21c",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/app-version.json": {
+    "mtime": 1787614107.135343,
+    "ast_hash": "2893af31e9103d711cc9565c2841b6ed",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/app.DD3DVDW3.js": {
+    "mtime": 1787617802.6855364,
+    "ast_hash": "ca2526074d266d195e4218a9970d1253",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/esm.BogLWvT2.js": {
+    "mtime": 1787617802.686543,
+    "ast_hash": "cbc14de91135812ff95ab3b42e0439bc",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/esm.BsABKDtj.js": {
+    "mtime": 1787617802.686543,
+    "ast_hash": "09725471f4f8e27acf2daddf0710b046",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/esm.Tj7xJ5VG.js": {
+    "mtime": 1787617802.6875446,
+    "ast_hash": "d08b93c0f9da70ea648e4f41c24ba5a1",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/html2canvas.D0Yw_hvI.js": {
+    "mtime": 1787617802.6885457,
+    "ast_hash": "22efc73711c2c93315c19397f836da31",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/index.es.DpXJBi4-.js": {
+    "mtime": 1787617802.689548,
+    "ast_hash": "52a1ba3086de15bae47c0ee6785e8e0b",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/purify.es.DuRL7t6i.js": {
+    "mtime": 1787617802.6905437,
+    "ast_hash": "056831ffda676b17ae223e16d9ddde9b",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/web.BTrR7Yah.js": {
+    "mtime": 1787617802.6905437,
+    "ast_hash": "d83047705e44fdde376bd56ebe233eae",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/web.BeTYDb81.js": {
+    "mtime": 1787617802.6915462,
+    "ast_hash": "0fbc6b2a49b06bee55371164fb93c0a7",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/web.C2aCz7k6.js": {
+    "mtime": 1787617802.6925447,
+    "ast_hash": "c374d929fced9636e56adf9697707bb5",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/assets/web.D-yGWM8z.js": {
+    "mtime": 1787617802.6925447,
+    "ast_hash": "d539a6abd84c696c7608e264a17783ea",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/manifest.json": {
+    "mtime": 1784437087.071502,
+    "ast_hash": "9d837f8c042b8d751ce72dd1221a3c26",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/sw.js": {
+    "mtime": 1784349052.567231,
+    "ast_hash": "40338c8f99cde3361d7de7583e4329c6",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/app-version.json": {
+    "mtime": 1787614107.135343,
+    "ast_hash": "2893af31e9103d711cc9565c2841b6ed",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/app.n-Q1onEc.js": {
+    "mtime": 1787617588.7741883,
+    "ast_hash": "a4ccf31efdbb5109c3a16a26f5a6230c",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/esm.B6HP-zBe.js": {
+    "mtime": 1787617588.775188,
+    "ast_hash": "72d5ef6e786de0c4a253e3a1c5d05bc9",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/esm.IK4T-wuv.js": {
+    "mtime": 1787617588.775188,
+    "ast_hash": "63f2309ec459874c24e5da02fcfbb5dd",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/esm.vhSnpHW-.js": {
+    "mtime": 1787617588.7832105,
+    "ast_hash": "852f878e4d012d6863d4a8136a534826",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/html2canvas.HuY5BaLE.js": {
+    "mtime": 1787617588.7842176,
+    "ast_hash": "9bac89fbfd1a3f3be2be47f5aff02fbf",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/index.es.dZBL6Fw2.js": {
+    "mtime": 1787617588.7842176,
+    "ast_hash": "0fffc60eeb55c3c5ac11ed8d45154668",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/purify.es.DuRL7t6i.js": {
+    "mtime": 1787617588.7852187,
+    "ast_hash": "056831ffda676b17ae223e16d9ddde9b",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/web.CSAZT7uM.js": {
+    "mtime": 1787617588.7852187,
+    "ast_hash": "ac6c198f705a131ad181a814abaebb37",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/web.CYCpFGMd.js": {
+    "mtime": 1787617588.78622,
+    "ast_hash": "33d79d7eb51e6b977a2d8a7264fcd1e2",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/web.DXGH8c6E.js": {
+    "mtime": 1787617588.78622,
+    "ast_hash": "1dd028dff0801f1b005db409c8df9134",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/assets/web.Dft9-u6c.js": {
+    "mtime": 1787617588.787218,
+    "ast_hash": "094fbb5ef966c1a92aafe1885b77881d",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/manifest.json": {
+    "mtime": 1784437087.071502,
+    "ast_hash": "9d837f8c042b8d751ce72dd1221a3c26",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/sw.js": {
+    "mtime": 1784349052.567231,
+    "ast_hash": "40338c8f99cde3361d7de7583e4329c6",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/app-version.json": {
+    "mtime": 1787617831.5957396,
+    "ast_hash": "373c58f2f9040f8d377d5f51c499113f",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/app.CkctgRqo.js": {
+    "mtime": 1787619939.3312168,
+    "ast_hash": "2f8917b3d9464464a68716f0e877f71d",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/esm.BJRuCHhI.js": {
+    "mtime": 1787619939.3322146,
+    "ast_hash": "110c72a41402661e9faad586ae7338ac",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/esm.BdRnAOx8.js": {
+    "mtime": 1787619939.3332167,
+    "ast_hash": "8b98be529af231b1fca5e60ccfdadde3",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/esm.xUC7zCBG.js": {
+    "mtime": 1787619939.3352127,
+    "ast_hash": "fdf59b1b06ad381da8f14812dee16fe0",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/html2canvas.D-B-yNiL.js": {
+    "mtime": 1787619939.3362145,
+    "ast_hash": "1a2633dc24e8b1e39a5e283b96f5ad8e",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/index.es.BmM-oV_B.js": {
+    "mtime": 1787619939.3373258,
+    "ast_hash": "c1ef83763b7050be2952ca31653a1eb6",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/purify.es.DuRL7t6i.js": {
+    "mtime": 1787619939.3373258,
+    "ast_hash": "056831ffda676b17ae223e16d9ddde9b",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/web.C0JHHk59.js": {
+    "mtime": 1787619939.3383253,
+    "ast_hash": "1107398c1008852314950a1405edd98e",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/web.C9LGf_td.js": {
+    "mtime": 1787619939.3393192,
+    "ast_hash": "73195affa041c99eaee35f11de43348c",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/web.DK4TiQhG.js": {
+    "mtime": 1787619939.3393192,
+    "ast_hash": "e33da2e0e88d25c2a8e82539de4e0697",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/assets/web.byj_Pjm6.js": {
+    "mtime": 1787619939.3403237,
+    "ast_hash": "04aa440ee72a0127023816a29b7172f8",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/manifest.json": {
+    "mtime": 1784437087.071502,
+    "ast_hash": "9d837f8c042b8d751ce72dd1221a3c26",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/sw.js": {
+    "mtime": 1784349052.567231,
+    "ast_hash": "40338c8f99cde3361d7de7583e4329c6",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/index.html": {
+    "mtime": 1787617802.694058,
+    "ast_hash": "fe0b5bbcfee78ff4ee8878ac30727585",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/privacy.html": {
+    "mtime": 1785641888.3909152,
+    "ast_hash": "f3394a30a2b8354b9ce7cb4c8afe17a0",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/index.html": {
+    "mtime": 1787617588.7882173,
+    "ast_hash": "1ce6dcfc9a4b42895925e30741e8121a",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/privacy.html": {
+    "mtime": 1785641888.3909152,
+    "ast_hash": "f3394a30a2b8354b9ce7cb4c8afe17a0",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/index.html": {
+    "mtime": 1787619939.3403237,
+    "ast_hash": "a845b1e7d233efb923e3728b8b5892bc",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/privacy.html": {
+    "mtime": 1785641888.3909152,
+    "ast_hash": "f3394a30a2b8354b9ce7cb4c8afe17a0",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/favicon.svg": {
+    "mtime": 1784337544.1688738,
+    "ast_hash": "7e840862161341271697daa99a40d76b",
+    "semantic_hash": ""
+  },
+  ".vite-build-check-2/icons.svg": {
+    "mtime": 1784343345.74238,
+    "ast_hash": "958d8c22ce63c384916067c6c1386e91",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/favicon.svg": {
+    "mtime": 1784337544.1688738,
+    "ast_hash": "7e840862161341271697daa99a40d76b",
+    "semantic_hash": ""
+  },
+  ".vite-build-check/icons.svg": {
+    "mtime": 1784343345.74238,
+    "ast_hash": "958d8c22ce63c384916067c6c1386e91",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/favicon.svg": {
+    "mtime": 1784337544.1688738,
+    "ast_hash": "7e840862161341271697daa99a40d76b",
+    "semantic_hash": ""
+  },
+  ".vite-build-debt-check/icons.svg": {
+    "mtime": 1784343345.74238,
+    "ast_hash": "958d8c22ce63c384916067c6c1386e91",
     "semantic_hash": ""
   }
 }

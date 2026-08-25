@@ -1607,7 +1607,9 @@ function tenantUtilityOverview(apartment) {
   const view = (record, provider, referenceLabel, reference, paymentUrl, paymentMode) => ({
     provider,
     status: record?.status || 'unknown',
-    debt: utilityDebtAmount(record),
+    // Residents receive the current month's amount only. Keep a temporary
+    // fallback to the legacy field until every worker persists deudaMesCOP.
+    debt: utilityMonthDebtAmount(record) ?? utilityDebtAmount(record),
     checkedAt: utilityRecordValueTimestamp(record),
     error: record?.error ? String(record.error).slice(0, 240) : null,
     referenceLabel,
@@ -1711,6 +1713,62 @@ function utilityDebtAmount(record) {
   return null;
 }
 
+function utilityAmountFromFields(record, fields) {
+  if (!record) return null;
+  for (const field of fields) {
+    if (record[field] === null || record[field] === undefined || record[field] === '') continue;
+    const amount = typeof servicesScraper.parseCopAmount === 'function'
+      ? servicesScraper.parseCopAmount(record[field])
+      : Number(record[field]);
+    if (amount !== null && Number.isFinite(amount)) return amount;
+  }
+  return null;
+}
+
+function utilityMonthDebtAmount(record) {
+  return utilityAmountFromFields(record, [
+    'deudaMesCOP', 'valorMesCOP', 'monthValueCOP', 'facturaValorCOP',
+    'invoiceValueCOP', 'valorFacturaCOP', 'amt_ValorMes', 'amt_Valor',
+    'deudaMes', 'valorMes', 'monthValue', 'facturaValor', 'invoiceValue',
+  ]);
+}
+
+function utilityFinancedAmount(record) {
+  return utilityAmountFromFields(record, [
+    'deudaConveniosCOP', 'financiadaCOP', 'deudaFinanciada', 'saldoFinanciado', 'financedDebt',
+    'valorFinanciado', 'financingValue', 'financedAmount', 'saldoDeudaFinanciada',
+  ]);
+}
+
+function utilityQuotaAmount(record) {
+  return utilityAmountFromFields(record, [
+    'cuotaFinanciadaCOP', 'cuotaFinanciada', 'quotaValue', 'valorCuota',
+    'valorCuotaFinanciada', 'monthlyQuota', 'cuotaMensual',
+  ]);
+}
+
+function cloudServiceAmounts(record) {
+  const month = utilityMonthDebtAmount(record);
+  const total = utilityDebtAmount(record);
+  const financed = utilityFinancedAmount(record);
+  const quota = utilityQuotaAmount(record);
+  return {
+    month,
+    total,
+    financed,
+    quota,
+    monthKnown: month !== null,
+    totalKnown: total !== null,
+    financingKnown: financed !== null,
+  };
+}
+
+function cloudUtilityMoney(value) {
+  return value === null || value === undefined
+    ? 'sin confirmar'
+    : `$${Math.round(Number(value)).toLocaleString('es-CO')}`;
+}
+
 function utilityResultHasConfirmedValue(record) {
   const status = String(record?.status || '').trim().toLowerCase();
   return ['pending', 'paid'].includes(status) && utilityDebtAmount(record) !== null;
@@ -1733,7 +1791,13 @@ function mergeUtilityRecord(existing, incoming) {
   // A failed/captcha/timeout run is still a useful health signal, but it is
   // not a new bill value. Keep the last confirmed amount so WhatsApp and the
   // tenant portal do not replace a real Air-e debt with a blank response.
-  for (const field of ['deudaCOP', 'deudaTotalCOP', 'deudaLabel', 'deudaText', 'status', 'numFacturas', 'factura', 'periodo']) {
+  for (const field of [
+    'deudaCOP', 'deudaTotalCOP', 'deudaMesCOP', 'valorMesCOP', 'monthValueCOP',
+    'facturaValorCOP', 'invoiceValueCOP', 'deudaLabel', 'deudaText', 'status',
+    'numFacturas', 'factura', 'periodo',
+    'deudaConveniosCOP', 'financiadaCOP', 'cuotaFinanciadaCOP', 'financiacion', 'debtSource',
+    'debtEndpointStatus',
+  ]) {
     if (existing[field] !== undefined) merged[field] = existing[field];
   }
   merged.valueCheckedAt = existing.valueCheckedAt || existing.checkedAt || existing.scrapedAt || null;
@@ -1750,6 +1814,9 @@ function utilityPaymentView(record) {
     return {
       status: 'paid',
       deudaCOP: 0,
+      deudaMesCOP: 0,
+      deudaConveniosCOP: 0,
+      deudaTotalCOP: 0,
       numFacturas: 0,
       factura: null,
       periodo: null,
@@ -1761,13 +1828,39 @@ function utilityPaymentView(record) {
   }
   return {
     status: record.status || 'unknown',
+    deudaMesCOP: utilityMonthDebtAmount(record),
+    deudaConveniosCOP: utilityFinancedAmount(record),
+    deudaTotalCOP: utilityDebtAmount(record),
     deudaCOP: utilityDebtAmount(record),
+    facturaValorCOP: utilityAmountFromFields(record, ['facturaValorCOP', 'invoiceValueCOP', 'valorFacturaCOP']),
+    financiadaCOP: utilityFinancedAmount(record),
+    cuotaFinanciadaCOP: utilityQuotaAmount(record),
+    financiacion: Array.isArray(record.financiacion) ? record.financiacion : [],
+    debtSource: record.debtSource || null,
+    debtEndpointStatus: record.debtEndpointStatus ?? null,
     numFacturas: Number(record.numFacturas) || (record.status === 'pending' ? 1 : 0),
     factura: record.factura || record.invoiceNumber || null,
     periodo: record.periodo || record.period || null,
     actualizado: checkedAt,
     checkedAt,
     error: record.error || null,
+  };
+}
+
+function utilityTenantPaymentView(record) {
+  const view = utilityPaymentView(record);
+  if (!view) return null;
+  const monthDebt = view.deudaMesCOP ?? view.deudaCOP;
+  return {
+    status: view.status,
+    deudaCOP: monthDebt,
+    numFacturas: view.numFacturas,
+    factura: view.factura,
+    periodo: view.periodo,
+    actualizado: view.actualizado,
+    checkedAt: view.checkedAt,
+    error: view.error,
+    portalNoInvoice: view.portalNoInvoice || false,
   };
 }
 
@@ -1783,9 +1876,10 @@ function buildDebtReply(contact) {
 
   const utilityLine = (label, record, paidText) => {
     if (!record) return `${label}: sin datos de consulta.`;
-    const debt = utilityDebtAmount(record);
+    // The tenant-facing bot exposes only the current month's amount. The
+    // accumulated/provider debt remains available to the administrator view.
+    const debt = utilityMonthDebtAmount(record) ?? utilityDebtAmount(record);
     const facturas = Number(record.numFacturas) || (record.status === 'pending' ? 1 : 0);
-    const isTotalDebt = record.provider === 'Air-e' || record.deudaLabel === 'Deuda Total';
     const checkedAt = utilityRecordValueTimestamp(record);
     const when = checkedAt && !Number.isNaN(new Date(checkedAt).getTime())
       ? ` Datos del ${formatColombiaDateTime(checkedAt)}.`
@@ -1794,16 +1888,10 @@ function buildDebtReply(contact) {
       return `${label}: Deuda Total de $0; sin factura pendiente visible.${when}`;
     }
     if (debt !== null && debt > 0) {
-      if (isTotalDebt) {
-        return `${label}: Deuda Total de $${debt.toLocaleString('es-CO')}.${when}`;
-      }
-      return `${label}: deuda de $${debt.toLocaleString('es-CO')}, correspondiente a ${facturas} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'}.${when}`;
+      return `${label}: Deuda del mes de $${debt.toLocaleString('es-CO')}, correspondiente a ${facturas} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'}.${when}`;
     }
     if (record.status === 'pending') {
-      if (isTotalDebt) {
-        return `${label}: Deuda Total pendiente; el portal no informó el valor.${when}`;
-      }
-      return `${label}: hay ${facturas || 1} factura${facturas === 1 ? '' : 's'} pendiente${facturas === 1 ? '' : 's'}, pero el portal no informó el valor.${when}`;
+      return `${label}: Deuda del mes pendiente; el portal no informó el valor.${when}`;
     }
     if (record.status === 'paid' || debt === 0) return `${label}: ${paidText}${when}`;
     return `${label}: no fue posible confirmar el valor en la última consulta.${when}`;
@@ -2189,8 +2277,16 @@ function cloudServiceDisplayBlock(summary) {
   for (const service of CLOUD_SERVICE_PRESENTATIONS) {
     const record = records[service.key];
     const state = states[service.key];
+    const amounts = cloudServiceAmounts(record);
     const updatedAt = utilityRecordValueTimestamp(record);
-    lines.push('', `${service.icon} *${service.label}:* ${state.label}`);
+    lines.push('', `${service.icon} *${service.label}:*`);
+    lines.push(`   Deuda del mes: *${cloudUtilityMoney(amounts.month)}*`);
+    const convenio = amounts.financingKnown
+      ? cloudUtilityMoney(amounts.financed)
+      : amounts.totalKnown ? '$0' : 'sin confirmar';
+    lines.push(`   Deuda de convenios: *${convenio}*`);
+    lines.push(`   Deuda Total: *${cloudUtilityMoney(amounts.total)}*`);
+    if (!amounts.monthKnown && !amounts.totalKnown && !amounts.financingKnown) lines.push(`   ${state.label}`);
     lines.push(cloudServiceReference(apartment, record, service.key));
     if (updatedAt) lines.push(`Actualizado: ${formatColombiaDateTime(updatedAt)}`);
     lines.push(`💳 *${service.paymentLabel}:* ${cloudServicePaymentLink(apartment, record, service.key)}`);
@@ -2213,7 +2309,7 @@ function buildCloudDetailedGlobalServicesReport() {
     section('🟡 *PENDIENTES / SIN DATOS', pending),
     section('🟢 *AL DÍA', paid),
     '━━━━━━━━━━━━━━━━━━━━',
-    'ℹ️ Todos los valores se muestran como *Deuda Total*. Los datos no confirmados pueden revisarse manualmente por apartamento.',
+    'ℹ️ Cada servicio se muestra como *Deuda del mes*, *Deuda de convenios* y *Deuda Total*. Los datos no confirmados pueden revisarse manualmente por apartamento.',
   ].filter(Boolean).join('\n\n');
 }
 
@@ -2224,7 +2320,7 @@ function buildCloudDetailedApartmentServicesInfo(apartment) {
     '',
     cloudServiceDisplayBlock(summary),
     '',
-    'ℹ️ Todos los valores corresponden a *Deuda Total*.',
+    'ℹ️ La deuda del mes corresponde al periodo actual; la deuda de convenios corresponde a saldos financiados o diferidos; la deuda total incluye el saldo global confirmado por el portal.',
   ].join('\n');
 }
 
@@ -2243,49 +2339,11 @@ function cloudApartmentServicesLine(summary) {
 }
 
 function buildCloudGlobalServicesReport() {
-  if (process.env.LAUJIM_LEGACY_SERVICE_REPORT !== 'true') return buildCloudDetailedGlobalServicesReport();
-  const summaries = configuredCloudApartments().map(cloudApartmentServices);
-  const debt = summaries.filter(summary => Object.values(summary.states).some(state => state.hasDebt));
-  const pending = summaries.filter(summary => !debt.includes(summary) && Object.values(summary.states).some(state => !state.known));
-  const paid = summaries.filter(summary => !debt.includes(summary) && !pending.includes(summary));
-  const period = cloudPeriodLabel(colombiaDate().slice(0, 7));
-  const section = (title, entries) => entries.length
-    ? [`${title} (${entries.length}):`, ...entries.map(cloudApartmentServicesLine)].join('\n\n')
-    : '';
-  return [
-    `📊 *Reporte global de servicios — ${period}*`,
-    section('🔴 *DEUDAS CONFIRMADAS*', debt),
-    section('🟡 *PENDIENTES / SIN DATOS*', pending),
-    section('🟢 *AL DÍA*', paid),
-    '━━━━━━━━━━━━━━━━━━━━',
-    'Los valores de Air-e corresponden a *Deuda Total*. Las consultas sin datos pueden revisarse manualmente por apartamento.',
-  ].filter(Boolean).join('\n\n');
+  return buildCloudDetailedGlobalServicesReport();
 }
 
 function buildCloudApartmentServicesInfo(apartment) {
-  if (process.env.LAUJIM_LEGACY_SERVICE_REPORT !== 'true') return buildCloudDetailedApartmentServicesInfo(apartment);
-  const summary = cloudApartmentServices(apartment);
-  const { records, states } = summary;
-  return [
-    `🏢 *Apartamento ${apartment.name}*`,
-    '',
-    '*⚡ Energía (Air-e)*',
-    `   NIC: ${apartment.nic || apartment.electricityPaymentCode || '—'}`,
-    `   ${states.electricity.label}`,
-    records.electricity?.scrapedAt ? `   Actualizado: ${formatColombiaDateTime(records.electricity.scrapedAt)}` : '',
-    `   Pago: ${cloudServicePaymentLink(apartment, records.electricity, 'electricity')}`,
-    '',
-    '*💧 Agua (Triple A)*',
-    `   N° Póliza: ${apartment.waterPaymentCode || '—'}`,
-    `   ${states.water.label}`,
-    utilityRecordValueTimestamp(records.water) ? `   Actualizado: ${formatColombiaDateTime(utilityRecordValueTimestamp(records.water))}` : '',
-    `   Pago: ${cloudServicePaymentLink(apartment, records.water, 'water')}`,
-    '',
-    '*🔥 Gas (Gases del Caribe)*',
-    `   N° Contrato: ${apartment.gasPaymentCode || '—'}`,
-    `   ${states.gas.label}`,
-    `   Pago: ${cloudServicePaymentLink(apartment, records.gas, 'gas')}`,
-  ].filter(Boolean).join('\n');
+  return buildCloudDetailedApartmentServicesInfo(apartment);
 }
 
 function cloudReportDateLabel(date = new Date()) {
@@ -2317,11 +2375,16 @@ function buildCloudServicesImageData() {
   const rows = summaries.map(summary => {
     const { apartment } = summary;
     const services = serviceKeys.map(key => {
-      const state = summary.states[key];
-      const amount = Number(state?.debt);
+      const amounts = cloudServiceAmounts(summary.records[key]);
+      const amount = Number(amounts.total);
       return {
-        known: state?.known === true && Number.isFinite(amount),
+        known: amounts.totalKnown && Number.isFinite(amount),
         amount: Number.isFinite(amount) ? amount : null,
+        month: amounts.month,
+        monthKnown: amounts.monthKnown,
+        financed: amounts.financed,
+        quota: amounts.quota,
+        financingKnown: amounts.financingKnown,
       };
     });
     const complete = services.every(service => service.known);
@@ -2335,8 +2398,20 @@ function buildCloudServicesImageData() {
   const serviceTotals = serviceKeys.map((_, index) => rows.reduce((sum, row) => (
     sum + (row.services[index].known ? row.services[index].amount : 0)
   ), 0));
+  const serviceMonthTotals = serviceKeys.map((_, index) => rows.reduce((sum, row) => (
+    sum + (row.services[index].monthKnown ? row.services[index].month : 0)
+  ), 0));
+  const serviceFinancedTotals = serviceKeys.map((_, index) => rows.reduce((sum, row) => (
+    sum + (row.services[index].financingKnown ? row.services[index].financed : 0)
+  ), 0));
   const serviceConfirmedCounts = serviceKeys.map((_, index) => rows.reduce((count, row) => (
     count + (row.services[index].known ? 1 : 0)
+  ), 0));
+  const serviceMonthConfirmedCounts = serviceKeys.map((_, index) => rows.reduce((count, row) => (
+    count + (row.services[index].monthKnown ? 1 : 0)
+  ), 0));
+  const serviceFinancingCounts = serviceKeys.map((_, index) => rows.reduce((count, row) => (
+    count + (row.services[index].financingKnown ? 1 : 0)
   ), 0));
   const serviceSync = Object.fromEntries(serviceKeys.map(key => {
     const latest = summaries
@@ -2350,7 +2425,11 @@ function buildCloudServicesImageData() {
     dateLabel: cloudReportDateLabel(),
     rows,
     serviceTotals,
+    serviceMonthTotals,
+    serviceFinancedTotals,
     serviceConfirmedCounts,
+    serviceMonthConfirmedCounts,
+    serviceFinancingCounts,
     serviceSync,
     allComplete,
     total: allComplete ? rows.reduce((sum, row) => sum + row.total, 0) : null,
@@ -2365,30 +2444,48 @@ function cloudServicesReportImageHtml(report) {
   ];
   const headerCells = [
     '<div class="cell header ap-head"><div class="header-main"># APARTAMENTO</div></div>',
-    ...serviceMeta.map(service => `<div class="cell header ${service.className}"><div class="header-main">${service.icon} ${service.name}</div><div class="header-sub">\u00dalt. sincronizaci\u00f3n</div></div>`),
+    ...serviceMeta.map(service => `<div class="cell header ${service.className}"><div class="header-main">${service.icon} ${service.name}</div><div class="header-sub">Mes · Convenio · Total</div></div>`),
     '<div class="cell header total-head"><div class="header-main">TOTAL</div><div class="header-sub">Deuda total</div></div>',
   ].join('');
   const serviceRows = report.rows.length
     ? report.rows.map((row, index) => {
       const stripe = index % 2 ? ' stripe' : '';
       const serviceCells = row.services.map(service => {
-        const amount = service.known ? cloudImageMoney(service.amount) : '\u2014';
-        const status = service.known ? (service.amount === 0 ? 'Al d\u00eda' : 'Confirmado') : 'No confirmado';
-        return `<div class="cell service-value${stripe}"><div class="amount">${amount}</div><div class="status ${service.known ? 'confirmed' : 'unconfirmed'}">${status}</div></div>`;
+        const month = service.monthKnown ? cloudImageMoney(service.month) : '\u2014';
+        const total = service.known ? cloudImageMoney(service.amount) : '\u2014';
+        const convenio = service.financingKnown
+          ? cloudImageMoney(service.financed)
+          : service.known ? '$0' : '\u2014';
+        return `<div class="cell service-value${stripe}"><div class="service-line"><span>Mes</span><b>${month}</b></div><div class="service-line financing-line"><span>Convenio</span><b>${convenio}</b></div><div class="service-line"><span>Total</span><b>${total}</b></div></div>`;
       }).join('');
       const total = row.complete ? cloudImageMoney(row.total) : '\u2014';
+      const monthTotal = row.services.every(service => service.monthKnown)
+        ? cloudImageMoney(row.services.reduce((sum, service) => sum + service.month, 0))
+        : '\u2014';
+      const convenioTotal = row.services.every(service => service.known)
+        ? cloudImageMoney(row.services.reduce((sum, service) => sum + (service.financingKnown ? service.financed : 0), 0))
+        : '\u2014';
       return [
         `<div class="cell apartment${stripe}">${escapeCloudImageHtml(row.apartment)}</div>`,
         serviceCells,
-        `<div class="cell money row-total${stripe}">${total}</div>`,
+        `<div class="cell money row-total${stripe}"><div>Total ${total}</div><div class="small-money">Mes ${monthTotal}</div><div class="small-money">Convenio ${convenioTotal}</div></div>`,
       ].join('');
     }).join('')
     : '<div class="empty">No hay apartamentos configurados para mostrar.</div>';
   const totals = report.serviceTotals || [null, null, null];
   const confirmedCounts = report.serviceConfirmedCounts || [0, 0, 0];
+  const monthTotals = report.serviceMonthTotals || [null, null, null];
+  const monthCounts = report.serviceMonthConfirmedCounts || [0, 0, 0];
+  const financingTotals = report.serviceFinancedTotals || [null, null, null];
+  const financingCounts = report.serviceFinancingCounts || [0, 0, 0];
   const totalGeneralCells = serviceMeta.map((service, index) => {
     const hasValues = confirmedCounts[index] > 0;
-    return `<div class="cell money total-row-value">${hasValues ? cloudImageMoney(totals[index]) : '\u2014'}</div>`;
+    const hasMonth = monthCounts[index] > 0;
+    const hasFinancing = financingCounts[index] > 0;
+    const convenio = hasFinancing
+      ? cloudImageMoney(financingTotals[index])
+      : hasValues ? '$0' : '\u2014';
+    return `<div class="cell money total-row-value"><div>Total ${hasValues ? cloudImageMoney(totals[index]) : '\u2014'}</div><div class="small-money">Mes ${hasMonth ? cloudImageMoney(monthTotals[index]) : '\u2014'}</div><div class="small-money">Convenio ${convenio}</div></div>`;
   }).join('');
   const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '\u2014';
   const syncSummary = serviceMeta.map(service => `
@@ -2398,8 +2495,8 @@ function cloudServicesReportImageHtml(report) {
       <div class="sync-value">${escapeCloudImageHtml(report.serviceSync?.[service.key] || '\u2014')}</div>
     </div>`).join('');
   const incompleteNote = report.allComplete
-    ? '<div class="note"><span class="info-icon">i</span> Todos los valores están confirmados. Los totales corresponden a la Deuda Total.</div>'
-    : '<div class="note"><span class="info-icon">i</span> \u2014 indica que el portal todavía no confirmó el valor. Los totales por servicio suman únicamente valores confirmados; el total general aparece cuando todos los apartamentos tienen sus tres servicios confirmados.</div>';
+    ? '<div class="note"><span class="info-icon">i</span> Cada celda separa deuda del mes, deuda de convenios y deuda total acumulada.</div>'
+    : '<div class="note"><span class="info-icon">i</span> \u2014 indica que el portal todavía no confirmó ese valor. Cada servicio conserva separados Mes, Convenio y Total con la última sincronización disponible.</div>';
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><style>
   * { box-sizing: border-box; }
@@ -2427,16 +2524,17 @@ function cloudServicesReportImageHtml(report) {
   .gas-head { background: #e9533f; }
   .total-head { background: #1c507b; }
   .apartment { font-weight: 800; font-size: 24px; }
-  .service-value { gap: 5px; }
-  .amount { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 16px; line-height: 1.15; white-space: nowrap; }
-  .confirmed { color: #637991; }
-  .unconfirmed { color: #637991; }
+  .service-value { min-height: 112px; gap: 4px; align-items: stretch; }
+  .service-line { display: flex; justify-content: space-between; gap: 6px; font-size: 14px; line-height: 1.2; white-space: nowrap; }
+  .service-line span { color: #637991; }
+  .service-line b { font-size: 17px; font-variant-numeric: tabular-nums; }
+  .financing-line { border-top: 1px solid #e3ebf1; padding-top: 3px; }
   .money { justify-content: center; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
-  .row-total { color: #1c507b; }
+  .row-total { color: #1c507b; gap: 4px; }
+  .small-money { font-size: 14px; color: #637991; font-weight: 500; white-space: nowrap; }
   .stripe { background: #f3f7fa; }
   .total-row-label { background: #1c507b; color: #fff; font-size: 19px; font-weight: 800; white-space: nowrap; }
-  .total-row-value { color: #1c507b; font-size: 23px; }
+  .total-row-value { color: #1c507b; font-size: 17px; gap: 4px; }
   .sync-grid { margin: 28px 28px 0; display: grid; grid-template-columns: repeat(3, 1fr); }
   .sync-item { min-height: 100px; padding: 4px 28px 4px 20px; border-right: 1px solid #cbdce8; }
   .sync-item:last-child { border-right: 0; }
@@ -2460,7 +2558,7 @@ function cloudServicesReportImageHtml(report) {
     <div class="table">${headerCells}${serviceRows}<div class="cell total-row-label">TOTAL GENERAL</div>${totalGeneralCells}<div class="cell money total-row-value">${grandTotal}</div></div>
     <div class="sync-grid">${syncSummary}</div>
     ${incompleteNote}
-    <div class="footer"><div class="footer-main"><span class="refresh-icon">↻</span> Todos los valores corresponden a <b>Deuda Total</b> y se generaron con la última sincronización disponible.</div><div class="footer-date">Reporte generado: ${escapeCloudImageHtml(report.dateLabel)}</div></div>
+    <div class="footer"><div class="footer-main"><span class="refresh-icon">↻</span> Deuda del mes, deuda de convenios y deuda total se muestran con la última sincronización disponible.</div><div class="footer-date">Reporte generado: ${escapeCloudImageHtml(report.dateLabel)}</div></div>
   </div>
 </body></html>`;
 }
@@ -3960,23 +4058,19 @@ app.get('/api/services/utility-records/:apartmentId', (req, res) => {
 
 // Get latest utility status for all apartments (admin)
 app.get('/api/utility-status', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
   if (!db.utilityRecords) db.utilityRecords = [];
   const apts = db.apartments || [];
   const status = apts.map(apt => {
     const electricityRecord = latestUtilityRecord('Air-e', apt);
+    const electricity = electricityRecord ? utilityPaymentView(electricityRecord) : null;
     const water = utilityPaymentView(latestUtilityRecord('Triple A', apt));
     const gas = utilityPaymentView(latestUtilityRecord('Gases del Caribe', apt));
     return {
       id: apt.id,
       name: apt.name,
        electricity: electricityRecord
-         ? {
-             deudaCOP: utilityDebtAmount(electricityRecord),
-             numFacturas: electricityRecord.numFacturas,
-             deudaText: electricityRecord.deudaText,
-             nic: electricityRecord.nic,
-             scrapedAt: electricityRecord.scrapedAt,
-           }
+         ? { ...electricity, nic: electricityRecord.nic, scrapedAt: electricityRecord.scrapedAt }
          : null,
        water,
        gas,
@@ -4990,9 +5084,8 @@ app.get('/api/public/utility-status/:apartmentId', (req, res) => {
     if (elecRecords.length > 0) {
       const latest = elecRecords[0];
       electricityInfo = {
-        deudaCOP: latest.deudaCOP,
-        numFacturas: latest.numFacturas,
-        deudaText: latest.deudaText,
+        ...utilityTenantPaymentView(latest),
+        deudaText: latest.deudaText || null,
         actualizado: latest.scrapedAt,
       };
     }
@@ -5006,11 +5099,11 @@ app.get('/api/public/utility-status/:apartmentId', (req, res) => {
         payCode: apt.electricityPaymentCode || apt.nic || '',
         payment: electricityInfo,
       },
-      water: { ...svcConfig.water, payCode: apt.waterPaymentCode || '', payment: utilityPaymentView(latestUtilityRecord('Triple A', apt)) },
+      water: { ...svcConfig.water, payCode: apt.waterPaymentCode || '', payment: utilityTenantPaymentView(latestUtilityRecord('Triple A', apt)) },
       gas: {
         ...svcConfig.gas,
         payCode: apt.gasPaymentCode || '',
-        payment: utilityPaymentView(latestUtilityRecord('Gases del Caribe', apt)),
+        payment: utilityTenantPaymentView(latestUtilityRecord('Gases del Caribe', apt)),
       },
     },
   });

@@ -86,17 +86,17 @@
   }
 
   function challengePending() {
-    const pendingTurnstile = Array.from(document.querySelectorAll(
-      'input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]'
-    )).find(element => String(element.value || '').trim().length <= 20);
-    if (pendingTurnstile) return true;
     const response = Array.from(document.querySelectorAll(
       'input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"], input[name="g-recaptcha-response"], textarea[name="g-recaptcha-response"], textarea[name="h-captcha-response"]'
     )).map(element => String(element.value || '').trim()).find(value => value.length > 20);
     if (response) return false;
+    // The response input is normally hidden and can remain empty even when
+    // the page has no visible challenge. Treating that field alone as a
+    // blocker made Triple A report "complete verification" before the
+    // credentials were submitted.
     const challenge = Array.from(document.querySelectorAll(
       '.cf-turnstile, iframe[src*="challenges.cloudflare.com"], iframe[src*="recaptcha"], iframe[src*="hcaptcha"], [id*="captcha" i]'
-    )).find(domAvailable);
+    )).find(visibleThroughAncestors);
     return !!challenge;
   }
 
@@ -229,19 +229,29 @@
 
     // Turnstile/Recaptcha is allowed to complete normally in the phone's real
     // WebView. Never click or bypass the challenge; submit only after its own
-    // response token exists or the widget has disappeared.
+    // response token exists or the visible widget has disappeared. Keep the
+    // fields filled while the user completes the visible challenge.
     const challengeStartedAt = Date.now();
-    while (challengePending() && Date.now() - challengeStartedAt < 30_000) await wait(750);
+    while (challengePending() && Date.now() - challengeStartedAt < 180_000) {
+      const current = loginElements();
+      if (current.username && String(current.username.value || '') !== String(credentials.username)) inputValue(current.username, credentials.username);
+      if (current.password && String(current.password.value || '') !== String(credentials.password)) inputValue(current.password, credentials.password);
+      await wait(750);
+    }
     if (challengePending()) {
       return {
         state: 'needs_verification', provider, stage: 'turnstile_wait',
-        message: `${providerLabel(provider)} requiere completar la verificación visible antes del autologin.`, results: [],
+        message: `${providerLabel(provider)} requiere completar la verificación visible. Las credenciales quedaron preparadas; vuelve a ejecutar tras validarla.`, results: [],
       };
     }
 
     let enabledAt = Date.now();
-    while (elements.submit.disabled && Date.now() - enabledAt < 5_000) await wait(250);
-    if (elements.submit.disabled) {
+    let currentSubmit = loginElements().submit;
+    while (currentSubmit?.disabled && Date.now() - enabledAt < 15_000) {
+      await wait(250);
+      currentSubmit = loginElements().submit;
+    }
+    if (!currentSubmit || currentSubmit.disabled) {
       return needsLogin(provider, `${providerLabel(provider)} mantuvo deshabilitado el botón de acceso.`, { stage: 'login_submit_disabled' });
     }
 
@@ -256,7 +266,13 @@
 
   async function ensureAuthenticated(provider, config) {
     const state = loginState();
-    if (state.password) return attemptAutoLogin(provider, config || {});
+    const credentials = config && config.credentials;
+    // Some Triple A builds render the challenge before mounting the password
+    // field. If credentials are configured, still enter the recovery path so
+    // the native WebView can populate the form as soon as it appears.
+    if (state.password || (state.challenge && credentials && String(credentials.username || '').trim() && String(credentials.password || ''))) {
+      return attemptAutoLogin(provider, config || {});
+    }
     if (state.challenge || challengePending()) return {
       state: 'needs_verification', provider, stage: 'turnstile',
       message: `${providerLabel(provider)} muestra una verificación. Complétala en la pantalla visible y vuelve a ejecutar.`, results: [],
@@ -441,6 +457,101 @@
     return Number.isFinite(amount) ? Math.round(amount) : null;
   }
 
+  function amountFromFields(value, names) {
+    const raw = field(value, names || []);
+    return parseAmount(raw);
+  }
+
+  function objectRecords(value, depth, seen, output) {
+    const level = depth || 0;
+    const result = output || [];
+    const visited = seen || new Set();
+    if (!value || typeof value !== 'object' || level > 6 || visited.has(value)) return result;
+    visited.add(value);
+    if (!Array.isArray(value)) result.push(value);
+    Object.values(value).forEach(child => {
+      if (child && typeof child === 'object') objectRecords(child, level + 1, visited, result);
+    });
+    return result;
+  }
+
+  function recordDate(value) {
+    const raw = field(value, ['invoiceDate', 'expirationDate', 'dueDate', 'billingPeriod', 'periodo', 'fechaFactura', 'fechaVencimiento', 'createdAt', 'date']);
+    const date = raw ? new Date(raw) : null;
+    return date && Number.isFinite(date.getTime()) ? date : null;
+  }
+
+  function recordIsPaid(value) {
+    const raw = field(value, ['isPaid', 'paid', 'pagada', 'status', 'state', 'paymentStatus']);
+    if (raw === true) return true;
+    return /^(?:true|1|paid|pagad[ao]|cancelad[ao]|al\s*d[ií]a|sin\s*deuda)$/i.test(String(raw || ''));
+  }
+
+  function financingSummary(payload) {
+    const explicit = amountFromFields(payload, [
+      'financedDebt', 'deudaFinanciada', 'saldoFinanciado', 'valorFinanciado',
+      'financingValue', 'financedAmount', 'amountFinanced', 'totalFinanced',
+      'totalFinancing', 'montoFinanciado', 'saldoDeudaFinanciada',
+    ]);
+    const explicitQuota = amountFromFields(payload, [
+      'quotaValue', 'cuotaValue', 'cuotaFinanciada', 'installmentValue',
+      'monthlyQuota', 'valorCuota', 'valorCuotaFinanciada', 'cuotaMensual',
+    ]);
+    const rows = [];
+    objectRecords(payload).forEach(record => {
+      const text = Object.entries(record).map(([key, value]) => `${key}:${typeof value === 'object' ? '' : String(value || '')}`).join(' ');
+      if (!/financ|refinanc|diferid|cuota|acuerdo|convenio|plan\s+de\s+pago|brilla/i.test(text)) return;
+      const amount = amountFromFields(record, ['pendingBalance', 'saldoPendiente', 'saldoPorFacturar', 'totalValue', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'balance', 'amount', 'value', 'financingValue', 'financedAmount']);
+      const quota = amountFromFields(record, ['quotaValue', 'cuotaValue', 'installmentValue', 'monthlyQuota', 'valorCuota']);
+      if (amount === null && quota === null) return;
+      const label = field(record, ['conceptDescription', 'productDescription', 'description', 'concept', 'name', 'type', 'status']);
+      const key = `${amount ?? ''}|${quota ?? ''}|${String(label || '')}`;
+      if (rows.some(row => row.key === key)) return;
+      rows.push({
+        key,
+        concepto: label ? String(label).replace(/\s+/g, ' ').trim().slice(0, 160) : 'Financiación',
+        saldoCOP: amount,
+        cuotaCOP: quota,
+        cuotas: field(record, ['billedQuotas', 'paidQuotas', 'quotas', 'numberOfQuotas']) ?? null,
+        numero: field(record, ['financingNumber', 'numeroFinanciacion', 'number', 'agreementNumber']) ?? null,
+        fechaInicio: field(record, ['startDate', 'fechaInicio', 'financingStartDate']) ?? null,
+        saldoInicialCOP: amountFromFields(record, ['initialBalance', 'saldoInicial', 'valorInicial']) ?? null,
+      });
+    });
+    const balances = rows.map(row => row.saldoCOP).filter(value => value !== null);
+    return {
+      financiadaCOP: explicit ?? (balances.length ? balances.reduce((sum, value) => sum + value, 0) : null),
+      cuotaFinanciadaCOP: explicitQuota ?? rows.map(row => row.cuotaCOP).find(value => value !== null) ?? null,
+      financiacion: rows.slice(0, 20).map(({ key, ...row }) => row),
+    };
+  }
+
+  function tripleAInvoiceSummary(invoices) {
+    const listItems = Array.isArray(invoices) ? invoices : [];
+    const unpaid = listItems.filter(invoice => !recordIsPaid(invoice));
+    const sorted = listItems.slice().sort((left, right) => (recordDate(right)?.getTime() || 0) - (recordDate(left)?.getTime() || 0));
+    const latest = sorted[0] || null;
+    const latestDate = recordDate(latest);
+    const latestPeriod = latestDate ? `${latestDate.getUTCFullYear()}-${latestDate.getUTCMonth()}` : null;
+    const current = latestPeriod
+      ? unpaid.filter(invoice => {
+        const date = recordDate(invoice);
+        return date && `${date.getUTCFullYear()}-${date.getUTCMonth()}` === latestPeriod;
+      })
+      : unpaid.slice(0, 1);
+    const rows = current.length ? current : unpaid.slice(0, 1);
+    const monthValues = rows.map(invoice => amountFromFields(invoice, ['monthValue', 'monthlyValue', 'valorMes', 'deudaMes', 'invoiceValue', 'valorFactura', 'amountDue', 'pendingValue', 'pendingAmount', 'totalToPay'])).filter(value => value !== null);
+    const totalValues = unpaid.map(invoice => amountFromFields(invoice, ['totalValue', 'pendingBalance', 'pendingValue', 'totalToPay', 'amountDue', 'totalDebt', 'deudaTotal', 'balanceDue', 'balance', 'amount', 'value'])).filter(value => value !== null);
+    return {
+      deudaMesCOP: monthValues.length ? monthValues.reduce((sum, value) => sum + value, 0) : null,
+      deudaTotalCOP: totalValues.length ? totalValues.reduce((sum, value) => sum + value, 0) : null,
+      numFacturas: unpaid.length,
+      factura: field(latest, ['invoiceNumber', 'invoiceId', 'factura', 'id']) || null,
+      periodo: field(latest, ['invoiceDate', 'billingPeriod', 'periodo', 'expirationDate']) || null,
+      status: unpaid.length ? (monthValues.length && monthValues.reduce((sum, value) => sum + value, 0) > 0 ? 'pending' : 'paid') : 'paid',
+    };
+  }
+
   function statusFrom(amount, value) {
     const status = clean(value);
     if (amount !== null && amount > 0) return 'pending';
@@ -458,11 +569,19 @@
       apartment: target.name,
       status: 'unknown',
       deudaCOP: null,
+      deudaMesCOP: null,
       deudaTotalCOP: null,
       deudaLabel: 'Deuda Total',
       numFacturas: null,
       factura: null,
       periodo: null,
+      facturaValorCOP: null,
+      deudaConveniosCOP: null,
+      financiadaCOP: null,
+      cuotaFinanciadaCOP: null,
+      financiacion: [],
+      debtSource: null,
+      debtEndpointStatus: null,
       error: null,
       checkedAt,
       scrapedAt: checkedAt,
@@ -1066,23 +1185,143 @@
       if (!nic || /PAGAD[AO]/.test(String(invoice.cd_EstadosPagoDocumento || '').toUpperCase())) return;
       const total = parseAmount(field(invoice, ['amt_DeudaTotal', 'deudaTotal', 'DeudaTotal']));
       const balance = parseAmount(field(invoice, ['amt_SaldoConsulta', 'saldoConsulta', 'SaldoConsulta']));
-      const group = grouped[nic] || { total: [], balance: [] };
+      const month = parseAmount(field(invoice, ['amt_ValorMes', 'valorMes', 'ValorMes', 'amt_ValorFactura', 'valorFactura', 'ValorFactura', 'amt_Valor', 'valor', 'Valor']));
+      const financed = parseAmount(field(invoice, ['amt_ValorFinanciado', 'valorFinanciado', 'saldoFinanciado', 'deudaFinanciada', 'financedDebt', 'financingValue']));
+      const quota = parseAmount(field(invoice, ['amt_ValorCuota', 'valorCuota', 'cuotaFinanciada', 'quotaValue']));
+      const group = grouped[nic] || { total: [], balance: [], rows: [], invoices: [] };
       if (total !== null) group.total.push(total); else if (balance !== null) group.balance.push(balance);
+      group.rows.push({ invoice, month, financed, quota, date: recordDate(invoice) });
+      group.invoices.push(invoice);
       grouped[nic] = group;
     });
     const results = (config.apartments || []).filter(target => target.electricityPaymentCode).map(target => {
       const nic = String(target.electricityPaymentCode).replace(/\D/g, '');
-      const group = grouped[nic] || { total: [], balance: [] };
+      const group = grouped[nic] || { total: [], balance: [], rows: [], invoices: [] };
       const debt = group.total.length ? Math.max.apply(Math, group.total) : group.balance.reduce((sum, value) => sum + value, 0);
+      const rows = group.rows.slice().sort((left, right) => (right.date?.getTime() || 0) - (left.date?.getTime() || 0));
+      const latest = rows[0] || null;
+      const latestPeriod = latest?.date ? `${latest.date.getUTCFullYear()}-${latest.date.getUTCMonth()}` : null;
+      const currentRows = latestPeriod ? rows.filter(row => row.date && `${row.date.getUTCFullYear()}-${row.date.getUTCMonth()}` === latestPeriod) : rows.slice(0, 1);
+      const current = currentRows.length ? currentRows : rows.slice(0, 1);
+      const monthValues = current.map(row => row.month).filter(value => value !== null);
+      const financing = financingSummary(group.invoices);
+      const financedValues = rows.map(row => row.financed).filter(value => value !== null);
+      const quotaValues = rows.map(row => row.quota).filter(value => value !== null);
+      const deudaMesCOP = monthValues.length ? monthValues.reduce((sum, value) => sum + value, 0) : null;
+      const deudaTotalCOP = debt;
       return resultBase('Air-e', 'electricity', target, {
         nic,
-        status: debt > 0 ? 'pending' : 'paid',
-        deudaCOP: debt,
-        deudaTotalCOP: debt,
-        deudaText: debt > 0 ? `Deuda Total del NIC: $${debt.toLocaleString('es-CO')}.` : 'Deuda Total del NIC: $0 (al día).',
+        status: deudaTotalCOP > 0 ? 'pending' : 'paid',
+        deudaCOP: deudaTotalCOP,
+        deudaMesCOP,
+        deudaConveniosCOP: financedValues.length ? Math.max.apply(Math, financedValues) : financing.financiadaCOP,
+        deudaTotalCOP,
+        factura: field(latest?.invoice, ['invoiceNumber', 'invoiceId', 'factura', 'id']) || null,
+        periodo: field(latest?.invoice, ['invoiceDate', 'billingPeriod', 'periodo', 'fechaFactura']) || null,
+        numFacturas: group.invoices.length,
+        financiadaCOP: financedValues.length ? Math.max.apply(Math, financedValues) : financing.financiadaCOP,
+        cuotaFinanciadaCOP: quotaValues.length ? Math.max.apply(Math, quotaValues) : financing.cuotaFinanciadaCOP,
+        financiacion: financing.financiacion,
+        debtSource: 'invoice_fields',
+        deudaText: deudaTotalCOP > 0 ? `Deuda Total del NIC: $${deudaTotalCOP.toLocaleString('es-CO')}.` : 'Deuda Total del NIC: $0 (al día).',
       });
     });
     return { state: 'ok', provider: 'air-e', stage: 'fetch_invoices', records: results.length, results };
+  }
+
+  async function fetchTripleASummary(subscription, token) {
+    const id = field(subscription, ['id', 'subscriptionId', 'subscription_id']);
+    if (id == null || id === '') return { error: 'Triple A no devolvió el identificador interno de la póliza.' };
+    const headers = { 'X-Requested-With': 'XMLHttpRequest', 'x-app-version': portalAppVersion() };
+    const invoicesResponse = await jsonWithAuthFallback(`/bff/invoices/subscription/${encodeURIComponent(String(id))}`, token, { headers });
+    if (!invoicesResponse.ok) return { invoiceEndpointStatus: invoicesResponse.status || 0, error: `Triple A no devolvió las facturas de la póliza (HTTP ${invoicesResponse.status || 'sin respuesta'}).` };
+    const invoiceItems = list(invoicesResponse.payload, ['invoices', 'items']);
+    const invoiceSummary = tripleAInvoiceSummary(invoiceItems);
+    let debtPayload = null;
+    let debtEndpointStatus = 0;
+    let debtRoute = '';
+    for (const url of [
+      `/bff/debts/subscription/${encodeURIComponent(String(id))}`,
+      `/bff/debt/subscription/${encodeURIComponent(String(id))}`,
+      `/bff/subscriptions/${encodeURIComponent(String(id))}/debt`,
+      `/bff/deferred-debts/subscription/${encodeURIComponent(String(id))}`,
+      `/bff/financing/subscription/${encodeURIComponent(String(id))}`,
+    ]) {
+      const response = await jsonWithAuthFallback(url, token, { headers });
+      debtEndpointStatus = response.status || 0;
+      if (response.ok) {
+        debtPayload = response.payload;
+        debtRoute = url;
+        break;
+      }
+      if (![404, 405].includes(Number(response.status))) break;
+    }
+    const debtRows = debtPayload ? list(debtPayload, ['debts', 'items']) : [];
+    const total = debtPayload && !/deferred|financ/i.test(debtRoute)
+      ? amountFromFields(debtPayload, ['totalDebts', 'totalDebt', 'deudaTotal', 'totalPending', 'totalPendingDebt', 'totalDebtValue'])
+        ?? (debtRows.length ? debtRows.map(row => amountFromFields(row, ['totalValue', 'pendingBalance', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'amount', 'value'])).filter(value => value !== null).reduce((sum, value) => sum + value, 0) : null)
+      : null;
+    const debtMonth = debtPayload && !/deferred|financ/i.test(debtRoute)
+      ? amountFromFields(debtPayload, [
+        'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
+        'currentInvoice', 'currentInvoiceValue', 'invoiceValue', 'valorMes', 'valorFactura',
+      ])
+      : null;
+    const financing = financingSummary(debtPayload || invoicesResponse.payload);
+    const convenio = financing.financiadaCOP;
+    const invoiceTotal = invoiceSummary.deudaTotalCOP ?? invoiceSummary.deudaMesCOP;
+    const combinedTotal = total ?? (
+      convenio !== null && invoiceTotal !== null ? invoiceTotal + convenio : invoiceTotal
+    );
+    return {
+      deudaMesCOP: debtMonth ?? invoiceSummary.deudaMesCOP,
+      deudaConveniosCOP: convenio,
+      deudaTotalCOP: combinedTotal,
+      numFacturas: invoiceSummary.numFacturas,
+      factura: invoiceSummary.factura,
+      periodo: invoiceSummary.periodo,
+      facturaValorCOP: invoiceSummary.deudaMesCOP,
+      financiadaCOP: convenio,
+      cuotaFinanciadaCOP: financing.cuotaFinanciadaCOP,
+      financiacion: financing.financiacion,
+      debtSource: total !== null ? 'debt_endpoint' : 'invoice_fallback',
+      debtEndpointStatus,
+    };
+  }
+
+  async function fetchGasDebtSummary(contractId, auth) {
+    if (!contractId) return { debtEndpointStatus: 0, debtSource: 'invoice_fallback' };
+    const response = await jsonWithAuthFallback(`${GAS_API}/contracts/debt/${encodeURIComponent(String(contractId))}`, auth, {
+      credentials: 'omit',
+      headers: { Pragma: 'no-cache' },
+    });
+    if (!response.ok) return { debtEndpointStatus: response.status || 0, debtSource: 'invoice_fallback' };
+    const rows = list(response.payload, ['debts', 'items', 'invoices', 'contracts']);
+    const explicitTotal = amountFromFields(response.payload, ['totalDebts', 'totalDebt', 'deudaTotal', 'totalDebtValue', 'totalToPay', 'totalValue', 'totalAmount', 'saldoTotal', 'totalCurrentDebt', 'total'])
+      ?? (rows.length ? rows.map(row => amountFromFields(row, ['pendingBalance', 'saldoPendiente', 'saldoPorFacturar', 'totalValue', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'totalToPay', 'amount', 'value'])).filter(value => value !== null).reduce((sum, value) => sum + value, 0) : null);
+    const month = amountFromFields(response.payload, [
+      'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
+      'currentInvoice', 'currentInvoiceValue', 'invoiceValue', 'valorMes', 'valorFactura',
+    ]) ?? (rows.length ? amountFromFields(rows[0], [
+      'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
+      'currentInvoice', 'currentInvoiceValue', 'invoiceValue', 'valorMes', 'valorFactura',
+    ]) : null);
+    const financing = financingSummary(response.payload);
+    const total = explicitTotal ?? (
+      month !== null && financing.financiadaCOP !== null
+        ? month + financing.financiadaCOP
+        : month
+    );
+    return {
+      deudaTotalCOP: total,
+      deudaMesCOP: month,
+      deudaConveniosCOP: financing.financiadaCOP,
+      financiadaCOP: financing.financiadaCOP,
+      cuotaFinanciadaCOP: financing.cuotaFinanciadaCOP,
+      financiacion: financing.financiacion,
+      debtSource: total !== null ? 'debt_endpoint' : 'invoice_fallback',
+      debtEndpointStatus: response.status || 0,
+    };
   }
 
   async function runWater(config) {
@@ -1109,17 +1348,30 @@
       const target = bestTargetMatch(config.apartments || [], subscription, 'water', used);
       if (!target) continue;
       used.add(String(target.id || target.name));
+      const summary = await fetchTripleASummary(subscription, token).catch(error => ({ error: error.message }));
       const rawAmount = field(subscription, ['pendingValue', 'pendingAmount', 'debt', 'deudaTotal', 'totalDebt', 'amountDue', 'totalDue', 'balanceDue', 'saldoTotal', 'saldoPendiente', 'total', 'amount', 'balance', 'saldo']);
       const amount = parseAmount(rawAmount);
       const rawStatus = field(subscription, ['status', 'state', 'paymentStatus']);
       const code = field(subscription, ['subscriptionExternalId', 'externalId', 'subscriptionId', 'policyNumber', 'poliza', 'policy', 'id']);
+      const total = summary.deudaTotalCOP ?? (amount === null && /pending|pendiente|vencid|mora/i.test(String(rawStatus || '')) ? null : (amount === null ? 0 : Math.max(0, amount)));
+      const month = summary.deudaMesCOP ?? (amount === null && /pending|pendiente|vencid|mora/i.test(String(rawStatus || '')) ? null : (amount === null ? 0 : Math.max(0, amount)));
       results.push(resultBase('Triple A', 'water', target, {
         waterPaymentCode: String(code || target.waterPaymentCode || '').trim() || null,
-        status: statusFrom(amount, rawStatus || field(subscription, ['isPending', 'pending', 'pendiente'])),
-        deudaCOP: amount === null && /pending|pendiente|vencid|mora/i.test(String(rawStatus || '')) ? null : (amount === null ? 0 : Math.max(0, amount)),
-        deudaTotalCOP: amount === null && /pending|pendiente|vencid|mora/i.test(String(rawStatus || '')) ? null : (amount === null ? 0 : Math.max(0, amount)),
-        factura: field(subscription, ['invoiceNumber', 'invoiceId', 'factura']) || null,
-        periodo: field(subscription, ['invoiceDate', 'billingPeriod', 'periodo']) || null,
+        status: total === null ? statusFrom(amount, rawStatus || field(subscription, ['isPending', 'pending', 'pendiente'])) : (total > 0 ? 'pending' : 'paid'),
+        deudaCOP: total,
+        deudaMesCOP: month,
+        deudaConveniosCOP: summary.deudaConveniosCOP ?? summary.financiadaCOP ?? null,
+        deudaTotalCOP: total,
+        facturaValorCOP: summary.facturaValorCOP ?? month,
+        numFacturas: summary.numFacturas ?? null,
+        factura: summary.factura || field(subscription, ['invoiceNumber', 'invoiceId', 'factura']) || null,
+        periodo: summary.periodo || field(subscription, ['invoiceDate', 'billingPeriod', 'periodo']) || null,
+        financiadaCOP: summary.financiadaCOP ?? null,
+        cuotaFinanciadaCOP: summary.cuotaFinanciadaCOP ?? null,
+        financiacion: summary.financiacion || [],
+        debtSource: summary.debtSource || 'subscription_fallback',
+        debtEndpointStatus: summary.debtEndpointStatus ?? null,
+        error: summary.error || null,
       }));
     }
     if (!results.length) return { state: 'error', provider: 'water', stage: 'match_subscriptions', subscriptionCount: subscriptions.length, message: 'Triple A devolvió pólizas, pero ninguna coincidió con los apartamentos configurados.', results: [] };
@@ -1183,12 +1435,22 @@
         // settled. Gascaribe may answer 404/422 for that invoice resource;
         // preserve the authenticated contract as an explicit $0 result.
         if ([404, 422].includes(Number(invoiceResponse?.status))) {
+          const debtIdentifier = String(field(contract, ['id', 'contractId', 'contractNumber', 'number', 'externalId', 'code']) || invoiceId || '').trim();
+          const debtSummary = await fetchGasDebtSummary(debtIdentifier, auth).catch(() => ({}));
+          const total = debtSummary.deudaTotalCOP ?? 0;
           used.add(String(target.id || target.name));
           results.push(resultBase('Gases del Caribe', 'gas', target, {
             gasPaymentCode: String(target.gasPaymentCode || invoiceId),
-            status: 'paid',
-            deudaCOP: 0,
-            deudaTotalCOP: 0,
+            status: total > 0 ? 'pending' : 'paid',
+            deudaCOP: total,
+            deudaMesCOP: debtSummary.deudaMesCOP ?? 0,
+            deudaConveniosCOP: debtSummary.deudaConveniosCOP ?? debtSummary.financiadaCOP ?? null,
+            deudaTotalCOP: total,
+            financiadaCOP: debtSummary.financiadaCOP ?? null,
+            cuotaFinanciadaCOP: debtSummary.cuotaFinanciadaCOP ?? null,
+            financiacion: debtSummary.financiacion || [],
+            debtSource: debtSummary.debtSource || 'no_current_invoice',
+            debtEndpointStatus: debtSummary.debtEndpointStatus ?? null,
             numFacturas: 0,
             factura: field(contract, ['invoiceNumber', 'invoiceId', 'factura']) || null,
             periodo: field(contract, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
@@ -1217,15 +1479,29 @@
       const amounts = unpaid.map(item => item.amount).filter(value => value !== null);
       const debt = amounts.length ? amounts.reduce((sum, value) => sum + value, 0) : (unpaid.length ? null : 0);
       const receipt = (unpaid[0] && unpaid[0].invoice) || invoices[0] || null;
+      const debtIdentifier = String(field(contract, ['id', 'contractId', 'contractNumber', 'number', 'externalId', 'code']) || invoiceId || '').trim();
+      const debtSummary = await fetchGasDebtSummary(debtIdentifier, auth).catch(error => ({ debtSource: 'invoice_fallback', debtEndpointStatus: 0, error: error.message }));
+    const total = debtSummary.deudaTotalCOP ?? debt;
+      const latest = invoices.slice().sort((left, right) => (recordDate(right)?.getTime() || 0) - (recordDate(left)?.getTime() || 0))[0] || receipt;
+      const month = amountFromFields(latest, ['monthValue', 'monthlyValue', 'valorMes', 'deudaMes', 'invoiceValue', 'valorFactura', 'invoiceAmount', 'totalToPay', 'amountDue', 'pendingValue', 'pendingAmount', 'couponValue']);
       used.add(String(target.id || target.name));
       results.push(resultBase('Gases del Caribe', 'gas', target, {
         gasPaymentCode: String(target.gasPaymentCode || invoiceId),
-        status: debt === null || debt > 0 ? 'pending' : 'paid',
-        deudaCOP: debt,
-        deudaTotalCOP: debt,
+        status: total === null || total > 0 ? 'pending' : 'paid',
+        deudaCOP: total,
+        deudaMesCOP: debtSummary.deudaMesCOP ?? month ?? total,
+        deudaConveniosCOP: debtSummary.deudaConveniosCOP ?? debtSummary.financiadaCOP ?? null,
+        deudaTotalCOP: total,
+        facturaValorCOP: debtSummary.deudaMesCOP ?? month ?? total,
+        financiadaCOP: debtSummary.financiadaCOP ?? null,
+        cuotaFinanciadaCOP: debtSummary.cuotaFinanciadaCOP ?? null,
+        financiacion: debtSummary.financiacion || [],
+        debtSource: debtSummary.debtSource || 'invoice_fallback',
+        debtEndpointStatus: debtSummary.debtEndpointStatus ?? null,
         numFacturas: unpaid.length,
-        factura: field(receipt, ['id', 'invoiceNumber', 'factura']) || null,
-        periodo: field(receipt, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
+        factura: field(latest, ['id', 'invoiceNumber', 'factura']) || null,
+        periodo: field(latest, ['expirationDate', 'dueDate', 'fechaVencimiento', 'invoiceDate', 'periodo']) || null,
+        error: debtSummary.error || null,
       }));
     }
     const gasDiagnostics = {
@@ -1331,7 +1607,9 @@
           waterPaymentUrl: target.waterPaymentUrl || null,
           status: parsed.status,
           deudaCOP: parsed.amount,
+          deudaMesCOP: parsed.amount,
           deudaTotalCOP: parsed.amount,
+          facturaValorCOP: parsed.amount,
           numFacturas: parsed.status === 'pending' ? 1 : 0,
           periodo: parsed.dueDate || null,
           fechaVencimiento: parsed.dueDate || null,
@@ -1407,6 +1685,7 @@
           gasPaymentUrl: target.gasPaymentUrl || null,
           status: parsed.status,
           deudaCOP: parsed.amount,
+          deudaMesCOP: parsed.amount,
           deudaTotalCOP: parsed.amount,
           numFacturas: parsed.status === 'pending' ? 1 : 0,
           factura: parsed.invoice || null,
@@ -1438,8 +1717,21 @@
   async function run(provider, config) {
     try {
       if (provider === 'air-e') return await runAirE(config || {});
-      if (provider === 'water') return await runWaterUi(config || {});
-      if (provider === 'gas') return await runGasUi(config || {});
+      if (provider === 'water') {
+        // Prefer the authenticated BFF: it exposes the current invoice and
+        // accumulated debt without scraping a changing card layout. Keep the
+        // visible reader as a compatibility fallback for old portal builds.
+        const apiResult = await runWater(config || {});
+        if (['ok', 'warning'].includes(apiResult?.state)) return apiResult;
+        const uiResult = await runWaterUi(config || {});
+        return uiResult?.results?.length || uiResult?.state === 'needs_verification' ? uiResult : apiResult;
+      }
+      if (provider === 'gas') {
+        const apiResult = await runGas(config || {});
+        if (['ok', 'warning'].includes(apiResult?.state)) return apiResult;
+        const uiResult = await runGasUi(config || {});
+        return uiResult?.results?.length || uiResult?.state === 'needs_verification' ? uiResult : apiResult;
+      }
       return { state: 'error', provider, message: 'Servicio no soportado.', results: [] };
     } catch (error) {
       return { state: 'error', provider, stage: 'runner', fetchError: error && error.message || null, message: error && error.message || 'Error local del portal.', results: [] };

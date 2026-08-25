@@ -62,7 +62,7 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
               {paid ? 'Al día' : known ? 'Pendiente' : 'Sin confirmar'}
             </span>
           </div>
-          <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">Deuda total</p>
+          <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">Deuda del mes</p>
           <p className="text-2xl font-bold text-slate-900">{known ? formatCurrency(debt) : '—'}</p>
           <p className="mt-1 text-[11px] text-slate-500">Sincronizado: {colombiaDate(service?.checkedAt)}</p>
           {service?.error && !known && <p className="mt-2 line-clamp-2 text-xs text-amber-700">{service.error}</p>}
