@@ -1033,13 +1033,23 @@
     // Android. They do not have role=option/menuitem, so the old selector
     // returned an empty list even though the entries were on screen.
     const selectors = '[role="menuitem"], [role="option"], [role="menuitemradio"], li, button, [role="button"], a, div, span';
+    const arrowSelector = '.material-icons, [class*="arrow-down"], [class*="ri-arrow-down"]';
     const candidates = Array.from(document.querySelectorAll(selectors))
       .filter(domAvailable)
       .map(element => ({
         element,
         text: uiText(element).replace(/\s+/g, ' ').trim(),
         descendants: element.querySelectorAll('*').length,
-        hasArrow: !!element.querySelector('.material-icons, [class*="arrow-down"], [class*="ri-arrow-down"]'),
+        hasArrow: (() => {
+          // A nested span inside the selected-policy trigger does not contain
+          // the arrow itself. Check a few ancestors too, otherwise a closed
+          // selector is mistaken for a one-item menu.
+          let current = element;
+          for (let depth = 0; current && depth < 5; depth += 1, current = current.parentElement) {
+            if (current.matches?.(arrowSelector) || current.querySelector?.(arrowSelector)) return true;
+          }
+          return false;
+        })(),
       }))
       .filter(item => item.text && item.text.length < 180 && !item.hasArrow)
       .flatMap(item => waterPolicyPairs(item.text).map(pair => ({ ...item, ...pair })));
