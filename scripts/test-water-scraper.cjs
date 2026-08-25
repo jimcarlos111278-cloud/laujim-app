@@ -31,6 +31,15 @@ assert.equal(tripleSummary.deudaMesCOP, 45000);
 assert.equal(tripleSummary.deudaTotalCOP, 95000);
 assert.equal(tripleSummary.numFacturas, 2);
 
+// The portal can expose a smaller coupon/component as monthValue while the
+// current debt card is totalValue. The card total must be used for Deuda del
+// mes; otherwise the report repeats the component and loses the real balance.
+const splitTripleSummary = scraper.tripleAInvoiceSummary([
+  { invoiceNumber: 'AAA-SPLIT', status: 'PENDING', monthValue: 12257, totalValue: 151224, invoiceDate: '2026-08-01' },
+]);
+assert.equal(splitTripleSummary.deudaMesCOP, 151224);
+assert.equal(splitTripleSummary.deudaTotalCOP, 151224);
+
 const financing = scraper.portalFinancingSummary({
   debts: [{ conceptDescription: 'Acuerdo de financiación', pendingBalance: 120000, quotaValue: 20000 }],
 });

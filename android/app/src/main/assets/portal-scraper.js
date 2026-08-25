@@ -654,8 +654,19 @@
       'deudaTotal', 'balanceDue', 'balance', 'amount', 'value', 'amt_DeudaTotal',
       'saldoTotal', 'totalAPagar',
     ]) ?? amountFromKeyPattern(invoice, /(?:deudatotal|totalapagar|totaldebt|saldototal|totalpending)/i, /(?:mes|month|cuota|quota)/i)).filter(value => value !== null);
+    const currentTotalValues = rows.map(invoice => amountFromFields(invoice, [
+      'totalValue', 'pendingBalance', 'pendingValue', 'totalToPay', 'amountDue', 'totalDebt',
+      'deudaTotal', 'balanceDue', 'balance', 'amount', 'value', 'amt_DeudaTotal',
+      'saldoTotal', 'totalAPagar',
+    ]) ?? amountFromKeyPattern(invoice, /(?:deudatotal|totalapagar|totaldebt|saldototal|totalpending)/i, /(?:mes|month|cuota|quota)/i)).filter(value => value !== null);
+    const currentTotal = currentTotalValues.length
+      ? currentTotalValues.reduce((sum, value) => sum + value, 0)
+      : null;
+    // The current/debt card total is the monthly debt shown to the admin.
+    // `monthValue` can be a coupon/component and must not replace that card
+    // total when both are present.
     return {
-      deudaMesCOP: monthValues.length ? monthValues.reduce((sum, value) => sum + value, 0) : null,
+      deudaMesCOP: currentTotal ?? (monthValues.length ? monthValues.reduce((sum, value) => sum + value, 0) : null),
       deudaTotalCOP: totalValues.length ? totalValues.reduce((sum, value) => sum + value, 0) : null,
       numFacturas: unpaid.length,
       factura: field(latest, ['invoiceNumber', 'invoiceId', 'factura', 'id']) || null,
@@ -874,8 +885,14 @@
     const lines = uiLines(text);
     const matcher = label instanceof RegExp ? label : new RegExp(escapeRegex(label), 'i');
     for (let index = 0; index < lines.length; index += 1) {
-      if (!matcher.test(lines[index])) continue;
-      const sameLine = lines[index].match(/\$\s*([0-9][0-9.,]*)/);
+      matcher.lastIndex = 0;
+      const labelMatch = matcher.exec(lines[index]);
+      if (!labelMatch) continue;
+      // Android WebView can flatten a whole card into one line. Search for
+      // the amount after the matched label, otherwise the first `$` in the
+      // line may belong to a different field (for example “Próximo pago”).
+      const tail = lines[index].slice(labelMatch.index + labelMatch[0].length);
+      const sameLine = tail.match(/\$\s*([0-9][0-9.,]*)/);
       if (sameLine) return parseAmount(sameLine[1]);
       for (const next of lines.slice(index + 1, index + 4)) {
         const match = next.match(/\$\s*([0-9][0-9.,]*)/);

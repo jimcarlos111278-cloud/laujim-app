@@ -1031,7 +1031,11 @@ async function queryRenderedGasContract(page, code) {
     const totalMatch = body.match(/saldo\s+total\s*\$\s*([0-9][0-9.,]*)/i);
     const month = sectionAmount(/deuda\s+actual/i, /deuda\s+(?:financiada|diferida)/i, /saldo\s+total\s*\$\s*([0-9][0-9.,]*)/i);
     const convenio = sectionAmount(/deuda\s+(?:financiada|diferida)/i, null, /(?:saldo\s+por\s+facturar(?:\s+gas)?|saldo\s+total|valor\s+total)\s*\$\s*([0-9][0-9.,]*)/i);
-    if (/pagad[oa]/i.test(normalizedBody) && new RegExp(String(contractCode).replace(/\D/g, '')).test(body)) {
+    const hasPositiveCurrent = month !== null && month > 0;
+    const hasPositiveAgreement = convenio !== null && convenio > 0;
+    // A paid current invoice can still have a financed/deferred balance.
+    // Do not return early and erase that agreement from the result.
+    if (/pagad[oa]/i.test(normalizedBody) && !hasPositiveCurrent && !hasPositiveAgreement && new RegExp(String(contractCode).replace(/\D/g, '')).test(body)) {
       const paidAmountMatch = body.match(/(?:total a pagar|pagad[oa])[^$0-9]{0,80}\$\s*([0-9][0-9.,]*)/i);
       const invoiceAmount = paidAmountMatch ? money(paidAmountMatch[1]) : null;
       const invoiceMatch = body.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
@@ -1047,7 +1051,8 @@ async function queryRenderedGasContract(page, code) {
     if (!new RegExp(`contrato\\s*n[^0-9]{0,8}${String(contractCode).replace(/\D/g, '')}`).test(body) || !hasReceiptSummary) return null;
     const amountMatch = body.match(/total a pagar[^$0-9]{0,80}\$\s*([0-9][0-9.,]*)/i);
     const rawAmount = amountMatch ? money(amountMatch[1]) : (totalMatch ? money(totalMatch[1]) : null);
-    const paidByText = /est(?:á|a)s al d(?:í|i)a|al d(?:í|i)a|sin deuda|factura pagad|pago realizad/i.test(body);
+    const paidByText = /est(?:á|a)s al d(?:í|i)a|al d(?:í|i)a|sin deuda|factura pagad|pago realizad/i.test(body)
+      && !hasPositiveCurrent && !hasPositiveAgreement;
     const amount = Number.isFinite(rawAmount) ? rawAmount : (paidByText ? 0 : null);
     const invoiceMatch = body.match(/factura\s*n[^0-9]{0,8}(\d{4,})/i);
     const dueMatch = body.match(/vence[^.]{0,40}/i);
@@ -2061,9 +2066,19 @@ function tripleAInvoiceSummary(invoices) {
     'totalValue', 'pendingBalance', 'pendingValue', 'totalToPay', 'amountDue',
     'totalDebt', 'deudaTotal', 'balanceDue', 'balance', 'amount', 'value',
   ])).filter(value => value !== null);
+  const currentTotalValues = monthRows.map(invoice => portalAmountFromFields(invoice, [
+    'totalValue', 'pendingBalance', 'pendingValue', 'totalToPay', 'amountDue',
+    'totalDebt', 'deudaTotal', 'balanceDue', 'balance', 'amount', 'value',
+  ])).filter(value => value !== null);
   const monthDebt = monthValues.length ? monthValues.reduce((sum, value) => sum + value, 0) : null;
+  const currentTotal = currentTotalValues.length
+    ? currentTotalValues.reduce((sum, value) => sum + value, 0)
+    : null;
   return {
-    deudaMesCOP: monthDebt,
+    // The portal's current/debt card is the monthly debt. A `monthValue`
+    // field may be only a coupon/component, so prefer the card total when it
+    // is available.
+    deudaMesCOP: currentTotal ?? monthDebt,
     deudaTotalCOP: totalValues.length ? totalValues.reduce((sum, value) => sum + value, 0) : null,
     numFacturas: unpaid.length,
     factura: portalFieldValue(latest, ['invoiceNumber', 'invoiceId', 'factura', 'id']) || null,
