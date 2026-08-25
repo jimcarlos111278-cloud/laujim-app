@@ -53,6 +53,19 @@ function normalizeInteger(value) {
   return Number.isInteger(number) && number >= 0 ? number : null;
 }
 
+// Optional monetary fields are intentionally kept separate from the legacy
+// deudaTotalCOP field.  The local scraper already returns these values, but
+// the portable-worker normalizer used to discard them before persistence.
+function optionalAmount(raw, keys) {
+  if (!raw || typeof raw !== 'object') return undefined;
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) continue;
+    if (raw[key] === null || raw[key] === undefined || raw[key] === '') continue;
+    return normalizeAmount(raw[key]);
+  }
+  return undefined;
+}
+
 function isoOrNow(value, now = new Date().toISOString()) {
   const candidate = new Date(value || '');
   return Number.isNaN(candidate.getTime()) ? now : candidate.toISOString();
@@ -76,6 +89,24 @@ function sanitizeWorkerResult(raw, { deviceId = null, now = new Date().toISOStri
   if (apartmentId === null && !apartment) return null;
 
   const amount = normalizeAmount(raw.deudaTotalCOP ?? raw.deudaCOP ?? raw.totalDebt ?? raw.debt);
+  const monthAmount = optionalAmount(raw, [
+    'deudaMesCOP', 'valorMesCOP', 'monthValueCOP', 'facturaValorCOP',
+    'invoiceValueCOP', 'valorFacturaCOP', 'amt_TotalMes', 'totalMes',
+    'totalMesSinTasa', 'deudaMes', 'valorMes', 'monthValue', 'facturaValor',
+  ]);
+  const financedAmount = optionalAmount(raw, [
+    'deudaConveniosCOP', 'financiadaCOP', 'deudaFinanciada', 'saldoFinanciado',
+    'financedDebt', 'valorFinanciado', 'financingValue', 'financedAmount',
+    'saldoDeudaFinanciada', 'saldoPorFacturar',
+  ]);
+  const quotaAmount = optionalAmount(raw, [
+    'cuotaFinanciadaCOP', 'cuotaFinanciada', 'quotaValue', 'valorCuota',
+    'valorCuotaFinanciada', 'monthlyQuota', 'cuotaMensual',
+  ]);
+  const invoiceAmount = optionalAmount(raw, [
+    'facturaValorCOP', 'invoiceValueCOP', 'valorFacturaCOP', 'invoiceValue',
+    'valorFactura', 'monthValueCOP', 'deudaMesCOP',
+  ]);
   const checkedAt = isoOrNow(raw.checkedAt || raw.scrapedAt, now);
   const result = {
     provider: providerInfo.provider,
@@ -95,6 +126,17 @@ function sanitizeWorkerResult(raw, { deviceId = null, now = new Date().toISOStri
     source: 'portable-worker',
     workerDeviceId: normalizeWorkerId(deviceId),
   };
+
+  // Do not write null optional fields when the worker did not send them. This
+  // lets mergeUtilityRecord retain the last confirmed split during a partial
+  // or legacy run, while still persisting valid zero values for paid records.
+  if (monthAmount !== undefined) result.deudaMesCOP = monthAmount;
+  if (financedAmount !== undefined) {
+    result.deudaConveniosCOP = financedAmount;
+    result.financiadaCOP = financedAmount;
+  }
+  if (quotaAmount !== undefined) result.cuotaFinanciadaCOP = quotaAmount;
+  if (invoiceAmount !== undefined) result.facturaValorCOP = invoiceAmount;
 
   if (providerInfo.provider === 'Air-e') {
     result.nic = text(raw.nic || raw.electricityPaymentCode, 80) || null;

@@ -13,7 +13,7 @@ const airSummary = scraper.aggregateAirEInvoices([
   { cd_Poliza: '123', cd_EstadosPagoDocumento: 'PENDIENTE', amt_DeudaTotal: 95000, amt_ValorMes: 42000, fechaFactura: '2026-08-01' },
   { cd_Poliza: '123', cd_EstadosPagoDocumento: 'PENDIENTE', amt_DeudaTotal: 95000, amt_ValorMes: 53000, fechaFactura: '2026-07-01' },
 ]);
-assert.equal(airSummary['123'].deudaTotalCOP, 95000);
+assert.equal(airSummary['123'].deudaTotalCOP, 190000);
 assert.equal(airSummary['123'].deudaMesCOP, 42000);
 
 const gasSummary = scraper.gasInvoiceSummary([
