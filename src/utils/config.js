@@ -18,14 +18,36 @@ export function isCapacitor() {
   return typeof window !== 'undefined' && window.Capacitor !== undefined;
 }
 
-const DEFAULT_SERVER = 'https://laujim-app.onrender.com';
+// Belmo is the primary application host. Render remains available as a
+// read/write fallback while its Hobby workspace is suspended or recovering.
+export const DEFAULT_SERVER = 'https://laujim-app-2f53.onbelmo.uk';
+export const FALLBACK_SERVER = 'https://laujim-app.onrender.com';
+
+function normalizeServer(value) {
+  return String(value || '').trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+}
+
+export function getServerCandidates(preferred) {
+  const selected = normalizeServer(preferred);
+  const isKnownHost = selected === DEFAULT_SERVER || selected === FALLBACK_SERVER;
+  const candidates = [isKnownHost ? DEFAULT_SERVER : selected, FALLBACK_SERVER]
+    .filter(Boolean);
+  return [...new Set(candidates)];
+}
 
 export function getBase() {
   const custom = localStorage.getItem('apt_server_url');
-  if (custom) return custom + '/api';
+  if (custom && !/onrender\.com$/i.test(normalizeServer(custom))) return normalizeServer(custom) + '/api';
+  if (custom && /onrender\.com$/i.test(normalizeServer(custom))) {
+    localStorage.setItem('apt_server_url', DEFAULT_SERVER);
+  }
   if (isCapacitor()) return DEFAULT_SERVER + '/api';
   if (window.matchMedia('(display-mode: standalone)').matches) return DEFAULT_SERVER + '/api';
-  return window.location.origin + '/api';
+  const origin = normalizeServer(window.location.origin);
+  if (origin && !/onrender\.com$/i.test(origin) && !/localhost|127\.0\.0\.1/i.test(origin)) {
+    return origin + '/api';
+  }
+  return DEFAULT_SERVER + '/api';
 }
 
 export function getRawBase() {

@@ -802,7 +802,8 @@ function sendCloudInteractiveList(to, body, buttonTitle, sections) {
   });
 }
 
-const CLOUD_ADMIN_WHATSAPP_URL = 'https://laujim-app.onrender.com/whatsapp';
+const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.APP_PUBLIC_URL || 'https://laujim-app-2f53.onbelmo.uk').trim().replace(/\/+$/, '');
+const CLOUD_ADMIN_WHATSAPP_URL = `${PUBLIC_APP_URL}/whatsapp`;
 
 function sendCloudAdminAccessButton(to, body) {
   return cloudApiRequest('/messages', 'POST', {

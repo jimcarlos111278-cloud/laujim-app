@@ -1,4 +1,4 @@
-import { getRawBase } from './config';
+import { DEFAULT_SERVER, getRawBase, getServerCandidates } from './config';
 
 const STORAGE_KEY = 'laujim_portable_worker';
 const DEFAULT_TIMEOUT_MS = 10000;
@@ -22,6 +22,10 @@ function cleanServerUrl(value) {
   const fallback = getRawBase();
   const raw = String(value || fallback).trim().replace(/\/+$/, '');
   return raw.replace(/\/api$/i, '');
+}
+
+function isRetryableError(error) {
+  return error?.name === 'AbortError' || error?.name === 'TypeError' || error?.retryable === true;
 }
 
 export function getPortableWorkerSettings() {
@@ -69,17 +73,42 @@ function workerRequest(path, settings, options = {}) {
     'X-Worker-Id': current.deviceId,
     ...(options.headers || {}),
   };
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), options.timeoutMs || DEFAULT_TIMEOUT_MS);
-  return fetch(`${cleanServerUrl(current.serverUrl)}${path}`, {
-    ...options,
-    headers,
-    signal: controller.signal,
-  }).then(async response => {
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || payload.message || `HTTP ${response.status}`);
-    return payload;
-  }).finally(() => clearTimeout(timer));
+  const candidates = getServerCandidates(current.serverUrl || DEFAULT_SERVER);
+
+  async function requestCandidate(serverUrl) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), options.timeoutMs || DEFAULT_TIMEOUT_MS);
+    try {
+      const response = await fetch(`${cleanServerUrl(serverUrl)}${path}`, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const error = new Error(payload.error || payload.message || `HTTP ${response.status}`);
+        error.status = response.status;
+        error.retryable = response.status >= 500 || response.status === 408 || response.status === 429;
+        throw error;
+      }
+      return payload;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  return (async () => {
+    let lastError;
+    for (const serverUrl of candidates) {
+      try {
+        return await requestCandidate(serverUrl);
+      } catch (error) {
+        lastError = error;
+        if (!isRetryableError(error) && !error?.retryable) throw error;
+      }
+    }
+    throw lastError || new Error('No hay un servidor Laujim disponible.');
+  })();
 }
 
 export function fetchPortableWorkerConfig(settings) {
