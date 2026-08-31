@@ -1,0 +1,34 @@
+// New installations start empty. Production data lives in PostgreSQL, never in
+// the frontend bundle or committed seed credentials.
+const INITIAL_DATA = {
+  users: [],
+  apartments: [],
+  tenants: [],
+  contracts: [],
+  payments: [],
+  expenses: [],
+  utilityPayments: [],
+  vacancies: [],
+  familyMembers: [],
+  settings: [],
+  passwords: [],
+  portalCredentials: [],
+  utilityRecords: [],
+  photos: [],
+  messages: [],
+  presence: [],
+  leads: [],
+  authSessions: [],
+  paymentReminderLogs: [],
+  scraperWorkers: [],
+  scraperLogs: [],
+  marketplaceJobs: [],
+  accessEvents: [],
+  contractTemplates: [],
+  paymentRules: [],
+  paymentEvents: [],
+  paymentAlerts: [],
+  utilityChangeAlerts: [],
+};
+
+module.exports = { INITIAL_DATA };

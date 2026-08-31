@@ -1,0 +1,83 @@
+services:
+  - type: web
+    name: laujim-app
+    runtime: docker
+    repo: https://github.com/jimcarlos111278-cloud/laujim-app
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: RENDER_FULL_CHROME
+        value: "true"
+      - key: CHROME_EXECUTABLE_PATH
+        value: /usr/bin/chromium
+      - key: RENDER_CHROME_PROFILE_DIR
+        value: /tmp/laujim-chrome-profiles
+      # Configure both values in the Render dashboard; never commit them.
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SESSION_TTL_HOURS
+        value: "12"
+      - key: SERVICES_SCRAPE_INTERVAL_HOURS
+        value: "1"
+      - key: SERVICES_EXECUTION_MODE
+        value: portable
+      # Portable worker (Android/PC). The token remains dashboard-only.
+      - key: SCRAPER_WORKER_ENABLED
+        value: "true"
+      - key: SCRAPER_WORKER_TOKEN
+        sync: false
+      - key: PORTABLE_WORKER_INTERVAL_HOURS
+        value: "1"
+      - key: PORTABLE_WORKER_START_AT
+        value: "07:00"
+      - key: PORTABLE_WORKER_TIMEZONE
+        value: America/Bogota
+      - key: PORTABLE_WORKER_PROVIDERS
+        value: air-e,water,gas
+      # Cameras and locks remain local. Render only calls the authenticated
+      # HTTPS gateway and issues short-lived viewing/access requests.
+      - key: EDGE_GATEWAY_URL
+        sync: false
+      - key: EDGE_GATEWAY_TOKEN
+        sync: false
+      - key: CAMERA_STREAMS_JSON
+        sync: false
+      - key: ACCESS_DOORS_JSON
+        sync: false
+      - key: DATABASE_URL
+        # The production database is Aiven. Keep its private URL only in the
+        # Render dashboard; the old Render database was deleted/expired.
+        sync: false
+      - key: AIVEN_DATABASE_URL
+        # This independent key bypasses the legacy Blueprint database link.
+        sync: false
+      - key: EDITOR_ENABLED
+        value: "false"
+      # Cloud API is the only production WhatsApp channel. Baileys stays disabled.
+      - key: AUTO_START_BOT
+        value: "false"
+      - key: ENABLE_LEGACY_BAILEYS
+        value: "false"
+      - key: WHATSAPP_CLOUD_ENABLED
+        value: "true"
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: WHATSAPP_GRAPH_VERSION
+        sync: false
+      - key: WHATSAPP_GREETING_TEMPLATE
+        value: saludo_inquilino
+      - key: WHATSAPP_PAYMENT_REMINDER_TEMPLATE
+        value: cobro_canon_servicios

@@ -1,0 +1,172 @@
+package com.laujim.aptmanager;
+
+import android.app.Activity;
+import android.app.role.RoleManager;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+import android.Manifest;
+import androidx.activity.result.ActivityResult;
+
+import com.getcapacitor.JSArray;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.annotation.ActivityCallback;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
+import com.getcapacitor.PermissionState;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@CapacitorPlugin(name = "AuthorizedCallerScreening", permissions = {
+    @Permission(alias = "contacts", strings = { Manifest.permission.READ_CONTACTS })
+})
+public class AuthorizedCallerPlugin extends Plugin {
+    @PluginMethod
+    public void getStatus(PluginCall call) {
+        call.resolve(status());
+    }
+
+    @PluginMethod
+    public void syncAuthorizedNumbers(PluginCall call) {
+        JSArray numbers = call.getArray("numbers", new JSArray());
+        Set<String> values = new HashSet<>();
+        for (int index = 0; index < numbers.length(); index++) {
+            try { values.add(numbers.getString(index)); } catch (Exception ignored) {}
+        }
+        AuthorizedCallerStore.save(getContext(), values);
+        call.resolve(status());
+    }
+
+    @PluginMethod
+    public void setEnabled(PluginCall call) {
+        AuthorizedCallerStore.setEnabled(getContext(), call.getBoolean("enabled", false));
+        call.resolve(status());
+    }
+
+    @PluginMethod
+    public void setAllowContacts(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", false);
+        if (enabled && getPermissionState("contacts") != PermissionState.GRANTED) {
+            requestPermissionForAlias("contacts", call, "contactsPermissionResult");
+            return;
+        }
+        AuthorizedCallerStore.setAllowContacts(getContext(), enabled);
+        call.resolve(status());
+    }
+
+    @PermissionCallback
+    private void contactsPermissionResult(PluginCall call) {
+        boolean granted = getPermissionState("contacts") == PermissionState.GRANTED;
+        AuthorizedCallerStore.setAllowContacts(getContext(), granted);
+        JSObject result = status();
+        result.put("contactsPermissionRequested", true);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void requestScreeningRole(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            call.reject("El filtro requiere Android 10 o superior");
+            return;
+        }
+        RoleManager roles = (RoleManager) getContext().getSystemService(Context.ROLE_SERVICE);
+        if (roles == null || !roles.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING)) {
+            call.reject("Este teléfono no permite usar un filtro de llamadas");
+            return;
+        }
+        if (roles.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)) {
+            call.resolve(status());
+            return;
+        }
+        startActivityForResult(call, roles.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING), "screeningRoleResult");
+    }
+
+    @PluginMethod
+    public void requestSmsRole(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            call.reject("El filtro de SMS requiere Android 10 o superior");
+            return;
+        }
+        RoleManager roles = (RoleManager) getContext().getSystemService(Context.ROLE_SERVICE);
+        if (roles == null || !roles.isRoleAvailable(RoleManager.ROLE_SMS)) {
+            call.reject("Este teléfono no permite usar a Laujim como aplicación de SMS");
+            return;
+        }
+        if (roles.isRoleHeld(RoleManager.ROLE_SMS)) {
+            call.resolve(status());
+            return;
+        }
+        startActivityForResult(call, roles.createRequestRoleIntent(RoleManager.ROLE_SMS), "smsRoleResult");
+    }
+
+    @ActivityCallback
+    private void smsRoleResult(PluginCall call, ActivityResult activityResult) {
+        JSObject result = status();
+        result.put("requested", true);
+        result.put("granted", activityResult.getResultCode() == Activity.RESULT_OK && isSmsRoleGranted());
+        call.resolve(result);
+        notifyListeners("smsRoleResult", result);
+    }
+
+    @PluginMethod
+    public void getAuthorizedSmsMessages(PluginCall call) {
+        JSArray messages = new JSArray();
+        org.json.JSONArray stored = AuthorizedSmsStore.messages(getContext());
+        for (int index = 0; index < stored.length(); index++) {
+            try { messages.put(stored.getJSONObject(index)); } catch (Exception ignored) {}
+        }
+        JSObject result = status();
+        result.put("messages", messages);
+        call.resolve(result);
+    }
+
+    @ActivityCallback
+    private void screeningRoleResult(PluginCall call, ActivityResult activityResult) {
+        JSObject result = status();
+        result.put("requested", true);
+        result.put("granted", activityResult.getResultCode() == Activity.RESULT_OK && isRoleGranted());
+        call.resolve(result);
+        notifyListeners("screeningRoleResult", result);
+    }
+
+    private JSObject status() {
+        JSObject result = new JSObject();
+        boolean supported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+        result.put("supported", supported);
+        result.put("enabled", AuthorizedCallerStore.isEnabled(getContext()));
+        result.put("authorizedCount", AuthorizedCallerStore.count(getContext()));
+        result.put("lastSyncedAt", AuthorizedCallerStore.lastSyncedAt(getContext()));
+        result.put("allowContacts", AuthorizedCallerStore.allowContacts(getContext()));
+        result.put("contactsPermissionGranted", getPermissionState("contacts") == PermissionState.GRANTED);
+        result.put("roleGranted", isRoleGranted());
+        result.put("smsRoleAvailable", supported && isSmsRoleAvailable());
+        result.put("smsRoleGranted", isSmsRoleGranted());
+        result.put("authorizedSmsCount", AuthorizedSmsStore.count(getContext()));
+        return result;
+    }
+
+    private boolean isRoleGranted() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false;
+        RoleManager roles = (RoleManager) getContext().getSystemService(Context.ROLE_SERVICE);
+        return roles != null && roles.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING)
+            && roles.isRoleHeld(RoleManager.ROLE_CALL_SCREENING);
+    }
+
+    private boolean isSmsRoleAvailable() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false;
+        RoleManager roles = (RoleManager) getContext().getSystemService(Context.ROLE_SERVICE);
+        return roles != null && roles.isRoleAvailable(RoleManager.ROLE_SMS);
+    }
+
+    private boolean isSmsRoleGranted() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false;
+        RoleManager roles = (RoleManager) getContext().getSystemService(Context.ROLE_SERVICE);
+        return roles != null && roles.isRoleAvailable(RoleManager.ROLE_SMS)
+            && roles.isRoleHeld(RoleManager.ROLE_SMS);
+    }
+}

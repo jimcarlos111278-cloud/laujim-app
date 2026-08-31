@@ -1,0 +1,147 @@
+export function formatCurrency(amount) {
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount || 0);
+}
+
+// Gases del Caribe payment links must point to the contract, not to the
+// monthly receipt/coupon QR. The contract page lets the tenant see the
+// current debt and historical balance without the administrator session.
+export function gasContractPaymentUrl(contract) {
+  const code = String(contract || '').trim();
+  return code ? `https://portal.gascaribe.com/payments/contract/${encodeURIComponent(code)}` : '';
+}
+
+export function servicePaymentUrl(apartment, service) {
+  if (service === 'electricity') {
+    // Air-e payment page. The tenant enters the NIC shown beside the service.
+    return 'https://portal.air-e.com/Pagar#/List';
+  }
+  if (service === 'gas') return gasContractPaymentUrl(apartment?.gasPaymentCode);
+  const field = 'waterPaymentUrl';
+  const value = String(apartment?.[field] || '').trim();
+  if (!/^https?:\/\//i.test(value)) return '';
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    const path = url.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+    if (service === 'water' && host.endsWith('portal.aaa.com.co') &&
+      !(path === '/pagos' && url.searchParams.get('tipoPago') === 'coupon' && url.searchParams.get('numeroPago'))) return '';
+    return value;
+  } catch {
+    return '';
+  }
+}
+
+export function formatDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+export function formatShortDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+export function daysBetween(start, end) {
+  const s = new Date(start);
+  const e = end ? new Date(end) : new Date();
+  return Math.max(0, Math.floor((e - s) / (1000 * 60 * 60 * 24)));
+}
+
+export function monthsBetween(start, end) {
+  const s = new Date(start);
+  const e = end ? new Date(end) : new Date();
+  return (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
+}
+
+export function getCurrentPeriod() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function getMonthName(monthNum) {
+  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return months[monthNum - 1] || '';
+}
+
+export function getPeriodLabel(period) {
+  const [y, m] = period.split('-');
+  return `${getMonthName(Number(m))} ${y}`;
+}
+
+export function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+export function daysUntil(paymentDay) {
+  const now = new Date();
+  const currentDay = now.getDate();
+  const target = new Date(now.getFullYear(), now.getMonth(), paymentDay);
+  if (currentDay > paymentDay) target.setMonth(target.getMonth() + 1);
+  const daysLeft = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+  return { daysLeft, targetDate: target };
+}
+
+export function periodToDate(period) {
+  const [y, m] = period.split('-');
+  return new Date(Number(y), Number(m) - 1, 1);
+}
+
+export function nextPeriod(period) {
+  const [y, m] = period.split('-').map(Number);
+  if (m === 12) return `${y + 1}-01`;
+  return `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+
+export function prevPeriod(period) {
+  const [y, m] = period.split('-').map(Number);
+  if (m === 1) return `${y - 1}-12`;
+  return `${y}-${String(m - 1).padStart(2, '0')}`;
+}
+
+export function getAllPeriodsFrom(startPeriod) {
+  const periods = [];
+  let current = startPeriod;
+  const now = getCurrentPeriod();
+  while (current <= now) {
+    periods.push(current);
+    current = nextPeriod(current);
+  }
+  return periods;
+}
+
+export function isOverdueByReadingDate(period, readingDay) {
+  const [y, m] = period.split('-').map(Number);
+  const readingDate = new Date(y, m - 1, readingDay);
+  const twoWeeksAfter = new Date(readingDate);
+  twoWeeksAfter.setDate(twoWeeksAfter.getDate() + 14);
+  return new Date() > twoWeeksAfter;
+}
+
+export function formatRelativeDueDate(paymentDay) {
+  const now = new Date();
+  const currentDay = now.getDate();
+  const target = new Date(now.getFullYear(), now.getMonth(), paymentDay);
+  const diffDays = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+
+  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+  if (diffDays === 0) {
+    return `Vence hoy ${target.getDate()} de ${target.toLocaleString('es-CO', { month: 'long' })}`;
+  }
+  if (diffDays === -1) {
+    return `Venció ayer ${target.getDate()} de ${target.toLocaleString('es-CO', { month: 'long' })}`;
+  }
+  if (diffDays === 1) {
+    return `Vencerá mañana ${target.getDate()} de ${target.toLocaleString('es-CO', { month: 'long' })}`;
+  }
+  if (diffDays < 0 && diffDays >= -7) {
+    return `Venció hace ${Math.abs(diffDays)} días (${target.getDate()} ${target.toLocaleString('es-CO', { month: 'short' })})`;
+  }
+  if (diffDays > 0 && diffDays <= 7) {
+    return `Vence en ${diffDays} días (${target.getDate()} ${target.toLocaleString('es-CO', { month: 'short' })})`;
+  }
+  if (diffDays < 0) {
+    return `Venció el ${target.toLocaleString('es-CO', { day: 'numeric', month: 'long' })}`;
+  }
+  return `Vence el ${target.toLocaleString('es-CO', { day: 'numeric', month: 'long' })}`;
+}

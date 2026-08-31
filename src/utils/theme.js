@@ -1,0 +1,72 @@
+const STORAGE_KEY = 'laujim-theme';
+const DEFAULT_THEME = 'amoled';
+
+export const THEMES = [
+  { id: 'claro',   label: 'Claro',    color: '#ffffff',  bg: '#f3f4f6',    textColor: '#111827',  icon: 'Sun' },
+  { id: 'oscuro',  label: 'Oscuro',   color: '#1f2937',  bg: '#111827',    textColor: '#ffffff',  icon: 'Moon' },
+  { id: 'rosa',    label: 'Rosa',     color: '#ec4899',  bg: '#fdf2f8',    textColor: '#831843',  icon: 'Palette' },
+  { id: 'verde',   label: 'Verde',    color: '#10b981',  bg: '#ecfdf5',    textColor: '#064e3b',  icon: 'Palette' },
+  { id: 'azul',    label: 'Azul',     color: '#0ea5e9',  bg: '#f0f9ff',    textColor: '#0c4a6e',  icon: 'Palette' },
+  { id: 'amarillo', label: 'Amarillo', color: '#d97706',  bg: '#fffbeb',    textColor: '#78350f',  icon: 'Palette' },
+  { id: 'violeta', label: 'Violeta',  color: '#7c3aed',  bg: '#f5f3ff',    textColor: '#4c1d95',  icon: 'Palette' },
+  { id: 'turquesa', label: 'Turquesa', color: '#0f766e', bg: '#f0fdfa',    textColor: '#134e4a',  icon: 'Palette' },
+  { id: 'coral',   label: 'Coral',    color: '#ea580c',  bg: '#fff7ed',    textColor: '#7c2d12',  icon: 'Palette' },
+  { id: 'amoled',  label: 'AMOLED',   color: '#00d2a8',  bg: '#000000',    textColor: '#f4fffc',  icon: 'Moon' },
+  { id: 'grafito', label: 'Grafito',  color: '#7dd3fc',  bg: '#080b10',    textColor: '#f7fafc',  icon: 'Moon' },
+];
+
+const themeMap = Object.fromEntries(THEMES.map(t => [t.id, t]));
+
+export function getTheme() {
+  return localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
+}
+
+export function getThemeInfo(id) {
+  return themeMap[id] || themeMap[DEFAULT_THEME];
+}
+
+export function setTheme(id, syncToServer) {
+  localStorage.setItem(STORAGE_KEY, id);
+  applyTheme(id);
+  if (syncToServer) syncThemeToServer(id);
+}
+
+export function initTheme() {
+  applyTheme(getTheme());
+}
+
+function applyTheme(id) {
+  const doc = document.documentElement;
+  doc.classList.remove(...THEMES.map(t => 'theme-' + t.id));
+  if (['oscuro', 'amoled', 'grafito'].includes(id)) {
+    doc.classList.add('dark');
+    doc.classList.add('theme-' + id);
+  } else {
+    doc.classList.remove('dark');
+    if (id !== 'claro') doc.classList.add('theme-' + id);
+  }
+}
+
+async function syncThemeToServer(id) {
+  try {
+    const { api } = await import('../api');
+    const all = await api.users.toArray();
+    const target = all.find(u => u.role === 'admin') || all[0];
+    if (target) await api.users.update(target.id, { theme: id });
+  } catch (e) {
+    console.warn('Could not sync theme to server:', e);
+  }
+}
+
+export async function loadThemeFromServer() {
+  try {
+    const { api } = await import('../api');
+    const all = await api.users.toArray();
+    const target = all.find(u => u.role === 'admin') || all[0];
+    if (target && target.theme && themeMap[target.theme]) {
+      setTheme(target.theme, false);
+      return target.theme;
+    }
+  } catch {}
+  return getTheme();
+}

@@ -1,0 +1,756 @@
+import { useState, useEffect, useMemo } from 'react';
+import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import StatsCard from '../components/StatsCard';
+import Modal from '../components/Modal';
+import { api } from '../api';
+import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, formatRelativeDueDate } from '../utils/helpers';
+import { addCalendarReminder, syncAndGenerateReminders } from '../utils/calendar';
+import { notifyPaymentReminder } from '../utils/notifications';
+import ThemeSelector from '../components/ThemeSelector';
+
+export default function Dashboard() {
+  const [stats, setStats] = useState({ totalApts: 0, occupied: 0, vacant: 0, totalTenants: 0, monthlyIncome: 0, expectedIncome: 0, collectedIncome: 0, pendingPayments: 0, vacantApts: [], overdue: [], lastMonthMissing: [], thisMonthMissing: [], nextMonthMissing: [], nextMonthAlreadyPaid: [] });
+  const [showPay, setShowPay] = useState(null);
+  const [payStep, setPayStep] = useState('period');
+  const [payPeriod, setPayPeriod] = useState(getCurrentPeriod());
+  const [payForm, setPayForm] = useState({ amount: '', date: '' });
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showExpense, setShowExpense] = useState(null);
+  const [expenseForm, setExpenseForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: true });
+const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
+  const [collectionPeriod, setCollectionPeriod] = useState(getCurrentPeriod());
+  const [syncMsg, setSyncMsg] = useState('');
+
+  const expenseCategories = ['Mantenimiento', 'Reparación', 'Limpieza', 'Impuesto', 'Seguro', 'Adecuación', 'Otro'];
+
+  useEffect(() => { loadStats(); }, [collectionPeriod]);
+
+  async function loadStats() {
+    const [apartments, tenants, contracts, payments, expenses] = await Promise.all([
+      api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(), api.payments.toArray(), api.expenses.toArray(),
+    ]);
+
+    // Pending proof submissions are visible in Pagos, but only approved
+    // payments represent money actually collected in dashboard metrics.
+    const approvedPayments = payments.filter(p => p.status !== 'pending_validation' && p.status !== 'rejected');
+    const activeContracts = contracts.filter(c => !c.endDate || new Date(c.endDate) > new Date());
+    const tenantsByApartment = new Map(tenants
+      .map(tenant => ({ tenant, apartmentId: tenant.apartmentId ?? tenant.linkedAptId }))
+      .filter(({ apartmentId }) => apartmentId !== null && apartmentId !== undefined && apartmentId !== '')
+      .map(({ tenant, apartmentId }) => [Number(apartmentId), tenant]));
+    const contractsByApartment = new Map(activeContracts
+      .filter(contract => tenants.some(tenant => Number(tenant.id) === Number(contract.tenantId)))
+      .map(contract => [Number(contract.apartmentId), contract]));
+    // A tenant associated from the Inquilinos screen is a valid occupancy even
+    // without a formal contract. Contracts only override the rent value.
+const occupiedApts = apartments.filter(apartment =>
+      apartment.status !== 'vacant' && (tenantsByApartment.has(Number(apartment.id)) || contractsByApartment.has(Number(apartment.id))));
+    const occupied = occupiedApts.length;
+    const vacantApts = apartments.filter(apartment => !occupiedApts.some(occupiedApartment => Number(occupiedApartment.id) === Number(apartment.id)));
+    const vacant = vacantApts.length;
+    // The apartment's configured rent is the source of truth for expected
+    // income. A stale contract must not inflate the total beyond the
+    // apartments' own rents (Potencial Total).
+    const expectedIncome = occupiedApts.reduce((sum, apartment) => {
+      return sum + Number(apartment.monthlyRent || 0);
+    }, 0);
+    const maxPotentialIncome = apartments.reduce((sum, a) => sum + (a.monthlyRent || 0), 0);
+
+    const now = new Date();
+    const currentDay = now.getDate();
+    const currentPeriod = getCurrentPeriod();
+
+// Payment period tells us which rent is covered; date tells us when cash was received.
+    // Collection widgets group by the period the payment covers, so a payment
+    // for July received in August still counts toward July's collection.
+    const paidForCurrentPeriod = approvedPayments.filter(p => p.type === 'rent' && p.period === currentPeriod);
+    const paymentsReceivedInSelectedMonth = approvedPayments.filter(p => p.type === 'rent' && (p.period || p.date?.slice(0, 7)) === collectionPeriod);
+    const collectedThisMonth = paymentsReceivedInSelectedMonth.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const paidApartmentIds = new Set(paidForCurrentPeriod.map(payment => Number(payment.apartmentId)));
+    const pendingPayments = occupiedApts.filter(apartment => !paidApartmentIds.has(Number(apartment.id))).length;
+    const previousPeriodDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousPeriod = `${previousPeriodDate.getFullYear()}-${String(previousPeriodDate.getMonth() + 1).padStart(2, '0')}`;
+
+    const enriched = occupiedApts.map(a => {
+      const { daysLeft, targetDate } = daysUntil(a.paymentDueDay);
+      const lastPayment = approvedPayments
+        .filter(p => p.apartmentId === a.id && p.type === 'rent')
+        .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      const periodPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === currentPeriod);
+      const previousPeriodPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === previousPeriod);
+      const paidThisPeriod = !!periodPayment;
+      const contract = contractsByApartment.get(Number(a.id)) || null;
+      const tenant = (contract ? tenants.find(t => Number(t.id) === Number(contract.tenantId)) : null) || tenantsByApartment.get(Number(a.id)) || null;
+      return { ...a, daysLeft, targetDate, lastPayment, periodPayment, previousPeriodPayment, paidThisPeriod, rent: contract?.monthlyRent || a.monthlyRent, tenant, contract };
+    }).filter(a => a.tenant);
+
+    const overdue = enriched
+      .filter(a => a.paymentDueDay <= currentDay)
+      .sort((a, b) => Math.abs(a.daysLeft) - Math.abs(b.daysLeft));
+
+    const thisMonthMissing = enriched
+      .filter(a => a.paymentDueDay > currentDay && !a.paidThisPeriod)
+      .sort((a, b) => a.daysLeft - b.daysLeft);
+
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const lastMonthMissing = enriched
+      .filter(a => !a.previousPeriodPayment && (!a.contract?.startDate || new Date(a.contract.startDate) <= lastMonthEnd))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+    const nextPeriodStr = nextPeriod(currentPeriod);
+    const nextMonthPaid = enriched.map(a => {
+      const contract = a.contract;
+      const nextPayment = approvedPayments.find(p => p.apartmentId === a.id && p.type === 'rent' && p.period === nextPeriodStr);
+      return { ...a, rent: contract?.monthlyRent || a.monthlyRent, nextPayment, paidNext: !!nextPayment };
+    }).sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
+    const nextMonthNotPaid = nextMonthPaid.filter(a => !a.paidNext);
+    const nextMonthAlreadyPaid = nextMonthPaid.filter(a => a.paidNext);
+
+    const thisMonthPaid = enriched.filter(a => a.paymentDueDay > currentDay && a.paidThisPeriod);
+    setStats({ totalApts: apartments.length, occupied, vacant, totalTenants: tenants.length, monthlyIncome: expectedIncome, expectedIncome, maxPotentialIncome, collectedIncome: collectedThisMonth, collectedThisMonth, pendingPayments, vacantApts, overdue, lastMonthMissing, thisMonthMissing, nextMonthMissing: nextMonthNotPaid, thisMonthPaid, nextMonthAlreadyPaid });
+  }
+
+  function openPayModal(apt, period) {
+    setShowPay(apt);
+    setPayStep('period');
+    setPayPeriod(period || getCurrentPeriod());
+    setPayForm({ amount: String(apt.rent), date: '' });
+  }
+
+  function handlePeriodSelect(period) {
+    setPayPeriod(period);
+    setPayStep('type');
+  }
+
+  function handlePayOnTime() {
+    const apt = showPay;
+    if (!apt) return;
+    // The due date belongs to the selected period, not the current month.
+    const [y, m] = payPeriod.split('-').map(Number);
+    const targetDate = new Date(y, m - 1, apt.paymentDueDay);
+    setPayForm({ ...payForm, date: targetDate.toISOString().split('T')[0] });
+    setPayStep('confirm');
+  }
+
+  function handlePayToday() {
+    setPayForm({ ...payForm, date: new Date().toISOString().split('T')[0] });
+    setPayStep('confirm');
+  }
+
+  function handlePayManual() {
+    setPayStep('manualDate');
+  }
+
+  function handleManualDateSubmit() {
+    if (!payForm.date) return;
+    setPayStep('confirm');
+  }
+
+  async function handleConfirmPay(e) {
+    e.preventDefault();
+    if (!showPay) return;
+    await api.payments.add({
+      apartmentId: showPay.id,
+      contractId: null,
+      amount: Number(payForm.amount),
+      date: payForm.date,
+      period: payPeriod,
+      type: 'rent',
+      paymentMode: 'full',
+      status: 'approved',
+      approvedAt: new Date().toISOString(),
+      description: `Pago de arriendo - ${showPay.name} (${getPeriodLabel(payPeriod)})`,
+      createdAt: new Date().toISOString(),
+    });
+    setShowPay(null);
+    setPayStep('period');
+    setPayForm({ amount: '', date: '' });
+    loadStats();
+  }
+
+  async function handleDeletePayment(paymentId) {
+    await api.payments.delete(paymentId);
+    setConfirmDelete(null);
+    loadStats();
+  }
+
+  async function handleAddExpense(e) {
+    e.preventDefault();
+    if (!showExpense) return;
+    await api.expenses.add({
+      apartmentId: showExpense.id,
+      amount: Number(expenseForm.amount),
+      date: expenseForm.date,
+      category: expenseForm.category || 'Otro',
+      description: expenseForm.description || `Gasto - ${showExpense.name}`,
+      isUnexpected: expenseForm.isUnexpected,
+      createdAt: new Date().toISOString(),
+    });
+    setShowExpense(null);
+    setExpenseForm({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: true });
+    loadStats();
+  }
+
+  const overdueCount = stats.overdue.filter(a => !a.paidThisPeriod).length;
+  const monthlyCollectionRate = stats.expectedIncome > 0 ? Math.round((stats.collectedThisMonth / stats.expectedIncome) * 100) : 0;
+  const occupancyRate = stats.totalApts > 0 ? Math.round((stats.occupied / stats.totalApts) * 100) : 0;
+
+  const now = new Date();
+  const currentMonthLabel = now.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
+  const collectionPeriodLabel = getPeriodLabel(collectionPeriod);
+  const canAdvanceCollectionPeriod = collectionPeriod < getCurrentPeriod();
+  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nextMonthLabel = nextMonthDate.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthLabel = lastMonthDate.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
+  const lastMonthPeriod = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+  const sortedOverdue = useMemo(() => {
+    const list = [...stats.overdue];
+    if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return list.sort((a, b) => Math.abs(a.daysLeft || 0) - Math.abs(b.daysLeft || 0));
+  }, [stats.overdue, sortBy]);
+
+  const sortedThisMonth = useMemo(() => {
+    const list = [...stats.thisMonthMissing];
+    if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return list.sort((a, b) => (a.daysLeft || 0) - (b.daysLeft || 0));
+  }, [stats.thisMonthMissing, sortBy]);
+
+  const sortedNextMonth = useMemo(() => {
+    const list = [...stats.nextMonthMissing];
+    if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return list.sort((a, b) => (a.paymentDueDay || 30) - (b.paymentDueDay || 30));
+  }, [stats.nextMonthMissing, sortBy]);
+
+  function SortHeader() {
+    return (
+      <div className="flex items-center gap-3 mb-2 px-1">
+        <button onClick={() => setSortBy('name')} className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded transition-colors ${sortBy === 'name' ? 'bg-c-50 text-c-700' : 'text-gray-400 hover:text-gray-600'}`}>
+          <ArrowUpDown className="w-3 h-3" />
+          Núm. Apartamento
+        </button>
+        <button onClick={() => setSortBy('due')} className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded transition-colors ${sortBy === 'due' ? 'bg-c-50 text-c-700' : 'text-gray-400 hover:text-gray-600'}`}>
+          <ArrowUpDown className="w-3 h-3" />
+          Próximo a vencer
+        </button>
+      </div>
+    );
+  }
+
+  function DuePaymentCard({ apartment: a, overdue = false }) {
+    const isPaid = a.paidThisPeriod;
+    const payment = a.periodPayment;
+    const tone = isPaid
+      ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900'
+      : overdue || a.daysLeft <= 1
+        ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900'
+        : a.daysLeft <= 5
+          ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900'
+          : 'bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-900';
+    const dueColor = isPaid ? 'text-emerald-700 dark:text-emerald-300' : overdue || a.daysLeft <= 1 ? 'text-red-700 dark:text-red-300' : a.daysLeft <= 5 ? 'text-amber-700 dark:text-amber-300' : 'text-sky-700 dark:text-sky-300';
+    return (
+      <div className={`rounded-xl border p-3.5 transition-colors ${tone}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link to={`/apartments/${a.id}`} className="block font-bold text-gray-900 dark:text-white hover:underline">{a.name}</Link>
+            <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">{a.tenant?.name || 'Sin inquilino asignado'}</p>
+          </div>
+          <p className="shrink-0 text-base font-bold text-gray-900 dark:text-white">{formatCurrency(a.rent)}</p>
+        </div>
+        <div className="mt-3 flex items-center gap-2 border-t border-black/5 pt-3 dark:border-white/10">
+          <Bell className={`h-4 w-4 shrink-0 ${dueColor}`} />
+          {isPaid ? <span className={`text-sm font-medium ${dueColor}`}>Pagado {payment ? formatShortDate(payment.date) : ''}</span> : <span className={`text-sm font-medium ${dueColor}`}>{formatRelativeDueDate(a.paymentDueDay)}</span>}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
+          {a.tenant?.phone && <>
+            <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">WhatsApp</a>
+            <a href={`tel:${a.tenant.phone}`} className="hidden sm:inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">Llamar</a>
+          </>}
+          {isPaid && payment ? <button onClick={() => setConfirmDelete(payment)} className="col-span-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 sm:col-span-1">Revisar pago</button> : <button onClick={() => openPayModal(a, overdue ? lastMonthPeriod : undefined)} className="rounded-lg bg-c-600 px-3 py-2 text-sm font-semibold text-white hover:bg-c-700">Pagar</button>}
+          <button onClick={() => setShowExpense(a)} className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">Imprevistos</button>
+        </div>
+      </div>
+    );
+  }
+
+async function handleSyncReminders() {
+    setSyncMsg('Generando...');
+    try {
+      const apartments = await api.apartments.toArray();
+      const count = syncAndGenerateReminders(apartments);
+      setSyncMsg(count > 0 ? `✓ Se descargó el archivo con ${count} recordatorios` : '✓ Archivo descargado (sin recordatorios nuevos)');
+    } catch (e) { setSyncMsg('Error: ' + e.message); }
+    setTimeout(() => setSyncMsg(''), 6000);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-500 mt-1">Resumen general de tu conjunto residencial</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:block">
+            <ThemeSelector />
+          </div>
+          <button onClick={handleSyncReminders} className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 rounded-lg transition-colors" title="Descarga el archivo .ics con todos los recordatorios de pago para importarlo en tu calendario">
+            <CalendarCheck className="w-4 h-4" /> Sincronizar notificaciones
+          </button>
+        </div>
+      </div>
+      {syncMsg && <p className="text-xs text-emerald-600 dark:text-emerald-400">{syncMsg}</p>}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard title="Apartamentos" value={`${stats.occupied}/${stats.totalApts}`} subtitle={`${stats.vacant} disponibles`} icon={Building2} color="blue" />
+        <StatsCard title="Inquilinos" value={stats.totalTenants} subtitle="Activos" icon={Users} color="green" />
+        <StatsCard title="Ingreso Ocupados" value={formatCurrency(stats.expectedIncome)} subtitle="Canones activos" icon={DollarSign} color="purple" />
+        <StatsCard title="Potencial Total" value={formatCurrency(stats.maxPotentialIncome)} subtitle="Si todos ocupados" icon={Building2} color="blue" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-sm transition-shadow">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Recolectado</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatCurrency(stats.collectedIncome)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Pagos del período {collectionPeriodLabel}</p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-c-50 text-c-500"><TrendingUp className="w-5 h-5" /></div>
+          </div>
+          <div className="mt-3 flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-700/50 p-1">
+            <button onClick={() => setCollectionPeriod(prevPeriod(collectionPeriod))} className="p-1 rounded text-gray-500 hover:bg-white hover:text-c-600 dark:hover:bg-gray-700" aria-label="Ver mes anterior"><ChevronLeft className="w-4 h-4" /></button>
+            <span className="text-xs font-medium capitalize text-gray-600 dark:text-gray-300">{collectionPeriodLabel}</span>
+            <button onClick={() => setCollectionPeriod(nextPeriod(collectionPeriod))} disabled={!canAdvanceCollectionPeriod} className="p-1 rounded text-gray-500 hover:bg-white hover:text-c-600 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent" aria-label="Ver mes siguiente"><ChevronRight className="w-4 h-4" /></button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Ocupación</h3>
+          <div className="flex items-center gap-6">
+            <div className="relative w-28 h-28">
+              <svg className="w-28 h-28 -rotate-90" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray={`${occupancyRate} ${100 - occupancyRate}`} strokeLinecap="round" />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-gray-900 dark:text-white">{occupancyRate}%</span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <span className="text-gray-600 dark:text-gray-400">Ocupados: <strong className="text-gray-900 dark:text-white">{stats.occupied}</strong></span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600" />
+                <span className="text-gray-600 dark:text-gray-400">Vacantes: <strong className="text-gray-900 dark:text-white">{stats.vacant}</strong></span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-gray-600 dark:text-gray-400">Recaudado en {collectionPeriodLabel}: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.collectedIncome)}</strong></span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
+                <span className="text-gray-600 dark:text-gray-400">Meta del mes actual: <strong className="text-gray-900 dark:text-white">{formatCurrency(stats.expectedIncome)}</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Acciones Rápidas</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <Link to="/apartments" className="p-3 bg-blue-50 rounded-lg text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors text-center">Ver Apartamentos</Link>
+            <Link to="/payments" className="p-3 bg-emerald-50 rounded-lg text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors text-center">Registrar Pago</Link>
+            <Link to="/tenants" className="p-3 bg-purple-50 rounded-lg text-purple-700 text-sm font-medium hover:bg-purple-100 transition-colors text-center">Gestionar Inquilinos</Link>
+            <Link to="/reports" className="p-3 bg-amber-50 rounded-lg text-amber-700 text-sm font-medium hover:bg-amber-100 transition-colors text-center">Ver Reportes</Link>
+          </div>
+        </div>
+      </div>
+
+      {stats.vacant > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+            <div>
+              <h3 className="font-semibold text-amber-800">Apartamentos Vacantes</h3>
+              <p className="text-amber-700 text-sm mt-1">
+                Hay {stats.vacant} apartamento(s) sin inquilino. {stats.vacant > 0 && `Posible pérdida de ~${formatCurrency(stats.vacant * 800000)}/mes.`}
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {stats.vacantApts.map(apt => (
+                  <Link key={apt.id} to={`/apartments/${apt.id}`} className="inline-flex items-center gap-1 px-3 py-1.5 bg-white rounded-lg text-sm text-amber-700 border border-amber-300 hover:bg-amber-100 transition-colors">
+                    <Home className="w-3.5 h-3.5" />
+                    {apt.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {stats.lastMonthMissing.length > 0 && (
+        <div className="bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-200 dark:border-red-900 p-4 sm:p-5">
+          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-3 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            Mes pasado aún faltan por pagar — {lastMonthLabel}
+          </h3>
+          <div className="space-y-2">
+            {stats.lastMonthMissing.map(apt => (
+              <div key={apt.id} className="flex flex-col gap-3 rounded-lg border border-red-200 dark:border-red-900 bg-white/80 dark:bg-gray-900/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <Link to={`/apartments/${apt.id}`} className="font-medium text-gray-900 dark:text-white hover:underline">{apt.name}</Link>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{apt.tenant?.name || 'Sin inquilino asignado'} · {formatCurrency(apt.rent)}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {apt.tenant?.phone && <a href={`tel:${apt.tenant.phone}`} className="px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">Llamar</a>}
+                  <button onClick={() => openPayModal(apt, lastMonthPeriod)} className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Registrar pago</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {overdueCount > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500" />
+            Ya deberían estar pagos — {currentMonthLabel}
+          </h3>
+          <SortHeader />
+<div className="space-y-2 sm:hidden">
+            {sortedOverdue.map(a => <DuePaymentCard key={a.id} apartment={a} overdue />)}
+          </div>
+          <div className="hidden space-y-2 sm:block">
+            {sortedOverdue.map(a => {
+              const isPaid = a.paidThisPeriod;
+              const payment = a.periodPayment;
+              return (
+                <div key={a.id} className={`p-3 rounded-lg text-sm transition-colors ${isPaid ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Link to={`/apartments/${a.id}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
+                      {isPaid ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
+                          <CheckCircle2 className="w-3 h-3" /> Pagado {payment ? formatShortDate(payment.date) : ''}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                          <XCircle className="w-3 h-3" /> Atrasado
+                        </span>
+                      )}
+                    </div>
+                    <span className="shrink-0 font-medium text-gray-700 dark:text-gray-200">{formatCurrency(a.rent)}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-black/5 pt-2 dark:border-white/10">
+                    <span className="text-xs text-gray-400">{formatRelativeDueDate(a.paymentDueDay)}</span>
+                    <div className="flex items-center gap-2">
+                      {a.tenant?.phone && (
+                        <>
+                          <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                            WhatsApp
+                          </a>
+                          <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                            Llamar
+                          </a>
+                        </>
+                      )}
+                      {isPaid && payment && (
+                        <button onClick={() => setConfirmDelete(payment)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar pago">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {!isPaid && (
+                        <button onClick={() => openPayModal(a)} className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                          Pagar
+                        </button>
+                      )}
+                      <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
+                        <AlertOctagon className="w-3 h-3" /> Imprevistos
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {sortedThisMonth.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-500" />
+            Este mes faltan — {currentMonthLabel}
+          </h3>
+          <SortHeader />
+          <div className="space-y-2 sm:hidden">
+            {sortedThisMonth.map(a => <DuePaymentCard key={a.id} apartment={a} />)}
+          </div>
+<div className="hidden space-y-2 sm:block">
+            {sortedThisMonth.map(a => (
+              <div key={a.id} className={`p-3 rounded-lg text-sm transition-colors ${a.daysLeft <= 1 ? 'bg-red-50' : a.daysLeft <= 5 ? 'bg-amber-50' : 'bg-gray-50'}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <Link to={`/apartments/${a.id}`} className="min-w-0 font-medium text-gray-900 hover:underline">{a.name}</Link>
+                  <span className="shrink-0 font-medium text-gray-700 dark:text-gray-200">{formatCurrency(a.rent)}</span>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-black/5 pt-2 dark:border-white/10">
+                  <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <Bell className="w-3.5 h-3.5" /> {formatRelativeDueDate(a.paymentDueDay)}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => addCalendarReminder(a.name, a.paymentDueDay)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Recordatorio">
+                      <Bell className="w-3.5 h-3.5" />
+                    </button>
+                    {a.tenant?.phone && (
+                      <>
+                        <a href={`https://wa.me/57${a.tenant.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                          WhatsApp
+                        </a>
+                        <a href={`tel:${a.tenant.phone}`} className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                          Llamar
+                        </a>
+                      </>
+                    )}
+                    <button onClick={() => openPayModal(a)} className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                      Pagar
+                    </button>
+                    <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
+                      <AlertOctagon className="w-3 h-3" /> Imprevistos
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {stats.thisMonthPaid && stats.thisMonthPaid.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            Pagados este mes — {currentMonthLabel}
+          </h3>
+          <SortHeader />
+          <div className="space-y-2">
+            {stats.thisMonthPaid.map(a => (
+              <div key={a.id} className="flex items-center justify-between p-3 rounded-lg text-sm bg-emerald-50 border border-emerald-200">
+                <div className="flex items-center gap-3 flex-1">
+                  <Link to={`/apartments/${a.id}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
+                    <CheckCircle2 className="w-3 h-3" /> Pagado {a.periodPayment ? formatShortDate(a.periodPayment.date) : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">{formatCurrency(a.rent)}</span>
+                  {a.periodPayment && (
+                    <button onClick={() => setConfirmDelete(a.periodPayment)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar pago">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button onClick={() => { setShowExpense(a); }} className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1" title="Agregar gasto imprevisto">
+                    <AlertOctagon className="w-3 h-3" /> Imprevistos
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {sortedNextMonth.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <CalendarCheck className="w-4 h-4 text-purple-500" />
+            Para el próximo mes faltan — {nextMonthLabel}
+          </h3>
+          <SortHeader />
+          <div className="space-y-2">
+            {sortedNextMonth.map(a => (
+              <div key={a.id} className="flex items-center justify-between p-3 rounded-lg text-sm bg-gray-50">
+                <Link to={`/apartments/${a.id}`} className="flex-1 font-medium text-gray-900 hover:underline">{a.name}</Link>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">Vence día {a.paymentDueDay}</span>
+                  <span className="font-medium text-gray-700">{formatCurrency(a.rent)}</span>
+                  <button onClick={() => openPayModal(a, nextPeriod(getCurrentPeriod()))} className="px-2.5 py-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" title="Pagar por adelantado">
+                    Pagar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {stats.nextMonthAlreadyPaid && stats.nextMonthAlreadyPaid.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-purple-500" />
+            Pagados próximo mes — {nextMonthLabel}
+          </h3>
+          <SortHeader />
+          <div className="space-y-2">
+            {stats.nextMonthAlreadyPaid.map(a => (
+              <div key={a.id} className="flex items-center justify-between p-3 rounded-lg text-sm bg-purple-50 border border-purple-200">
+                <div className="flex items-center gap-3 flex-1">
+                  <Link to={`/apartments/${a.id}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                    <CheckCircle2 className="w-3 h-3" /> Pagado adelantado
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">{formatCurrency(a.rent)}</span>
+                  {a.nextPayment && (
+                    <button onClick={() => setConfirmDelete(a.nextPayment)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar pago">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Step 1: Select period */}
+      <Modal open={!!showPay && payStep === 'period'} onClose={() => { setShowPay(null); setPayStep('period'); }} title={`Pago — ${showPay?.name || ''}`}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">¿A qué período corresponde este pago?</p>
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50 p-2">
+            <button type="button" onClick={() => setPayPeriod(prevPeriod(payPeriod))} className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-800 transition-colors" aria-label="Mes anterior"><ChevronLeft className="w-5 h-5" /></button>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-gray-900 capitalize">{getPeriodLabel(payPeriod)}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Vence día {showPay?.paymentDueDay} — {formatCurrency(showPay?.rent || 0)}</p>
+            </div>
+            <button type="button" onClick={() => setPayPeriod(nextPeriod(payPeriod))} className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-800 transition-colors" aria-label="Mes siguiente"><ChevronRight className="w-5 h-5" /></button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => handlePeriodSelect(getCurrentPeriod())} className="flex-1 min-w-[120px] p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700 font-medium hover:bg-blue-100 transition-colors text-left">
+              <CalendarCheck className="w-4 h-4 mb-1" />
+              Mes actual
+            </button>
+            <button onClick={() => handlePeriodSelect(prevPeriod(getCurrentPeriod()))} className="flex-1 min-w-[120px] p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-medium hover:bg-red-100 transition-colors text-left">
+              <CalendarCheck className="w-4 h-4 mb-1" />
+              Mes anterior
+            </button>
+            <button onClick={() => handlePeriodSelect(nextPeriod(getCurrentPeriod()))} className="flex-1 min-w-[120px] p-3 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-700 font-medium hover:bg-purple-100 transition-colors text-left">
+              <CalendarCheck className="w-4 h-4 mb-1" />
+              Próximo mes
+            </button>
+          </div>
+          <button onClick={() => handlePeriodSelect(payPeriod)} className="w-full p-3 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors">
+            Continuar con {getPeriodLabel(payPeriod)}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Step 2: Payment type */}
+      <Modal open={!!showPay && payStep === 'type'} onClose={() => { setShowPay(null); setPayStep('period'); }} title={`Pago — ${showPay?.name || ''} (${getPeriodLabel(payPeriod)})`}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">¿Cómo quieres registrar este pago?</p>
+          <button onClick={handlePayOnTime} className="w-full p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700 font-medium hover:bg-blue-100 transition-colors text-left">
+            <CheckCircle2 className="w-5 h-5 mb-1" />
+            Pagó puntual
+            <p className="text-xs text-blue-500 font-normal mt-0.5">Ya había pagado en la fecha de vencimiento y olvidé registrar</p>
+          </button>
+          <button onClick={handlePayToday} className="w-full p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-medium hover:bg-emerald-100 transition-colors text-left">
+            <Clock className="w-5 h-5 mb-1" />
+            Pagó hoy
+            <p className="text-xs text-emerald-500 font-normal mt-0.5">Está pagando hoy, registrar fecha actual</p>
+          </button>
+          <button onClick={handlePayManual} className="w-full p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 font-medium hover:bg-amber-100 transition-colors text-left">
+            <CalendarCheck className="w-5 h-5 mb-1" />
+            Otra fecha
+            <p className="text-xs text-amber-500 font-normal mt-0.5">Elegir una fecha manualmente</p>
+          </button>
+        </div>
+      </Modal>
+
+      {/* Step 2b: Manual date */}
+      <Modal open={!!showPay && payStep === 'manualDate'} onClose={() => setPayStep('type')} title={`Fecha manual — ${showPay?.name || ''}`}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
+            <input type="number" value={payForm.amount} onChange={e => setPayForm({...payForm, amount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de pago *</label>
+            <input type="date" value={payForm.date} onChange={e => setPayForm({...payForm, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setPayStep('type')} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Atrás</button>
+            <button onClick={handleManualDateSubmit} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors" disabled={!payForm.date}>Continuar</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Step 3: Confirm */}
+      <Modal open={!!showPay && payStep === 'confirm'} onClose={() => { setShowPay(null); setPayStep('period'); }} title="Confirmar Pago">
+        <form onSubmit={handleConfirmPay} className="space-y-4">
+          <div className="p-3 bg-gray-50 rounded-lg space-y-1 text-sm">
+            <div className="flex justify-between"><span className="text-gray-500">Apartamento:</span><strong>{showPay?.name}</strong></div>
+            <div className="flex justify-between"><span className="text-gray-500">Período:</span><strong>{getPeriodLabel(payPeriod)}</strong></div>
+            <div className="flex justify-between"><span className="text-gray-500">Fecha:</span><strong>{formatShortDate(payForm.date)}</strong></div>
+            <div className="flex justify-between"><span className="text-gray-500">Monto:</span><strong>{formatCurrency(Number(payForm.amount))}</strong></div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
+            <input type="number" value={payForm.amount} onChange={e => setPayForm({...payForm, amount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+            <input type="date" value={payForm.date} onChange={e => setPayForm({...payForm, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setPayStep('type')} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Atrás</button>
+            <button type="submit" className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">Confirmar Pago</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Eliminar Pago">
+        <p className="text-sm text-gray-600 mb-4">¿Estás seguro de eliminar este pago? Esta acción no se puede deshacer.</p>
+        <div className="flex justify-end gap-3">
+          <button onClick={() => setConfirmDelete(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+          <button onClick={() => handleDeletePayment(confirmDelete.id)} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Eliminar</button>
+        </div>
+      </Modal>
+
+      <Modal open={!!showExpense} onClose={() => { setShowExpense(null); setExpenseForm({ amount: '', date: '', description: '', category: 'Mantenimiento', isUnexpected: false }); }} title={`Imprevisto - ${showExpense?.name || ''}`}>
+        <form onSubmit={handleAddExpense} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+            <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+              {expenseCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+            <input type="text" value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder={`Gasto - ${showExpense?.name || ''}`} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
+              <input type="number" value={expenseForm.amount} onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
+              <input type="date" value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="isUnexpected" checked={expenseForm.isUnexpected} onChange={e => setExpenseForm({...expenseForm, isUnexpected: e.target.checked})} className="rounded border-gray-300" />
+            <label htmlFor="isUnexpected" className="text-sm text-gray-700">Es imprevisto</label>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => { setShowExpense(null); setExpenseForm({ amount: '', date: '', description: '', category: 'Mantenimiento', isUnexpected: true }); }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+            <button type="submit" className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Registrar Imprevisto</button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}

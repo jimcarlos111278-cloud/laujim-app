@@ -1,0 +1,15 @@
+.git
+.github
+.opencode
+.agents
+.tmp
+node_modules
+dist
+sessions
+backups
+android
+app-debug.apk
+*.bak
+vite-server.log
+proyecto de camaras
+design-proposals

@@ -1,0 +1,185 @@
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2, Camera, UserPlus
+} from 'lucide-react';
+import { isServerAvailable } from '../utils/sync';
+import { clearAuth } from '../utils/auth';
+import { clearAppData } from '../utils/resetApp';
+import ThemeSelector from './ThemeSelector';
+
+const navItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/apartments', label: 'Apartamentos', icon: Building2 },
+  { to: '/predial', label: 'Impuesto predial', icon: Building2, sub: true },
+  { to: '/tenants', label: 'Inquilinos', icon: Users },
+
+  { to: '/contracts', label: 'Contratos', icon: FileText },
+  { to: '/generate-contract', label: 'Generar Contrato', icon: ScrollText },
+  { to: '/onboarding', label: 'Onboarding', icon: UserPlus },
+  { to: '/payments', label: 'Pagos', icon: DollarSign },
+  { to: '/whatsapp', label: 'WhatsApp Cloud', icon: MessageCircle },
+  { to: '/whatsapp-contactos', label: 'Contactos WhatsApp', icon: Users },
+  { to: '/utilities', label: 'Servicios Públicos', icon: Zap },
+  { to: '/scraper-worker', label: 'Worker scraper', icon: Smartphone },
+  { to: '/security', label: 'Seguridad y cámaras', icon: Camera },
+  { to: '/share', label: 'Compartir', icon: Share2 },
+  { to: '/reports', label: 'Reportes', icon: BarChart3 },
+  { to: '/settings', label: 'Configuración', icon: Settings },
+];
+
+export default function Layout({ children }) {
+  const [connected, setConnected] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const compactScreen = typeof window !== 'undefined' && window.innerWidth < 640;
+  const maxFontScale = compactScreen ? 1.15 : 2;
+  const [fontScale, setFontScale] = useState(() => {
+    const saved = Number(localStorage.getItem('font-scale') || 1);
+    return Math.max(0.85, Math.min(typeof window !== 'undefined' && window.innerWidth < 640 ? 1.15 : 2, saved));
+  });
+const [installPrompt, setInstallPrompt] = useState(null);
+  const [clearingAppData, setClearingAppData] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const immersiveWhatsApp = location.pathname === '/whatsapp';
+
+  function handleLogout() {
+    clearAuth();
+    navigate('/login', { replace: true });
+  }
+
+  async function handleClearAppData() {
+    if (clearingAppData) return;
+    const confirmed = window.confirm('Se borrarán las cookies y los datos locales de esta app en este dispositivo. No se borrará la base de datos de Render. ¿Continuar?');
+    if (!confirmed) return;
+    setClearingAppData(true);
+    clearAuth();
+    await clearAppData();
+    window.location.replace('/login?reset=1');
+  }
+
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    const captureInstallPrompt = event => { event.preventDefault(); setInstallPrompt(event); };
+    const clearInstallPrompt = () => setInstallPrompt(null);
+    window.addEventListener('beforeinstallprompt', captureInstallPrompt);
+    window.addEventListener('appinstalled', clearInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
+      window.removeEventListener('appinstalled', clearInstallPrompt);
+    };
+  }, []);
+
+  useEffect(() => {
+    const check = async () => {
+      const s = await isServerAvailable();
+      setConnected(s.ok);
+    };
+    check();
+    const iv = setInterval(check, 15000);
+    window.addEventListener('focus', check);
+    return () => { clearInterval(iv); window.removeEventListener('focus', check); };
+  }, []);
+
+  function changeFontSize(delta) {
+    // Layout zoom can make words split on compact Android screens. Keep the
+    // accessibility control useful without allowing it to collapse columns.
+    const next = Math.max(compactScreen ? 0.85 : 0.5, Math.min(maxFontScale, fontScale + delta));
+    setFontScale(next);
+    localStorage.setItem('font-scale', String(next));
+    document.documentElement.style.setProperty('--font-scale', next);
+  }
+
+  async function installApp() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice.catch(() => null);
+    setInstallPrompt(null);
+  }
+  useEffect(() => {
+    document.documentElement.style.setProperty('--font-scale', fontScale);
+  }, []);
+
+  if (immersiveWhatsApp) {
+    return (
+      <div className="whatsapp-immersive-shell h-[100dvh] w-full overflow-hidden bg-[#efeae2] dark:bg-gray-950">
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-layout flex h-[100dvh] bg-gray-100 dark:bg-gray-900 overflow-hidden">
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-20" onClick={() => setSidebarOpen(false)} />
+      )}
+      <aside style={{ zoom: fontScale }} className={`fixed top-0 left-0 z-30 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-200 flex flex-col lg:static lg:z-auto lg:translate-x-0 lg:shrink-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+          <div className="flex items-center gap-2">
+            <Home className="w-5 h-5 text-blue-600" />
+            <span className="font-bold text-base text-gray-900 dark:text-white whitespace-nowrap">Gestión Aptos</span>
+          </div>
+          <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400 lg:hidden">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <nav className="p-3 space-y-1 flex-1 overflow-auto">
+          {navItems.map(item => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-lg font-medium transition-colors ${
+                  item.sub ? 'pl-9 pr-3 py-2 text-xs' : 'px-3 py-2.5 text-sm'
+                } ${isActive ? 'nav-active' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'}`
+              }
+            >
+              <item.icon className={`${item.sub ? 'w-4 h-4' : 'w-5 h-5'}`} />
+              <span className="min-w-0 whitespace-nowrap">{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <div className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-1.5 shrink-0">
+          <div className="flex items-center justify-center gap-1">
+            <button onClick={() => changeFontSize(-0.1)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Reducir tamaño">
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <Type className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-xs text-gray-400">{Math.round(fontScale * 100)}%</span>
+            <button onClick={() => changeFontSize(0.1)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Aumentar tamaño">
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="flex justify-center"><ThemeSelector placement="up" /></div>
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            {connected === null && <span className="text-gray-400">Verificando...</span>}
+            {connected === true && <><Cloud className="w-3.5 h-3.5 text-green-500" /><span className="text-green-600">En línea</span></>}
+            {connected === false && <><CloudOff className="w-3.5 h-3.5 text-red-500" /><span className="text-red-500">Sin conexión</span></>}
+          </div>
+          <button onClick={handleClearAppData} disabled={clearingAppData} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-amber-600 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30 disabled:opacity-60 transition-colors" title="Borra cookies y datos locales de esta app">
+            <Trash2 className="w-3.5 h-3.5" /> {clearingAppData ? 'Limpiando...' : 'Borrar datos locales'}
+          </button>
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+            <LogOut className="w-4 h-4" /> Cerrar sesión
+          </button>
+        </div>
+      </aside>
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3 shrink-0">
+          <button onClick={() => setSidebarOpen(true)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400 lg:hidden">
+            <Menu className="w-6 h-6" />
+          </button>
+          <div className="flex items-center gap-2">
+            <Home className="w-5 h-5 text-blue-600" />
+            <span className="font-semibold text-gray-900 dark:text-white truncate">Gestión Aptos</span>
+          </div>
+          {installPrompt && <button onClick={installApp} className="ml-auto inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2 py-1.5 text-xs font-medium text-white"><Download className="w-3.5 h-3.5" /> Instalar app</button>}
+        </header>
+        <main className="flex-1 overflow-auto p-3 md:p-6" style={{ zoom: fontScale }}>
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}

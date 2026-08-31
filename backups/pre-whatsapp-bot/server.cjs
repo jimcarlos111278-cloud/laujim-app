@@ -1,0 +1,620 @@
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+const { spawn } = require('child_process');
+const { exec } = require('child_process');
+const https = require('https');
+const { Pool } = require('pg');
+
+const app = express();
+const PORT = process.env.PORT || 1011;
+const AUTH_TOKEN = 'laujim laujim';
+
+process.on('uncaughtException', (err) => { console.error('UNCAUGHT:', err.message, err.stack); });
+process.on('unhandledRejection', (reason) => { console.error('UNHANDLED:', reason); });
+
+app.get('/health', (req, res) => res.send('ok'));
+
+app.use(cors({ exposedHeaders: ['x-auth-token'], allowedHeaders: ['Content-Type', 'x-auth-token'] }));
+app.use(express.json({ limit: '50mb' }));
+
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/') && req.path !== '/api/login' && req.path !== '/api/version' && req.path !== '/api/data-version' && !req.path.startsWith('/api/public/') && !req.path.startsWith('/api/whatsapp/')) {
+    const token = req.headers['x-auth-token'];
+    if (token !== AUTH_TOKEN) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+  }
+  next();
+});
+
+const PERSISTENT_DIR = process.env.PERSISTENT_DIR || __dirname;
+const DATA_DIR = path.join(PERSISTENT_DIR, 'data');
+const DATA_FILE = path.join(DATA_DIR, 'database.json');
+const BACKUP_DIR = path.join(PERSISTENT_DIR, 'backups');
+const BACKUP_FILE = path.join(BACKUP_DIR, 'auto-latest.json');
+const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
+const PHOTOS_DIR = path.join(UPLOADS_DIR, 'photos');
+const CONTRACTS_DIR = path.join(UPLOADS_DIR, 'contracts');
+
+try { [DATA_DIR, BACKUP_DIR, PHOTOS_DIR, CONTRACTS_DIR].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); }); } catch (e) { console.error('DIR SETUP FAILED:', e.message); }
+
+let upload;
+try {
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = file.fieldname === 'contract' ? CONTRACTS_DIR : PHOTOS_DIR;
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, Date.now() + '-' + Math.random().toString(36).slice(2) + ext);
+    },
+  });
+  upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
+} catch (e) { console.error('MULTER SETUP FAILED:', e.message); upload = null; }
+
+const { INITIAL_DATA } = require('./db.cjs');
+
+let db = { ...INITIAL_DATA };
+let nextId = {};
+
+// ─── WhatsApp helper ───
+function sendWhatsApp(to, text) {
+  const token = (db.settings || []).find(s => s.key === 'whatsapp_api_token')?.value;
+  const phoneNumberId = (db.settings || []).find(s => s.key === 'whatsapp_phone_number_id')?.value;
+  if (!token || !phoneNumberId) return;
+  const postData = JSON.stringify({
+    messaging_product: 'whatsapp', to, type: 'text', text: { body: text },
+  });
+  const opts = {
+    hostname: 'graph.facebook.com', path: `/v21.0/${phoneNumberId}/messages`,
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
+  };
+  const req = https.request(opts, (res) => {
+    let data = '';
+    res.on('data', (chunk) => data += chunk);
+    res.on('end', () => { if (res.statusCode !== 200 && res.statusCode !== 201) console.error('WhatsApp API error:', data); });
+  });
+  req.on('error', (e) => console.error('WhatsApp send error:', e.message));
+  req.write(postData);
+  req.end();
+}
+
+// ─── PostgreSQL persistence ───
+let pgPool = null;
+
+async function initPostgres() {
+  if (!process.env.DATABASE_URL) return false;
+  const pgUrl = process.env.DATABASE_URL.replace(/sslmode=[^&]+&?/, '');
+  pgPool = new Pool({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS store (
+      key TEXT PRIMARY KEY,
+      value JSONB NOT NULL
+    )
+  `);
+  console.log('PostgreSQL connected');
+  return true;
+}
+
+async function loadFromPostgres() {
+  if (!pgPool) return null;
+  const result = await pgPool.query('SELECT value FROM store WHERE key = $1', ['database']);
+  if (result.rows.length > 0) {
+    return result.rows[0].value;
+  }
+  return null;
+}
+
+async function saveToPostgres() {
+  if (!pgPool) return;
+  await pgPool.query(
+    'INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+    ['database', JSON.stringify(db)]
+  );
+}
+
+function loadData() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+      db = JSON.parse(raw);
+    } else if (fs.existsSync(BACKUP_FILE)) {
+      const raw = fs.readFileSync(BACKUP_FILE, 'utf-8');
+      db = JSON.parse(raw);
+      console.log('Restored from backup: ' + BACKUP_FILE);
+    } else {
+      db = JSON.parse(JSON.stringify(INITIAL_DATA));
+    }
+  } catch { db = JSON.parse(JSON.stringify(INITIAL_DATA)); }
+  ['messages', 'payments', 'expenses'].forEach(k => { if (!db[k]) db[k] = []; });
+  recalcNextId();
+}
+
+function recalcNextId() {
+  Object.keys(db).forEach(key => {
+    const arr = db[key];
+    if (Array.isArray(arr) && arr.length > 0) {
+      nextId[key] = Math.max(...arr.map(i => i.id || 0)) + 1;
+    } else {
+      nextId[key] = 1;
+    }
+  });
+}
+
+let dataVersion = Date.now();
+
+function saveData() {
+  dataVersion = Date.now();
+  const json = JSON.stringify(db, null, 2);
+  fs.writeFileSync(DATA_FILE, json, 'utf-8');
+  fs.writeFileSync(BACKUP_FILE, json, 'utf-8');
+  if (pgPool) {
+    saveToPostgres().catch(e => console.error('PG save error:', e.message));
+  }
+}
+
+function syncPasswordFromTenant(tenantId, apartmentId) {
+  const tenant = (db.tenants || []).find(t => t.id === tenantId);
+  if (!tenant || !tenant.documentId) return;
+  const existing = (db.passwords || []).find(p => p.apartmentId === apartmentId);
+  if (existing) {
+    existing.password = tenant.documentId;
+  } else {
+    if (!db.passwords) db.passwords = [];
+    db.passwords.push({ id: nextId.passwords || 1, apartmentId, password: tenant.documentId });
+    nextId.passwords = (nextId.passwords || 1) + 1;
+  }
+  saveData();
+}
+
+function startServer() {
+  // ─── RUTAS ESPECÍFICAS ───
+
+app.get('/api/data-version', (req, res) => {
+  res.json({ version: dataVersion });
+});
+
+app.get('/api/version', (req, res) => {
+  try {
+    const ver = JSON.parse(fs.readFileSync(path.join(__dirname, 'dist', 'version.json'), 'utf-8'));
+    res.json(ver);
+  } catch {
+    res.json({ build: '0', date: '', time: '' });
+  }
+});
+
+app.get('/api/data/all', (req, res) => {
+  res.json(JSON.parse(JSON.stringify(db)));
+});
+
+app.post('/api/login', (req, res) => {
+  const { token, username, password } = req.body;
+  if (token) {
+    if (token === AUTH_TOKEN) {
+      return res.json({ authenticated: true, role: 'admin', name: 'Administrador' });
+    }
+    return res.status(401).json({ error: 'Token inválido' });
+  }
+  if (username === 'admin' && password === 'laujim123') {
+    return res.json({ authenticated: true, role: 'admin', name: 'Administrador' });
+  }
+  const apt = (db.apartments || []).find(a => a.name === username || String(a.id) === username);
+  if (apt) {
+    const contract = (db.contracts || []).find(c => c.apartmentId === apt.id && (!c.endDate || new Date(c.endDate) > new Date()));
+    if (contract) {
+      const tenant = (db.tenants || []).find(t => t.id === contract.tenantId);
+      if (tenant && tenant.documentId && tenant.documentId === password) {
+        return res.json({ authenticated: true, role: 'tenant', apartmentId: apt.id, name: apt.name });
+      }
+    }
+  }
+  res.status(401).json({ error: 'Credenciales inválidas' });
+});
+
+app.get('/api/public/vacants', (req, res) => {
+  const vacants = (db.apartments || []).filter(a => a.status === 'vacant').map(a => ({
+    id: a.id, name: a.name, description: a.description || '', monthlyRent: a.monthlyRent,
+    rooms: a.rooms, bathrooms: a.bathrooms, area: a.area, floor: a.floor, paymentDueDay: a.paymentDueDay, notes: a.notes || '',
+  }));
+  const photos = (db.photos || []).filter(p => vacants.some(a => a.id === Number(p.apartmentId)));
+  res.json({ apartments: vacants, photos });
+});
+
+app.post('/api/save', (req, res) => {
+  const incoming = req.body;
+  if (!incoming || typeof incoming !== 'object') return res.status(400).json({ error: 'Invalid data' });
+  let count = 0;
+  Object.keys(incoming).forEach(col => {
+    if (Array.isArray(incoming[col])) {
+      db[col] = incoming[col].map(item => {
+        if (!item.id) item.id = nextId[col] || 1;
+        if (item.id >= (nextId[col] || 1)) nextId[col] = item.id + 1;
+        return item;
+      });
+      count += db[col].length;
+    }
+  });
+  saveData();
+  res.json({ ok: true, saved: count });
+});
+
+app.post('/api/reset-db', (req, res) => {
+  try {
+    const dataFile = DATA_FILE;
+    if (fs.existsSync(dataFile)) fs.unlinkSync(dataFile);
+    [PHOTOS_DIR, CONTRACTS_DIR].forEach(d => {
+      if (fs.existsSync(d)) {
+        const files = fs.readdirSync(d);
+        files.forEach(f => { try { fs.unlinkSync(path.join(d, f)); } catch {} });
+      }
+    });
+    db = JSON.parse(JSON.stringify(INITIAL_DATA));
+    recalcNextId();
+    saveData();
+    res.json({ ok: true, message: 'Base de datos restablecida a valores iniciales' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/bulk-add/:collection', (req, res) => {
+  const col = req.params.collection;
+  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
+  const items = req.body;
+  const added = items.map(item => {
+    const newItem = { ...item, id: nextId[col] || 1 };
+    if (!newItem.createdAt) newItem.createdAt = new Date().toISOString();
+    nextId[col] = (nextId[col] || 1) + 1;
+    db[col].push(newItem);
+    return newItem;
+  });
+  saveData();
+  res.status(201).json(added);
+});
+
+app.post('/api/upload/photo', (req, res) => {
+  if (!upload) return res.status(500).json({ error: 'Upload not available' });
+  upload.single('photo')(req, res, () => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const photo = {
+      id: nextId.photos || 1,
+      apartmentId: Number(req.body.apartmentId),
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      url: '/uploads/photos/' + req.file.filename,
+      uploadedAt: new Date().toISOString(),
+    };
+    nextId.photos = (nextId.photos || 1) + 1;
+    db.photos.push(photo);
+    saveData();
+    res.status(201).json(photo);
+  });
+});
+
+app.delete('/api/photo/:id', (req, res) => {
+  const idx = db.photos.findIndex(p => p.id === Number(req.params.id));
+  if (idx === -1) return res.status(404).json({ error: 'Photo not found' });
+  const photo = db.photos[idx];
+  const filePath = path.join(PHOTOS_DIR, photo.filename);
+  try { fs.unlinkSync(filePath); } catch {}
+  db.photos.splice(idx, 1);
+  saveData();
+  res.json({ success: true });
+});
+
+app.post('/api/upload/contract', (req, res) => {
+  if (!upload) return res.status(500).json({ error: 'Upload not available' });
+  upload.single('contract')(req, res, () => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const file = {
+      id: Date.now(),
+      contractId: Number(req.body.contractId),
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      url: '/uploads/contracts/' + req.file.filename,
+      uploadedAt: new Date().toISOString(),
+    };
+    res.status(201).json(file);
+  });
+});
+
+app.post('/api/generate-contract', (req, res) => {
+  const { body } = req;
+  if (!body || !body.arrendatario_nombre || !body.apto) {
+    return res.status(400).json({ error: 'Faltan datos requeridos' });
+  }
+  const pythonScript = path.join('C:', 'Contratos', 'generador_gui.pyw');
+  if (!fs.existsSync(pythonScript)) {
+    return res.status(200).json({ ok: true, note: 'Script no disponible, usa el generador web' });
+  }
+  const tempFile = path.join(__dirname, 'data', '_temp_contract_data.json');
+  fs.writeFileSync(tempFile, JSON.stringify(body, null, 2));
+  const proc = spawn('pythonw', [pythonScript, '--batch', tempFile], { detached: true, stdio: 'ignore' });
+  proc.unref();
+  res.json({ ok: true, message: 'Generador iniciado en el PC. Revisa la carpeta C:\\Contratos\\salida' });
+});
+
+// ─── PRESENCIA ───
+app.post('/api/presence/heartbeat', (req, res) => {
+  const { userId, status } = req.body || {};
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+  if (!db.presence) db.presence = [];
+  const idx = db.presence.findIndex(p => p.userId === userId);
+  const record = { userId, status: status || 'online', lastSeen: new Date().toISOString() };
+  if (idx >= 0) { db.presence[idx] = { ...db.presence[idx], ...record }; }
+  else { nextId.presence = (nextId.presence || 0) + 1; record.id = nextId.presence; db.presence.push(record); }
+  saveData();
+  res.json({ ok: true });
+});
+
+// ─── MENSAJES ───
+app.get('/api/messages/updates/:since', (req, res) => {
+  const since = req.params.since;
+  const messages = db.messages || [];
+  const filtered = messages.filter(m => m.createdAt >= since);
+  res.json(filtered);
+});
+
+// ─── WHATSAPP ───
+app.get('/api/whatsapp/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  const savedToken = (db.settings || []).find(s => s.key === 'whatsapp_verify_token')?.value || 'laujim_whatsapp_verify';
+  if (mode === 'subscribe' && token === savedToken) {
+    return res.status(200).send(challenge);
+  }
+  res.status(403).send('Forbidden');
+});
+
+app.post('/api/whatsapp/webhook', (req, res) => {
+  const body = req.body;
+  if (body.object === 'whatsapp_business_account') {
+    for (const entry of body.entry || []) {
+      for (const change of entry.changes || []) {
+        if (change.field !== 'messages') continue;
+        for (const msg of change.value.messages || []) {
+          if (msg.type === 'text' || msg.text?.body) {
+            sendWhatsApp(msg.from, 'Este es un canal de notificaciones. No recibimos mensajes aquí.');
+          }
+        }
+      }
+    }
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(404);
+  }
+});
+
+app.post('/api/whatsapp/send', (req, res) => {
+  const { to, text } = req.body || {};
+  if (!to || !text) return res.status(400).json({ error: 'to and text required' });
+  sendWhatsApp(to, text);
+  res.json({ ok: true });
+});
+
+// ─── CONTRATO + AUTO-PASSWORD ───
+app.post('/api/contracts', (req, res) => {
+  const col = 'contracts';
+  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
+  const newItem = { ...req.body, id: nextId[col] || 1 };
+  if (!newItem.createdAt) newItem.createdAt = new Date().toISOString();
+  db[col].push(newItem);
+  nextId[col] = (nextId[col] || 1) + 1;
+  saveData();
+  syncPasswordFromTenant(newItem.tenantId, newItem.apartmentId);
+  res.status(201).json(newItem);
+});
+
+// ─── DELETE TENANT + CLEANUP ───
+app.delete('/api/tenants/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const index = (db.tenants || []).findIndex(t => t.id === id);
+  if (index === -1) return res.status(404).json({ error: 'Not found' });
+  db.tenants.splice(index, 1);
+  const linkedContracts = (db.contracts || []).filter(c => c.tenantId === id);
+  for (const contract of linkedContracts) {
+    const pwdIdx = (db.passwords || []).findIndex(p => p.apartmentId === contract.apartmentId);
+    if (pwdIdx !== -1) db.passwords.splice(pwdIdx, 1);
+  }
+  saveData();
+  res.json({ success: true });
+});
+
+// ─── RUTAS GENÉRICAS ───
+
+app.get('/api/:collection', (req, res) => {
+  const col = req.params.collection;
+  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
+  res.json(db[col]);
+});
+
+app.get('/api/:collection/count', (req, res) => {
+  const col = req.params.collection;
+  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
+  res.json({ count: db[col].length });
+});
+
+app.get('/api/:collection/where/:field/:value', (req, res) => {
+  const { collection, field, value } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const results = db[collection].filter(item => String(item[field]) === String(value));
+  res.json(results);
+});
+
+app.get('/api/:collection/first/:field/:value', (req, res) => {
+  const { collection, field, value } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const item = db[collection].find(item => String(item[field]) === String(value));
+  res.json(item || null);
+});
+
+app.get('/api/:collection/filter/:field/:value', (req, res) => {
+  const { collection, field, value } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const results = db[collection].filter(item => String(item[field]) === String(value));
+  res.json(results);
+});
+
+app.get('/api/:collection/:id', (req, res) => {
+  const { collection, id } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const item = db[collection].find(i => i.id === Number(id));
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  res.json(item);
+});
+
+app.post('/api/:collection', (req, res) => {
+  const col = req.params.collection;
+  if (!db[col]) return res.status(404).json({ error: 'Collection not found' });
+  const newItem = { ...req.body, id: nextId[col] || 1 };
+  if (!newItem.createdAt) newItem.createdAt = new Date().toISOString();
+  db[col].push(newItem);
+  nextId[col] = (nextId[col] || 1) + 1;
+  saveData();
+  res.status(201).json(newItem);
+});
+
+app.put('/api/:collection/:id', (req, res) => {
+  const { collection, id } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const index = db[collection].findIndex(i => i.id === Number(id));
+  if (index === -1) return res.status(404).json({ error: 'Not found' });
+  db[collection][index] = { ...db[collection][index], ...req.body };
+  saveData();
+  res.json(db[collection][index]);
+});
+
+app.delete('/api/:collection/:id', (req, res) => {
+  const { collection, id } = req.params;
+  if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
+  const index = db[collection].findIndex(i => i.id === Number(id));
+  if (index === -1) return res.status(404).json({ error: 'Not found' });
+  db[collection].splice(index, 1);
+  saveData();
+  res.json({ success: true });
+});
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+const PROJECT_DIR = path.resolve(__dirname);
+const EDITOR_AUTH = { username: 'admin', password: 'admin123' };
+
+function editorAuth(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Basic ')) return res.status(401).set('WWW-Authenticate', 'Basic realm="Editor"').end('Auth required');
+  const buf = Buffer.from(auth.slice(6), 'base64').toString();
+  const [u, p] = buf.split(':');
+  if (u !== EDITOR_AUTH.username || p !== EDITOR_AUTH.password) return res.status(403).end('Bad auth');
+  next();
+}
+
+function safePath(p) {
+  const resolved = path.resolve(PROJECT_DIR, p || '');
+  if (!resolved.startsWith(PROJECT_DIR)) return null;
+  return resolved;
+}
+
+app.get('/editor/api/list', editorAuth, (req, res) => {
+  const dir = safePath(req.query.dir || '');
+  if (!dir) return res.status(400).json({ error: 'Invalid path' });
+  try {
+    const items = fs.readdirSync(dir, { withFileTypes: true }).map(d => ({
+      name: d.name,
+      dir: d.isDirectory(),
+      size: d.isFile() ? fs.statSync(path.join(dir, d.name)).size : 0,
+    })).sort((a, b) => b.dir - a.dir || a.name.localeCompare(b.name));
+    res.json({ dir: req.query.dir || '', items });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/editor/api/read', editorAuth, (req, res) => {
+  const file = safePath(req.query.file);
+  if (!file) return res.status(400).json({ error: 'Invalid path' });
+  try {
+    const content = fs.readFileSync(file, 'utf-8');
+    res.json({ content });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/editor/api/write', editorAuth, (req, res) => {
+  const file = safePath(req.body.file);
+  if (!file) return res.status(400).json({ error: 'Invalid path' });
+  try {
+    fs.writeFileSync(file, req.body.content, 'utf-8');
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/editor/api/exec', editorAuth, (req, res) => {
+  const cmd = req.body.cmd;
+  if (!cmd || cmd.length > 500) return res.status(400).json({ error: 'Invalid command' });
+  exec(cmd, { cwd: PROJECT_DIR, timeout: 30000 }, (err, stdout, stderr) => {
+    res.json({ stdout: stdout || '', stderr: stderr || '', code: err ? err.code : 0 });
+  });
+});
+
+app.use('/editor', editorAuth, express.static(path.join(__dirname, 'editor')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'dist', 'index.html'), err => {
+    if (err) {
+      console.error('Error sending index.html:', err.message);
+      res.status(500).send('Error loading the app.');
+    }
+  });
+});
+
+app.use(express.static(path.resolve(__dirname, 'dist')));
+
+app.use((req, res) => {
+  res.sendFile(path.resolve(__dirname, 'dist', 'index.html'), err => {
+    if (err) {
+      console.error('Error sending index.html:', err.message);
+      res.status(500).send('Error loading the app.');
+    }
+  });
+});
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('============================================');
+    console.log('  GESTION DE APARTAMENTOS - SERVIDOR');
+    console.log('============================================');
+    console.log('');
+    console.log('  Puerto:    ' + PORT);
+    console.log('  Node:      ' + process.version);
+    console.log('  Cwd:       ' + process.cwd());
+    console.log('============================================');
+  });
+
+  (async () => {
+    let loaded = false;
+    try {
+      if (await initPostgres()) {
+        const pgData = await loadFromPostgres();
+        if (pgData) {
+          db = pgData;
+          recalcNextId();
+          console.log('Data loaded from PostgreSQL');
+          loaded = true;
+        }
+      }
+    } catch (e) {
+      console.error('PostgreSQL init failed, using JSON file:', e.message);
+    }
+    if (!loaded) {
+      loadData();
+      if (pgPool) {
+        try { await saveToPostgres(); } catch (e) { console.error('PG save error:', e.message); }
+      }
+    }
+    console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode'));
+  })();
+}
+
+startServer();

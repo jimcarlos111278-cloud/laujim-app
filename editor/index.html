@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editor</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;display:flex;height:100vh;background:#1e1e2e;color:#cdd6f4}
+#sidebar{width:300px;min-width:200px;background:#181825;overflow:auto;border-right:1px solid #313244;padding:8px}
+#sidebar .dir{color:#89b4fa;cursor:pointer;padding:2px 4px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sidebar .dir:hover{background:#313244}
+#sidebar .file{cursor:pointer;padding:2px 4px 2px 20px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sidebar .file:hover{background:#313244;color:#cdd6f4}
+#sidebar .active{background:#45475a;color:#a6e3a1}
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#path-bar{padding:8px 12px;background:#181825;border-bottom:1px solid #313244;font-size:13px;color:#6c7086;display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+#path-bar span{cursor:pointer;color:#89b4fa}
+#path-bar span:hover{text-decoration:underline}
+#path-bar .sep{color:#585b70}
+textarea{flex:1;border:none;padding:12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:13px;resize:none;outline:none;background:#1e1e2e;color:#cdd6f4;tab-size:2;line-height:1.5}
+#editor-bar{display:flex;gap:6px;padding:6px 12px;background:#181825;border-top:1px solid #313244;align-items:center;font-size:12px}
+#editor-bar .btn{padding:4px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px}
+#editor-bar .btn-primary{background:#89b4fa;color:#1e1e2e}
+#editor-bar .btn-primary:hover{background:#74c7ec}
+#editor-bar .btn-danger{background:#f38ba8;color:#1e1e2e}
+#editor-bar .btn-danger:hover{background:#eba0ac}
+#editor-bar .btn-success{background:#a6e3a1;color:#1e1e2e}
+#editor-bar .btn-success:hover{background:#94e2d5}
+#editor-bar .spacer{flex:1}
+#editor-bar .info{color:#6c7086}
+#terminal-bar{display:none;padding:6px 12px;background:#11111b;border-top:1px solid #313244;font-size:12px;align-items:center;gap:6px}
+#terminal-bar.show{display:flex}
+#terminal-bar input{flex:1;background:#1e1e2e;border:1px solid #45475a;border-radius:4px;padding:4px 8px;color:#cdd6f4;outline:none;font-family:monospace;font-size:12px}
+#terminal-bar input:focus{border-color:#89b4fa}
+#terminal-output{display:none;padding:8px 12px;background:#11111b;color:#a6e3a1;font-family:monospace;font-size:12px;max-height:200px;overflow:auto;white-space:pre-wrap;border-top:1px solid #313244}
+#terminal-output.show{display:block}
+.dir-children{margin-left:16px}
+.hidden{display:none}
+.section-title{padding:4px;font-size:11px;text-transform:uppercase;color:#585b70;letter-spacing:1px;margin-top:8px}
+</style>
+</head>
+<body>
+<div id="sidebar">
+<div class="section-title">Proyecto</div>
+<div id="file-tree"></div>
+</div>
+<div id="main">
+<div id="path-bar"></div>
+<textarea id="editor" placeholder="Selecciona un archivo para editarlo" spellcheck="false"></textarea>
+<div id="terminal-bar"><input id="cmd-input" placeholder="Ej: npm run build" /><button class="btn btn-primary" id="cmd-run">Ejecutar</button></div>
+<div id="terminal-output"></div>
+<div id="editor-bar">
+<span class="info" id="file-info">Sin archivo</span>
+<div class="spacer"></div>
+<button class="btn btn-success" id="btn-save" style="display:none">Guardar (Ctrl+S)</button>
+<button class="btn btn-primary" id="btn-terminal">Terminal</button>
+</div>
+</div>
+<script>
+let currentFile = null, treeCache = {};
+const api = p => '/editor/api/' + p;
+const cred = 'Basic ' + btoa('admin:admin123');
+
+async function req(url, opts) {
+  const r = await fetch(url, { ...opts, headers: { ...opts?.headers, Authorization: cred } });
+  if (!r.ok) { const t = await r.text(); throw new Error(t); }
+  return r.json();
+}
+
+function renderTree(dir, container) {
+  container.innerHTML = '<div class="dir-children" id="tree-' + dir.replace(/[^a-z0-9]/gi,'_') + '"></div>';
+  const child = container.querySelector('.dir-children');
+  child.innerHTML = '<div class="dir" style="color:#585b70">Cargando...</div>';
+  loadDir(dir, child);
+}
+
+async function loadDir(dir, el) {
+  try {
+    const d = await req(api('list') + '?dir=' + encodeURIComponent(dir));
+    el.innerHTML = '';
+    for (const item of d.items) {
+      if (item.name.startsWith('.') && item.name !== '.env') continue;
+      if (item.name === 'node_modules' && item.dir) continue;
+      if (item.name === 'android' && item.dir) continue;
+      if (item.name === 'dist' && item.dir) continue;
+      if (item.name === 'data' && item.dir) continue;
+      if (item.name === 'uploads' && item.dir) continue;
+      if (item.dir) {
+        const div = document.createElement('div');
+        div.className = 'dir';
+        div.textContent = '📁 ' + item.name;
+        const children = document.createElement('div');
+        children.className = 'dir-children hidden';
+        div.onclick = (e) => { e.stopPropagation(); children.classList.toggle('hidden'); loadDir(dir + '/' + item.name, children); };
+        el.appendChild(div);
+        el.appendChild(children);
+      } else {
+        const div = document.createElement('div');
+        div.className = 'file';
+        div.textContent = item.name;
+        div.onclick = () => openFile(dir + '/' + item.name);
+        el.appendChild(div);
+      }
+    }
+  } catch (e) { el.innerHTML = '<div class="dir" style="color:#f38ba8">Error: ' + e.message + '</div>'; }
+}
+
+async function openFile(file) {
+  document.querySelectorAll('.file.active').forEach(e => e.classList.remove('active'));
+  const el = document.querySelector('.file:first-child');
+  document.querySelectorAll('.file').forEach(e => { if (e.textContent === file.split('/').pop()) e.classList.add('active'); });
+  currentFile = file;
+  const ext = file.split('.').pop();
+  document.getElementById('file-info').textContent = file;
+  document.getElementById('btn-save').style.display = '';
+  try {
+    const d = await req(api('read') + '?file=' + encodeURIComponent(file));
+    document.getElementById('editor').value = d.content;
+  } catch (e) { document.getElementById('editor').value = '// Error: ' + e.message; }
+  updatePathBar(file);
+}
+
+function updatePathBar(file) {
+  const bar = document.getElementById('path-bar');
+  const parts = file.split('/');
+  bar.innerHTML = '<span data-dir=".">Proyecto</span>';
+  let acc = '';
+  for (const p of parts) {
+    if (!p) continue;
+    acc += '/' + p;
+    bar.innerHTML += '<span class="sep">/</span><span data-dir="' + acc + '">' + p + '</span>';
+  }
+  bar.querySelectorAll('span[data-dir]').forEach(s => {
+    s.onclick = () => { openFile(s.dataset.dir); };
+  });
+}
+
+document.getElementById('btn-save').onclick = async () => {
+  if (!currentFile) return;
+  document.getElementById('btn-save').textContent = 'Guardando...';
+  try {
+    await req(api('write'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: currentFile, content: document.getElementById('editor').value }) });
+    document.getElementById('btn-save').textContent = '✓ Guardado';
+    setTimeout(() => { document.getElementById('btn-save').textContent = 'Guardar (Ctrl+S)'; }, 2000);
+  } catch (e) { document.getElementById('btn-save').textContent = 'Error'; }
+};
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); document.getElementById('btn-save').click(); }
+});
+
+document.getElementById('btn-terminal').onclick = () => {
+  const bar = document.getElementById('terminal-bar');
+  bar.classList.toggle('show');
+  if (bar.classList.contains('show')) document.getElementById('cmd-input').focus();
+};
+
+document.getElementById('cmd-run').onclick = async () => {
+  const input = document.getElementById('cmd-input');
+  const out = document.getElementById('terminal-output');
+  const cmd = input.value.trim();
+  if (!cmd) return;
+  out.classList.add('show');
+  out.textContent = '$ ' + cmd + '\nEjecutando...';
+  input.value = '';
+  try {
+    const d = await req(api('exec'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cmd }) });
+    out.textContent = '$ ' + cmd + '\n' + (d.stdout || '') + (d.stderr ? '\nSTDERR:\n' + d.stderr : '') + '\nExit code: ' + d.code;
+  } catch (e) { out.textContent = 'Error: ' + e.message; }
+};
+
+document.getElementById('cmd-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('cmd-run').click();
+});
+
+renderTree('.', document.getElementById('file-tree'));
+</script>
+</body>
+</html>
