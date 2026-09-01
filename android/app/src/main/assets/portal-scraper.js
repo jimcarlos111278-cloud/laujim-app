@@ -690,10 +690,16 @@
     const directField = (record, names) => {
       if (!record || typeof record !== 'object' || Array.isArray(record)) return undefined;
       const wanted = (names || []).map(normalizeKey);
-      const match = Object.entries(record).find(([key, value]) =>
-        wanted.includes(normalizeKey(key)) && value !== null && value !== undefined && value !== ''
-      );
-      return match ? match[1] : undefined;
+      // Iterate the wanted names in priority order so the first matching field
+      // wins, regardless of the object's key insertion order. This matters when
+      // a record carries both a pending balance and a total value.
+      for (const name of wanted) {
+        const entry = Object.entries(record).find(([key, value]) =>
+          normalizeKey(key) === name && value !== null && value !== undefined && value !== ''
+        );
+        if (entry) return entry[1];
+      }
+      return undefined;
     };
     const directAmount = (record, names) => parseAmount(directField(record, names));
     const textOf = record => Object.entries(record || {}).map(([key, value]) =>
@@ -775,7 +781,7 @@
       if (amount === null && quota === null) return;
       const progress = installmentProgress(record);
       const label = directField(record, ['conceptDescription', 'productDescription', 'description', 'concept', 'conceptName', 'name', 'type', 'status']);
-      const financingNumber = directField(record, ['financingNumber', 'numeroFinanciacion', 'number', 'agreementNumber', 'financingId', 'creditNumber']);
+      const financingNumber = directField(record, ['financingNumber', 'numeroFinanciacion', 'number', 'agreementNumber', 'financingId', 'creditNumber', 'code']);
       const product = directField(record, ['product', 'productName', 'productDescription', 'producto', 'service', 'category']);
       const key = `${financingNumber ?? ''}|${amount ?? ''}|${quota ?? ''}|${String(label || '')}`;
       if (rows.some(row => row.key === key)) return;
@@ -790,7 +796,7 @@
         cuotasTotales: progress.cuotasTotales,
         numero: financingNumber ?? null,
         fechaInicio: directField(record, ['startDate', 'fechaInicio', 'financingStartDate', 'deferredDate', 'initialDate']) ?? null,
-        saldoInicialCOP: directAmount(record, ['initialBalance', 'initialValue', 'saldoInicial', 'valorInicial']) ?? null,
+        saldoInicialCOP: directAmount(record, ['initialBalance', 'initialValue', 'saldoInicial', 'valorInicial', 'totalValue']) ?? null,
         tasaInteresAnual: directField(record, ['annualInterestRate', 'interestRate', 'tasaInteresAnual', 'tasaInteres', 'rate']) ?? null,
         cuotasPendientes: directField(record, ['pendingInstallments', 'pendingQuotas', 'remainingInstallments', 'cuotasPendientes']) ?? null,
       });
@@ -2064,17 +2070,26 @@
   async function fetchTripleASummary(subscription, token) {
     const id = field(subscription, ['id', 'subscriptionId', 'subscription_id']);
     if (id == null || id === '') return { error: 'Triple A no devolvió el identificador interno de la póliza.' };
+    // The invoices route is keyed by the visible policy/external number (e.g.
+    // 937380), not the internal UUID. The debts route is /bff/debts/{id} (no
+    // /subscription/ segment) and carries both the ordinary balance and the
+    // deferred/convenio financing cards in the same envelope.
+    const externalId = field(subscription, [
+      'subscriptionExternalId', 'externalId', 'policyNumber', 'poliza', 'policy',
+    ]) || null;
     const headers = { 'X-Requested-With': 'XMLHttpRequest', 'x-app-version': portalAppVersion() };
-    const invoicesResponse = await jsonWithAuthFallback(`/bff/invoices/subscription/${encodeURIComponent(String(id))}`, token, { headers });
+    const invoicesResponse = await jsonWithAuthFallback(`/bff/invoices/subscription/${encodeURIComponent(String(externalId || id))}`, token, { headers });
     if (!invoicesResponse.ok) return { invoiceEndpointStatus: invoicesResponse.status || 0, error: `Triple A no devolvió las facturas de la póliza (HTTP ${invoicesResponse.status || 'sin respuesta'}).` };
     const invoiceItems = list(invoicesResponse.payload, ['invoices', 'items']);
     const invoiceSummary = tripleAInvoiceSummary(invoiceItems);
     let debtPayload = null;
     let debtEndpointStatus = 0;
     let debtRoute = '';
+    // The ordinary balance and the deferred/convenio financing cards share the
+    // /bff/debts/{id} envelope, so a single successful response covers both.
     for (const url of [
-      `/bff/debts/subscription/${encodeURIComponent(String(id))}`,
-      `/bff/debt/subscription/${encodeURIComponent(String(id))}`,
+      `/bff/debts/${encodeURIComponent(String(id))}`,
+      `/bff/debt/${encodeURIComponent(String(id))}`,
       `/bff/subscriptions/${encodeURIComponent(String(id))}/debt`,
     ]) {
       const response = await jsonWithAuthFallback(url, token, { headers });
@@ -2087,27 +2102,27 @@
       if (![404, 405].includes(Number(response.status))) break;
     }
     const financingPayloads = [];
+    // Deferred/convenio data is inside the same /bff/debts/{id} envelope; the
+    // legacy /subscription/ routes return 404/500 and must not be used.
+    if (debtPayload) financingPayloads.push(debtPayload);
     for (const url of [
-      `/bff/deferred-debts/subscription/${encodeURIComponent(String(id))}`,
       `/bff/financing/subscription/${encodeURIComponent(String(id))}`,
     ]) {
       const response = await jsonWithAuthFallback(url, token, { headers });
       if (response.ok) financingPayloads.push(response.payload);
     }
     const debtRows = debtPayload ? list(debtPayload, ['debts', 'items']) : [];
-    const total = debtPayload && !/deferred|financ/i.test(debtRoute)
-      ? amountFromFields(debtPayload, ['totalDebts', 'totalDebt', 'deudaTotal', 'totalPending', 'totalPendingDebt', 'totalDebtValue'])
-        ?? amountFromKeyPattern(debtPayload, /(?:deudatotal|totaldebt|totalpending|totalapagar|saldototal)/i, /(?:mes|month|cuota|quota)/i)
-        ?? (debtRows.length ? debtRows.map(row => amountFromFields(row, ['totalValue', 'pendingBalance', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'amount', 'value'])).filter(value => value !== null).reduce((sum, value) => sum + value, 0) : null)
-      : null;
-    const debtMonth = debtPayload && !/deferred|financ/i.test(debtRoute)
-      ? amountFromFields(debtPayload, [
-        'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
-        'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
-        'invoiceValue', 'valorMes', 'valorFactura', 'totalMes', 'totalMesSinTasa', 'saldoActual', 'saldoDeudaActual',
-        'deudaActual', 'currentBalance', 'balanceCurrent',
-      ]) ?? amountFromKeyPattern(debtPayload, /(?:deudames|monthdebt|monthly|currentdebt|currentinvoice|invoic|valormes|totalmes|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i)
-      : null;
+    // /bff/debts/{id} returns the deferred/convenio financing cards (totalDebts
+    // is the sum of their pending balances), not the ordinary monthly debt. The
+    // monthly debt comes from the invoices route; the overall balance comes from
+    // the subscription's pendingValue. Do not treat the financing envelope as
+    // the ordinary debt.
+    const subscriptionPending = amountFromFields(subscription, [
+      'pendingValue', 'pendingAmount', 'debt', 'deudaTotal', 'totalDebt',
+      'amountDue', 'totalDue', 'balanceDue', 'saldoTotal', 'saldoPendiente',
+    ]);
+    const total = subscriptionPending;
+    const debtMonth = null;
     // The invoice response and the ordinary debt response are not financing
     // endpoints. Parsing them as a fallback was the source of copied/stale
     // convention balances. Only use a debt response when it contains an
@@ -2129,12 +2144,14 @@
     const expectedCombined = convenio !== null && currentTotal !== null
       ? currentTotal + convenio
       : currentTotal;
-    // Triple A's debt endpoint reports the current billed balance while the
-    // deferred-debt endpoint reports the agreement balance. Only keep the
-    // endpoint total as-is when it already includes both amounts.
-    const combinedTotal = convenio !== null && convenio > 0 && total !== null && total >= expectedCombined
+    // Prefer the subscription's pendingValue as the overall balance when it is
+    // present; it already reflects the financed portion. Fall back to the
+    // combined invoice + financing only when no subscription total is available.
+    const combinedTotal = total !== null
       ? total
-      : expectedCombined;
+      : (convenio !== null && convenio > 0 && total !== null && total >= expectedCombined
+        ? total
+        : expectedCombined);
     return {
       deudaMesCOP: month,
       deudaConveniosCOP: convenio,
@@ -2157,7 +2174,7 @@
       financeValidation: financing.financeValidation,
       financingSource: financing.financingSource || null,
       financiacion: financing.financiacion,
-      debtSource: total !== null ? 'debt_endpoint' : 'invoice_fallback',
+      debtSource: total !== null ? 'subscription_pending' : 'invoice_fallback',
       debtEndpointStatus,
       invoiceEndpointStatus: invoicesResponse.status || 0,
       invoiceItemCount: invoiceItems.length,
@@ -2326,13 +2343,17 @@
         missingContractIds += 1;
         continue;
       }
-      // Match the official frontend: it always sends this query parameter,
-      // even when the value is empty after the authenticated session exists.
+      // Match the official frontend: it always sends this query parameter.
+      // The portal uses a literal dash ("-") as the placeholder value; an
+      // empty value is rejected with HTTP 422 when the authenticated session
+      // cookie is not forwarded (cross-origin CORS). The JWT bearer token in
+      // the Authorization header is what authorizes the request, so the dash
+      // placeholder is safe and matches the portal's own requests.
       let invoiceResponse = null;
       let invoiceId = '';
       for (const candidate of invoiceIdCandidates) {
         invoiceId = candidate;
-        const invoiceUrl = `${GAS_API}/invoices/${encodeURIComponent(candidate)}?g-recaptcha-response=${encodeURIComponent('')}`;
+        const invoiceUrl = `${GAS_API}/invoices/${encodeURIComponent(candidate)}?g-recaptcha-response=-`;
         invoiceResponse = await jsonWithAuthFallback(invoiceUrl, auth, gasRequestOptions);
         if (invoiceResponse.ok) break;
         // 400/404/422 means this identity is not the invoice resource key;

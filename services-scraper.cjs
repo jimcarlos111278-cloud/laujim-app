@@ -287,6 +287,26 @@ function getPortalCredentials(provider) {
   return { username: rec.username, password: rec.password };
 }
 
+// Gases del Caribe limits each account to 10 contracts. The building has 12
+// apartments, so two portal accounts are required (Portal 1 = 'gascaribe',
+// Portal 2 = 'gascaribe-portal2'). This helper returns every credential record
+// for a provider so the gas scraper can consult both portals and combine the
+// results, instead of only the first match like getPortalCredentials().
+function getAllPortalCredentials(provider) {
+  const wanted = new Set((Array.isArray(provider) ? provider : [provider])
+    .map(value => String(value || '').trim().toLowerCase())
+    .filter(Boolean));
+  const records = (db && db.portalCredentials || []).filter(record =>
+    wanted.has(String(record.provider || '').trim().toLowerCase())
+  );
+  if (!records.length) {
+    throw new Error(`Credenciales de ${[...wanted].join(' / ') || 'servicios'} no configuradas.`);
+  }
+  return records
+    .filter(record => record.username && record.password)
+    .map(record => ({ username: record.username, password: record.password, provider: record.provider }));
+}
+
 // ── BROWSER LAUNCH (Render-compatible) ─────────────────────────────────────
 
 function browserlessEndpointFor(profileName, {
@@ -1689,10 +1709,16 @@ function portalFinancingSummary(payload) {
   const directField = (record, names) => {
     if (!record || typeof record !== 'object' || Array.isArray(record)) return undefined;
     const wanted = (names || []).map(normalizeKey);
-    const match = Object.entries(record).find(([key, value]) =>
-      wanted.includes(normalizeKey(key)) && value !== null && value !== undefined && value !== ''
-    );
-    return match ? match[1] : undefined;
+    // Iterate the wanted names in priority order so the first matching field
+    // wins, regardless of the object's key insertion order. This matters when
+    // a record carries both a pending balance and a total value.
+    for (const name of wanted) {
+      const entry = Object.entries(record).find(([key, value]) =>
+        normalizeKey(key) === name && value !== null && value !== undefined && value !== ''
+      );
+      if (entry) return entry[1];
+    }
+    return undefined;
   };
   const directAmount = (record, names) => parsePortalAmount(directField(record, names));
   const textOf = record => Object.entries(record || {}).map(([key, value]) =>
@@ -1755,7 +1781,18 @@ function portalFinancingSummary(payload) {
     const text = `${raw ?? ''} ${textOf(record)}`;
     const match = text.match(/(?:cuotas?\s+facturadas?|cuotas?|pagos?|installments?)\D{0,24}(\d+)\s*(?:de|\/|of)\s*(\d+)/i)
       || String(raw ?? '').match(/(\d+)\s*(?:de|\/|of)\s*(\d+)/i);
-    return match ? { cuotaActual: Number(match[1]), cuotasTotales: Number(match[2]), cuotas: match[0] } : { cuotaActual: null, cuotasTotales: null, cuotas: raw ?? null };
+    if (match) return { cuotaActual: Number(match[1]), cuotasTotales: Number(match[2]), cuotas: match[0] };
+    // The portal exposes paid/billed quotas and the total as separate fields
+    // (e.g. paidQuotas:0, quotas:24). Combine them into "X de Y" using the
+    // paid count when present, otherwise the billed count.
+    const paid = directAmount(record, ['paidQuotas', 'cuotasPagadas']);
+    const billed = directAmount(record, ['billedQuotas', 'cuotasFacturadas']);
+    const total = directAmount(record, ['quotas', 'totalQuotas', 'cuotasTotales']);
+    if (total !== null && (paid !== null || billed !== null)) {
+      const current = paid !== null ? paid : billed;
+      return { cuotaActual: current, cuotasTotales: total, cuotas: `${current} de ${total}` };
+    }
+    return { cuotaActual: null, cuotasTotales: null, cuotas: raw ?? null };
   };
   const rows = [];
   records.forEach(record => {
@@ -1779,7 +1816,7 @@ function portalFinancingSummary(payload) {
     const progress = progressFrom(record);
     const label = directField(record, ['conceptDescription', 'productDescription', 'description', 'concept', 'conceptName', 'name', 'type', 'status']);
     const product = directField(record, ['product', 'productName', 'productDescription', 'producto', 'service', 'category']);
-    const financingNumber = directField(record, ['financingNumber', 'numeroFinanciacion', 'number', 'agreementNumber', 'financingId', 'creditNumber']);
+    const financingNumber = directField(record, ['financingNumber', 'numeroFinanciacion', 'number', 'agreementNumber', 'financingId', 'creditNumber', 'code']);
     const key = `${financingNumber ?? ''}|${amount ?? ''}|${quota ?? ''}|${String(label || '')}`;
     if (rows.some(row => row.key === key)) return;
     rows.push({
@@ -1793,7 +1830,7 @@ function portalFinancingSummary(payload) {
       cuotasTotales: progress.cuotasTotales,
       numero: financingNumber ?? null,
       fechaInicio: directField(record, ['startDate', 'fechaInicio', 'financingStartDate', 'deferredDate', 'initialDate']) ?? null,
-      saldoInicialCOP: directAmount(record, ['initialBalance', 'initialValue', 'saldoInicial', 'valorInicial']) ?? null,
+      saldoInicialCOP: directAmount(record, ['initialBalance', 'initialValue', 'saldoInicial', 'valorInicial', 'totalValue']) ?? null,
       tasaInteresAnual: directField(record, ['annualInterestRate', 'interestRate', 'tasaInteresAnual', 'tasaInteres', 'rate']) ?? null,
       cuotasPendientes: directField(record, ['pendingInstallments', 'pendingQuotas', 'remainingInstallments', 'cuotasPendientes']) ?? null,
     });
@@ -2331,8 +2368,15 @@ function tripleASubscriptionId(subscription) {
 async function fetchTripleAPortalSummary(page, subscription, authHeader) {
   const id = tripleASubscriptionId(subscription);
   if (!id) return { error: 'Triple A no devolvió el identificador interno de la póliza.' };
+  // The invoices route is keyed by the visible policy/external number (e.g.
+  // 937380), not the internal UUID. The debts route is /bff/debts/{id} (no
+  // /subscription/ segment) and carries both the ordinary balance and the
+  // deferred/convenio financing cards in the same envelope.
+  const externalId = portalFieldValue(subscription, [
+    'subscriptionExternalId', 'externalId', 'policyNumber', 'poliza', 'policy',
+  ]) || null;
   const headers = authHeader ? { Authorization: authHeader } : {};
-  const invoiceResponse = await fetchPortalJson(page, `/bff/invoices/subscription/${encodeURIComponent(String(id))}`, headers);
+  const invoiceResponse = await fetchPortalJson(page, `/bff/invoices/subscription/${encodeURIComponent(String(externalId || id))}`, headers);
   if (invoiceResponse.status < 200 || invoiceResponse.status >= 300) {
     return { invoiceEndpointStatus: invoiceResponse.status || 0, error: `Triple A no devolvió las facturas de la póliza (HTTP ${invoiceResponse.status || 'sin respuesta'}).` };
   }
@@ -2341,12 +2385,11 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
   let debtPayload = null;
   let debtEndpointStatus = 0;
   let debtRoute = '';
-  // Query the ordinary balance route first. Deferred/convenio data lives in a
-  // different view, so it must be queried independently instead of stopping
-  // after the first successful debt response.
+  // The ordinary balance and the deferred/convenio financing cards share the
+  // /bff/debts/{id} envelope, so a single successful response covers both.
   for (const route of [
-    `/bff/debts/subscription/${encodeURIComponent(String(id))}`,
-    `/bff/debt/subscription/${encodeURIComponent(String(id))}`,
+    `/bff/debts/${encodeURIComponent(String(id))}`,
+    `/bff/debt/${encodeURIComponent(String(id))}`,
     `/bff/subscriptions/${encodeURIComponent(String(id))}/debt`,
   ]) {
     const debtResponse = await fetchPortalJson(page, route, headers);
@@ -2359,8 +2402,10 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
     if (![404, 405].includes(Number(debtResponse.status))) break;
   }
   const financingPayloads = [];
+  // Deferred/convenio data is inside the same /bff/debts/{id} envelope; the
+  // legacy /subscription/ routes return 404/500 and must not be used.
+  if (debtPayload) financingPayloads.push(debtPayload);
   for (const route of [
-    `/bff/deferred-debts/subscription/${encodeURIComponent(String(id))}`,
     `/bff/financing/subscription/${encodeURIComponent(String(id))}`,
   ]) {
     const financingResponse = await fetchPortalJson(page, route, headers);
@@ -2369,18 +2414,17 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
     }
   }
   const debtRows = debtPayload ? unwrapPortalList(debtPayload, ['debts', 'items']) : [];
-  const debtTotal = debtPayload && !/deferred|financ/i.test(debtRoute)
-    ? portalAmountFromFields(debtPayload, ['totalDebts', 'totalDebt', 'deudaTotal', 'totalPending', 'totalPendingDebt', 'totalDebtValue'])
-      ?? (debtRows.length ? debtRows.map(row => portalAmountFromFields(row, ['totalValue', 'pendingBalance', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'amount', 'value'])).filter(value => value !== null).reduce((sum, value) => sum + value, 0) : null)
-    : null;
-  const debtMonth = debtPayload && !/deferred|financ/i.test(debtRoute)
-    ? portalAmountFromFields(debtPayload, [
-      'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
-      'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
-      'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
-      'deudaActual', 'currentBalance', 'balanceCurrent',
-    ])
-    : null;
+  // /bff/debts/{id} returns the deferred/convenio financing cards (totalDebts
+  // is the sum of their pending balances), not the ordinary monthly debt. The
+  // monthly debt comes from the invoices route; the overall balance comes from
+  // the subscription's pendingValue. Do not treat the financing envelope as the
+  // ordinary debt.
+  const subscriptionPending = portalAmountFromFields(subscription, [
+    'pendingValue', 'pendingAmount', 'debt', 'deudaTotal', 'totalDebt',
+    'amountDue', 'totalDue', 'balanceDue', 'saldoTotal', 'saldoPendiente',
+  ]);
+  const debtTotal = subscriptionPending;
+  const debtMonth = null;
   // Invoice and ordinary debt responses are not financing cards. Do not use
   // either as a fallback for the convention parser: that was copying current
   // balances into every apartment's agreement column.
@@ -2390,9 +2434,11 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
     : debtFinancing.financeValidation === 'confirmed' ? debtFinancing : portalFinancingSummary(null);
   const invoiceTotal = invoiceSummary.deudaTotalCOP ?? invoiceSummary.deudaMesCOP;
   const rawMonth = invoiceSummary.deudaMesCOP ?? debtMonth;
-  // Triple A exposes deferred/convenio balances in a separate route. When
-  // the ordinary debt route returns only the current invoice, combine that
-  // balance with the deferred agreement instead of silently dropping it.
+  // Triple A exposes deferred/convenio balances in the same /bff/debts/{id}
+  // envelope. The monthly debt comes from the invoices route; the overall
+  // balance comes from the subscription's pendingValue. Combine the monthly
+  // invoice with the deferred agreement only when the subscription total is
+  // unavailable, so the financed balance is not double counted.
   const currentTotal = invoiceTotal ?? rawMonth ?? debtTotal;
   const financingConfirmed = financing.financeValidation === 'confirmed';
   const convenio = financingConfirmed
@@ -2404,9 +2450,14 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
   const expectedCombined = convenio !== null && currentTotal !== null
     ? currentTotal + convenio
     : currentTotal;
-  const combinedTotal = convenio !== null && convenio > 0 && debtTotal !== null && debtTotal >= expectedCombined
+  // Prefer the subscription's pendingValue as the overall balance when it is
+  // present; it already reflects the financed portion. Fall back to the
+  // combined invoice + financing only when no subscription total is available.
+  const combinedTotal = debtTotal !== null
     ? debtTotal
-    : expectedCombined;
+    : (convenio !== null && convenio > 0 && debtTotal !== null && debtTotal >= expectedCombined
+      ? debtTotal
+      : expectedCombined);
   return {
     deudaMesCOP: month,
     deudaConveniosCOP: convenio,
@@ -2426,7 +2477,7 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
     financeValidation: financing.financeValidation,
     financingSource: financing.financingSource || null,
     financiacion: financing.financiacion,
-    debtSource: debtTotal !== null ? 'debt_endpoint' : 'invoice_fallback',
+    debtSource: debtTotal !== null ? 'subscription_pending' : 'invoice_fallback',
     debtEndpointStatus,
   };
 }
@@ -3204,7 +3255,7 @@ async function fetchGasDebtSummary(page, contractId, authHeader) {
   };
 }
 
-async function scrapeGasAccount() {
+async function scrapeGasPortal(credentials, targets, portalLabel = 'Portal global') {
   if (!/^(0|false|no)$/i.test(String(process.env.PORTAL_UI_SCRAPE || 'true'))) {
     return scrapeGasFromRenderedUi();
   }
@@ -3221,9 +3272,8 @@ async function scrapeGasAccount() {
   const authState = { done: false, ok: false, status: 0 };
   try {
     lastGasScrapeError = null;
-    const credentials = getPortalCredentials('gascaribe');
     const browserless = browserlessEndpointCandidates('gas').length > 0;
-    console.log(`[GAS] Portal global: iniciando sesión (${browserless ? 'Browserless remoto' : 'Chromium local'}).`);
+    console.log(`[GAS] ${portalLabel}: iniciando sesión (${browserless ? 'Browserless remoto' : 'Chromium local'}).`);
     browser = await launchBrowser('gas');
     page = await browser.newPage();
     page.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
@@ -3440,7 +3490,6 @@ async function scrapeGasAccount() {
     }
     if (!authHeader) throw new Error('El portal de Gases del Caribe no entregó el token de consulta.');
     console.log('[GAS] Respuesta global:', JSON.stringify(portalPayloadDiagnostics(contractsPayload, contracts)));
-    const targets = configuredApartmentTargets();
     const results = [];
     const seenApartments = new Set();
     for (const contract of contracts) {
@@ -3501,7 +3550,7 @@ async function scrapeGasAccount() {
           });
           seenApartments.add(String(target.apartmentId || target.apartment));
           results.push(paidRecord);
-          console.log(`[GAS] Portal global ${target.apartment}: ${paidRecord.status} (mes $0; total $${total.toLocaleString('es-CO')}; no current invoice).`);
+          console.log(`[GAS] ${portalLabel} ${target.apartment}: ${paidRecord.status} (mes $0; total $${total.toLocaleString('es-CO')}; no current invoice).`);
           continue;
         }
         throw new Error(`Gases del Caribe rechazó el contrato ${contractId || invoiceId} (HTTP ${invoiceResponse?.status || 'sin respuesta'}).`);
@@ -3532,7 +3581,7 @@ async function scrapeGasAccount() {
       const amount = record.deudaCOP === null ? 'sin valor' : `$${record.deudaCOP.toLocaleString('es-CO')}`;
       const month = record.deudaMesCOP === null ? 'sin mes' : `$${record.deudaMesCOP.toLocaleString('es-CO')}`;
       const financed = record.financiadaCOP === null ? 'sin financiación' : `$${record.financiadaCOP.toLocaleString('es-CO')}`;
-      console.log(`[GAS] Portal global ${target.apartment}: ${record.status} (mes ${month}; total ${amount}; financiada ${financed}; endpoint deuda HTTP ${record.debtEndpointStatus || 'no disponible'}).`);
+      console.log(`[GAS] ${portalLabel} ${target.apartment}: ${record.status} (mes ${month}; total ${amount}; financiada ${financed}; endpoint deuda HTTP ${record.debtEndpointStatus || 'no disponible'}).`);
     }
 
     if (results.length < Math.min(targets.length, contracts.length)) {
@@ -3542,14 +3591,14 @@ async function scrapeGasAccount() {
     }
     if (!results.length) {
       lastGasScrapeError = 'Gases del Caribe autenticó el portal, pero no se pudo asociar ningún contrato con los apartamentos configurados.';
-      console.warn('[GAS] Portal global no devolvió contratos asociables; no se usará ningún respaldo individual.');
+      console.warn(`[GAS] ${portalLabel} no devolvió contratos asociables; no se usará ningún respaldo individual.`);
     } else {
-      console.log(`[GAS] Portal global: ${results.length} apartamento(s) con datos.`);
+      console.log(`[GAS] ${portalLabel}: ${results.length} apartamento(s) con datos.`);
     }
     return results;
   } catch (error) {
     lastGasScrapeError = error.message;
-    console.error('[GAS] Portal global error:', error.message);
+    console.error(`[GAS] ${portalLabel} error:`, error.message);
     return [];
   } finally {
     if (dataPage && captureAuth) dataPage.off?.('request', captureAuth);
@@ -3562,6 +3611,41 @@ async function scrapeGasAccount() {
     if (captchaSolver) await captchaSolver.close();
     if (browser) await closeWaterBrowser(browser);
   }
+}
+
+// Gases del Caribe limits each account to 10 contracts; the building has 12,
+// so two portals are required. Portal 1 (`gascaribe`) holds 10 contracts and
+// Portal 2 (`gascaribe-portal2`) holds the remaining 2 (AP 102, AP 402).
+// This orchestrator iterates over every credential of both providers, queries
+// each portal, and merges the per-apartment results into a single list.
+async function scrapeGasAccount() {
+  const credentials = getAllPortalCredentials(['gascaribe', 'gascaribe-portal2']);
+  if (!credentials.length) {
+    lastGasScrapeError = 'No hay credenciales configuradas para los portales de Gases del Caribe.';
+    console.warn(`[GAS] ${lastGasScrapeError}`);
+    return [];
+  }
+  const targets = configuredApartmentTargets();
+  const combined = [];
+  const seenApartments = new Set();
+  for (const credential of credentials) {
+    const portalLabel = credential.provider === 'gascaribe-portal2'
+      ? 'Portal 2'
+      : 'Portal 1';
+    const portalResults = await scrapeGasPortal(credential, targets, portalLabel);
+    for (const record of portalResults) {
+      const key = String(record.apartmentId || record.apartment || '');
+      if (!key || seenApartments.has(key)) continue;
+      seenApartments.add(key);
+      combined.push(record);
+    }
+  }
+  if (!combined.length) {
+    console.warn('[GAS] Ningún portal devolvió datos asociables para los apartamentos configurados.');
+  } else {
+    console.log(`[GAS] Portales combinados: ${combined.length} apartamento(s) con datos.`);
+  }
+  return combined;
 }
 
 /* Individual gas-link fallback removed: the gas scraper is portal-only.
@@ -3685,7 +3769,7 @@ function aggregateAirEInvoices(items) {
     const explicitFinanced = financedValues.length
       ? Math.max(...financedValues)
       : (financingPayload.financiadaCOP ?? null);
-    const factura = portalFieldValue(latest?.invoice, ['invoiceNumber', 'invoiceId', 'factura', 'id']) || null;
+    const factura = portalFieldValue(latest?.invoice, ['cd_NumeroDocumento', 'invoiceNumber', 'invoiceId', 'factura', 'id']) || null;
     return [nic, {
       debt,
       source: hasTotalField ? 'Deuda Total' : 'SaldoConsulta',
@@ -3693,7 +3777,7 @@ function aggregateAirEInvoices(items) {
       deudaTotalCOP: debt,
       numFacturas: group.invoices.length,
       factura,
-      periodo: portalFieldValue(latest?.invoice, ['invoiceDate', 'billingPeriod', 'periodo', 'fechaFactura']) || null,
+      periodo: portalFieldValue(latest?.invoice, ['cd_Periodo', 'invoiceDate', 'billingPeriod', 'periodo', 'fechaFactura']) || null,
       // Air-e labels the accumulated portion “Estado de Cuenta”; it is not a
       // convenio/financiación. Keep the shared financing fields empty so the
       // report renders the overdue-invoice count instead of a false agreement.
@@ -3710,12 +3794,15 @@ function aggregateAirEInvoices(items) {
       facturasPendientes: group.invoices.length,
       facturasVencidas: group.invoices.length,
       facturas: group.invoices.slice(0, 40).map(invoice => ({
-        factura: portalFieldValue(invoice, ['invoiceNumber', 'invoiceId', 'factura', 'id']) || null,
-        valorCOP: parseAirEAmount(invoice.amt_ValorFactura ?? invoice.valorFactura ?? invoice.ValorFactura),
+        factura: portalFieldValue(invoice, ['cd_NumeroDocumento', 'invoiceNumber', 'invoiceId', 'factura', 'id']) || null,
+        valorCOP: parseAirEAmount(invoice.amt_ValorMes ?? invoice.amt_ValorFactura ?? invoice.valorFactura ?? invoice.ValorFactura),
         deudaTotalCOP: parseAirEAmount(invoice.amt_DeudaTotal ?? invoice.deudaTotal ?? invoice.DeudaTotal),
-        periodo: portalFieldValue(invoice, ['invoiceDate', 'billingPeriod', 'periodo']) || null,
-        vencimiento: portalFieldValue(invoice, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
+        periodo: portalFieldValue(invoice, ['cd_Periodo', 'invoiceDate', 'billingPeriod', 'periodo']) || null,
+        vencimiento: portalFieldValue(invoice, ['dt_Vencimiento', 'expirationDate', 'dueDate', 'fechaVencimiento']) || null,
         estado: portalFieldValue(invoice, ['cd_EstadosPagoDocumento', 'status']) || null,
+        consumoKwh: portalFieldValue(invoice, ['consumoKwh', 'consumo', 'kwh']) || null,
+        grupo: portalFieldValue(invoice, ['cd_Grupo', 'grupo', 'group']) || null,
+        nic: portalFieldValue(invoice, ['cd_Poliza', 'nic']) || null,
       })),
     }];
   }));

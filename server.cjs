@@ -5426,6 +5426,7 @@ function portableWorkerPortalCredentials() {
     if (storedProvider === 'triple-a') workerProvider = 'water';
     else if (storedProvider === 'gascaribe') workerProvider = 'gas-1';
     else if (/^gascaribe-\d+$/.test(storedProvider)) workerProvider = storedProvider.replace('gascaribe-', 'gas-');
+    else if (storedProvider === 'gascaribe-portal2') workerProvider = 'gas-2';
     else if (storedProvider === 'gas') workerProvider = 'gas-1';
 
     credentials[workerProvider] = { username, password };
