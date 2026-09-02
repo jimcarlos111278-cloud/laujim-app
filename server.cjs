@@ -1646,7 +1646,7 @@ function cloudAdminPaymentReminderText(apartment, tenant, period) {
     const month = cloudUtilityMoney(amounts.month);
     const total = cloudUtilityMoney(amounts.total);
     const extra = service.key === 'electricity'
-      ? `Facturas vencidas: ${amounts.invoiceCount === null ? 'sin confirmar' : amounts.invoiceCount}`
+      ? `Facturas sin pagar: ${amounts.invoiceCount === null ? 'sin confirmar' : amounts.invoiceCount}`
       : `Convenio: ${amounts.financingKnown ? cloudUtilityMoney(amounts.financed) : amounts.totalKnown ? '$0' : 'sin confirmar'}`;
     return `${service.icon} ${service.label}: Mes ${month} · ${extra} · Total ${total}`;
   });
@@ -3127,7 +3127,7 @@ function cloudServiceDisplayBlock(summary) {
     lines.push('', `${service.icon} *${service.label}:*`);
     lines.push(`   Deuda del mes: *${cloudUtilityMoney(amounts.month)}*`);
     if (service.key === 'electricity') {
-      lines.push(`   Facturas: *${amounts.invoiceTotalCount === null ? 'sin confirmar' : amounts.invoiceTotalCount} total(es)* · *${amounts.invoiceOverdueCount === null ? 'sin confirmar' : amounts.invoiceOverdueCount} vencida(s)*`);
+      lines.push(`   Facturas sin pagar: *${amounts.invoiceTotalCount === null ? 'sin confirmar' : amounts.invoiceTotalCount}*`);
     } else {
       const convenio = amounts.financingKnown
         ? cloudUtilityMoney(amounts.financed)
@@ -3139,8 +3139,8 @@ function cloudServiceDisplayBlock(summary) {
           : 'sin confirmar';
         lines.push(`   Cuota: *${cloudUtilityMoney(amounts.quota)}* · avance *${progress}*`);
       }
-      if (amounts.invoiceTotalCount !== null || amounts.invoiceOverdueCount !== null) {
-        lines.push(`   Facturas: *${amounts.invoiceTotalCount ?? 'sin confirmar'} total(es)* · *${amounts.invoiceOverdueCount ?? 'sin confirmar'} vencida(s)*`);
+      if (amounts.invoiceTotalCount !== null) {
+        lines.push(`   Facturas sin pagar: *${amounts.invoiceTotalCount}*`);
       }
     }
     lines.push(`   Deuda Total: *${cloudUtilityMoney(amounts.total)}*`);
@@ -3167,7 +3167,7 @@ function buildCloudDetailedGlobalServicesReport() {
     section('🟡 *PENDIENTES / SIN DATOS', pending),
     section('🟢 *AL DÍA', paid),
     '━━━━━━━━━━━━━━━━━━━━',
-    'ℹ️ Air-e muestra *Deuda del mes*, *Facturas vencidas* y *Deuda Total*. Triple A y Gases muestran *Deuda del mes*, *Deuda de convenios* y *Deuda Total*.',
+    'ℹ️ Air-e muestra *Deuda del mes*, *Facturas sin pagar* y *Deuda Total*. Triple A y Gases muestran *Deuda del mes*, *Deuda de convenios* y *Deuda Total*.',
   ].filter(Boolean).join('\n\n');
 }
 
@@ -3178,7 +3178,7 @@ function buildCloudDetailedApartmentServicesInfo(apartment) {
     '',
     cloudServiceDisplayBlock(summary),
     '',
-    'ℹ️ La deuda del mes corresponde al periodo actual; Air-e muestra la cantidad de facturas vencidas; Triple A y Gases muestran saldos financiados o diferidos; la deuda total es el saldo global confirmado por el portal.',
+    'ℹ️ La deuda del mes corresponde al periodo actual; Air-e muestra la cantidad de facturas sin pagar; Triple A y Gases muestran saldos financiados o diferidos; la deuda total es el saldo global confirmado por el portal.',
   ].join('\n');
 }
 
@@ -3284,10 +3284,10 @@ function buildCloudServicesImageData() {
     count + (row.services[index].financingKnown ? 1 : 0)
   ), 0));
   const serviceInvoiceTotals = serviceKeys.map((_, index) => rows.reduce((sum, row) => (
-    sum + (row.services[index].invoiceOverdueCount ?? 0)
+    sum + (row.services[index].invoiceTotalCount ?? 0)
   ), 0));
   const serviceInvoiceKnownCounts = serviceKeys.map((_, index) => rows.reduce((count, row) => (
-    count + (row.services[index].invoiceOverdueCount !== null ? 1 : 0)
+    count + (row.services[index].invoiceTotalCount !== null ? 1 : 0)
   ), 0));
   const serviceSync = Object.fromEntries(serviceKeys.map(key => {
     const latest = summaries
@@ -3316,7 +3316,7 @@ function buildCloudServicesImageData() {
 
 function cloudServicesReportImageHtml(report) {
   const serviceMeta = [
-    { key: 'electricity', icon: '\u26a1', name: 'AIR-E', secondary: 'Facturas vencidas', className: 'air-head' },
+    { key: 'electricity', icon: '\u26a1', name: 'AIR-E', secondary: 'Facturas sin pagar', className: 'air-head' },
     { key: 'water', icon: '\ud83d\udca7', name: 'TRIPLE A', secondary: 'Convenio', className: 'water-head' },
     { key: 'gas', icon: '\ud83d\udd25', name: 'GASES', secondary: 'Convenio', className: 'gas-head' },
   ];
@@ -3332,15 +3332,17 @@ function cloudServicesReportImageHtml(report) {
         const month = service.monthKnown ? cloudImageMoney(service.month) : '\u2014';
         const total = service.known ? cloudImageMoney(service.amount) : '\u2014';
         const isAirE = serviceIndex === 0;
-        const secondaryLabel = isAirE ? 'Facturas vencidas' : 'Convenio';
+        const secondaryLabel = isAirE ? 'Facturas sin pagar' : 'Convenio';
         const secondary = isAirE
-          ? service.invoiceOverdueCount !== null ? String(service.invoiceOverdueCount) : '\u2014'
+          ? service.invoiceTotalCount !== null ? String(service.invoiceTotalCount) : '\u2014'
           : service.financingKnown ? cloudImageMoney(service.financed) : service.known ? '$0' : '\u2014';
-        const invoices = service.invoiceTotalCount !== null || service.invoiceOverdueCount !== null
-          ? `<div class="service-line detail-line"><span>Facturas</span><b>${service.invoiceTotalCount ?? '\u2014'} total · ${service.invoiceOverdueCount ?? '\u2014'} venc.</b></div>`
-          : '<div class="service-line detail-line"><span>Facturas</span><b>\u2014</b></div>';
-        const quota = `<div class="service-line detail-line"><span>Cuota</span><b>${service.quota !== null ? cloudImageMoney(service.quota) : '\u2014'}</b></div>`;
-        const progress = `<div class="service-line detail-line"><span>Avance</span><b>${service.installmentCurrent ?? '\u2014'} de ${service.installmentTotal ?? '\u2014'}</b></div>`;
+        // The portals only expose how many invoices remain unpaid; none of them
+        // reports which ones are overdue, so a "vencidas" label would be fake.
+        const invoices = !isAirE && service.invoiceTotalCount !== null
+          ? `<div class="service-line detail-line"><span>Facturas</span><b>${service.invoiceTotalCount} sin pagar</b></div>`
+          : '';
+        const quota = isAirE ? '' : `<div class="service-line detail-line"><span>Cuota</span><b>${service.quota !== null ? cloudImageMoney(service.quota) : '\u2014'}</b></div>`;
+        const progress = isAirE ? '' : `<div class="service-line detail-line"><span>Avance</span><b>${service.installmentCurrent ?? '\u2014'} de ${service.installmentTotal ?? '\u2014'}</b></div>`;
         const changeClass = service.changeStatus === 'full_payment'
           ? ' change-full'
           : service.changeStatus === 'partial_payment' ? ' change-partial' : '';
@@ -3387,8 +3389,8 @@ function cloudServicesReportImageHtml(report) {
     ? '<div class="change-legend"><span class="legend-partial">↓ Pago parcial detectado</span><span class="legend-full">✓ Pago total detectado</span><span class="legend-note">Comparación contra la última deuda confirmada; requiere validar el comprobante.</span></div>'
     : '';
   const incompleteNote = report.allComplete
-    ? '<div class="note"><span class="info-icon">i</span> Cada celda separa deuda del mes, facturas vencidas de Air-e o convenios de los otros servicios, y deuda total acumulada.</div>'
-    : '<div class="note"><span class="info-icon">i</span> \u2014 indica que el portal todavía no confirmó ese valor. Air-e muestra facturas vencidas; Triple A y Gases conservan sus convenios separados del total.</div>';
+    ? '<div class="note"><span class="info-icon">i</span> Cada celda separa deuda del mes, facturas sin pagar de Air-e o convenios de los otros servicios, y deuda total acumulada.</div>'
+    : '<div class="note"><span class="info-icon">i</span> \u2014 indica que el portal todavía no confirmó ese valor. Air-e muestra facturas sin pagar; Triple A y Gases conservan sus convenios separados del total.</div>';
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><style>
   * { box-sizing: border-box; }
@@ -3465,7 +3467,7 @@ function cloudServicesReportImageHtml(report) {
     <div class="sync-grid">${syncSummary}</div>
     ${changeLegend}
     ${incompleteNote}
-    <div class="footer"><div class="footer-main"><span class="refresh-icon">↻</span> Deuda del mes, facturas vencidas de Air-e, convenios y deuda total se muestran con la última sincronización disponible.</div><div class="footer-date">Reporte generado: ${escapeCloudImageHtml(report.dateLabel)}</div></div>
+    <div class="footer"><div class="footer-main"><span class="refresh-icon">↻</span> Deuda del mes, facturas sin pagar de Air-e, convenios y deuda total se muestran con la última sincronización disponible.</div><div class="footer-date">Reporte generado: ${escapeCloudImageHtml(report.dateLabel)}</div></div>
   </div>
 </body></html>`;
 }

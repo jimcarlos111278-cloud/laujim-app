@@ -3959,7 +3959,7 @@ async function scrapeAirE() {
         ? `Deuda Total del NIC: $${agg.debt.toLocaleString('es-CO')}.`
         : 'Deuda Total del NIC: $0 (al día).';
       const month = agg.deudaMesCOP === null ? 'sin mes' : `$${agg.deudaMesCOP.toLocaleString('es-CO')}`;
-      console.log(`[AIR-E]   NIC ${nic} → ${aptoName}: mes ${month}; total $${agg.debt.toLocaleString('es-CO')}; facturas vencidas ${agg.facturasVencidas ?? agg.numFacturas} [${agg.source}]`);
+      console.log(`[AIR-E]   NIC ${nic} → ${aptoName}: mes ${month}; total $${agg.debt.toLocaleString('es-CO')}; facturas sin pagar ${agg.facturasVencidas ?? agg.numFacturas} [${agg.source}]`);
 
       results.push({
         provider: 'Air-e',
