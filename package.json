@@ -14,6 +14,7 @@
     "build": "npm run graphify && vite build && node scripts/generate-version.js && node scripts/fix-html.js",
     "build:apk-assets": "vite build && node scripts/generate-version.js && node scripts/fix-html.js",
     "build-apk": "node scripts/build-apk.cjs",
+    "release-apk": "node scripts/release-apk.cjs",
     "test:marketplace-api": "node scripts/test-marketplace-api.cjs",
     "portable-worker": "node scripts/portable-worker.cjs",
     "lint": "oxlint",
