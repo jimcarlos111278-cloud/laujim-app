@@ -644,7 +644,13 @@ public class ScraperWorkerService extends Service {
             }
         }
         if (isWrongGasAccountSession(provider, config, outcome)) {
-            PortalBrowserActivity.resetProviderSession(provider).get(WEBVIEW_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            // resetProviderBrowserState clears the wrong-account session in the
+            // visible browser when one is attached, and otherwise falls back to
+            // clearing the hidden background WebView owned by this service. The
+            // direct PortalBrowserActivity.resetProviderSession call would throw
+            // "El navegador compartido no está disponible." whenever the portal
+            // Activity is not in the foreground (e.g. an hourly background run).
+            resetProviderBrowserState(provider);
             outcome = runProviderWithLoginResume(provider, config);
             if (shouldRecoverProvider(provider, config, outcome)) {
                 outcome = recoverExpiredLogin(provider, config, outcome);
