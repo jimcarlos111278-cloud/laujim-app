@@ -1,0 +1,83 @@
+# Graphify ignore file
+# Excluye del grafo de conocimiento todo lo que NO es código real del proyecto.
+# Estas rutas son cachés de build, dependencias de terceros, temporales y artefactos
+# generados que contaminan el grafo (95.7% de los nodos actuales) y ralentizan las
+# consultas. El grafo principal debe contener SOLO el código fuente real.
+
+# --- Cachés de Gradle (código fuente de terceros de la herramienta de build) ---
+android/.gradle-user-home/
+android/android/
+**/.gradle-user-home/
+**/android/
+
+# --- Dependencias y node_modules ---
+node_modules/
+**/node_modules/
+
+# --- Builds y artefactos generados ---
+dist/
+dist-ssr/
+build/
+**/build/
+android/app/build/
+android/build/
+.vite-build-*/
+**/.vite-build-*/
+
+# --- Temporales ---
+.tmp/
+.tmp-report/
+**/.tmp/
+**/.tmp-report/
+
+# --- Config de OpenCode / herramientas ---
+.opencode/
+**/.opencode/
+.playwright-mcp/
+**/.playwright-mcp/
+
+# --- Backups y snapshots ---
+backups/
+backups_pre_whatsapp_bot/
+whatsapp-bot-backup/
+**/backups/
+**/backup/
+
+# --- Proyectos externos / carpetas de terceros ---
+"Proyecto Laujim APP - Render"/
+"proyecto de camaras"/
+"Bot scraper"/
+scraper-graph/
+design-proposals/
+docs/
+
+# --- Datos y runtime ---
+data/
+uploads/
+sessions/
+portable-worker-profile/
+portable-worker.config.json
+
+# --- Archivos binarios / imágenes / APK ---
+*.apk
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.pdf
+*.traineddata
+
+# --- Archivos corruptos / temporales de respaldo ---
+*.bak
+*.corrupto.bak
+*.preclean.bak
+
+# --- Scripts de diagnóstico temporales ---
+scripts/_analyze-graph.cjs
+scripts/_scrape-diagnostic.cjs
+scripts/run-triplea-scrape.cjs
+scripts/verify-report.cjs
+
+# --- El propio grafo (no indexar sus salidas) ---
+graphify-out/

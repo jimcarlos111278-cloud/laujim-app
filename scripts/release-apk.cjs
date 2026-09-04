@@ -6,8 +6,9 @@
  *   1. Bump de versión (patch) en android/app/build.gradle
  *   2. Regenera app-version.json (para que la APK vieja detecte la actualización)
  *   3. Reconstruye la APK (vite + capacitor + gradle)
- *   4. Ejecuta el gate de pre-push (sync:aiven:pre-push)
- *   5. Commit y push a origin/main
+ *   4. Archiva un snapshot histórico del grafo de conocimiento (graphify-out/archive/)
+ *   5. Ejecuta el gate de pre-push (sync:aiven:pre-push)
+ *   6. Commit y push a origin/main
  *
  * Uso:
  *   node scripts/release-apk.cjs [--message "mensaje del commit"] [--no-push]
@@ -76,10 +77,13 @@ function main() {
   // 3. Reconstruir la APK
   run(process.execPath, ['scripts/build-apk.cjs'], root);
 
-  // 4. Gate de pre-push (verifica Aiven y sube data/database.json si hay cambio intencional)
+  // 4. Archivar snapshot histórico del grafo (para rollback/consulta de versiones pasadas)
+  run(process.execPath, ['scripts/archive-graph.cjs', '--label', `v${next}`], root);
+
+  // 5. Gate de pre-push (verifica Aiven y sube data/database.json si hay cambio intencional)
   run('npm.cmd', ['run', 'sync:aiven:pre-push'], root);
 
-  // 5. Commit y push
+  // 6. Commit y push
   const commitMessage = message || `build: publish APK ${next}`;
   const files = [
     'android/app/build.gradle',

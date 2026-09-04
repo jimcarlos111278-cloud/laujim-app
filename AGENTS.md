@@ -11,6 +11,24 @@ Rules:
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 
+### Arquitectura de grafos: principal + histórico
+
+El grafo de conocimiento tiene dos capas:
+
+- **Grafo principal** (`graphify-out/graph.json`): contiene SOLO el código real del
+  proyecto (~1.4 MB, ~1.3K nodos). Se consulta siempre. Se mantiene limpio gracias
+  a `.graphifyignore`, que excluye cachés de Gradle, `node_modules/`, builds,
+  temporales y artefactos generados. **No regenerar sin `.graphifyignore`** o el
+  grafo se contamina de nuevo con código de terceros.
+- **Snapshots históricos** (`graphify-out/archive/graph-<fecha>.json.gz`): copias
+  comprimidas del grafo completo en cada release. Se consultan SOLO cuando se busca
+  una versión pasada o se quiere hacer rollback. Para consultar uno, descomprimir y
+  usar `graphify query --graph <archivo-descomprimido> "<pregunta>"`.
+
+`scripts/archive-graph.cjs` genera un snapshot comprimido del grafo actual. Se
+ejecuta automáticamente en cada `npm run release-apk` (etiquetado con la versión),
+y puede ejecutarse manualmente con `node scripts/archive-graph.cjs --label "texto"`.
+
 ## Build/push persistence gate
 
 - Before **every** `git push`, the build agent must run `npm run sync:aiven:pre-push`.
@@ -35,8 +53,10 @@ This is a hard standard, not optional.
      its own version to decide whether to show the update notification).
   3. Rebuild the APK (`vite` + Capacitor + Gradle) and copy it to
      `public/app-debug.apk`.
-  4. Run the `sync:aiven:pre-push` gate.
-  5. Commit and push to `origin/main`.
+  4. Archive a historical snapshot of the knowledge graph
+     (`scripts/archive-graph.cjs` → `graphify-out/archive/`).
+  5. Run the `sync:aiven:pre-push` gate.
+  6. Commit and push to `origin/main`.
 - Options: `--message "..."` for a custom commit message, `--no-push` to build
   and commit without pushing, `--minor`/`--major` for a non-patch bump.
 - After the push, verify Render deployed the new build by checking
