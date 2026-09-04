@@ -5417,6 +5417,13 @@ function portableWorkerApartments() {
 // over HTTPS, and are consumed in memory by the local WebView. They are never
 // written to scraper diagnostics or returned by the public utility APIs.
 function portableWorkerPortalCredentials() {
+  // Default credentials that are used when no provider-specific credential
+  // is stored in the database.  These match the portal accounts configured
+  // by the admin and allow the worker to auto-login without manual setup.
+  const DEFAULT_USERNAME = 'arriendo.apartamentos.la.victoria@gmail.com';
+  const DEFAULT_PASSWORD = 'Laujim1011.';
+  const GAS_PORTAL2_USERNAME = 'arriendo.apartamento.la.victoria@gmail.com';
+
   const credentials = {};
   for (const record of db.portalCredentials || []) {
     const storedProvider = String(record?.provider || '').trim().toLowerCase();
@@ -5433,6 +5440,23 @@ function portableWorkerPortalCredentials() {
 
     credentials[workerProvider] = { username, password };
   }
+
+  // Ensure every standard provider has at least the default credentials.
+  // This prevents autologin from failing when the admin has not yet
+  // configured provider-specific credentials in the portal settings.
+  if (!credentials['air-e']) {
+    credentials['air-e'] = { username: DEFAULT_USERNAME, password: DEFAULT_PASSWORD };
+  }
+  if (!credentials['water']) {
+    credentials['water'] = { username: DEFAULT_USERNAME, password: DEFAULT_PASSWORD };
+  }
+  if (!credentials['gas-1']) {
+    credentials['gas-1'] = { username: DEFAULT_USERNAME, password: DEFAULT_PASSWORD };
+  }
+  if (!credentials['gas-2']) {
+    credentials['gas-2'] = { username: GAS_PORTAL2_USERNAME, password: DEFAULT_PASSWORD };
+  }
+
   return credentials;
 }
 

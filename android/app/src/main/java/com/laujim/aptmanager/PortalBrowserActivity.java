@@ -411,11 +411,18 @@ public class PortalBrowserActivity extends Activity {
 
     static boolean pressEnterWithNativeKey(WebView target, Handler handler) {
         if (target == null || handler == null) return false;
+        // Focus the password field first so the Enter key is delivered inside
+        // the password input. Portal SPAs (Gascaribe, Air-e, Triple A) submit
+        // the login form only when Enter is pressed within the password field.
+        target.evaluateJavascript(
+            "(function(){const e=document.querySelector(\"input[type='password'],input[autocomplete='current-password'],input[name*='password' i],input[id*='password' i],input[name*='clave' i],input[id*='clave' i]\");if(!e)return false;e.focus({preventScroll:true});try{e.setSelectionRange(0,String(e.value||'').length);}catch(x){}return true;})();",
+            ignored -> { }
+        );
         handler.postDelayed(() -> {
             long now = SystemClock.uptimeMillis();
             target.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, 0));
             target.dispatchKeyEvent(new KeyEvent(now, now + 60L, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, 0));
-        }, 80L);
+        }, 120L);
         return true;
     }
 

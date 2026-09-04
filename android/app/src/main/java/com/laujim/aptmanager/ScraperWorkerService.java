@@ -20,6 +20,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
+import android.webkit.WebStorage;
 
 import androidx.core.app.NotificationCompat;
 
@@ -62,7 +63,9 @@ public class ScraperWorkerService extends Service {
     public static final String EXTRA_PROVIDER = "provider";
     public static final String EXTRA_RESET_PROVIDER_SESSION = "resetProviderSession";
     private static final String CHANNEL_ID = "laujim_scraper_worker";
+    private static final String ALERT_CHANNEL_ID = "laujim_scraper_alerts";
     private static final int NOTIFICATION_ID = 31778;
+    private static final int ALERT_NOTIFICATION_ID = 31780;
     private static final int CONNECT_TIMEOUT_MS = 15_000;
     private static final int READ_TIMEOUT_MS = 35_000;
     // Keep the portal window open for the requested three-minute allowance.
@@ -334,6 +337,14 @@ public class ScraperWorkerService extends Service {
                     outcomeDetails
                 );
                 flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
+                // Send a visible high-priority notification when the portal
+                // requires manual intervention (Turnstile, rejected credentials,
+                // login not confirmed, etc.) so the user can act immediately.
+                if ("needs_verification".equals(state) || "needs_login".equals(state)) {
+                    String alertTitle = "⚠ " + providerLabel(provider) + " requiere intervención";
+                    String alertMessage = outcome.optString("message", "El portal necesita verificación o credenciales actualizadas.");
+                    sendPortalAlert(alertTitle, alertMessage, provider);
+                }
                 if (!"ok".equals(state) && firstIssue == null) {
                     firstIssue = outcome.optString("message", "El portal no devolvió datos.");
                     updateNotification(firstIssue, provider);
@@ -902,6 +913,40 @@ public class ScraperWorkerService extends Service {
         return records;
     }
 
+    /**
+     * Removes every cookie and all web storage for every known portal origin
+     * (Air-e, Triple A, Gases del Caribe). This guarantees a clean session
+     * state before the next portal login attempt and prevents stale cookies
+     * from leaking between providers or between previous runs.
+     */
+    private void clearAllPortalCookiesAndStorage() {
+        try {
+            String[] allOrigins = {
+                "https://portal.air-e.com/",
+                "https://portal.aaa.com.co/",
+                "https://portal.gascaribe.com/",
+                "https://pagosweb-production-api.innovacion-gascaribe.com/",
+            };
+            CookieManager cookies = CookieManager.getInstance();
+            for (String origin : allOrigins) {
+                try {
+                    String current = cookies.getCookie(origin);
+                    if (current == null || current.trim().isEmpty()) continue;
+                    for (String part : current.split(";")) {
+                        String name = part.split("=", 2)[0].trim();
+                        if (name.isEmpty()) continue;
+                        cookies.setCookie(origin, name + "=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/");
+                    }
+                } catch (RuntimeException ignored) { }
+            }
+            try {
+                WebStorage storage = WebStorage.getInstance();
+                storage.deleteAllData();
+            } catch (RuntimeException ignored) { }
+            cookies.flush();
+        } catch (RuntimeException ignored) { }
+    }
+
     private JSONObject loadAndEvaluate(String provider, String url, JSONObject config) throws Exception {
         CompletableFuture<Boolean> loaded = new CompletableFuture<>();
         String previousProvider = webViewProvider;
@@ -910,6 +955,10 @@ public class ScraperWorkerService extends Service {
         webViewWorkUrl = url;
         storageRestoreAttempted = false;
         webViewGeneration += 1;
+        // Clear ALL cookies and web storage before navigating to the portal so
+        // stale sessions from other portals or previous runs cannot interfere
+        // with the login flow or Turnstile challenge.
+        clearAllPortalCookiesAndStorage();
         PortalSessionVault.flushCookies();
         nativeAuthorization = PortalSessionVault.loadAuthorization(this, webViewProvider);
         pageReady = loaded;
@@ -1174,6 +1223,34 @@ public class ScraperWorkerService extends Service {
         NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Scraper local de Laujim", NotificationManager.IMPORTANCE_LOW);
         channel.setDescription("Consultas locales de los portales de servicios públicos.");
         manager.createNotificationChannel(channel);
+        // High-importance channel for portal login / Turnstile alerts that the
+        // user should see even when the device is locked or Do Not Disturb is on.
+        NotificationChannel alertChannel = new NotificationChannel(ALERT_CHANNEL_ID, "Alertas de portales", NotificationManager.IMPORTANCE_HIGH);
+        alertChannel.setDescription("Notificaciones cuando un portal requiere intervención manual (verificación, credenciales, etc.).");
+        manager.createNotificationChannel(alertChannel);
+    }
+
+    /**
+     * Sends a high-priority alert notification so the user sees portal failures
+     * (Turnstile, rejected credentials, etc.) even when the phone is locked.
+     */
+    private void sendPortalAlert(String title, String message, String provider) {
+        Intent launch = new Intent(this, provider == null ? MainActivity.class : PortalBrowserActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        if (provider != null) launch.putExtra(PortalBrowserActivity.EXTRA_PROVIDER, provider);
+        PendingIntent pending = PendingIntent.getActivity(this, (ALERT_NOTIFICATION_ID + (provider == null ? 0 : provider.hashCode())), launch, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        Notification alert = new NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .build();
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (manager != null) manager.notify(ALERT_NOTIFICATION_ID + (provider == null ? 0 : provider.hashCode()), alert);
     }
 
     @Override

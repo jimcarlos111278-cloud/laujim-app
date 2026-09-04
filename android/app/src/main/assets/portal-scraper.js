@@ -196,6 +196,19 @@
     let nativeAttempted = false;
     if (nativeBridge && typeof nativeBridge.clickLogin === 'function') {
       try {
+        // Focus the password field and press Enter INSIDE it. Many portal SPAs
+        // (Gascaribe, Air-e, Triple A) only submit when Enter is pressed within
+        // the password input itself; a bare click on the submit button or a
+        // global Enter key event is ignored.
+        const passwordField = loginElements().password;
+        if (passwordField) {
+          try {
+            passwordField.focus({ preventScroll: true });
+            passwordField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, composed: true, cancelable: true }));
+            passwordField.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, composed: true, cancelable: true }));
+            passwordField.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, composed: true, cancelable: true }));
+          } catch { }
+        }
         if (typeof nativeBridge.pressEnter === 'function') nativeAttempted = !!nativeBridge.pressEnter();
         // Hidden/off-screen Android WebViews can accept the key event without
         // dispatching the SPA submit handler. Give the DOM a short fallback
@@ -311,6 +324,20 @@
     }
     if (!currentSubmit || currentSubmit.disabled) {
       return needsLogin(provider, `${providerLabel(provider)} mantuvo deshabilitado el botón de acceso.`, { stage: 'login_submit_disabled' });
+    }
+
+    // Focus the password field and press Enter INSIDE it. Portal SPAs submit
+    // the login form only when Enter is pressed within the password input.
+    // A bare click on the submit button or a global Enter key event is often
+    // ignored by Gascaribe, Air-e and Triple A.
+    const passwordField = loginElements().password;
+    if (passwordField) {
+      try {
+        passwordField.focus({ preventScroll: true });
+        passwordField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, composed: true, cancelable: true }));
+        passwordField.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, composed: true, cancelable: true }));
+        passwordField.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, composed: true, cancelable: true }));
+      } catch { }
     }
 
     // The Android wrapper sends this outcome through its bridge before it
