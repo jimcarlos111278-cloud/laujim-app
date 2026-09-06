@@ -313,21 +313,34 @@ export default function WhatsAppInbox() {
 
   const loadConversations = useCallback(async () => {
     try {
-      const [nextStatus, nextConversations] = await Promise.all([
+      const [statusRes, convsRes, contactsRes] = await Promise.allSettled([
         cloudRequest('/whatsapp/cloud/status'),
         cloudRequest('/whatsapp/cloud/conversations'),
+        cloudRequest('/whatsapp/cloud/contacts'),
       ]);
-      let nextContacts = [];
-      try { nextContacts = await cloudRequest('/whatsapp/cloud/contacts'); } catch {}
-      setStatus(nextStatus);
-      setConversations(nextConversations);
-      setContacts(nextContacts);
-      setError('');
-      setSelected(current => {
-        if (requestedConversation && nextConversations.some(c => c.id === requestedConversation)) return requestedConversation;
-        if (current && nextConversations.some(c => c.id === current)) return current;
-        return null;
-      });
+
+      if (statusRes.status === 'fulfilled') {
+        setStatus(statusRes.value);
+      }
+      if (contactsRes.status === 'fulfilled') {
+        setContacts(contactsRes.value || []);
+      }
+      if (convsRes.status === 'fulfilled') {
+        const nextConversations = convsRes.value || [];
+        setConversations(nextConversations);
+        setError('');
+        setSelected(current => {
+          if (requestedConversation && nextConversations.some(c => c.id === requestedConversation)) return requestedConversation;
+          if (current && nextConversations.some(c => c.id === current)) return current;
+          return null;
+        });
+      } else {
+        const errMsg = convsRes.reason?.message || 'No fue posible cargar las conversaciones';
+        setError(errMsg);
+      }
+      if (statusRes.status === 'rejected' && convsRes.status === 'rejected') {
+        setError(convsRes.reason?.message || statusRes.reason?.message || 'Error de conexión con el servidor');
+      }
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }, [requestedConversation]);
@@ -868,9 +881,17 @@ export default function WhatsAppInbox() {
           {loading ? (
             <p className="p-6 text-center text-xs text-[#8696a0]">Cargando conversaciones…</p>
           ) : !visibleConversations.length && !matchingContacts.length ? (
-            <p className="p-6 text-center text-xs text-[#8696a0]">
-              {listFilter === 'unread' ? 'No hay conversaciones sin leer.' : 'No hay conversaciones ni contactos encontrados.'}
-            </p>
+            <div className="p-6 text-center text-xs text-[#8696a0]">
+              {error ? (
+                <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl p-4 text-left">
+                  <p className="font-semibold mb-1 text-rose-400">Error al sincronizar</p>
+                  <p className="text-[11px] opacity-90 break-words leading-relaxed">{error}</p>
+                  <button type="button" onClick={loadConversations} className="mt-3 px-3 py-1.5 bg-rose-600/30 hover:bg-rose-600/50 text-white rounded-lg text-xs font-medium transition active:scale-95">Reintentar</button>
+                </div>
+              ) : (
+                listFilter === 'unread' ? 'No hay conversaciones sin leer.' : 'No hay conversaciones ni contactos encontrados.'
+              )}
+            </div>
           ) : (
             <>
               {visibleConversations.map(conversation => {

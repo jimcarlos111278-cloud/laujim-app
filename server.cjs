@@ -7312,6 +7312,7 @@ app.get('/api/whatsapp/cloud/conversations', (req, res) => {
       c.createdAt,
     ].map(v => new Date(v || 0).getTime()).filter(Number.isFinite);
     const fallbackName = c.status === 'unauthenticated' ? `Visitante (${c.phone || 'nuevo'})` : (c.phone ? `Inquilino (${c.phone})` : 'Inquilino');
+    const lastMessageAt = activityTime.length ? new Date(Math.max(...activityTime)).toISOString() : c.createdAt;
     return { ...c, tenantName: tenant?.name || fallbackName, apartmentName: apartment?.name || null,
       windowOpen, windowUntil: c.customerServiceWindowUntil || null,
       lastMessageAt,
