@@ -143,6 +143,16 @@ export default function WhatsAppInbox() {
   const recordingTimerRef = useRef(null);
   const recordingChunksRef = useRef([]);
   const discardRecordingRef = useRef(false);
+  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+
+  const scrollToBottom = useCallback((behavior = 'auto') => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    } else if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, []);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -178,6 +188,12 @@ export default function WhatsAppInbox() {
     const timer = setInterval(() => loadMessages(selected), 5000);
     return () => clearInterval(timer);
   }, [selected, loadMessages]);
+  useEffect(() => {
+    if (messages.length > 0) {
+      const frame = requestAnimationFrame(() => scrollToBottom('auto'));
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [selected, messages.length, scrollToBottom]);
   useEffect(() => {
     const timer = setInterval(() => setWindowClock(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -627,7 +643,7 @@ export default function WhatsAppInbox() {
               <div className="wa-live-template-confirm"><span>{templatePreview.canSend === false ? 'Corrige la asociación antes de enviar.' : '¿Enviar exactamente esta plantilla?'}</span><button type="button" disabled={!!templateSending || templatePreview.canSend === false} onClick={() => sendTemplate(templatePreview.template)}>{templateSending === templatePreview.template ? 'Enviando…' : 'Enviar ahora'}</button><button type="button" disabled={!!templateSending} onClick={() => setTemplatePreview(null)}>Cancelar</button></div>
             </div>}
           </div>}
-          <div className="wa-live-messages">
+          <div ref={messagesContainerRef} className="wa-live-messages">
             {messages.length === 0 ? <p className="wa-live-empty">Aún no hay mensajes.</p> : !visibleMessages.length ? <p className="wa-live-empty">No hay mensajes que coincidan con la búsqueda.</p> : visibleMessages.map(message => (
               <div key={message.id} className={`wa-live-bubble ${message.direction === 'out' ? 'out' : 'in'}`}>
                 <button type="button" onClick={() => deleteMessageFromLaujim(message)} disabled={deleting === `message:${message.id}`} className="wa-live-bubble-delete" title="Eliminar de Laujim" aria-label="Eliminar mensaje de Laujim"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -638,6 +654,7 @@ export default function WhatsAppInbox() {
                 <div className="wa-live-bubble-meta">{formatDate(message.createdAt)} {message.direction === 'out' && <CheckCheck className="w-3.5 h-3.5" />}</div>
               </div>
             ))}
+            <div ref={messagesEndRef} style={{ float: 'left', clear: 'both', height: '1px' }} />
           </div>
           <form onSubmit={sendMessage} className="wa-live-compose-wrap">
             <div className={`wa-live-compose-status ${windowOpen ? 'open' : 'closed'}`}><span>{windowOpen ? 'Puedes responder libremente' : 'La ventana está cerrada'}</span><small>{windowOpen ? 'Mensajes, fotos, videos y notas de voz' : 'El botón rojo abre las plantillas'}</small></div>
