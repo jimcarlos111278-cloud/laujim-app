@@ -108,16 +108,24 @@ function PrivateApp() {
         console.warn('Startup sync returned 401, pero se preserva la sesión local del usuario');
       }
       if (!cloudSyncOk) {
-        setCloudError(syncStatus.status === 503
-          ? 'Render está activo, pero la base de datos todavía no está lista o no responde.'
-          : 'No se pudieron sincronizar los datos de la base de datos.');
+        let localApartments = 0;
+        try { localApartments = await api.apartments.count(); } catch {}
+        if (localApartments === 0) {
+          setCloudError(syncStatus.status === 503
+            ? 'Render está activo, pero la base de datos todavía no está lista o no responde.'
+            : 'No se pudieron sincronizar los datos de la base de datos.');
+        } else {
+          console.warn('Startup cloud sync had warnings, serving local cached apartments while continuing background retry.');
+          startCloudPolling(15000);
+          startDataVersionPolling(10000);
+        }
       }
       setLoading(false);
       if (cloudSyncOk) {
         // Start polling for changes from other PCs
         startCloudPolling(15000);
-        // Auto-reload cuando otro cliente hace cambios
-        startDataVersionPolling(3000);
+        // Silently sync when another client makes changes
+        startDataVersionPolling(10000);
         // Caller screening is useful but not required to render the dashboard.
         // Run it after the first screen is available so Android does not make
         // the user wait for native contact synchronization.

@@ -5207,8 +5207,13 @@ async function loadFromPostgres() {
   const dataRow = rows.find(row => row.key === 'database');
   if (!dataRow) return null;
   let updatedAt = null;
-  try { updatedAt = rows.find(row => row.key === 'database_meta')?.value?.updatedAt || null; } catch {}
-  return { data: dataRow.value, updatedAt };
+  let version = null;
+  try {
+    const meta = rows.find(row => row.key === 'database_meta')?.value;
+    updatedAt = meta?.updatedAt || null;
+    version = meta?.version || null;
+  } catch {}
+  return { data: dataRow.value, updatedAt, version };
 }
 
 async function saveToPostgres() {
@@ -5225,7 +5230,7 @@ async function saveToPostgres() {
     // observe a database row from one save and metadata from another.
     await client.query(
       'INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
-      ['database_meta', JSON.stringify({ updatedAt: now })]
+      ['database_meta', JSON.stringify({ updatedAt: now, version: dataVersion })]
     );
     await client.query('COMMIT');
   } catch (error) {
@@ -8448,6 +8453,8 @@ app.use((req, res) => {
           // after a Render checkout: a stale tracked JSON gets a fresh mtime
           // and would otherwise overwrite newer production data on every deploy.
           db = pgData.data;
+          if (pgData.version) dataVersion = pgData.version;
+          else if (pgData.updatedAt) dataVersion = new Date(pgData.updatedAt).getTime();
           const repairedApartmentFloors = repairApartmentFloors();
           recalcNextId();
           console.log('Data loaded from PostgreSQL (Aiven is source of truth)');
@@ -8512,7 +8519,9 @@ app.use((req, res) => {
                 if (!localHashes.has(s.tokenHash)) db.authSessions.push(s);
               }
             }
-            if (meta.version) dataVersion = meta.version;
+            if (meta?.version) dataVersion = meta.version;
+            else if (pgData?.version) dataVersion = pgData.version;
+            else if (meta?.updatedAt) dataVersion = new Date(meta.updatedAt).getTime();
           }
         }
       } catch {}

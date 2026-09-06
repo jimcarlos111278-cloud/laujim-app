@@ -47,8 +47,10 @@ export default function Login() {
             return;
           }
           if (res.status === 401) {
-            // Truly invalid/expired session
-            break;
+            // Truly invalid/expired session confirmed by server
+            clearAuth({ permanent: true }, 'session_verify_401');
+            setCheckingStoredSession(false);
+            return;
           }
           // On non-ok / 5xx / timeout, retry before giving up
           attempts++;
@@ -58,9 +60,13 @@ export default function Login() {
           if (attempts < maxAttempts && !cancelled) await new Promise(r => setTimeout(r, 1500));
         }
       }
-      // If server confirmed expired (401) or could not confirm, let user enter credentials safely
+      // If server could not be reached (cold start / network switch) but stored session exists, proceed to app
       if (!cancelled) {
-        setCheckingStoredSession(false);
+        if (existing?.token && existing?.role) {
+          navigate(existing.role === 'admin' ? '/dashboard' : '/mi-apto', { replace: true });
+        } else {
+          setCheckingStoredSession(false);
+        }
       }
     }
     verifySession();

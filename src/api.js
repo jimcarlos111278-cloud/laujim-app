@@ -163,33 +163,31 @@ async function getDataVersion() {
   } catch { return null; }
 }
 
-export function startDataVersionPolling(ms = 3000) {
+export function startDataVersionPolling(ms = 10000) {
   stopDataVersionPolling();
   const startTime = Date.now();
   // First call just stores the current version
-  getDataVersion().then(res => { if (res) lastDataVersion = res.version; });
+  getDataVersion().then(res => { if (res?.version) lastDataVersion = res.version; });
   versionPollInterval = setInterval(async () => {
     try {
       const res = await getDataVersion();
       if (res && res.version && lastDataVersion > 0 && res.version !== lastDataVersion) {
-        if (Date.now() < suppressDataReloadUntil) {
-          lastDataVersion = res.version;
-          return;
-        }
-        // Skip reload within first 12 seconds (let initial sync settle)
-        if (Date.now() - startTime < 12000) {
-          lastDataVersion = res.version;
-          return;
-        }
-        // Don't reload on chat pages — they have their own real-time polling
-        const path = window.location.pathname;
-        if (path !== '/chat' && path !== '/whatsapp' && path !== '/whatsapp-contactos' && path !== '/mi-apto') {
-          window.location.reload();
-        } else {
-          lastDataVersion = res.version;
-        }
+        lastDataVersion = res.version;
+        if (Date.now() < suppressDataReloadUntil) return;
+        // Skip sync within first 12 seconds (let initial sync settle)
+        if (Date.now() - startTime < 12000) return;
+
+        // Silently refresh data without ever reloading the browser window or WebView.
+        // A hard window.location.reload() resets React state and kicks users out on mobile.
+        try {
+          await refreshAllFromServer();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('laujim:data-updated', { detail: { version: res.version } }));
+          }
+        } catch {}
+        return;
       }
-      if (res) lastDataVersion = res.version;
+      if (res?.version) lastDataVersion = res.version;
     } catch {}
   }, ms);
 }
