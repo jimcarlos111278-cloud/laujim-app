@@ -1,6 +1,7 @@
 import { AUTH_TOKEN, getBase, setApiToken } from './config';
 import { stopCloudPolling, stopDataVersionPolling } from '../api';
 import { stopBackgroundNotifications } from './backgroundNotifications';
+import { autoRecoverWorkerToken } from './portableWorker';
 
 const STORAGE_KEY = 'apt_auth';
 
@@ -47,6 +48,8 @@ async function login(username, password) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.authenticated || !data.token) return { ok: false, error: data.error || 'Credenciales inválidas' };
     setAuth(data);
+    // Auto-recover scraper worker token for admin users so the APK always has it
+    if (data.role === 'admin') autoRecoverWorkerToken(data.token).catch(() => {});
     return { ok: true, role: data.role, apartmentId: data.apartmentId };
   } catch {
     return { ok: false, error: 'No se pudo conectar con el servidor' };

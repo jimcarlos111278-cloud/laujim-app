@@ -241,7 +241,7 @@ export default function Utilities() {
     try {
       const res = await fetch(getBase() + '/utility-status', {
         headers: { 'x-auth-token': AUTH_TOKEN },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) return;
       const rows = await res.json();
@@ -305,7 +305,7 @@ export default function Utilities() {
         try { await loadDebts(); } catch {}
         setWaterSyncingNow(false);
         setWaterSyncNote('');
-      }, 120000);
+      }, 60000);
     } catch {
       setWaterSyncNote('No se pudo iniciar la consulta de agua. Verifica la conexión.');
       setWaterSyncingNow(false);
@@ -332,7 +332,7 @@ export default function Utilities() {
         try { await loadDebts(); } catch {}
         setGasSyncingNow(false);
         setGasSyncNote('');
-      }, 120000);
+      }, 60000);
     } catch {
       setGasSyncNote('No se pudo iniciar la consulta de gas. Verifica la conexión.');
       setGasSyncingNow(false);

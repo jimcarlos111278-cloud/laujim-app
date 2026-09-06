@@ -2,6 +2,7 @@ import { DEFAULT_SERVER, getRawBase, getServerCandidates, setActiveServer } from
 
 const STORAGE_KEY = 'laujim_portable_worker';
 const DEFAULT_TIMEOUT_MS = 10000;
+const TOKEN_BACKUP_KEY = 'laujim_worker_token_backup';
 
 function detectPlatform() {
   if (typeof window === 'undefined') return 'unknown';
@@ -31,18 +32,25 @@ function isRetryableError(error) {
 export function getPortableWorkerSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    let token = String(saved.token || '').trim();
+    // Restore from backup if localStorage lost the token
+    if (!token) {
+      try { token = String(localStorage.getItem(TOKEN_BACKUP_KEY) || '').trim(); } catch {}
+    }
     return {
       serverUrl: cleanServerUrl(saved.serverUrl),
-      token: String(saved.token || ''),
+      token,
       deviceId: String(saved.deviceId || makeDeviceId()),
       platform: String(saved.platform || detectPlatform()),
       runtime: String(saved.runtime || ((typeof window !== 'undefined' && window.Capacitor) ? 'laujim-apk' : 'laujim-web-worker')),
       appVersion: String(saved.appVersion || '2.5.0'),
     };
   } catch {
+    let token = '';
+    try { token = String(localStorage.getItem(TOKEN_BACKUP_KEY) || '').trim(); } catch {}
     return {
       serverUrl: cleanServerUrl(),
-      token: '',
+      token,
       deviceId: makeDeviceId(),
       platform: detectPlatform(),
       runtime: 'laujim-worker',
@@ -61,6 +69,9 @@ export function savePortableWorkerSettings(settings) {
     deviceId: String(settings?.deviceId || current.deviceId || '').trim() || makeDeviceId(),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  if (next.token) {
+    try { localStorage.setItem(TOKEN_BACKUP_KEY, next.token); } catch {}
+  }
   return next;
 }
 
@@ -162,4 +173,22 @@ export function maskWorkerToken(token) {
   if (!value) return 'No configurado';
   if (value.length < 10) return '••••••••';
   return `${value.slice(0, 4)}••••${value.slice(-4)}`;
+}
+
+export async function autoRecoverWorkerToken(authToken) {
+  const current = getPortableWorkerSettings();
+  if (current.token) return current;
+  try {
+    const base = cleanServerUrl(current.serverUrl) || 'https://laujim-app.onrender.com';
+    const response = await fetch(`${base}/api/worker-token`, {
+      headers: { 'x-auth-token': authToken },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) return current;
+    const { token } = await response.json();
+    if (token) {
+      return savePortableWorkerSettings({ ...current, token });
+    }
+  } catch {}
+  return current;
 }

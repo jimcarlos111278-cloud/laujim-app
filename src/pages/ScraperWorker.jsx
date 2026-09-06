@@ -14,6 +14,7 @@ import {
   Wifi,
 } from 'lucide-react';
 import {
+  autoRecoverWorkerToken,
   fetchPortableWorkerConfig,
   getPortableWorkerSettings,
   heartbeatPortableWorker,
@@ -158,14 +159,28 @@ export default function ScraperWorker() {
   const deviceIcon = useMemo(() => settings.platform.includes('android') ? Smartphone : Laptop, [settings.platform]);
 
   useEffect(() => {
+    let cancelled = false;
+    async function initWorker() {
+      let current = getPortableWorkerSettings();
+      if (!current.token) {
+        // Try to auto-recover from server if admin is logged in
+        try { current = await autoRecoverWorkerToken(AUTH_TOKEN); } catch {}
+        if (!cancelled && current.token) {
+          setSettings(current);
+          setMessage({ type: 'success', text: 'Token recuperado automáticamente del servidor.' });
+        }
+      }
+      if (!current.token) return;
+      setBusy(true);
+      try {
+        const result = await fetchPortableWorkerConfig(current);
+        if (!cancelled) setConfig(result);
+      } catch {}
+      if (!cancelled) setBusy(false);
+    }
+    initWorker();
     const current = getPortableWorkerSettings();
     if (!current.token) return undefined;
-    let cancelled = false;
-    setBusy(true);
-    fetchPortableWorkerConfig(current)
-      .then(result => { if (!cancelled) setConfig(result); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setBusy(false); });
     const interval = setInterval(() => heartbeatPortableWorker(current).catch(() => {}), 5 * 60 * 1000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [settings.deviceId, settings.serverUrl, settings.token]);

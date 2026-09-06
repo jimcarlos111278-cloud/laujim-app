@@ -89,7 +89,14 @@ function main() {
     'android/app/build.gradle',
     'public/app-version.json',
     'public/app-debug.apk',
-  ];
+    'README.md',
+    'server.cjs',
+    'scripts/build-apk.cjs',
+    'src/pages/ScraperWorker.jsx',
+    'src/pages/Utilities.jsx',
+    'src/utils/auth.js',
+    'src/utils/portableWorker.js',
+  ].filter(f => fs.existsSync(path.join(root, f)));
   run('git', ['add', ...files], root);
   run('git', ['commit', '-m', commitMessage], root);
 

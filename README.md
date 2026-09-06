@@ -485,6 +485,7 @@ Auth header: `x-auth-token: laujim laujim`
 | GET | `/api/public/utility-status/:apartmentId` | Estado público de servicios para la tarjeta de servicios | No |
 | POST | `/api/scrape-air-e` | Iniciar sincronización manual de Air-e | Sí |
 | POST | `/api/scrape-water` | Iniciar consulta manual de enlaces QR de Triple A | Sí |
+| GET | `/api/worker-token` | Obtener token de scraper worker para admin (persistencia y auto-recuperación) | Sí |
 
 ### Endpoints de Antecedentes (Policía)
 
@@ -1221,6 +1222,13 @@ var dropdowns = [
 ---
 
 ## Historial de Cambios
+
+### 2026-09-05 — Persistencia duradera de token del Scraper Worker y optimización de consulta de servicios
+- **New**: Endpoint `GET /api/worker-token` para que administradores autenticados recuperen de forma segura el token configurado en el servidor (`SCRAPER_WORKER_TOKEN`).
+- **New**: Respaldo secundario del token (`laujim_worker_token_backup`) en `src/utils/portableWorker.js` y auto-recuperación (`autoRecoverWorkerToken`) ante reinicios o cierres de la APK.
+- **Update**: `src/utils/auth.js` ejecuta `autoRecoverWorkerToken()` tras inicio de sesión exitoso de administrador.
+- **Update**: `src/pages/ScraperWorker.jsx` verifica y restaura el token automáticamente desde el servidor si no existe en almacenamiento local, alertando en la interfaz.
+- **Fix**: `src/pages/Utilities.jsx` aumenta el timeout de carga de deudas a 15s para tolerar cold-starts en Render, y reduce a 60s la espera para re-consultar tras sincronizaciones manuales.
 
 ### 2026-08-09 — Consulta horaria de facturas de agua Triple A
 - **New**: `services-scraper.cjs` consulta cada hora los enlaces QR de agua (`waterPaymentUrl`) en modo solo lectura, con parser tolerante a cambios de HTML, estados de pago, deuda, factura, período, CAPTCHA y timeout.

@@ -65,6 +65,22 @@ if (!javaHome) {
 }
 
 const env = { ...process.env, JAVA_HOME: javaHome };
+const androidCandidates = [
+  process.env.ANDROID_HOME,
+  process.env.ANDROID_SDK_ROOT,
+  'C:\\Android',
+  path.join(process.env.LOCALAPPDATA || '', 'Android', 'Sdk'),
+  path.join(process.env.USERPROFILE || '', 'AppData', 'Local', 'Android', 'Sdk'),
+].filter(Boolean);
+const androidHome = androidCandidates.find(candidate => fs.existsSync(candidate));
+if (androidHome) {
+  env.ANDROID_HOME = androidHome;
+  env.ANDROID_SDK_ROOT = androidHome;
+  const localProps = path.join(root, 'android', 'local.properties');
+  const sdkDirNormalized = androidHome.replace(/\\/g, '/');
+  fs.writeFileSync(localProps, `sdk.dir=${sdkDirNormalized}\n`);
+  console.log(`[apk] Android SDK configurado: ${androidHome}`);
+}
 const javaBin = path.join(javaHome, 'bin');
 const existingPath = process.env.PATH || process.env.Path || '';
 const mergedPath = `${javaBin}${path.delimiter}${existingPath}`;
@@ -73,6 +89,11 @@ const mergedPath = `${javaBin}${path.delimiter}${existingPath}`;
 env.PATH = mergedPath;
 if (isWindows) env.Path = mergedPath;
 console.log(`[apk] JDK seleccionado: ${javaHome} (Java ${javaMajor(javaHome)})`);
+
+const buildRoot = process.env.LAUJIM_ANDROID_BUILD_ROOT || path.join(process.env.LOCALAPPDATA || 'C:\\temp', 'LaujimAndroidBuild');
+env.LAUJIM_ANDROID_BUILD_ROOT = buildRoot;
+if (!fs.existsSync(buildRoot)) fs.mkdirSync(buildRoot, { recursive: true });
+console.log(`[apk] Build root fuera de OneDrive: ${buildRoot}`);
 
 // Graphify is useful for development/server builds, but it is not required
 // to package the already-built web app into Capacitor. Skipping it here also

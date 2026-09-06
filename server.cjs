@@ -5007,6 +5007,13 @@ app.post('/api/login', (req, res) => {
   res.status(401).json({ error: 'Credenciales inválidas' });
 });
 
+app.get('/api/worker-token', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const token = String(process.env.SCRAPER_WORKER_TOKEN || '').trim();
+  if (!token) return res.status(404).json({ error: 'SCRAPER_WORKER_TOKEN no configurado en el servidor.' });
+  res.json({ token });
+});
+
 app.post('/api/logout', (req, res) => {
   removeAuthSession(req.headers['x-auth-token']);
   res.json({ ok: true });
