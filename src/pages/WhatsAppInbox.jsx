@@ -603,6 +603,21 @@ export default function WhatsAppInbox() {
     if (!selected || !windowOpen || sending) return;
     setSending(true);
     setError('');
+    const tempId = 'temp-' + Date.now();
+    let tempUrl = '';
+    try { tempUrl = URL.createObjectURL(file); } catch {}
+    const optimisticMessage = {
+      id: tempId,
+      conversationId: selected,
+      direction: 'out',
+      type: 'audio',
+      text: '',
+      media: { url: tempUrl, mimeType: file.type || 'audio/ogg', fileName: file.name || 'nota-de-voz.ogg', voice: true },
+      createdAt: new Date().toISOString(),
+      pending: true,
+    };
+    setMessages(current => [...current, optimisticMessage]);
+    scrollToBottom('smooth');
     try {
       const token = getActiveToken();
       const form = new FormData();
@@ -617,10 +632,11 @@ export default function WhatsAppInbox() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'No fue posible enviar la nota de voz');
       if (data?.message) {
-        setMessages(current => current.some(m => m.id === data.message.id) ? current : [...current, data.message]);
+        setMessages(current => current.map(m => m.id === tempId ? data.message : m));
         setConversations(current => current.map(c => c.id === selected ? { ...c, messages: [data.message] } : c));
       }
     } catch (err) {
+      setMessages(current => current.filter(m => m.id !== tempId));
       setError(err.message);
     } finally {
       setSending(false);
@@ -719,19 +735,27 @@ export default function WhatsAppInbox() {
     setTemplatePreviewLoading(template);
     setError('');
     try {
-      const preview = await cloudRequest(`/whatsapp/cloud/conversations/${selected}/template-preview?template=${encodeURIComponent(template)}`);
+      const data = await cloudRequest(`/whatsapp/cloud/conversations/${selected}/template-preview?template=${encodeURIComponent(template)}`);
+      const preview = data?.preview || data;
+      if (!preview || !preview.previewText) {
+        throw new Error(data?.error || 'No fue posible generar la vista previa de la plantilla');
+      }
       setTemplatePreview(preview);
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      setError(err.message);
+      setTemplatePreview(null);
+    }
     finally { setTemplatePreviewLoading(''); }
   }
 
   async function sendTemplate(template) {
-    if (!selected || !templatePreview) return;
-    setTemplateSending(template);
+    const targetTemplate = template || templatePreview?.template;
+    if (!selected || !templatePreview || !targetTemplate) return;
+    setTemplateSending(targetTemplate);
     setError('');
     try {
       const result = await cloudRequest('/whatsapp/cloud/send-template', {
-        method: 'POST', body: JSON.stringify({ conversationId: selected, template, period: templatePreview.period, previewFingerprint: templatePreview.fingerprint }),
+        method: 'POST', body: JSON.stringify({ conversationId: selected, template: targetTemplate, period: templatePreview.period, previewFingerprint: templatePreview.fingerprint }),
       });
       if (result?.message) {
         setMessages(current => current.some(m => m.id === result.message.id) ? current : [...current, result.message]);
@@ -1292,7 +1316,7 @@ export default function WhatsAppInbox() {
             )}
 
             {/* ================= COMPOSITOR INFERIOR WHATSAPP ================= */}
-            <footer className="w-full max-w-full box-border bg-[#202c33] pl-[max(env(safe-area-inset-left),10px)] pr-[max(env(safe-area-inset-right),12px)] pt-1.5 pb-[max(env(safe-area-inset-bottom),12px)] flex items-center gap-1.5 sm:gap-2 shrink-0 z-20 border-t border-[#222d34] overflow-hidden">
+            <footer className="w-full max-w-full box-border bg-[#202c33] px-2 sm:px-3 pt-1.5 pb-[max(env(safe-area-inset-bottom),10px)] flex items-center gap-1 sm:gap-2 shrink-0 z-20 border-t border-[#222d34]">
               {/* Inputs ocultos de archivo */}
               <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
               <input ref={galleryInput} type="file" className="hidden" accept="image/*,video/*" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
@@ -1357,8 +1381,8 @@ export default function WhatsAppInbox() {
                 </button>
               </div>
 
-              {/* Botón Circular Flotante: Micrófono o Enviar con margen seguro */}
-              <div className="shrink-0 flex items-center justify-center">
+              {/* Botón Circular Flotante: Micrófono o Enviar con margen seguro anti-recorte */}
+              <div className="shrink-0 flex items-center justify-center pr-1 sm:pr-1.5">
                 <button
                   type="button"
                   onClick={e => {

@@ -45,7 +45,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   res.once('finish', () => {
     responseCount += 1;
     const contentLength = Number(res.getHeader('content-length'));
@@ -54,7 +54,8 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) requestCount++;
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
-    req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log';
+    req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
+    req.path === '/api/data-version';
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -64,12 +65,16 @@ app.use((req, res, next) => {
         databaseState,
       });
     }
-    const session = getAuthSession(req.headers['x-auth-token']);
+    const token = req.headers['x-auth-token'];
+    let session = getAuthSession(token);
+    if (!session && token && pgPool) {
+      session = await reloadAndFindAuthSession(token);
+    }
     if (!session) {
       return res.status(401).json({ error: 'No autorizado' });
     }
     req.auth = session;
-    const tenantPath = req.path === '/api/logout' || req.path.startsWith('/api/tenant/');
+    const tenantPath = req.path === '/api/logout' || req.path === '/api/auth/verify' || req.path.startsWith('/api/tenant/');
     if (session.role === 'tenant' && !tenantPath) {
       return res.status(403).json({ error: 'Acceso restringido al apartamento autenticado' });
     }
@@ -330,6 +335,38 @@ function getAuthSession(token) {
     // saveData() is debounced internally; avoid hammering disk on every request
   }
   return session;
+}
+
+async function reloadAndFindAuthSession(token) {
+  if (!token || typeof token !== 'string' || !pgPool) return null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await pgPool.query("SELECT value->'authSessions' AS sessions FROM store WHERE key = $1", ['database']);
+      const sessions = result.rows[0]?.sessions;
+      if (Array.isArray(sessions)) {
+        ensureAuthSessions();
+        const existingHashes = new Set(db.authSessions.map(s => s.tokenHash));
+        let added = 0;
+        for (const s of sessions) {
+          if (!existingHashes.has(s.tokenHash)) {
+            db.authSessions.push(s);
+            added++;
+          }
+        }
+        const session = getAuthSession(token);
+        if (session) {
+          console.log(`[AUTH] Successfully loaded cross-node session for ${session.name || session.role} (attempt ${attempt + 1})`);
+          return session;
+        }
+      }
+    } catch (err) {
+      console.warn('[AUTH] Error checking Postgres sessions:', err.message);
+    }
+    if (attempt === 0) {
+      await new Promise(r => setTimeout(r, 200));
+    }
+  }
+  return null;
 }
 
 function removeAuthSession(token) {
@@ -5361,6 +5398,18 @@ app.get('/api/data-version', (req, res) => {
   res.json({ version: dataVersion });
 });
 
+app.get('/api/auth/verify', (req, res) => {
+  if (!req.auth) return res.status(401).json({ ok: false, error: 'No autorizado' });
+  res.json({
+    ok: true,
+    valid: true,
+    role: req.auth.role,
+    name: req.auth.name,
+    apartmentId: req.auth.apartmentId || null,
+    tenantId: req.auth.tenantId || null,
+  });
+});
+
 app.get('/api/system/stats', async (req, res) => {
   let dbSize = 0;
   try { if (fs.existsSync(DATA_FILE)) dbSize = fs.statSync(DATA_FILE).size; } catch {}
@@ -5418,7 +5467,7 @@ app.get('/api/data/all', (req, res) => {
   res.json(JSON.parse(JSON.stringify(db)));
 });
 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   if (!databaseReady) {
     return res.status(503).json({
       error: databaseState === 'error'
@@ -5430,6 +5479,7 @@ app.post('/api/login', (req, res) => {
   const adminUsername = process.env.ADMIN_USERNAME || '';
   if (adminUsername && constantTimeEqual(username, adminUsername) && adminPasswordMatches(password)) {
     const session = createAuthSession({ role: 'admin', name: 'Administrador' });
+    try { await saveData(); } catch {}
     return res.json({ authenticated: true, role: 'admin', name: 'Administrador', ...session });
   }
   if (false) {
@@ -5453,6 +5503,7 @@ app.post('/api/login', (req, res) => {
     });
     if (tenant) {
       const session = createAuthSession({ role: 'tenant', apartmentId: apt.id, tenantId: tenant.id, name: tenant.name });
+      try { await saveData(); } catch {}
       return res.json({ authenticated: true, role: 'tenant', apartmentId: apt.id, name: tenant.name, ...session });
     }
   }
@@ -7869,6 +7920,22 @@ app.post('/api/whatsapp/cloud/quick-reply', async (req, res) => {
 // Build the exact values that the approved template would receive without
 // calling Meta. This lets the administrator verify the latest stored scraper
 // data before sending anything to a tenant.
+app.get('/api/whatsapp/cloud/conversations/:id/template-preview', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const conversation = db.whatsappConversations.find(c => c.id === Number(req.params.id));
+  const template = String(req.query.template || '').trim();
+  if (!conversation || !['greeting', 'payment_reminder'].includes(template)) {
+    return res.status(400).json({ error: 'Conversación y plantilla válida son requeridas' });
+  }
+  try {
+    const preview = cloudTemplatePreview(conversation, template, req.query.period);
+    res.json({ ok: true, preview, ...preview });
+  } catch (error) {
+    res.status(400).json({ error: `No fue posible preparar la vista previa: ${error.message}` });
+  }
+});
+
 app.post('/api/whatsapp/cloud/template-preview', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   ensureCloudCollections();
@@ -7878,7 +7945,8 @@ app.post('/api/whatsapp/cloud/template-preview', (req, res) => {
     return res.status(400).json({ error: 'Conversación y plantilla válida son requeridas' });
   }
   try {
-    res.json({ ok: true, preview: cloudTemplatePreview(conversation, template, req.body?.period) });
+    const preview = cloudTemplatePreview(conversation, template, req.body?.period);
+    res.json({ ok: true, preview, ...preview });
   } catch (error) {
     res.status(400).json({ error: `No fue posible preparar la vista previa: ${error.message}` });
   }
@@ -8422,6 +8490,33 @@ app.use((req, res) => {
     databaseReady = true;
     databaseLoadedAt = new Date().toISOString();
     console.log('Server ready - PostgreSQL: ' + (pgPool ? 'connected' : 'file mode') + `; apartments: ${Array.isArray(db.apartments) ? db.apartments.length : 0}`);
+
+    // Periodic cross-node synchronization for multi-node deployments (Primary + Backup)
+    let lastKnownPgUpdatedAt = databaseLoadedAt;
+    setInterval(async () => {
+      if (!pgPool || !databaseReady) return;
+      try {
+        const result = await pgPool.query("SELECT value FROM store WHERE key = 'database_meta'");
+        const meta = result.rows[0]?.value;
+        if (meta?.updatedAt && meta.updatedAt > lastKnownPgUpdatedAt) {
+          lastKnownPgUpdatedAt = meta.updatedAt;
+          const pgData = await loadFromPostgres();
+          if (pgData?.data) {
+            if (Array.isArray(pgData.data.whatsappConversations)) db.whatsappConversations = pgData.data.whatsappConversations;
+            if (Array.isArray(pgData.data.whatsappMessages)) db.whatsappMessages = pgData.data.whatsappMessages;
+            if (Array.isArray(pgData.data.whatsappContacts)) db.whatsappContacts = pgData.data.whatsappContacts;
+            if (Array.isArray(pgData.data.authSessions)) {
+              ensureAuthSessions();
+              const localHashes = new Set(db.authSessions.map(s => s.tokenHash));
+              for (const s of pgData.data.authSessions) {
+                if (!localHashes.has(s.tokenHash)) db.authSessions.push(s);
+              }
+            }
+            if (meta.version) dataVersion = meta.version;
+          }
+        }
+      } catch {}
+    }, 8000).unref();
 
     // Check when the service starts and then once an hour. The log prevents a
     // deployment restart from sending the same scheduled reminder twice.
