@@ -385,6 +385,19 @@ const CLOUD_AUTH_TTL = 5 * 60 * 1000;
 const CLOUD_AUTH_MAX_ATTEMPTS = 3;
 const CLOUD_PROCESSED_MESSAGE_TTL = 7 * 24 * 60 * 60 * 1000;
 
+function getWhatsAppWindowHours() {
+  try {
+    const setting = (db?.settings || []).find(s => s.key === 'whatsapp_window_hours')?.value;
+    const envVal = Number(process.env.WHATSAPP_WINDOW_HOURS || process.env.WHATSAPP_SERVICE_WINDOW_HOURS);
+    const hours = Number(setting || envVal || 24);
+    return Number.isFinite(hours) && hours > 0 ? hours : 24;
+  } catch { return 24; }
+}
+
+function getWhatsAppWindowMs() {
+  return getWhatsAppWindowHours() * 60 * 60 * 1000;
+}
+
 function cloudConfig() {
   return {
     enabled: process.env.WHATSAPP_CLOUD_ENABLED === 'true',
@@ -539,9 +552,23 @@ function markCloudMessageProcessed(messageId) {
 function authorizedCloudContact(phone) {
   ensureCloudCollections();
   const now = Date.now();
-  const explicit = db.whatsappContacts.find(c => c.enabled !== false && samePhone(c.phone, phone) &&
-    (!c.expiresAt || new Date(c.expiresAt).getTime() > now));
+  const explicit = db.whatsappContacts.find(c => c.enabled !== false && samePhone(c.phone, phone));
   if (explicit) {
+    if (explicit.source === 'authenticated') {
+      const exp = explicit.expiresAt ? new Date(explicit.expiresAt).getTime() : 0;
+      if (!explicit.expiresAt || exp <= now) {
+        explicit.enabled = false;
+        explicit.revokedAt = new Date().toISOString();
+        explicit.revocationReason = 'window_expired';
+        const staleConversation = db.whatsappConversations.find(c => samePhone(c.phone, phone));
+        if (staleConversation) {
+          staleConversation.customerServiceWindowUntil = null;
+          staleConversation.status = 'unauthenticated';
+        }
+        console.warn(`[WHATSAPP CLOUD] Authentication expired for ${normalizePhone(phone)} (service window closed). Re-authentication required.`);
+        return null;
+      }
+    }
     const tenant = (db.tenants || []).find(item => Number(item.id) === Number(explicit.tenantId));
     const currentApartmentId = tenant ? tenantApartmentId(tenant) : null;
     const storedApartmentId = apartmentIdFromReference(explicit.apartmentId);
@@ -649,7 +676,13 @@ function addCloudMessage(conversation, direction, message) {
   db.whatsappMessages.push(record);
   if (direction === 'in') {
     conversation.lastInboundAt = record.createdAt;
-    conversation.customerServiceWindowUntil = new Date(Date.parse(record.createdAt) + 24 * 60 * 60 * 1000).toISOString();
+    const windowMs = getWhatsAppWindowMs();
+    conversation.customerServiceWindowUntil = new Date(Date.parse(record.createdAt) + windowMs).toISOString();
+    // Keep authenticated contact expiresAt in lockstep with the conversation window
+    const explicit = (db.whatsappContacts || []).find(c => c.enabled !== false && c.source === 'authenticated' && samePhone(c.phone, conversation.phone));
+    if (explicit) {
+      explicit.expiresAt = conversation.customerServiceWindowUntil;
+    }
   } else if (direction === 'out') {
     conversation.lastOutboundAt = record.createdAt;
   }
@@ -659,17 +692,18 @@ function addCloudMessage(conversation, direction, message) {
 // Keep the inbox usable when a webhook delivered the tenant reply before the
 // conversation metadata was persisted (or when an older record has no window
 // timestamp). The inbound message itself is the source of truth for Meta's
-// 24-hour customer-service window.
+// customer-service window.
 function cloudServiceWindowOpen(conversation) {
   const now = Date.now();
   const configuredUntil = conversation?.customerServiceWindowUntil ? new Date(conversation.customerServiceWindowUntil).getTime() : 0;
   if (configuredUntil > now) return true;
+  const windowMs = getWhatsAppWindowMs();
   const phone = conversation?.phone;
   if (phone) {
     const authState = (db.whatsappAuthStates || []).find(s => samePhone(s.phone, phone));
     const authStateTime = authState?.updatedAt ? new Date(authState.updatedAt).getTime() : 0;
-    if (authStateTime && (authStateTime + 24 * 60 * 60 * 1000) > now) {
-      conversation.customerServiceWindowUntil = new Date(authStateTime + 24 * 60 * 60 * 1000).toISOString();
+    if (authStateTime && (authStateTime + windowMs) > now) {
+      conversation.customerServiceWindowUntil = new Date(authStateTime + windowMs).toISOString();
       conversation.lastInboundAt = authState.updatedAt;
       return true;
     }
@@ -679,8 +713,8 @@ function cloudServiceWindowOpen(conversation) {
     .map(message => new Date(message.createdAt).getTime())
     .filter(Number.isFinite)
     .sort((a, b) => b - a)[0];
-  if (!latestInbound || latestInbound + 24 * 60 * 60 * 1000 <= now) return false;
-  conversation.customerServiceWindowUntil = new Date(latestInbound + 24 * 60 * 60 * 1000).toISOString();
+  if (!latestInbound || latestInbound + windowMs <= now) return false;
+  conversation.customerServiceWindowUntil = new Date(latestInbound + windowMs).toISOString();
   return true;
 }
 
@@ -5025,12 +5059,12 @@ async function handleCloudInbound(message) {
       status: 'unauthenticated',
       createdAt: new Date().toISOString(),
       lastInboundAt: new Date().toISOString(),
-      customerServiceWindowUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      customerServiceWindowUntil: new Date(Date.now() + getWhatsAppWindowMs()).toISOString(),
     };
     db.whatsappConversations.push(unauthConversation);
   } else {
     unauthConversation.lastInboundAt = new Date().toISOString();
-    unauthConversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    unauthConversation.customerServiceWindowUntil = new Date(Date.now() + getWhatsAppWindowMs()).toISOString();
   }
 
   // Record incoming message so the administrator sees it in live inbox
@@ -5128,6 +5162,8 @@ async function handleCloudInbound(message) {
 
   ensureCloudCollections();
   const now = new Date().toISOString();
+  const windowMs = getWhatsAppWindowMs();
+  const expiresAt = new Date(Date.now() + windowMs).toISOString();
   const existingIndex = db.whatsappContacts.findIndex(item => samePhone(item.phone, phone));
   const contact = {
     id: existingIndex >= 0 ? db.whatsappContacts[existingIndex].id : nextId.whatsappContacts++,
@@ -5136,6 +5172,7 @@ async function handleCloudInbound(message) {
     apartmentId: state.apartmentId,
     enabled: true,
     source: 'authenticated',
+    expiresAt,
     verifiedAt: now,
     createdAt: existingIndex >= 0 ? db.whatsappContacts[existingIndex].createdAt : now,
   };
@@ -5148,7 +5185,7 @@ async function handleCloudInbound(message) {
   conversation.tenantId = tenant.id;
   conversation.apartmentId = state.apartmentId;
   conversation.lastInboundAt = now;
-  conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  conversation.customerServiceWindowUntil = expiresAt;
   conversation.authenticatedAt = now;
   conversation.authenticationSource = 'apartment_document';
 
@@ -7887,7 +7924,7 @@ app.post('/api/whatsapp/cloud/reminders/run', async (req, res) => {
   catch (error) { res.status(502).json({ error: error.message }); }
 });
 
-app.post('/api/whatsapp/cloud/send', async (req, res) => {
+app.post(['/api/whatsapp/cloud/send', '/api/whatsapp/cloud/send-message'], async (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   ensureCloudCollections();
   const { conversationId, text } = req.body || {};

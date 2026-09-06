@@ -377,9 +377,9 @@ export default function WhatsAppInbox() {
     const current = new Date(message.createdAt).getTime();
     return current > latest ? current : latest;
   }, 0);
-  const inferredWindowUntil = latestInbound ? latestInbound + 24 * 60 * 60 * 1000 : 0;
   const configuredWindowUntil = selectedConversation?.customerServiceWindowUntil ? new Date(selectedConversation.customerServiceWindowUntil).getTime() : 0;
   const serverWindowUntil = selectedConversation?.windowUntil ? new Date(selectedConversation.windowUntil).getTime() : 0;
+  const inferredWindowUntil = (!configuredWindowUntil && !serverWindowUntil && latestInbound) ? latestInbound + 24 * 60 * 60 * 1000 : 0;
   const windowUntil = Math.max(configuredWindowUntil, serverWindowUntil, inferredWindowUntil) ? new Date(Math.max(configuredWindowUntil, serverWindowUntil, inferredWindowUntil)) : null;
   const windowOpen = Boolean(selectedConversation?.windowOpen || (windowUntil && windowUntil.getTime() > windowClock));
   const windowRemainingMs = windowOpen && windowUntil ? windowUntil.getTime() - windowClock : 0;
@@ -701,33 +701,64 @@ export default function WhatsAppInbox() {
   async function sendMessage(event) {
     if (event) event.preventDefault();
     if (!selected || !windowOpen || sending || recording || (!draft.trim() && !attachment)) return;
+    const textToSend = draft.trim();
     setSending(true);
+    setError('');
+
+    let tempId = null;
+    if (!attachment && textToSend) {
+      tempId = 'temp-' + Date.now();
+      const optimisticMessage = {
+        id: tempId,
+        conversationId: selected,
+        direction: 'out',
+        type: 'text',
+        text: textToSend,
+        createdAt: new Date().toISOString(),
+        pending: true,
+      };
+      setMessages(current => [...current, optimisticMessage]);
+      setDraft('');
+      scrollToBottom('smooth');
+    }
+
     try {
       let result;
       if (attachment) {
         const token = getActiveToken();
         const form = new FormData();
         form.append('conversationId', String(selected));
-        form.append('caption', draft.trim());
+        form.append('caption', textToSend);
         form.append('file', attachment);
         const response = await fetch(getBase() + '/whatsapp/cloud/send-media', { method: 'POST', headers: { 'x-auth-token': token }, body: form });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'No fue posible enviar el archivo');
         result = data;
         clearAttachment();
+        setDraft('');
       } else {
         result = await cloudRequest('/whatsapp/cloud/send-message', {
-          method: 'POST', body: JSON.stringify({ conversationId: selected, text: draft.trim() }),
+          method: 'POST', body: JSON.stringify({ conversationId: selected, text: textToSend }),
         });
       }
       if (result?.message) {
-        setMessages(current => current.some(m => m.id === result.message.id) ? current : [...current, result.message]);
+        if (tempId) {
+          setMessages(current => current.map(m => m.id === tempId ? result.message : m));
+        } else {
+          setMessages(current => current.some(m => m.id === result.message.id) ? current : [...current, result.message]);
+        }
         setConversations(current => current.map(c => c.id === selected ? { ...c, messages: [result.message] } : c));
+        scrollToBottom('smooth');
       }
-      setDraft('');
-      setError('');
-    } catch (err) { setError(err.message); }
-    finally { setSending(false); }
+    } catch (err) {
+      if (tempId) {
+        setMessages(current => current.filter(m => m.id !== tempId));
+        setDraft(textToSend);
+      }
+      setError(err.message || 'Error al enviar el mensaje');
+    } finally {
+      setSending(false);
+    }
   }
 
   async function loadTemplatePreview(template) {

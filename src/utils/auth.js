@@ -17,9 +17,46 @@ export function getAuth() {
         setApiToken(backup.token);
       }
     }
+    if (!auth?.token || !auth?.role) {
+      const sessionSaved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null');
+      if (sessionSaved?.token && sessionSaved?.role) {
+        auth = sessionSaved;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionSaved));
+          localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(sessionSaved));
+        } catch {}
+        setApiToken(sessionSaved.token);
+      }
+    }
     if (!auth?.token || !auth?.role) return null;
     return auth;
   } catch { return null; }
+}
+
+export async function restoreNativeAuth() {
+  const current = getAuth();
+  if (current) return current;
+  if (typeof window === 'undefined' || !window.Capacitor) return null;
+  try {
+    const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
+    const file = await Filesystem.readFile({
+      path: 'laujim_auth.json',
+      directory: Directory.Data,
+      encoding: Encoding.UTF8,
+    });
+    if (file?.data) {
+      const auth = JSON.parse(file.data);
+      if (auth?.token && auth?.role) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+        localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(auth));
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+        setApiToken(auth.token);
+        console.log('[AUTH] Successfully restored session from Android native storage');
+        return auth;
+      }
+    }
+  } catch {}
+  return null;
 }
 
 export async function sendAuditLog(event, reason = '', details = {}) {
@@ -36,7 +73,7 @@ export async function sendAuditLog(event, reason = '', details = {}) {
       body: JSON.stringify({
         event,
         reason,
-        details,
+        details: { ...details, appVersion: '1.0.121' },
         user: auth?.name || null,
         role: auth?.role || null,
         platform: window.Capacitor ? 'android' : 'web',
@@ -53,8 +90,20 @@ export function setAuth(data) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
     localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(auth));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
   } catch {}
   setApiToken(auth.token);
+  // Persist to native Android internal storage via Capacitor Filesystem
+  if (typeof window !== 'undefined' && window.Capacitor) {
+    import('@capacitor/filesystem').then(({ Filesystem, Directory, Encoding }) => {
+      Filesystem.writeFile({
+        path: 'laujim_auth.json',
+        directory: Directory.Data,
+        data: JSON.stringify(auth),
+        encoding: Encoding.UTF8,
+      }).catch(() => {});
+    }).catch(() => {});
+  }
   sendAuditLog('LOGIN_SUCCESS', 'credentials_accepted', { role: data.role, name: data.name });
 }
 
@@ -64,8 +113,14 @@ export function clearAuth(options = {}, reason = 'unspecified') {
   stopBackgroundNotifications().catch(() => {});
   try {
     localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
     if (options.permanent === true) {
       localStorage.removeItem(BACKUP_STORAGE_KEY);
+      if (typeof window !== 'undefined' && window.Capacitor) {
+        import('@capacitor/filesystem').then(({ Filesystem, Directory }) => {
+          Filesystem.deleteFile({ path: 'laujim_auth.json', directory: Directory.Data }).catch(() => {});
+        }).catch(() => {});
+      }
     }
   } catch {}
   setApiToken('');

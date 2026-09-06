@@ -1,6 +1,6 @@
 {
   "appId": "com.laujim.aptmanager",
-  "appName": "GestionApartamentos",
+  "appName": "Laujim Tracker",
   "webDir": "dist",
   "server": {
     "hostname": "localhost",

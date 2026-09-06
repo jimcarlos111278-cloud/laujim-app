@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginAdmin, loginTenant, getAuth } from '../utils/auth';
+import { loginAdmin, loginTenant, getAuth, clearAuth, restoreNativeAuth } from '../utils/auth';
 import { getBase } from '../utils/config';
 import { refreshAllFromServer, startCloudPolling, startDataVersionPolling } from '../api';
 import { KeyRound, User, ShieldCheck, Home, Eye, EyeOff, Lock, ArrowRight } from 'lucide-react';
@@ -19,20 +19,23 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [recoveryMessage, setRecoveryMessage] = useState('');
 
-  const [checkingStoredSession, setCheckingStoredSession] = useState(() => Boolean(getAuth()));
+  const [checkingStoredSession, setCheckingStoredSession] = useState(true);
 
   // A Render deploy or server cold start can briefly delay session validation.
   // Never destroy local session tokens on transient network issues; verify with graceful fallback.
   useEffect(() => {
-    const existing = getAuth();
-    if (!existing?.token) {
-      setCheckingStoredSession(false);
-      return;
-    }
     let cancelled = false;
     let attempts = 0;
     const maxAttempts = 2;
     async function verifySession() {
+      let existing = getAuth();
+      if (!existing?.token) {
+        existing = await restoreNativeAuth();
+      }
+      if (!existing?.token) {
+        if (!cancelled) setCheckingStoredSession(false);
+        return;
+      }
       while (attempts < maxAttempts && !cancelled) {
         try {
           const res = await fetch(getBase() + '/auth/verify', {
