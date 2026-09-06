@@ -54,7 +54,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) requestCount++;
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
-    req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook';
+    req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log';
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -434,7 +434,7 @@ function tenantBelongsToApartment(tenant, apartmentId) {
 }
 
 function ensureCloudCollections() {
-  for (const name of ['whatsappContacts', 'whatsappConversations', 'whatsappMessages', 'whatsappAuthStates', 'whatsappAdminSessions', 'whatsappBlockedUsers', 'whatsappProcessedMessages', 'paymentReminderLogs']) {
+  for (const name of ['whatsappContacts', 'whatsappConversations', 'whatsappMessages', 'whatsappAuthStates', 'whatsappAdminSessions', 'whatsappBlockedUsers', 'whatsappProcessedMessages', 'paymentReminderLogs', 'auditLogs']) {
     if (!Array.isArray(db[name])) db[name] = [];
     if (!nextId[name]) nextId[name] = db[name].reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
   }
@@ -894,15 +894,25 @@ function firstName(name) {
   return String(name || 'hola').trim().split(/\s+/)[0] || 'hola';
 }
 
-function sendCloudGreetingTemplate(to, name) {
+async function sendCloudGreetingTemplate(to, name) {
   const templateName = String(process.env.WHATSAPP_GREETING_TEMPLATE || 'saludo_inquilino').trim();
-  return cloudApiRequest('/messages', 'POST', {
-    messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type: 'template',
-    template: {
-      name: templateName, language: { code: 'es_CO' },
-      components: [{ type: 'body', parameters: [{ type: 'text', text: firstName(name) }] }],
-    },
-  });
+  try {
+    return await cloudApiRequest('/messages', 'POST', {
+      messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type: 'template',
+      template: {
+        name: templateName, language: { code: 'es_CO' },
+        components: [{ type: 'body', parameters: [{ type: 'text', text: firstName(name) }] }],
+      },
+    });
+  } catch (coError) {
+    return await cloudApiRequest('/messages', 'POST', {
+      messaging_product: 'whatsapp', to: whatsappRecipientPhone(to), type: 'template',
+      template: {
+        name: templateName, language: { code: 'es' },
+        components: [{ type: 'body', parameters: [{ type: 'text', text: firstName(name) }] }],
+      },
+    });
+  }
 }
 
 function cloudPeriodLabel(period = colombiaDate().slice(0, 7)) {
@@ -4861,16 +4871,16 @@ async function handleCloudInbound(message) {
   const known = authorizedCloudContact(phone);
   const blocked = getCloudBlockedUser(phone);
   if (blocked) {
-    const recoverableReason = ['authentication_failed', 'tenant_removed'].includes(String(blocked.reason || ''));
-    if (!known || !recoverableReason) {
+    const isAuthFailed = blocked.reason === 'authentication_failed';
+    const blockedTime = blocked.blockedAt ? new Date(blocked.blockedAt).getTime() : 0;
+    const cooldownOver = (Date.now() - blockedTime) > 15 * 60 * 1000;
+    if (isAuthFailed && (cooldownOver || known)) {
+      await unblockCloudUser(phone);
+    } else if (!known) {
       console.warn(`[WHATSAPP CLOUD] ignored blocked contact ending ${phone.slice(-4)} · reason=${blocked.reason || 'unknown'}`);
       saveData();
       return;
     }
-    // A number that is now present in the tenant database must not remain
-    // trapped by a historical failed-authentication block. This is also what
-    // lets a re-added tenant contact recover without a manual database edit.
-    await unblockCloudUser(phone);
   }
   if (known) {
     console.info(`[WHATSAPP CLOUD] accepted known contact ending ${phone.slice(-4)} · source=${known.source || 'contact'} · apartment=${known.apartmentId || '—'}`);
@@ -5459,6 +5469,42 @@ app.get('/api/worker-token', (req, res) => {
 app.post('/api/logout', (req, res) => {
   removeAuthSession(req.headers['x-auth-token']);
   res.json({ ok: true });
+});
+
+app.post('/api/audit/log', (req, res) => {
+  ensureCloudCollections();
+  const body = req.body || {};
+  const token = req.headers['x-auth-token'];
+  const session = token ? getAuthSession(token) : null;
+  const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
+  const entry = {
+    id: nextId.auditLogs++,
+    timestamp: new Date().toISOString(),
+    clientTimestamp: body.clientTimestamp || null,
+    event: String(body.event || 'UNKNOWN').slice(0, 60),
+    reason: String(body.reason || '').slice(0, 250),
+    details: body.details && typeof body.details === 'object' ? body.details : null,
+    user: session?.name || body.user || 'anon',
+    role: session?.role || body.role || null,
+    platform: String(body.platform || 'web').slice(0, 20),
+    url: String(body.url || '').slice(0, 200),
+    ip: String(ip).slice(0, 50),
+    userAgent: String(body.userAgent || req.headers['user-agent'] || '').slice(0, 250),
+  };
+  db.auditLogs.push(entry);
+  if (db.auditLogs.length > 1000) {
+    db.auditLogs = db.auditLogs.slice(-1000);
+  }
+  saveData();
+  res.json({ ok: true });
+});
+
+app.get('/api/audit/logs', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  ensureCloudCollections();
+  const limit = Math.min(Number(req.query.limit) || 100, 500);
+  const logs = (db.auditLogs || []).slice(-limit).reverse();
+  res.json(logs);
 });
 
 app.get('/api/tenant/overview', (req, res) => {
@@ -7265,8 +7311,8 @@ app.get('/api/whatsapp/cloud/conversations', (req, res) => {
       c.updatedAt,
       c.createdAt,
     ].map(v => new Date(v || 0).getTime()).filter(Number.isFinite);
-    const lastMessageAt = activityTime.length ? new Date(Math.max(...activityTime)).toISOString() : c.createdAt;
-    return { ...c, tenantName: tenant?.name || 'Inquilino autorizado', apartmentName: apartment?.name || null,
+    const fallbackName = c.status === 'unauthenticated' ? `Visitante (${c.phone || 'nuevo'})` : (c.phone ? `Inquilino (${c.phone})` : 'Inquilino');
+    return { ...c, tenantName: tenant?.name || fallbackName, apartmentName: apartment?.name || null,
       windowOpen, windowUntil: c.customerServiceWindowUntil || null,
       lastMessageAt,
       messages: lastMessage ? [lastMessage] : [] };
@@ -7431,17 +7477,27 @@ app.delete('/api/whatsapp/cloud/conversations/:id', async (req, res) => {
   const conversationId = Number(req.params.id);
   const conversationIndex = db.whatsappConversations.findIndex(item => Number(item.id) === conversationId);
   if (conversationIndex < 0) return res.status(404).json({ error: 'Conversación no encontrada' });
+  const [removedConv] = db.whatsappConversations.splice(conversationIndex, 1);
   const messages = db.whatsappMessages.filter(item => Number(item.conversationId) === conversationId);
-  const warnings = (await Promise.all(messages.map(purgeCloudMessageMedia))).flat();
   db.whatsappMessages = db.whatsappMessages.filter(item => Number(item.conversationId) !== conversationId);
-  db.whatsappConversations.splice(conversationIndex, 1);
+  
+  if (removedConv?.phone) {
+    clearCloudAuthState(removedConv.phone);
+  }
   await saveData();
+
+  // Non-blocking background purge of media assets from Meta & R2
+  setImmediate(async () => {
+    for (const msg of messages) {
+      try { await purgeCloudMessageMedia(msg); } catch {}
+    }
+  });
+
   res.json({
     ok: true,
     localDeleted: true,
     remoteMessagesDeleted: false,
     messageCount: messages.length,
-    warnings,
     notice: 'La conversación ya no aparece en Laujim; Meta no permite borrar sus mensajes del WhatsApp del destinatario.',
   });
 });

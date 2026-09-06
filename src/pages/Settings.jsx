@@ -115,7 +115,7 @@ export default function Settings() {
     setResetting(false);
   }
 
-  function handleLogout() { clearAuth(); navigate('/login', { replace: true }); }
+  function handleLogout() { clearAuth({ permanent: true }, 'user_settings_logout'); navigate('/login', { replace: true }); }
 
   async function handleNotifToggle() {
     const next = { ...notifConfig, enabled: !notifConfig.enabled };

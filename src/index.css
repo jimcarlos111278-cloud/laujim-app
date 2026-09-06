@@ -38,8 +38,34 @@
 @keyframes login-logo-breathe { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-2px) scale(1.03); } }
 @keyframes login-float-one { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(3rem, 2rem, 0) scale(1.08); } }
 @keyframes login-float-two { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(-3rem, -2rem, 0) scale(1.1); } }
+
+/* Animaciones para el nuevo diseño cálido de Laujim (hogar y nuevo comienzo) */
+@keyframes floatKey {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-7px) rotate(-3deg); }
+}
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.06); }
+}
+@keyframes windowLight {
+  0%, 100% { fill: #fde047; filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.85)); }
+  50% { fill: #fef08a; filter: drop-shadow(0 0 10px rgba(250, 204, 21, 1)); }
+}
+@keyframes particleRise {
+  0% { transform: translateY(12px) scale(0.6); opacity: 0; }
+  50% { opacity: 0.8; }
+  100% { transform: translateY(-24px) scale(1); opacity: 0; }
+}
+.animate-float-key { animation: floatKey 3.5s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulseGlow 4s ease-in-out infinite; }
+.animate-window-light { animation: windowLight 2.8s ease-in-out infinite; }
+.particle-1 { animation: particleRise 3.2s infinite ease-out; }
+.particle-2 { animation: particleRise 2.7s infinite 0.9s ease-out; }
+.particle-3 { animation: particleRise 3.5s infinite 1.6s ease-out; }
+
 @media (prefers-reduced-motion: reduce) {
-  .login-orb, .login-content, .login-logo, .login-enter { animation: none !important; }
+  .login-orb, .login-content, .login-logo, .login-enter, .animate-float-key, .animate-pulse-glow, .animate-window-light, .particle-1, .particle-2, .particle-3 { animation: none !important; }
   .login-enter { opacity: 1; }
 }
 

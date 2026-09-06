@@ -22,6 +22,32 @@ export function getAuth() {
   } catch { return null; }
 }
 
+export async function sendAuditLog(event, reason = '', details = {}) {
+  try {
+    const base = getBase();
+    const token = AUTH_TOKEN || getAuth()?.token || null;
+    const auth = getAuth();
+    fetch(`${base}/audit/log`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'x-auth-token': token } : {}),
+      },
+      body: JSON.stringify({
+        event,
+        reason,
+        details,
+        user: auth?.name || null,
+        role: auth?.role || null,
+        platform: window.Capacitor ? 'android' : 'web',
+        url: window.location?.href || '',
+        clientTimestamp: new Date().toISOString(),
+      }),
+      signal: AbortSignal.timeout(3000),
+    }).catch(() => {});
+  } catch {}
+}
+
 export function setAuth(data) {
   const auth = { role: data.role, name: data.name, apartmentId: data.apartmentId || null, token: data.token, expiresAt: data.expiresAt || null };
   try {
@@ -29,14 +55,16 @@ export function setAuth(data) {
     localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(auth));
   } catch {}
   setApiToken(auth.token);
+  sendAuditLog('LOGIN_SUCCESS', 'credentials_accepted', { role: data.role, name: data.name });
 }
 
-export function clearAuth(options = {}) {
+export function clearAuth(options = {}, reason = 'unspecified') {
   const token = AUTH_TOKEN;
+  sendAuditLog('LOGOUT_TRIGGERED', reason, { permanent: options.permanent, options });
   stopBackgroundNotifications().catch(() => {});
   try {
     localStorage.removeItem(STORAGE_KEY);
-    if (options.permanent !== false) {
+    if (options.permanent === true) {
       localStorage.removeItem(BACKUP_STORAGE_KEY);
     }
   } catch {}

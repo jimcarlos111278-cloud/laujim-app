@@ -123,7 +123,7 @@ export default function MiApto() {
       setQrUrls(generated);
     } catch (requestError) {
       if (/autoriz|sesión|sesion/i.test(requestError.message)) {
-        clearAuth();
+        clearAuth({}, 'tenant_fetch_auth_error');
         navigate('/login', { replace: true });
         return;
       }
@@ -134,7 +134,7 @@ export default function MiApto() {
   }
 
   function handleLogout() {
-    clearAuth();
+    clearAuth({ permanent: true }, 'tenant_user_logout');
     navigate('/login', { replace: true });
   }
 

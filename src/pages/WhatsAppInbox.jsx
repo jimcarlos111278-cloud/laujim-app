@@ -275,6 +275,7 @@ export default function WhatsAppInbox() {
   const [templatePreviewLoading, setTemplatePreviewLoading] = useState('');
   const [startingContactId, setStartingContactId] = useState(null);
   const [deleting, setDeleting] = useState('');
+  const [convToDelete, setConvToDelete] = useState(null);
   const [windowClock, setWindowClock] = useState(Date.now());
   const [searchQuery, setSearchQuery] = useState('');
   const [listFilter, setListFilter] = useState('all');
@@ -754,18 +755,29 @@ export default function WhatsAppInbox() {
     finally { setDeleting(''); }
   }
 
-  async function deleteSelectedConversation() {
-    if (!selectedConversation) return;
-    if (!window.confirm(`¿Eliminar la conversación con ${selectedConversation.tenantName || selectedConversation.phone}?`)) return;
-    setDeleting(`conversation:${selectedConversation.id}`);
+  function requestDeleteConversation(conv) {
+    if (!conv) return;
+    setConvToDelete(conv);
+  }
+
+  async function executeDeleteConversation() {
+    if (!convToDelete) return;
+    const target = convToDelete;
+    setDeleting(`conversation:${target.id}`);
     try {
-      await cloudRequest(`/whatsapp/cloud/conversations/${selectedConversation.id}`, { method: 'DELETE' });
-      setConversations(current => current.filter(item => item.id !== selectedConversation.id));
-      setMessages([]);
-      setSelected(null);
-      navigate('/whatsapp');
-    } catch (err) { setError(err.message); }
-    finally { setDeleting(''); }
+      await cloudRequest(`/whatsapp/cloud/conversations/${target.id}`, { method: 'DELETE' });
+      setConversations(current => current.filter(item => item.id !== target.id));
+      if (selected === target.id) {
+        setMessages([]);
+        setSelected(null);
+        navigate('/whatsapp');
+      }
+      setConvToDelete(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting('');
+    }
   }
 
   const handleScroll = () => {
@@ -890,14 +902,27 @@ export default function WhatsAppInbox() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between mt-0.5">
-                        <p className="text-xs text-[#8696a0] truncate">
+                        <p className="text-xs text-[#8696a0] truncate flex-1">
                           {previewText(conversation)}
                         </p>
-                        {unread > 0 && (
-                          <span className="w-4 h-4 rounded-full bg-[#00a884] text-[#111b21] text-[10px] font-bold flex items-center justify-center shrink-0 ml-1 shadow">
-                            {unread}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              requestDeleteConversation(conversation);
+                            }}
+                            className="p-1 hover:bg-rose-500/20 text-[#8696a0] hover:text-rose-400 rounded-full transition"
+                            title="Eliminar conversación"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          {unread > 0 && (
+                            <span className="w-4 h-4 rounded-full bg-[#00a884] text-[#111b21] text-[10px] font-bold flex items-center justify-center shrink-0 shadow">
+                              {unread}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px]">
                         <span className={`w-1.5 h-1.5 rounded-full ${cWindowOpen ? 'bg-emerald-400' : 'bg-amber-400'}`} />
@@ -1034,7 +1059,7 @@ export default function WhatsAppInbox() {
                 </button>
                 <button
                   type="button"
-                  onClick={deleteSelectedConversation}
+                  onClick={() => requestDeleteConversation(selectedConversation)}
                   disabled={deleting === `conversation:${selectedConversation.id}`}
                   className="p-2 hover:bg-white/10 rounded-full text-rose-400 hover:text-rose-300 transition active:scale-95"
                   title="Eliminar conversación de Laujim"
@@ -1246,7 +1271,7 @@ export default function WhatsAppInbox() {
             )}
 
             {/* ================= COMPOSITOR INFERIOR WHATSAPP ================= */}
-            <footer className="bg-[#202c33] pl-2.5 pr-3.5 sm:pr-4 pt-1.5 pb-[max(env(safe-area-inset-bottom),14px)] flex items-center gap-2 shrink-0 z-20 border-t border-[#222d34]">
+            <footer className="w-full max-w-full box-border bg-[#202c33] pl-[max(env(safe-area-inset-left),10px)] pr-[max(env(safe-area-inset-right),12px)] pt-1.5 pb-[max(env(safe-area-inset-bottom),12px)] flex items-center gap-1.5 sm:gap-2 shrink-0 z-20 border-t border-[#222d34] overflow-hidden">
               {/* Inputs ocultos de archivo */}
               <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
               <input ref={galleryInput} type="file" className="hidden" accept="image/*,video/*" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
@@ -1254,7 +1279,7 @@ export default function WhatsAppInbox() {
               <input ref={cameraVideoInput} type="file" className="hidden" accept="video/*" capture="environment" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
 
               {/* Pastilla Flotante de Entrada */}
-              <div className={`flex-1 rounded-2xl flex items-center px-2 py-1 gap-1 transition-colors ${
+              <div className={`min-w-0 flex-1 rounded-2xl flex items-center px-1.5 sm:px-2 py-1 gap-0.5 sm:gap-1 transition-colors ${
                 windowOpen
                   ? 'bg-[#2a3942] focus-within:ring-1 focus-within:ring-[#00a884]'
                   : 'bg-[#182229] border border-gray-700/60 opacity-80 cursor-not-allowed'
@@ -1264,10 +1289,10 @@ export default function WhatsAppInbox() {
                   type="button"
                   onClick={() => { if (windowOpen) setDraft(d => d + '😊'); }}
                   disabled={!windowOpen || sending || recording}
-                  className="p-1 text-[#8696a0] hover:text-[#e9edef] transition disabled:opacity-40"
+                  className="p-1 text-[#8696a0] hover:text-[#e9edef] transition disabled:opacity-40 shrink-0"
                   title="Emojis"
                 >
-                  <Smile className="w-5 h-5" />
+                  <Smile className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                 </button>
 
                 {/* Campo de Texto */}
@@ -1278,12 +1303,12 @@ export default function WhatsAppInbox() {
                   disabled={!windowOpen || sending || recording}
                   placeholder={
                     recording
-                      ? 'Grabando nota de voz…'
+                      ? 'Grabando nota…'
                       : windowOpen
                       ? 'Escribe un mensaje'
-                      : 'Por favor envía una plantilla para iniciar la interacción'
+                      : 'Enviar plantilla para chatear'
                   }
-                  className={`flex-1 bg-transparent text-sm outline-none px-1 py-1 min-w-0 ${
+                  className={`flex-1 bg-transparent text-sm outline-none px-1 py-1 min-w-0 w-0 ${
                     windowOpen ? 'text-[#e9edef] placeholder-[#8696a0]' : 'text-gray-400 placeholder-gray-400 cursor-not-allowed text-xs'
                   }`}
                 />
@@ -1293,10 +1318,10 @@ export default function WhatsAppInbox() {
                   type="button"
                   onClick={() => fileInput.current?.click()}
                   disabled={!windowOpen || sending || recording}
-                  className="p-1 text-[#8696a0] hover:text-[#e9edef] transition disabled:opacity-40"
+                  className="p-1 text-[#8696a0] hover:text-[#e9edef] transition disabled:opacity-40 shrink-0"
                   title="Adjuntar archivo o documento"
                 >
-                  <Paperclip className="w-5 h-5" />
+                  <Paperclip className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                 </button>
 
                 {/* Cámara Rápida */}
@@ -1304,15 +1329,15 @@ export default function WhatsAppInbox() {
                   type="button"
                   onClick={() => cameraPhotoInput.current?.click()}
                   disabled={!windowOpen || sending || recording}
-                  className="p-1 text-[#8696a0] hover:text-[#e9edef] transition disabled:opacity-40"
+                  className="p-1 text-[#8696a0] hover:text-[#e9edef] transition disabled:opacity-40 shrink-0"
                   title="Tomar foto de evidencia"
                 >
-                  <Camera className="w-5 h-5" />
+                  <Camera className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                 </button>
               </div>
 
               {/* Botón Circular Flotante: Micrófono o Enviar con margen seguro */}
-              <div className="shrink-0 flex items-center justify-center mr-1">
+              <div className="shrink-0 flex items-center justify-center">
                 <button
                   type="button"
                   onClick={e => {
@@ -1327,7 +1352,7 @@ export default function WhatsAppInbox() {
                     }
                   }}
                   disabled={sending}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition active:scale-90 shadow-md ${
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition active:scale-90 shadow-md ${
                     windowOpen
                       ? 'bg-[#00a884] hover:bg-[#06cf9c] text-[#111b21]'
                       : 'bg-[#2a3942] text-amber-400 hover:bg-[#344651]'
@@ -1341,11 +1366,11 @@ export default function WhatsAppInbox() {
                   }
                 >
                   {!windowOpen ? (
-                    <FileText className="w-5 h-5 text-amber-400" />
+                    <FileText className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-amber-400" />
                   ) : draft.trim() || attachment ? (
-                    <Send className="w-5 h-5 font-bold ml-0.5" />
+                    <Send className="w-4 h-4 sm:w-5 sm:h-5 font-bold ml-0.5" />
                   ) : (
-                    <Mic className="w-5 h-5" />
+                    <Mic className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                   )}
                 </button>
               </div>
@@ -1482,6 +1507,44 @@ export default function WhatsAppInbox() {
                   className="px-3 py-1.5 rounded-lg bg-[#00a884] text-[#111b21] font-bold text-xs hover:bg-[#06cf9c]"
                 >
                   Aceptar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Confirmación de Eliminación de Conversación */}
+        {convToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fade-in">
+            <div className="bg-[#202c33] border border-[#374248] rounded-2xl p-5 max-w-sm w-full shadow-2xl text-[#e9edef] animate-pop-in">
+              <div className="flex items-center gap-3 mb-3 text-rose-400">
+                <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">¿Eliminar conversación?</h3>
+                  <span className="text-[11px] text-gray-400">Acción permanente</span>
+                </div>
+              </div>
+              <p className="text-xs text-[#8696a0] mb-4 leading-relaxed">
+                Se eliminará el chat y el historial con <strong className="text-white">{convToDelete.tenantName || convToDelete.phone}</strong> del sistema Laujim.
+              </p>
+              <div className="flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setConvToDelete(null)}
+                  disabled={deleting === `conversation:${convToDelete.id}`}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#8696a0] hover:text-white hover:bg-white/5 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={executeDeleteConversation}
+                  disabled={deleting === `conversation:${convToDelete.id}`}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition flex items-center gap-1.5 shadow-lg shadow-rose-600/20"
+                >
+                  {deleting === `conversation:${convToDelete.id}` ? 'Eliminando…' : 'Eliminar'}
                 </button>
               </div>
             </div>

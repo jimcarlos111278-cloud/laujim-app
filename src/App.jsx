@@ -178,7 +178,6 @@ function PrivateApp() {
                   <Route path="/apartments" element={<Apartments />} />
                   <Route path="/apartments/:id" element={<ApartmentDetail />} />
                   <Route path="/tenants" element={<Tenants />} />
-
                   <Route path="/contracts" element={<Contracts />} />
                   <Route path="/payments" element={<Payments />} />
                   <Route path="/utilities" element={<Utilities />} />
@@ -195,7 +194,6 @@ function PrivateApp() {
                   <Route path="/whatsapp-contactos" element={<WhatsAppContacts />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
-                {location.pathname !== '/whatsapp' && <VersionBanner />}
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
@@ -214,7 +212,12 @@ function AppContent() {
       </Routes>
     );
   }
-  return <PrivateApp />;
+  return (
+    <>
+      <PrivateApp />
+      <VersionBanner />
+    </>
+  );
 }
 
 export default function App() {

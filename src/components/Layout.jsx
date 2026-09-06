@@ -44,7 +44,7 @@ const [installPrompt, setInstallPrompt] = useState(null);
   const immersiveWhatsApp = location.pathname === '/whatsapp';
 
   function handleLogout() {
-    clearAuth();
+    clearAuth({ permanent: true }, 'user_sidebar_logout');
     navigate('/login', { replace: true });
   }
 
@@ -53,7 +53,7 @@ const [installPrompt, setInstallPrompt] = useState(null);
     const confirmed = window.confirm('Se borrarán las cookies y los datos locales de esta app en este dispositivo. No se borrará la base de datos de Render. ¿Continuar?');
     if (!confirmed) return;
     setClearingAppData(true);
-    clearAuth();
+    clearAuth({ permanent: true }, 'user_clear_app_data');
     await clearAppData();
     window.location.replace('/login?reset=1');
   }

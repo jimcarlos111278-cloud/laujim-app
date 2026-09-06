@@ -20,7 +20,27 @@ export async function requestNotificationPermission() {
   return result === 'granted';
 }
 
-export function notify(title, body) {
+export async function notify(title, body, options = {}) {
+  if (window.Capacitor) {
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: Math.floor(Math.random() * 1000000),
+          title: String(title),
+          body: String(body),
+          channelId: options.channelId || 'laujim_general',
+          sound: 'default',
+          smallIcon: 'ic_stat_icon',
+          iconColor: '#2563EB',
+          extra: options.extra || {},
+        }]
+      });
+      return;
+    } catch (e) {
+      console.warn('Native notification failed:', e?.message || e);
+    }
+  }
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   new Notification(title, { body, icon: '/icons.svg' });
 }
