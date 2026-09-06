@@ -72,11 +72,12 @@ function PrivateApp() {
   useEffect(() => {
     try { initDB(); } catch (e) { console.error('DB init error:', e); }
     const auth = getAuth();
-    if (!auth || auth.role !== 'admin') {
+    if (!auth) {
       setLoading(false);
       try { initTheme(); } catch (e) { console.error('Theme init error:', e); }
       return;
     }
+    // Request notification permissions for ALL roles (admin and tenant)
     requestNotificationPermission();
     const notificationConfig = getNotifConfig();
     // Remove payment reminders scheduled by an older APK.
@@ -103,9 +104,9 @@ function PrivateApp() {
         if (i < 2) await new Promise(r => setTimeout(r, 5000));
       }
       const syncStatus = getCloudSyncStatus();
-      if (!cloudSyncOk && (syncStatus.status === 401 || syncStatus.status === 403)) {
-        // A session can expire while the SPA stays open. Do not leave the user
-        // inside an apparently valid dashboard backed by empty client arrays.
+      if (!cloudSyncOk && (syncStatus.status === 401)) {
+        // Only clear auth on explicit 401 — the server confirmed the token is invalid.
+        // 503 (server starting) and network errors should NOT destroy a valid session.
         clearAuth();
         window.location.replace('/login?reason=session-expired');
         return;

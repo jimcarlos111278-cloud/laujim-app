@@ -104,7 +104,21 @@ public class BackgroundNotificationService extends Service {
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) { return START_STICKY; }
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && "com.laujim.aptmanager.TEST_NOTIFICATION".equals(intent.getAction())) {
+            try {
+                JSONObject item = new JSONObject();
+                item.put("id", 1234);
+                item.put("conversationId", 1);
+                item.put("tenantName", "Jim Carlos Varela Gomez");
+                item.put("apartmentName", "101");
+                item.put("type", "text");
+                item.put("text", intent.getStringExtra("text") != null ? intent.getStringExtra("text") : "🔔 ¡Hola! Notificación de WhatsApp Laujim funcionando.");
+                showIncoming(item, true);
+            } catch (Exception ignored) {}
+        }
+        return START_STICKY;
+    }
 
     private void poll() {
         if (!enabled(this)) return;
@@ -129,9 +143,14 @@ public class BackgroundNotificationService extends Service {
             }
             if (!newest.isEmpty() && newest.compareTo(since) > 0) prefs.edit().putString(KEY_LAST_SEEN, newest).apply();
             pollEvents(prefs);
+        } catch (IllegalStateException e) {
+            // Handle 401 specifically — token may have expired
+            if (e.getMessage() != null && e.getMessage().contains("401")) {
+                showAuthExpiredNotification();
+            }
+            // Other errors (503, network) retry silently on the next cycle
         } catch (Exception ignored) {
-            // The next polling cycle retries silently; the ongoing service
-            // notification remains visible as the health indicator.
+            // Network/parse errors retry on the next polling cycle
         }
     }
 
@@ -315,6 +334,30 @@ public class BackgroundNotificationService extends Service {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
         format.setTimeZone(TimeZone.getTimeZone("UTC"));
         return format.format(new Date());
+    }
+
+    private boolean authExpiredShown = false;
+
+    private void showAuthExpiredNotification() {
+        if (authExpiredShown) return; // Only show once per service lifecycle
+        authExpiredShown = true;
+        try {
+            Intent openApp = new Intent(this, MainActivity.class);
+            openApp.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            android.app.PendingIntent pending = android.app.PendingIntent.getActivity(
+                this, 0, openApp, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE
+            );
+            Notification notification = new NotificationCompat.Builder(this, MESSAGE_CHANNEL)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentTitle("Sesión expirada")
+                .setContentText("Abre la app para restaurar las notificaciones")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pending)
+                .setAutoCancel(true)
+                .build();
+            NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (manager != null) manager.notify(99999, notification);
+        } catch (Exception e) { /* best-effort */ }
     }
 
     @Override public IBinder onBind(Intent intent) { return null; }

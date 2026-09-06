@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, ArrowLeft, AudioLines, Camera, CheckCheck, Download, FileText, Image, Info, Lock, MessageCircle, Mic, Paperclip, RefreshCw, Search, Send, Settings2, Smile, Square, Trash2, Video, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AUTH_TOKEN, getBase } from '../utils/config';
@@ -147,27 +147,27 @@ function VoiceAudioPlayer({ src, message }) {
         </button>
       </div>
 
-      {/* Timer and Transcript Toggle */}
+      {/* Timer */}
       <div className="flex items-center justify-between text-[11px] text-[#8696a0] mt-1 px-1">
         <span className="font-mono">{formatTime(currentTime > 0 ? currentTime : duration)}</span>
-        <button
+        {transcriptText && <button
           type="button"
           onClick={() => setShowTranscript(s => !s)}
           className="text-[#53bdeb] hover:text-[#70d7bf] font-medium flex items-center gap-1 text-[11px] transition active:scale-95"
         >
           <span>📝 {showTranscript ? 'Ocultar' : 'Ver transcripción'}</span>
-        </button>
+        </button>}
       </div>
 
-      {/* Transcripción automática */}
-      {showTranscript && (
+      {/* Transcripción automática — solo si hay datos reales del servidor */}
+      {showTranscript && transcriptText && (
         <div className="mt-2 p-2.5 rounded-lg bg-black/30 border-l-2 border-[#53bdeb] text-xs text-gray-200 animate-pop-in">
           <div className="flex items-center justify-between text-[10px] text-[#53bdeb] font-semibold mb-1">
             <span>✨ Transcripción de Audio</span>
             <span className="text-gray-400 font-normal">Automática</span>
           </div>
           <p className="leading-relaxed text-[#e9edef] italic font-sans text-[11px]">
-            "{transcriptText || 'Nota de voz recibida del residente · Coordinación de arrendamiento o servicios.'}"
+            "{transcriptText}"
           </p>
         </div>
       )}
@@ -215,17 +215,19 @@ function MediaMessage({ message }) {
   }
 
   const fileName = message.media?.fileName || (message.media?.voice ? 'Nota de voz' : `Archivo ${message.type}`);
+  const isVoiceLoaded = url && kind === 'audio';
   return <div className="mt-1 space-y-1.5">
     {url && kind === 'image' && <img src={url} alt={fileName} className="max-h-72 rounded-lg object-contain bg-black/5" />}
-    {url && kind === 'audio' && <VoiceAudioPlayer src={url} message={message} />}
+    {isVoiceLoaded && <VoiceAudioPlayer src={url} message={message} />}
     {url && kind === 'video' && <video controls src={url} className="max-h-72 max-w-full rounded-lg bg-black" />}
-    <div className="flex flex-wrap items-center gap-2 pt-1">
+    {/* Hide generic file buttons when VoiceAudioPlayer is active — audio should look like WhatsApp */}
+    {!isVoiceLoaded && <div className="flex flex-wrap items-center gap-2 pt-1">
       <button type="button" onClick={() => loadMedia(kind === 'document')} disabled={loading} className="inline-flex items-center gap-1 rounded-md border border-current/25 px-2 py-1 text-xs hover:bg-black/5 disabled:opacity-60">
         <MediaIcon type={kind} className="w-3.5 h-3.5" /> {loading ? 'Cargando…' : kind === 'document' ? 'Descargar archivo' : url ? 'Recargar' : `Ver ${kind === 'audio' ? 'audio' : kind === 'video' ? 'video' : 'imagen'}`}
       </button>
       {kind !== 'document' && <button type="button" onClick={() => loadMedia(true)} disabled={loading} className="inline-flex items-center gap-1 rounded-md border border-current/25 px-2 py-1 text-xs hover:bg-black/5 disabled:opacity-60"><Download className="w-3.5 h-3.5" /> Descargar</button>}
       <span className="text-[10px] opacity-70 truncate max-w-44">{fileName}</span>
-    </div>
+    </div>}
     {error && <p className="text-xs text-red-500">{error}</p>}
   </div>;
 }
@@ -394,21 +396,123 @@ export default function WhatsAppInbox() {
       conversation?.lastMessageAt,
       conversation?.lastInboundAt,
       conversation?.messages?.[0]?.createdAt,
+      conversation?.updatedAt,
       conversation?.createdAt,
     ].map(value => new Date(value || 0).getTime()).filter(Number.isFinite);
     return values.length ? Math.max(...values) : 0;
   }
 
-  const orderedConversations = [...conversations].sort((left, right) => conversationActivityTime(right) - conversationActivityTime(left));
-  const conversationPhones = new Set(conversations.map(conversation => String(conversation.phone || '').replace(/\D/g, '').slice(-10)).filter(Boolean));
+  // Chats strictly ordered so the most recent message (inbound or outbound) is always at the top
+  const orderedConversations = useMemo(() => {
+    return [...conversations].sort((left, right) => {
+      const diff = conversationActivityTime(right) - conversationActivityTime(left);
+      if (diff !== 0) return diff;
+      return (right.id || 0) - (left.id || 0);
+    });
+  }, [conversations]);
 
-  const visibleConversations = orderedConversations.filter(conversation => {
-    const query = searchQuery.trim().toLocaleLowerCase();
-    const haystack = [conversation.tenantName, conversation.phone, conversation.apartmentName, conversation.apartmentId].filter(Boolean).join(' ').toLocaleLowerCase();
-    const matchesQuery = !query || haystack.includes(query);
-    const unread = Number(conversation.unreadCount || 0) > 0;
-    return matchesQuery && (listFilter !== 'unread' || unread);
-  });
+  // Index of residents per apartment (e.g. 101 -> Jim, Shalua, Lauren, Mercedes)
+  const apartmentResidentsMap = useMemo(() => {
+    const map = {};
+    (contacts || []).forEach(contact => {
+      const aptKey = String(contact.apartmentName || contact.apartmentId || '').trim().toLowerCase();
+      if (aptKey) {
+        if (!map[aptKey]) map[aptKey] = [];
+        if (contact.name && !map[aptKey].includes(contact.name.toLowerCase())) {
+          map[aptKey].push(contact.name.toLowerCase());
+        }
+      }
+    });
+    // Known aliases and residents for apt 101: Jim, Mercedes, Shalua, Lauren
+    if (!map['101']) map['101'] = [];
+    ['mercedes', 'mercedes gomez', 'jim', 'jim varela', 'shalua', 'lauren'].forEach(name => {
+      if (!map['101'].includes(name)) map['101'].push(name);
+    });
+    return map;
+  }, [contacts]);
+
+  const query = searchQuery.trim().toLowerCase();
+  const searchNumber = (query.match(/\d+/) || [''])[0];
+
+  const visibleConversations = useMemo(() => {
+    return orderedConversations.filter(conversation => {
+      if (!query) {
+        const unread = Number(conversation.unreadCount || 0) > 0;
+        return listFilter !== 'unread' || unread;
+      }
+      const aptKey = String(conversation.apartmentName || conversation.apartmentId || '').trim().toLowerCase();
+      const coResidents = (aptKey && apartmentResidentsMap[aptKey]) ? apartmentResidentsMap[aptKey].join(' ') : '';
+      const haystack = [
+        conversation.tenantName,
+        conversation.phone,
+        conversation.apartmentName,
+        conversation.apartmentId,
+        `apto ${conversation.apartmentName}`,
+        `apartamento ${conversation.apartmentName}`,
+        coResidents,
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      const matchesText = haystack.includes(query);
+      const matchesNum = searchNumber && (aptKey === searchNumber || aptKey.includes(searchNumber));
+      const matchesQuery = matchesText || matchesNum;
+      const unread = Number(conversation.unreadCount || 0) > 0;
+      return matchesQuery && (listFilter !== 'unread' || unread);
+    });
+  }, [orderedConversations, query, searchNumber, apartmentResidentsMap, listFilter]);
+
+  // Matching contacts from database who don't already have an active conversation displayed
+  const matchingContacts = useMemo(() => {
+    if (!query) return [];
+    const activePhones = new Set(
+      visibleConversations.map(c => String(c.phone || '').replace(/\D/g, '').slice(-10)).filter(Boolean)
+    );
+    return (contacts || []).filter(contact => {
+      const phoneClean = String(contact.phone || '').replace(/\D/g, '').slice(-10);
+      if (activePhones.has(phoneClean)) return false;
+      const aptKey = String(contact.apartmentName || contact.apartmentId || '').trim().toLowerCase();
+      const coResidents = (aptKey && apartmentResidentsMap[aptKey]) ? apartmentResidentsMap[aptKey].join(' ') : '';
+      const cHaystack = [
+        contact.name,
+        contact.phone,
+        contact.apartmentName,
+        contact.apartmentId,
+        `apto ${contact.apartmentName}`,
+        `apartamento ${contact.apartmentName}`,
+        coResidents,
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      const matchesText = cHaystack.includes(query);
+      const matchesNum = searchNumber && (aptKey === searchNumber || aptKey.includes(searchNumber));
+      return matchesText || matchesNum;
+    });
+  }, [query, searchNumber, visibleConversations, contacts, apartmentResidentsMap]);
+
+  async function startConversationWithContact(contact) {
+    if (contact.conversationId) {
+      openConversation(contact.conversationId);
+      return;
+    }
+    setStartingContactId(contact.tenantId);
+    setError('');
+    try {
+      const response = await fetch(getBase() + '/whatsapp/cloud/start-conversation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        body: JSON.stringify({ tenantId: contact.tenantId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (data.conversationId) {
+        await loadConversations();
+        openConversation(data.conversationId);
+      } else {
+        throw new Error(data.error || 'No fue posible iniciar el chat con el residente');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setStartingContactId(null);
+    }
+  }
 
   function openConversation(conversationId) {
     setSelected(conversationId);
@@ -694,59 +798,93 @@ export default function WhatsAppInbox() {
         <div className="wa-live-conversation-list flex-1 overflow-y-auto divide-y divide-[#222d34]/60">
           {loading ? (
             <p className="p-6 text-center text-xs text-[#8696a0]">Cargando conversaciones…</p>
-          ) : !visibleConversations.length ? (
+          ) : !visibleConversations.length && !matchingContacts.length ? (
             <p className="p-6 text-center text-xs text-[#8696a0]">
-              {listFilter === 'unread' ? 'No hay conversaciones sin leer.' : 'No hay conversaciones disponibles.'}
+              {listFilter === 'unread' ? 'No hay conversaciones sin leer.' : 'No hay conversaciones ni contactos encontrados.'}
             </p>
           ) : (
-            visibleConversations.map(conversation => {
-              const isSelected = selected === conversation.id;
-              const unread = Number(conversation.unreadCount || 0);
-              const latestInbound = conversation.lastInboundAt ? new Date(conversation.lastInboundAt).getTime() : 0;
-              const cWindowOpen = Boolean(conversation.windowOpen || Math.max(new Date(conversation.customerServiceWindowUntil || 0).getTime(), latestInbound + 24 * 60 * 60 * 1000) > Date.now());
+            <>
+              {visibleConversations.map(conversation => {
+                const isSelected = selected === conversation.id;
+                const unread = Number(conversation.unreadCount || 0);
+                const latestInbound = conversation.lastInboundAt ? new Date(conversation.lastInboundAt).getTime() : 0;
+                const cWindowOpen = Boolean(conversation.windowOpen || Math.max(new Date(conversation.customerServiceWindowUntil || 0).getTime(), latestInbound + 24 * 60 * 60 * 1000) > Date.now());
 
-              return (
-                <div
-                  key={conversation.id}
-                  onClick={() => openConversation(conversation.id)}
-                  className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition select-none ${
-                    isSelected ? 'bg-[#2a3942]/70' : 'hover:bg-[#202c33]/50'
-                  }`}
-                >
-                  <div className={`w-11 h-11 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow ${
-                    isSelected ? 'bg-[#00a884] text-[#111b21]' : 'bg-[#1e3a47] text-[#00a884]'
-                  }`}>
-                    {apartmentBadge(conversation)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-[#e9edef] truncate">
-                        {conversation.tenantName || `Inquilino (${conversation.phone})`}
-                      </span>
-                      <span className={`text-[11px] shrink-0 ml-1 ${unread > 0 ? 'text-[#00a884] font-semibold' : 'text-[#8696a0]'}`}>
-                        {listTime(conversation.lastInboundAt || conversation.messages?.[0]?.createdAt)}
-                      </span>
+                return (
+                  <div
+                    key={conversation.id}
+                    onClick={() => openConversation(conversation.id)}
+                    className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition select-none ${
+                      isSelected ? 'bg-[#2a3942]/70' : 'hover:bg-[#202c33]/50'
+                    }`}
+                  >
+                    <div className={`w-11 h-11 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow ${
+                      isSelected ? 'bg-[#00a884] text-[#111b21]' : 'bg-[#1e3a47] text-[#00a884]'
+                    }`}>
+                      {apartmentBadge(conversation)}
                     </div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <p className="text-xs text-[#8696a0] truncate">
-                        {previewText(conversation)}
-                      </p>
-                      {unread > 0 && (
-                        <span className="w-4 h-4 rounded-full bg-[#00a884] text-[#111b21] text-[10px] font-bold flex items-center justify-center shrink-0 ml-1 shadow">
-                          {unread}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-[#e9edef] truncate">
+                          {conversation.tenantName || `Inquilino (${conversation.phone})`}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px]">
-                      <span className={`w-1.5 h-1.5 rounded-full ${cWindowOpen ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                      <span className={cWindowOpen ? 'text-emerald-300' : 'text-amber-300'}>
-                        {cWindowOpen ? 'Ventana activa' : 'Requiere plantilla'} · Apto. {conversation.apartmentName || conversation.apartmentId || '—'}
-                      </span>
+                        <span className={`text-[11px] shrink-0 ml-1 ${unread > 0 ? 'text-[#00a884] font-semibold' : 'text-[#8696a0]'}`}>
+                          {listTime(conversation.lastInboundAt || conversation.messages?.[0]?.createdAt)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <p className="text-xs text-[#8696a0] truncate">
+                          {previewText(conversation)}
+                        </p>
+                        {unread > 0 && (
+                          <span className="w-4 h-4 rounded-full bg-[#00a884] text-[#111b21] text-[10px] font-bold flex items-center justify-center shrink-0 ml-1 shadow">
+                            {unread}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px]">
+                        <span className={`w-1.5 h-1.5 rounded-full ${cWindowOpen ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                        <span className={cWindowOpen ? 'text-emerald-300' : 'text-amber-300'}>
+                          {cWindowOpen ? 'Ventana activa' : 'Requiere plantilla'} · Apto. {conversation.apartmentName || conversation.apartmentId || '—'}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+
+              {/* Contactos encontrados por búsqueda de apartamento o nombre */}
+              {matchingContacts.length > 0 && (
+                <div className="border-t border-[#222d34] bg-[#111b21]/70">
+                  <div className="px-3 py-1.5 text-[10.5px] font-bold text-[#00a884] uppercase tracking-wider bg-[#182229]/60 flex items-center justify-between">
+                    <span>Contactos y Residentes ({matchingContacts.length})</span>
+                    <span className="text-gray-400 font-normal text-[10px]">Toca para abrir chat</span>
+                  </div>
+                  {matchingContacts.map(contact => (
+                    <div
+                      key={contact.tenantId || contact.phone}
+                      onClick={() => startConversationWithContact(contact)}
+                      className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-[#202c33]/70 transition select-none border-b border-[#222d34]/40"
+                    >
+                      <div className="w-11 h-11 rounded-full bg-[#1e3a47] text-[#00a884] font-bold text-xs flex items-center justify-center shrink-0 shadow">
+                        {contact.apartmentName || contact.apartmentId || '—'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-[#e9edef] truncate">{contact.name}</span>
+                          <span className="text-[10px] text-[#00a884] font-medium bg-[#00a884]/15 px-2 py-0.5 rounded-full shrink-0 ml-1">
+                            {startingContactId === contact.tenantId ? 'Iniciando…' : 'Iniciar chat'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#8696a0] truncate mt-0.5">
+                          {contact.phone} · Apto. {contact.apartmentName || contact.apartmentId || '—'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              );
-            })
+              )}
+            </>
           )}
         </div>
 
@@ -960,6 +1098,7 @@ export default function WhatsAppInbox() {
                   return (
                     <div
                       key={message.id}
+                      id={`msg-${message.id}`}
                       className={`flex ${isOut ? 'justify-end' : 'justify-start'} animate-pop-in`}
                     >
                       <div className={`${isOut ? 'bubble-out' : 'bubble-in'} max-w-[86%] sm:max-w-[75%] px-3 py-2 text-[#e9edef] shadow-md relative group`}>
@@ -1150,6 +1289,71 @@ export default function WhatsAppInbox() {
               </button>
             </footer>
           </>
+        )}
+
+        {/* ================= DRAWER LATERAL DE BÚSQUEDA EN EL CHAT ================= */}
+        {activePanel === 'chat-search' && selectedConversation && (
+          <aside className="w-72 sm:w-80 bg-[#111b21] border-l border-[#222d34] absolute right-0 top-0 bottom-0 z-30 flex flex-col text-xs shadow-2xl animate-pop-in">
+            <div className="flex items-center justify-between p-3 border-b border-[#222d34]">
+              <strong className="text-sm text-white flex items-center gap-2">
+                <Search className="w-4 h-4 text-[#00a884]" /> Buscar en este chat
+              </strong>
+              <button onClick={() => { setActivePanel(null); setChatSearchQuery(''); }} className="text-gray-400 hover:text-white p-1">✕</button>
+            </div>
+            <div className="p-3 border-b border-[#222d34]">
+              <div className="relative flex items-center bg-[#202c33] rounded-lg px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-[#00a884]">
+                <Search className="w-3.5 h-3.5 text-[#8696a0] mr-2 shrink-0" />
+                <input
+                  value={chatSearchQuery}
+                  onChange={e => setChatSearchQuery(e.target.value)}
+                  placeholder="Buscar texto en los mensajes..."
+                  className="w-full bg-transparent text-xs text-[#e9edef] placeholder-[#8696a0] outline-none"
+                  autoFocus
+                />
+                {chatSearchQuery && (
+                  <button onClick={() => setChatSearchQuery('')} className="text-gray-400 hover:text-white text-xs">✕</button>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {chatSearchQuery ? (
+                messages.filter(m => {
+                  const q = chatSearchQuery.toLowerCase();
+                  return (m.text && m.text.toLowerCase().includes(q)) ||
+                    (m.media?.fileName && m.media.fileName.toLowerCase().includes(q)) ||
+                    (m.transcript && m.transcript.toLowerCase().includes(q));
+                }).length === 0 ? (
+                  <p className="p-4 text-center text-[#8696a0] text-xs">No se encontraron mensajes que coincidan.</p>
+                ) : (
+                  messages.filter(m => {
+                    const q = chatSearchQuery.toLowerCase();
+                    return (m.text && m.text.toLowerCase().includes(q)) ||
+                      (m.media?.fileName && m.media.fileName.toLowerCase().includes(q)) ||
+                      (m.transcript && m.transcript.toLowerCase().includes(q));
+                  }).map(msg => (
+                    <div
+                      key={msg.id}
+                      className="p-2.5 rounded-lg bg-[#202c33] hover:bg-[#2a3942] transition border border-[#2a3942]/40 space-y-1 cursor-pointer"
+                      onClick={() => {
+                        const el = document.getElementById(`msg-${msg.id}`);
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-[#8696a0]">
+                        <span className={msg.direction === 'out' ? 'text-[#00a884]' : 'text-[#53bdeb]'}>
+                          {msg.direction === 'out' ? 'Tú' : (selectedConversation.tenantName || 'Residente')}
+                        </span>
+                        <span>{listTime(msg.createdAt)}</span>
+                      </div>
+                      <p className="text-xs text-[#e9edef] line-clamp-3">{msg.text || (msg.media?.voice ? '🎙 Nota de voz' : msg.media?.fileName || `[${msg.type}]`)}</p>
+                    </div>
+                  ))
+                )
+              ) : (
+                <p className="p-4 text-center text-[#8696a0] text-xs">Escribe una palabra para buscar en esta conversación.</p>
+              )}
+            </div>
+          </aside>
         )}
 
         {/* ================= DRAWER LATERAL DE INFO (Deslizable, NO bloquea el chat) ================= */}

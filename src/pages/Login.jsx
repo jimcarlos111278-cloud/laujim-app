@@ -32,20 +32,39 @@ export default function Login() {
       return;
     }
     let cancelled = false;
-    fetch(getBase() + '/data-version', { headers: { 'x-auth-token': existing.token }, signal: AbortSignal.timeout(5000) })
-      .then(res => {
-        if (cancelled) return;
-        if (res.ok) {
-          navigate(existing.role === 'admin' ? '/dashboard' : '/mi-apto', { replace: true });
-        } else {
-          clearAuth();
-          setCheckingStoredSession(false);
-          setError('Tu sesión venció tras el cambio del servidor. Inicia sesión de nuevo.');
+    let attempts = 0;
+    const maxAttempts = 3;
+    async function verifySession() {
+      while (attempts < maxAttempts && !cancelled) {
+        try {
+          const res = await fetch(getBase() + '/data-version', { headers: { 'x-auth-token': existing.token }, signal: AbortSignal.timeout(8000) });
+          if (cancelled) return;
+          if (res.ok) {
+            navigate(existing.role === 'admin' ? '/dashboard' : '/mi-apto', { replace: true });
+            return;
+          }
+          if (res.status === 401) {
+            // Only clear auth on explicit 401 — the server confirmed the token is invalid
+            clearAuth();
+            setCheckingStoredSession(false);
+            setError('Tu sesión venció. Inicia sesión de nuevo.');
+            return;
+          }
+          // 503 or other server errors — don't destroy the session, just retry
+          attempts++;
+          if (attempts < maxAttempts) await new Promise(r => setTimeout(r, 3000 * attempts));
+        } catch {
+          // Network error or timeout — don't destroy the session
+          attempts++;
+          if (attempts < maxAttempts && !cancelled) await new Promise(r => setTimeout(r, 3000 * attempts));
         }
-      })
-      .catch(() => {
-        if (!cancelled) setCheckingStoredSession(false);
-      });
+      }
+      // All retries exhausted but NOT a 401 — keep the session, let the user in
+      if (!cancelled) {
+        navigate(existing.role === 'admin' ? '/dashboard' : '/mi-apto', { replace: true });
+      }
+    }
+    verifySession();
     return () => { cancelled = true; };
   }, [navigate]);
 

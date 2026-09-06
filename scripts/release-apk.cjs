@@ -94,6 +94,8 @@ function main() {
     'scripts/build-apk.cjs',
     'src/pages/ScraperWorker.jsx',
     'src/pages/Utilities.jsx',
+    'src/pages/WhatsAppInbox.jsx',
+    'src/index.css',
     'src/utils/auth.js',
     'src/utils/portableWorker.js',
   ].filter(f => fs.existsSync(path.join(root, f)));

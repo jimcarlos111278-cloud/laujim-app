@@ -116,8 +116,16 @@ public class MainActivity extends BridgeActivity {
                 try {
                     String acceptedType = acceptedMimeType(fileChooserParams);
                     boolean capture = fileChooserParams != null && fileChooserParams.isCaptureEnabled();
-                    if (capture && ("image/*".equals(acceptedType) || "video/*".equals(acceptedType))) {
-                        launchCaptureIntent("video/*".equals(acceptedType));
+                    // Always launch native camera for image/* when capture is requested
+                    // isCaptureEnabled() is unreliable in Android WebView, so also check accept type
+                    boolean isImageOnly = "image/*".equals(acceptedType);
+                    boolean isVideoOnly = "video/*".equals(acceptedType);
+                    if ((capture || isImageOnly) && (isImageOnly || isVideoOnly)) {
+                        // Request CAMERA permission at runtime if not granted
+                        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                            requestPermissions(new String[]{ Manifest.permission.CAMERA }, MEDIA_PERMISSION_REQUEST);
+                        }
+                        launchCaptureIntent(isVideoOnly);
                         } else {
                             Intent chooser = fileChooserParams == null
                                 ? new Intent(Intent.ACTION_OPEN_DOCUMENT)
