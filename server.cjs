@@ -20,7 +20,7 @@ const { PDFDocument, PDFTextField, PDFCheckBox, PDFDropdown, PDFRadioGroup, PDFO
 
 const app = express();
 const PORT = process.env.PORT || 1011;
-const SESSION_TTL_MS = Math.max(1, Number(process.env.SESSION_TTL_HOURS || 12)) * 60 * 60 * 1000;
+const SESSION_TTL_MS = Math.max(1, Number(process.env.SESSION_TTL_HOURS || 720)) * 60 * 60 * 1000;
 let requestCount = 0;
 let responseCount = 0;
 let responseBytes = 0;
@@ -323,6 +323,12 @@ function getAuthSession(token) {
   const hash = crypto.createHash('sha256').update(token).digest('hex');
   const session = (db.authSessions || []).find(item => constantTimeEqual(item.tokenHash, hash));
   if (!session || new Date(session.expiresAt).getTime() <= Date.now()) return null;
+  // Sliding expiration: renew the session on every authenticated request
+  const newExpiry = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+  if (session.expiresAt !== newExpiry) {
+    session.expiresAt = newExpiry;
+    // saveData() is debounced internally; avoid hammering disk on every request
+  }
   return session;
 }
 
@@ -7104,13 +7110,22 @@ app.get('/api/whatsapp/cloud/conversations', (req, res) => {
     const windowOpen = cloudServiceWindowOpen(c);
     const tenant = context.tenant;
     const apartment = context.apartment;
-    const conversationMessages = (db.whatsappMessages || []).filter(m => m.conversationId === c.id);
+    const conversationMessages = (db.whatsappMessages || [])
+      .filter(m => m.conversationId === c.id)
+      .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
     const lastMessage = conversationMessages[conversationMessages.length - 1] || null;
+    const activityTime = [
+      lastMessage?.createdAt,
+      c.lastInboundAt,
+      c.updatedAt,
+      c.createdAt,
+    ].map(v => new Date(v || 0).getTime()).filter(Number.isFinite);
+    const lastMessageAt = activityTime.length ? new Date(Math.max(...activityTime)).toISOString() : c.createdAt;
     return { ...c, tenantName: tenant?.name || 'Inquilino autorizado', apartmentName: apartment?.name || null,
       windowOpen, windowUntil: c.customerServiceWindowUntil || null,
-      lastMessageAt: lastMessage?.createdAt || c.lastInboundAt || c.createdAt,
+      lastMessageAt,
       messages: lastMessage ? [lastMessage] : [] };
-  });
+  }).sort((a, b) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
   if (repaired) saveData();
   res.json(conversations);
 });
