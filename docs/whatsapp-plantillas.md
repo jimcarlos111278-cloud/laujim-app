@@ -278,8 +278,8 @@ Fuera de la ventana de 24 horas, Meta no permite enviar una imagen independiente
 - Ruta web pública: `/reportes/servicios` o `/reporte-servicios`.
 - Formato: Archivo HTML autocontenido (~25-35 KB) responsive, con tarjetas interactivas para celular, vista de tabla compacta, métricas KPI superiores, barra de última sincronización individual y buscador en vivo.
 - Entrega por WhatsApp:
-  1. Envía mensaje de texto ejecutivo con los totales de deuda general, Air-e, Triple A, Gases, marcas de sincronización y enlace directo al reporte interactivo.
-  2. Adjunta el archivo `reporte-servicios-YYYY-MM-DD.html` como documento para descarga y consulta local sin necesidad de Chromium en Render (eliminando caídas por falta de memoria RAM).
+  1. Envía mensaje de texto ejecutivo con los totales de deuda general, Air-e, Triple A, Gases, marcas de sincronización y enlace directo al reporte interactivo (`/reportes/servicios`).
+  2. Envía la imagen visual `image/png` renderizada directamente en la conversación de WhatsApp con el nuevo diseño ejecutivo, tarjetas y métricas.
 - Disparadores de texto para administradores:
   - Servicios: `servicios`, `servicios publicos`, `reporte servicios`, `reporte de servicios`, `todos`, `global`.
   - Plantillas de cobro: `plantilla`, `plantillas`, `la plantilla`, `enviar plantilla`, `enviar cobros`, `recordatorios`.

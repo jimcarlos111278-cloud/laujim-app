@@ -770,7 +770,7 @@ function uploadCloudMedia(file) {
   if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no está configurada'));
   const boundary = `----LaujimMedia${crypto.randomBytes(12).toString('hex')}`;
   const safeName = String(file.originalname || 'archivo').replace(/[\r\n"]/g, '_');
-  const mime = file.mimetype === 'text/html' ? 'text/plain' : (file.mimetype || 'application/octet-stream');
+  const mime = file.mimetype || 'application/octet-stream';
   const body = Buffer.concat([
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="messaging_product"\r\n\r\nwhatsapp\r\n`),
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="type"\r\n\r\n${mime}\r\n`),
@@ -3744,18 +3744,17 @@ async function sendCloudServicesInfo(phone, aptRef) {
 }
 
 async function createCloudServicesReportMedia(report = buildCloudServicesImageData()) {
-  const html = cloudServicesReportHtml(report);
-  const buffer = Buffer.from(html, 'utf-8');
+  const buffer = await renderCloudServicesReportImage(report);
   const file = {
-    originalname: `reporte-servicios-${colombiaDate()}.html`,
-    mimetype: 'text/html',
+    originalname: `reporte-servicios-${colombiaDate()}.png`,
+    mimetype: 'image/png',
     buffer,
     size: buffer.length,
   };
   const uploaded = await uploadCloudMedia(file);
   const media = {
-    kind: 'document',
-    mimeType: 'text/html',
+    kind: 'image',
+    mimeType: file.mimetype,
     fileName: file.originalname,
     size: file.size,
     id: uploaded.id,
@@ -3776,7 +3775,7 @@ async function createCloudServicesReportMedia(report = buildCloudServicesImageDa
     media.archiveStatus = 'not_configured';
   }
   const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '—';
-  const caption = `📊 Reporte de Servicios Públicos · ${report.dateLabel}\n💰 Deuda Total: ${grandTotal}\n📎 Abre el archivo para ver el detalle por apartamento.`;
+  const caption = `📊 *Reporte de Servicios Públicos · Edificio Laujim*\n📅 ${report.dateLabel}\n💰 Deuda Total: ${grandTotal}\n\n🔗 Ver reporte interactivo con buscador:\n${PUBLIC_APP_URL}/reportes/servicios`;
   return { report, buffer, media, caption };
 }
 
@@ -3785,11 +3784,11 @@ async function sendCloudServicesReportImageOnly(phone, report, mediaPackage = nu
   const result = await sendCloudMedia(phone, packageData.media, packageData.caption);
   const conversation = getCloudConversation({ phone });
   addCloudMessage(conversation, 'out', {
-    type: packageData.media.kind || 'document', text: packageData.caption, mediaId: packageData.media.id, media: packageData.media,
+    type: 'image', text: packageData.caption, mediaId: packageData.media.id, media: packageData.media,
     whatsappMessageId: result.messages?.[0]?.id || null,
   });
   saveData();
-  console.log(`[WHATSAPP CLOUD] Global services report document sent (${packageData.report.rows.length} apartment(s), ${packageData.buffer.length} bytes).`);
+  console.log(`[WHATSAPP CLOUD] Global services report image sent (${packageData.report.rows.length} apartment(s), ${packageData.buffer.length} bytes).`);
   return { ...packageData, messageId: result.messages?.[0]?.id || null };
 }
 
@@ -3824,7 +3823,7 @@ async function sendCloudGlobalServices(phone) {
     await sendCloudServicesReportImageOnly(phone, report);
     await sendCloudUtilitiesDetailButton(phone);
   } catch (error) {
-    console.warn('[WHATSAPP CLOUD] services report document attach error (text and link already sent):', error.message);
+    console.warn('[WHATSAPP CLOUD] services report image send error (text and link already sent):', error.message);
   }
   await sendCloudServicesMenu(phone);
 }
