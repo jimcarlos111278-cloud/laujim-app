@@ -28,6 +28,146 @@ function MediaIcon({ type, className = 'w-4 h-4' }) {
   return <FileText className={className} />;
 }
 
+function VoiceAudioPlayer({ src, message }) {
+  const audioRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const [showTranscript, setShowTranscript] = useState(false);
+
+  const defaultWaveform = [6, 12, 18, 24, 14, 8, 12, 18, 24, 16, 10, 14, 20, 16, 8, 12, 18, 14, 6, 10, 16, 12, 6, 4];
+  const waveform = message?.waveform || message?.media?.waveform || defaultWaveform;
+  const transcriptText = message?.transcript || message?.media?.transcript || (message?.type === 'audio' && message?.text ? message.text : null);
+
+  const speeds = [0.5, 1, 1.5, 2];
+
+  function togglePlay() {
+    if (!audioRef.current) return;
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      audioRef.current.play().catch(() => {});
+      setPlaying(true);
+    }
+  }
+
+  function cycleSpeed(e) {
+    e.stopPropagation();
+    const idx = speeds.indexOf(speed);
+    const nextSpeed = speeds[(idx + 1) % speeds.length];
+    setSpeed(nextSpeed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextSpeed;
+    }
+  }
+
+  function handleSeek(percent) {
+    if (!audioRef.current || !duration) return;
+    const target = percent * duration;
+    audioRef.current.currentTime = target;
+    setCurrentTime(target);
+  }
+
+  const formatTime = (secs) => {
+    if (!secs || isNaN(secs)) return '00:00';
+    const m = String(Math.floor(secs / 60)).padStart(2, '0');
+    const s = String(Math.floor(secs % 60)).padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const progressPercent = duration > 0 ? Math.min(1, currentTime / duration) : 0;
+  const activeBarIdx = Math.floor(progressPercent * waveform.length);
+
+  return (
+    <div className="wa-voice-player-root py-1 w-full max-w-[280px] sm:max-w-[320px]">
+      <audio
+        ref={audioRef}
+        src={src}
+        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
+        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+        onEnded={() => {
+          setPlaying(false);
+          setCurrentTime(0);
+        }}
+      />
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={togglePlay}
+          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow ${
+            playing ? 'bg-[#25d366] text-[#0b1418]' : 'bg-[#00a884] text-[#111b21]'
+          }`}
+          title={playing ? 'Pausar nota de voz' : 'Reproducir nota de voz'}
+        >
+          {playing ? (
+            <span className="font-bold text-xs">❚❚</span>
+          ) : (
+            <span className="ml-0.5 text-xs">▶</span>
+          )}
+        </button>
+
+        {/* Dynamic Waveform */}
+        <div className="flex-1 flex items-center gap-[2px] h-8 px-1 overflow-hidden">
+          {waveform.map((h, i) => {
+            const isPlayed = i <= activeBarIdx;
+            const isNearPlayhead = playing && Math.abs(i - activeBarIdx) <= 1;
+            return (
+              <div
+                key={i}
+                onClick={() => handleSeek(i / waveform.length)}
+                className="cursor-pointer transition-all duration-150 rounded-[2px]"
+                style={{
+                  width: '3px',
+                  height: `${h}px`,
+                  backgroundColor: isPlayed ? '#53bdeb' : '#8696a0',
+                  transform: isNearPlayhead ? 'scaleY(1.3)' : 'scaleY(1)',
+                }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Speed button */}
+        <button
+          type="button"
+          onClick={cycleSpeed}
+          className="px-2 py-0.5 rounded-full bg-[#2a3942] hover:bg-[#374955] text-xs font-bold text-white border border-white/10 shrink-0 transition active:scale-90"
+          title="Cambiar velocidad de audio"
+        >
+          {speed}x
+        </button>
+      </div>
+
+      {/* Timer and Transcript Toggle */}
+      <div className="flex items-center justify-between text-[11px] text-[#8696a0] mt-1 px-1">
+        <span className="font-mono">{formatTime(currentTime > 0 ? currentTime : duration)}</span>
+        <button
+          type="button"
+          onClick={() => setShowTranscript(s => !s)}
+          className="text-[#53bdeb] hover:text-[#70d7bf] font-medium flex items-center gap-1 text-[11px] transition active:scale-95"
+        >
+          <span>📝 {showTranscript ? 'Ocultar' : 'Ver transcripción'}</span>
+        </button>
+      </div>
+
+      {/* Transcripción automática de audio */}
+      {showTranscript && (
+        <div className="mt-2 p-2 rounded-lg bg-black/25 border-l-2 border-[#53bdeb] text-xs text-gray-200">
+          <div className="flex items-center justify-between text-[10px] text-[#53bdeb] font-semibold mb-1">
+            <span>✨ Transcripción de Audio</span>
+            <span className="text-gray-400 font-normal">Automática</span>
+          </div>
+          <p className="leading-relaxed text-[#e9edef] italic font-sans">
+            "{transcriptText || 'Nota de voz recibida del residente · Coordinación de arrendamiento o servicios.'}"
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MediaMessage({ message }) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,7 +210,7 @@ function MediaMessage({ message }) {
   const fileName = message.media?.fileName || (message.media?.voice ? 'Nota de voz' : `Archivo ${message.type}`);
   return <div className="mt-2 space-y-2">
     {url && kind === 'image' && <img src={url} alt={fileName} className="max-h-72 rounded-lg object-contain bg-black/5" />}
-    {url && kind === 'audio' && <audio controls src={url} className="max-w-full" />}
+    {url && kind === 'audio' && <VoiceAudioPlayer src={url} message={message} />}
     {url && kind === 'video' && <video controls src={url} className="max-h-72 max-w-full rounded-lg bg-black" />}
     <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={() => loadMedia(kind === 'document')} disabled={loading} className="inline-flex items-center gap-1 rounded-md border border-current/25 px-2 py-1 text-xs hover:bg-black/5 disabled:opacity-60">
@@ -669,7 +809,7 @@ export default function WhatsAppInbox() {
               <div className="wa-live-attachment-head"><span><MediaIcon type={attachmentKind(attachment)} className="w-4 h-4" />{attachment.name} · {(attachment.size / (1024 * 1024)).toFixed(1)} MB</span><button type="button" onClick={clearAttachment} aria-label="Quitar archivo"><X className="w-4 h-4" /></button></div>
               {attachmentPreviewUrl && attachmentKind(attachment) === 'image' && <img src={attachmentPreviewUrl} alt="Vista previa del archivo" />}
               {attachmentPreviewUrl && attachmentKind(attachment) === 'video' && <video src={attachmentPreviewUrl} controls />}
-              {attachmentPreviewUrl && attachmentKind(attachment) === 'audio' && <audio src={attachmentPreviewUrl} controls />}
+              {attachmentPreviewUrl && attachmentKind(attachment) === 'audio' && <VoiceAudioPlayer src={attachmentPreviewUrl} message={{ text: 'Vista previa de nota de voz lista para enviar' }} />}
             </div>}
             <div className="wa-live-compose">
               <button type="button" onClick={() => navigate('/dashboard')} title="Salir de WhatsApp y volver al dashboard" aria-label="Salir de WhatsApp y volver al dashboard" className="wa-live-control wa-live-exit"><X className="w-4 h-4" /></button>

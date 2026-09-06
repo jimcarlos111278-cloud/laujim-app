@@ -347,13 +347,30 @@ html, body, #root {
   .wa-live-control { width: 32px; height: 32px; }
   .wa-live-compose input { height: 38px; padding: 0 11px; font-size: 12px; }
   .wa-live-send { width: 40px; padding: 0; }
-  .wa-live-send span { display: none; }
   .wa-live-chat-state { padding: 0 12px; }
-  .wa-live-chat-head { padding: 0 8px; }
+  .wa-live-chat-head { padding: 0 8px; min-height: 54px; }
   .wa-live-panel-backdrop { align-items: flex-end; padding: 0; }
   .wa-live-panel { width: 100%; max-height: 88%; border-radius: 17px 17px 0 0; border-bottom: 0; }
   .wa-live-panel-head { padding: 15px 14px; }
   .wa-live-panel-body { padding: 13px 14px max(17px, env(safe-area-inset-bottom)); }
+}
+
+/* REPRODUCTOR DE NOTAS DE VOZ AVANZADO (Ondas dinámicas, velocidades y transcripción) */
+.wa-voice-player-root {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  user-select: none;
+}
+.wa-voice-player-root audio {
+  display: none;
+}
+.wa-voice-player-root .waveform-bar {
+  transition: transform 0.15s ease, background-color 0.1s linear;
+}
+.wa-voice-player-root .waveform-bar:hover {
+  filter: brightness(1.2);
+  transform: scaleY(1.25);
 }
 
 @media (prefers-reduced-motion: reduce) {

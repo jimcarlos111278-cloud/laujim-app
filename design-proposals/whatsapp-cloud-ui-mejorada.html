@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>WhatsApp Cloud - Laujim App</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --wa-bg-canvas: #0c1317;
+      --wa-sidebar-bg: #111b21;
+      --wa-header-bg: #202c33;
+      --wa-bubble-in: #202c33;
+      --wa-bubble-out: #005c4b;
+      --wa-bubble-out-tail: #005c4b;
+      --wa-bubble-in-tail: #202c33;
+      --wa-green: #00a884;
+      --wa-green-hover: #06cf9c;
+      --wa-blue-check: #53bdeb;
+      --wa-text-primary: #e9edef;
+      --wa-text-secondary: #8696a0;
+      --wa-border: #222d34;
+      --wa-input-bg: #2a3942;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #0c1317;
+      color: var(--wa-text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* Fondo característico de WhatsApp */
+    .wa-doodle-bg {
+      background-color: #0b141a;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                        radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 26px 26px;
+      background-position: 0 0, 13px 13px;
+    }
+
+    /* Colas auténticas de burbujas */
+    .bubble-in {
+      background-color: var(--wa-bubble-in);
+      border-radius: 8px 8px 8px 2px;
+      position: relative;
+    }
+    .bubble-in::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -6px;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 0 8px 10px 0;
+      border-color: transparent var(--wa-bubble-in-tail) transparent transparent;
+    }
+
+    .bubble-out {
+      background-color: var(--wa-bubble-out);
+      border-radius: 8px 8px 2px 8px;
+      position: relative;
+    }
+    .bubble-out::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: -6px;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 0 0 10px 8px;
+      border-color: transparent transparent transparent var(--wa-bubble-out-tail);
+    }
+
+    /* Scrollbars elegantes */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+
+    /* Animaciones suaves */
+    @keyframes popIn {
+      0% { opacity: 0; transform: translateY(6px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .animate-pop-in { animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+    @keyframes liveWave {
+      0%, 100% { transform: scaleY(0.35); }
+      50% { transform: scaleY(1); }
+    }
+    .wave-bar-live { animation: liveWave 0.75s ease-in-out infinite alternate; }
+
+    /* Barra de ondas dinámicas para reproducción */
+    .waveform-bar {
+      width: 2.5px;
+      border-radius: 2px;
+      transition: height 0.15s ease, background-color 0.1s linear, transform 0.15s ease;
+      cursor: pointer;
+    }
+    .waveform-bar:hover {
+      opacity: 0.8;
+      transform: scaleY(1.2);
+    }
+
+    /* Marco simulador de celular para pantallas de escritorio */
+    .phone-simulator-frame {
+      width: 100%;
+      max-width: 395px;
+      height: 840px;
+      max-height: calc(100vh - 64px);
+      background-color: #111b21;
+      border-radius: 46px;
+      border: 10px solid #233138;
+      box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      margin: auto;
+    }
+    .phone-status-bar {
+      height: 36px;
+      background-color: #202c33;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #e9edef;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 40;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .phone-dynamic-island {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 22px;
+      background-color: #0c1317;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .phone-home-indicator {
+      position: absolute;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 125px;
+      height: 4px;
+      background-color: rgba(255, 255, 255, 0.4);
+      border-radius: 9999px;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    /* Adaptación nativa a celular / APK: 100% borderless, escala compacta */
+    @media (max-width: 767px) {
+      .desktop-only-controls { display: none !important; }
+      .phone-simulator-frame {
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+      .phone-status-bar { display: none !important; }
+      .phone-home-indicator { display: none !important; }
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen select-none bg-[#0a1014] text-[#e9edef]">
+
+  <!-- ================= BARRA SUPERIOR DISCRETA DE CONTROL (Solo en web / monitor) ================= -->
+  <aside id="topTestBar" class="bg-[#182229] border-b border-[#222d34] px-3 py-1.5 flex flex-wrap items-center justify-between text-xs text-gray-300 z-50 shrink-0">
+    <div class="flex items-center gap-2">
+      <span class="px-2 py-0.5 rounded bg-emerald-950/90 border border-emerald-500/40 text-emerald-400 font-semibold text-[10px]">
+        Laujim WhatsApp Móvil
+      </span>
+      <span class="text-gray-400 hidden sm:inline text-[11px]">
+        Escala compacta nativa · Ondas interactivas · Transcripción IA · Velocidades 0.5x, 1x, 2x
+      </span>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <!-- Alternar Marco de Celular (en escritorio) -->
+      <button id="btnTogglePhoneFrame" class="desktop-only-controls px-2.5 py-0.5 rounded-full bg-[#00a884]/20 text-[#00a884] border border-[#00a884]/40 hover:bg-[#00a884]/30 flex items-center gap-1.5 transition active:scale-95 text-[11px] font-medium" title="Alternar entre marco de smartphone o pantalla completa">
+        <span id="frameIcon">📱</span>
+        <span id="frameText">Marco Celular</span>
+      </button>
+
+      <!-- Toggle de Sonido Sintetizado -->
+      <button id="btnSoundToggle" class="px-2 py-0.5 rounded bg-[#202c33] text-gray-300 hover:text-white border border-[#2a3942] flex items-center gap-1 transition active:scale-95 text-[11px]" title="Silenciar / Activar sonido sintetizado">
+        <span id="soundIcon">🔊</span>
+        <span id="soundLabel" class="hidden sm:inline">Sonido ON</span>
+      </button>
+
+      <!-- Simulador de Ventana 24h -->
+      <button id="toggleWindowBtn" class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 flex items-center gap-1 transition active:scale-95 text-[11px]" title="Alternar estado de la ventana de 24h">
+        <span id="windowStatusDot" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="windowStatusText">24h: Activa</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ================= CONTENEDOR VIEWPORT PRINCIPAL ================= -->
+  <div id="viewportContainer" class="flex-1 flex overflow-hidden relative">
+    
+    <!-- Marco de Smartphone (si está activo) o Layout 100% fluido en APK / Móvil -->
+    <div id="appChassis" class="flex flex-1 overflow-hidden relative w-full h-full">
+
+      <!-- Barra de estado superior simulada de celular (opcional en escritorio) -->
+      <div id="phoneStatusBar" class="phone-status-bar hidden">
+        <span>09:41</span>
+        <div class="phone-dynamic-island">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#111b21] border border-gray-700"></span>
+          <span class="w-2 h-2 rounded-full bg-[#0a1e17] border border-[#00a884]/60"></span>
+        </div>
+        <div class="flex items-center gap-1.5 text-[11px]">
+          <span>5G</span>
+          <span>📶</span>
+          <span>100% 🔋</span>
+        </div>
+      </div>
+      <div id="phoneHomeIndicator" class="phone-home-indicator hidden"></div>
+
+      <!-- ================= CONTENIDO DE WHATSAPP (Sidebar + Chat) ================= -->
+      <div id="waLayout" class="flex flex-1 overflow-hidden relative w-full h-full">
+
+        <!-- 1. PANTALLA DE LISTA DE CHATS (Sidebar) -->
+        <aside id="chatSidebar" class="w-full md:w-[360px] lg:w-[390px] bg-[#111b21] border-r border-[#222d34] flex flex-col shrink-0 z-20 transition-all duration-200">
+          
+          <!-- Cabecera compacta móvil -->
+          <div class="h-14 bg-[#202c33] px-3.5 flex items-center justify-between border-b border-[#222d34] shrink-0">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-full bg-[#00a884] text-[#111b21] flex items-center justify-center font-bold text-sm shadow">
+                LJ
+              </div>
+              <div>
+                <h1 class="text-sm font-semibold text-[#e9edef] leading-tight">WhatsApp Laujim</h1>
+                <span class="text-[11px] text-[#00a884] flex items-center gap-1 font-medium">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-pulse"></span>
+                  Cloud API conectada
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1 text-[#aebac1]">
+              <button id="btnReloadSidebar" class="p-2 hover:bg-white/10 rounded-full transition active:scale-95" title="Actualizar">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              </button>
+              <button id="btnSettings" class="p-2 hover:bg-white/10 rounded-full transition active:scale-95" title="Ajustes">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Barra de Búsqueda -->
+          <div class="p-2.5 bg-[#111b21]">
+            <div class="relative flex items-center bg-[#202c33] rounded-lg px-3 py-1.5 focus-within:ring-1 focus-within:ring-[#00a884]">
+              <svg class="w-4 h-4 text-[#8696a0] mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input id="searchInput" type="text" placeholder="Buscar contactos o apartamentos" class="w-full bg-transparent text-xs text-[#e9edef] placeholder-[#8696a0] outline-none">
+              <button id="btnClearSearch" class="hidden text-gray-400 hover:text-white text-xs">✕</button>
+            </div>
+          </div>
+
+          <!-- Pestañas de Filtro -->
+          <div class="px-3 py-1.5 bg-[#111b21] flex items-center gap-2 border-b border-[#222d34]">
+            <button id="tabAll" class="px-3 py-1 rounded-full text-xs font-semibold bg-[#202c33] text-[#00a884] border border-[#00a884]/30 transition">
+              Todos (<span id="countAll">4</span>)
+            </button>
+            <button id="tabUnread" class="px-3 py-1 rounded-full text-xs font-semibold bg-transparent text-[#8696a0] hover:bg-[#202c33] transition">
+              No leídos (<span id="countUnread">1</span>)
+            </button>
+          </div>
+
+          <!-- Lista de Conversaciones -->
+          <div id="conversationList" class="flex-1 overflow-y-auto divide-y divide-[#222d34]/60">
+            <!-- Items generados dinámicamente -->
+          </div>
+
+          <!-- Barra inferior de Salida al Dashboard -->
+          <div class="p-2.5 bg-[#111b21] border-t border-[#222d34] flex items-center justify-between text-[11px] text-[#8696a0] shrink-0">
+            <button id="btnSidebarExit" class="flex items-center gap-1.5 text-rose-400 hover:text-rose-300 font-medium px-2 py-1 rounded hover:bg-rose-500/10 transition active:scale-95">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              <span>Salir al Dashboard</span>
+            </button>
+            <span class="truncate">Canal oficial Laujim</span>
+          </div>
+        </aside>
+
+        <!-- 2. PANTALLA DE CONVERSACIÓN ACTIVA (Chat) -->
+        <main id="chatMain" class="flex-1 flex flex-col bg-[#0b141a] h-full relative overflow-hidden">
+          
+          <!-- CABECERA DEL CHAT (Compacta móvil WhatsApp) -->
+          <header class="h-14 bg-[#202c33] px-2.5 sm:px-3 flex items-center justify-between border-b border-[#222d34] shrink-0 z-20">
+            <div class="flex items-center gap-2 min-w-0">
+              <!-- Botón Volver a Lista (Móvil) -->
+              <button id="btnBackMobile" class="p-1.5 hover:bg-white/10 rounded-full text-[#aebac1] transition active:scale-90 flex items-center" title="Volver a la lista">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+
+              <!-- Avatar Apartamento -->
+              <div id="headerAvatar" class="w-9 h-9 rounded-full bg-[#1e3a47] border border-[#00a884]/40 text-[#00a884] font-bold text-xs flex items-center justify-center shrink-0 shadow">
+                501
+              </div>
+
+              <!-- Info Contacto -->
+              <div class="min-w-0 cursor-pointer" id="btnOpenContactCard">
+                <h2 id="headerTenantName" class="text-sm font-semibold text-[#e9edef] truncate leading-tight hover:underline">
+                  Jim Carlos Varela
+                </h2>
+                <p id="headerSubtext" class="text-[11px] text-[#8696a0] truncate">
+                  +57 310 7203822 · Apto 501
+                </p>
+              </div>
+            </div>
+
+            <!-- Acciones de Cabecera -->
+            <div class="flex items-center gap-0.5 text-[#aebac1] shrink-0">
+              <button id="btnToggleTemplates" class="p-2 hover:bg-white/10 rounded-full text-amber-400 hover:text-amber-300 transition" title="Plantillas Meta de Cobro">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              </button>
+              <button id="btnChatInfo" class="p-2 hover:bg-white/10 rounded-full transition" title="Información del contacto">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </button>
+              <button id="btnExitChat" class="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition" title="Cerrar conversación">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <!-- BARRA DE ESTADO DE LA VENTANA (24 Horas) -->
+          <div id="windowStatusBar" class="bg-[#182229] border-b border-[#222d34] px-3.5 py-1 flex items-center justify-between text-[11px] transition-colors shrink-0">
+            <div class="flex items-center gap-1.5">
+              <span id="windowStatusDotInner" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="windowStatusDetail" class="text-gray-300 font-medium">Ventana activa · quedan 23 h 45 min</span>
+            </div>
+            <span class="text-[#8696a0] text-[10px] hidden sm:inline">
+              Meta Cloud API · Respuestas directas autorizadas
+            </span>
+          </div>
+
+          <!-- DRAWER DE PLANTILLAS META -->
+          <div id="templatesDrawer" class="hidden bg-[#1f2c34] border-b border-[#2a3942] p-3 text-xs text-gray-200 animate-pop-in shrink-0">
+            <div class="flex items-center justify-between mb-2">
+              <strong class="text-white text-xs">Plantillas oficiales de Meta</strong>
+              <button id="btnCloseTemplates" class="p-1 hover:bg-white/10 rounded-full text-gray-400">✕</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-1">
+              <button id="btnSendTemplateGreeting" class="px-3 py-2 rounded-lg bg-[#2a3942] hover:bg-[#32444f] text-left border border-gray-700/50 transition">
+                <strong class="block text-emerald-400 text-xs">1. Saludo Inicial</strong>
+                <span class="text-[11px] text-gray-300">"Hola, ¿cómo estás? ¿Podemos hablar?"</span>
+              </button>
+              <button id="btnSendTemplateRent" class="px-3 py-2 rounded-lg bg-[#2a3942] hover:bg-[#32444f] text-left border border-gray-700/50 transition">
+                <strong class="block text-blue-400 text-xs">2. Cobro Canon + Servicios</strong>
+                <span class="text-[11px] text-gray-300">Desglose Air-e, Triple A, Gas y botón "Ya pagué"</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTENEDOR DE MENSAJES (Scrollable con fondo WhatsApp) -->
+          <div id="messagesContainer" class="flex-1 overflow-y-auto px-3 py-3 wa-doodle-bg flex flex-col space-y-2.5 relative">
+            
+            <!-- Separador de Fecha -->
+            <div class="flex justify-center my-1 sticky top-1 z-10">
+              <span class="bg-[#182229]/90 text-[#8696a0] text-[10.5px] px-3 py-1 rounded-lg uppercase tracking-wider font-semibold shadow border border-white/5 backdrop-blur-sm">
+                Hoy
+              </span>
+            </div>
+
+            <!-- Lista de Burbujas -->
+            <div id="messagesList" class="space-y-2.5">
+              <!-- Mensajes generados dinámicamente -->
+            </div>
+
+            <div id="messagesEndAnchor" class="h-2"></div>
+          </div>
+
+          <!-- BOTÓN FLOTANTE: IR AL ÚLTIMO MENSAJE (↓) -->
+          <button id="btnScrollBottom" class="hidden absolute right-4 bottom-16 z-30 w-9 h-9 rounded-full bg-[#202c33] hover:bg-[#2a3942] text-[#8696a0] hover:text-white flex items-center justify-center shadow-lg border border-[#2a3942] transition active:scale-90" title="Bajar al último mensaje">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+          </button>
+
+          <!-- PREVISUALIZACIÓN DE ARCHIVO ADJUNTO -->
+          <div id="attachmentPreview" class="hidden bg-[#1f2c34] border-t border-[#2a3942] px-3 py-2 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2 min-w-0">
+              <span id="attachmentIcon" class="text-lg">📄</span>
+              <span id="attachmentName" class="text-white font-medium truncate">documento.pdf</span>
+            </div>
+            <button id="btnRemoveAttachment" class="text-rose-400 hover:text-rose-300 text-xs px-2 py-0.5 rounded">
+              Quitar
+            </button>
+          </div>
+
+          <!-- BANNER DE GRABACIÓN DE NOTA DE VOZ ACTIVA -->
+          <div id="recordingBanner" class="hidden bg-[#111b21] border-t border-[#222d34] px-3 py-2 flex items-center justify-between text-xs z-20">
+            <div class="flex items-center gap-3">
+              <span class="w-3 h-3 rounded-full bg-rose-500 animate-ping"></span>
+              <span id="recordingTimer" class="font-mono text-rose-400 font-bold text-sm">00:00</span>
+              <div class="flex items-center gap-0.5 h-4 px-1">
+                <span class="w-1 h-2 bg-rose-400 rounded-full wave-bar-live"></span>
+                <span class="w-1 h-4 bg-rose-400 rounded-full wave-bar-live" style="animation-delay: 0.15s"></span>
+                <span class="w-1 h-3 bg-rose-400 rounded-full wave-bar-live" style="animation-delay: 0.3s"></span>
+                <span class="w-1 h-5 bg-rose-400 rounded-full wave-bar-live" style="animation-delay: 0.45s"></span>
+              </div>
+              <span class="text-gray-400 text-[11px] hidden sm:inline">Grabando audio...</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btnCancelRecord" class="px-2.5 py-1 text-rose-400 hover:bg-rose-500/10 rounded transition text-xs font-semibold">
+                Cancelar
+              </button>
+              <button id="btnFinishRecord" class="px-3 py-1 bg-[#00a884] text-[#111b21] rounded-full font-bold hover:bg-[#06cf9c] transition active:scale-95 text-xs flex items-center gap-1">
+                <span>Enviar</span>
+                <span>➤</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ================= COMPOSITOR INFERIOR ESTILO WHATSAPP MÓVIL ================= -->
+          <footer class="bg-[#202c33] px-2 py-1.5 flex items-center gap-1.5 shrink-0 z-20 border-t border-[#222d34]">
+            
+            <!-- Pastilla Flotante de Entrada -->
+            <div class="flex-1 bg-[#2a3942] rounded-2xl flex items-center px-2 py-1 gap-1 focus-within:ring-1 focus-within:ring-[#00a884]">
+              <!-- Emojis -->
+              <button id="btnEmoji" class="p-1 text-[#8696a0] hover:text-[#e9edef] transition active:scale-95" title="Emojis">
+                <span class="text-lg">😊</span>
+              </button>
+
+              <!-- Campo de texto -->
+              <input id="messageInput" type="text" placeholder="Escribe un mensaje" class="flex-1 bg-transparent text-sm text-[#e9edef] placeholder-[#8696a0] outline-none px-1 py-1 min-w-0">
+
+              <!-- Clip Adjuntos -->
+              <button id="btnAttach" class="p-1 text-[#8696a0] hover:text-[#e9edef] transition active:scale-95" title="Adjuntar">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              </button>
+
+              <!-- Cámara Rápida -->
+              <button id="btnCamera" class="p-1 text-[#8696a0] hover:text-[#e9edef] transition active:scale-95" title="Cámara">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </button>
+            </div>
+
+            <!-- Botón Circular Flotante: Micrófono o Enviar -->
+            <button id="btnSendOrMic" class="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#06cf9c] text-[#111b21] flex items-center justify-center shadow-lg transition active:scale-90 shrink-0" title="Grabar nota de voz o enviar mensaje">
+              <span id="iconMic" class="text-base">🎙️</span>
+              <span id="iconSend" class="hidden text-base font-bold ml-0.5">➤</span>
+            </button>
+          </footer>
+
+          <!-- POPOVER DE ADJUNTOS -->
+          <div id="popoverAttach" class="hidden absolute bottom-14 right-14 bg-[#202c33] border border-[#2a3942] rounded-xl shadow-2xl p-2 z-40 text-xs w-48 animate-pop-in space-y-1">
+            <button id="attachDocBtn" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 flex items-center gap-2.5 text-gray-200">
+              <span class="text-base">📄</span>
+              <span>Documento PDF</span>
+            </button>
+            <button id="attachReceiptBtn" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 flex items-center gap-2.5 text-gray-200">
+              <span class="text-base">🧾</span>
+              <span>Recibo de Servicio</span>
+            </button>
+            <button id="attachPhotoBtn" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 flex items-center gap-2.5 text-gray-200">
+              <span class="text-base">🖼️</span>
+              <span>Foto de Galería</span>
+            </button>
+          </div>
+
+          <!-- POPOVER DE EMOJIS -->
+          <div id="popoverEmoji" class="hidden absolute bottom-14 left-3 bg-[#202c33] border border-[#2a3942] rounded-xl shadow-2xl p-2 z-40 text-sm animate-pop-in">
+            <div class="grid grid-cols-5 gap-1.5">
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">👍</button>
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">🙏</button>
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">😊</button>
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">🏢</button>
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">💰</button>
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">⚡</button>
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">💧</button>
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">🔥</button>
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">✅</button>
+              <button class="emoji-opt p-1 hover:bg-white/10 rounded">🧾</button>
+            </div>
+          </div>
+        </main>
+
+        <!-- 3. DRAWER LATERAL DE INFORMACIÓN DE CONTACTO -->
+        <aside id="infoDrawer" class="hidden w-72 bg-[#111b21] border-l border-[#222d34] flex flex-col p-4 text-xs z-30 shrink-0">
+          <div class="flex items-center justify-between pb-3 border-b border-[#222d34] mb-3">
+            <strong class="text-sm text-white">Info del Residente</strong>
+            <button onclick="document.getElementById('infoDrawer').classList.add('hidden')" class="text-gray-400 hover:text-white">✕</button>
+          </div>
+          <div class="flex flex-col items-center text-center py-3 border-b border-[#222d34]">
+            <div id="sideInfoAvatar" class="w-16 h-16 rounded-full bg-[#1e3a47] border border-[#00a884]/40 text-[#00a884] font-bold text-xl flex items-center justify-center mb-2 shadow">
+              501
+            </div>
+            <strong id="sideInfoName" class="text-white text-sm">Jim Carlos Varela</strong>
+            <span id="sideInfoPhone" class="text-gray-400 text-xs">+57 310 7203822</span>
+            <span id="sideInfoBadge" class="mt-2 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-semibold text-[11px]">
+              Apartamento 501 · Al día
+            </span>
+          </div>
+          <div class="py-3 space-y-2 text-xs">
+            <div>
+              <span class="text-[#8696a0] block text-[10px] uppercase font-semibold">Ventana de Meta Cloud</span>
+              <p class="text-gray-300 mt-0.5">Escritura libre activa porque el residente escribió recientemente.</p>
+            </div>
+            <div>
+              <span class="text-[#8696a0] block text-[10px] uppercase font-semibold">Transcripción de Audios</span>
+              <p class="text-gray-300 mt-0.5">Las notas de voz se transcriben de forma automática para lectura rápida.</p>
+            </div>
+          </div>
+        </aside>
+
+      </div> <!-- Cierre waLayout -->
+    </div> <!-- Cierre appChassis -->
+  </div> <!-- Cierre viewportContainer -->
+
+  <!-- MODAL DE AJUSTES -->
+  <div id="modalSettings" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#202c33] border border-[#2a3942] rounded-2xl w-full max-w-sm p-4 text-gray-200 shadow-2xl animate-pop-in">
+      <div class="flex items-center justify-between pb-2 border-b border-[#2a3942] mb-3">
+        <h3 class="text-sm font-semibold text-white">Ajustes WhatsApp Laujim</h3>
+        <button id="btnCloseSettings" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      <div class="space-y-2.5 text-xs">
+        <label class="flex items-center justify-between p-2 rounded-lg bg-[#2a3942]/60 cursor-pointer">
+          <span>Sonido de notificaciones</span>
+          <input type="checkbox" id="chkSoundInSettings" checked class="accent-[#00a884]">
+        </label>
+        <label class="flex items-center justify-between p-2 rounded-lg bg-[#2a3942]/60 cursor-pointer">
+          <span>Transcripción automática de audios</span>
+          <input type="checkbox" checked class="accent-[#00a884]">
+        </label>
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button id="btnSaveSettings" class="px-3 py-1.5 rounded-lg bg-[#00a884] text-[#111b21] font-bold text-xs hover:bg-[#06cf9c]">
+          Aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CÁMARA SIMULADA -->
+  <div id="modalCamera" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#111b21] border border-[#2a3942] rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-pop-in relative">
+      <div class="p-3 bg-[#202c33] flex justify-between items-center text-xs text-white">
+        <span>📷 Cámara Laujim · Foto de Evidencia</span>
+        <button id="btnCloseCamera" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      <div class="h-60 bg-slate-900 relative flex items-center justify-center overflow-hidden">
+        <div id="cameraFlashOverlay" class="absolute inset-0 bg-white pointer-events-none opacity-0 transition-opacity"></div>
+        <div class="text-center text-gray-500 text-xs">
+          <span class="text-4xl block mb-2">📸</span>
+          <span>Visor de cámara en vivo activo</span>
+        </div>
+        <div class="absolute inset-6 border border-white/20 rounded pointer-events-none"></div>
+      </div>
+      <div class="p-3 bg-[#202c33] flex justify-center items-center">
+        <button id="btnShutter" class="w-12 h-12 rounded-full border-4 border-white bg-[#00a884] hover:bg-[#06cf9c] shadow-xl active:scale-90 transition" title="Tomar foto"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LÓGICA JAVASCRIPT ULTRA-INTERACTIVA ================= -->
+  <script>
+    // Sintetizador Web Audio API
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function playTone(freq, type, duration, delay = 0) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        setTimeout(() => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + duration);
+        }, delay);
+      } catch (e) {}
+    }
+
+    function playSentDing() {
+      playTone(587.33, 'sine', 0.12, 0);
+      playTone(880, 'sine', 0.18, 90);
+    }
+
+    function playIncomingPop() {
+      playTone(440, 'triangle', 0.1, 0);
+      playTone(659.25, 'sine', 0.15, 80);
+      playTone(880, 'sine', 0.2, 160);
+    }
+
+    // BASE DE DATOS MOCK DE APARTAMENTOS Y CHATS
+    const mockChats = [
+      {
+        id: 1, apt: "501", name: "Jim Carlos Varela", phone: "3107203822", time: "08:46 a. m.",
+        windowOpen: true, unread: 0,
+        messages: [
+          { id: 101, dir: "out", type: "text", text: "Hola, Jim Carlos. Te adjunto el resumen actualizado de tu estado de cuenta en el Apto. 501.", time: "08:15 a. m.", status: "read" },
+          { id: 102, dir: "out", type: "services_card", title: "Desglose de Servicios · Apto 501", air: "$142.500", water: "$58.200", gas: "$165.328", total: "$366.028", time: "08:15 a. m.", status: "read" },
+          { 
+            id: 103, dir: "in", type: "voice", duration: 11, time: "08:42 a. m.",
+            transcript: "Buenos días Don Carlos, acabo de transferir los $366.028 de los servicios por Nequi. Ya le adjunto el comprobante en PDF para que me lo valide. ¡Muchas gracias!",
+            waveform: [4, 8, 14, 20, 12, 6, 10, 16, 22, 18, 12, 8, 14, 18, 24, 16, 10, 6, 12, 18, 14, 8, 6, 10, 16, 12, 6, 4]
+          },
+          { id: 104, dir: "in", type: "document", name: "Comprobante_Transferencia_Nequi_501.pdf", size: "1.2 MB", time: "08:43 a. m." },
+          { id: 105, dir: "in", type: "quick_reply", text: "Ya pagué", time: "08:43 a. m." },
+          { id: 106, dir: "out", type: "text", text: "¡Comprobante verificado con éxito! El pago ya fue registrado en el sistema Laujim. Gracias.", time: "08:46 a. m.", status: "read" }
+        ]
+      },
+      {
+        id: 2, apt: "201", name: "María Fernanda Díaz", phone: "3015551234", time: "Ayer",
+        windowOpen: true, unread: 1,
+        messages: [
+          { id: 201, dir: "out", type: "text", text: "Estimada María Fernanda, feliz inicio de mes. Recuerda que el arriendo vence el 5.", time: "Ayer 10:00 a. m.", status: "read" },
+          { 
+            id: 202, dir: "in", type: "voice", duration: 9, time: "Ayer 04:15 p. m.",
+            transcript: "Buenas tardes Don Carlos, le pregunto si ya tienen el valor del gas porque salgo de viaje el viernes y quisiera dejar todo cancelado antes de irme.",
+            waveform: [6, 12, 18, 26, 16, 8, 14, 22, 28, 18, 10, 14, 20, 16, 8, 12, 18, 14, 6, 10, 16, 12, 6, 4]
+          }
+        ]
+      },
+      {
+        id: 3, apt: "302", name: "Andrés Felipe Ruiz", phone: "3124445678", time: "04/09",
+        windowOpen: false, unread: 0,
+        messages: [
+          { id: 301, dir: "out", type: "text", text: "Recordatorio de canon de arrendamiento Apto 302.", time: "04/09 09:00 a. m.", status: "read" },
+          { id: 302, dir: "in", type: "text", text: "Recibido el cobro del arriendo, gracias. Mañana consigno.", time: "04/09 11:30 a. m." },
+          { id: 303, dir: "out", type: "text", text: "Perfecto Andrés, quedamos atentos.", time: "04/09 11:32 a. m.", status: "read" }
+        ]
+      },
+      {
+        id: 4, apt: "401", name: "Claudia Patricia Meza", phone: "3008889911", time: "01/09",
+        windowOpen: false, unread: 0,
+        messages: [
+          { id: 401, dir: "in", type: "text", text: "Buenas tardes, hay una pequeña humedad en el baño de servicio.", time: "01/09 02:20 p. m." },
+          { id: 402, dir: "out", type: "text", text: "Enterado Claudia, enviaré al plomero a revisar mañana por la mañana.", time: "01/09 02:45 p. m.", status: "read" }
+        ]
+      }
+    ];
+
+    let currentChatId = 1;
+    let currentTab = 'all';
+    let attachedFile = null;
+    let recordingTimerInterval = null;
+    let recordingSeconds = 0;
+
+    // ESTADOS Y NAVEGACIÓN MÓVIL
+    let isPhoneFrameActive = false; // Solo aplica en monitores de escritorio
+    let mobileView = 'chat';         // 'list' o 'chat' en celular / APK
+
+    // MOTOR DE REPRODUCCIÓN DE AUDIO (Waveform, Speeds 0.5x, 1x, 2x, Transcripción)
+    const audioState = {
+      activeId: null,
+      playing: false,
+      speed: 1, // 0.5, 1, 1.5, 2
+      currentTime: 0,
+      duration: 0,
+      timer: null,
+      voiceOsc: null
+    };
+
+    // DOM Elements
+    const chatSidebar = document.getElementById('chatSidebar');
+    const chatMain = document.getElementById('chatMain');
+    const btnBackMobile = document.getElementById('btnBackMobile');
+    const conversationList = document.getElementById('conversationList');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const messagesList = document.getElementById('messagesList');
+    const messagesEndAnchor = document.getElementById('messagesEndAnchor');
+    const btnScrollBottom = document.getElementById('btnScrollBottom');
+    const messageInput = document.getElementById('messageInput');
+    const btnSendOrMic = document.getElementById('btnSendOrMic');
+    const iconSend = document.getElementById('iconSend');
+    const iconMic = document.getElementById('iconMic');
+    const searchInput = document.getElementById('searchInput');
+    const btnClearSearch = document.getElementById('btnClearSearch');
+    const tabAll = document.getElementById('tabAll');
+    const tabUnread = document.getElementById('tabUnread');
+    const countAll = document.getElementById('countAll');
+    const countUnread = document.getElementById('countUnread');
+
+    // AUTO-SCROLL AL ÚLTIMO MENSAJE
+    function scrollToBottom(behavior = 'auto') {
+      if (messagesEndAnchor) {
+        messagesEndAnchor.scrollIntoView({ behavior, block: 'end' });
+      } else if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
+
+    // GESTIÓN DE VISTA RESPONSIVA MÓVIL vs ESCRITORIO
+    function isMobileScreen() {
+      return window.innerWidth < 768 || isPhoneFrameActive;
+    }
+
+    function applyNavigationLayout() {
+      const isMobile = isMobileScreen();
+      
+      if (!isMobile) {
+        // En escritorio amplio: pantalla dividida normal
+        chatSidebar.classList.remove('hidden');
+        chatSidebar.style.display = 'flex';
+        chatSidebar.style.width = '';
+        chatMain.classList.remove('hidden');
+        chatMain.style.display = 'flex';
+        chatMain.style.width = '';
+        btnBackMobile.classList.add('hidden');
+      } else {
+        // En vista móvil / APK: Pantalla única fluida
+        btnBackMobile.classList.remove('hidden');
+        if (mobileView === 'list') {
+          chatSidebar.classList.remove('hidden');
+          chatSidebar.style.display = 'flex';
+          chatSidebar.style.width = '100%';
+          chatMain.classList.add('hidden');
+          chatMain.style.display = 'none';
+        } else {
+          chatSidebar.classList.add('hidden');
+          chatSidebar.style.display = 'none';
+          chatMain.classList.remove('hidden');
+          chatMain.style.display = 'flex';
+          chatMain.style.width = '100%';
+          requestAnimationFrame(() => scrollToBottom('instant'));
+        }
+      }
+    }
+
+    // Toggle de simulación de marco de teléfono en monitores
+    const btnTogglePhoneFrame = document.getElementById('btnTogglePhoneFrame');
+    const appChassis = document.getElementById('appChassis');
+    const phoneStatusBar = document.getElementById('phoneStatusBar');
+    const phoneHomeIndicator = document.getElementById('phoneHomeIndicator');
+    const frameIcon = document.getElementById('frameIcon');
+    const frameText = document.getElementById('frameText');
+
+    btnTogglePhoneFrame.addEventListener('click', () => {
+      isPhoneFrameActive = !isPhoneFrameActive;
+      if (isPhoneFrameActive) {
+        appChassis.className = 'phone-simulator-frame';
+        phoneStatusBar.classList.remove('hidden');
+        phoneHomeIndicator.classList.remove('hidden');
+        frameIcon.innerText = '💻';
+        frameText.innerText = 'Pantalla Completa';
+        btnTogglePhoneFrame.classList.replace('text-[#00a884]', 'text-blue-400');
+        btnTogglePhoneFrame.classList.replace('bg-[#00a884]/20', 'bg-blue-500/20');
+        btnTogglePhoneFrame.classList.replace('border-[#00a884]/40', 'border-blue-500/40');
+      } else {
+        appChassis.className = 'flex flex-1 overflow-hidden relative w-full h-full';
+        phoneStatusBar.classList.add('hidden');
+        phoneHomeIndicator.classList.add('hidden');
+        frameIcon.innerText = '📱';
+        frameText.innerText = 'Marco Celular';
+        btnTogglePhoneFrame.classList.replace('text-blue-400', 'text-[#00a884]');
+        btnTogglePhoneFrame.classList.replace('bg-blue-500/20', 'bg-[#00a884]/20');
+        btnTogglePhoneFrame.classList.replace('border-blue-500/40', 'border-[#00a884]/40');
+      }
+      applyNavigationLayout();
+    });
+
+    btnBackMobile.addEventListener('click', () => {
+      mobileView = 'list';
+      applyNavigationLayout();
+    });
+
+    window.addEventListener('resize', () => {
+      applyNavigationLayout();
+    });
+
+    // RENDERIZAR LISTA DE CONVERSACIONES
+    function renderSidebar() {
+      const q = searchInput.value.trim().toLowerCase();
+      let filtered = mockChats.filter(c => {
+        const matchesQuery = c.name.toLowerCase().includes(q) || c.apt.includes(q) || c.phone.includes(q);
+        const matchesTab = currentTab === 'all' || (currentTab === 'unread' && c.unread > 0);
+        return matchesQuery && matchesTab;
+      });
+
+      countAll.innerText = mockChats.length;
+      countUnread.innerText = mockChats.filter(c => c.unread > 0).length;
+      conversationList.innerHTML = '';
+
+      filtered.forEach(chat => {
+        const lastMsg = chat.messages[chat.messages.length - 1];
+        let snippet = lastMsg ? (lastMsg.type === 'text' ? lastMsg.text : lastMsg.type === 'voice' ? '🎙️ Nota de voz' : lastMsg.type === 'document' ? '📄 Documento' : '📊 Estado de cuenta') : 'Sin mensajes';
+        if (snippet.length > 34) snippet = snippet.substring(0, 32) + '...';
+
+        const isSelected = chat.id === currentChatId;
+        const item = document.createElement('div');
+        item.className = `flex items-center gap-3 px-3 py-2.5 cursor-pointer transition select-none ${isSelected ? 'bg-[#2a3942]/70' : 'hover:bg-[#202c33]/50'}`;
+        
+        item.innerHTML = `
+          <div class="w-11 h-11 rounded-full ${isSelected ? 'bg-[#00a884] text-[#111b21]' : 'bg-[#1e3a47] text-[#00a884]'} font-bold text-xs flex items-center justify-center shrink-0 shadow">
+            ${chat.apt}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-semibold text-[#e9edef] truncate">${chat.name}</span>
+              <span class="text-[11px] ${chat.unread > 0 ? 'text-[#00a884] font-semibold' : 'text-[#8696a0]'} shrink-0 ml-1">${chat.time}</span>
+            </div>
+            <div class="flex items-center justify-between mt-0.5">
+              <p class="text-xs text-[#8696a0] truncate flex items-center gap-1">
+                ${lastMsg && lastMsg.dir === 'out' ? '<span class="text-[#53bdeb] text-[11px]">✓✓</span>' : ''}
+                <span>${snippet}</span>
+              </p>
+              ${chat.unread > 0 ? `<span class="w-4 h-4 rounded-full bg-[#00a884] text-[#111b21] text-[10px] font-bold flex items-center justify-center shrink-0 ml-1 shadow">${chat.unread}</span>` : ''}
+            </div>
+          </div>
+        `;
+
+        item.addEventListener('click', () => {
+          selectChat(chat.id);
+        });
+
+        conversationList.appendChild(item);
+      });
+    }
+
+    // SELECCIONAR CONVERSACIÓN
+    function selectChat(id) {
+      currentChatId = id;
+      const target = mockChats.find(c => c.id === id);
+      if (target) {
+        target.unread = 0;
+        document.getElementById('headerAvatar').innerText = target.apt;
+        document.getElementById('headerTenantName').innerText = target.name;
+        document.getElementById('headerSubtext').innerText = `+57 ${target.phone} · Apto ${target.apt}`;
+        
+        document.getElementById('sideInfoAvatar').innerText = target.apt;
+        document.getElementById('sideInfoName').innerText = target.name;
+        document.getElementById('sideInfoPhone').innerText = `+57 ${target.phone}`;
+        document.getElementById('sideInfoBadge').innerText = `Apartamento ${target.apt} · Al día`;
+        
+        applyWindowUI(target.windowOpen);
+      }
+      renderSidebar();
+      renderMessages();
+
+      if (isMobileScreen()) {
+        mobileView = 'chat';
+        applyNavigationLayout();
+      }
+    }
+
+    // ESTADO DE VENTANA 24H
+    function applyWindowUI(isOpen) {
+      const windowStatusDetail = document.getElementById('windowStatusDetail');
+      const windowStatusDotInner = document.getElementById('windowStatusDotInner');
+      if (isOpen) {
+        windowStatusDetail.innerText = "Ventana activa · quedan 23 h 45 min";
+        windowStatusDotInner.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+        messageInput.disabled = false;
+        messageInput.placeholder = "Escribe un mensaje";
+      } else {
+        windowStatusDetail.innerText = "Ventana cerrada · usa una plantilla aprobada";
+        windowStatusDotInner.className = "w-2 h-2 rounded-full bg-amber-400";
+        messageInput.disabled = true;
+        messageInput.placeholder = "🔒 Escritura bloqueada hasta que respondan plantilla";
+      }
+    }
+
+    // ================= MOTOR DE REPRODUCTOR DE NOTA DE VOZ =================
+    function stopActiveAudio() {
+      if (audioState.timer) clearInterval(audioState.timer);
+      if (audioState.voiceOsc) {
+        try { audioState.voiceOsc.stop(); } catch(e) {}
+        audioState.voiceOsc = null;
+      }
+      audioState.playing = false;
+      audioState.activeId = null;
+      audioState.currentTime = 0;
+    }
+
+    function toggleAudioPlay(msgId, duration) {
+      if (audioState.activeId === msgId && audioState.playing) {
+        // Pausar
+        stopActiveAudio();
+        renderMessages();
+        return;
+      }
+
+      // Detener cualquier audio previo
+      stopActiveAudio();
+
+      audioState.activeId = msgId;
+      audioState.playing = true;
+      audioState.duration = duration || 10;
+      audioState.currentTime = 0;
+
+      // Iniciar sonido sintetizado suave de audio
+      if (soundEnabled) {
+        try {
+          if (!audioCtx) audioCtx = new AudioCtx();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(320 * audioState.speed, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          audioState.voiceOsc = osc;
+        } catch(e) {}
+      }
+
+      renderMessages();
+
+      // Intervalo de avance según velocidad
+      const tickRateMs = 50;
+      audioState.timer = setInterval(() => {
+        audioState.currentTime += (tickRateMs / 1000) * audioState.speed;
+        if (audioState.currentTime >= audioState.duration) {
+          stopActiveAudio();
+          renderMessages();
+        } else {
+          updateAudioUi(msgId);
+        }
+      }, tickRateMs);
+    }
+
+    function changeAudioSpeed(e) {
+      e.stopPropagation();
+      const speeds = [0.5, 1, 1.5, 2];
+      let idx = speeds.indexOf(audioState.speed);
+      audioState.speed = speeds[(idx + 1) % speeds.length];
+      
+      if (audioState.voiceOsc && audioCtx) {
+        audioState.voiceOsc.frequency.setValueAtTime(320 * audioState.speed, audioCtx.currentTime);
+      }
+      renderMessages();
+    }
+
+    function seekAudio(msgId, percent, duration) {
+      if (audioState.activeId !== msgId) {
+        toggleAudioPlay(msgId, duration);
+      }
+      audioState.currentTime = Math.max(0, Math.min(duration, duration * percent));
+      updateAudioUi(msgId);
+    }
+
+    function toggleTranscript(msgId) {
+      const el = document.getElementById(`transcript-${msgId}`);
+      if (el) {
+        el.classList.toggle('hidden');
+      }
+    }
+
+    function updateAudioUi(msgId) {
+      const container = document.getElementById(`audio-player-${msgId}`);
+      if (!container) return;
+      
+      const percent = Math.min(1, audioState.currentTime / audioState.duration);
+      const bars = container.querySelectorAll('.waveform-bar');
+      const totalBars = bars.length;
+      const activeIdx = Math.floor(percent * totalBars);
+
+      bars.forEach((bar, i) => {
+        if (i <= activeIdx) {
+          bar.classList.replace('bg-[#8696a0]', 'bg-[#53bdeb]');
+          bar.style.backgroundColor = '#53bdeb';
+          // Pulso animado sutil
+          if (Math.abs(i - activeIdx) <= 2) {
+            bar.style.transform = 'scaleY(1.3)';
+          } else {
+            bar.style.transform = 'scaleY(1)';
+          }
+        } else {
+          bar.classList.replace('bg-[#53bdeb]', 'bg-[#8696a0]');
+          bar.style.backgroundColor = '#8696a0';
+          bar.style.transform = 'scaleY(1)';
+        }
+      });
+
+      const timerEl = document.getElementById(`audio-timer-${msgId}`);
+      if (timerEl) {
+        const curSec = Math.floor(audioState.currentTime);
+        const mins = String(Math.floor(curSec / 60)).padStart(2, '0');
+        const secs = String(curSec % 60).padStart(2, '0');
+        timerEl.innerText = `${mins}:${secs}`;
+      }
+    }
+
+    // ================= RENDERIZAR BURBUJA DE MENSAJE =================
+    function renderMessageBubble(msg) {
+      const isOut = msg.dir === 'out';
+      const bubble = document.createElement('div');
+      bubble.className = `flex ${isOut ? 'justify-end' : 'justify-start'} animate-pop-in`;
+
+      let contentHtml = '';
+
+      if (msg.type === 'text') {
+        contentHtml = `<p class="leading-relaxed text-sm whitespace-pre-wrap">${msg.text}</p>`;
+      } else if (msg.type === 'services_card') {
+        contentHtml = `
+          <div class="border-b border-emerald-600/40 pb-1.5 mb-2 flex items-center gap-2">
+            <span class="text-base">📊</span>
+            <strong class="text-white text-xs uppercase tracking-wide">${msg.title}</strong>
+          </div>
+          <div class="space-y-1 text-xs text-gray-200">
+            <div class="flex justify-between"><span>⚡ Air-e:</span><strong>${msg.air}</strong></div>
+            <div class="flex justify-between"><span>💧 Triple A:</span><strong>${msg.water}</strong></div>
+            <div class="flex justify-between"><span>🔥 Gases del Caribe:</span><strong>${msg.gas}</strong></div>
+            <div class="flex justify-between border-t border-emerald-600/30 pt-1 mt-1 font-bold text-emerald-200">
+              <span>Total a pagar:</span>
+              <span>${msg.total}</span>
+            </div>
+          </div>
+        `;
+      } else if (msg.type === 'document') {
+        contentHtml = `
+          <div class="rounded-md overflow-hidden bg-black/25 p-2.5 border border-white/5 flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded bg-emerald-700/60 flex items-center justify-center text-white shrink-0 font-bold text-xs">
+              PDF
+            </div>
+            <div class="min-w-0 flex-1">
+              <span class="block text-xs font-semibold text-white truncate">${msg.name}</span>
+              <span class="text-[10px] text-[#8696a0]">${msg.size} · Documento verificado</span>
+            </div>
+          </div>
+        `;
+      } else if (msg.type === 'voice') {
+        const isThisPlaying = audioState.activeId === msg.id && audioState.playing;
+        const durMins = String(Math.floor(msg.duration / 60)).padStart(2, '0');
+        const durSecs = String(msg.duration % 60).padStart(2, '0');
+        const waveformData = msg.waveform || [6, 12, 18, 24, 14, 8, 12, 18, 24, 16, 10, 14, 20, 16, 8, 12, 18, 14, 6, 10, 16, 12, 6, 4];
+
+        // Construir barras de forma de onda
+        let barsHtml = '';
+        waveformData.forEach((h, idx) => {
+          barsHtml += `<div class="waveform-bar bg-[#8696a0]" style="height: ${h}px" onclick="seekAudio(${msg.id}, ${idx / waveformData.length}, ${msg.duration})"></div>`;
+        });
+
+        contentHtml = `
+          <div id="audio-player-${msg.id}" class="py-1">
+            <!-- Fila del reproductor -->
+            <div class="flex items-center gap-2.5">
+              <!-- Botón Play/Pause -->
+              <button class="w-9 h-9 rounded-full ${isThisPlaying ? 'bg-emerald-400 text-slate-950' : 'bg-[#00a884] text-[#111b21]'} flex items-center justify-center shrink-0 hover:scale-105 active:scale-95 transition shadow" onclick="toggleAudioPlay(${msg.id}, ${msg.duration})">
+                ${isThisPlaying ? '<span class="font-bold text-xs">❚❚</span>' : '<span class="ml-0.5 text-xs">▶</span>'}
+              </button>
+
+              <!-- Forma de Onda Dinámica Interactiva -->
+              <div class="flex-1 flex items-center gap-[2px] h-8 overflow-hidden px-1">
+                ${barsHtml}
+              </div>
+
+              <!-- Velocidades: 0.5x, 1x, 1.5x, 2x -->
+              <button class="px-2 py-0.5 rounded-full bg-[#2a3942] hover:bg-[#374955] text-xs font-bold text-white border border-white/10 shrink-0 transition active:scale-90" onclick="changeAudioSpeed(event)" title="Cambiar velocidad de reproducción">
+                ${audioState.speed}x
+              </button>
+            </div>
+
+            <!-- Temporizador y Tipo de Audio -->
+            <div class="flex items-center justify-between text-[11px] text-[#8696a0] mt-1 px-1">
+              <span id="audio-timer-${msg.id}" class="font-mono">${isThisPlaying ? '00:00' : `${durMins}:${durSecs}`}</span>
+              
+              <!-- Botón de Transcripción de Audio -->
+              <button class="text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1 text-[11px] transition active:scale-95" onclick="toggleTranscript(${msg.id})">
+                <span>📝 Ver transcripción</span>
+              </button>
+            </div>
+
+            <!-- CAJA DE TRANSCRIPCIÓN AUTOMÁTICA -->
+            <div id="transcript-${msg.id}" class="mt-2.5 p-2 rounded-lg bg-black/25 border-l-2 border-[#00a884] text-xs text-gray-200">
+              <div class="flex items-center justify-between text-[10px] text-emerald-400 font-semibold mb-1">
+                <span>✨ Transcripción de Audio (Meta IA)</span>
+                <span class="text-gray-400 font-normal">Automática</span>
+              </div>
+              <p class="leading-relaxed text-[#e9edef] italic font-sans">
+                "${msg.transcript || 'Transcripción en proceso...'}"
+              </p>
+            </div>
+          </div>
+        `;
+      } else if (msg.type === 'quick_reply') {
+        contentHtml = `
+          <div class="text-xs font-semibold text-emerald-400 mb-0.5">🔘 Botón seleccionado</div>
+          <p class="font-medium text-white text-sm">"${msg.text}"</p>
+        `;
+      } else if (msg.type === 'photo') {
+        contentHtml = `
+          <div class="rounded overflow-hidden bg-black/30 border border-white/10 mb-1">
+            <div class="h-36 bg-slate-800 flex items-center justify-center text-gray-400 text-xs">
+              📷 Foto de comprobante / evidencia
+            </div>
+          </div>
+          ${msg.text ? `<p class="leading-relaxed text-xs text-white">${msg.text}</p>` : ''}
+        `;
+      }
+
+      const checkIcon = msg.status === 'read' 
+        ? '<span class="text-[#53bdeb]">✓✓</span>' 
+        : msg.status === 'delivered'
+        ? '<span class="text-gray-400">✓✓</span>'
+        : msg.status === 'sent'
+        ? '<span class="text-gray-400">✓</span>'
+        : '';
+
+      bubble.innerHTML = `
+        <div class="${isOut ? 'bubble-out' : 'bubble-in'} max-w-[86%] sm:max-w-[75%] px-3 py-2 text-[#e9edef] shadow-md relative">
+          ${contentHtml}
+          <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-[#8696a0] select-none">
+            <span>${msg.time}</span>
+            ${isOut ? `<span class="ml-0.5 text-xs">${checkIcon}</span>` : ''}
+          </div>
+        </div>
+      `;
+
+      return bubble;
+    }
+
+    // RENDERIZAR TODOS LOS MENSAJES DEL CHAT ACTIVO
+    function renderMessages() {
+      const currentChat = mockChats.find(c => c.id === currentChatId);
+      if (!currentChat) return;
+
+      messagesList.innerHTML = '';
+      currentChat.messages.forEach(msg => {
+        messagesList.appendChild(renderMessageBubble(msg));
+      });
+
+      requestAnimationFrame(() => scrollToBottom('auto'));
+    }
+
+    // ENVIAR MENSAJE
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      const currentChat = mockChats.find(c => c.id === currentChatId);
+      if (!currentChat) return;
+
+      if (!text && !attachedFile) return;
+
+      const newMsg = {
+        id: Date.now(),
+        dir: "out",
+        type: attachedFile ? attachedFile.type : "text",
+        text: text,
+        name: attachedFile ? attachedFile.name : undefined,
+        size: attachedFile ? attachedFile.size : undefined,
+        time: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
+        status: "sent"
+      };
+
+      currentChat.messages.push(newMsg);
+      playSentDing();
+
+      messageInput.value = '';
+      clearAttachment();
+      iconSend.classList.add('hidden');
+      iconMic.classList.remove('hidden');
+
+      renderMessages();
+      renderSidebar();
+
+      // Simulación de estados de lectura (gris -> doble gris -> doble azul)
+      setTimeout(() => {
+        newMsg.status = "delivered";
+        renderMessages();
+      }, 1000);
+
+      setTimeout(() => {
+        newMsg.status = "read";
+        renderMessages();
+      }, 2200);
+
+      // Respuesta simulada del inquilino
+      setTimeout(() => {
+        document.getElementById('headerSubtext').innerText = "escribiendo...";
+      }, 1400);
+
+      setTimeout(() => {
+        document.getElementById('headerSubtext').innerText = `+57 ${currentChat.phone} · Apto ${currentChat.apt}`;
+        const replies = [
+          "Perfecto Don Carlos, entendido.",
+          "Muchas gracias, que tenga buen día.",
+          "Listo, quedo pendiente de la factura.",
+          "Gracias por la confirmación oportuna."
+        ];
+        const replyText = replies[Math.floor(Math.random() * replies.length)];
+        currentChat.messages.push({
+          id: Date.now() + 1,
+          dir: "in",
+          type: "text",
+          text: replyText,
+          time: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+        });
+        playIncomingPop();
+        renderMessages();
+        renderSidebar();
+      }, 3200);
+    }
+
+    // ENVIAR PLANTILLA META
+    function sendMetaTemplate(type) {
+      const currentChat = mockChats.find(c => c.id === currentChatId);
+      if (!currentChat) return;
+
+      const timeNow = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+      if (type === 'greeting') {
+        currentChat.messages.push({
+          id: Date.now(),
+          dir: "out",
+          type: "text",
+          text: `Hola, ${currentChat.name.split(' ')[0]}, ¿cómo estás? ¿Podemos hablar un momento sobre la administración del edificio?`,
+          time: timeNow,
+          status: "read"
+        });
+      } else {
+        currentChat.messages.push({
+          id: Date.now(),
+          dir: "out",
+          type: "services_card",
+          title: `Cobro Canon + Servicios · Apto ${currentChat.apt}`,
+          air: "$138.000",
+          water: "$54.000",
+          gas: "$165.328",
+          total: "$1.207.328",
+          time: timeNow,
+          status: "read"
+        });
+      }
+
+      playSentDing();
+      document.getElementById('templatesDrawer').classList.add('hidden');
+      renderMessages();
+
+      // Respuesta rápida del inquilino
+      setTimeout(() => {
+        currentChat.messages.push({
+          id: Date.now() + 1,
+          dir: "in",
+          type: "quick_reply",
+          text: type === 'greeting' ? "Hola, sí claro, cuéntame." : "Ya pagué",
+          time: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+        });
+        currentChat.windowOpen = true;
+        applyWindowUI(true);
+        playIncomingPop();
+        renderMessages();
+        renderSidebar();
+      }, 2000);
+    }
+
+    // GRABADOR DE NOTA DE VOZ
+    function startVoiceRecord() {
+      recordingSeconds = 0;
+      document.getElementById('recordingBanner').classList.remove('hidden');
+      document.getElementById('recordingTimer').innerText = '00:00';
+      recordingTimerInterval = setInterval(() => {
+        recordingSeconds++;
+        const mins = String(Math.floor(recordingSeconds / 60)).padStart(2, '0');
+        const secs = String(recordingSeconds % 60).padStart(2, '0');
+        document.getElementById('recordingTimer').innerText = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopVoiceRecord(save = true) {
+      clearInterval(recordingTimerInterval);
+      document.getElementById('recordingBanner').classList.add('hidden');
+      if (save && recordingSeconds > 0) {
+        const currentChat = mockChats.find(c => c.id === currentChatId);
+        if (currentChat) {
+          currentChat.messages.push({
+            id: Date.now(),
+            dir: "out",
+            type: "voice",
+            duration: recordingSeconds,
+            transcript: "Hola, te envío esta nota de voz para coordinar la entrega del recibo y el mantenimiento del apartamento.",
+            waveform: [6, 10, 16, 22, 28, 20, 14, 8, 12, 18, 24, 16, 10, 6, 12, 18, 14, 8, 6, 10, 16, 12, 6, 4],
+            time: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
+            status: "sent"
+          });
+          playSentDing();
+          renderMessages();
+        }
+      }
+    }
+
+    // GESTIÓN DE ADJUNTOS
+    function setAttachment(type, name, size) {
+      attachedFile = { type, name, size };
+      document.getElementById('attachmentName').innerText = name;
+      document.getElementById('attachmentIcon').innerText = type === 'document' ? '📄' : type === 'photo' ? '🖼️' : '🧾';
+      document.getElementById('attachmentPreview').classList.remove('hidden');
+      document.getElementById('popoverAttach').classList.add('hidden');
+      iconSend.classList.remove('hidden');
+      iconMic.classList.add('hidden');
+    }
+
+    function clearAttachment() {
+      attachedFile = null;
+      document.getElementById('attachmentPreview').classList.add('hidden');
+    }
+
+    // EVENT LISTENERS DE CONTROLES
+    messagesContainer.addEventListener('scroll', () => {
+      const distanceFromBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight;
+      btnScrollBottom.classList.toggle('hidden', distanceFromBottom <= 160);
+    });
+
+    btnScrollBottom.addEventListener('click', () => scrollToBottom('smooth'));
+
+    messageInput.addEventListener('input', (e) => {
+      const hasText = e.target.value.trim().length > 0 || Boolean(attachedFile);
+      iconSend.classList.toggle('hidden', !hasText);
+      iconMic.classList.toggle('hidden', hasText);
+    });
+
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    btnSendOrMic.addEventListener('click', () => {
+      const hasText = messageInput.value.trim().length > 0 || Boolean(attachedFile);
+      if (hasText) sendMessage();
+      else startVoiceRecord();
+    });
+
+    document.getElementById('btnFinishRecord').addEventListener('click', () => stopVoiceRecord(true));
+    document.getElementById('btnCancelRecord').addEventListener('click', () => stopVoiceRecord(false));
+    document.getElementById('btnRemoveAttachment').addEventListener('click', clearAttachment);
+
+    // Popover adjuntos
+    document.getElementById('btnAttach').addEventListener('click', () => {
+      document.getElementById('popoverAttach').classList.toggle('hidden');
+      document.getElementById('popoverEmoji').classList.add('hidden');
+    });
+
+    document.getElementById('attachDocBtn').addEventListener('click', () => setAttachment('document', 'Extracto_Canon_Apto501.pdf', '840 KB'));
+    document.getElementById('attachReceiptBtn').addEventListener('click', () => setAttachment('document', 'Recibo_Oficial_Gases_del_Caribe.pdf', '1.1 MB'));
+    document.getElementById('attachPhotoBtn').addEventListener('click', () => setAttachment('photo', 'Evidencia_Pago_Consignacion.jpg', '2.4 MB'));
+
+    // Popover emojis
+    document.getElementById('btnEmoji').addEventListener('click', () => {
+      document.getElementById('popoverEmoji').classList.toggle('hidden');
+      document.getElementById('popoverAttach').classList.add('hidden');
+    });
+
+    document.querySelectorAll('.emoji-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        messageInput.value += btn.innerText;
+        iconSend.classList.remove('hidden');
+        iconMic.classList.add('hidden');
+        document.getElementById('popoverEmoji').classList.add('hidden');
+        messageInput.focus();
+      });
+    });
+
+    // Búsqueda en contactos
+    searchInput.addEventListener('input', () => {
+      btnClearSearch.classList.toggle('hidden', !searchInput.value.trim());
+      renderSidebar();
+    });
+    btnClearSearch.addEventListener('click', () => {
+      searchInput.value = '';
+      btnClearSearch.classList.add('hidden');
+      renderSidebar();
+    });
+
+    // Pestañas
+    tabAll.addEventListener('click', () => {
+      currentTab = 'all';
+      tabAll.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-[#202c33] text-[#00a884] border border-[#00a884]/30 transition';
+      tabUnread.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-transparent text-[#8696a0] hover:bg-[#202c33] transition';
+      renderSidebar();
+    });
+    tabUnread.addEventListener('click', () => {
+      currentTab = 'unread';
+      tabUnread.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-[#202c33] text-[#00a884] border border-[#00a884]/30 transition';
+      tabAll.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-transparent text-[#8696a0] hover:bg-[#202c33] transition';
+      renderSidebar();
+    });
+
+    // Toggle de sonido
+    document.getElementById('btnSoundToggle').addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundIcon').innerText = soundEnabled ? '🔊' : '🔇';
+      document.getElementById('soundLabel').innerText = soundEnabled ? 'Sonido ON' : 'Sonido OFF';
+    });
+
+    // Toggle ventana de 24h
+    document.getElementById('toggleWindowBtn').addEventListener('click', () => {
+      const currentChat = mockChats.find(c => c.id === currentChatId);
+      if (!currentChat) return;
+      currentChat.windowOpen = !currentChat.windowOpen;
+      applyWindowUI(currentChat.windowOpen);
+      document.getElementById('windowStatusText').innerText = currentChat.windowOpen ? '24h: Activa' : '24h: Cerrada';
+      document.getElementById('windowStatusDot').className = currentChat.windowOpen ? 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse' : 'w-1.5 h-1.5 rounded-full bg-amber-400';
+    });
+
+    // Drawer plantillas
+    document.getElementById('btnToggleTemplates').addEventListener('click', () => {
+      document.getElementById('templatesDrawer').classList.toggle('hidden');
+    });
+    document.getElementById('btnCloseTemplates').addEventListener('click', () => {
+      document.getElementById('templatesDrawer').classList.add('hidden');
+    });
+    document.getElementById('btnSendTemplateGreeting').addEventListener('click', () => sendMetaTemplate('greeting'));
+    document.getElementById('btnSendTemplateRent').addEventListener('click', () => sendMetaTemplate('rent'));
+
+    // Modales
+    document.getElementById('btnSettings').addEventListener('click', () => document.getElementById('modalSettings').classList.remove('hidden'));
+    document.getElementById('btnCloseSettings').addEventListener('click', () => document.getElementById('modalSettings').classList.add('hidden'));
+    document.getElementById('btnSaveSettings').addEventListener('click', () => {
+      soundEnabled = document.getElementById('chkSoundInSettings').checked;
+      document.getElementById('soundIcon').innerText = soundEnabled ? '🔊' : '🔇';
+      document.getElementById('soundLabel').innerText = soundEnabled ? 'Sonido ON' : 'Sonido OFF';
+      document.getElementById('modalSettings').classList.add('hidden');
+    });
+
+    document.getElementById('btnCamera').addEventListener('click', () => document.getElementById('modalCamera').classList.remove('hidden'));
+    document.getElementById('btnCloseCamera').addEventListener('click', () => document.getElementById('modalCamera').classList.add('hidden'));
+    document.getElementById('btnShutter').addEventListener('click', () => {
+      const flash = document.getElementById('cameraFlashOverlay');
+      flash.classList.add('opacity-90');
+      playTone(800, 'square', 0.05);
+      setTimeout(() => {
+        flash.classList.remove('opacity-90');
+        document.getElementById('modalCamera').classList.add('hidden');
+        setAttachment('photo', `Foto_Recibo_${Date.now().toString().slice(-4)}.jpg`, '1.8 MB');
+      }, 300);
+    });
+
+    document.getElementById('btnChatInfo').addEventListener('click', () => {
+      document.getElementById('infoDrawer').classList.toggle('hidden');
+    });
+    document.getElementById('btnOpenContactCard').addEventListener('click', () => {
+      document.getElementById('infoDrawer').classList.toggle('hidden');
+    });
+
+    document.getElementById('btnSidebarExit').addEventListener('click', () => alert('Regresando al Dashboard de Laujim...'));
+    document.getElementById('btnExitChat').addEventListener('click', () => alert('Cerrando conversación...'));
+
+    // INICIALIZACIÓN
+    window.addEventListener('DOMContentLoaded', () => {
+      selectChat(1);
+      applyNavigationLayout();
+    });
+  </script>
+</body>
+</html>
