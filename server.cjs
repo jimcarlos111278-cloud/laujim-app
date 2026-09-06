@@ -1972,20 +1972,38 @@ function transcodeVoiceNote(file) {
   const id = crypto.randomUUID();
   const input = path.join(os.tmpdir(), `laujim-voice-${id}.webm`);
   const output = path.join(os.tmpdir(), `laujim-voice-${id}.ogg`);
-  return new Promise((resolve, reject) => {
-    try { fs.writeFileSync(input, file.buffer); } catch (error) { return reject(error); }
-    const ffmpegProcess = spawn(ffmpegPath, ['-y', '-i', input, '-vn', '-c:a', 'libopus', '-b:a', '32k', output], { windowsHide: true });
-    let stderr = '';
-    ffmpegProcess.stderr.on('data', chunk => { stderr += chunk.toString(); });
-    ffmpegProcess.on('error', error => { try { fs.unlinkSync(input); } catch {} reject(error); });
-    ffmpegProcess.on('close', code => {
-      try {
-        if (code !== 0 || !fs.existsSync(output)) throw new Error(stderr || 'No fue posible convertir la nota de voz');
-        const buffer = fs.readFileSync(output);
-        resolve({ ...file, buffer, size: buffer.length, mimetype: 'audio/ogg', originalname: 'nota-de-voz.ogg', voice: true });
-      } catch (error) { reject(error); }
-      finally { [input, output].forEach(temp => { try { fs.unlinkSync(temp); } catch {} }); }
+
+  function runFfmpeg(args) {
+    return new Promise((resolve, reject) => {
+      const proc = spawn(ffmpegPath, args, { windowsHide: true });
+      let stderr = '';
+      proc.stderr.on('data', chunk => { stderr += chunk.toString(); });
+      proc.on('error', reject);
+      const timer = setTimeout(() => { try { proc.kill(); } catch {} reject(new Error('ffmpeg timeout')); }, 8000);
+      proc.on('close', code => {
+        clearTimeout(timer);
+        if (code === 0 && fs.existsSync(output) && fs.statSync(output).size > 0) resolve();
+        else reject(new Error(stderr || `ffmpeg failed with code ${code}`));
+      });
     });
+  }
+
+  return new Promise(async (resolve) => {
+    try {
+      fs.writeFileSync(input, file.buffer);
+      try {
+        await runFfmpeg(['-y', '-i', input, '-vn', '-c:a', 'copy', output]);
+      } catch {
+        await runFfmpeg(['-y', '-i', input, '-vn', '-c:a', 'libopus', '-b:a', '24k', '-application', 'voip', output]);
+      }
+      const buffer = fs.readFileSync(output);
+      resolve({ ...file, buffer, size: buffer.length, mimetype: 'audio/ogg', originalname: 'nota-de-voz.ogg', voice: true });
+    } catch (error) {
+      console.warn('[WHATSAPP CLOUD] transcode voice fallback:', error.message);
+      resolve(file);
+    } finally {
+      [input, output].forEach(temp => { try { fs.unlinkSync(temp); } catch {} });
+    }
   });
 }
 
@@ -2048,14 +2066,23 @@ async function failCloudAuthentication(phone, state, response) {
   if (attempts < CLOUD_AUTH_MAX_ATTEMPTS) {
     setCloudAuthState(phone, { ...state, attempts, expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString() });
     saveData();
-    await sendCloudText(phone, response);
+    try {
+      const sent = await sendCloudText(phone, response);
+      const conv = db.whatsappConversations.find(c => samePhone(c.phone, phone));
+      if (conv) addCloudMessage(conv, 'out', { type: 'text', text: response, whatsappMessageId: sent?.messages?.[0]?.id || null });
+    } catch (error) {
+      console.error('[WHATSAPP CLOUD] fail authentication message error:', error.message);
+    }
     return false;
   }
 
   clearCloudAuthState(phone);
   saveData();
   try {
-    await sendCloudText(phone, 'No fue posible validar tu identidad. Este canal solo acepta mensajes de residentes autorizados.');
+    const finalMsg = 'No fue posible validar tu identidad. Este canal solo acepta mensajes de residentes autorizados.';
+    const sent = await sendCloudText(phone, finalMsg);
+    const conv = db.whatsappConversations.find(c => samePhone(c.phone, phone));
+    if (conv) addCloudMessage(conv, 'out', { type: 'text', text: finalMsg, whatsappMessageId: sent?.messages?.[0]?.id || null });
   } catch (error) {
     console.error('[WHATSAPP CLOUD] final authentication message error:', error.message);
   }
@@ -4938,56 +4965,156 @@ async function handleCloudInbound(message) {
 
   const state = getCloudAuthState(phone);
   const text = message.type === 'text' ? String(message.text?.body || '').trim() : '';
+
+  // Get or create pending unauthenticated conversation so admin sees it in WhatsApp Inbox
+  ensureCloudCollections();
+  let unauthConversation = db.whatsappConversations.find(c => samePhone(c.phone, phone));
+  if (!unauthConversation) {
+    unauthConversation = {
+      id: nextId.whatsappConversations++,
+      phone: whatsappRecipientPhone(phone),
+      tenantId: null,
+      apartmentId: null,
+      status: 'unauthenticated',
+      createdAt: new Date().toISOString(),
+      lastInboundAt: new Date().toISOString(),
+      customerServiceWindowUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    };
+    db.whatsappConversations.push(unauthConversation);
+  } else {
+    unauthConversation.lastInboundAt = new Date().toISOString();
+    unauthConversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  }
+
+  // Record incoming message so the administrator sees it in live inbox
+  addCloudMessage(unauthConversation, 'in', {
+    type: message.type || 'text',
+    text: text || (message.type !== 'text' ? `[${message.type || 'archivo'}]` : ''),
+    whatsappMessageId: message.id,
+  });
+
+  const getBotSetting = (key, fallback) => {
+    return (db.settings || []).find(s => s.key === key)?.value || fallback;
+  };
+
+  const welcomeSetting = getBotSetting('whatsapp_bot_msg_auth_welcome', '🏢 *Edificio Laujim*\n\nPara verificar tu identidad y comunicarte con la administración, escribe tu *número de apartamento* (ej: 101, 202):');
+
   if (!state || new Date(state.expiresAt).getTime() < Date.now()) {
     console.info(`[WHATSAPP CLOUD] authentication requested for phone ending ${phone.slice(-4)}`);
     setCloudAuthState(phone, { step: 'apartment', expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString(), attempts: 0 });
     saveData();
-    await sendCloudText(phone, '🤖 Laujim Bot: este canal requiere autenticación. Tus mensajes y archivos no se entregan ni se guardan hasta verificar tu identidad. Escribe tu número de apartamento.');
+    try {
+      const sent = await sendCloudText(phone, welcomeSetting);
+      addCloudMessage(unauthConversation, 'out', {
+        type: 'text',
+        text: welcomeSetting,
+        whatsappMessageId: sent?.messages?.[0]?.id || null,
+      });
+    } catch (err) {
+      console.error(`[WHATSAPP CLOUD] failed to send auth welcome text to ${phone.slice(-4)}:`, err.message);
+      try {
+        const tmpl = await sendCloudGreetingTemplate(phone, 'residente');
+        addCloudMessage(unauthConversation, 'out', {
+          type: 'template',
+          text: 'Plantilla de saludo enviada',
+          whatsappMessageId: tmpl?.messages?.[0]?.id || null,
+        });
+      } catch (tmplErr) {
+        console.error(`[WHATSAPP CLOUD] failed to send greeting template to ${phone.slice(-4)}:`, tmplErr.message);
+      }
+    }
+    saveData();
     return;
   }
+
   if (!text) {
     await failCloudAuthentication(phone, state, 'Para validar tu identidad, responde solo con texto. Escribe tu número de apartamento.');
     return;
   }
+
   if (state.step === 'apartment') {
-    const apartment = (db.apartments || []).find(a => String(a.name) === text || String(a.id) === text);
+    const rawDigits = text.replace(/\D/g, '');
+    const apartment = (db.apartments || []).find(a => {
+      const aName = String(a.name || '').trim().toLowerCase();
+      const aDigits = aName.replace(/\D/g, '');
+      const aNum = String(a.number || '').replace(/\D/g, '');
+      return aName === text.toLowerCase() ||
+        String(a.id) === text ||
+        (rawDigits && aDigits && aDigits === rawDigits) ||
+        (rawDigits && aNum && aNum === rawDigits);
+    });
+
     if (!apartment) {
-      await failCloudAuthentication(phone, state, 'No encontré ese apartamento. Intenta nuevamente.');
+      const notFoundMsg = getBotSetting('whatsapp_bot_msg_auth_apto_not_found', '❌ No encontré ese apartamento. Verifica el número e intenta nuevamente:').replace('{apto}', text);
+      await failCloudAuthentication(phone, state, notFoundMsg);
       return;
     }
+
     setCloudAuthState(phone, { ...state, step: 'document', apartmentId: apartment.id, expiresAt: new Date(Date.now() + CLOUD_AUTH_TTL).toISOString() });
     saveData();
-    await sendCloudText(phone, 'Ahora escribe tu número de cédula para verificar la residencia.');
+    const promptDocMsg = getBotSetting('whatsapp_bot_msg_auth_prompt_cedula', '🪪 Ahora escribe tu *cédula* (número de documento) para verificar la residencia:');
+    try {
+      const sent = await sendCloudText(phone, promptDocMsg);
+      addCloudMessage(unauthConversation, 'out', {
+        type: 'text',
+        text: promptDocMsg,
+        whatsappMessageId: sent?.messages?.[0]?.id || null,
+      });
+      saveData();
+    } catch (e) {
+      console.error('[WHATSAPP CLOUD] prompt document error:', e.message);
+    }
     return;
   }
-  const tenant = (db.tenants || []).find(t => String(t.documentId || '') === text && tenantBelongsToApartment(t, state.apartmentId));
+
+  const cleanDoc = text.replace(/\D/g, '');
+  const tenant = (db.tenants || []).find(t => {
+    const tDoc = String(t.documentId || '').replace(/\D/g, '');
+    return (tDoc && cleanDoc && tDoc === cleanDoc) && tenantBelongsToApartment(t, state.apartmentId);
+  });
+
   if (!tenant) {
-    await failCloudAuthentication(phone, state, 'Los datos no coinciden. Intenta de nuevo.');
+    const failMsg = getBotSetting('whatsapp_bot_msg_auth_failed', '❌ Los datos no coinciden. Intenta de nuevo escribiendo tu número de apartamento:');
+    await failCloudAuthentication(phone, state, failMsg);
     return;
   }
+
   ensureCloudCollections();
   const now = new Date().toISOString();
   const existingIndex = db.whatsappContacts.findIndex(item => samePhone(item.phone, phone));
-  const contact = { id: existingIndex >= 0 ? db.whatsappContacts[existingIndex].id : nextId.whatsappContacts++, phone, tenantId: tenant.id, apartmentId: state.apartmentId, enabled: true,
-    source: 'authenticated', verifiedAt: now, createdAt: existingIndex >= 0 ? db.whatsappContacts[existingIndex].createdAt : now };
+  const contact = {
+    id: existingIndex >= 0 ? db.whatsappContacts[existingIndex].id : nextId.whatsappContacts++,
+    phone: normalizePhone(phone),
+    tenantId: tenant.id,
+    apartmentId: state.apartmentId,
+    enabled: true,
+    source: 'authenticated',
+    verifiedAt: now,
+    createdAt: existingIndex >= 0 ? db.whatsappContacts[existingIndex].createdAt : now,
+  };
   if (existingIndex >= 0) db.whatsappContacts[existingIndex] = contact;
   else db.whatsappContacts.push(contact);
   clearCloudAuthState(phone);
+
   const conversation = getCloudConversation(contact);
-  conversation.lastInboundAt = new Date().toISOString();
+  conversation.status = 'active';
+  conversation.tenantId = tenant.id;
+  conversation.apartmentId = state.apartmentId;
+  conversation.lastInboundAt = now;
   conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   conversation.authenticatedAt = now;
   conversation.authenticationSource = 'apartment_document';
-  // Wait for Aiven before acknowledging success. Otherwise a fast follow-up
-  // message can arrive after the reply but before the new contact exists in
-  // the durable store after a worker restart.
+
   await saveData();
   console.info(`[WHATSAPP CLOUD] authentication completed for phone ending ${phone.slice(-4)} · apartment=${state.apartmentId} · contact=${contact.id}`);
-  const confirmation = '✅ Identidad verificada. Desde ahora tus mensajes llegarán al administrador por este canal.';
+
+  const successMsg = getBotSetting('whatsapp_bot_msg_auth_success', '✅ *Identidad verificada*\n\nDesde ahora tus mensajes llegarán al administrador por este canal.');
   try {
-    const sent = await sendCloudText(phone, confirmation);
+    const sent = await sendCloudText(phone, successMsg);
     addCloudMessage(conversation, 'out', {
-      type: 'text', text: confirmation, whatsappMessageId: sent.messages?.[0]?.id || null,
+      type: 'text',
+      text: successMsg,
+      whatsappMessageId: sent?.messages?.[0]?.id || null,
     });
     await saveData();
   } catch (error) {
@@ -7776,11 +7903,18 @@ app.post('/api/whatsapp/cloud/send-media', (req, res) => {
       };
       const uploaded = await uploadCloudMedia(file);
       media.id = uploaded.id;
-      Object.assign(media, await putR2Buffer({
+      // Send directly to recipient on WhatsApp without waiting for R2 backup
+      const sendPromise = sendCloudMedia(conversation.phone, media, String(caption || '').trim());
+      const r2Promise = putR2Buffer({
         section: 'whatsapp/outbound', fileName: media.fileName, buffer: file.buffer, mimeType: media.mimeType,
-      }));
-      media.archiveStatus = 'stored';
-      const result = await sendCloudMedia(conversation.phone, media, String(caption || '').trim());
+      }).catch(err => {
+        console.warn('[WHATSAPP CLOUD] R2 outbound storage warning:', err.message);
+        return {};
+      });
+      const result = await sendPromise;
+      const r2Meta = await r2Promise;
+      Object.assign(media, r2Meta);
+      media.archiveStatus = r2Meta?.storageKey ? 'stored' : 'meta_only';
       const message = addCloudMessage(conversation, 'out', {
         type: media.kind, text: String(caption || '').trim(), mediaId: media.id, media,
         whatsappMessageId: result.messages?.[0]?.id || null,

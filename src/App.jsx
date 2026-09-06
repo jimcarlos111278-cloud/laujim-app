@@ -105,12 +105,6 @@ function PrivateApp() {
       }
       const syncStatus = getCloudSyncStatus();
       if (!cloudSyncOk && (syncStatus.status === 401)) {
-        const localAuth = JSON.parse(localStorage.getItem('apt_auth') || 'null');
-        if (!localAuth?.token) {
-          clearAuth();
-          window.location.replace('/login?reason=session-expired');
-          return;
-        }
         console.warn('Startup sync returned 401, pero se preserva la sesión local del usuario');
       }
       if (!cloudSyncOk) {

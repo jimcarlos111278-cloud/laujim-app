@@ -2,9 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, ArrowLeft, AudioLines, Camera, CheckCheck, Download, FileText, Image, Info, Lock, MessageCircle, Mic, Paperclip, RefreshCw, Search, Send, Settings2, Smile, Square, Trash2, Video, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AUTH_TOKEN, getBase } from '../utils/config';
+import { getAuth } from '../utils/auth';
+
+function getActiveToken() {
+  return getAuth()?.token || (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('apt_auth') || '{}').token) || AUTH_TOKEN || '';
+}
 
 async function cloudRequest(path, options = {}) {
-  const token = (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('apt_auth') || '{}').token) || AUTH_TOKEN || '';
+  const token = getActiveToken();
   const response = await fetch(getBase() + path, {
     ...options,
     headers: { 'Content-Type': 'application/json', 'x-auth-token': token, ...(options.headers || {}) },
@@ -194,7 +199,7 @@ function MediaMessage({ message }) {
   async function loadMedia(download = false) {
     setLoading(true); setError('');
     try {
-      const response = await fetch(getBase() + `/whatsapp/cloud/messages/${message.id}/media`, { headers: { 'x-auth-token': AUTH_TOKEN } });
+      const response = await fetch(getBase() + `/whatsapp/cloud/messages/${message.id}/media`, { headers: { 'x-auth-token': getActiveToken() } });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || 'No fue posible descargar el archivo');
@@ -293,6 +298,7 @@ export default function WhatsAppInbox() {
   const recordingTimerRef = useRef(null);
   const recordingChunksRef = useRef([]);
   const discardRecordingRef = useRef(false);
+  const sendImmediatelyRef = useRef(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
@@ -498,7 +504,7 @@ export default function WhatsAppInbox() {
     try {
       const response = await fetch(getBase() + '/whatsapp/cloud/start-conversation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': getActiveToken() },
         body: JSON.stringify({ tenantId: contact.tenantId }),
       });
       const data = await response.json().catch(() => ({}));
@@ -569,8 +575,42 @@ export default function WhatsAppInbox() {
     if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
   }
 
+  function stopAndSendRecording() {
+    sendImmediatelyRef.current = true;
+    stopRecording();
+  }
+
   function cancelRecording() {
+    sendImmediatelyRef.current = false;
     stopRecording({ discard: true });
+  }
+
+  async function sendDirectMedia(file) {
+    if (!selected || !windowOpen || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const token = getActiveToken();
+      const form = new FormData();
+      form.append('conversationId', String(selected));
+      form.append('caption', '');
+      form.append('file', file);
+      const response = await fetch(getBase() + '/whatsapp/cloud/send-media', {
+        method: 'POST',
+        headers: { 'x-auth-token': token },
+        body: form,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'No fue posible enviar la nota de voz');
+      if (data?.message) {
+        setMessages(current => current.some(m => m.id === data.message.id) ? current : [...current, data.message]);
+        setConversations(current => current.map(c => c.id === selected ? { ...c, messages: [data.message] } : c));
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
   }
 
   async function startRecording() {
@@ -581,6 +621,7 @@ export default function WhatsAppInbox() {
     }
     try {
       setError('');
+      sendImmediatelyRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const supportsType = typeof MediaRecorder.isTypeSupported === 'function';
       const mimeType = supportsType && ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm'].find(type => MediaRecorder.isTypeSupported(type));
@@ -601,10 +642,19 @@ export default function WhatsAppInbox() {
         setRecording(false);
         const discard = discardRecordingRef.current;
         discardRecordingRef.current = false;
+        const sendNow = sendImmediatelyRef.current;
+        sendImmediatelyRef.current = false;
         const type = recorder.mimeType || mimeType || 'audio/webm';
         const extension = type.includes('ogg') ? 'ogg' : 'webm';
         const blob = new Blob(recordingChunksRef.current, { type });
-        if (!discard && blob.size) handleAttachmentFile(new File([blob], `nota-de-voz.${extension}`, { type }));
+        if (!discard && blob.size) {
+          const audioFile = new File([blob], `nota-de-voz.${extension}`, { type });
+          if (sendNow) {
+            sendDirectMedia(audioFile);
+          } else {
+            handleAttachmentFile(audioFile);
+          }
+        }
       };
       recorder.start(1000);
       recorderRef.current = recorder;
@@ -625,11 +675,12 @@ export default function WhatsAppInbox() {
     try {
       let result;
       if (attachment) {
+        const token = getActiveToken();
         const form = new FormData();
         form.append('conversationId', String(selected));
         form.append('caption', draft.trim());
         form.append('file', attachment);
-        const response = await fetch(getBase() + '/whatsapp/cloud/send-media', { method: 'POST', headers: { 'x-auth-token': AUTH_TOKEN }, body: form });
+        const response = await fetch(getBase() + '/whatsapp/cloud/send-media', { method: 'POST', headers: { 'x-auth-token': token }, body: form });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'No fue posible enviar el archivo');
         result = data;
@@ -1178,21 +1229,24 @@ export default function WhatsAppInbox() {
                   <span className="font-mono text-rose-400 font-bold text-sm">
                     {String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}
                   </span>
-                  <span className="text-gray-400 text-[11px]">Grabando nota de voz…</span>
+                  <span className="text-gray-400 text-[11px] hidden sm:inline">Grabando nota de voz…</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={cancelRecording} className="px-2 py-1 text-rose-400 hover:bg-rose-500/10 rounded text-xs font-semibold">
                     Cancelar
                   </button>
-                  <button type="button" onClick={() => stopRecording()} className="px-3 py-1 bg-[#00a884] text-[#111b21] rounded-full font-bold hover:bg-[#06cf9c] text-xs flex items-center gap-1">
-                    <Square className="w-3 h-3" /> Listo
+                  <button type="button" onClick={() => stopRecording()} className="px-2.5 py-1 bg-[#202c33] text-gray-300 rounded-full font-medium hover:bg-[#2a3942] text-xs flex items-center gap-1">
+                    <Square className="w-3 h-3" /> Pausar
+                  </button>
+                  <button type="button" onClick={stopAndSendRecording} className="px-3.5 py-1 bg-[#00a884] text-[#111b21] rounded-full font-bold hover:bg-[#06cf9c] text-xs flex items-center gap-1.5 shadow-md active:scale-95">
+                    <Send className="w-3 h-3 font-bold" /> Enviar
                   </button>
                 </div>
               </div>
             )}
 
             {/* ================= COMPOSITOR INFERIOR WHATSAPP ================= */}
-            <footer className="bg-[#202c33] px-2 pt-1.5 pb-[max(env(safe-area-inset-bottom),14px)] flex items-center gap-1.5 shrink-0 z-20 border-t border-[#222d34]">
+            <footer className="bg-[#202c33] pl-2.5 pr-3.5 sm:pr-4 pt-1.5 pb-[max(env(safe-area-inset-bottom),14px)] flex items-center gap-2 shrink-0 z-20 border-t border-[#222d34]">
               {/* Inputs ocultos de archivo */}
               <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
               <input ref={galleryInput} type="file" className="hidden" accept="image/*,video/*" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
@@ -1257,42 +1311,44 @@ export default function WhatsAppInbox() {
                 </button>
               </div>
 
-              {/* Botón Circular Flotante: Micrófono o Enviar */}
-              <button
-                type="button"
-                onClick={e => {
-                  if (!windowOpen) {
-                    toggleTemplates();
-                    return;
+              {/* Botón Circular Flotante: Micrófono o Enviar con margen seguro */}
+              <div className="shrink-0 flex items-center justify-center mr-1">
+                <button
+                  type="button"
+                  onClick={e => {
+                    if (!windowOpen) {
+                      toggleTemplates();
+                      return;
+                    }
+                    if (draft.trim() || attachment) {
+                      sendMessage(e);
+                    } else {
+                      startRecording();
+                    }
+                  }}
+                  disabled={sending}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition active:scale-90 shadow-md ${
+                    windowOpen
+                      ? 'bg-[#00a884] hover:bg-[#06cf9c] text-[#111b21]'
+                      : 'bg-[#2a3942] text-amber-400 hover:bg-[#344651]'
+                  }`}
+                  title={
+                    !windowOpen
+                      ? 'Enviar plantilla aprobada'
+                      : draft.trim() || attachment
+                      ? 'Enviar mensaje'
+                      : 'Grabar nota de voz'
                   }
-                  if (draft.trim() || attachment) {
-                    sendMessage(e);
-                  } else {
-                    startRecording();
-                  }
-                }}
-                disabled={sending}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition active:scale-90 shrink-0 ${
-                  windowOpen
-                    ? 'bg-[#00a884] hover:bg-[#06cf9c] text-[#111b21] shadow-lg'
-                    : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-60'
-                }`}
-                title={
-                  !windowOpen
-                    ? 'Por favor envía una plantilla para iniciar la interacción'
-                    : draft.trim() || attachment
-                    ? 'Enviar mensaje'
-                    : 'Grabar nota de voz'
-                }
-              >
-                {!windowOpen ? (
-                  <FileText className="w-4 h-4" />
-                ) : draft.trim() || attachment ? (
-                  <Send className="w-4 h-4 font-bold ml-0.5" />
-                ) : (
-                  <Mic className="w-4 h-4" />
-                )}
-              </button>
+                >
+                  {!windowOpen ? (
+                    <FileText className="w-5 h-5 text-amber-400" />
+                  ) : draft.trim() || attachment ? (
+                    <Send className="w-5 h-5 font-bold ml-0.5" />
+                  ) : (
+                    <Mic className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </footer>
           </>
         )}

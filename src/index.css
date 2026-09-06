@@ -46,16 +46,22 @@
 html, body, #root {
   overflow-x: hidden;
   max-width: 100vw;
+  height: 100%;
 }
 
 /* WhatsApp has its own full-screen shell. Keep the Laujim escape hatch
    available without making the admin navigation part of the chat UI. */
 .whatsapp-immersive-shell {
-  position: relative;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   isolation: isolate;
+  background-color: #0c1317;
 }
 .whatsapp-immersive-shell > *:not(.whatsapp-laujim-back) {
   height: 100%;
+  width: 100%;
 }
 .whatsapp-laujim-back {
   position: fixed;
@@ -318,19 +324,13 @@ html, body, #root {
   .wa-live-details { display: none; }
 }
 @media (max-width: 760px) {
-  .wa-live-shell { position: relative; display: block; }
-  .wa-live-sidebar { width: 100%; height: 100%; border-right: 0; }
+  .wa-live-shell { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; }
+  .wa-live-sidebar { width: 100%; height: 100%; border-right: 0; padding-bottom: 0; }
   .wa-live-chat { display: none; width: 100%; height: 100%; }
   .wa-live-selected .wa-live-sidebar { display: none; }
-  .wa-live-selected .wa-live-chat { display: flex; }
+  .wa-live-selected .wa-live-chat { display: flex; width: 100%; height: 100%; }
   .wa-live-mobile-only { display: inline-grid; }
-  .wa-live-mobile-nav { display: flex; position: absolute; right: 0; bottom: 0; left: 0; z-index: 5; height: 59px; align-items: stretch; justify-content: space-around; padding: 5px 10px max(5px, env(safe-area-inset-bottom)); border-top: 1px solid var(--wa-border); background: var(--wa-panel); }
-  .wa-live-mobile-nav button { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; border-radius: 15px; color: #a7b4b9; background: transparent; font-size: 10px; }
-  .wa-live-mobile-nav button.active { color: #86e7cb; background: #123e35; }
-  .wa-live-mobile-nav .wa-live-mobile-exit { color: #ff7d86; }
-  .wa-live-mobile-nav .wa-live-mobile-exit:hover, .wa-live-mobile-nav .wa-live-mobile-exit:focus-visible { color: #fff; background: #bd3948; outline: none; }
-  .wa-live-mobile-nav svg { width: 18px; height: 18px; }
-  .wa-live-sidebar { padding-bottom: 59px; }
+  .wa-live-mobile-nav { display: none; }
   .wa-live-sidebar-exit { display: none; }
   .wa-live-template-panel { display: block; }
   .wa-live-template-actions { justify-content: flex-start; margin-top: 9px; }

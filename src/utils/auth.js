@@ -4,10 +4,19 @@ import { stopBackgroundNotifications } from './backgroundNotifications';
 import { autoRecoverWorkerToken } from './portableWorker';
 
 const STORAGE_KEY = 'apt_auth';
+const BACKUP_STORAGE_KEY = 'apt_auth_backup';
 
 export function getAuth() {
   try {
-    const auth = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    let auth = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (!auth?.token || !auth?.role) {
+      const backup = JSON.parse(localStorage.getItem(BACKUP_STORAGE_KEY) || 'null');
+      if (backup?.token && backup?.role) {
+        auth = backup;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(backup)); } catch {}
+        setApiToken(backup.token);
+      }
+    }
     if (!auth?.token || !auth?.role) return null;
     return auth;
   } catch { return null; }
@@ -15,18 +24,23 @@ export function getAuth() {
 
 export function setAuth(data) {
   const auth = { role: data.role, name: data.name, apartmentId: data.apartmentId || null, token: data.token, expiresAt: data.expiresAt || null };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+    localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(auth));
+  } catch {}
   setApiToken(auth.token);
 }
 
-export function clearAuth() {
+export function clearAuth(options = {}) {
   const token = AUTH_TOKEN;
   stopBackgroundNotifications().catch(() => {});
-  localStorage.removeItem(STORAGE_KEY);
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    if (options.permanent !== false) {
+      localStorage.removeItem(BACKUP_STORAGE_KEY);
+    }
+  } catch {}
   setApiToken('');
-  // A Render deploy or a restored database can invalidate server sessions.
-  // After signing out this browser must stop polling or it would keep sending
-  // authenticated requests that the server now rejects (401) in a tight loop.
   stopCloudPolling();
   stopDataVersionPolling();
   if (token) fetch(getBase() + '/logout', { method: 'POST', headers: { 'x-auth-token': token } }).catch(() => {});
