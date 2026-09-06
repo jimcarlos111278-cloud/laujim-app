@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporte de Servicios Públicos · Edificio Laujim</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #0f4c81;
+      --primary-dark: #0a3156;
+      --primary-light: #e0f2fe;
+      --aire: #ea580c;
+      --aire-bg: #fff7ed;
+      --aire-border: #fed7aa;
+      --triplea: #0284c7;
+      --triplea-bg: #f0f9ff;
+      --triplea-border: #bae6fd;
+      --gases: #dc2626;
+      --gases-bg: #fef2f2;
+      --gases-border: #fecaca;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    /* HEADER BANNER */
+    .header-banner {
+      background: linear-gradient(135deg, #0a2540 0%, #173d63 100%);
+      color: #ffffff;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(10, 37, 64, 0.15);
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header-banner::after {
+      content: "";
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .brand-text h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .brand-text p {
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .report-date-badge {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* KPI SUMMARY CARDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .kpi-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 14px 16px;
+      backdrop-filter: blur(8px);
+    }
+    .kpi-card.main {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .kpi-value {
+      font-size: 22px;
+      font-weight: 800;
+      margin-top: 6px;
+      font-variant-numeric: tabular-nums;
+      color: #ffffff;
+    }
+    .kpi-sub {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    /* SYNC STATUS BAR */
+    .sync-bar {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .sync-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .sync-pills {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .sync-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sync-pill.aire { background: var(--aire-bg); color: var(--aire); border: 1px solid var(--aire-border); }
+    .sync-pill.triplea { background: var(--triplea-bg); color: var(--triplea); border: 1px solid var(--triplea-border); }
+    .sync-pill.gases { background: var(--gases-bg); color: var(--gases); border: 1px solid var(--gases-border); }
+
+    /* TOOLBAR & CONTROLS */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 10px 14px 10px 36px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-box input:focus {
+      border-color: var(--primary);
+    }
+    .search-box svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      fill: var(--text-muted);
+    }
+
+    .view-toggle {
+      display: flex;
+      background: #e2e8f0;
+      padding: 3px;
+      border-radius: 10px;
+      gap: 2px;
+    }
+    .toggle-btn {
+      border: none;
+      background: transparent;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toggle-btn.active {
+      background: #ffffff;
+      color: var(--text);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    /* APARTMENT CARDS (GRID VIEW) */
+    .apartment-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 16px;
+    }
+
+    .apt-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.03);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .apt-card:hover {
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+
+    .apt-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .apt-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .apt-number {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .apt-total-badge {
+      text-align: right;
+    }
+    .apt-total-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+    .apt-total-amount {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* SERVICES LIST INSIDE APT CARD */
+    .services-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .service-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .service-row.aire {
+      background: var(--aire-bg);
+      border: 1px solid var(--aire-border);
+    }
+    .service-row.triplea {
+      background: var(--triplea-bg);
+      border: 1px solid var(--triplea-border);
+    }
+    .service-row.gases {
+      background: var(--gases-bg);
+      border: 1px solid var(--gases-border);
+    }
+
+    .service-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+    }
+    .service-details {
+      text-align: right;
+    }
+    .service-main-val {
+      font-weight: 800;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+    .service-sub-val {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* TABLE VIEW (TOGGLEABLE) */
+    .table-container {
+      display: none;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow-x: auto;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    .data-table th {
+      background: #f8fafc;
+      padding: 12px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      border-bottom: 2px solid var(--border);
+    }
+    .data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      font-variant-numeric: tabular-nums;
+    }
+    .data-table tr:hover td {
+      background: #f8fafc;
+    }
+    .data-table .cell-apt {
+      font-weight: 800;
+      color: var(--primary);
+      font-size: 15px;
+    }
+    .data-table .cell-total {
+      font-weight: 800;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .data-table tfoot tr td {
+      background: #f1f5f9;
+      font-weight: 800;
+      border-top: 2px solid #cbd5e1;
+      font-size: 14px;
+    }
+
+    /* FOOTER NOTES */
+    .report-footer {
+      margin-top: 24px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .report-footer strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 10px; }
+      .header-banner { padding: 18px; }
+      .brand-text h1 { font-size: 18px; }
+      .kpi-value { font-size: 19px; }
+      .apartment-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- HEADER BANNER -->
+    <header class="header-banner">
+      <div class="header-top">
+        <div class="brand-title">
+          <div class="brand-icon">🏢</div>
+          <div class="brand-text">
+            <h1>EDIFICIO LAUJIM</h1>
+            <p>Reporte Oficial de Servicios Públicos</p>
+          </div>
+        </div>
+        <div class="report-date-badge">
+          📅 05 Septiembre 2026 · 11:27 p. m.
+        </div>
+      </div>
+
+      <!-- KPI SUMMARY METRICS -->
+      <div class="kpi-grid">
+        <div class="kpi-card main">
+          <div class="kpi-label">💰 Deuda Total General</div>
+          <div class="kpi-value">$ 4.592.809</div>
+          <div class="kpi-sub">12 apartamentos registrados</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">⚡ Air-e</div>
+          <div class="kpi-value">$ 1.284.000</div>
+          <div class="kpi-sub">8 facturas · Mes: $1.011.870</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">💧 Triple A</div>
+          <div class="kpi-value">$ 978.373</div>
+          <div class="kpi-sub">6 con saldo · Convenio: $0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">🔥 Gases del Caribe</div>
+          <div class="kpi-value">$ 2.330.436</div>
+          <div class="kpi-sub">Mes: $713.770 · Conv: $3.731.487</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SYNCHRONIZATION STATUS BAR -->
+    <section class="sync-bar">
+      <div class="sync-title">Última Sincronización:</div>
+      <div class="sync-pills">
+        <div class="sync-pill aire">⚡ Air-e: 04 Sept · 9:11 a. m.</div>
+        <div class="sync-pill triplea">💧 Triple A: 05 Sept · 10:23 a. m.</div>
+        <div class="sync-pill gases">🔥 Gases: 05 Sept · 2:13 a. m.</div>
+      </div>
+    </section>
+
+    <!-- SEARCH AND VIEW TOGGLE -->
+    <div class="toolbar">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><path d="M10 18a7.952 7.952 0 0 0 4.897-1.688l4.396 4.396 1.414-1.414-4.396-4.396A7.952 7.952 0 0 0 18 10c0-4.411-3.589-8-8-8s-8 3.589-8 8 3.589 8 8 8zm0-14c3.309 0 6 2.691 6 6s-2.691 6-6 6-6-2.691-6-6 2.691-6 6-6z"/></svg>
+        <input type="text" id="searchInput" placeholder="Buscar apartamento (ej: 101, 202)..." onkeyup="filterApts()">
+      </div>
+      <div class="view-toggle">
+        <button class="toggle-btn active" id="btnCards" onclick="setView('cards')">📱 Tarjetas</button>
+        <button class="toggle-btn" id="btnTable" onclick="setView('table')">📊 Tabla</button>
+      </div>
+    </div>
+
+    <!-- CARDS VIEW (DEFAULT / RESPONSIVE) -->
+    <main class="apartment-grid" id="cardsContainer">
+
+      <!-- 101 -->
+      <article class="apt-card" data-apt="101">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 101</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 300.918</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 105.830</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 101.585</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 93.503</div>
+              <div class="service-sub-val">6 facturas sin pagar</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 102 -->
+      <article class="apt-card" data-apt="102">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 102</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 305.450</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día (0 facturas)</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 151.224</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 154.226</div>
+              <div class="service-sub-val">Cuota $649 · Avance 29/48</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 201 -->
+      <article class="apt-card" data-apt="201">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 201</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 489.099</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 285.841</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 203.258</div>
+              <div class="service-sub-val">Mes $55.289 · Conv $351.227</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 202 -->
+      <article class="apt-card" data-apt="202">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 202</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount" style="color:var(--gases)">$ 855.326</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 681.670</div>
+              <div class="service-sub-val">Mes $474.530 · 2 facturas</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 173.656</div>
+              <div class="service-sub-val">Mes $22.210 · Conv $325.102</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 203 -->
+      <article class="apt-card" data-apt="203">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 203</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 407.414</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 116.650</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 123.193</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 167.571</div>
+              <div class="service-sub-val">Mes $16.563 · Conv $318.579</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 301 -->
+      <article class="apt-card" data-apt="301">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 301</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 228.318</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 228.318</div>
+              <div class="service-sub-val">Mes $80.349 · Conv $376.287</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 302 -->
+      <article class="apt-card" data-apt="302">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 302</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 161.675</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 161.675</div>
+              <div class="service-sub-val">Mes $13.705 · Conv $309.544</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 303 -->
+      <article class="apt-card" data-apt="303">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 303</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 612.000</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 221.700</div>
+              <div class="service-sub-val">Mes $156.710 · 2 facturas</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 223.679</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 166.621</div>
+              <div class="service-sub-val">Mes $18.652 · Conv $314.590</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 401 -->
+      <article class="apt-card" data-apt="401">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 401</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 278.284</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 52.320</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 45.000</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 180.964</div>
+              <div class="service-sub-val">Mes $32.995 · Conv $328.933</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 402 -->
+      <article class="apt-card" data-apt="402">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 402</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 312.410</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 312.410</div>
+              <div class="service-sub-val">Mes $164.441 · Conv $312.410</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 403 -->
+      <article class="apt-card" data-apt="403">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 403</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 240.780</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val" style="color:var(--success)">$ 0</div>
+              <div class="service-sub-val">Al día</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 240.780</div>
+              <div class="service-sub-val">Mes $47.346 · Cuota $3.293</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 501 -->
+      <article class="apt-card" data-apt="501">
+        <div class="apt-card-head">
+          <div class="apt-badge">
+            <span style="font-size:18px">🏠</span>
+            <span class="apt-number">Apto 501</span>
+          </div>
+          <div class="apt-total-badge">
+            <div class="apt-total-label">Total a Pagar</div>
+            <div class="apt-total-amount">$ 401.135</div>
+          </div>
+        </div>
+        <div class="services-stack">
+          <div class="service-row aire">
+            <div class="service-tag">⚡ Air-e</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 105.830</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row triplea">
+            <div class="service-tag">💧 Triple A</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 47.851</div>
+              <div class="service-sub-val">1 factura sin pagar</div>
+            </div>
+          </div>
+          <div class="service-row gases">
+            <div class="service-tag">🔥 Gases</div>
+            <div class="service-details">
+              <div class="service-main-val">$ 247.454</div>
+              <div class="service-sub-val">Mes $82.125 · Cuota $20.855</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </main>
+
+    <!-- TABLE VIEW (TOGGLEABLE) -->
+    <div class="table-container" id="tableContainer">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Apartamento</th>
+            <th>⚡ Air-e</th>
+            <th>💧 Triple A</th>
+            <th>🔥 Gases del Caribe</th>
+            <th>Total General</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="cell-apt">101</td>
+            <td><b>$ 105.830</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 101.585</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 93.503</b> <span style="font-size:11px;color:var(--text-muted)">(6 fac)</span></td>
+            <td class="cell-total">$ 300.918</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">102</td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><b>$ 151.224</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 154.226</b> <span style="font-size:11px;color:var(--text-muted)">(5 fac)</span></td>
+            <td class="cell-total">$ 305.450</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">201</td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><b>$ 285.841</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 203.258</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $55.289)</span></td>
+            <td class="cell-total">$ 489.099</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">202</td>
+            <td><b>$ 681.670</b> <span style="font-size:11px;color:var(--text-muted)">(2 fac)</span></td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><b>$ 173.656</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $22.210)</span></td>
+            <td class="cell-total" style="color:var(--gases)">$ 855.326</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">203</td>
+            <td><b>$ 116.650</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 123.193</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 167.571</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $16.563)</span></td>
+            <td class="cell-total">$ 407.414</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">301</td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><b>$ 228.318</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $80.349)</span></td>
+            <td class="cell-total">$ 228.318</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">302</td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><b>$ 161.675</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $13.705)</span></td>
+            <td class="cell-total">$ 161.675</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">303</td>
+            <td><b>$ 221.700</b> <span style="font-size:11px;color:var(--text-muted)">(2 fac)</span></td>
+            <td><b>$ 223.679</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 166.621</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $18.652)</span></td>
+            <td class="cell-total">$ 612.000</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">401</td>
+            <td><b>$ 52.320</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 45.000</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 180.964</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $32.995)</span></td>
+            <td class="cell-total">$ 278.284</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">402</td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><b>$ 312.410</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $164.441)</span></td>
+            <td class="cell-total">$ 312.410</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">403</td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><span style="color:var(--success);font-weight:700">$ 0</span></td>
+            <td><b>$ 240.780</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $47.346)</span></td>
+            <td class="cell-total">$ 240.780</td>
+          </tr>
+          <tr>
+            <td class="cell-apt">501</td>
+            <td><b>$ 105.830</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 47.851</b> <span style="font-size:11px;color:var(--text-muted)">(1 fac)</span></td>
+            <td><b>$ 247.454</b> <span style="font-size:11px;color:var(--text-muted)">(Mes $82.125)</span></td>
+            <td class="cell-total">$ 401.135</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>TOTALES</td>
+            <td>$ 1.284.000</td>
+            <td>$ 978.373</td>
+            <td>$ 2.330.436</td>
+            <td style="color:var(--primary);font-size:15px">$ 4.592.809</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- REPORT FOOTER -->
+    <footer class="report-footer">
+      <div><strong>Edificio Laujim APP</strong> · Reporte consolidado de servicios públicos.</div>
+      <div>⚡ Air-e muestra facturas sin pagar. 💧 Triple A y 🔥 Gases del Caribe discriminan deuda del mes y convenios activos.</div>
+      <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Archivo generado automáticamente · Formato HTML Ultra Ligero (22 KB).</div>
+    </footer>
+
+  </div>
+
+  <script>
+    function setView(view) {
+      const cards = document.getElementById('cardsContainer');
+      const table = document.getElementById('tableContainer');
+      const btnCards = document.getElementById('btnCards');
+      const btnTable = document.getElementById('btnTable');
+
+      if (view === 'table') {
+        cards.style.display = 'none';
+        table.style.display = 'block';
+        btnTable.classList.add('active');
+        btnCards.classList.remove('active');
+      } else {
+        table.style.display = 'none';
+        cards.style.display = 'grid';
+        btnCards.classList.add('active');
+        btnTable.classList.remove('active');
+      }
+    }
+
+    function filterApts() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const cards = document.querySelectorAll('.apt-card');
+      const rows = document.querySelectorAll('.data-table tbody tr');
+
+      cards.forEach(card => {
+        const apt = card.getAttribute('data-apt').toLowerCase();
+        const text = card.innerText.toLowerCase();
+        card.style.display = (apt.includes(query) || text.includes(query)) ? '' : 'none';
+      });
+
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>

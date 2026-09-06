@@ -770,7 +770,7 @@ function uploadCloudMedia(file) {
   if (!cloudReady()) return Promise.reject(new Error('WhatsApp Cloud API no está configurada'));
   const boundary = `----LaujimMedia${crypto.randomBytes(12).toString('hex')}`;
   const safeName = String(file.originalname || 'archivo').replace(/[\r\n"]/g, '_');
-  const mime = file.mimetype || 'application/octet-stream';
+  const mime = file.mimetype === 'text/html' ? 'text/plain' : (file.mimetype || 'application/octet-stream');
   const body = Buffer.concat([
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="messaging_product"\r\n\r\nwhatsapp\r\n`),
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="type"\r\n\r\n${mime}\r\n`),
@@ -3314,163 +3314,401 @@ function buildCloudServicesImageData() {
   };
 }
 
-function cloudServicesReportImageHtml(report) {
+function cloudServicesReportHtml(report) {
   const serviceMeta = [
-    { key: 'electricity', icon: '\u26a1', name: 'AIR-E', secondary: 'Facturas sin pagar', className: 'air-head' },
-    { key: 'water', icon: '\ud83d\udca7', name: 'TRIPLE A', secondary: 'Convenio', className: 'water-head' },
-    { key: 'gas', icon: '\ud83d\udd25', name: 'GASES', secondary: 'Convenio', className: 'gas-head' },
+    { key: 'electricity', icon: '⚡', name: 'Air-e', secondary: 'Facturas sin pagar', className: 'aire' },
+    { key: 'water', icon: '💧', name: 'Triple A', secondary: 'Convenio', className: 'triplea' },
+    { key: 'gas', icon: '🔥', name: 'Gases del Caribe', secondary: 'Convenio', className: 'gases' },
   ];
-  const headerCells = [
-    '<div class="cell header ap-head"><div class="header-main"># APARTAMENTO</div></div>',
-    ...serviceMeta.map(service => `<div class="cell header ${service.className}"><div class="header-main">${service.icon} ${service.name}</div><div class="header-sub">Mes · ${service.secondary} · Total</div></div>`),
-    '<div class="cell header total-head"><div class="header-main">TOTAL</div><div class="header-sub">Deuda total</div></div>',
-  ].join('');
-  const serviceRows = report.rows.length
-    ? report.rows.map((row, index) => {
-      const stripe = index % 2 ? ' stripe' : '';
-      const serviceCells = row.services.map((service, serviceIndex) => {
-        const month = service.monthKnown ? cloudImageMoney(service.month) : '\u2014';
-        const total = service.known ? cloudImageMoney(service.amount) : '\u2014';
-        const isAirE = serviceIndex === 0;
-        const secondaryLabel = isAirE ? 'Facturas sin pagar' : 'Convenio';
-        const secondary = isAirE
-          ? service.invoiceTotalCount !== null ? String(service.invoiceTotalCount) : '\u2014'
-          : service.financingKnown ? cloudImageMoney(service.financed) : service.known ? '$0' : '\u2014';
-        // The portals only expose how many invoices remain unpaid; none of them
-        // reports which ones are overdue, so a "vencidas" label would be fake.
-        const invoices = !isAirE && service.invoiceTotalCount !== null
-          ? `<div class="service-line detail-line"><span>Facturas</span><b>${service.invoiceTotalCount} sin pagar</b></div>`
-          : '';
-        const quota = isAirE ? '' : `<div class="service-line detail-line"><span>Cuota</span><b>${service.quota !== null ? cloudImageMoney(service.quota) : '\u2014'}</b></div>`;
-        const progress = isAirE ? '' : `<div class="service-line detail-line"><span>Avance</span><b>${service.installmentCurrent ?? '\u2014'} de ${service.installmentTotal ?? '\u2014'}</b></div>`;
-        const changeClass = service.changeStatus === 'full_payment'
-          ? ' change-full'
-          : service.changeStatus === 'partial_payment' ? ' change-partial' : '';
-        const changeLabel = service.changeStatus === 'full_payment'
-          ? '✓ Pago total detectado'
-          : service.changeStatus === 'partial_payment' ? '↓ Pago parcial detectado' : '';
-        const changeAmount = service.changeDelta ? ` · ${cloudImageMoney(service.changeDelta)}` : '';
-        return `<div class="cell service-value${stripe}${changeClass}">${changeLabel ? `<div class="change-badge">${changeLabel}${changeAmount}</div>` : ''}<div class="service-line"><span>Mes</span><b>${month}</b></div><div class="service-line financing-line"><span>${secondaryLabel}</span><b>${secondary}</b></div>${quota}${progress}${invoices}<div class="service-line total-line"><span>Total</span><b>${total}</b></div></div>`;
-      }).join('');
-      const total = row.complete ? cloudImageMoney(row.total) : '\u2014';
-      return [
-        `<div class="cell apartment${stripe}">${escapeCloudImageHtml(row.apartment)}</div>`,
-        serviceCells,
-        `<div class="cell money row-total${stripe}"><div>${total}</div><div class="small-money">Suma de servicios</div></div>`,
-      ].join('');
-    }).join('')
-    : '<div class="empty">No hay apartamentos configurados para mostrar.</div>';
+
+  const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '—';
   const totals = report.serviceTotals || [null, null, null];
-  const confirmedCounts = report.serviceConfirmedCounts || [0, 0, 0];
   const monthTotals = report.serviceMonthTotals || [null, null, null];
-  const monthCounts = report.serviceMonthConfirmedCounts || [0, 0, 0];
   const financingTotals = report.serviceFinancedTotals || [null, null, null];
-  const financingCounts = report.serviceFinancingCounts || [0, 0, 0];
   const invoiceTotals = report.serviceInvoiceTotals || [null, null, null];
-  const invoiceKnownCounts = report.serviceInvoiceKnownCounts || [0, 0, 0];
-  const totalGeneralCells = serviceMeta.map((service, index) => {
-    const hasValues = confirmedCounts[index] > 0;
-    const hasMonth = monthCounts[index] > 0;
-    const hasFinancing = financingCounts[index] > 0;
-    const secondary = index === 0
-      ? (invoiceKnownCounts[index] > 0 ? String(invoiceTotals[index]) : '\u2014')
-      : (hasFinancing ? cloudImageMoney(financingTotals[index]) : hasValues ? '$0' : '\u2014');
-    return `<div class="cell money total-row-value"><div>Total ${hasValues ? cloudImageMoney(totals[index]) : '\u2014'}</div><div class="small-money">Mes ${hasMonth ? cloudImageMoney(monthTotals[index]) : '\u2014'}</div><div class="small-money">${service.secondary} ${secondary}</div></div>`;
-  }).join('');
-  const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '\u2014';
-  const syncSummary = serviceMeta.map(service => `
-    <div class="sync-item ${service.className.replace('-head', '')}">
-      <div class="sync-name">${service.icon} <span>${service.name}</span></div>
-      <div class="sync-label">Sincronizado:</div>
-      <div class="sync-value">${escapeCloudImageHtml(report.serviceSync?.[service.key] || '\u2014')}</div>
-    </div>`).join('');
-  const hasPaymentChange = report.rows.some(row => row.services.some(service => ['partial_payment', 'full_payment'].includes(service.changeStatus)));
-  const changeLegend = hasPaymentChange
-    ? '<div class="change-legend"><span class="legend-partial">↓ Pago parcial detectado</span><span class="legend-full">✓ Pago total detectado</span><span class="legend-note">Comparación contra la última deuda confirmada; requiere validar el comprobante.</span></div>'
-    : '';
-  const incompleteNote = report.allComplete
-    ? '<div class="note"><span class="info-icon">i</span> Cada celda separa deuda del mes, facturas sin pagar de Air-e o convenios de los otros servicios, y deuda total acumulada.</div>'
-    : '<div class="note"><span class="info-icon">i</span> \u2014 indica que el portal todavía no confirmó ese valor. Air-e muestra facturas sin pagar; Triple A y Gases conservan sus convenios separados del total.</div>';
-  return `<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><style>
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #ffffff; }
-  body { width: 1160px; padding: 24px; color: #253b53; font-family: Arial, "DejaVu Sans", sans-serif; }
-  .card { border: 2px solid #d7e3ec; border-radius: 24px; overflow: hidden; box-shadow: 0 8px 22px rgba(25, 64, 96, .09); }
-  .title { padding: 28px 30px 24px; background: linear-gradient(135deg, #0d6fae, #1594c5); color: #fff; }
-  .title-line { display: flex; align-items: center; gap: 18px; }
-  .report-logo { width: 46px; height: 48px; padding: 5px 6px 4px; display: flex; align-items: flex-end; gap: 4px; background: #fff; border-radius: 2px; }
-  .report-logo span { display: block; width: 8px; border-radius: 1px 1px 0 0; }
-  .report-logo .bar-one { height: 25px; background: #2c8bc5; }
-  .report-logo .bar-two { height: 35px; background: #83c64c; }
-  .report-logo .bar-three { height: 18px; background: #edb843; }
-  h1 { margin: 0 0 8px; font-size: 38px; letter-spacing: .3px; }
-  .date { font-size: 23px; opacity: .96; }
-  .table { margin: 28px 16px 0; display: grid; grid-template-columns: 200px repeat(3, minmax(0, 1fr)) 172px; border: 2px solid #cbdce8; border-radius: 16px; overflow: hidden; }
-  .cell { min-width: 0; min-height: 82px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 12px 14px; border-right: 1px solid #d8e4ec; border-bottom: 1px solid #d8e4ec; font-size: 26px; background: #fff; overflow: hidden; }
-  .cell:nth-child(5n) { border-right: 0; }
-  .header { min-height: 94px; justify-content: center; color: #fff; border-bottom: 0; white-space: nowrap; }
-  .header-main { font-size: 23px; font-weight: 800; line-height: 1.25; }
-  .header-sub { margin-top: 6px; font-size: 16px; font-weight: 400; line-height: 1.15; }
-  .ap-head { background: #2e4a62; }
-  .air-head { background: #f28a0b; }
-  .water-head { background: #118fc8; }
-  .gas-head { background: #e9533f; }
-  .total-head { background: #1c507b; }
-  .apartment { font-weight: 800; font-size: 29px; }
-  .service-value { min-height: 184px; gap: 6px; align-items: stretch; padding-top: 14px; padding-bottom: 14px; }
-  .service-line { display: flex; justify-content: space-between; gap: 8px; font-size: 18px; line-height: 1.22; white-space: nowrap; }
-  .service-line span { color: #637991; }
-  .service-line b { font-size: 22px; font-variant-numeric: tabular-nums; }
-  .financing-line { border-top: 1px solid #e3ebf1; padding-top: 5px; }
-  .detail-line b { font-size: 18px; }
-  .total-line { margin-top: 2px; padding-top: 5px; border-top: 1px solid #d3e0e9; }
-  .total-line b { font-weight: 900; }
-  .money { justify-content: center; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
-  .row-total { color: #1c507b; gap: 5px; }
-  .row-total > div:first-child { font-size: 24px; font-weight: 900; }
-  .small-money { font-size: 16px; color: #637991; font-weight: 600; white-space: nowrap; }
-  .stripe { background: #f3f7fa; }
-  .total-row-label { background: #1c507b; color: #fff; font-size: 21px; font-weight: 800; white-space: nowrap; }
-  .total-row-value { color: #1c507b; font-size: 20px; gap: 5px; }
-  .total-row-value > div:first-child { font-size: 23px; font-weight: 800; }
-  .sync-grid { margin: 28px 16px 0; display: grid; grid-template-columns: repeat(3, 1fr); }
-  .sync-item { min-height: 108px; padding: 4px 28px 4px 20px; border-right: 1px solid #cbdce8; }
-  .sync-item:last-child { border-right: 0; }
-  .sync-name { font-size: 22px; font-weight: 800; }
-  .sync-name span { margin-left: 8px; }
-  .sync-label { margin: 13px 0 2px 37px; font-size: 18px; color: #637991; }
-    .sync-value { margin-left: 37px; font-size: 19px; color: #253b53; white-space: nowrap; }
-  .air .sync-name { color: #e88909; }
-  .water .sync-name { color: #148fc5; }
-    .gas .sync-name { color: #e84e3a; }
-  .change-full { background: #eaf8ef !important; box-shadow: inset 6px 0 0 #22a05a; }
-  .change-partial { background: #fff8dd !important; box-shadow: inset 6px 0 0 #e1a400; }
-  .change-badge { align-self: center; margin: -3px 0 3px; padding: 3px 7px; border-radius: 10px; font-size: 12px; font-weight: 800; white-space: nowrap; }
-  .change-full .change-badge { color: #13733e; background: #ccefd9; }
-  .change-partial .change-badge { color: #8a6200; background: #ffedaa; }
-  .change-legend { margin: 18px 16px 0; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 16px; font-weight: 700; }
-  .legend-partial { color: #8a6200; }
-  .legend-full { color: #13733e; }
-  .legend-note { color: #637991; font-size: 14px; font-weight: 400; }
-  .note { margin: 28px 16px 0; padding: 16px 18px; border: 2px solid #1674bc; border-radius: 10px; color: #637991; font-size: 18px; line-height: 1.35; }
-  .info-icon { display: inline-flex; justify-content: center; align-items: center; width: 22px; height: 22px; margin-right: 8px; border: 2px solid #1674bc; border-radius: 50%; color: #1674bc; font-size: 14px; font-weight: 800; }
-  .empty { grid-column: 1 / -1; padding: 28px; font-size: 22px; color: #637991; text-align: center; }
-  .footer { margin-top: 26px; padding: 20px 24px 26px; border-top: 1px solid #d8e4ec; color: #637991; font-size: 18px; line-height: 1.45; }
-  .footer-main { font-size: 18px; }
-  .refresh-icon { display: inline-block; margin-right: 10px; color: #168bc5; font-size: 30px; line-height: .7; vertical-align: -3px; }
-  .footer-date { margin-top: 8px; color: #8397ad; }
-</style></head><body>
-  <div class="card">
-    <div class="title"><div class="title-line"><div class="report-logo"><span class="bar-one"></span><span class="bar-two"></span><span class="bar-three"></span></div><div><h1>REPORTE DE SERVICIOS</h1><div class="date">${escapeCloudImageHtml(report.dateLabel)}</div></div></div></div>
-    <div class="table">${headerCells}${serviceRows}<div class="cell total-row-label">TOTAL GENERAL</div>${totalGeneralCells}<div class="cell money total-row-value">${grandTotal}</div></div>
-    <div class="sync-grid">${syncSummary}</div>
-    ${changeLegend}
-    ${incompleteNote}
-    <div class="footer"><div class="footer-main"><span class="refresh-icon">↻</span> Deuda del mes, facturas sin pagar de Air-e, convenios y deuda total se muestran con la última sincronización disponible.</div><div class="footer-date">Reporte generado: ${escapeCloudImageHtml(report.dateLabel)}</div></div>
+
+  const cardsHtml = report.rows.length
+    ? report.rows.map(row => {
+      const total = row.complete ? cloudImageMoney(row.total) : '—';
+      const totalColor = (row.complete && row.total > 0) ? '' : 'color:var(--success);';
+
+      const serviceItems = row.services.map((service, idx) => {
+        const isAirE = idx === 0;
+        const meta = serviceMeta[idx];
+        const month = service.monthKnown ? cloudImageMoney(service.month) : '—';
+        const totalVal = service.known ? cloudImageMoney(service.amount) : '—';
+        const isZero = service.known && Number(service.amount) === 0;
+        const valColor = isZero ? 'color:var(--success);' : '';
+
+        let subVal = '';
+        if (isAirE) {
+          subVal = service.invoiceTotalCount !== null
+            ? (service.invoiceTotalCount === 0 ? 'Al día (0 facturas)' : `${service.invoiceTotalCount} factura(s) sin pagar`)
+            : (isZero ? 'Al día' : '');
+        } else {
+          const parts = [];
+          if (service.monthKnown && service.month > 0 && service.month !== service.amount) {
+            parts.push(`Mes ${month}`);
+          }
+          if (service.financingKnown && service.financed > 0) {
+            parts.push(`Conv ${cloudImageMoney(service.financed)}`);
+          }
+          if (service.quota !== null && service.quota > 0) {
+            parts.push(`Cuota ${cloudImageMoney(service.quota)}`);
+          }
+          if (service.installmentCurrent !== null && service.installmentTotal !== null) {
+            parts.push(`Avance ${service.installmentCurrent}/${service.installmentTotal}`);
+          }
+          if (service.invoiceTotalCount !== null && service.invoiceTotalCount > 0) {
+            parts.push(`${service.invoiceTotalCount} fac. sin pagar`);
+          }
+          subVal = parts.join(' · ') || (isZero ? 'Al día' : '');
+        }
+
+        const changeBadge = service.changeStatus === 'full_payment'
+          ? `<div class="change-badge full">✓ Pago total detectado${service.changeDelta ? ` · ${cloudImageMoney(service.changeDelta)}` : ''}</div>`
+          : service.changeStatus === 'partial_payment'
+            ? `<div class="change-badge partial">↓ Pago parcial detectado${service.changeDelta ? ` · ${cloudImageMoney(service.changeDelta)}` : ''}</div>`
+            : '';
+
+        return `
+          <div class="service-row ${meta.className}">
+            <div class="service-tag">${meta.icon} ${meta.name}</div>
+            <div class="service-details">
+              ${changeBadge}
+              <div class="service-main-val" style="${valColor}">${totalVal}</div>
+              ${subVal ? `<div class="service-sub-val">${escapeCloudImageHtml(subVal)}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+
+      return `
+        <article class="apt-card" data-apt="${escapeCloudImageHtml(row.apartment)}">
+          <div class="apt-card-head">
+            <div class="apt-badge">
+              <span style="font-size:18px">🏠</span>
+              <span class="apt-number">Apto ${escapeCloudImageHtml(row.apartment)}</span>
+            </div>
+            <div class="apt-total-badge">
+              <div class="apt-total-label">Total a Pagar</div>
+              <div class="apt-total-amount" style="${totalColor}">${total}</div>
+            </div>
+          </div>
+          <div class="services-stack">
+            ${serviceItems}
+          </div>
+        </article>`;
+    }).join('\n')
+    : '<div class="empty" style="grid-column: 1/-1; text-align: center; padding: 24px; color: #64748b;">No hay apartamentos configurados para mostrar.</div>';
+
+  const tableRowsHtml = report.rows.length
+    ? report.rows.map(row => {
+      const total = row.complete ? cloudImageMoney(row.total) : '—';
+      const totalColor = (row.complete && row.total > 0) ? '' : 'color:var(--success);';
+
+      const cells = row.services.map((service, idx) => {
+        const isZero = service.known && Number(service.amount) === 0;
+        if (isZero) return `<td><span style="color:var(--success);font-weight:700">$ 0</span></td>`;
+        const val = service.known ? cloudImageMoney(service.amount) : '—';
+        let extra = '';
+        if (idx === 0 && service.invoiceTotalCount !== null) {
+          extra = ` <span style="font-size:11px;color:var(--text-muted)">(${service.invoiceTotalCount} fac)</span>`;
+        } else if (idx !== 0 && service.monthKnown && service.month > 0 && service.month !== service.amount) {
+          extra = ` <span style="font-size:11px;color:var(--text-muted)">(Mes ${cloudImageMoney(service.month)})</span>`;
+        }
+        return `<td><b>${val}</b>${extra}</td>`;
+      }).join('');
+
+      return `
+        <tr>
+          <td class="cell-apt">${escapeCloudImageHtml(row.apartment)}</td>
+          ${cells}
+          <td class="cell-total" style="${totalColor}">${total}</td>
+        </tr>`;
+    }).join('\n')
+    : '<tr><td colspan="5" style="text-align:center;padding:20px;">Sin datos</td></tr>';
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporte de Servicios Públicos · Edificio Laujim</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #0f4c81;
+      --primary-dark: #0a3156;
+      --primary-light: #e0f2fe;
+      --aire: #ea580c;
+      --aire-bg: #fff7ed;
+      --aire-border: #fed7aa;
+      --triplea: #0284c7;
+      --triplea-bg: #f0f9ff;
+      --triplea-border: #bae6fd;
+      --gases: #dc2626;
+      --gases-bg: #fef2f2;
+      --gases-border: #fecaca;
+      --success: #16a34a;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 980px; margin: 0 auto; }
+    .header-banner {
+      background: linear-gradient(135deg, #0a2540 0%, #173d63 100%);
+      color: #ffffff;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(10, 37, 64, 0.15);
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header-banner::after {
+      content: "";
+      position: absolute;
+      top: -40px; right: -40px; width: 140px; height: 140px;
+      background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+      border-radius: 50%; pointer-events: none;
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+    .brand-title { display: flex; align-items: center; gap: 12px; }
+    .brand-icon {
+      width: 44px; height: 44px; background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    .brand-text h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+    .brand-text p { font-size: 13px; color: #94a3b8; font-weight: 500; }
+    .report-date-badge {
+      background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #cbd5e1;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 20px; }
+    .kpi-card {
+      background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(8px);
+    }
+    .kpi-card.main { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.28); }
+    .kpi-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #cbd5e1; }
+    .kpi-value { font-size: 22px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; color: #ffffff; }
+    .kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .sync-bar {
+      background: #ffffff; border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px;
+      margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .sync-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .sync-pills { display: flex; gap: 10px; flex-wrap: wrap; }
+    .sync-pill { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px; }
+    .sync-pill.aire { background: var(--aire-bg); color: var(--aire); border: 1px solid var(--aire-border); }
+    .sync-pill.triplea { background: var(--triplea-bg); color: var(--triplea); border: 1px solid var(--triplea-border); }
+    .sync-pill.gases { background: var(--gases-bg); color: var(--gases); border: 1px solid var(--gases-border); }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-box { flex: 1; min-width: 200px; position: relative; }
+    .search-box input {
+      width: 100%; padding: 10px 14px 10px 36px; font-size: 14px; border: 1px solid var(--border);
+      border-radius: 12px; background: #ffffff; outline: none; transition: border-color 0.2s;
+    }
+    .search-box input:focus { border-color: var(--primary); }
+    .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: var(--text-muted); }
+    .view-toggle { display: flex; background: #e2e8f0; padding: 3px; border-radius: 10px; gap: 2px; }
+    .toggle-btn {
+      border: none; background: transparent; padding: 6px 12px; font-size: 12px; font-weight: 600;
+      color: var(--text-muted); border-radius: 8px; cursor: pointer; transition: all 0.2s;
+    }
+    .toggle-btn.active { background: #ffffff; color: var(--text); box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+    .apartment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+    .apt-card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.03); transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .apt-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+    .apt-card-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+    .apt-badge { display: flex; align-items: center; gap: 8px; }
+    .apt-number { font-size: 18px; font-weight: 800; color: var(--primary); }
+    .apt-total-badge { text-align: right; }
+    .apt-total-label { font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
+    .apt-total-amount { font-size: 16px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+    .services-stack { display: flex; flex-direction: column; gap: 8px; }
+    .service-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 10px; font-size: 13px; }
+    .service-row.aire { background: var(--aire-bg); border: 1px solid var(--aire-border); }
+    .service-row.triplea { background: var(--triplea-bg); border: 1px solid var(--triplea-border); }
+    .service-row.gases { background: var(--gases-bg); border: 1px solid var(--gases-border); }
+    .service-tag { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+    .service-details { text-align: right; }
+    .service-main-val { font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
+    .service-sub-val { font-size: 11px; color: var(--text-muted); }
+    .change-badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; margin-bottom: 3px; }
+    .change-badge.full { background: #dcfce7; color: #15803d; }
+    .change-badge.partial { background: #fef9c3; color: #854d0e; }
+    .table-container { display: none; background: #ffffff; border: 1px solid var(--border); border-radius: 16px; overflow-x: auto; box-shadow: 0 4px 14px rgba(0,0,0,0.04); }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    .data-table th {
+      background: #f8fafc; padding: 12px 14px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); border-bottom: 2px solid var(--border);
+    }
+    .data-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+    .data-table tr:hover td { background: #f8fafc; }
+    .data-table .cell-apt { font-weight: 800; color: var(--primary); font-size: 15px; }
+    .data-table .cell-total { font-weight: 800; color: var(--text); font-size: 14px; }
+    .data-table tfoot tr td { background: #f1f5f9; font-weight: 800; border-top: 2px solid #cbd5e1; font-size: 14px; }
+    .report-footer { margin-top: 24px; padding: 16px; background: #ffffff; border: 1px solid var(--border); border-radius: 14px; font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px; }
+    .report-footer strong { color: var(--text); }
+    @media (max-width: 640px) {
+      body { padding: 10px; }
+      .header-banner { padding: 18px; }
+      .brand-text h1 { font-size: 18px; }
+      .kpi-value { font-size: 19px; }
+      .apartment-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header-banner">
+      <div class="header-top">
+        <div class="brand-title">
+          <div class="brand-icon">🏢</div>
+          <div class="brand-text">
+            <h1>EDIFICIO LAUJIM</h1>
+            <p>Reporte Oficial de Servicios Públicos</p>
+          </div>
+        </div>
+        <div class="report-date-badge">📅 ${escapeCloudImageHtml(report.dateLabel)}</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card main">
+          <div class="kpi-label">💰 Deuda Total General</div>
+          <div class="kpi-value">${grandTotal}</div>
+          <div class="kpi-sub">${report.rows.length} apartamento(s) registrado(s)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">⚡ Air-e</div>
+          <div class="kpi-value">${totals[0] !== null ? cloudImageMoney(totals[0]) : '—'}</div>
+          <div class="kpi-sub">${invoiceTotals[0] ?? 0} facturas sin pagar${monthTotals[0] ? ` · Mes: ${cloudImageMoney(monthTotals[0])}` : ''}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">💧 Triple A</div>
+          <div class="kpi-value">${totals[1] !== null ? cloudImageMoney(totals[1]) : '—'}</div>
+          <div class="kpi-sub">${monthTotals[1] ? `Mes: ${cloudImageMoney(monthTotals[1])}` : 'Al día'}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">🔥 Gases del Caribe</div>
+          <div class="kpi-value">${totals[2] !== null ? cloudImageMoney(totals[2]) : '—'}</div>
+          <div class="kpi-sub">${monthTotals[2] ? `Mes: ${cloudImageMoney(monthTotals[2])}` : ''}${financingTotals[2] ? ` · Conv: ${cloudImageMoney(financingTotals[2])}` : ''}</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="sync-bar">
+      <div class="sync-title">Última Sincronización:</div>
+      <div class="sync-pills">
+        <div class="sync-pill aire">⚡ Air-e: ${escapeCloudImageHtml(report.serviceSync?.electricity || '—')}</div>
+        <div class="sync-pill triplea">💧 Triple A: ${escapeCloudImageHtml(report.serviceSync?.water || '—')}</div>
+        <div class="sync-pill gases">🔥 Gases: ${escapeCloudImageHtml(report.serviceSync?.gas || '—')}</div>
+      </div>
+    </section>
+
+    <div class="toolbar">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><path d="M10 18a7.952 7.952 0 0 0 4.897-1.688l4.396 4.396 1.414-1.414-4.396-4.396A7.952 7.952 0 0 0 18 10c0-4.411-3.589-8-8-8s-8 3.589-8 8 3.589 8 8 8zm0-14c3.309 0 6 2.691 6 6s-2.691 6-6 6-6-2.691-6-6 2.691-6 6-6z"/></svg>
+        <input type="text" id="searchInput" placeholder="Buscar apartamento (ej: 101, 202)..." onkeyup="filterApts()">
+      </div>
+      <div class="view-toggle">
+        <button class="toggle-btn active" id="btnCards" onclick="setView('cards')">📱 Tarjetas</button>
+        <button class="toggle-btn" id="btnTable" onclick="setView('table')">📊 Tabla</button>
+      </div>
+    </div>
+
+    <main class="apartment-grid" id="cardsContainer">
+      ${cardsHtml}
+    </main>
+
+    <div class="table-container" id="tableContainer">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Apartamento</th>
+            <th>⚡ Air-e</th>
+            <th>💧 Triple A</th>
+            <th>🔥 Gases del Caribe</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRowsHtml}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>TOTAL GENERAL</td>
+            <td>${totals[0] !== null ? cloudImageMoney(totals[0]) : '—'}</td>
+            <td>${totals[1] !== null ? cloudImageMoney(totals[1]) : '—'}</td>
+            <td>${totals[2] !== null ? cloudImageMoney(totals[2]) : '—'}</td>
+            <td style="color:var(--primary);font-size:15px">${grandTotal}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <footer class="report-footer">
+      <div><strong>Edificio Laujim APP</strong> · Reporte consolidado de servicios públicos.</div>
+      <div>⚡ Air-e muestra Facturas sin pagar. 💧 Triple A y 🔥 Gases del Caribe discriminan deuda del mes y Convenio(s) activos.</div>
+      <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Archivo generado automáticamente · Formato HTML Ultra Ligero (~25 KB).</div>
+    </footer>
   </div>
-</body></html>`;
+
+  <script>
+    function setView(view) {
+      const cards = document.getElementById('cardsContainer');
+      const table = document.getElementById('tableContainer');
+      const btnCards = document.getElementById('btnCards');
+      const btnTable = document.getElementById('btnTable');
+      if (view === 'table') {
+        cards.style.display = 'none';
+        table.style.display = 'block';
+        btnTable.classList.add('active');
+        btnCards.classList.remove('active');
+      } else {
+        table.style.display = 'none';
+        cards.style.display = 'grid';
+        btnCards.classList.add('active');
+        btnTable.classList.remove('active');
+      }
+    }
+    function filterApts() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const cards = document.querySelectorAll('.apt-card');
+      const rows = document.querySelectorAll('.data-table tbody tr');
+      cards.forEach(card => {
+        const apt = (card.getAttribute('data-apt') || '').toLowerCase();
+        const text = card.innerText.toLowerCase();
+        card.style.display = (apt.includes(query) || text.includes(query)) ? '' : 'none';
+      });
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>`;
 }
+
+const cloudServicesReportImageHtml = cloudServicesReportHtml;
 
 async function renderCloudServicesReportImage(report = buildCloudServicesImageData()) {
   if (typeof servicesScraper.launchLocalBrowser !== 'function') {
@@ -3506,17 +3744,18 @@ async function sendCloudServicesInfo(phone, aptRef) {
 }
 
 async function createCloudServicesReportMedia(report = buildCloudServicesImageData()) {
-  const buffer = await renderCloudServicesReportImage(report);
+  const html = cloudServicesReportHtml(report);
+  const buffer = Buffer.from(html, 'utf-8');
   const file = {
-    originalname: `reporte-servicios-${colombiaDate()}.png`,
-    mimetype: 'image/png',
+    originalname: `reporte-servicios-${colombiaDate()}.html`,
+    mimetype: 'text/html',
     buffer,
     size: buffer.length,
   };
   const uploaded = await uploadCloudMedia(file);
   const media = {
-    kind: 'image',
-    mimeType: file.mimetype,
+    kind: 'document',
+    mimeType: 'text/html',
     fileName: file.originalname,
     size: file.size,
     id: uploaded.id,
@@ -3536,7 +3775,9 @@ async function createCloudServicesReportMedia(report = buildCloudServicesImageDa
   } else {
     media.archiveStatus = 'not_configured';
   }
-  return { report, buffer, media, caption: `📊 REPORTE DE SERVICIOS\n${report.dateLabel}` };
+  const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '—';
+  const caption = `📊 Reporte de Servicios Públicos · ${report.dateLabel}\n💰 Deuda Total: ${grandTotal}\n📎 Abre el archivo para ver el detalle por apartamento.`;
+  return { report, buffer, media, caption };
 }
 
 async function sendCloudServicesReportImageOnly(phone, report, mediaPackage = null) {
@@ -3544,22 +3785,46 @@ async function sendCloudServicesReportImageOnly(phone, report, mediaPackage = nu
   const result = await sendCloudMedia(phone, packageData.media, packageData.caption);
   const conversation = getCloudConversation({ phone });
   addCloudMessage(conversation, 'out', {
-    type: 'image', text: packageData.caption, mediaId: packageData.media.id, media: packageData.media,
+    type: packageData.media.kind || 'document', text: packageData.caption, mediaId: packageData.media.id, media: packageData.media,
     whatsappMessageId: result.messages?.[0]?.id || null,
   });
   saveData();
-  console.log(`[WHATSAPP CLOUD] Global services report image sent (${packageData.report.rows.length} apartment(s), ${packageData.buffer.length} bytes).`);
+  console.log(`[WHATSAPP CLOUD] Global services report document sent (${packageData.report.rows.length} apartment(s), ${packageData.buffer.length} bytes).`);
   return { ...packageData, messageId: result.messages?.[0]?.id || null };
 }
 
 async function sendCloudGlobalServices(phone) {
   const report = buildCloudServicesImageData();
+  const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '—';
+  const summaryText = [
+    `📊 *REPORTE DE SERVICIOS PÚBLICOS*`,
+    `🏢 *Edificio Laujim* · ${report.dateLabel}`,
+    ``,
+    `💰 *Deuda Total General:* ${grandTotal}`,
+    `⚡ *Air-e:* ${report.serviceTotals[0] !== null ? cloudImageMoney(report.serviceTotals[0]) : '—'} (${report.serviceInvoiceTotals[0] ?? 0} facturas sin pagar)`,
+    `💧 *Triple A:* ${report.serviceTotals[1] !== null ? cloudImageMoney(report.serviceTotals[1]) : '—'}`,
+    `🔥 *Gases del Caribe:* ${report.serviceTotals[2] !== null ? cloudImageMoney(report.serviceTotals[2]) : '—'}`,
+    ``,
+    `🕒 *Última sincronización:*`,
+    `⚡ Air-e: ${report.serviceSync?.electricity || '—'}`,
+    `💧 Triple A: ${report.serviceSync?.water || '—'}`,
+    `🔥 Gases: ${report.serviceSync?.gas || '—'}`,
+    ``,
+    `🔗 *Ver reporte completo e interactivo:*`,
+    `${PUBLIC_APP_URL}/reportes/servicios`,
+  ].join('\n');
+
+  try {
+    await sendCloudText(phone, summaryText);
+  } catch (textErr) {
+    console.warn('[WHATSAPP CLOUD] summary text error:', textErr.message);
+  }
+
   try {
     await sendCloudServicesReportImageOnly(phone, report);
     await sendCloudUtilitiesDetailButton(phone);
   } catch (error) {
-    console.error('[WHATSAPP CLOUD] services report image error; using text fallback:', error.message);
-    await sendCloudTextChunks(phone, buildCloudGlobalServicesReport());
+    console.warn('[WHATSAPP CLOUD] services report document attach error (text and link already sent):', error.message);
   }
   await sendCloudServicesMenu(phone);
 }
@@ -4144,7 +4409,7 @@ async function handleCloudAdminMessage(phone, message) {
     return;
   }
 
-  if (buttonId === 'menu_enviar_cobros' || /^(?:enviar\s+(?:cobros|recordatorios)|plantillas?\s+de\s+cobro)$/i.test(text)) {
+  if (buttonId === 'menu_enviar_cobros' || /^(?:(?:enviar\s+)?(?:cobros|recordatorios)|(?:las?\s+)?plantillas?(?:\s+de\s+cobro)?)$/i.test(text)) {
     await sendCloudReminderSelectionMenu(phone);
     return;
   }
@@ -4331,12 +4596,12 @@ async function handleCloudAdminMessage(phone, message) {
     }
   }
 
-  if (buttonId === 'menu_servicios' || normalizedText === 'servicios') {
+  if (buttonId === 'menu_servicios' || /^(?:servicios|servicios\s+publicos|menu\s+servicios)$/i.test(normalizedText)) {
     await sendCloudServicesMenu(phone);
     return;
   }
 
-  if (buttonId === 'services_all' || /^(todos|global|general|todos\s+los\s+apartamentos)$/i.test(text)) {
+  if (buttonId === 'services_all' || /^(?:todos|global|general|todos\s+los\s+apartamentos|reporte\s+servicios|reporte\s+de\s+servicios)$/i.test(normalizedText)) {
     await sendCloudGlobalServices(phone);
     return;
   }
@@ -5152,6 +5417,19 @@ app.post('/api/security/doors/:id/unlock', async (req, res) => {
   } catch (error) {
     appendAccessEvent({ requestId, actorRole: 'admin', actorId: req.auth.name, doorId: door.id, status: 'failed', message: error.message });
     res.status(503).json({ error: error.message, requestId });
+  }
+});
+
+app.get(['/reportes/servicios', '/reporte-servicios'], (req, res) => {
+  try {
+    const report = buildCloudServicesImageData();
+    const html = cloudServicesReportHtml(report);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(html);
+  } catch (error) {
+    console.error('[REPORTE SERVICIOS] error generando HTML:', error.message);
+    res.status(500).send('Error generando el reporte de servicios: ' + error.message);
   }
 });
 
@@ -7929,6 +8207,7 @@ module.exports = {
   splitCloudText,
   cloudServiceAmounts,
   cloudServicesReportImageHtml,
+  cloudServicesReportHtml,
   utilityChangeTemplateData,
   utilityPaymentDecision,
   mergeUtilityRecord,
