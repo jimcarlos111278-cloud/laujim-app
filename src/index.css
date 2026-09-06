@@ -651,3 +651,71 @@ td, th { word-break: normal; overflow-wrap: normal; }
   .action-bar .btn-text { font-size: 0.65rem; padding: 0.25rem 0.5rem; }
   .action-bar .gap-2 { gap: 0.3rem; }
 }
+
+/* WhatsApp Cloud Authentic Styling & Prototype Enhancements */
+:root {
+  --wa-bubble-in: #202c33;
+  --wa-bubble-out: #005c4b;
+  --wa-bubble-out-tail: #005c4b;
+  --wa-bubble-in-tail: #202c33;
+}
+
+.wa-doodle-bg {
+  background-color: #0b141a;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                    radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 26px 26px;
+  background-position: 0 0, 13px 13px;
+}
+
+.bubble-in {
+  background-color: var(--wa-bubble-in);
+  border-radius: 8px 8px 8px 2px;
+  position: relative;
+}
+.bubble-in::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -6px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 8px 10px 0;
+  border-color: transparent var(--wa-bubble-in-tail) transparent transparent;
+}
+
+.bubble-out {
+  background-color: var(--wa-bubble-out);
+  border-radius: 8px 8px 2px 8px;
+  position: relative;
+}
+.bubble-out::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -6px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 10px 8px;
+  border-color: transparent transparent transparent var(--wa-bubble-out-tail);
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: translateY(6px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-pop-in { animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+.waveform-bar {
+  width: 2.5px;
+  border-radius: 2px;
+  transition: height 0.15s ease, background-color 0.1s linear, transform 0.15s ease;
+  cursor: pointer;
+}
+.waveform-bar:hover {
+  opacity: 0.8;
+  transform: scaleY(1.2);
+}
+
