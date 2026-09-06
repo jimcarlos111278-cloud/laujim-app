@@ -621,6 +621,16 @@ function cloudServiceWindowOpen(conversation) {
   const now = Date.now();
   const configuredUntil = conversation?.customerServiceWindowUntil ? new Date(conversation.customerServiceWindowUntil).getTime() : 0;
   if (configuredUntil > now) return true;
+  const phone = conversation?.phone;
+  if (phone) {
+    const authState = (db.whatsappAuthStates || []).find(s => samePhone(s.phone, phone));
+    const authStateTime = authState?.updatedAt ? new Date(authState.updatedAt).getTime() : 0;
+    if (authStateTime && (authStateTime + 24 * 60 * 60 * 1000) > now) {
+      conversation.customerServiceWindowUntil = new Date(authStateTime + 24 * 60 * 60 * 1000).toISOString();
+      conversation.lastInboundAt = authState.updatedAt;
+      return true;
+    }
+  }
   const latestInbound = (db.whatsappMessages || [])
     .filter(message => Number(message.conversationId) === Number(conversation?.id) && message.direction === 'in')
     .map(message => new Date(message.createdAt).getTime())
@@ -4342,6 +4352,10 @@ async function sendCloudIncidentAmountPrompt(phone, apartment) {
 }
 
 async function handleCloudAdminMessage(phone, message) {
+  const conversation = getCloudConversation({ phone });
+  const nowIso = new Date().toISOString();
+  conversation.lastInboundAt = nowIso;
+  conversation.customerServiceWindowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   await greetCloudAdminOnce(phone);
   const type = message.type || 'unknown';
   const interactive = cloudInteractiveReply(message);
@@ -4349,6 +4363,19 @@ async function handleCloudAdminMessage(phone, message) {
   const buttonId = String(interactive?.id || '');
   const text = rawText || String(interactive?.title || '').trim();
   const normalizedText = cloudNormaliseText(text);
+  addCloudMessage(conversation, 'in', {
+    type: interactive ? 'interactive' : type,
+    text: type === 'text' ? rawText : (interactive?.title || buttonId || ''),
+    whatsappMessageId: message.id,
+    interaction: interactive ? {
+      type: interactive.type,
+      id: interactive.id || null,
+      title: interactive.title || null,
+      payload: interactive.payload || null,
+      displayText: interactive.title || buttonId,
+      status: 'handled',
+    } : null,
+  });
   if (!text && !buttonId) {
     await sendCloudAdminMenu(phone);
     return;
