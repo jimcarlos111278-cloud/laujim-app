@@ -4,9 +4,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 
 async function cloudRequest(path, options = {}) {
+  const token = (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('apt_auth') || '{}').token) || AUTH_TOKEN || '';
   const response = await fetch(getBase() + path, {
     ...options,
-    headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN, ...(options.headers || {}) },
+    headers: { 'Content-Type': 'application/json', 'x-auth-token': token, ...(options.headers || {}) },
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -728,17 +729,22 @@ export default function WhatsAppInbox() {
       {/* ================= 1. SIDEBAR (Lista de Conversaciones) ================= */}
       <aside className="wa-live-sidebar w-full md:w-[350px] lg:w-[380px] bg-[#111b21] border-r border-[#222d34] flex flex-col shrink-0 z-20 transition-all duration-200">
         
-        {/* Cabecera del Sidebar */}
-        <div className="h-14 bg-[#202c33] px-3.5 flex items-center justify-between border-b border-[#222d34] shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-[#00a884] text-[#111b21] flex items-center justify-center font-bold text-sm shadow">
-              LJ
+        {/* Cabecera del Sidebar con Safe Area y Branding Oficial */}
+        <div className="pt-[max(env(safe-area-inset-top),36px)] pb-3 px-3.5 bg-[#1f2c34] flex items-center justify-between border-b border-[#222d34] shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white shadow-md shadow-[#25D366]/20 shrink-0">
+              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.97.53 1.77.78 2.796.78 3.18 0 5.767-2.586 5.768-5.766 0-3.18-2.587-5.766-5.768-5.766zm3.364 8.163c-.144.405-.837.774-1.17.825-.311.047-.718.083-2.336-.587-1.745-.723-2.871-2.493-2.958-2.609-.088-.116-.708-.941-.708-1.793s.447-1.272.606-1.446c.159-.175.346-.219.462-.219.116 0 .232.001.332.006.106.005.249-.04.39.298.144.347.491 1.2.534 1.288.043.088.072.19.014.305-.058.116-.087.188-.173.289-.087.101-.183.226-.262.304-.088.087-.18.182-.077.359.102.176.455.75 1.026 1.258.736.654 1.357.857 1.549.953.192.096.305.084.418-.046.113-.13.483-.562.612-.755.13-.192.26-.16.435-.096.175.064 1.111.524 1.303.62.192.096.32.144.367.225.047.081.047.47-.097.875z"/>
+              </svg>
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-[#e9edef] leading-tight">WhatsApp Laujim</h1>
-              <span className="text-[11px] text-[#00a884] flex items-center gap-1 font-medium">
-                <span className={`w-1.5 h-1.5 rounded-full ${status?.ready ? 'bg-[#00a884] animate-pulse' : 'bg-rose-400'}`}></span>
-                {status?.ready ? 'Cloud API conectada' : 'Requiere configuración'}
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-sm font-bold text-white tracking-tight leading-tight">WhatsApp Cloud</h1>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#25D366]/20 text-[#25D366]">API</span>
+              </div>
+              <span className="text-[11px] text-[#8696a0] flex items-center gap-1.5 font-medium mt-0.5">
+                <span className={`w-2 h-2 rounded-full ${status?.ready ? 'bg-[#25D366] shadow-[0_0_8px_#25D366]' : 'bg-rose-400'}`}></span>
+                {status?.ready ? 'Conectado · Edificio Laujim' : 'Requiere configuración'}
               </span>
             </div>
           </div>
@@ -888,8 +894,8 @@ export default function WhatsAppInbox() {
           )}
         </div>
 
-        {/* Salir al Dashboard */}
-        <div className="p-2.5 bg-[#111b21] border-t border-[#222d34] flex items-center justify-between text-[11px] text-[#8696a0] shrink-0">
+        {/* Salir al Dashboard con Safe Area Bottom */}
+        <div className="p-2.5 pb-[max(env(safe-area-inset-bottom),14px)] bg-[#111b21] border-t border-[#222d34] flex items-center justify-between text-[11px] text-[#8696a0] shrink-0">
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
@@ -917,8 +923,8 @@ export default function WhatsAppInbox() {
           </div>
         ) : (
           <>
-            {/* Cabecera del Chat */}
-            <header className="h-14 bg-[#202c33] px-2.5 sm:px-3 flex items-center justify-between border-b border-[#222d34] shrink-0 z-20">
+            {/* Cabecera del Chat con Safe Area Top */}
+            <header className="pt-[max(env(safe-area-inset-top),36px)] pb-2.5 px-2.5 sm:px-3 bg-[#1f2c34] flex items-center justify-between border-b border-[#222d34] shrink-0 z-20">
               <div className="flex items-center gap-2 min-w-0">
                 {/* Botón Volver a Lista en móvil */}
                 <button
@@ -1186,7 +1192,7 @@ export default function WhatsAppInbox() {
             )}
 
             {/* ================= COMPOSITOR INFERIOR WHATSAPP ================= */}
-            <footer className="bg-[#202c33] px-2 py-1.5 flex items-center gap-1.5 shrink-0 z-20 border-t border-[#222d34]">
+            <footer className="bg-[#202c33] px-2 pt-1.5 pb-[max(env(safe-area-inset-bottom),14px)] flex items-center gap-1.5 shrink-0 z-20 border-t border-[#222d34]">
               {/* Inputs ocultos de archivo */}
               <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
               <input ref={galleryInput} type="file" className="hidden" accept="image/*,video/*" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
@@ -1294,7 +1300,7 @@ export default function WhatsAppInbox() {
         {/* ================= DRAWER LATERAL DE BÚSQUEDA EN EL CHAT ================= */}
         {activePanel === 'chat-search' && selectedConversation && (
           <aside className="w-72 sm:w-80 bg-[#111b21] border-l border-[#222d34] absolute right-0 top-0 bottom-0 z-30 flex flex-col text-xs shadow-2xl animate-pop-in">
-            <div className="flex items-center justify-between p-3 border-b border-[#222d34]">
+            <div className="flex items-center justify-between p-3 pt-[max(env(safe-area-inset-top),36px)] border-b border-[#222d34] bg-[#1f2c34]">
               <strong className="text-sm text-white flex items-center gap-2">
                 <Search className="w-4 h-4 text-[#00a884]" /> Buscar en este chat
               </strong>
@@ -1358,7 +1364,7 @@ export default function WhatsAppInbox() {
 
         {/* ================= DRAWER LATERAL DE INFO (Deslizable, NO bloquea el chat) ================= */}
         {activePanel === 'info' && selectedConversation && (
-          <aside className="w-72 sm:w-80 bg-[#111b21] border-l border-[#222d34] absolute right-0 top-0 bottom-0 z-30 flex flex-col p-4 text-xs shadow-2xl animate-pop-in">
+          <aside className="w-72 sm:w-80 bg-[#111b21] border-l border-[#222d34] absolute right-0 top-0 bottom-0 z-30 flex flex-col p-4 pt-[max(env(safe-area-inset-top),36px)] text-xs shadow-2xl animate-pop-in">
             <div className="flex items-center justify-between pb-3 border-b border-[#222d34] mb-3">
               <strong className="text-sm text-white">Info del Residente</strong>
               <button onClick={() => setActivePanel(null)} className="text-gray-400 hover:text-white p-1">✕</button>

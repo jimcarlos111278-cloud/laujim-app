@@ -105,11 +105,13 @@ function PrivateApp() {
       }
       const syncStatus = getCloudSyncStatus();
       if (!cloudSyncOk && (syncStatus.status === 401)) {
-        // Only clear auth on explicit 401 — the server confirmed the token is invalid.
-        // 503 (server starting) and network errors should NOT destroy a valid session.
-        clearAuth();
-        window.location.replace('/login?reason=session-expired');
-        return;
+        const localAuth = JSON.parse(localStorage.getItem('apt_auth') || 'null');
+        if (!localAuth?.token) {
+          clearAuth();
+          window.location.replace('/login?reason=session-expired');
+          return;
+        }
+        console.warn('Startup sync returned 401, pero se preserva la sesión local del usuario');
       }
       if (!cloudSyncOk) {
         setCloudError(syncStatus.status === 503

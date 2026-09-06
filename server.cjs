@@ -20,7 +20,7 @@ const { PDFDocument, PDFTextField, PDFCheckBox, PDFDropdown, PDFRadioGroup, PDFO
 
 const app = express();
 const PORT = process.env.PORT || 1011;
-const SESSION_TTL_MS = Math.max(1, Number(process.env.SESSION_TTL_HOURS || 720)) * 60 * 60 * 1000;
+const SESSION_TTL_MS = Math.max(720 * 60 * 60 * 1000, Number(process.env.SESSION_TTL_HOURS || 720) * 60 * 60 * 1000);
 let requestCount = 0;
 let responseCount = 0;
 let responseBytes = 0;
@@ -2996,12 +2996,18 @@ function cloudServiceReference(apartment, record, service) {
   return `${label}: ${value || 'No configurado'}`;
 }
 
-function cloudServiceState(record, _provider) {
+function cloudServiceState(record, provider = '') {
   if (!record) return { label: 'Deuda Total: sin datos de consulta', debt: null, known: false, hasDebt: false };
   if (gasRecordHasNoVisibleInvoice(record)) {
     return { label: 'Deuda Total: $0 · Al día · sin factura pendiente visible', debt: 0, known: true, hasDebt: false };
   }
-  const debt = utilityDebtAmount(record);
+  const isGas = /gas(?:es)?(?:\s*del\s*caribe)?/i.test(provider || record?.provider || '');
+  const isTripleA = /triple\s*a/i.test(provider || record?.provider || '');
+  const monthDebt = utilityMonthDebtAmount(record);
+  // Para Gases del Caribe y Triple A, mostrar como cifra principal el valor del mes en lugar de la suma de convenio + mes
+  const debt = ((isGas || isTripleA) && monthDebt !== null && Number.isFinite(monthDebt))
+    ? monthDebt
+    : utilityDebtAmount(record);
   if (debt !== null && debt > 0) {
     return {
       label: `Deuda Total: $${debt.toLocaleString('es-CO')}`,
@@ -3350,11 +3356,17 @@ function cloudServicesReportHtml(report) {
 
       const serviceItems = row.services.map((service, idx) => {
         const isAirE = idx === 0;
+        const isGas = idx === 2;
+        const isWater = idx === 1;
         const meta = serviceMeta[idx];
         const month = service.monthKnown ? cloudImageMoney(service.month) : '—';
         const totalVal = service.known ? cloudImageMoney(service.amount) : '—';
         const isZero = service.known && Number(service.amount) === 0;
         const valColor = isZero ? 'color:var(--success);' : '';
+
+        // Cifra principal: debe ser el valor del mes en lugar de convenio + mes
+        const hasMonthVal = (isGas || isWater) && service.monthKnown && Number.isFinite(service.month) && service.month > 0;
+        const mainDisplayVal = hasMonthVal ? month : totalVal;
 
         let subVal = '';
         if (isAirE) {
@@ -3363,7 +3375,9 @@ function cloudServicesReportHtml(report) {
             : (isZero ? 'Al día' : '');
         } else {
           const parts = [];
-          if (service.monthKnown && service.month > 0 && service.month !== service.amount) {
+          if (hasMonthVal && service.month !== service.amount) {
+            parts.push(`Total ${totalVal}`);
+          } else if (!hasMonthVal && service.monthKnown && service.month > 0 && service.month !== service.amount) {
             parts.push(`Mes ${month}`);
           }
           if (service.financingKnown && service.financed > 0) {
@@ -3392,7 +3406,7 @@ function cloudServicesReportHtml(report) {
             <div class="service-tag">${meta.icon} ${meta.name}</div>
             <div class="service-details">
               ${changeBadge}
-              <div class="service-main-val" style="${valColor}">${totalVal}</div>
+              <div class="service-main-val" style="${valColor}">${mainDisplayVal}</div>
               ${subVal ? `<div class="service-sub-val">${escapeCloudImageHtml(subVal)}</div>` : ''}
             </div>
           </div>`;
@@ -3425,11 +3439,15 @@ function cloudServicesReportHtml(report) {
       const cells = row.services.map((service, idx) => {
         const isZero = service.known && Number(service.amount) === 0;
         if (isZero) return `<td><span style="color:var(--success);font-weight:700">$ 0</span></td>`;
-        const val = service.known ? cloudImageMoney(service.amount) : '—';
+        const isGasOrWater = idx === 1 || idx === 2;
+        const hasMonth = isGasOrWater && service.monthKnown && Number.isFinite(service.month) && service.month > 0;
+        const val = hasMonth ? cloudImageMoney(service.month) : (service.known ? cloudImageMoney(service.amount) : '—');
         let extra = '';
         if (idx === 0 && service.invoiceTotalCount !== null) {
           extra = ` <span style="font-size:11px;color:var(--text-muted)">(${service.invoiceTotalCount} fac)</span>`;
-        } else if (idx !== 0 && service.monthKnown && service.month > 0 && service.month !== service.amount) {
+        } else if (hasMonth && service.month !== service.amount) {
+          extra = ` <span style="font-size:11px;color:var(--text-muted)">(Total ${cloudImageMoney(service.amount)})</span>`;
+        } else if (!hasMonth && idx !== 0 && service.monthKnown && service.month > 0 && service.month !== service.amount) {
           extra = ` <span style="font-size:11px;color:var(--text-muted)">(Mes ${cloudImageMoney(service.month)})</span>`;
         }
         return `<td><b>${val}</b>${extra}</td>`;

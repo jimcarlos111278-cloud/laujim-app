@@ -10,11 +10,17 @@ export function refreshBase() {}
 // instead of leaving callers waiting indefinitely.
 const SERVER_REQUEST_TIMEOUT_MS = 12_000;
 
+function currentAuthToken() {
+  try {
+    return (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('apt_auth') || '{}').token) || AUTH_TOKEN || '';
+  } catch { return AUTH_TOKEN || ''; }
+}
+
 async function serverReq(method, collection, id, body) {
   const base = getBase();
   let url = base + '/' + collection;
   if (id) url += '/' + id;
-  const opts = { method, headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN } };
+  const opts = { method, headers: { 'Content-Type': 'application/json', 'x-auth-token': currentAuthToken() } };
   if (body) opts.body = JSON.stringify(body);
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timeout = controller ? setTimeout(() => controller.abort(), SERVER_REQUEST_TIMEOUT_MS) : null;
@@ -56,7 +62,7 @@ function uploadFile(url, file, extra) {
   const fd = new FormData();
   fd.append(file.fieldname || 'photo', file.file || file);
   Object.entries(extra || {}).forEach(([k, v]) => fd.append(k, v));
-  return fetch((getRawBase()) + url, { method: 'POST', headers: { 'x-auth-token': AUTH_TOKEN }, body: fd }).then(async r => {
+  return fetch((getRawBase()) + url, { method: 'POST', headers: { 'x-auth-token': currentAuthToken() }, body: fd }).then(async r => {
     if (!r.ok) {
       const payload = await r.json().catch(() => ({}));
       const error = new Error(payload.error || r.statusText || `Error ${r.status}`);
@@ -243,7 +249,7 @@ export const api = {
     async jobs(apartmentId) {
       const suffix = apartmentId ? `?apartmentId=${encodeURIComponent(apartmentId)}` : '';
       const response = await fetch(getBase() + '/marketplace/jobs' + suffix, {
-        headers: { 'x-auth-token': AUTH_TOKEN },
+        headers: { 'x-auth-token': currentAuthToken() },
         signal: AbortSignal.timeout(10000),
       });
       const payload = await response.json().catch(() => ({}));
@@ -263,7 +269,7 @@ export const api = {
       const params = new URLSearchParams({ limit: String(limit) });
       if (jobId) params.set('jobId', String(jobId));
       const response = await fetch(getBase() + '/marketplace/logs?' + params, {
-        headers: { 'x-auth-token': AUTH_TOKEN },
+        headers: { 'x-auth-token': currentAuthToken() },
         signal: AbortSignal.timeout(10000),
       });
       const payload = await response.json().catch(() => ({}));
@@ -294,7 +300,7 @@ export const api = {
   async deletePhoto(id) {
     const response = await fetch(`${getRawBase()}/api/photo/${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      headers: { 'x-auth-token': AUTH_TOKEN },
+      headers: { 'x-auth-token': currentAuthToken() },
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || `No se pudo eliminar la foto (${response.status}).`);
@@ -345,14 +351,14 @@ export const api = {
   },
   paymentAutomation: {
     async summary() {
-      const response = await fetch(`${getBase()}/payments/automation`, { headers: { 'x-auth-token': AUTH_TOKEN }, signal: AbortSignal.timeout(8000) });
+      const response = await fetch(`${getBase()}/payments/automation`, { headers: { 'x-auth-token': currentAuthToken() }, signal: AbortSignal.timeout(8000) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'No se pudo cargar la conciliación de pagos.');
       return payload;
     },
     async associate(eventId, apartmentId, remember = true) {
       const response = await fetch(`${getBase()}/payments/automation/events/${encodeURIComponent(eventId)}/associate`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': currentAuthToken() },
         body: JSON.stringify({ apartmentId, remember }),
       });
       const payload = await response.json().catch(() => ({}));
@@ -361,7 +367,7 @@ export const api = {
     },
     async dismiss(eventId) {
       const response = await fetch(`${getBase()}/payments/automation/events/${encodeURIComponent(eventId)}/dismiss`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': currentAuthToken() },
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'No se pudo descartar el evento.');
@@ -369,7 +375,7 @@ export const api = {
     },
     async addRule(rule) {
       const response = await fetch(`${getBase()}/payments/automation/rules`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': currentAuthToken() },
         body: JSON.stringify(rule),
       });
       const payload = await response.json().catch(() => ({}));
