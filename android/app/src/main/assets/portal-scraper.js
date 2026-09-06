@@ -733,6 +733,7 @@
       `${key}:${value && typeof value === 'object' ? '' : String(value ?? '')}`
     ).join(' ');
     const strongAmountKeys = [
+      'deferredValue', 'totalDeferred', 'valorDiferido', 'montoDiferido',
       'financedDebt', 'deudaFinanciada', 'saldoFinanciado', 'valorFinanciado',
       'financingValue', 'financedAmount', 'amountFinanced', 'totalFinanced',
       'totalFinancing', 'montoFinanciado', 'saldoDeudaFinanciada',
@@ -796,10 +797,15 @@
         'conceptDescription', 'productDescription', 'description', 'concept',
         'conceptName', 'product', 'productName', 'producto', 'service', 'category',
       ]) != null;
-      if (record === payload && !hasDescription && records.length > 1) return;
+      const isContainer = record && typeof record === 'object' && (
+        Array.isArray(record.deferreds) || Array.isArray(record.currents) ||
+        Array.isArray(record.debts) || Array.isArray(record.invoices) ||
+        Array.isArray(record.items) || Array.isArray(record.contracts)
+      );
+      if ((record === payload || isContainer || !hasDescription) && records.length > 1) return;
       const amount = directAmount(record, [
         'pendingBalance', 'pendingValue', 'saldoPendiente', 'totalValue',
-        'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'balance',
+        'amountDue', 'balanceDue', 'balance',
         'financingValue', 'financedAmount', 'financedBalance', 'balanceFinanced',
         'debtFinanced', 'deferredDebt', 'deudaDiferida', 'saldoConvenio',
         'deudaConvenio', 'saldoPorFacturar', 'amount', 'value',
@@ -832,7 +838,9 @@
     const progress = rows.find(row => row.cuotaActual !== null || row.cuotasTotales !== null) || installmentProgress(payload);
     const financed = componentPresent
       ? (pendingGas || 0) + (pendingFinancial || 0)
-      : explicitFinanced ?? (balances.length ? balances.reduce((sum, value) => sum + value, 0) : null);
+      : explicitFinanced !== null
+        ? explicitFinanced
+        : (balances.length ? balances.reduce((sum, value) => sum + value, 0) : null);
     const financingConfirmed = componentPresent || explicitFinanced !== null || rows.length > 0;
     return {
       financiadaCOP: financed,
@@ -1205,7 +1213,9 @@
       : '';
     const month = uiAmountForLabel(currentSection, /saldo\s+total|total\s+a\s+pagar/i)
       ?? uiAmountNearHeading(currentSection, /deuda\s+actual|facturas?\s+pendientes/i)
-      ?? uiAmountAfter(source, 'total a pagar');
+      ?? uiAmountAfter(source, 'deuda actual de')
+      ?? uiAmountAfter(source, 'total a pagar')
+      ?? uiAmountNearHeading(source, /deuda\s+actual/i);
     const gasBalance = uiAmountForLabel(financingText, /saldo\s+por\s+facturar\s+gas\b/i);
     const financialBalance = uiAmountForLabel(financingText, /saldo\s+por\s+facturar\s+(?:servicios\s+)?financier(?:o|os)\b/i);
     const hasGasComponents = gasBalance !== null || financialBalance !== null;
@@ -2224,23 +2234,25 @@
       ?? amountFromKeyPattern(response.payload, /(?:deudatotal|totaldebt|totalpay|totalto|saldototal|totalcurrentdebt)/i, /(?:mes|month|cuota|quota)/i)
       ?? (rows.length ? rows.map(row => amountFromFields(row, ['pendingBalance', 'saldoPendiente', 'saldoPorFacturar', 'totalValue', 'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'totalToPay', 'amount', 'value'])).filter(value => value !== null).reduce((sum, value) => sum + value, 0) : null);
     const month = amountFromFields(response.payload, [
-      'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
+      'currentValue', 'valorActual', 'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
       'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
       'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
       'deudaActual', 'currentBalance', 'balanceCurrent', 'totalMes', 'totalMesSinTasa',
-    ]) ?? amountFromKeyPattern(response.payload, /(?:deudames|monthdebt|monthly|currentdebt|currentinvoice|invoicevalue|valormes|totalmes|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i) ?? (rows.length ? amountFromFields(rows[0], [
-      'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
+    ]) ?? amountFromKeyPattern(response.payload, /(?:currentvalue|valoractual|deudames|monthdebt|monthly|currentdebt|currentinvoice|invoicevalue|valormes|totalmes|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i) ?? (rows.length ? amountFromFields(rows[0], [
+      'currentValue', 'valorActual', 'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
       'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
       'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
       'deudaActual', 'currentBalance', 'balanceCurrent', 'totalMes', 'totalMesSinTasa',
-    ]) ?? amountFromKeyPattern(rows[0], /(?:deudames|monthdebt|monthly|currentdebt|currentinvoice|invoicevalue|valormes|totalmes|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i) : null);
+    ]) ?? amountFromKeyPattern(rows[0], /(?:currentvalue|valoractual|deudames|monthdebt|monthly|currentdebt|currentinvoice|invoicevalue|valormes|totalmes|saldoactual|deudaactual)/i, /(?:totaldebt|deudatotal|saldototal)/i) : null);
     const financing = financingSummary(response.payload);
     const currentTotal = explicitTotal ?? month;
     const financingConfirmed = financing.financeValidation === 'confirmed';
     const convenio = financingConfirmed ? (financing.financiadaCOP ?? 0) : (currentTotal === null ? null : 0);
-    const total = financingConfirmed && convenio !== null && convenio > 0 && month !== null
-      ? Math.max(currentTotal ?? 0, month + convenio)
-      : currentTotal;
+    const total = explicitTotal !== null
+      ? explicitTotal
+      : (financingConfirmed && convenio !== null && convenio > 0 && month !== null
+        ? month + convenio
+        : currentTotal);
     return {
       deudaTotalCOP: total,
       deudaMesCOP: month,

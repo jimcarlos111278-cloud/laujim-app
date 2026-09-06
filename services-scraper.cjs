@@ -1071,7 +1071,9 @@ async function queryRenderedGasContract(page, code) {
       return match ? money(match[1]) : null;
     };
     const totalMatch = body.match(/saldo\s+total\s*\$\s*([0-9][0-9.,]*)/i);
-    const month = sectionAmount(/deuda\s+actual/i, /deuda\s+(?:financiada|diferida)/i, /saldo\s+total\s*\$\s*([0-9][0-9.,]*)/i);
+    const deudaActualDirect = body.match(/deuda\s+actual\s*(?:de)?\s*\$\s*([0-9][0-9.,]*)/i);
+    const month = (deudaActualDirect ? money(deudaActualDirect[1]) : null)
+      ?? sectionAmount(/deuda\s+actual/i, /deuda\s+(?:financiada|diferida)/i, /saldo\s+total\s*\$\s*([0-9][0-9.,]*)/i);
     const convenio = sectionAmount(/deuda\s+(?:financiada|diferida)/i, null, /(?:saldo\s+por\s+facturar(?:\s+gas)?|saldo\s+total|valor\s+total)\s*\$\s*([0-9][0-9.,]*)/i);
     const hasPositiveCurrent = month !== null && month > 0;
     const hasPositiveAgreement = convenio !== null && convenio > 0;
@@ -1725,6 +1727,7 @@ function portalFinancingSummary(payload) {
     `${key}:${value && typeof value === 'object' ? '' : String(value ?? '')}`
   ).join(' ');
   const strongAmountKeys = [
+    'deferredValue', 'totalDeferred', 'valorDiferido', 'montoDiferido',
     'financedDebt', 'deudaFinanciada', 'saldoFinanciado', 'valorFinanciado',
     'financingValue', 'financedAmount', 'amountFinanced', 'totalFinanced',
     'totalFinancing', 'montoFinanciado', 'saldoDeudaFinanciada',
@@ -1803,10 +1806,15 @@ function portalFinancingSummary(payload) {
       'conceptDescription', 'productDescription', 'description', 'concept',
       'conceptName', 'product', 'productName', 'producto', 'service', 'category',
     ]) != null;
-    if (record === payload && !hasDescription && records.length > 1) return;
+    const isContainer = record && typeof record === 'object' && (
+      Array.isArray(record.deferreds) || Array.isArray(record.currents) ||
+      Array.isArray(record.debts) || Array.isArray(record.invoices) ||
+      Array.isArray(record.items) || Array.isArray(record.contracts)
+    );
+    if ((record === payload || isContainer || !hasDescription) && records.length > 1) return;
     const amount = directAmount(record, [
       'pendingBalance', 'pendingValue', 'saldoPendiente', 'totalValue',
-      'totalDebt', 'deudaTotal', 'amountDue', 'balanceDue', 'balance',
+      'amountDue', 'balanceDue', 'balance',
       'financingValue', 'financedAmount', 'financedBalance', 'balanceFinanced',
       'debtFinanced', 'deferredDebt', 'deudaDiferida', 'saldoConvenio',
       'deudaConvenio', 'saldoPorFacturar', 'amount', 'value',
@@ -1839,7 +1847,9 @@ function portalFinancingSummary(payload) {
   const progress = rows.find(row => row.cuotaActual !== null || row.cuotasTotales !== null) || progressFrom(payload);
   const financed = componentPresent
     ? (pendingGas || 0) + (pendingFinancial || 0)
-    : explicitFinanced ?? (rowBalances.length ? rowBalances.reduce((sum, value) => sum + value, 0) : null);
+    : explicitFinanced !== null
+      ? explicitFinanced
+      : (rowBalances.length ? rowBalances.reduce((sum, value) => sum + value, 0) : null);
   const financingConfirmed = componentPresent || explicitFinanced !== null || rows.length > 0;
   return {
     financiadaCOP: financed,
@@ -3187,13 +3197,13 @@ function gasDebtSummary(payload) {
   ])).filter(value => value !== null);
   const financing = portalFinancingSummary(payload);
   const month = portalAmountFromFields(payload, [
-    'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
+    'currentValue', 'valorActual', 'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
     'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
     'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
     'deudaActual', 'currentBalance', 'balanceCurrent',
   ]) ?? (rows.length
     ? portalAmountFromFields(rows[0], [
-      'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
+      'currentValue', 'valorActual', 'deudaMes', 'monthDebt', 'monthlyDebt', 'currentDebt', 'currentMonthDebt',
       'currentInvoice', 'currentInvoiceValue', 'currentInvoiceAmount', 'currentAmount',
       'invoiceValue', 'valorMes', 'valorFactura', 'saldoActual', 'saldoDeudaActual',
       'deudaActual', 'currentBalance', 'balanceCurrent',

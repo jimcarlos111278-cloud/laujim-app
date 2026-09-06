@@ -810,7 +810,17 @@ public class ScraperWorkerService extends Service {
                 if (detail.toLowerCase().contains("ya hay una consulta de portal")) {
                     PortalBrowserActivity.cancelPendingScraper("Se limpió una consulta anterior que quedó bloqueada.");
                 }
-                throw error;
+                if (detail.toLowerCase().contains("no está disponible")
+                    || detail.toLowerCase().contains("not available")
+                    || error instanceof IllegalStateException
+                    || cause instanceof IllegalStateException) {
+                    ScraperWorkerStore.setSchedulerEvent(this, "browser_fallback", provider,
+                        "El navegador visual no estaba disponible (" + detail + "); se continúa en el WebView en segundo plano.");
+                    outcome = loadAndEvaluate(provider, portalWorkUrl(provider), config);
+                    if (outcome != null) outcome.put("executionPath", "fallback-background-webview");
+                } else {
+                    throw error;
+                }
             }
         } else {
             outcome = loadAndEvaluate(provider, portalWorkUrl(provider), config);
