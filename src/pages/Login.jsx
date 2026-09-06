@@ -35,16 +35,22 @@ export default function Login() {
     async function verifySession() {
       while (attempts < maxAttempts && !cancelled) {
         try {
-          const res = await fetch(getBase() + '/data-version', {
+          const res = await fetch(getBase() + '/auth/verify', {
             headers: { 'x-auth-token': existing.token },
             signal: AbortSignal.timeout(6000),
           });
           if (cancelled) return;
           if (res.ok) {
-            navigate(existing.role === 'admin' ? '/dashboard' : '/mi-apto', { replace: true });
+            const data = await res.json().catch(() => ({}));
+            const targetRole = data?.role || existing.role;
+            navigate(targetRole === 'admin' ? '/dashboard' : '/mi-apto', { replace: true });
             return;
           }
-          // On non-ok, retry before giving up
+          if (res.status === 401) {
+            // Truly invalid/expired session
+            break;
+          }
+          // On non-ok / 5xx / timeout, retry before giving up
           attempts++;
           if (attempts < maxAttempts && !cancelled) await new Promise(r => setTimeout(r, 1500));
         } catch {
@@ -52,13 +58,9 @@ export default function Login() {
           if (attempts < maxAttempts && !cancelled) await new Promise(r => setTimeout(r, 1500));
         }
       }
-      // If server could not confirm in time, let user proceed or re-enter credentials safely
+      // If server confirmed expired (401) or could not confirm, let user enter credentials safely
       if (!cancelled) {
-        if (existing?.token && existing?.role) {
-          navigate(existing.role === 'admin' ? '/dashboard' : '/mi-apto', { replace: true });
-        } else {
-          setCheckingStoredSession(false);
-        }
+        setCheckingStoredSession(false);
       }
     }
     verifySession();
