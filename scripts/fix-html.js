@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -17,3 +17,15 @@ if (scriptMatch) {
 
 writeFileSync(htmlFile, html, 'utf-8');
 console.log('HTML fixed:', scriptMatch ? scriptMatch[1] : 'no script found');
+
+// Remove dist/app-debug.apk if present so Cloudflare's 25MB asset limit is not exceeded.
+// APK downloads are redirected to Render via public/_redirects.
+const distApk = join(__dirname, '..', 'dist', 'app-debug.apk');
+if (existsSync(distApk)) {
+  try {
+    unlinkSync(distApk);
+    console.log('Removed dist/app-debug.apk (exceeds Cloudflare 25MB limit; redirected via _redirects)');
+  } catch (e) {
+    console.warn('Could not remove dist/app-debug.apk:', e.message);
+  }
+}

@@ -1,2 +1,3 @@
+/app-debug.apk https://laujim-app.onrender.com/app-debug.apk 302
 /api/* https://laujim-app.onrender.com/api/:splat 200
 /* /index.html 200
