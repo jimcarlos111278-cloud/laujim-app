@@ -55,7 +55,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
-    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path.startsWith('/api/intercom/public/');
+    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/');
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({

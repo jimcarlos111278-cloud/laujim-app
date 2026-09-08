@@ -290,7 +290,7 @@ export default function MiApto() {
           <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-inner">
             <img
               key={cameraKey}
-              src={`${getRawBase()}/api/intercom/feed?token=${AUTH_TOKEN}&t=${cameraKey}`}
+              src={`${getRawBase()}/api/intercom/public/feed?t=${cameraKey}`}
               alt="Cámara del portón"
               className="h-full w-full object-cover"
               onError={() => setCameraError(true)}
@@ -304,7 +304,7 @@ export default function MiApto() {
                   onClick={() => {
                     setCameraError(false);
                     setCameraKey(Date.now());
-                    fetch(`${getRawBase()}/api/intercom/feed?token=${AUTH_TOKEN}&refresh=1`).catch(() => {});
+                    fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
                   }}
                   className="mt-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold"
                 >
@@ -319,7 +319,7 @@ export default function MiApto() {
             <button
               onClick={() => {
                 setCameraKey(Date.now());
-                fetch(`${getRawBase()}/api/intercom/feed?token=${AUTH_TOKEN}&refresh=1`).catch(() => {});
+                fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
               }}
               title="Refrescar foto ahora"
               className="absolute bottom-2 right-2 rounded-lg bg-black/60 p-1.5 text-white hover:bg-black/80 backdrop-blur transition"
@@ -332,7 +332,7 @@ export default function MiApto() {
             <button
               onClick={() => {
                 setCameraKey(Date.now());
-                fetch(`${getRawBase()}/api/intercom/feed?token=${AUTH_TOKEN}&refresh=1`).catch(() => {});
+                fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
               }}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
             >
