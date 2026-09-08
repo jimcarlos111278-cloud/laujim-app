@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { clearAuth, isTenant } from '../utils/auth';
-import { AUTH_TOKEN, getBase } from '../utils/config';
+import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod } from '../utils/helpers';
 import IntercomCallModal from '../components/IntercomCallModal';
 
@@ -104,6 +104,17 @@ export default function MiApto() {
   const [doorBusy, setDoorBusy] = useState('');
   const [actionMessage, setActionMessage] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
+  const [cameraLive, setCameraLive] = useState(true);
+  const [cameraKey, setCameraKey] = useState(Date.now());
+  const [cameraError, setCameraError] = useState(false);
+
+  useEffect(() => {
+    if (!cameraLive) return;
+    const timer = setInterval(() => {
+      setCameraKey(Date.now());
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [cameraLive]);
 
   useEffect(() => {
     if (!isTenant()) { navigate('/login', { replace: true }); return; }
@@ -257,15 +268,117 @@ export default function MiApto() {
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3"><div className="rounded-xl bg-blue-100 p-2.5 text-blue-700"><Camera className="h-5 w-5" /></div><div><h2 className="font-bold text-slate-900">Cámara del frente</h2><p className="text-xs text-slate-500">Solo transmisiones autorizadas para inquilinos</p></div></div>
-          {cameras.length ? <div className="mt-3 flex flex-wrap gap-2">{cameras.map(camera => <button key={camera.id} onClick={() => openCamera(camera)} disabled={cameraBusy === camera.id || !data.edgeGatewayConnected} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:bg-slate-300">{cameraBusy === camera.id ? 'Conectando…' : `Ver ${camera.name}`}</button>)}</div> : <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">La cámara quedará disponible cuando se conecte la pasarela local.</p>}
-          {cameraView?.playbackUrl && <div className="mt-3 overflow-hidden rounded-xl bg-black"><iframe src={cameraView.playbackUrl} title={cameraView.camera?.name || 'Cámara'} allow="autoplay; fullscreen" className="aspect-video w-full border-0" /></div>}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-blue-100 p-2.5 text-blue-700"><Camera className="h-5 w-5" /></div>
+              <div>
+                <h2 className="font-bold text-slate-900">Cámara del frente</h2>
+                <p className="text-xs text-slate-500">Portón principal • En vivo para residentes</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setCameraLive(prev => !prev)}
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+                cameraLive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${cameraLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+              {cameraLive ? 'EN VIVO' : 'PAUSADO'}
+            </button>
+          </div>
+
+          <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-inner">
+            <img
+              key={cameraKey}
+              src={`${getRawBase()}/api/intercom/feed?token=${AUTH_TOKEN}&t=${cameraKey}`}
+              alt="Cámara del portón"
+              className="h-full w-full object-cover"
+              onError={() => setCameraError(true)}
+              onLoad={() => setCameraError(false)}
+            />
+            {cameraError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 p-4 text-center text-white">
+                <Camera className="mb-2 h-8 w-8 text-slate-500" />
+                <p className="text-xs text-slate-300">Conectando con la cámara Ezviz H8c...</p>
+                <button
+                  onClick={() => {
+                    setCameraError(false);
+                    setCameraKey(Date.now());
+                    fetch(`${getRawBase()}/api/intercom/feed?token=${AUTH_TOKEN}&refresh=1`).catch(() => {});
+                  }}
+                  className="mt-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold"
+                >
+                  Reintentar captura
+                </button>
+              </div>
+            )}
+            <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+              Ezviz H8c 5MP
+            </div>
+            <button
+              onClick={() => {
+                setCameraKey(Date.now());
+                fetch(`${getRawBase()}/api/intercom/feed?token=${AUTH_TOKEN}&refresh=1`).catch(() => {});
+              }}
+              title="Refrescar foto ahora"
+              className="absolute bottom-2 right-2 rounded-lg bg-black/60 p-1.5 text-white hover:bg-black/80 backdrop-blur transition"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <button
+              onClick={() => {
+                setCameraKey(Date.now());
+                fetch(`${getRawBase()}/api/intercom/feed?token=${AUTH_TOKEN}&refresh=1`).catch(() => {});
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+            >
+              <RefreshCw className="h-3.5 w-3.5 text-slate-500" />
+              Actualizar foto
+            </button>
+            <a
+              href="ezviz://"
+              onClick={() => {
+                setTimeout(() => {
+                  window.open('https://play.google.com/store/apps/details?id=com.ezviz', '_blank');
+                }, 1500);
+              }}
+              className="flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Ver en App Ezviz (3K a 25fps)
+            </a>
+          </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3"><div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700"><LockKeyhole className="h-5 w-5" /></div><div><h2 className="font-bold text-slate-900">Acceso principal</h2><p className="text-xs text-slate-500">Cada apertura requiere confirmación y queda auditada</p></div></div>
-          {doors.length ? <div className="mt-3 space-y-2">{doors.map(door => <button key={door.id} onClick={() => unlockDoor(door)} disabled={doorBusy === door.id || !data.edgeGatewayConnected} className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white disabled:bg-slate-300"><LockKeyhole className="h-4 w-4" />{doorBusy === door.id ? 'Solicitando…' : `Abrir ${door.name}`}</button>)}</div> : <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">El botón se activará cuando se instale el relé y la cerradura.</p>}
-          {actionMessage && <p className={`mt-3 rounded-lg p-2.5 text-xs ${actionMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{actionMessage.text}</p>}
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700"><LockKeyhole className="h-5 w-5" /></div>
+            <div>
+              <h2 className="font-bold text-slate-900">Acceso principal</h2>
+              <p className="text-xs text-slate-500">Cerradura eléctrica del portón • Apertura auditada</p>
+            </div>
+          </div>
+          <div className="mt-3">
+            <button
+              onClick={() => unlockDoor(doors[0] || { id: 'gate-door', name: 'Portón principal' })}
+              disabled={doorBusy !== ''}
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 active:scale-[0.98] transition disabled:opacity-60"
+            >
+              {doorBusy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
+              {doorBusy ? 'Abriendo portón…' : 'Abrir portón de entrada'}
+            </button>
+          </div>
+          {actionMessage && (
+            <p className={`mt-3 rounded-xl p-3 text-xs font-medium ${
+              actionMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+            }`}>
+              {actionMessage.text}
+            </p>
+          )}
         </section>
 
         {contract && <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h2 className="flex items-center gap-2 font-bold text-slate-900"><FileText className="h-4 w-4" /> Contrato</h2><div className="mt-3 grid grid-cols-2 gap-3 text-sm"><div><p className="text-xs text-slate-500">Inicio</p><strong>{formatShortDate(contract.startDate)}</strong></div><div><p className="text-xs text-slate-500">Finaliza</p><strong>{contract.endDate ? formatShortDate(contract.endDate) : 'Indefinido'}</strong></div></div>{contract.contractFile && <a href={contract.contractFile} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700"><Download className="h-4 w-4" /> Ver contrato</a>}</section>}

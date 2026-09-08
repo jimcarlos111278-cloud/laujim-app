@@ -65,7 +65,7 @@ app.use(async (req, res, next) => {
         databaseState,
       });
     }
-    const token = req.headers['x-auth-token'];
+    const token = req.headers['x-auth-token'] || req.query.token;
     let session = getAuthSession(token);
     if (!session && token && pgPool) {
       session = await reloadAndFindAuthSession(token);
@@ -2200,7 +2200,7 @@ function safeEdgeId(value) {
 
 function cameraDefinitions() {
   const configured = parseJsonEnv('CAMERA_STREAMS_JSON', []);
-  return (Array.isArray(configured) ? configured : []).map((item, index) => ({
+  const list = (Array.isArray(configured) ? configured : []).map((item, index) => ({
     id: safeEdgeId(item?.id) || `camera-${index + 1}`,
     gatewayId: safeEdgeId(item?.gatewayId || item?.id) || `camera-${index + 1}`,
     name: String(item?.name || `Cámara ${index + 1}`).trim().slice(0, 100),
@@ -2208,11 +2208,23 @@ function cameraDefinitions() {
     tenantVisible: item?.tenantVisible === true,
     enabled: item?.enabled !== false,
   })).filter(item => item.enabled);
+
+  if (list.length === 0) {
+    list.push({
+      id: 'gate-cam',
+      gatewayId: 'gate-cam',
+      name: 'Cámara del frente (Portón)',
+      location: 'Entrada principal',
+      tenantVisible: true,
+      enabled: true,
+    });
+  }
+  return list;
 }
 
 function doorDefinitions() {
   const configured = parseJsonEnv('ACCESS_DOORS_JSON', []);
-  return (Array.isArray(configured) ? configured : []).map((item, index) => ({
+  const list = (Array.isArray(configured) ? configured : []).map((item, index) => ({
     id: safeEdgeId(item?.id) || `door-${index + 1}`,
     gatewayId: safeEdgeId(item?.gatewayId || item?.id) || `door-${index + 1}`,
     name: String(item?.name || `Acceso ${index + 1}`).trim().slice(0, 100),
@@ -2220,6 +2232,18 @@ function doorDefinitions() {
     tenantVisible: item?.tenantVisible === true,
     enabled: item?.enabled !== false,
   })).filter(item => item.enabled);
+
+  if (list.length === 0) {
+    list.push({
+      id: 'gate-door',
+      gatewayId: 'gate-door',
+      name: 'Portón principal',
+      location: 'Entrada del edificio',
+      tenantVisible: true,
+      enabled: true,
+    });
+  }
+  return list;
 }
 
 function publicEdgeView(item) {
@@ -5655,6 +5679,17 @@ app.get('/api/tenant/overview', (req, res) => {
 app.post('/api/tenant/cameras/:id/ticket', async (req, res) => {
   const camera = cameraDefinitions().find(item => item.id === safeEdgeId(req.params.id) && item.tenantVisible);
   if (!camera) return res.status(404).json({ error: 'Cámara no disponible para este portal.' });
+  if (camera.id === 'gate-cam' || !edgeGatewayReady()) {
+    fetchEzvizLatestSnapshot().catch(() => {});
+    return res.json({
+      ok: true,
+      camera: publicEdgeView(camera),
+      playbackUrl: null,
+      feedUrl: '/api/intercom/feed',
+      mode: 'snapshot',
+      ts: latestGateSnapshot.ts || new Date().toISOString(),
+    });
+  }
   try {
     const payload = await edgeGatewayRequest(`/v1/cameras/${encodeURIComponent(camera.gatewayId)}/ticket`, {
       requestId: crypto.randomUUID(), role: 'tenant', apartmentId: Number(req.auth.apartmentId), ttlSeconds: 120,
@@ -5678,11 +5713,17 @@ app.post('/api/tenant/access/doors/:id/unlock', async (req, res) => {
   }
   const requestId = crypto.randomUUID();
   try {
-    const payload = await edgeGatewayRequest(`/v1/doors/${encodeURIComponent(door.gatewayId)}/unlock`, {
-      requestId, role: 'tenant', tenantId: Number(req.auth.tenantId), apartmentId: Number(req.auth.apartmentId), pulseMs: 1200,
-    });
-    const event = appendAccessEvent({ requestId, actorRole: 'tenant', actorId: req.auth.tenantId, apartmentId: req.auth.apartmentId, doorId: door.id, status: 'opened', message: payload.message || 'Apertura confirmada por la pasarela.' });
-    res.json({ ok: true, requestId: event.requestId, door: publicEdgeView(door), message: event.message });
+    if (edgeGatewayReady()) {
+      const payload = await edgeGatewayRequest(`/v1/doors/${encodeURIComponent(door.gatewayId)}/unlock`, {
+        requestId, role: 'tenant', tenantId: Number(req.auth.tenantId), apartmentId: Number(req.auth.apartmentId), pulseMs: 1200,
+      });
+      const event = appendAccessEvent({ requestId, actorRole: 'tenant', actorId: req.auth.tenantId, apartmentId: req.auth.apartmentId, doorId: door.id, status: 'opened', message: payload.message || 'Apertura confirmada por la pasarela.' });
+      return res.json({ ok: true, requestId: event.requestId, door: publicEdgeView(door), message: event.message });
+    }
+
+    const pseudoCall = { id: Date.now(), apartmentId: Number(req.auth.apartmentId), status: 'tenant_portal_unlock', meta: {} };
+    const unlockMsg = await executeIntercomUnlock(pseudoCall, 'tenant', `tenant:${req.auth.apartmentId}`);
+    return res.json({ ok: true, requestId, door: publicEdgeView(door), message: unlockMsg });
   } catch (error) {
     appendAccessEvent({ requestId, actorRole: 'tenant', actorId: req.auth.tenantId, apartmentId: req.auth.apartmentId, doorId: door.id, status: 'failed', message: error.message });
     res.status(503).json({ error: error.message, requestId });
@@ -6176,10 +6217,14 @@ app.post('/api/intercom/snapshot', (req, res) => {
 });
 
 // GET /api/intercom/feed — latest gate snapshot (requires auth)
-app.get('/api/intercom/feed', (req, res) => {
+app.get('/api/intercom/feed', async (req, res) => {
+  const needsRefresh = req.query.refresh === '1' || !latestGateSnapshot.data || (Date.now() - new Date(latestGateSnapshot.ts || 0).getTime() > 15_000);
+  if (needsRefresh) {
+    try { await fetchEzvizLatestSnapshot(); } catch {}
+  }
   if (!latestGateSnapshot.data) return res.status(404).json({ error: 'No hay snapshot del portón.' });
   res.setHeader('Content-Type', latestGateSnapshot.contentType);
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-store');
   res.send(latestGateSnapshot.data);
 });
 
