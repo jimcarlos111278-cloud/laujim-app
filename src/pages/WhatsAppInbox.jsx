@@ -51,7 +51,7 @@ function VoiceAudioPlayer({ src, message }) {
 
   const defaultWaveform = [6, 12, 18, 24, 14, 8, 12, 18, 24, 16, 10, 14, 20, 16, 8, 12, 18, 14, 6, 10, 16, 12, 6, 4];
   const waveform = message?.waveform || message?.media?.waveform || defaultWaveform;
-  const transcriptText = message?.transcript || message?.media?.transcript || (message?.type === 'audio' && message?.text ? message.text : null);
+  const transcriptText = message?.transcript || message?.media?.transcript || null;
 
   const speeds = [0.5, 1, 1.5, 2];
 
@@ -300,8 +300,13 @@ export default function WhatsAppInbox() {
   const recordingChunksRef = useRef([]);
   const discardRecordingRef = useRef(false);
   const sendImmediatelyRef = useRef(false);
+  const activeConversationRef = useRef(selected);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+
+  useEffect(() => {
+    activeConversationRef.current = selected;
+  }, [selected]);
 
   const scrollToBottom = useCallback((behavior = 'auto') => {
     if (messagesEndRef.current) {
@@ -346,9 +351,21 @@ export default function WhatsAppInbox() {
   }, [requestedConversation]);
 
   const loadMessages = useCallback(async (conversationId) => {
-    if (!conversationId) return setMessages([]);
-    try { setMessages(await cloudRequest(`/whatsapp/cloud/conversations/${conversationId}/messages`)); }
-    catch (err) { setError(err.message); }
+    if (!conversationId) {
+      if (activeConversationRef.current === conversationId) setMessages([]);
+      return;
+    }
+    try {
+      const data = await cloudRequest(`/whatsapp/cloud/conversations/${conversationId}/messages`);
+      if (activeConversationRef.current === conversationId) {
+        setMessages(data || []);
+      }
+    }
+    catch (err) {
+      if (activeConversationRef.current === conversationId) {
+        setError(err.message);
+      }
+    }
   }, []);
 
   useEffect(() => { loadConversations(); const timer = setInterval(loadConversations, 15000); return () => clearInterval(timer); }, [loadConversations]);
@@ -444,13 +461,22 @@ export default function WhatsAppInbox() {
         }
       }
     });
+    (conversations || []).forEach(conv => {
+      const aptKey = String(conv.apartmentName || conv.apartmentId || '').trim().toLowerCase();
+      if (aptKey) {
+        if (!map[aptKey]) map[aptKey] = [];
+        if (conv.tenantName && !map[aptKey].includes(conv.tenantName.toLowerCase())) {
+          map[aptKey].push(conv.tenantName.toLowerCase());
+        }
+      }
+    });
     // Known aliases and residents for apt 101: Jim, Mercedes, Shalua, Lauren
     if (!map['101']) map['101'] = [];
     ['mercedes', 'mercedes gomez', 'jim', 'jim varela', 'shalua', 'lauren'].forEach(name => {
       if (!map['101'].includes(name)) map['101'].push(name);
     });
     return map;
-  }, [contacts]);
+  }, [contacts, conversations]);
 
   const query = searchQuery.trim().toLowerCase();
   const searchNumber = (query.match(/\d+/) || [''])[0];
@@ -470,6 +496,7 @@ export default function WhatsAppInbox() {
         conversation.apartmentId,
         `apto ${conversation.apartmentName}`,
         `apartamento ${conversation.apartmentName}`,
+        aptKey,
         coResidents,
       ].filter(Boolean).join(' ').toLowerCase();
 
@@ -499,6 +526,7 @@ export default function WhatsAppInbox() {
         contact.apartmentId,
         `apto ${contact.apartmentName}`,
         `apartamento ${contact.apartmentName}`,
+        aptKey,
         coResidents,
       ].filter(Boolean).join(' ').toLowerCase();
 
@@ -519,14 +547,14 @@ export default function WhatsAppInbox() {
       const response = await fetch(getBase() + '/whatsapp/cloud/start-conversation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': getActiveToken() },
-        body: JSON.stringify({ tenantId: contact.tenantId }),
+        body: JSON.stringify({ tenantId: contact.tenantId, sendGreeting: false }),
       });
       const data = await response.json().catch(() => ({}));
       if (data.conversationId) {
         await loadConversations();
         openConversation(data.conversationId);
       } else {
-        throw new Error(data.error || 'No fue posible iniciar el chat con el residente');
+        throw new Error(data.error || 'No fue posible abrir el chat con el residente');
       }
     } catch (err) {
       setError(err.message);
@@ -536,7 +564,9 @@ export default function WhatsAppInbox() {
   }
 
   function openConversation(conversationId) {
+    activeConversationRef.current = conversationId;
     setSelected(conversationId);
+    setMessages([]); // Instant clean isolation - prevents message bleeding
     setShowTemplates(false);
     setTemplatePreview(null);
     setError('');
@@ -546,7 +576,9 @@ export default function WhatsAppInbox() {
   }
 
   function returnToConversationList() {
+    activeConversationRef.current = null;
     setSelected(null);
+    setMessages([]);
     setShowTemplates(false);
     setTemplatePreview(null);
     setActivePanel(null);
@@ -855,7 +887,7 @@ export default function WhatsAppInbox() {
   };
 
   return (
-    <div className={`wa-live-shell ${selected ? 'wa-live-selected' : ''} flex w-full h-full min-h-0 relative overflow-hidden bg-[#0c1317] text-[#e9edef]`}>
+    <div className={`wa-live-shell ${selected ? 'wa-live-selected' : ''} flex w-full h-[100dvh] min-h-0 relative overflow-hidden bg-[#0c1317] text-[#e9edef]`}>
       
       {/* ================= 1. SIDEBAR (Lista de Conversaciones) ================= */}
       <aside className="wa-live-sidebar w-full md:w-[350px] lg:w-[380px] bg-[#111b21] border-r border-[#222d34] flex flex-col shrink-0 z-20 transition-all duration-200">
@@ -1347,7 +1379,7 @@ export default function WhatsAppInbox() {
             )}
 
             {/* ================= COMPOSITOR INFERIOR WHATSAPP ================= */}
-            <footer className="w-full max-w-full box-border bg-[#202c33] px-2 sm:px-3 pt-1.5 pb-[max(env(safe-area-inset-bottom),10px)] flex items-center gap-1 sm:gap-2 shrink-0 z-20 border-t border-[#222d34]">
+            <footer className="w-full max-w-full box-border bg-[#202c33] px-2 sm:px-3 pt-1.5 pb-[max(env(safe-area-inset-bottom),8px)] flex items-center gap-1 sm:gap-2 shrink-0 z-20 border-t border-[#222d34]">
               {/* Inputs ocultos de archivo */}
               <input ref={fileInput} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
               <input ref={galleryInput} type="file" className="hidden" accept="image/*,video/*" onChange={e => handleAttachmentFile(e.target.files?.[0] || null)} />
@@ -1382,7 +1414,7 @@ export default function WhatsAppInbox() {
                       ? 'Grabando nota…'
                       : windowOpen
                       ? 'Escribe un mensaje'
-                      : 'Enviar plantilla para chatear'
+                      : 'Por favor envía una plantilla para iniciar la interacción'
                   }
                   className={`flex-1 bg-transparent text-sm outline-none px-1 py-1 min-w-0 w-0 ${
                     windowOpen ? 'text-[#e9edef] placeholder-[#8696a0]' : 'text-gray-400 placeholder-gray-400 cursor-not-allowed text-xs'

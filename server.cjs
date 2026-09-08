@@ -55,7 +55,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
-    req.path === '/api/data-version';
+    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path.startsWith('/api/intercom/public/');
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -74,7 +74,7 @@ app.use(async (req, res, next) => {
       return res.status(401).json({ error: 'No autorizado' });
     }
     req.auth = session;
-    const tenantPath = req.path === '/api/logout' || req.path === '/api/auth/verify' || req.path.startsWith('/api/tenant/');
+    const tenantPath = req.path === '/api/logout' || req.path === '/api/auth/verify' || req.path.startsWith('/api/tenant/') || req.path.startsWith('/api/intercom/');
     if (session.role === 'tenant' && !tenantPath) {
       return res.status(403).json({ error: 'Acceso restringido al apartamento autenticado' });
     }
@@ -5736,6 +5736,613 @@ app.post('/api/security/doors/:id/unlock', async (req, res) => {
   }
 });
 
+// ─── INTERCOM / VIDEOPORTERO QR ───
+
+const INTERCOM_SECRET = String(process.env.INTERCOM_SECRET || '').trim();
+const INTERCOM_CALL_TIMEOUT_MS = 90_000; // 90 seconds
+let latestGateSnapshot = { data: null, ts: null, contentType: 'image/jpeg' };
+
+// ─── EZVIZ CLOUD CLIENT (SOPORTA CUENTA APP EZVIZ DIRECTA O DEVELOPER KEY) ───
+let ezvizTokenCache = { token: '', expireTime: 0, areaDomain: 'https://open.ezvizlife.com' };
+let ezvizSessionCache = {
+  sessionId: '',
+  rfSessionId: '',
+  apiDomain: 'apiius.ezvizlife.com',
+  expiresAt: 0,
+};
+
+async function getEzvizConsumerSession(maxRedirects = 2) {
+  const username = String(process.env.EZVIZ_ACCOUNT_USERNAME || process.env.EZVIZ_USERNAME || '').trim();
+  const rawPassword = String(process.env.EZVIZ_ACCOUNT_PASSWORD || process.env.EZVIZ_PASSWORD || '').trim();
+  if (!username || !rawPassword) return null;
+
+  if (ezvizSessionCache.sessionId && Date.now() < ezvizSessionCache.expiresAt - 1800_000) {
+    return ezvizSessionCache;
+  }
+
+  const passwordHash = crypto.createHash('md5').update(rawPassword).digest('hex');
+  let currentDomain = ezvizSessionCache.apiDomain || 'apiius.ezvizlife.com';
+
+  for (let attempt = 0; attempt <= maxRedirects; attempt++) {
+    const loginUrl = `https://${currentDomain}/v3/users/login/v5`;
+    const payload = new URLSearchParams({
+      account: username,
+      password: passwordHash,
+      featureCode: 'e3f0e8f8a1a3b5c7d9e1f3a5b7c9d1e3',
+      msgType: '0',
+      bizType: '',
+      cuName: 'TGF1amlt',
+    }).toString();
+
+    try {
+      const res = await fetch(loginUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'clientType': '1',
+          'featureCode': 'e3f0e8f8a1a3b5c7d9e1f3a5b7c9d1e3',
+        },
+        body: payload,
+        signal: AbortSignal.timeout(12000),
+      });
+      const data = await res.json().catch(() => ({}));
+      const metaCode = Number(data?.meta?.code);
+
+      if (metaCode === 200 && data.loginSession?.sessionId) {
+        ezvizSessionCache = {
+          sessionId: String(data.loginSession.sessionId),
+          rfSessionId: String(data.loginSession.rfSessionId || ''),
+          apiDomain: String(data.loginArea?.apiDomain || currentDomain),
+          expiresAt: Date.now() + 6 * 24 * 3600 * 1000,
+        };
+        console.log('[EZVIZ] Sesión de cuenta Ezviz conectada en:', ezvizSessionCache.apiDomain);
+        return ezvizSessionCache;
+      }
+
+      if (metaCode === 1100 && data.loginArea?.apiDomain) {
+        currentDomain = String(data.loginArea.apiDomain);
+        ezvizSessionCache.apiDomain = currentDomain;
+        console.log('[EZVIZ] Redirección regional a:', currentDomain);
+        continue;
+      }
+
+      console.warn('[EZVIZ] Error login cuenta Ezviz:', data?.meta?.message || metaCode || res.status);
+      break;
+    } catch (err) {
+      console.warn('[EZVIZ] Error red cuenta Ezviz:', err.message);
+      break;
+    }
+  }
+  return null;
+}
+
+async function captureFromEzvizConsumerAccount(serial) {
+  const session = await getEzvizConsumerSession();
+  if (!session) return null;
+
+  const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
+  try {
+    const res = await fetch(pagelistUrl, {
+      headers: {
+        'sessionId': session.sessionId,
+        'clientType': '1',
+      },
+      signal: AbortSignal.timeout(12000),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data?.meta?.code === 200 && Array.isArray(data.deviceInfos)) {
+      const targetDevice = data.deviceInfos.find(d => String(d.deviceSerial || '').toUpperCase() === serial.toUpperCase()) || data.deviceInfos[0];
+      const picUrl = targetDevice?.picUrl || targetDevice?.coverPic || targetDevice?.cameraInfo?.picUrl || targetDevice?.snapshotUrl;
+      if (picUrl && /^https?:\/\//i.test(picUrl)) {
+        const imgRes = await fetch(picUrl, { signal: AbortSignal.timeout(10000) });
+        if (imgRes.ok) {
+          const buffer = Buffer.from(await imgRes.arrayBuffer());
+          latestGateSnapshot = {
+            data: buffer,
+            ts: new Date().toISOString(),
+            contentType: imgRes.headers.get('content-type') || 'image/jpeg',
+          };
+          return { picUrl, buffer };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[EZVIZ] Error al consultar pagelist:', err.message);
+  }
+  return null;
+}
+
+async function getEzvizAccessToken() {
+  const appKey = String(process.env.EZVIZ_APP_KEY || '').trim();
+  const appSecret = String(process.env.EZVIZ_APP_SECRET || '').trim();
+  if (!appKey || !appSecret) return null;
+
+  if (ezvizTokenCache.token && Date.now() < ezvizTokenCache.expireTime - 600_000) {
+    return ezvizTokenCache;
+  }
+
+  const base = ezvizTokenCache.areaDomain || 'https://open.ezvizlife.com';
+  const body = new URLSearchParams({ appKey, appSecret }).toString();
+  try {
+    const res = await fetch(`${base}/api/lapp/token/get`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.code === '200' && data.data?.accessToken) {
+      ezvizTokenCache = {
+        token: data.data.accessToken,
+        expireTime: Number(data.data.expireTime) || (Date.now() + 6 * 24 * 3600 * 1000),
+        areaDomain: data.data.areaDomain || 'https://open.ezvizlife.com',
+      };
+      return ezvizTokenCache;
+    }
+  } catch (err) {
+    console.warn('[EZVIZ] token request error:', err.message);
+  }
+  return null;
+}
+
+async function captureEzvizCloudSnapshot(deviceSerialOverride = null) {
+  const serial = String(deviceSerialOverride || process.env.EZVIZ_DEVICE_SERIAL || '').trim();
+  if (!serial) return null;
+
+  // Vía 1: Cuenta Ezviz Consumer (Directo con tu app del celular)
+  if (process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD) {
+    const result = await captureFromEzvizConsumerAccount(serial);
+    if (result) return result;
+  }
+
+  // Vía 2: Open Platform (AppKey / AppSecret)
+  const tokenInfo = await getEzvizAccessToken();
+  if (tokenInfo) {
+    const base = tokenInfo.areaDomain || 'https://open.ezvizlife.com';
+    const body = new URLSearchParams({
+      accessToken: tokenInfo.token,
+      deviceSerial: serial.toUpperCase(),
+      channelNo: '1',
+    }).toString();
+
+    try {
+      const res = await fetch(`${base}/api/lapp/device/capture`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: AbortSignal.timeout(12000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.code === '200' && data.data?.picUrl) {
+        const imgRes = await fetch(data.data.picUrl, { signal: AbortSignal.timeout(10000) });
+        if (imgRes.ok) {
+          const buffer = Buffer.from(await imgRes.arrayBuffer());
+          latestGateSnapshot = {
+            data: buffer,
+            ts: new Date().toISOString(),
+            contentType: imgRes.headers.get('content-type') || 'image/jpeg',
+          };
+          return { picUrl: data.data.picUrl, buffer };
+        }
+      }
+    } catch (err) {
+      console.warn('[EZVIZ] capture request network error:', err.message);
+    }
+  }
+
+  return null;
+}
+
+async function getEzvizLiveStreamUrl(deviceSerialOverride = null, protocol = '2') {
+  const serial = String(deviceSerialOverride || process.env.EZVIZ_DEVICE_SERIAL || '').trim();
+  if (!serial) return null;
+  const tokenInfo = await getEzvizAccessToken();
+  if (!tokenInfo) return null;
+
+  const base = tokenInfo.areaDomain || 'https://open.ezvizlife.com';
+  const body = new URLSearchParams({
+    accessToken: tokenInfo.token,
+    deviceSerial: serial.toUpperCase(),
+    channelNo: '1',
+    protocol: String(protocol),
+  }).toString();
+
+  try {
+    const res = await fetch(`${base}/api/lapp/v2/live/address/get`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.code === '200' && data.data?.url) {
+      return { url: data.data.url, expireTime: data.data.expireTime };
+    }
+  } catch (err) {
+    console.warn('[EZVIZ] live address request network error:', err.message);
+  }
+  return null;
+}
+
+function requireIntercomSecret(req, res) {
+  const secret = req.headers['x-intercom-secret'] || '';
+  if (!INTERCOM_SECRET || secret !== INTERCOM_SECRET) {
+    res.status(401).json({ error: 'Secreto de intercom inválido.' });
+    return false;
+  }
+  return true;
+}
+
+function resolveApartmentByName(name) {
+  const code = String(name || '').trim();
+  return (db.apartments || []).find(a => String(a.name).trim() === code) || null;
+}
+
+function resolveTenantForApartment(apartmentId) {
+  const contract = (db.contracts || []).find(c =>
+    Number(c.apartmentId) === Number(apartmentId) &&
+    c.status !== 'terminated' && c.status !== 'cancelled'
+  );
+  if (!contract) return null;
+  return (db.tenants || []).find(t => Number(t.id) === Number(contract.tenantId)) || null;
+}
+
+function appendIntercomCall(input = {}) {
+  if (!Array.isArray(db.intercomCalls)) db.intercomCalls = [];
+  const call = {
+    id: nextId.intercomCalls || 1,
+    apartmentId: Number(input.apartmentId) || null,
+    apartmentName: String(input.apartmentName || '').slice(0, 10),
+    status: 'ringing',
+    startedAt: new Date().toISOString(),
+    answeredAt: null,
+    openedAt: null,
+    endedAt: null,
+    snapshotUrl: null,
+    sourceDevice: ['qr', 'whatsapp', 'intercom'].includes(input.sourceDevice) ? input.sourceDevice : 'qr',
+    meta: input.meta && typeof input.meta === 'object' ? input.meta : {},
+  };
+  // Copy latest gate snapshot as immutable evidence
+  if (latestGateSnapshot.data) {
+    const callDir = path.join(UPLOADS_DIR, 'calls');
+    try {
+      if (!fs.existsSync(callDir)) fs.mkdirSync(callDir, { recursive: true });
+      const ext = latestGateSnapshot.contentType === 'image/png' ? 'png' : 'jpg';
+      const fileName = `call-${call.id}.${ext}`;
+      fs.writeFileSync(path.join(callDir, fileName), latestGateSnapshot.data);
+      call.snapshotUrl = `/uploads/calls/${fileName}`;
+    } catch (e) { console.error('[INTERCOM] snapshot copy error:', e.message); }
+  }
+  nextId.intercomCalls = call.id + 1;
+  db.intercomCalls.unshift(call);
+  if (db.intercomCalls.length > 500) db.intercomCalls.splice(500);
+  saveData();
+  return call;
+}
+
+function expireOldIntercomCalls() {
+  const now = Date.now();
+  let changed = false;
+  for (const call of (db.intercomCalls || [])) {
+    if (call.status === 'ringing' && now - new Date(call.startedAt).getTime() > INTERCOM_CALL_TIMEOUT_MS) {
+      call.status = 'missed';
+      call.endedAt = new Date().toISOString();
+      changed = true;
+    }
+  }
+  if (changed) saveData();
+}
+
+// Expire calls periodically
+setInterval(expireOldIntercomCalls, 15_000);
+
+// POST /api/intercom/webhook — receive call from QR page or WhatsApp bot
+app.post('/api/intercom/webhook', (req, res) => {
+  if (!requireIntercomSecret(req, res)) return;
+  const { apartmentCode, sourceDevice, meta } = req.body || {};
+  const code = String(apartmentCode || '').trim();
+  if (!code) return res.status(400).json({ error: 'apartmentCode es requerido.' });
+  const apartment = resolveApartmentByName(code);
+  if (!apartment) return res.status(404).json({ error: `Apartamento ${code} no encontrado.` });
+  // Rate limit: max 1 active call per apartment
+  expireOldIntercomCalls();
+  const existing = (db.intercomCalls || []).find(c => c.status === 'ringing' && Number(c.apartmentId) === Number(apartment.id));
+  if (existing) return res.json({ ok: true, call: existing, message: 'Ya hay una llamada activa para este apartamento.' });
+  const call = appendIntercomCall({
+    apartmentId: apartment.id,
+    apartmentName: apartment.name,
+    sourceDevice: sourceDevice || 'qr',
+    meta,
+  });
+  // Try to notify tenant via WhatsApp
+  const tenant = resolveTenantForApartment(apartment.id);
+  if (tenant?.phone && cloudReady()) {
+    const callUrl = `${PUBLIC_APP_URL}/intercom/call/${call.id}`;
+    const body = `🔔 Alguien está en el portón del edificio y quiere comunicarse con el apartamento ${apartment.name}.`;
+    sendCloudAdminAccessButton(tenant.phone, body + `\n\nAbre este enlace para ver y responder:\n${callUrl}`)
+      .catch(e => console.warn('[INTERCOM] WhatsApp notification failed:', e.message));
+  }
+  console.log(`[INTERCOM] Call ${call.id} for apt ${apartment.name} from ${call.sourceDevice}`);
+  res.json({ ok: true, call });
+});
+
+// POST /api/intercom/snapshot — bridge device uploads JPG
+app.post('/api/intercom/snapshot', (req, res) => {
+  if (!requireIntercomSecret(req, res)) return;
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.includes('application/json')) {
+    // Base64 JSON body: { data: "base64...", contentType: "image/jpeg" }
+    const { data, contentType: ct } = req.body || {};
+    if (!data) return res.status(400).json({ error: 'data (base64) es requerido.' });
+    latestGateSnapshot = {
+      data: Buffer.from(data, 'base64'),
+      ts: new Date().toISOString(),
+      contentType: ct || 'image/jpeg',
+    };
+  } else if (req.rawBody && req.rawBody.length > 0) {
+    // Raw binary body
+    latestGateSnapshot = {
+      data: req.rawBody,
+      ts: new Date().toISOString(),
+      contentType: contentType.includes('image/') ? contentType.split(';')[0] : 'image/jpeg',
+    };
+  } else {
+    return res.status(400).json({ error: 'No se recibió imagen.' });
+  }
+  res.json({ ok: true, ts: latestGateSnapshot.ts, size: latestGateSnapshot.data.length });
+});
+
+// GET /api/intercom/feed — latest gate snapshot (requires auth)
+app.get('/api/intercom/feed', (req, res) => {
+  if (!latestGateSnapshot.data) return res.status(404).json({ error: 'No hay snapshot del portón.' });
+  res.setHeader('Content-Type', latestGateSnapshot.contentType);
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(latestGateSnapshot.data);
+});
+
+// GET /api/intercom/active — active call for the logged-in tenant (polling)
+app.get('/api/intercom/active', (req, res) => {
+  expireOldIntercomCalls();
+  const apartmentId = Number(req.auth?.apartmentId || 0);
+  const isAdmin = req.auth?.role === 'admin';
+  const active = (db.intercomCalls || []).find(c => {
+    if (c.status !== 'ringing') return false;
+    if (isAdmin) return true;
+    return Number(c.apartmentId) === apartmentId;
+  });
+  if (!active) return res.json({ active: false });
+  res.json({
+    active: true,
+    call: active,
+    snapshotUrl: active.snapshotUrl || null,
+    feedUrl: latestGateSnapshot.data ? '/api/intercom/feed' : null,
+  });
+});
+
+// GET /api/intercom/calls — call history
+app.get('/api/intercom/calls', (req, res) => {
+  expireOldIntercomCalls();
+  const isAdmin = req.auth?.role === 'admin';
+  const apartmentId = Number(req.auth?.apartmentId || req.query.apartmentId || 0);
+  const limit = Math.min(Number(req.query.limit) || 50, 200);
+  let calls = (db.intercomCalls || []);
+  if (!isAdmin && apartmentId) calls = calls.filter(c => Number(c.apartmentId) === apartmentId);
+  res.json(calls.slice(0, limit));
+});
+
+// POST /api/intercom/unlock — open the gate
+app.post('/api/intercom/unlock', async (req, res) => {
+  const { callId } = req.body || {};
+  const call = (db.intercomCalls || []).find(c => c.id === Number(callId));
+  if (!call) return res.status(404).json({ error: 'Llamada no encontrada.' });
+  // Check authorization: tenant of the apartment or admin
+  const isAdmin = req.auth?.role === 'admin';
+  const isTenantOfApt = req.auth?.role === 'tenant' && Number(req.auth.apartmentId) === Number(call.apartmentId);
+  if (!isAdmin && !isTenantOfApt) return res.status(403).json({ error: 'No autorizado para esta llamada.' });
+  // Rate limit
+  const actorKey = `intercom:${req.auth.role}:${req.auth.apartmentId || 'admin'}:${call.id}`;
+  if (!accessRateAllowed(actorKey)) return res.status(429).json({ error: 'Espera unos segundos.' });
+  // Try Shelly Cloud API if configured
+  const shellyDeviceId = String(process.env.SHELLY_DEVICE_ID || '').trim();
+  const shellyAuthKey = String(process.env.SHELLY_AUTH_KEY || '').trim();
+  const shellyServer = String(process.env.SHELLY_SERVER || 'shelly-103-eu.shelly.cloud').trim();
+  let unlockMessage = 'Apertura registrada (Shelly no configurado — configurar SHELLY_DEVICE_ID y SHELLY_AUTH_KEY).';
+  if (shellyDeviceId && shellyAuthKey) {
+    try {
+      const shellyUrl = `https://${shellyServer}/device/relay/control?channel=0&turn=on&id=${encodeURIComponent(shellyDeviceId)}&auth_key=${encodeURIComponent(shellyAuthKey)}`;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10_000);
+      try {
+        const shellyRes = await fetch(shellyUrl, { signal: controller.signal });
+        const shellyData = await shellyRes.json().catch(() => ({}));
+        if (shellyData.isok) {
+          unlockMessage = 'Puerta abierta exitosamente vía Shelly.';
+        } else {
+          unlockMessage = `Shelly respondió: ${JSON.stringify(shellyData).slice(0, 200)}`;
+        }
+      } finally { clearTimeout(timer); }
+    } catch (e) {
+      unlockMessage = `Error al contactar Shelly: ${e.message}`;
+    }
+  } else if (edgeGatewayReady()) {
+    // Fallback to edge gateway if configured
+    try {
+      const door = doorDefinitions()[0];
+      if (door) {
+        const payload = await edgeGatewayRequest(`/v1/doors/${encodeURIComponent(door.gatewayId)}/unlock`, {
+          requestId: crypto.randomUUID(), role: req.auth.role, actor: req.auth.name || 'Intercom', pulseMs: 1200,
+        });
+        unlockMessage = payload.message || 'Apertura confirmada por la pasarela.';
+      }
+    } catch (e) {
+      unlockMessage = `Error pasarela: ${e.message}`;
+    }
+  }
+  // Update call
+  call.status = 'opened';
+  call.openedAt = new Date().toISOString();
+  call.answeredAt = call.answeredAt || call.openedAt;
+  call.endedAt = call.openedAt;
+  call.meta.openedBy = req.auth.role === 'admin' ? 'admin' : `tenant:${req.auth.apartmentId}`;
+  saveData();
+  // Log access event
+  appendAccessEvent({
+    requestId: crypto.randomUUID(),
+    actorRole: req.auth.role,
+    actorId: req.auth.name || req.auth.tenantId || 'intercom',
+    apartmentId: call.apartmentId,
+    doorId: 'intercom-gate',
+    status: 'opened',
+    message: `Intercom call #${call.id}: ${unlockMessage}`,
+  });
+  res.json({ ok: true, call, message: unlockMessage });
+});
+
+// POST /api/intercom/ignore — mark call as ignored
+app.post('/api/intercom/ignore', (req, res) => {
+  const { callId } = req.body || {};
+  const call = (db.intercomCalls || []).find(c => c.id === Number(callId));
+  if (!call) return res.status(404).json({ error: 'Llamada no encontrada.' });
+  const isAdmin = req.auth?.role === 'admin';
+  const isTenantOfApt = req.auth?.role === 'tenant' && Number(req.auth.apartmentId) === Number(call.apartmentId);
+  if (!isAdmin && !isTenantOfApt) return res.status(403).json({ error: 'No autorizado.' });
+  call.status = 'ignored';
+  call.endedAt = new Date().toISOString();
+  saveData();
+  res.json({ ok: true, call });
+});
+
+// ─── INTERCOM PUBLIC ENDPOINTS (no auth, for QR page and WhatsApp links) ───
+
+// GET /api/intercom/public/apartments — list apartment codes for the QR page
+app.get('/api/intercom/public/apartments', (req, res) => {
+  const apartments = (db.apartments || []).map(a => ({ name: a.name, floor: a.floor || null }));
+  res.json({ apartments });
+});
+
+// POST /api/intercom/public/call — visitor triggers a call from the QR page
+app.post('/api/intercom/public/call', async (req, res) => {
+  const { apartmentCode } = req.body || {};
+  const code = String(apartmentCode || '').trim();
+  if (!code) return res.status(400).json({ error: 'Selecciona un apartamento.' });
+  const apartment = resolveApartmentByName(code);
+  if (!apartment) return res.status(404).json({ error: `Apartamento ${code} no encontrado.` });
+  // Rate limit per apartment: reuse existing ringing call
+  expireOldIntercomCalls();
+  const existing = (db.intercomCalls || []).find(c => c.status === 'ringing' && Number(c.apartmentId) === Number(apartment.id));
+  if (existing) return res.json({ ok: true, callId: existing.id, message: 'Llamando...' });
+
+  // Auto-capture live photo from Ezviz Cloud if configured (0 local hardware)
+  if ((process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD) || (process.env.EZVIZ_APP_KEY && process.env.EZVIZ_APP_SECRET)) {
+    try {
+      await captureEzvizCloudSnapshot();
+    } catch (err) {
+      console.warn('[EZVIZ] auto-capture error on call:', err.message);
+    }
+  }
+
+  // Create call using the webhook internally
+  const call = appendIntercomCall({
+    apartmentId: apartment.id,
+    apartmentName: apartment.name,
+    sourceDevice: 'qr',
+  });
+  // Notify tenant
+  const tenant = resolveTenantForApartment(apartment.id);
+  if (tenant?.phone && cloudReady()) {
+    const callUrl = `${PUBLIC_APP_URL}/intercom/call/${call.id}`;
+    sendCloudAdminAccessButton(tenant.phone,
+      `🔔 Alguien está en el portón del edificio para el apartamento ${apartment.name}.\n\nAbre este enlace para ver quién es:\n${callUrl}`
+    ).catch(e => console.warn('[INTERCOM] WhatsApp notification failed:', e.message));
+  }
+  console.log(`[INTERCOM] Public call ${call.id} for apt ${apartment.name}`);
+  res.json({ ok: true, callId: call.id, message: 'Llamando al apartamento ' + apartment.name + '...' });
+});
+
+// GET /api/intercom/public/call/:id — get call info for the WhatsApp link page
+app.get('/api/intercom/public/call/:id', (req, res) => {
+  const call = (db.intercomCalls || []).find(c => c.id === Number(req.params.id));
+  if (!call) return res.status(404).json({ error: 'Llamada no encontrada.' });
+  expireOldIntercomCalls();
+  res.json({
+    id: call.id,
+    apartmentName: call.apartmentName,
+    status: call.status,
+    startedAt: call.startedAt,
+    snapshotUrl: call.snapshotUrl || null,
+    feedAvailable: Boolean(latestGateSnapshot.data),
+    ezvizConfigured: Boolean((process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD) || (process.env.EZVIZ_APP_KEY && process.env.EZVIZ_APP_SECRET)),
+  });
+});
+
+// GET /api/intercom/public/feed — latest gate snapshot (no auth, for call page)
+app.get('/api/intercom/public/feed', (req, res) => {
+  if (!latestGateSnapshot.data) return res.status(404).json({ error: 'No hay imagen.' });
+  res.setHeader('Content-Type', latestGateSnapshot.contentType);
+  res.setHeader('Cache-Control', 'no-cache, no-store');
+  res.send(latestGateSnapshot.data);
+});
+
+// GET /api/intercom/public/live-stream/:id — live stream URL from Ezviz Cloud (HLS / WebRTC)
+app.get(['/api/intercom/public/live-stream/:id', '/api/intercom/live-stream'], async (req, res) => {
+  try {
+    const stream = await getEzvizLiveStreamUrl();
+    if (!stream || !stream.url) {
+      return res.status(503).json({
+        ok: false,
+        error: 'Transmisión no disponible. Verifica que EZVIZ_APP_KEY, EZVIZ_APP_SECRET y EZVIZ_DEVICE_SERIAL estén configurados en Render.',
+      });
+    }
+    res.json({ ok: true, url: stream.url, expireTime: stream.expireTime });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/intercom/trigger-snapshot — manually trigger an Ezviz Cloud snapshot
+app.post('/api/intercom/trigger-snapshot', async (req, res) => {
+  try {
+    const result = await captureEzvizCloudSnapshot();
+    if (!result) return res.status(503).json({ ok: false, error: 'No se pudo capturar foto de Ezviz Cloud.' });
+    res.json({ ok: true, ts: latestGateSnapshot.ts, picUrl: result.picUrl });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/ezviz/test — test Ezviz connection and list cameras (Admin only)
+app.get('/api/ezviz/test', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  try {
+    const session = await getEzvizConsumerSession();
+    if (!session) {
+      return res.status(401).json({
+        ok: false,
+        error: 'No se pudo iniciar sesión en Ezviz. Verifica EZVIZ_ACCOUNT_USERNAME y EZVIZ_ACCOUNT_PASSWORD en las variables de entorno de Render.',
+      });
+    }
+
+    const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
+    const response = await fetch(pagelistUrl, {
+      headers: { 'sessionId': session.sessionId, 'clientType': '1' },
+      signal: AbortSignal.timeout(12000),
+    });
+    const data = await response.json().catch(() => ({}));
+    res.json({
+      ok: true,
+      apiDomain: session.apiDomain,
+      devices: (data.deviceInfos || []).map(d => ({
+        name: d.name || d.deviceSerial,
+        serial: d.deviceSerial,
+        status: d.status === 1 ? 'online' : 'offline',
+        picUrl: d.picUrl || d.coverPic || null,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.get(['/reportes/servicios', '/reporte-servicios'], (req, res) => {
   try {
     const report = buildCloudServicesImageData();
@@ -7434,8 +8041,8 @@ app.get('/api/whatsapp/cloud/contacts', (req, res) => {
   res.json(contacts);
 });
 
-// A tenant remains a contact even before sending the first message. Outside
-// the 24-hour window, WhatsApp requires the approved greeting template.
+// Opening a conversation creates or retrieves the cloud conversation record
+// without automatically firing templates behind the administrator's back.
 app.post('/api/whatsapp/cloud/start-conversation', async (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   const tenantId = Number(req.body?.tenantId);
@@ -7444,20 +8051,23 @@ app.post('/api/whatsapp/cloud/start-conversation', async (req, res) => {
   const contact = authorizedCloudContact(tenant.phone);
   if (!contact) return res.status(409).json({ error: 'El inquilino no tiene un contrato activo autorizado' });
   const conversation = getCloudConversation(contact);
-  const now = Date.now();
-  if (cloudServiceWindowOpen(conversation)) {
-    return res.json({ ok: true, conversationId: conversation.id, windowOpen: true, sentTemplate: false });
+  const shouldSendGreeting = Boolean(req.body?.sendGreeting === true);
+  if (shouldSendGreeting && !cloudServiceWindowOpen(conversation)) {
+    try {
+      const result = await sendCloudGreetingTemplate(contact.phone, tenant.name);
+      addCloudMessage(conversation, 'out', {
+        type: 'template', text: `Hola, ${firstName(tenant.name)}, ¿cómo estás? ¿Podemos hablar un momento?`,
+        template: process.env.WHATSAPP_GREETING_TEMPLATE || 'saludo_inquilino',
+        whatsappMessageId: result.messages?.[0]?.id || null,
+      });
+      saveData();
+      return res.json({ ok: true, conversationId: conversation.id, windowOpen: false, sentTemplate: true });
+    } catch (error) {
+      return res.status(502).json({ error: `No fue posible enviar la plantilla de saludo: ${error.message}` });
+    }
   }
-  try {
-    const result = await sendCloudGreetingTemplate(contact.phone, tenant.name);
-    addCloudMessage(conversation, 'out', {
-      type: 'template', text: `Hola, ${firstName(tenant.name)}, ¿cómo estás? ¿Podemos hablar un momento?`,
-      template: process.env.WHATSAPP_GREETING_TEMPLATE || 'saludo_inquilino',
-      whatsappMessageId: result.messages?.[0]?.id || null,
-    });
-    saveData();
-    res.json({ ok: true, conversationId: conversation.id, windowOpen: false, sentTemplate: true });
-  } catch (error) { res.status(502).json({ error: `No fue posible enviar la plantilla de saludo: ${error.message}` }); }
+  saveData();
+  res.json({ ok: true, conversationId: conversation.id, windowOpen: cloudServiceWindowOpen(conversation), sentTemplate: false });
 });
 
 // Send the approved rent/services template from an apartment card without

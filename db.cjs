@@ -28,6 +28,7 @@ const INITIAL_DATA = {
   paymentRules: [],
   paymentEvents: [],
   paymentAlerts: [],
+  intercomCalls: [],
   utilityChangeAlerts: [],
 };
 

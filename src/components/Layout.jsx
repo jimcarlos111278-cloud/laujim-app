@@ -103,7 +103,7 @@ const [installPrompt, setInstallPrompt] = useState(null);
 
   if (immersiveWhatsApp) {
     return (
-      <div className="whatsapp-immersive-shell fixed inset-0 w-full h-full overflow-hidden bg-[#0c1317]">
+      <div className="whatsapp-immersive-shell fixed inset-0 w-full h-full h-[100dvh] overflow-hidden bg-[#0c1317]">
         {children}
       </div>
     );

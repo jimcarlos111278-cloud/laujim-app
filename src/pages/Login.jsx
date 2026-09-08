@@ -50,10 +50,12 @@ export default function Login() {
             return;
           }
           if (res.status === 401) {
-            // Truly invalid/expired session confirmed by server
-            clearAuth({ permanent: true }, 'session_verify_401');
-            setCheckingStoredSession(false);
-            return;
+            // A transient 401 on startup (Render cold-start, DB loading, or network change)
+            // must NEVER wipe the admin's permanent session.
+            console.warn('[AUTH] Verify returned 401, retrying without destroying native session...');
+            attempts++;
+            if (attempts < maxAttempts && !cancelled) await new Promise(r => setTimeout(r, 1500));
+            continue;
           }
           // On non-ok / 5xx / timeout, retry before giving up
           attempts++;

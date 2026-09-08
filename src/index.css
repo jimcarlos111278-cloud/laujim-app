@@ -350,7 +350,7 @@ html, body, #root {
   .wa-live-details { display: none; }
 }
 @media (max-width: 760px) {
-  .wa-live-shell { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; }
+  .wa-live-shell { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; height: 100dvh; min-height: 0; }
   .wa-live-sidebar { width: 100%; height: 100%; border-right: 0; padding-bottom: 0; }
   .wa-live-chat { display: none; width: 100%; height: 100%; }
   .wa-live-selected .wa-live-sidebar { display: none; }

@@ -25,11 +25,14 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     private static final int FILE_CHOOSER_REQUEST = 4817;
     private static final int MEDIA_PERMISSION_REQUEST = 4818;
+    private static final int CAMERA_PERMISSION_REQUEST = 4819;
+    private static final int NOTIFICATIONS_PERMISSION_REQUEST = 4820;
     private ValueCallback<Uri[]> pendingFileCallback;
     private PermissionRequest pendingWebPermissionRequest;
     private String[] pendingWebPermissionResources;
     private Uri pendingCaptureUri;
     private File pendingCaptureFile;
+    private boolean pendingCaptureIsVideo = false;
     private final Handler deepLinkHandler = new Handler(Looper.getMainLooper());
 
     @Override
@@ -46,6 +49,13 @@ public class MainActivity extends BridgeActivity {
         // web but the APK silently ignored the microphone request.
         deepLinkHandler.postDelayed(this::installMediaWebChromeClient, 650L);
         dispatchWhatsAppIntent(getIntent());
+
+        // Prompt for notifications on Android 13+ so WhatsApp alerts are never suppressed
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{ Manifest.permission.POST_NOTIFICATIONS }, NOTIFICATIONS_PERMISSION_REQUEST);
+            }
+        }
     }
 
     @Override
@@ -120,25 +130,28 @@ public class MainActivity extends BridgeActivity {
                     // isCaptureEnabled() is unreliable in Android WebView, so also check accept type
                     boolean isImageOnly = "image/*".equals(acceptedType);
                     boolean isVideoOnly = "video/*".equals(acceptedType);
-                    if ((capture || isImageOnly) && (isImageOnly || isVideoOnly)) {
-                        // Request CAMERA permission at runtime if not granted
+                    boolean isCaptureRequested = capture || (isImageOnly && capture) || (isVideoOnly && capture);
+
+                    if (isCaptureRequested) {
+                        pendingCaptureIsVideo = isVideoOnly;
                         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                            requestPermissions(new String[]{ Manifest.permission.CAMERA }, MEDIA_PERMISSION_REQUEST);
-                        }
-                        launchCaptureIntent(isVideoOnly);
+                            requestPermissions(new String[]{ Manifest.permission.CAMERA }, CAMERA_PERMISSION_REQUEST);
                         } else {
-                            Intent chooser = fileChooserParams == null
-                                ? new Intent(Intent.ACTION_OPEN_DOCUMENT)
-                                : fileChooserParams.createIntent();
-                            chooser.addCategory(Intent.CATEGORY_OPENABLE);
-                            String[] acceptedTypes = acceptedMimeTypes(fileChooserParams);
-                            if (acceptedTypes.length > 1) {
-                                chooser.setType("*/*");
-                                chooser.putExtra(Intent.EXTRA_MIME_TYPES, acceptedTypes);
-                            } else {
-                                chooser.setType(acceptedType);
-                            }
-                            chooser.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, fileChooserParams == null || !fileChooserParams.isCaptureEnabled());
+                            launchCaptureIntent(isVideoOnly);
+                        }
+                    } else {
+                        Intent chooser = fileChooserParams == null
+                            ? new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                            : fileChooserParams.createIntent();
+                        chooser.addCategory(Intent.CATEGORY_OPENABLE);
+                        String[] acceptedTypes = acceptedMimeTypes(fileChooserParams);
+                        if (acceptedTypes.length > 1) {
+                            chooser.setType("*/*");
+                            chooser.putExtra(Intent.EXTRA_MIME_TYPES, acceptedTypes);
+                        } else {
+                            chooser.setType(acceptedType);
+                        }
+                        chooser.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, fileChooserParams == null || !fileChooserParams.isCaptureEnabled());
                         startActivityForResult(chooser, FILE_CHOOSER_REQUEST);
                     }
                     return true;
@@ -156,6 +169,26 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_PERMISSION_REQUEST) {
+            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (granted && pendingFileCallback != null) {
+                try {
+                    launchCaptureIntent(pendingCaptureIsVideo);
+                } catch (Exception e) {
+                    if (pendingFileCallback != null) {
+                        pendingFileCallback.onReceiveValue(null);
+                        pendingFileCallback = null;
+                    }
+                }
+            } else if (pendingFileCallback != null) {
+                pendingFileCallback.onReceiveValue(null);
+                pendingFileCallback = null;
+            }
+            return;
+        }
+        if (requestCode == NOTIFICATIONS_PERMISSION_REQUEST) {
+            return;
+        }
         if (requestCode != MEDIA_PERMISSION_REQUEST || pendingWebPermissionRequest == null) return;
         PermissionRequest request = pendingWebPermissionRequest;
         pendingWebPermissionRequest = null;
@@ -280,6 +313,15 @@ public class MainActivity extends BridgeActivity {
         captureIntent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, pendingCaptureUri);
         captureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         captureIntent.setClipData(android.content.ClipData.newRawUri("Laujim", pendingCaptureUri));
+
+        // Grant explicit URI permissions to all matching camera packages (required on Samsung OneUI)
+        java.util.List<android.content.pm.ResolveInfo> resInfoList = getPackageManager().queryIntentActivities(captureIntent, PackageManager.MATCH_DEFAULT_ONLY);
+        for (android.content.pm.ResolveInfo resolveInfo : resInfoList) {
+            if (resolveInfo.activityInfo != null && resolveInfo.activityInfo.packageName != null) {
+                grantUriPermission(resolveInfo.activityInfo.packageName, pendingCaptureUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
+        }
+
         startActivityForResult(captureIntent, FILE_CHOOSER_REQUEST);
     }
 }

@@ -25,6 +25,8 @@ import PublicApartment from './pages/PublicApartment';
 import Login from './pages/Login';
 import MiApto from './pages/MiApto';
 import SecurityCenter from './pages/SecurityCenter';
+import IntercomDoorbell from './pages/IntercomDoorbell';
+import IntercomCallPage from './pages/IntercomCallPage';
 import Onboarding from './pages/Onboarding';
 import { requestNotificationPermission } from './utils/notifications';
 import { api, getCloudSyncStatus, refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
@@ -212,6 +214,12 @@ function PrivateApp() {
 
 function AppContent() {
   const location = useLocation();
+  if (location.pathname === '/p' || location.pathname === '/portero') {
+    return <Routes><Route path="*" element={<IntercomDoorbell />} /></Routes>;
+  }
+  if (location.pathname.startsWith('/intercom/call/')) {
+    return <Routes><Route path="/intercom/call/:id" element={<IntercomCallPage />} /></Routes>;
+  }
   if (location.pathname === '/publico' || location.pathname.startsWith('/publico/')) {
     return (
       <Routes>

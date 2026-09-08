@@ -9,6 +9,7 @@ import QRCode from 'qrcode';
 import { clearAuth, isTenant } from '../utils/auth';
 import { AUTH_TOKEN, getBase } from '../utils/config';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod } from '../utils/helpers';
+import IntercomCallModal from '../components/IntercomCallModal';
 
 const PROVIDERS = {
   electricity: { title: 'Air-e', icon: Zap, theme: 'amber', reference: 'NIC' },
@@ -102,10 +103,26 @@ export default function MiApto() {
   const [cameraBusy, setCameraBusy] = useState('');
   const [doorBusy, setDoorBusy] = useState('');
   const [actionMessage, setActionMessage] = useState(null);
+  const [activeCall, setActiveCall] = useState(null);
 
   useEffect(() => {
     if (!isTenant()) { navigate('/login', { replace: true }); return; }
     loadData();
+  }, []);
+
+  // Poll for active intercom calls every 10 seconds
+  useEffect(() => {
+    if (!isTenant()) return;
+    let cancelled = false;
+    async function checkIntercom() {
+      try {
+        const result = await tenantRequest('/intercom/active');
+        if (!cancelled) setActiveCall(result.active ? result : null);
+      } catch { /* ignore polling errors */ }
+    }
+    checkIntercom();
+    const timer = setInterval(checkIntercom, 10000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, []);
 
   async function loadData() {
@@ -230,6 +247,13 @@ export default function MiApto() {
 
         <div className="flex items-start gap-2 rounded-2xl bg-blue-50 p-4 text-xs text-blue-800"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p>La cámara y la cerradura se autorizan desde Render, pero el video y la orden física pasan por la pasarela local. Tus credenciales del NVR nunca se muestran aquí.</p></div>
       </main>
+      {activeCall?.active && activeCall.call && (
+        <IntercomCallModal
+          call={activeCall.call}
+          onClose={() => setActiveCall(null)}
+          onAction={() => setActiveCall(null)}
+        />
+      )}
     </div>
   );
 }
