@@ -95,12 +95,12 @@ export default function IntercomCallModal({ call, onClose, onAction }) {
     };
   }, [call.id]);
 
-  // Refresh Ezviz snapshot periodically when in Ezviz tab
+  // Refresh Ezviz snapshot rapidly (pseudo-stream ~1 fps) when in Ezviz tab
   useEffect(() => {
     if (viewMode !== 'ezviz' || !isLiveActive) return;
     const interval = setInterval(() => {
       setImgKey(Date.now());
-    }, 3000);
+    }, 1200);
     return () => clearInterval(interval);
   }, [viewMode, isLiveActive]);
 

@@ -8626,65 +8626,97 @@ app.get('/api/whatsapp/cloud/notifications', (req, res) => {
 // useful results/errors. Heartbeats, config reads and credential reads are
 // deliberately excluded so the phone only alerts on something actionable.
 app.get('/api/notifications/events', (req, res) => {
-  if (!requireCloudAdmin(req, res)) return;
+  const isAdmin = req.auth?.role === 'admin';
+  const isTenant = req.auth?.role === 'tenant';
+  if (!isAdmin && !isTenant) return res.status(403).json({ error: 'No autorizado' });
+
   const sinceValue = String(req.query?.since || '').trim();
   const sinceMs = sinceValue ? new Date(sinceValue).getTime() : 0;
-  const ignoredStages = new Set(['register', 'heartbeat', 'config', 'credentials', 'events_received']);
-  const isFacebookPublicationSuccess = log => {
-    const stage = String(log.stage || '').toLowerCase();
-    const message = String(log.message || '').toLowerCase();
-    const status = log.details && typeof log.details === 'object'
-      ? String(log.details.status || '').toLowerCase()
-      : '';
-    if (status === 'published' || stage === 'status_published' || stage === 'published') return true;
-    return String(log.level || '').toLowerCase() === 'success'
-      && /publicad[oa]|publicaci[oó]n.*exitosa|published/.test(message)
-      && !/login|inici[óo].*sesi[óo]n|procesando|processing/.test(message);
-  };
-  const isScraperFailure = log => ['warn', 'error'].includes(String(log.level || '').toLowerCase());
-  const items = ensureScraperLogCollection()
-    .filter(log => !ignoredStages.has(String(log.stage || '').toLowerCase()))
-    .filter(log => log.provider === 'Facebook Marketplace'
-      ? isFacebookPublicationSuccess(log)
-      : isScraperFailure(log))
-    .filter(log => {
-      const time = new Date(log.createdAt || log.eventAt || 0).getTime();
-      return Number.isFinite(time) && time > sinceMs;
+  const items = [];
+
+  // Intercom calling events (for both tenant of the apartment and admin)
+  const tenantAptId = Number(req.auth?.apartmentId || 0);
+  const intercomItems = (db.intercomCalls || [])
+    .filter(call => {
+      if (isTenant && Number(call.apartmentId) !== tenantAptId) return false;
+      const time = new Date(call.startedAt || 0).getTime();
+      return Number.isFinite(time) && time > sinceMs && call.status === 'ringing';
     })
-    .sort((left, right) => new Date(left.createdAt || left.eventAt || 0) - new Date(right.createdAt || right.eventAt || 0))
-    .slice(-50)
-    .map(log => {
-      const facebook = log.provider === 'Facebook Marketplace';
-      return {
-        id: `${facebook ? 'facebook' : 'scraper'}-${log.id}`,
-        category: facebook ? 'facebook' : 'scraper',
-        title: facebook ? 'Facebook Marketplace' : `Scraper · ${log.provider || 'Servicios públicos'}`,
-        text: log.message,
-        level: log.level,
-        provider: log.provider || null,
-        stage: log.stage,
-        status: log.details && typeof log.details === 'object' ? log.details.status || null : null,
-        createdAt: log.createdAt || log.eventAt,
-      };
-    });
-  const paymentItems = (db.paymentEvents || [])
-    .filter(event => {
-      const time = new Date(event.createdAt || event.receivedAt || 0).getTime();
-      return Number.isFinite(time) && time > sinceMs;
-    })
-    .slice(0, 50)
-    .map(event => ({
-      id: `payment-${event.id}`,
-      category: 'payments',
-      title: 'Pagos automáticos',
-      text: event.status === 'pending_association'
-        ? `Pago recibido por $${Number(event.amount || 0).toLocaleString('es-CO')} sin apartamento identificado.`
-        : `Pago de $${Number(event.amount || 0).toLocaleString('es-CO')} · ${event.apartmentName || 'apartamento asociado'} · ${event.status}`,
-      level: event.status === 'pending_association' ? 'warn' : 'success',
-      provider: event.provider || null,
-      createdAt: event.createdAt || event.receivedAt,
+    .slice(0, 20)
+    .map(call => ({
+      id: `intercom-${call.id}`,
+      category: 'intercom',
+      title: '🔔 ¡Timbre del Portón!',
+      text: `Alguien está en la entrada llamando al Apartamento ${call.apartmentName || 'Laujim'}`,
+      level: 'warn',
+      callId: call.id,
+      token: call.token,
+      apartmentName: call.apartmentName,
+      createdAt: call.startedAt,
     }));
-  items.push(...paymentItems);
+  items.push(...intercomItems);
+
+  if (isAdmin) {
+    const ignoredStages = new Set(['register', 'heartbeat', 'config', 'credentials', 'events_received']);
+    const isFacebookPublicationSuccess = log => {
+      const stage = String(log.stage || '').toLowerCase();
+      const message = String(log.message || '').toLowerCase();
+      const status = log.details && typeof log.details === 'object'
+        ? String(log.details.status || '').toLowerCase()
+        : '';
+      if (status === 'published' || stage === 'status_published' || stage === 'published') return true;
+      return String(log.level || '').toLowerCase() === 'success'
+        && /publicad[oa]|publicaci[oó]n.*exitosa|published/.test(message)
+        && !/login|inici[óo].*sesi[óo]n|procesando|processing/.test(message);
+    };
+    const isScraperFailure = log => ['warn', 'error'].includes(String(log.level || '').toLowerCase());
+    const scraperItems = ensureScraperLogCollection()
+      .filter(log => !ignoredStages.has(String(log.stage || '').toLowerCase()))
+      .filter(log => log.provider === 'Facebook Marketplace'
+        ? isFacebookPublicationSuccess(log)
+        : isScraperFailure(log))
+      .filter(log => {
+        const time = new Date(log.createdAt || log.eventAt || 0).getTime();
+        return Number.isFinite(time) && time > sinceMs;
+      })
+      .sort((left, right) => new Date(left.createdAt || left.eventAt || 0) - new Date(right.createdAt || right.eventAt || 0))
+      .slice(-50)
+      .map(log => {
+        const facebook = log.provider === 'Facebook Marketplace';
+        return {
+          id: `${facebook ? 'facebook' : 'scraper'}-${log.id}`,
+          category: facebook ? 'facebook' : 'scraper',
+          title: facebook ? 'Facebook Marketplace' : `Scraper · ${log.provider || 'Servicios públicos'}`,
+          text: log.message,
+          level: log.level,
+          provider: log.provider || null,
+          stage: log.stage,
+          status: log.details && typeof log.details === 'object' ? log.details.status || null : null,
+          createdAt: log.createdAt || log.eventAt,
+        };
+      });
+    items.push(...scraperItems);
+
+    const paymentItems = (db.paymentEvents || [])
+      .filter(event => {
+        const time = new Date(event.createdAt || event.receivedAt || 0).getTime();
+        return Number.isFinite(time) && time > sinceMs;
+      })
+      .slice(0, 50)
+      .map(event => ({
+        id: `payment-${event.id}`,
+        category: 'payments',
+        title: 'Pagos automáticos',
+        text: event.status === 'pending_association'
+          ? `Pago recibido por $${Number(event.amount || 0).toLocaleString('es-CO')} sin apartamento identificado.`
+          : `Pago de $${Number(event.amount || 0).toLocaleString('es-CO')} · ${event.apartmentName || 'apartamento asociado'} · ${event.status}`,
+        level: event.status === 'pending_association' ? 'warn' : 'success',
+        provider: event.provider || null,
+        createdAt: event.createdAt || event.receivedAt,
+      }));
+    items.push(...paymentItems);
+  }
+
   items.sort((left, right) => new Date(left.createdAt || 0) - new Date(right.createdAt || 0));
   res.json({ items });
 });

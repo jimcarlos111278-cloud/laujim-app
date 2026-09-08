@@ -155,7 +155,6 @@ public class BackgroundNotificationService extends Service {
     }
 
     private void pollEvents(android.content.SharedPreferences prefs) {
-        if (!prefs.getBoolean(KEY_SCRAPER, true) && !prefs.getBoolean(KEY_FACEBOOK, true) && !prefs.getBoolean(KEY_PAYMENTS, true)) return;
         try {
             String since = prefs.getString(KEY_LAST_EVENT, "");
             String server = prefs.getString(KEY_SERVER_URL, "");
@@ -253,15 +252,15 @@ public class BackgroundNotificationService extends Service {
         Intent open = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent openPending = PendingIntent.getActivity(this, notificationId, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, MESSAGE_CHANNEL)
-            .setSmallIcon(android.R.drawable.stat_notify_sync_noanim)
+            .setSmallIcon("intercom".equals(category) ? android.R.drawable.ic_popup_reminder : android.R.drawable.stat_notify_sync_noanim)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory("intercom".equals(category) ? NotificationCompat.CATEGORY_CALL : NotificationCompat.CATEGORY_STATUS)
+            .setPriority("intercom".equals(category) ? NotificationCompat.PRIORITY_MAX : NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(openPending);
-        if (sound) builder.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE);
+        if (sound || "intercom".equals(category)) builder.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE | Notification.DEFAULT_LIGHTS);
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (manager != null) manager.notify(notificationId, builder.build());
     }
@@ -277,6 +276,9 @@ public class BackgroundNotificationService extends Service {
         String stage = item.optString("stage", "").toLowerCase(Locale.ROOT);
         String status = item.optString("status", "").toLowerCase(Locale.ROOT);
         String text = item.optString("text", "").toLowerCase(Locale.ROOT);
+        if ("intercom".equals(category)) {
+            return true;
+        }
         if ("facebook".equals(category)) {
             if (!prefs.getBoolean(KEY_FACEBOOK, true)) return false;
             if ("published".equals(status) || "status_published".equals(stage) || "published".equals(stage)) return true;

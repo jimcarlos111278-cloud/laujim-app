@@ -110,18 +110,47 @@ export default function MiApto() {
     loadData();
   }, []);
 
-  // Poll for active intercom calls every 10 seconds
+  // Poll for active intercom calls every 3 seconds for instant response
   useEffect(() => {
     if (!isTenant()) return;
     let cancelled = false;
+    let lastSeenCallId = null;
+
     async function checkIntercom() {
       try {
         const result = await tenantRequest('/intercom/active');
-        if (!cancelled) setActiveCall(result.active ? result : null);
+        if (cancelled) return;
+        if (result.active && result.call) {
+          setActiveCall(result);
+          // Play ring alert and vibrate if new incoming call
+          if (lastSeenCallId !== result.call.id) {
+            lastSeenCallId = result.call.id;
+            try {
+              if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 500]);
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) {
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
+                osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.6);
+              }
+            } catch {}
+          }
+        } else {
+          setActiveCall(null);
+        }
       } catch { /* ignore polling errors */ }
     }
     checkIntercom();
-    const timer = setInterval(checkIntercom, 10000);
+    const timer = setInterval(checkIntercom, 3000);
     return () => { cancelled = true; clearInterval(timer); };
   }, []);
 
