@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle, Building2, Calendar, Camera, Download,
-  Droplets, ExternalLink, FileText, Flame, LockKeyhole, LogOut,
-  MapPin, QrCode, RefreshCw, ShieldCheck, Zap,
+  AlertTriangle, Building2, Calendar, Camera, Check, ChevronDown, ChevronUp,
+  Copy, Download, Droplets, ExternalLink, FileText, Flame, Info, Key,
+  LockKeyhole, LogOut, MapPin, QrCode, RefreshCw, ShieldCheck, Video, Zap,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { clearAuth, isTenant } from '../utils/auth';
@@ -108,6 +108,18 @@ export default function MiApto() {
   const [cameraImageSrc, setCameraImageSrc] = useState(`${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`);
   const [cameraCountdown, setCameraCountdown] = useState(60); // 60s auto-pause to protect Render bandwidth
   const [cameraError, setCameraError] = useState(false);
+  const [showEzvizGuide, setShowEzvizGuide] = useState(false);
+  const [copiedKey, setCopiedKey] = useState('');
+
+  function copyText(text, key) {
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+        setCopiedKey(key);
+        setTimeout(() => setCopiedKey(''), 2000);
+      }
+    } catch {}
+  }
 
   // Preload next image silently in background to eliminate flickering (cero parpadeo)
   useEffect(() => {
@@ -356,7 +368,7 @@ export default function MiApto() {
             </button>
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
             <button
               onClick={() => {
                 fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
@@ -370,6 +382,7 @@ export default function MiApto() {
               <RefreshCw className="h-3.5 w-3.5 text-slate-500" />
               Actualizar foto
             </button>
+
             <a
               href="ezviz://"
               onClick={() => {
@@ -377,11 +390,96 @@ export default function MiApto() {
                   window.open('https://play.google.com/store/apps/details?id=com.ezviz', '_blank');
                 }, 1500);
               }}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
+              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition"
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              Ver en App Ezviz (3K a 25fps)
+              Ver en App Ezviz (3K y Grabaciones)
             </a>
+          </div>
+
+          {/* Banner Híbrido: Videoportero Web vs App Ezviz */}
+          <div className="mt-3 rounded-xl bg-slate-50 p-3 border border-slate-100 space-y-2">
+            <div className="flex items-start gap-2 text-xs text-slate-600">
+              <Video className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-slate-900">Videoportero Web (Sin instalar nada):</span>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Cuando alguien timbra en el portón, te llamará a tu WhatsApp o en esta web con video y audio en vivo a 25fps del visitante para que puedas abrirle con 1 toque.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+              <button
+                onClick={() => setShowEzvizGuide(!showEzvizGuide)}
+                className="flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-800 transition"
+              >
+                <Key className="h-3.5 w-3.5 text-blue-600" />
+                <span>{showEzvizGuide ? 'Ocultar cuenta para grabaciones' : '¿Quieres ver grabaciones 24/7? Toca aquí'}</span>
+                {showEzvizGuide ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+
+            {showEzvizGuide && (
+              <div className="mt-2 rounded-xl bg-white p-3.5 border border-blue-100 text-xs space-y-3 animate-in fade-in duration-200 shadow-sm">
+                <div className="flex items-center gap-1.5 text-blue-900 font-bold">
+                  <ShieldCheck className="h-4 w-4 text-blue-600" />
+                  <span>Acceso de Residentes a la Cámara Oficial</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Para monitorear la calle en resolución 3K nativa, mover la cámara en 360° y consultar las grabaciones de seguridad pasadas:
+                </p>
+
+                <div className="space-y-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 font-mono text-[11px]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-slate-400 block text-[9px] uppercase font-sans font-bold">Usuario Ezviz</span>
+                      <span className="text-slate-800 font-semibold">residentes.laujim@gmail.com</span>
+                    </div>
+                    <button
+                      onClick={() => copyText('residentes.laujim@gmail.com', 'user')}
+                      className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-white transition"
+                      title="Copiar usuario"
+                    >
+                      {copiedKey === 'user' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-200">
+                    <div>
+                      <span className="text-slate-400 block text-[9px] uppercase font-sans font-bold">Contraseña</span>
+                      <span className="text-slate-800 font-semibold">Laujim2026*</span>
+                    </div>
+                    <button
+                      onClick={() => copyText('Laujim2026*', 'pass')}
+                      className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-white transition"
+                      title="Copiar contraseña"
+                    >
+                      {copiedKey === 'pass' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.ezviz"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-center text-[10px] font-bold text-slate-700 transition"
+                  >
+                    Google Play (Android)
+                  </a>
+                  <a
+                    href="https://apps.apple.com/app/ezviz/id886948564"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-center text-[10px] font-bold text-slate-700 transition"
+                  >
+                    App Store (iPhone)
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 

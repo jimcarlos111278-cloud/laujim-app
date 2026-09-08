@@ -62,6 +62,7 @@ export default function IntercomDoorbell() {
   const [hasVideo, setHasVideo] = useState(false);
   const [error, setError] = useState('');
   const [activeFloor, setActiveFloor] = useState('1');
+  const [selectedApt, setSelectedApt] = useState(null);
 
   const localVideoRef = useRef(null);
   const stopCallRef = useRef(null);
@@ -112,7 +113,7 @@ export default function IntercomDoorbell() {
     };
   }, []);
 
-  async function callApartment(name) {
+  async function callApartment(name, withVideo = true) {
     setCalling(name);
     setError('');
     try {
@@ -134,7 +135,7 @@ export default function IntercomDoorbell() {
       // Start WebRTC audio + video call as visitor
       try {
         const stop = await startIntercomCall(result.callId, 'visitor', {
-          enableVideo: true,
+          enableVideo: withVideo,
           onStatusChange: (status) => {
             setMediaStatus(status);
             if (status === 'connected') {
@@ -349,7 +350,7 @@ export default function IntercomDoorbell() {
                     {(floors[activeFloor] || []).sort((a, b) => String(a.name).localeCompare(String(b.name))).map(apt => (
                       <button
                         key={apt.name}
-                        onClick={() => callApartment(apt.name)}
+                        onClick={() => setSelectedApt(apt.name)}
                         disabled={calling !== null}
                         className="group p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-400/60 hover:bg-amber-500/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-1 disabled:opacity-50"
                       >
@@ -385,6 +386,59 @@ export default function IntercomDoorbell() {
         </div>
 
       </div>
+
+      {/* MODAL: SELECCIÓN DE LLAMADA (VIDEO Y VOZ O SOLO VOZ) */}
+      {selectedApt && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-3xl bg-slate-900 border border-amber-400/30 p-6 text-center shadow-2xl shadow-black/90 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-400/40 flex items-center justify-center mx-auto text-amber-400 shadow-lg shadow-amber-500/10">
+              <Building2 className="w-7 h-7" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Timbre Videoportero</span>
+              <h3 className="text-2xl font-black text-white mt-0.5">Apartamento {selectedApt}</h3>
+              <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                Para que el residente te reconozca rápidamente y te abra el portón, ¿cómo deseas comunicarte?
+              </p>
+            </div>
+
+            <div className="space-y-2.5 pt-2">
+              <button
+                onClick={() => {
+                  const apt = selectedApt;
+                  setSelectedApt(null);
+                  callApartment(apt, true);
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all"
+              >
+                <Video className="w-4 h-4" />
+                <span>Llamar con Video y Voz</span>
+                <span className="text-[9px] bg-slate-950/25 px-1.5 py-0.5 rounded font-bold ml-1">Recomendado</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const apt = selectedApt;
+                  setSelectedApt(null);
+                  callApartment(apt, false);
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-slate-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+              >
+                <Phone className="w-3.5 h-3.5 text-slate-400" />
+                <span>Llamar solo con Voz</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedApt(null)}
+                className="w-full py-2 text-slate-500 hover:text-slate-400 font-semibold text-xs transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

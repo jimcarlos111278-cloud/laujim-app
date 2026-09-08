@@ -125,9 +125,9 @@ export async function startIntercomCall(callId, role, optionsOrCallback = {}) {
           },
           video: {
             facingMode: 'user',
-            width: { ideal: 480, max: 640 },
-            height: { ideal: 360, max: 480 },
-            frameRate: { ideal: 15, max: 20 },
+            width: { ideal: 640, max: 1280 },
+            height: { ideal: 480, max: 720 },
+            frameRate: { ideal: 25, max: 30 },
           },
         });
       } catch (videoErr) {
