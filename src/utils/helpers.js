@@ -145,3 +145,27 @@ export function formatRelativeDueDate(paymentDay) {
   }
   return `Vence el ${target.toLocaleString('es-CO', { day: 'numeric', month: 'long' })}`;
 }
+
+export function openEzvizApp() {
+  try {
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+    const isAndroid = /android/i.test(userAgent);
+    const isIOS = /iphone|ipad|ipod/i.test(userAgent);
+
+    if (isAndroid) {
+      // Android Chrome Intent: Lanza com.ezviz directamente y si no está instalada abre Google Play Store
+      window.location.href = 'intent://#Intent;package=com.ezviz;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.ezviz;end;';
+    } else if (isIOS) {
+      window.location.href = 'ezviz://';
+      setTimeout(() => {
+        window.location.href = 'https://apps.apple.com/app/ezviz/id886948564';
+      }, 2000);
+    } else {
+      // Escritorio / PC
+      window.open('https://play.google.com/store/apps/details?id=com.ezviz', '_blank');
+    }
+  } catch (err) {
+    console.warn('[EzvizLauncher] Error:', err.message);
+    window.open('https://play.google.com/store/apps/details?id=com.ezviz', '_blank');
+  }
+}

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Phone, DoorOpen, X, Camera, Loader2, Mic, MicOff, Volume2, Video, RefreshCw, Radio, ExternalLink, Play, Plus } from 'lucide-react';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { startIntercomCall } from '../utils/intercomAudio';
+import { openEzvizApp } from '../utils/helpers';
 
 async function intercomRequest(route, options = {}) {
   const response = await fetch(getBase() + route, {
@@ -330,16 +331,15 @@ export default function IntercomCallModal({ call, onClose, onAction }) {
             </button>
 
             {/* Direct button to open Ezviz native app speaker */}
-            <a
-              href="ezviz://"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+            <button
+              onClick={openEzvizApp}
+              type="button"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 active:scale-95 transition-all"
               title="Hablar por el altavoz exterior de la cámara física Ezviz"
             >
               <Radio className="h-4 w-4 text-indigo-600" />
               <span>Altavoz Ezviz</span>
-            </a>
+            </button>
           </div>
 
           {/* Main Actions: Ignore & Unlock */}

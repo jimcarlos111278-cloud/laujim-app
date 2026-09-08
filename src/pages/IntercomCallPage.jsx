@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Camera, DoorOpen, Clock3, CheckCircle2, XCircle, Loader2, RefreshCw, Mic, MicOff, Volume2, Video, Plus, Play, Radio } from 'lucide-react';
 import { startIntercomCall } from '../utils/intercomAudio';
+import { openEzvizApp } from '../utils/helpers';
 
 const API_BASE = window.location.origin;
 
@@ -374,16 +375,15 @@ export default function IntercomCallPage() {
               <span>{isMuted ? 'Micrófono silenciado' : 'Hablar con visitante'}</span>
             </button>
 
-            <a
-              href="ezviz://"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+            <button
+              onClick={openEzvizApp}
+              type="button"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 active:scale-95 transition-all"
               title="Abrir altavoz exterior de la cámara física Ezviz"
             >
               <Radio className="h-4 w-4 text-indigo-600" />
               <span>Altavoz Ezviz</span>
-            </a>
+            </button>
           </div>
 
           {/* Unlock Gate Button */}

@@ -8,7 +8,7 @@ import {
 import QRCode from 'qrcode';
 import { clearAuth, isTenant } from '../utils/auth';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
-import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod } from '../utils/helpers';
+import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp } from '../utils/helpers';
 import IntercomCallModal from '../components/IntercomCallModal';
 
 const PROVIDERS = {
@@ -383,18 +383,13 @@ export default function MiApto() {
               Actualizar foto
             </button>
 
-            <a
-              href="ezviz://"
-              onClick={() => {
-                setTimeout(() => {
-                  window.open('https://play.google.com/store/apps/details?id=com.ezviz', '_blank');
-                }, 1500);
-              }}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition"
+            <button
+              onClick={openEzvizApp}
+              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20 active:scale-95 transition"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               Ver en App Ezviz (3K y Grabaciones)
-            </a>
+            </button>
           </div>
 
           {/* Banner Híbrido: Videoportero Web vs App Ezviz */}
