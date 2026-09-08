@@ -5747,11 +5747,11 @@ let ezvizTokenCache = { token: '', expireTime: 0, areaDomain: 'https://open.ezvi
 let ezvizSessionCache = {
   sessionId: '',
   rfSessionId: '',
-  apiDomain: 'apiius.ezvizlife.com',
+  apiDomain: 'apiisa.ezvizlife.com',
   expiresAt: 0,
 };
 
-async function getEzvizConsumerSession(maxRedirects = 2) {
+async function getEzvizConsumerSession(maxRedirects = 3) {
   const username = String(process.env.EZVIZ_ACCOUNT_USERNAME || process.env.EZVIZ_USERNAME || '').trim();
   const rawPassword = String(process.env.EZVIZ_ACCOUNT_PASSWORD || process.env.EZVIZ_PASSWORD || '').trim();
   if (!username || !rawPassword) return null;
@@ -5761,7 +5761,7 @@ async function getEzvizConsumerSession(maxRedirects = 2) {
   }
 
   const passwordHash = crypto.createHash('md5').update(rawPassword).digest('hex');
-  let currentDomain = ezvizSessionCache.apiDomain || 'apiius.ezvizlife.com';
+  let currentDomain = ezvizSessionCache.apiDomain || 'apiisa.ezvizlife.com';
 
   for (let attempt = 0; attempt <= maxRedirects; attempt++) {
     const loginUrl = `https://${currentDomain}/v3/users/login/v5`;
@@ -5816,6 +5816,35 @@ async function getEzvizConsumerSession(maxRedirects = 2) {
   return null;
 }
 
+function findFirstImageUrl(obj) {
+  if (!obj) return null;
+  if (typeof obj === 'string') {
+    for (const part of obj.split(';')) {
+      const text = part.trim();
+      if (/^https?:\/\//i.test(text)) return text;
+    }
+    return null;
+  }
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findFirstImageUrl(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof obj === 'object') {
+    for (const key of ['picUrl', 'picURL', 'imageUrl', 'imageURL', 'captureUrl', 'coverPic', 'pic', 'pics', 'image', 'url']) {
+      const val = obj[key];
+      if (typeof val === 'string' && /^https?:\/\//i.test(val)) return val.split(';')[0].trim();
+    }
+    for (const val of Object.values(obj)) {
+      const found = findFirstImageUrl(val);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 async function captureFromEzvizConsumerAccount(serial) {
   const session = await getEzvizConsumerSession();
   if (!session) return null;
@@ -5832,7 +5861,7 @@ async function captureFromEzvizConsumerAccount(serial) {
     const data = await res.json().catch(() => ({}));
     if (data?.meta?.code === 200 && Array.isArray(data.deviceInfos)) {
       const targetDevice = data.deviceInfos.find(d => String(d.deviceSerial || '').toUpperCase() === serial.toUpperCase()) || data.deviceInfos[0];
-      const picUrl = targetDevice?.picUrl || targetDevice?.coverPic || targetDevice?.cameraInfo?.picUrl || targetDevice?.snapshotUrl;
+      const picUrl = findFirstImageUrl(targetDevice);
       if (picUrl && /^https?:\/\//i.test(picUrl)) {
         const imgRes = await fetch(picUrl, { signal: AbortSignal.timeout(10000) });
         if (imgRes.ok) {
@@ -5842,6 +5871,7 @@ async function captureFromEzvizConsumerAccount(serial) {
             ts: new Date().toISOString(),
             contentType: imgRes.headers.get('content-type') || 'image/jpeg',
           };
+          console.log('[EZVIZ] Foto capturada con éxito desde cuenta Ezviz. Tamaño:', buffer.length, 'bytes');
           return { picUrl, buffer };
         }
       }
@@ -6312,7 +6342,7 @@ app.get('/api/intercom/public/debug', async (req, res) => {
   }
 
   const passwordHash = crypto.createHash('md5').update(rawPassword).digest('hex');
-  const domainsToTry = [ezvizSessionCache.apiDomain, 'apiius.ezvizlife.com', 'apiieu.ezvizlife.com'].filter(Boolean);
+  const domainsToTry = ['apiisa.ezvizlife.com', ezvizSessionCache.apiDomain, 'apiius.ezvizlife.com', 'apiieu.ezvizlife.com'].filter(Boolean);
   const attempts = [];
 
   for (const domain of domainsToTry) {
