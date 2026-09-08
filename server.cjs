@@ -5849,36 +5849,69 @@ async function captureFromEzvizConsumerAccount(serial) {
   const session = await getEzvizConsumerSession();
   if (!session) return null;
 
-  const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
+  const headers = {
+    'sessionId': session.sessionId,
+    'clientType': '1',
+  };
+
+  let candidatePicUrl = null;
+
+  // 1. Intentar desde pagelist
   try {
-    const res = await fetch(pagelistUrl, {
-      headers: {
-        'sessionId': session.sessionId,
-        'clientType': '1',
-      },
-      signal: AbortSignal.timeout(12000),
-    });
+    const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
+    const res = await fetch(pagelistUrl, { headers, signal: AbortSignal.timeout(10000) });
     const data = await res.json().catch(() => ({}));
     if (data?.meta?.code === 200 && Array.isArray(data.deviceInfos)) {
-      const targetDevice = data.deviceInfos.find(d => String(d.deviceSerial || '').toUpperCase() === serial.toUpperCase()) || data.deviceInfos[0];
-      const picUrl = findFirstImageUrl(targetDevice);
-      if (picUrl && /^https?:\/\//i.test(picUrl)) {
-        const imgRes = await fetch(picUrl, { signal: AbortSignal.timeout(10000) });
-        if (imgRes.ok) {
-          const buffer = Buffer.from(await imgRes.arrayBuffer());
-          latestGateSnapshot = {
-            data: buffer,
-            ts: new Date().toISOString(),
-            contentType: imgRes.headers.get('content-type') || 'image/jpeg',
-          };
-          console.log('[EZVIZ] Foto capturada con éxito desde cuenta Ezviz. Tamaño:', buffer.length, 'bytes');
-          return { picUrl, buffer };
-        }
-      }
+      const target = data.deviceInfos.find(d => String(d.deviceSerial || '').toUpperCase() === serial.toUpperCase()) || data.deviceInfos[0];
+      candidatePicUrl = findFirstImageUrl(target);
     }
   } catch (err) {
-    console.warn('[EZVIZ] Error al consultar pagelist:', err.message);
+    console.warn('[EZVIZ] pagelist error:', err.message);
   }
+
+  // 2. Si no hay en pagelist, buscar en alarmas recientes
+  if (!candidatePicUrl) {
+    try {
+      const alarmUrl = `https://${session.apiDomain}/v3/alarms/v2/advanced?deviceSerials=${encodeURIComponent(serial)}&limit=5&queryType=-1&stype=-1`;
+      const res = await fetch(alarmUrl, { headers, signal: AbortSignal.timeout(10000) });
+      const data = await res.json().catch(() => ({}));
+      candidatePicUrl = findFirstImageUrl(data);
+    } catch (err) {
+      console.warn('[EZVIZ] alarm api error:', err.message);
+    }
+  }
+
+  // 3. Si no hay, buscar en mensajes unificados (detecciones / timbres)
+  if (!candidatePicUrl) {
+    try {
+      const msgUrl = `https://${session.apiDomain}/v3/unifiedmsg/list?deviceSerials=${encodeURIComponent(serial)}&limit=5`;
+      const res = await fetch(msgUrl, { headers, signal: AbortSignal.timeout(10000) });
+      const data = await res.json().catch(() => ({}));
+      candidatePicUrl = findFirstImageUrl(data);
+    } catch (err) {
+      console.warn('[EZVIZ] unifiedmsg error:', err.message);
+    }
+  }
+
+  // 4. Si encontramos URL de imagen, descargarla
+  if (candidatePicUrl && /^https?:\/\//i.test(candidatePicUrl)) {
+    try {
+      const imgRes = await fetch(candidatePicUrl, { signal: AbortSignal.timeout(10000) });
+      if (imgRes.ok) {
+        const buffer = Buffer.from(await imgRes.arrayBuffer());
+        latestGateSnapshot = {
+          data: buffer,
+          ts: new Date().toISOString(),
+          contentType: imgRes.headers.get('content-type') || 'image/jpeg',
+        };
+        console.log('[EZVIZ] Foto capturada con éxito desde cuenta Ezviz. Tamaño:', buffer.length, 'bytes');
+        return { picUrl: candidatePicUrl, buffer };
+      }
+    } catch (err) {
+      console.warn('[EZVIZ] Error al descargar imagen:', err.message);
+    }
+  }
+
   return null;
 }
 
@@ -6371,22 +6404,48 @@ app.get('/api/intercom/public/debug', async (req, res) => {
       attempts.push({ domain, status: resp.status, meta: data?.meta, hasSession: Boolean(data?.loginSession?.sessionId), loginArea: data?.loginArea });
       if (data?.meta?.code === 200 && data.loginSession?.sessionId) {
         let deviceFound = null;
+        let alarmSample = null;
+        let msgSample = null;
+        const authHeaders = { 'sessionId': data.loginSession.sessionId, 'clientType': '1' };
+
         try {
           const pagelistUrl = `https://${data.loginArea?.apiDomain || domain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
-          const devResp = await fetch(pagelistUrl, {
-            headers: { 'sessionId': data.loginSession.sessionId, 'clientType': '1' },
-            signal: AbortSignal.timeout(10000),
-          });
+          const devResp = await fetch(pagelistUrl, { headers: authHeaders, signal: AbortSignal.timeout(10000) });
           const devData = await devResp.json().catch(() => ({}));
           const devices = Array.isArray(devData.deviceInfos) ? devData.deviceInfos : [];
           deviceFound = devices.map(d => ({
             name: d.name,
             serial: d.deviceSerial,
             status: d.status,
-            picUrl: d.picUrl || d.coverPic || null,
+            firstImageFound: findFirstImageUrl(d),
+            keys: Object.keys(d),
           }));
         } catch (e) {
           deviceFound = { error: e.message };
+        }
+
+        try {
+          const alarmUrl = `https://${data.loginArea?.apiDomain || domain}/v3/alarms/v2/advanced?deviceSerials=${encodeURIComponent(serial)}&limit=3&queryType=-1&stype=-1`;
+          const alResp = await fetch(alarmUrl, { headers: authHeaders, signal: AbortSignal.timeout(10000) });
+          const alData = await alResp.json().catch(() => ({}));
+          alarmSample = {
+            count: Array.isArray(alData.alarmInfo) ? alData.alarmInfo.length : 0,
+            firstImage: findFirstImageUrl(alData),
+          };
+        } catch (e) {
+          alarmSample = { error: e.message };
+        }
+
+        try {
+          const msgUrl = `https://${data.loginArea?.apiDomain || domain}/v3/unifiedmsg/list?deviceSerials=${encodeURIComponent(serial)}&limit=3`;
+          const msgResp = await fetch(msgUrl, { headers: authHeaders, signal: AbortSignal.timeout(10000) });
+          const msgData = await msgResp.json().catch(() => ({}));
+          msgSample = {
+            count: Array.isArray(msgData.message) ? msgData.message.length : 0,
+            firstImage: findFirstImageUrl(msgData),
+          };
+        } catch (e) {
+          msgSample = { error: e.message };
         }
 
         return res.json({
@@ -6399,6 +6458,8 @@ app.get('/api/intercom/public/debug', async (req, res) => {
             apiDomain: data.loginArea?.apiDomain,
           },
           devices: deviceFound,
+          alarmSample,
+          msgSample,
         });
       }
     } catch (err) {
