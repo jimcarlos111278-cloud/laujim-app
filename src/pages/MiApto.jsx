@@ -105,16 +105,41 @@ export default function MiApto() {
   const [actionMessage, setActionMessage] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [cameraLive, setCameraLive] = useState(true);
-  const [cameraKey, setCameraKey] = useState(Date.now());
+  const [cameraImageSrc, setCameraImageSrc] = useState(`${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`);
+  const [cameraCountdown, setCameraCountdown] = useState(60); // 60s auto-pause to protect Render bandwidth
   const [cameraError, setCameraError] = useState(false);
 
+  // Preload next image silently in background to eliminate flickering (cero parpadeo)
   useEffect(() => {
     if (!cameraLive) return;
-    const timer = setInterval(() => {
-      setCameraKey(Date.now());
-    }, 2500);
-    return () => clearInterval(timer);
+    const interval = setInterval(() => {
+      setCameraCountdown(prev => {
+        if (prev <= 2) {
+          setCameraLive(false);
+          return 0;
+        }
+        return prev - 2;
+      });
+
+      const nextUrl = `${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`;
+      const img = new Image();
+      img.onload = () => {
+        setCameraImageSrc(nextUrl);
+        setCameraError(false);
+      };
+      img.src = nextUrl;
+    }, 2000);
+
+    return () => clearInterval(interval);
   }, [cameraLive]);
+
+  function toggleCameraLive() {
+    setCameraLive(prev => {
+      const next = !prev;
+      if (next) setCameraCountdown(60);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!isTenant()) { navigate('/login', { replace: true }); return; }
@@ -277,22 +302,21 @@ export default function MiApto() {
               </div>
             </div>
             <button
-              onClick={() => setCameraLive(prev => !prev)}
+              onClick={toggleCameraLive}
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
                 cameraLive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
               }`}
             >
               <span className={`h-2 w-2 rounded-full ${cameraLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {cameraLive ? 'EN VIVO' : 'PAUSADO'}
+              {cameraLive ? `EN VIVO (${cameraCountdown}s)` : 'PAUSADO (Toca para ver)'}
             </button>
           </div>
 
           <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-inner">
             <img
-              key={cameraKey}
-              src={`${getRawBase()}/api/intercom/public/feed?t=${cameraKey}`}
+              src={cameraImageSrc}
               alt="Cámara del portón"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-opacity duration-300"
               onError={() => setCameraError(true)}
               onLoad={() => setCameraError(false)}
             />
@@ -303,7 +327,8 @@ export default function MiApto() {
                 <button
                   onClick={() => {
                     setCameraError(false);
-                    setCameraKey(Date.now());
+                    const nextUrl = `${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`;
+                    setCameraImageSrc(nextUrl);
                     fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
                   }}
                   className="mt-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold"
@@ -318,8 +343,11 @@ export default function MiApto() {
             </div>
             <button
               onClick={() => {
-                setCameraKey(Date.now());
                 fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
+                const nextUrl = `${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`;
+                const img = new Image();
+                img.onload = () => setCameraImageSrc(nextUrl);
+                img.src = nextUrl;
               }}
               title="Refrescar foto ahora"
               className="absolute bottom-2 right-2 rounded-lg bg-black/60 p-1.5 text-white hover:bg-black/80 backdrop-blur transition"
@@ -331,8 +359,11 @@ export default function MiApto() {
           <div className="mt-3 flex items-center justify-between gap-2">
             <button
               onClick={() => {
-                setCameraKey(Date.now());
                 fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
+                const nextUrl = `${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`;
+                const img = new Image();
+                img.onload = () => setCameraImageSrc(nextUrl);
+                img.src = nextUrl;
               }}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
             >
