@@ -6076,6 +6076,7 @@ function appendIntercomCall(input = {}) {
     apartmentId: Number(input.apartmentId) || null,
     apartmentName: String(input.apartmentName || '').slice(0, 10),
     status: 'ringing',
+    token: crypto.randomBytes(16).toString('hex'),
     startedAt: new Date().toISOString(),
     answeredAt: null,
     openedAt: null,
@@ -6139,7 +6140,7 @@ app.post('/api/intercom/webhook', (req, res) => {
   // Try to notify tenant via WhatsApp
   const tenant = resolveTenantForApartment(apartment.id);
   if (tenant?.phone && cloudReady()) {
-    const callUrl = `${PUBLIC_APP_URL}/intercom/call/${call.id}`;
+    const callUrl = `${PUBLIC_APP_URL}/intercom/call/${call.id}?token=${call.token}`;
     const body = `🔔 Alguien está en el portón del edificio y quiere comunicarse con el apartamento ${apartment.name}.`;
     sendCloudAdminAccessButton(tenant.phone, body + `\n\nAbre este enlace para ver y responder:\n${callUrl}`)
       .catch(e => console.warn('[INTERCOM] WhatsApp notification failed:', e.message));
@@ -6212,19 +6213,7 @@ app.get('/api/intercom/calls', (req, res) => {
   res.json(calls.slice(0, limit));
 });
 
-// POST /api/intercom/unlock — open the gate
-app.post('/api/intercom/unlock', async (req, res) => {
-  const { callId } = req.body || {};
-  const call = (db.intercomCalls || []).find(c => c.id === Number(callId));
-  if (!call) return res.status(404).json({ error: 'Llamada no encontrada.' });
-  // Check authorization: tenant of the apartment or admin
-  const isAdmin = req.auth?.role === 'admin';
-  const isTenantOfApt = req.auth?.role === 'tenant' && Number(req.auth.apartmentId) === Number(call.apartmentId);
-  if (!isAdmin && !isTenantOfApt) return res.status(403).json({ error: 'No autorizado para esta llamada.' });
-  // Rate limit
-  const actorKey = `intercom:${req.auth.role}:${req.auth.apartmentId || 'admin'}:${call.id}`;
-  if (!accessRateAllowed(actorKey)) return res.status(429).json({ error: 'Espera unos segundos.' });
-  // Try Shelly Cloud API if configured
+async function executeIntercomUnlock(call, actorRole, actorId) {
   const shellyDeviceId = String(process.env.SHELLY_DEVICE_ID || '').trim();
   const shellyAuthKey = String(process.env.SHELLY_AUTH_KEY || '').trim();
   const shellyServer = String(process.env.SHELLY_SERVER || 'shelly-103-eu.shelly.cloud').trim();
@@ -6247,12 +6236,11 @@ app.post('/api/intercom/unlock', async (req, res) => {
       unlockMessage = `Error al contactar Shelly: ${e.message}`;
     }
   } else if (edgeGatewayReady()) {
-    // Fallback to edge gateway if configured
     try {
       const door = doorDefinitions()[0];
       if (door) {
         const payload = await edgeGatewayRequest(`/v1/doors/${encodeURIComponent(door.gatewayId)}/unlock`, {
-          requestId: crypto.randomUUID(), role: req.auth.role, actor: req.auth.name || 'Intercom', pulseMs: 1200,
+          requestId: crypto.randomUUID(), role: actorRole, actor: actorId, pulseMs: 1200,
         });
         unlockMessage = payload.message || 'Apertura confirmada por la pasarela.';
       }
@@ -6260,23 +6248,62 @@ app.post('/api/intercom/unlock', async (req, res) => {
       unlockMessage = `Error pasarela: ${e.message}`;
     }
   }
-  // Update call
+
   call.status = 'opened';
   call.openedAt = new Date().toISOString();
   call.answeredAt = call.answeredAt || call.openedAt;
   call.endedAt = call.openedAt;
-  call.meta.openedBy = req.auth.role === 'admin' ? 'admin' : `tenant:${req.auth.apartmentId}`;
+  call.meta.openedBy = `${actorRole}:${actorId}`;
   saveData();
-  // Log access event
+
   appendAccessEvent({
     requestId: crypto.randomUUID(),
-    actorRole: req.auth.role,
-    actorId: req.auth.name || req.auth.tenantId || 'intercom',
+    actorRole,
+    actorId,
     apartmentId: call.apartmentId,
     doorId: 'intercom-gate',
     status: 'opened',
     message: `Intercom call #${call.id}: ${unlockMessage}`,
   });
+
+  return unlockMessage;
+}
+
+// POST /api/intercom/unlock — open the gate (Tenant in app / Admin)
+app.post('/api/intercom/unlock', async (req, res) => {
+  const { callId } = req.body || {};
+  const call = (db.intercomCalls || []).find(c => c.id === Number(callId));
+  if (!call) return res.status(404).json({ error: 'Llamada no encontrada.' });
+  const isAdmin = req.auth?.role === 'admin';
+  const isTenantOfApt = req.auth?.role === 'tenant' && Number(req.auth.apartmentId) === Number(call.apartmentId);
+  if (!isAdmin && !isTenantOfApt) return res.status(403).json({ error: 'No autorizado para esta llamada.' });
+  const actorKey = `intercom:${req.auth.role}:${req.auth.apartmentId || 'admin'}:${call.id}`;
+  if (!accessRateAllowed(actorKey)) return res.status(429).json({ error: 'Espera unos segundos.' });
+
+  const actorRole = req.auth.role === 'admin' ? 'admin' : 'tenant';
+  const actorId = req.auth.name || `tenant:${req.auth.apartmentId}`;
+  const unlockMessage = await executeIntercomUnlock(call, actorRole, actorId);
+  res.json({ ok: true, call, message: unlockMessage });
+});
+
+// POST /api/intercom/public/call/:id/unlock — open gate via WhatsApp link (authenticated by call token)
+app.post('/api/intercom/public/call/:id/unlock', async (req, res) => {
+  const callId = Number(req.params.id);
+  const { token } = req.body || {};
+  const call = (db.intercomCalls || []).find(c => c.id === callId);
+  if (!call) return res.status(404).json({ error: 'Llamada no encontrada.' });
+
+  const isTokenValid = Boolean(token && call.token && String(token).trim() === String(call.token).trim());
+  const isAdmin = req.auth?.role === 'admin';
+  const isTenantOfApt = req.auth?.role === 'tenant' && Number(req.auth.apartmentId) === Number(call.apartmentId);
+
+  if (!isTokenValid && !isAdmin && !isTenantOfApt) {
+    return res.status(403).json({ error: 'Token o permiso inválido para abrir la puerta.' });
+  }
+
+  const actorRole = req.auth?.role || 'whatsapp_tenant';
+  const actorId = req.auth?.name || `apt:${call.apartmentName}`;
+  const unlockMessage = await executeIntercomUnlock(call, actorRole, actorId);
   res.json({ ok: true, call, message: unlockMessage });
 });
 
@@ -6312,7 +6339,7 @@ app.post('/api/intercom/public/call', async (req, res) => {
   // Rate limit per apartment: reuse existing ringing call
   expireOldIntercomCalls();
   const existing = (db.intercomCalls || []).find(c => c.status === 'ringing' && Number(c.apartmentId) === Number(apartment.id));
-  if (existing) return res.json({ ok: true, callId: existing.id, message: 'Llamando...' });
+  if (existing) return res.json({ ok: true, callId: existing.id, token: existing.token, message: 'Llamando...' });
 
   // Auto-capture live photo from Ezviz Cloud if configured (0 local hardware)
   if ((process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD) || (process.env.EZVIZ_APP_KEY && process.env.EZVIZ_APP_SECRET)) {
@@ -6332,13 +6359,13 @@ app.post('/api/intercom/public/call', async (req, res) => {
   // Notify tenant
   const tenant = resolveTenantForApartment(apartment.id);
   if (tenant?.phone && cloudReady()) {
-    const callUrl = `${PUBLIC_APP_URL}/intercom/call/${call.id}`;
+    const callUrl = `${PUBLIC_APP_URL}/intercom/call/${call.id}?token=${call.token}`;
     sendCloudAdminAccessButton(tenant.phone,
-      `🔔 Alguien está en el portón del edificio para el apartamento ${apartment.name}.\n\nAbre este enlace para ver quién es:\n${callUrl}`
+      `🔔 Alguien está en el portón del edificio para el apartamento ${apartment.name}.\n\nAbre este enlace para ver y responder:\n${callUrl}`
     ).catch(e => console.warn('[INTERCOM] WhatsApp notification failed:', e.message));
   }
   console.log(`[INTERCOM] Public call ${call.id} for apt ${apartment.name}`);
-  res.json({ ok: true, callId: call.id, message: 'Llamando al apartamento ' + apartment.name + '...' });
+  res.json({ ok: true, callId: call.id, token: call.token, message: 'Llamando al apartamento ' + apartment.name + '...' });
 });
 
 // GET /api/intercom/public/call/:id — get call info for the WhatsApp link page
@@ -6350,6 +6377,7 @@ app.get('/api/intercom/public/call/:id', (req, res) => {
     id: call.id,
     apartmentName: call.apartmentName,
     status: call.status,
+    token: call.token,
     startedAt: call.startedAt,
     snapshotUrl: call.snapshotUrl || null,
     feedAvailable: Boolean(latestGateSnapshot.data),
@@ -6358,7 +6386,12 @@ app.get('/api/intercom/public/call/:id', (req, res) => {
 });
 
 // GET /api/intercom/public/feed — latest gate snapshot (no auth, for call page)
-app.get('/api/intercom/public/feed', (req, res) => {
+app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) => {
+  if (req.query.refresh === '1' && Date.now() - new Date(latestGateSnapshot.ts || 0).getTime() > 2500) {
+    try {
+      await captureEzvizCloudSnapshot();
+    } catch {}
+  }
   if (!latestGateSnapshot.data) return res.status(404).json({ error: 'No hay imagen.' });
   res.setHeader('Content-Type', latestGateSnapshot.contentType);
   res.setHeader('Cache-Control', 'no-cache, no-store');
@@ -6552,6 +6585,65 @@ app.get('/api/ezviz/test', async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// ─── WEBRTC AUDIO SIGNALING (INTERCOMUNICADOR BIDIRECCIONAL) ───
+const intercomSignals = new Map();
+
+// POST /api/intercom/public/call/:id/signal — enviar oferta, respuesta, candidato ICE o acción
+app.post(['/api/intercom/public/call/:id/signal', '/api/intercom/call/:id/signal'], (req, res) => {
+  const callId = Number(req.params.id);
+  const { role, sdp, candidate, action } = req.body || {};
+  if (!callId || !['visitor', 'tenant'].includes(role)) {
+    return res.status(400).json({ error: 'callId y role (visitor/tenant) requeridos' });
+  }
+
+  if (!intercomSignals.has(callId)) {
+    intercomSignals.set(callId, {
+      visitor: { sdp: null, candidates: [], action: null },
+      tenant: { sdp: null, candidates: [], action: null },
+      updatedAt: Date.now(),
+    });
+  }
+
+  const sig = intercomSignals.get(callId);
+  sig.updatedAt = Date.now();
+
+  if (action) sig[role].action = action;
+  if (sdp) sig[role].sdp = sdp;
+  if (candidate) sig[role].candidates.push(candidate);
+
+  // Limpiar llamadas de señalización viejas (> 15 min)
+  if (intercomSignals.size > 100) {
+    const cutoff = Date.now() - 900_000;
+    for (const [k, v] of intercomSignals.entries()) {
+      if (v.updatedAt < cutoff) intercomSignals.delete(k);
+    }
+  }
+
+  res.json({ ok: true });
+});
+
+// GET /api/intercom/public/call/:id/signal — consultar señalización de la otra parte
+app.get(['/api/intercom/public/call/:id/signal', '/api/intercom/call/:id/signal'], (req, res) => {
+  const callId = Number(req.params.id);
+  const role = String(req.query.role || '').trim();
+  if (!callId || !['visitor', 'tenant'].includes(role)) {
+    return res.status(400).json({ error: 'callId y role requeridos' });
+  }
+
+  const peerRole = role === 'visitor' ? 'tenant' : 'visitor';
+  const sig = intercomSignals.get(callId);
+
+  if (!sig || !sig[peerRole]) {
+    return res.json({ sdp: null, candidates: [], action: null });
+  }
+
+  res.json({
+    sdp: sig[peerRole].sdp,
+    candidates: sig[peerRole].candidates,
+    action: sig[peerRole].action || null,
+  });
 });
 
 app.get(['/reportes/servicios', '/reporte-servicios'], (req, res) => {
