@@ -6283,6 +6283,107 @@ app.get('/api/intercom/public/feed', (req, res) => {
   res.send(latestGateSnapshot.data);
 });
 
+// GET /api/intercom/public/debug — diagnostico completo de conexión con Ezviz
+app.get('/api/intercom/public/debug', async (req, res) => {
+  const username = String(process.env.EZVIZ_ACCOUNT_USERNAME || process.env.EZVIZ_USERNAME || '').trim();
+  const rawPassword = String(process.env.EZVIZ_ACCOUNT_PASSWORD || process.env.EZVIZ_PASSWORD || '').trim();
+  const serial = String(process.env.EZVIZ_DEVICE_SERIAL || '').trim();
+
+  const envCheck = {
+    hasUsername: Boolean(username),
+    usernameLength: username.length,
+    usernameMasked: username ? `${username.slice(0, 3)}***` : null,
+    hasPassword: Boolean(rawPassword),
+    passwordLength: rawPassword.length,
+    hasSerial: Boolean(serial),
+    serial: serial || null,
+    hasLatestSnapshot: Boolean(latestGateSnapshot.data),
+    snapshotSize: latestGateSnapshot.data ? latestGateSnapshot.data.length : 0,
+    snapshotTs: latestGateSnapshot.ts,
+  };
+
+  if (!username || !rawPassword) {
+    return res.json({
+      ok: false,
+      step: 'env_missing',
+      message: 'Faltan variables en Render: EZVIZ_ACCOUNT_USERNAME o EZVIZ_ACCOUNT_PASSWORD',
+      env: envCheck,
+    });
+  }
+
+  const passwordHash = crypto.createHash('md5').update(rawPassword).digest('hex');
+  const domainsToTry = [ezvizSessionCache.apiDomain, 'apiius.ezvizlife.com', 'apiieu.ezvizlife.com'].filter(Boolean);
+  const attempts = [];
+
+  for (const domain of domainsToTry) {
+    const loginUrl = `https://${domain}/v3/users/login/v5`;
+    const payload = new URLSearchParams({
+      account: username,
+      password: passwordHash,
+      featureCode: 'e3f0e8f8a1a3b5c7d9e1f3a5b7c9d1e3',
+      msgType: '0',
+      bizType: '',
+      cuName: 'TGF1amlt',
+    }).toString();
+
+    try {
+      const resp = await fetch(loginUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'clientType': '1',
+          'featureCode': 'e3f0e8f8a1a3b5c7d9e1f3a5b7c9d1e3',
+        },
+        body: payload,
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await resp.json().catch(() => ({}));
+      attempts.push({ domain, status: resp.status, meta: data?.meta, hasSession: Boolean(data?.loginSession?.sessionId), loginArea: data?.loginArea });
+      if (data?.meta?.code === 200 && data.loginSession?.sessionId) {
+        let deviceFound = null;
+        try {
+          const pagelistUrl = `https://${data.loginArea?.apiDomain || domain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
+          const devResp = await fetch(pagelistUrl, {
+            headers: { 'sessionId': data.loginSession.sessionId, 'clientType': '1' },
+            signal: AbortSignal.timeout(10000),
+          });
+          const devData = await devResp.json().catch(() => ({}));
+          const devices = Array.isArray(devData.deviceInfos) ? devData.deviceInfos : [];
+          deviceFound = devices.map(d => ({
+            name: d.name,
+            serial: d.deviceSerial,
+            status: d.status,
+            picUrl: d.picUrl || d.coverPic || null,
+          }));
+        } catch (e) {
+          deviceFound = { error: e.message };
+        }
+
+        return res.json({
+          ok: true,
+          step: 'login_success',
+          domain,
+          env: envCheck,
+          session: {
+            username: data.loginUser?.username,
+            apiDomain: data.loginArea?.apiDomain,
+          },
+          devices: deviceFound,
+        });
+      }
+    } catch (err) {
+      attempts.push({ domain, error: err.message });
+    }
+  }
+
+  res.json({
+    ok: false,
+    step: 'login_failed',
+    env: envCheck,
+    attempts,
+  });
+});
+
 // GET /api/intercom/public/live-stream/:id — live stream URL from Ezviz Cloud (HLS / WebRTC)
 app.get(['/api/intercom/public/live-stream/:id', '/api/intercom/live-stream'], async (req, res) => {
   try {
