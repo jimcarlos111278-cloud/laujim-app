@@ -5821,7 +5821,7 @@ function findFirstImageUrl(obj) {
   if (typeof obj === 'string') {
     for (const part of obj.split(';')) {
       const text = part.trim();
-      if (/^https?:\/\//i.test(text)) return text;
+      if (/^https?:\/\//i.test(text) && !text.includes('devpic.ezvizlife.com')) return text;
     }
     return null;
   }
@@ -5835,9 +5835,10 @@ function findFirstImageUrl(obj) {
   if (typeof obj === 'object') {
     for (const key of ['picUrl', 'picURL', 'imageUrl', 'imageURL', 'captureUrl', 'coverPic', 'pic', 'pics', 'image', 'url']) {
       const val = obj[key];
-      if (typeof val === 'string' && /^https?:\/\//i.test(val)) return val.split(';')[0].trim();
+      if (typeof val === 'string' && /^https?:\/\//i.test(val) && !val.includes('devpic.ezvizlife.com')) return val.split(';')[0].trim();
     }
-    for (const val of Object.values(obj)) {
+    for (const [k, val] of Object.entries(obj)) {
+      if (k === 'devicePicPrefix' || k === 'instructionBook') continue;
       const found = findFirstImageUrl(val);
       if (found) return found;
     }
@@ -5852,60 +5853,78 @@ async function captureFromEzvizConsumerAccount(serial) {
   const headers = {
     'sessionId': session.sessionId,
     'clientType': '1',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
   };
 
   let candidatePicUrl = null;
 
-  // 1. Intentar desde pagelist
+  // 1. Prioridad 1: Buscar en alarmas recientes (foto real de detección de la cámara)
   try {
-    const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
-    const res = await fetch(pagelistUrl, { headers, signal: AbortSignal.timeout(10000) });
+    const alarmUrl = `https://${session.apiDomain}/v3/alarms/v2/advanced?deviceSerials=${encodeURIComponent(serial)}&limit=5&queryType=-1&stype=-1`;
+    const res = await fetch(alarmUrl, { headers, signal: AbortSignal.timeout(10000) });
     const data = await res.json().catch(() => ({}));
-    if (data?.meta?.code === 200 && Array.isArray(data.deviceInfos)) {
-      const target = data.deviceInfos.find(d => String(d.deviceSerial || '').toUpperCase() === serial.toUpperCase()) || data.deviceInfos[0];
-      candidatePicUrl = findFirstImageUrl(target);
-    }
+    candidatePicUrl = findFirstImageUrl(data);
+    if (candidatePicUrl) console.log('[EZVIZ] Foto encontrada en alarmas:', candidatePicUrl);
   } catch (err) {
-    console.warn('[EZVIZ] pagelist error:', err.message);
+    console.warn('[EZVIZ] alarm api error:', err.message);
   }
 
-  // 2. Si no hay en pagelist, buscar en alarmas recientes
-  if (!candidatePicUrl) {
-    try {
-      const alarmUrl = `https://${session.apiDomain}/v3/alarms/v2/advanced?deviceSerials=${encodeURIComponent(serial)}&limit=5&queryType=-1&stype=-1`;
-      const res = await fetch(alarmUrl, { headers, signal: AbortSignal.timeout(10000) });
-      const data = await res.json().catch(() => ({}));
-      candidatePicUrl = findFirstImageUrl(data);
-    } catch (err) {
-      console.warn('[EZVIZ] alarm api error:', err.message);
-    }
-  }
-
-  // 3. Si no hay, buscar en mensajes unificados (detecciones / timbres)
+  // 2. Si no hay en alarmas, buscar en mensajes unificados (detecciones / timbres)
   if (!candidatePicUrl) {
     try {
       const msgUrl = `https://${session.apiDomain}/v3/unifiedmsg/list?deviceSerials=${encodeURIComponent(serial)}&limit=5`;
       const res = await fetch(msgUrl, { headers, signal: AbortSignal.timeout(10000) });
       const data = await res.json().catch(() => ({}));
       candidatePicUrl = findFirstImageUrl(data);
+      if (candidatePicUrl) console.log('[EZVIZ] Foto encontrada en unifiedmsg:', candidatePicUrl);
     } catch (err) {
       console.warn('[EZVIZ] unifiedmsg error:', err.message);
     }
   }
 
-  // 4. Si encontramos URL de imagen, descargarla
+  // 3. Fallback: pagelist
+  if (!candidatePicUrl) {
+    try {
+      const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
+      const res = await fetch(pagelistUrl, { headers, signal: AbortSignal.timeout(10000) });
+      const data = await res.json().catch(() => ({}));
+      if (data?.meta?.code === 200 && Array.isArray(data.deviceInfos)) {
+        const target = data.deviceInfos.find(d => String(d.deviceSerial || '').toUpperCase() === serial.toUpperCase()) || data.deviceInfos[0];
+        candidatePicUrl = findFirstImageUrl(target);
+      }
+    } catch (err) {
+      console.warn('[EZVIZ] pagelist error:', err.message);
+    }
+  }
+
+  // 4. Descargar los bytes de la imagen
   if (candidatePicUrl && /^https?:\/\//i.test(candidatePicUrl)) {
     try {
-      const imgRes = await fetch(candidatePicUrl, { signal: AbortSignal.timeout(10000) });
-      if (imgRes.ok) {
+      const imgRes = await fetch(candidatePicUrl, { headers, signal: AbortSignal.timeout(12000) });
+      const ct = imgRes.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        const parsed = await imgRes.json().catch(() => ({}));
+        const realUrl = findFirstImageUrl(parsed);
+        if (realUrl && realUrl !== candidatePicUrl) {
+          const secondRes = await fetch(realUrl, { headers, signal: AbortSignal.timeout(10000) });
+          if (secondRes.ok) {
+            const buffer = Buffer.from(await secondRes.arrayBuffer());
+            latestGateSnapshot = { data: buffer, ts: new Date().toISOString(), contentType: secondRes.headers.get('content-type') || 'image/jpeg' };
+            console.log('[EZVIZ] Foto capturada con éxito vía JSON redirect. Tamaño:', buffer.length, 'bytes');
+            return { picUrl: realUrl, buffer };
+          }
+        }
+      } else if (imgRes.ok) {
         const buffer = Buffer.from(await imgRes.arrayBuffer());
-        latestGateSnapshot = {
-          data: buffer,
-          ts: new Date().toISOString(),
-          contentType: imgRes.headers.get('content-type') || 'image/jpeg',
-        };
-        console.log('[EZVIZ] Foto capturada con éxito desde cuenta Ezviz. Tamaño:', buffer.length, 'bytes');
-        return { picUrl: candidatePicUrl, buffer };
+        if (buffer.length > 200) {
+          latestGateSnapshot = {
+            data: buffer,
+            ts: new Date().toISOString(),
+            contentType: ct.includes('image/') ? ct : 'image/jpeg',
+          };
+          console.log('[EZVIZ] Foto capturada con éxito desde cuenta Ezviz. Tamaño:', buffer.length, 'bytes');
+          return { picUrl: candidatePicUrl, buffer };
+        }
       }
     } catch (err) {
       console.warn('[EZVIZ] Error al descargar imagen:', err.message);
