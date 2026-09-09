@@ -5956,6 +5956,34 @@ function findFirstImageUrl(obj) {
   return null;
 }
 
+const HIK_ENCRYPTION_HEADER = Buffer.from('hikencodepicture');
+
+function decryptHikImage(buffer, verificationCode) {
+  if (!buffer || buffer.length < 48 || !verificationCode) return buffer;
+  const idx = buffer.indexOf(HIK_ENCRYPTION_HEADER);
+  if (idx === -1) return buffer;
+  try {
+    const raw = idx > 0 ? buffer.subarray(idx) : buffer;
+    const headerLen = HIK_ENCRYPTION_HEADER.length;
+    const hashEnd = headerLen + 32;
+    const ciphertext = raw.subarray(hashEnd);
+    if (!ciphertext.length) return buffer;
+
+    const remainder = ciphertext.length % 16;
+    const alignedCipher = remainder ? ciphertext.subarray(0, -remainder) : ciphertext;
+
+    const key = Buffer.alloc(16, 0);
+    key.write(verificationCode.slice(0, 16));
+    const iv = Buffer.from([48, 49, 50, 51, 52, 53, 54, 55, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
+    return Buffer.concat([decipher.update(alignedCipher), decipher.final()]);
+  } catch (err) {
+    console.warn('[EZVIZ] Error al descifrar imagen Hik:', err.message);
+    return buffer;
+  }
+}
+
 async function captureFromEzvizConsumerAccount(serial) {
   const session = await getEzvizConsumerSession();
   if (!session) return null;
@@ -5963,82 +5991,114 @@ async function captureFromEzvizConsumerAccount(serial) {
   const headers = {
     'sessionId': session.sessionId,
     'clientType': '1',
+    'featureCode': 'e3f0e8f8a1a3b5c7d9e1f3a5b7c9d1e3',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
   };
 
   let candidatePicUrl = null;
+  let verificationCode = null;
 
-  // 1. Prioridad 1: Buscar en alarmas recientes (foto real de detección de la cámara)
-  try {
-    const alarmUrl = `https://${session.apiDomain}/v3/alarms/v2/advanced?deviceSerials=${encodeURIComponent(serial)}&limit=5&queryType=-1&stype=-1`;
-    const res = await fetch(alarmUrl, { headers, signal: AbortSignal.timeout(10000) });
-    const data = await res.json().catch(() => ({}));
-    candidatePicUrl = findFirstImageUrl(data);
-    if (candidatePicUrl) console.log('[EZVIZ] Foto encontrada en alarmas:', candidatePicUrl);
-  } catch (err) {
-    console.warn('[EZVIZ] alarm api error:', err.message);
-  }
-
-  // 2. Si no hay en alarmas, buscar en mensajes unificados (detecciones / timbres)
-  if (!candidatePicUrl) {
+  // 1. Prioridad 1: Disparar captura en vivo bajo demanda (Instantánea en tiempo real de la cámara)
+  const devconfigEndpoints = [
+    `/v3/devconfig/v1/${encodeURIComponent(serial)}/1/capture`,
+    `/v3/devconfig/v1/${encodeURIComponent(serial)}/capture`,
+  ];
+  for (const ep of devconfigEndpoints) {
     try {
-      const msgUrl = `https://${session.apiDomain}/v3/unifiedmsg/list?deviceSerials=${encodeURIComponent(serial)}&limit=5`;
-      const res = await fetch(msgUrl, { headers, signal: AbortSignal.timeout(10000) });
-      const data = await res.json().catch(() => ({}));
-      candidatePicUrl = findFirstImageUrl(data);
-      if (candidatePicUrl) console.log('[EZVIZ] Foto encontrada en unifiedmsg:', candidatePicUrl);
-    } catch (err) {
-      console.warn('[EZVIZ] unifiedmsg error:', err.message);
-    }
+      const capRes = await fetch(`https://${session.apiDomain}${ep}`, {
+        method: 'PUT',
+        headers,
+        signal: AbortSignal.timeout(6000),
+      });
+      const capData = await capRes.json().catch(() => ({}));
+      candidatePicUrl = findFirstImageUrl(capData);
+      if (candidatePicUrl) {
+        console.log(`[EZVIZ] Instantánea capturada en vivo vía ${ep} para ${serial}:`, candidatePicUrl);
+        break;
+      }
+    } catch {}
   }
 
-  // 3. Fallback: pagelist
+  // 2. Prioridad 2: Buscar en pagelist y sincronizar authCode / foto de cubierta
   if (!candidatePicUrl) {
     try {
       const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
-      const res = await fetch(pagelistUrl, { headers, signal: AbortSignal.timeout(10000) });
+      const res = await fetch(pagelistUrl, { headers, signal: AbortSignal.timeout(8000) });
       const data = await res.json().catch(() => ({}));
       if (data?.meta?.code === 200 && Array.isArray(data.deviceInfos)) {
-        const target = data.deviceInfos.find(d => String(d.deviceSerial || '').toUpperCase() === serial.toUpperCase()) || data.deviceInfos[0];
-        candidatePicUrl = findFirstImageUrl(target);
+        const target = data.deviceInfos.find(d => String(d.deviceSerial || '').toUpperCase() === serial.toUpperCase());
+        if (target) {
+          if (target.authCode) verificationCode = String(target.authCode).trim();
+          candidatePicUrl = findFirstImageUrl(target);
+        }
       }
     } catch (err) {
       console.warn('[EZVIZ] pagelist error:', err.message);
     }
   }
 
-  // 4. Descargar los bytes de la imagen
+  // 3. Prioridad 3: Alarmas, PERO ÚNICAMENTE si la alarma ocurrió hace MENOS DE 90 SEGUNDOS
+  // (Descartamos alarmas viejas para NUNCA congelar la imagen en un evento pasado)
+  if (!candidatePicUrl) {
+    try {
+      const alarmUrl = `https://${session.apiDomain}/v3/alarms/v2/advanced?deviceSerials=${encodeURIComponent(serial)}&limit=3&queryType=-1&stype=-1`;
+      const res = await fetch(alarmUrl, { headers, signal: AbortSignal.timeout(8000) });
+      const data = await res.json().catch(() => ({}));
+      const alarms = Array.isArray(data.alarmInfo) ? data.alarmInfo : [];
+      if (alarms.length > 0) {
+        const newest = alarms[0];
+        const rawTs = Number(newest.alarmStartTime || newest.alarmTime || 0);
+        const alarmEpoch = rawTs > 1e11 ? rawTs : rawTs * 1000;
+        const ageSec = alarmEpoch ? Math.abs((Date.now() - alarmEpoch) / 1000) : 999999;
+        if (ageSec < 90) {
+          candidatePicUrl = findFirstImageUrl(newest);
+          if (candidatePicUrl) console.log(`[EZVIZ] Alarma de movimiento fresca encontrada (${Math.round(ageSec)}s):`, candidatePicUrl);
+        } else {
+          console.log(`[EZVIZ] Descartando alarma de hace ${Math.round(ageSec)}s en ${serial} (solo se aceptan < 90s para garantizar señal en vivo).`);
+        }
+      }
+    } catch (err) {
+      console.warn('[EZVIZ] alarm api error:', err.message);
+    }
+  }
+
+  // 4. Descargar y procesar los bytes de la imagen en vivo
   if (candidatePicUrl && /^https?:\/\//i.test(candidatePicUrl)) {
     try {
-      const imgRes = await fetch(candidatePicUrl, { headers, signal: AbortSignal.timeout(12000) });
+      const sep = candidatePicUrl.includes('?') ? '&' : '?';
+      const busterUrl = `${candidatePicUrl}${sep}_t=${Date.now()}`;
+      const imgRes = await fetch(busterUrl, { headers, signal: AbortSignal.timeout(12000) });
       const ct = imgRes.headers.get('content-type') || '';
+      let buffer = null;
+
       if (ct.includes('application/json')) {
         const parsed = await imgRes.json().catch(() => ({}));
         const realUrl = findFirstImageUrl(parsed);
         if (realUrl && realUrl !== candidatePicUrl) {
           const secondRes = await fetch(realUrl, { headers, signal: AbortSignal.timeout(10000) });
-          if (secondRes.ok) {
-            const buffer = Buffer.from(await secondRes.arrayBuffer());
-            const snap = { data: buffer, ts: new Date().toISOString(), contentType: secondRes.headers.get('content-type') || 'image/jpeg' };
-            cameraSnapshots[serial] = snap;
-            if (serial === 'BG6994814' || serial === (process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814')) latestGateSnapshot = snap;
-            console.log(`[EZVIZ] Foto capturada con éxito para cámara ${serial}. Tamaño:`, buffer.length, 'bytes');
-            return { picUrl: realUrl, buffer };
-          }
+          if (secondRes.ok) buffer = Buffer.from(await secondRes.arrayBuffer());
         }
       } else if (imgRes.ok) {
-        const buffer = Buffer.from(await imgRes.arrayBuffer());
-        if (buffer.length > 200) {
-          const snap = {
-            data: buffer,
-            ts: new Date().toISOString(),
-            contentType: ct.includes('image/') ? ct : 'image/jpeg',
-          };
-          cameraSnapshots[serial] = snap;
-          if (serial === 'BG6994814' || serial === (process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814')) latestGateSnapshot = snap;
-          console.log(`[EZVIZ] Foto capturada con éxito desde cuenta Ezviz para ${serial}. Tamaño:`, buffer.length, 'bytes');
-          return { picUrl: candidatePicUrl, buffer };
+        buffer = Buffer.from(await imgRes.arrayBuffer());
+      }
+
+      if (buffer && buffer.length > 200) {
+        // Desencriptar si viene cifrado con cabecera Hikvision
+        const camMeta = KNOWN_CAMERAS.find(c => c.serial === serial);
+        const code = verificationCode || camMeta?.verificationCode || process.env[`EZVIZ_CODE_${serial}`] || process.env.EZVIZ_VERIFICATION_CODE || '';
+        if (buffer.includes(HIK_ENCRYPTION_HEADER) && code) {
+          buffer = decryptHikImage(buffer, code);
         }
+
+        const snap = {
+          data: buffer,
+          ts: new Date().toISOString(),
+          contentType: ct.includes('image/') ? ct : 'image/jpeg',
+        };
+        cameraSnapshots[serial] = snap;
+        if (serial === 'BG6994814' || serial === (process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814')) latestGateSnapshot = snap;
+        console.log(`[EZVIZ] Fotograma en tiempo real capturado con éxito para ${serial}. Tamaño:`, buffer.length, 'bytes');
+        return { picUrl: candidatePicUrl, buffer };
       }
     } catch (err) {
       console.warn('[EZVIZ] Error al descargar imagen:', err.message);
@@ -6172,34 +6232,38 @@ async function controlEzvizPtz(serial, direction, pulseMs = 700) {
         'sessionId': session.sessionId,
         'clientType': '1',
         'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'User-Agent': 'okhttp/3.12.1',
       };
 
-      // Iniciar giro
+      // Iniciar giro (soporta formato nativo Ezviz)
       const startBody = new URLSearchParams({
         command: target.cmd,
         action: 'START',
+        channelNo: '1',
         speed: '5',
+        uuid: crypto.randomUUID(),
+        serial: serial,
       }).toString();
 
-      const startRes = await fetch(ptzUrl, {
-        method: 'POST',
+      let startRes = await fetch(ptzUrl, {
+        method: 'PUT',
         headers,
         body: startBody,
         signal: AbortSignal.timeout(6000),
-      });
-      const startData = await startRes.json().catch(() => ({}));
-      console.log(`[EZVIZ PTZ] Start ${target.cmd} on ${serial}:`, startData);
+      }).catch(() => null);
 
-      // Si la API responde formato numérico, reintentar con número
-      if (startData?.meta?.code && startData.meta.code !== 200) {
-        const altBody = new URLSearchParams({
-          command: String(target.num),
-          action: 'START',
-          speed: '5',
-        }).toString();
-        await fetch(ptzUrl, { method: 'POST', headers, body: altBody, signal: AbortSignal.timeout(4000) }).catch(() => {});
+      let startData = startRes ? await startRes.json().catch(() => ({})) : null;
+
+      if (!startRes || startRes.status === 405 || (startData?.meta?.code && startData.meta.code !== 200)) {
+        startRes = await fetch(ptzUrl, {
+          method: 'POST',
+          headers,
+          body: startBody,
+          signal: AbortSignal.timeout(6000),
+        }).catch(() => null);
+        startData = startRes ? await startRes.json().catch(() => ({})) : null;
       }
+      console.log(`[EZVIZ PTZ] Start ${target.cmd} on ${serial}:`, startData || startRes?.status);
 
       // Tiempo de pulso (giro controlado)
       await new Promise(r => setTimeout(r, Math.min(Math.max(pulseMs, 300), 2000)));
@@ -6208,13 +6272,18 @@ async function controlEzvizPtz(serial, direction, pulseMs = 700) {
       const stopBody = new URLSearchParams({
         command: target.cmd,
         action: 'STOP',
+        channelNo: '1',
         speed: '5',
+        uuid: crypto.randomUUID(),
+        serial: serial,
       }).toString();
       await fetch(ptzUrl, {
-        method: 'POST',
+        method: 'PUT',
         headers,
         body: stopBody,
         signal: AbortSignal.timeout(5000),
+      }).catch(() => {
+        return fetch(ptzUrl, { method: 'POST', headers, body: stopBody, signal: AbortSignal.timeout(5000) });
       }).catch(() => {});
 
       moved = true;
@@ -6805,20 +6874,32 @@ app.get('/api/intercom/public/call/:id', (req, res) => {
   });
 });
 
-// GET /api/intercom/public/feed — snapshot por cámara (no auth, soporta ?serial=...)
+// GET /api/intercom/public/feed — snapshot por cámara en tiempo real (0ms latencia, precalentamiento continuo)
 app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) => {
   const serial = String(req.query.serial || process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814').trim();
-  const currentSnap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
-  const isStale = !currentSnap?.data || (Date.now() - new Date(currentSnap?.ts || 0).getTime() > 2500);
-  if (req.query.refresh === '1' || isStale) {
-    try {
-      await captureEzvizCloudSnapshot(serial);
-    } catch {}
-  }
   const camMeta = KNOWN_CAMERAS.find(c => c.serial === serial);
+  const currentSnap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
+
+  const isStale = !currentSnap?.data || (Date.now() - new Date(currentSnap?.ts || 0).getTime() > 2000);
+
+  if (isStale || req.query.refresh === '1') {
+    // Si aún no tenemos ningún fotograma en memoria para esta cámara, esperamos la primera captura
+    if (!currentSnap?.data) {
+      try {
+        await captureEzvizCloudSnapshot(serial);
+      } catch {}
+    } else {
+      // Si ya hay un fotograma en memoria, lo servimos de inmediato y actualizamos en segundo plano
+      captureEzvizCloudSnapshot(serial).catch(() => {});
+    }
+  }
+
   const snap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null) || latestGateSnapshot;
   
-  res.setHeader('Cache-Control', 'no-cache, no-store');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   if (snap && snap.data) {
     res.setHeader('Content-Type', snap.contentType || 'image/jpeg');
     return res.send(snap.data);
@@ -6829,9 +6910,48 @@ app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) =>
   res.send(generateCameraStandbySvg(camMeta?.name || 'Cámara Laujim', serial));
 });
 
+// ─── INTEGRACIÓN PUENTE LOCAL 25 FPS (go2rtc) ───
+const GO2RTC_STREAM_MAP = {
+  'BG6994814': 'cam_gate',
+  'BG6994872': 'cam_lat',
+  'BG6994741': 'cam_izq',
+};
+
+async function checkGo2RtcOnline() {
+  try {
+    const res = await fetch('http://127.0.0.1:1984/api/streams', { signal: AbortSignal.timeout(800) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Proxy transparente de streams HLS desde go2rtc (puerto 1984) hacia clientes de la app
+app.get('/api/live/hls/:file', async (req, res) => {
+  const file = String(req.params.file || '').trim();
+  const streamTarget = file.endsWith('.m3u8')
+    ? `http://127.0.0.1:1984/api/stream.m3u8?src=${encodeURIComponent(file.replace('.m3u8', ''))}`
+    : `http://127.0.0.1:1984/api/hls/${encodeURIComponent(file)}`;
+
+  try {
+    const upstream = await fetch(streamTarget, { signal: AbortSignal.timeout(6000) });
+    if (!upstream.ok) {
+      return res.status(upstream.status).send('Stream no listo');
+    }
+    const ct = upstream.headers.get('content-type') || (file.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T');
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 'no-cache, no-store');
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.send(buf);
+  } catch (err) {
+    res.status(502).json({ error: 'go2rtc reconectando cámara o no disponible' });
+  }
+});
+
 // GET /api/cameras — listar las 3 cámaras del edificio y su feed actual
-app.get('/api/cameras', (req, res) => {
+app.get('/api/cameras', async (req, res) => {
   const { appKey } = getEzvizOpenPlatformKeys();
+  const isLocalBridgeActive = await checkGo2RtcOnline();
   const cameras = KNOWN_CAMERAS.map(cam => {
     const snap = cameraSnapshots[cam.serial] || (cam.isGate ? latestGateSnapshot : null);
     return {
@@ -6851,7 +6971,8 @@ app.get('/api/cameras', (req, res) => {
   res.json({
     ok: true,
     cameras,
-    streamingActive: Boolean(appKey),
+    streamingActive: Boolean(appKey || isLocalBridgeActive || (process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD)),
+    streamingEngine: isLocalBridgeActive ? 'go2rtc-local' : (appKey ? 'ezviz-cloud' : ((process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD) ? 'ezviz-consumer' : 'snapshot-burst')),
   });
 });
 
@@ -6880,13 +7001,29 @@ app.post('/api/cameras/:serial/ptz', async (req, res) => {
 app.get('/api/cameras/:serial/stream', async (req, res) => {
   const serial = String(req.params.serial || '').trim();
   if (!serial) return res.status(400).json({ error: 'Serial de cámara requerido.' });
+
+  // 1. Prioridad: Puente local go2rtc a 25 FPS sin latencia
+  const streamName = GO2RTC_STREAM_MAP[serial];
+  const isBridgeLive = await checkGo2RtcOnline();
+  if (streamName && isBridgeLive) {
+    return res.json({
+      ok: true,
+      streamUrl: `/api/live/hls/${streamName}.m3u8`,
+      protocol: 'hls',
+      serial,
+      engine: 'go2rtc',
+    });
+  }
+
+  // 2. Fallback: Ezviz Open Platform si está configurada
   const streamInfo = await getEzvizLiveStreamUrl(serial);
   if (streamInfo && streamInfo.streamUrl) {
     return res.json(streamInfo);
   }
+
   res.json({
     ok: false,
-    message: 'Stream HLS directo de Ezviz no disponible sin AppKey/AppSecret de Ezviz Open Platform. Utilizando modo ráfaga ultra-fluido en tiempo real.',
+    message: 'Stream continuo esperando inicio de puente go2rtc local o claves Open Platform.',
     feedUrl: `/api/intercom/public/feed?serial=${serial}`,
   });
 });
@@ -7056,11 +7193,31 @@ app.get('/api/intercom/public/debug', async (req, res) => {
             name: d.name,
             serial: d.deviceSerial,
             status: d.status,
+            authCodeMasked: d.authCode ? `${d.authCode.slice(0, 2)}****` : null,
             firstImageFound: findFirstImageUrl(d),
             keys: Object.keys(d),
           }));
         } catch (e) {
           deviceFound = { error: e.message };
+        }
+
+        let devconfigCaptureProbe = null;
+        try {
+          const capUrl = `https://${data.loginArea?.apiDomain || domain}/v3/devconfig/v1/${encodeURIComponent(serial)}/1/capture`;
+          const capResp = await fetch(capUrl, {
+            method: 'PUT',
+            headers: authHeaders,
+            signal: AbortSignal.timeout(8000),
+          });
+          const capData = await capResp.json().catch(() => ({}));
+          devconfigCaptureProbe = {
+            status: capResp.status,
+            meta: capData?.meta,
+            picUrlFound: findFirstImageUrl(capData),
+            raw: capData,
+          };
+        } catch (e) {
+          devconfigCaptureProbe = { error: e.message };
         }
 
         try {
@@ -7097,6 +7254,7 @@ app.get('/api/intercom/public/debug', async (req, res) => {
             apiDomain: data.loginArea?.apiDomain,
           },
           devices: deviceFound,
+          devconfigCaptureProbe,
           alarmSample,
           msgSample,
         });

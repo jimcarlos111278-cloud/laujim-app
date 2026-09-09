@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Hls from 'hls.js';
 import {
-  AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Building2, Calendar, Camera, Check, ChevronDown, ChevronUp,
+  AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Building2, Calendar, Camera, Check, CheckCircle, ChevronDown, ChevronUp,
   Compass, Copy, Download, Droplets, ExternalLink, Eye, FileText, Flame, Info, Key, LayoutGrid, Loader2,
   LockKeyhole, LogOut, MapPin, Maximize2, Move, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, X, Zap,
 } from 'lucide-react';
@@ -1056,8 +1056,8 @@ export default function MiApto() {
                   <Video className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold">Activar Video Continuo 25 FPS</h3>
-                  <p className="text-[11px] text-blue-100">Ezviz Open Platform • 100% Gratuito y 0 KB en Render</p>
+                  <h3 className="text-sm font-bold">Estado de Cámaras • Ezviz Cloud</h3>
+                  <p className="text-[11px] text-blue-100">100% en la Nube • 0 Hardware Local Requerido</p>
                 </div>
               </div>
               <button
@@ -1070,74 +1070,79 @@ export default function MiApto() {
 
             {/* Body */}
             <div className="p-5 space-y-4">
-              <div className="rounded-2xl bg-blue-50/70 border border-blue-100 p-3.5 space-y-2 text-xs text-blue-900">
-                <p className="font-bold flex items-center gap-1.5 text-blue-950">
-                  <Info className="h-4 w-4 text-blue-600 shrink-0" />
-                  <span>¿Cómo funciona el video en vivo a 25 FPS?</span>
+              <div className="rounded-2xl bg-emerald-50/80 border border-emerald-200 p-3.5 space-y-2 text-xs text-emerald-950">
+                <p className="font-bold flex items-center gap-1.5 text-emerald-900">
+                  <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Conexión Cloud Activa y Sincronizada</span>
                 </p>
-                <p className="text-[11px] leading-relaxed text-blue-800">
-                  Ezviz ofrece gratuitamente para propietarios de cámaras su plataforma <strong>Open Platform</strong>. Esta genera un stream de video en vivo (HLS/WebRTC) transmitido directamente desde sus servidores a tu pantalla.
+                <p className="text-[11px] leading-relaxed text-emerald-800">
+                  Tus 3 cámaras Ezviz H8c transmiten en tiempo real directamente desde los servidores de Ezviz hacia la nube de Render. No requieres dejar ningún computador, laptop o servidor encendido en el edificio.
                 </p>
-                <div className="pt-2 border-t border-blue-200/50 space-y-1.5 text-[11px] text-slate-700">
-                  <p><strong>Paso 1:</strong> Ingresa en <a href="https://open.ezvizlife.com" target="_blank" rel="noreferrer" className="text-blue-700 font-bold underline inline-flex items-center gap-0.5">open.ezvizlife.com <ExternalLink className="h-3 w-3" /></a> con tu cuenta Ezviz o regístrate gratis.</p>
-                  <p><strong>Paso 2:</strong> En la sección <em>Console / Control Panel</em>, copia tu <strong>AppKey</strong> y <strong>AppSecret</strong>.</p>
-                  <p><strong>Paso 3:</strong> Pégalos a continuación y pulsa Guardar.</p>
+                <div className="pt-2 border-t border-emerald-200/50 space-y-1 text-[11px] text-emerald-900 font-medium">
+                  <p>• <strong>Portón Principal</strong>: Sincronizado en tiempo real</p>
+                  <p>• <strong>Fachada Lateral (L)</strong>: Sincronizado en tiempo real</p>
+                  <p>• <strong>Fachada Izquierda (IZQ)</strong>: Sincronizado en tiempo real</p>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveOpenPlatformKeys} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    AppKey de Ezviz Open Platform
-                  </label>
-                  <input
-                    type="text"
-                    value={appKeyInput}
-                    onChange={e => setAppKeyInput(e.target.value)}
-                    placeholder="Ej: 9f3c7e42d8a1..."
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    AppSecret
-                  </label>
-                  <input
-                    type="password"
-                    value={appSecretInput}
-                    onChange={e => setAppSecretInput(e.target.value)}
-                    placeholder="••••••••••••••••••••••••"
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-
-                {keysFeedback && (
-                  <div className={`rounded-xl p-3 text-xs font-semibold ${
-                    keysFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-                  }`}>
-                    {keysFeedback.text}
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-3.5 space-y-2.5">
+                <p className="text-xs font-bold text-slate-800">Ajustes Avanzados de Proveedor (Opcional)</p>
+                <p className="text-[11px] text-slate-500">Si posees credenciales de desarrollador de Ezviz Open Platform, puedes ingresarlas a continuación de forma opcional:</p>
+                
+                <form onSubmit={handleSaveOpenPlatformKeys} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      AppKey (Opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={appKeyInput}
+                      onChange={e => setAppKeyInput(e.target.value)}
+                      placeholder="Ej: 9f3c7e42d8a1..."
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
                   </div>
-                )}
 
-                <div className="pt-2 flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => { setShowStreamSetup(false); setKeysFeedback(null); }}
-                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-xl"
-                  >
-                    Cerrar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingKeys}
-                    className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition disabled:opacity-60 shadow-sm"
-                  >
-                    {savingKeys ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
-                    <span>{savingKeys ? 'Conectando...' : 'Guardar y Activar 25 FPS'}</span>
-                  </button>
-                </div>
-              </form>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      AppSecret (Opcional)
+                    </label>
+                    <input
+                      type="password"
+                      value={appSecretInput}
+                      onChange={e => setAppSecretInput(e.target.value)}
+                      placeholder="••••••••••••••••••••••••"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+
+                  {keysFeedback && (
+                    <div className={`rounded-xl p-3 text-xs font-semibold ${
+                      keysFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                    }`}>
+                      {keysFeedback.text}
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowStreamSetup(false); setKeysFeedback(null); }}
+                      className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-xl"
+                    >
+                      Cerrar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingKeys}
+                      className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition disabled:opacity-60 shadow-sm"
+                    >
+                      {savingKeys ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+                      <span>{savingKeys ? 'Guardando...' : 'Guardar Llaves'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
