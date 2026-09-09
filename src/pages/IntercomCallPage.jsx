@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Camera, DoorOpen, Clock3, CheckCircle2, XCircle, Loader2, RefreshCw, Mic, MicOff, Volume2, Video, Plus, Play, Radio } from 'lucide-react';
+import {
+  Camera, DoorOpen, Clock3, CheckCircle2, XCircle, Loader2, RefreshCw, Mic, MicOff, Volume2, Video,
+  Plus, Play, Radio, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Compass, Eye, LayoutGrid,
+} from 'lucide-react';
 import { startIntercomCall } from '../utils/intercomAudio';
 import { openEzvizApp } from '../utils/helpers';
 
@@ -42,6 +45,13 @@ export default function IntercomCallPage() {
   // Video & Stream State
   const [viewMode, setViewMode] = useState('visitor'); // 'visitor' | 'ezviz'
   const [selectedCameraSerial, setSelectedCameraSerial] = useState('BG6994814');
+  const [camFeeds, setCamFeeds] = useState({
+    BG6994814: `${API_BASE}/api/intercom/public/feed?serial=BG6994814&t=${Date.now()}`,
+    BG6994872: `${API_BASE}/api/intercom/public/feed?serial=BG6994872&t=${Date.now()}`,
+    BG6994741: `${API_BASE}/api/intercom/public/feed?serial=BG6994741&t=${Date.now()}`,
+  });
+  const [ptzMoving, setPtzMoving] = useState('');
+  const [ptzNotice, setPtzNotice] = useState('');
   const [imgKey, setImgKey] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [isLiveActive, setIsLiveActive] = useState(true);
@@ -147,6 +157,51 @@ export default function IntercomCallPage() {
     }, 4000);
     return () => clearInterval(timer);
   }, [call?.status, id]);
+
+  // Refresh Ezviz snapshots across all 3 cameras concurrently (~750ms staggered)
+  useEffect(() => {
+    if (viewMode !== 'ezviz' || !isLiveActive) return;
+    let step = 0;
+    const interval = setInterval(() => {
+      const targetCam = BUILDING_CAMERAS[step % BUILDING_CAMERAS.length];
+      step++;
+      const nextUrl = `${API_BASE}/api/intercom/public/feed?serial=${targetCam.serial}&t=${Date.now()}`;
+      const img = new Image();
+      img.onload = () => {
+        setCamFeeds(prev => ({ ...prev, [targetCam.serial]: nextUrl }));
+      };
+      img.src = nextUrl;
+    }, 750);
+    return () => clearInterval(interval);
+  }, [viewMode, isLiveActive]);
+
+  async function handleMovePtz(direction) {
+    if (ptzMoving) return;
+    setPtzMoving(direction);
+    const dirNames = { up: 'ARRIBA', down: 'ABAJO', left: 'IZQ', right: 'DER' };
+    setPtzNotice(`Moviendo ${dirNames[direction] || direction}...`);
+    try {
+      await fetch(`${API_BASE}/api/cameras/${selectedCameraSerial}/ptz`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ direction, pulseMs: 700 }),
+      });
+      setPtzNotice(`Giro OK`);
+      setTimeout(() => {
+        const nextUrl = `${API_BASE}/api/intercom/public/feed?serial=${selectedCameraSerial}&refresh=1&t=${Date.now()}`;
+        const img = new Image();
+        img.onload = () => setCamFeeds(prev => ({ ...prev, [selectedCameraSerial]: nextUrl }));
+        img.src = nextUrl;
+      }, 350);
+    } catch {
+      setPtzNotice('Error al mover');
+    } finally {
+      setTimeout(() => {
+        setPtzMoving('');
+        setPtzNotice('');
+      }, 2000);
+    }
+  }
 
   function toggleMute() {
     if (localStreamRef.current) {
@@ -267,10 +322,7 @@ export default function IntercomCallPage() {
             {BUILDING_CAMERAS.map(cam => (
               <button
                 key={cam.serial}
-                onClick={() => {
-                  setSelectedCameraSerial(cam.serial);
-                  setImgKey(k => k + 1);
-                }}
+                onClick={() => setSelectedCameraSerial(cam.serial)}
                 className={`flex-1 py-1 px-1.5 rounded-md text-[11px] font-bold truncate transition-all ${
                   selectedCameraSerial === cam.serial
                     ? 'bg-amber-500 text-slate-950 shadow'
@@ -298,27 +350,71 @@ export default function IntercomCallPage() {
                   <Video className="h-10 w-10 mb-2 opacity-40 text-blue-400" />
                   <p className="text-sm font-semibold text-slate-200">Audio bidireccional activo</p>
                   <p className="text-xs text-slate-400 mt-1 max-w-[220px]">
-                    El visitante te está escuchando. Puedes cambiar a la pestaña "Cámara Portón" para ver la foto.
+                    El visitante te está escuchando. Puedes cambiar a la pestaña "Cámaras Ezviz" para ver el exterior.
                   </p>
                 </div>
               )}
             </>
           ) : (
             <>
-              {feedUrl ? (
-                <img
-                  key={imgKey}
-                  src={feedUrl}
-                  alt="Vista del portón"
-                  className="h-full w-full object-cover"
-                  onError={e => { e.target.style.display = 'none'; }}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center text-slate-500">
-                  <Camera className="h-10 w-10 mb-2 opacity-50" />
-                  <p className="text-xs">Sin foto disponible</p>
+              <img
+                src={camFeeds[selectedCameraSerial] || `${API_BASE}/api/intercom/public/feed?serial=${selectedCameraSerial}`}
+                alt="Vista de cámara Ezviz"
+                className="h-full w-full object-cover"
+                onError={e => { e.target.style.display = 'none'; }}
+              />
+
+              {/* PTZ Mini D-Pad Flotante para mover la cámara */}
+              <div className="absolute bottom-2 right-2 flex flex-col items-center bg-black/75 backdrop-blur-md p-1.5 rounded-xl border border-white/20 z-10 select-none">
+                <div className="grid grid-cols-3 gap-0.5 w-20 h-20 place-items-center">
+                  <div />
+                  <button
+                    onClick={() => handleMovePtz('up')}
+                    disabled={Boolean(ptzMoving)}
+                    className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
+                    title="Mover arriba"
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <div />
+
+                  <button
+                    onClick={() => handleMovePtz('left')}
+                    disabled={Boolean(ptzMoving)}
+                    className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
+                    title="Mover izquierda"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <div className="text-[8px] font-bold text-amber-400">
+                    {ptzMoving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'PTZ'}
+                  </div>
+                  <button
+                    onClick={() => handleMovePtz('right')}
+                    disabled={Boolean(ptzMoving)}
+                    className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
+                    title="Mover derecha"
+                  >
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+
+                  <div />
+                  <button
+                    onClick={() => handleMovePtz('down')}
+                    disabled={Boolean(ptzMoving)}
+                    className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
+                    title="Mover abajo"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
+                  <div />
                 </div>
-              )}
+                {ptzNotice && (
+                  <p className="text-[8px] text-amber-300 text-center font-medium max-w-[80px] truncate animate-pulse">
+                    {ptzNotice}
+                  </p>
+                )}
+              </div>
             </>
           )}
 
@@ -363,6 +459,40 @@ export default function IntercomCallPage() {
             />
           </div>
         </div>
+
+        {/* 2-Camera Live Strip below active feed when in Ezviz mode */}
+        {viewMode === 'ezviz' && (
+          <div className="bg-slate-900 px-3 py-2 border-b border-slate-800">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <Eye className="h-3 w-3 text-blue-400" /> Otras Cámaras en Vivo (Toca para cambiar)
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {BUILDING_CAMERAS.filter(c => c.serial !== selectedCameraSerial).map(cam => (
+                <button
+                  key={cam.serial}
+                  onClick={() => setSelectedCameraSerial(cam.serial)}
+                  className="relative aspect-video rounded-lg overflow-hidden border border-slate-700 hover:border-amber-400 transition text-left group"
+                >
+                  <img
+                    src={camFeeds[cam.serial] || `${API_BASE}/api/intercom/public/feed?serial=${cam.serial}`}
+                    alt={cam.name}
+                    className="h-full w-full object-cover group-hover:scale-105 transition"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
+                  <div className="absolute top-1 left-1 flex items-center gap-1 bg-black/60 px-1 py-0.5 rounded text-[8px] text-white">
+                    <span className="h-1 w-1 rounded-full bg-emerald-400 animate-ping" />
+                    <span>{cam.name}</span>
+                  </div>
+                  <span className="absolute bottom-1 right-1 bg-blue-600 px-1 py-0.5 rounded text-[8px] font-bold text-white">
+                    Ver
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Audio Enhancement Banner */}
         <div className="bg-slate-50 border-b border-slate-100 px-4 py-2 flex items-center justify-between text-xs">

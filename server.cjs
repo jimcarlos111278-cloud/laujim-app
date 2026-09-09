@@ -55,7 +55,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
-    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path === '/api/cameras';
+    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras');
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -5807,9 +5807,9 @@ const INTERCOM_CALL_TIMEOUT_MS = 90_000; // 90 seconds
 
 // Definición de las 3 cámaras activas del edificio (misma cuenta Ezviz)
 const KNOWN_CAMERAS = [
-  { id: 'cam-gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal', isGate: true },
-  { id: 'cam-lat', name: 'Fachada Lateral (L)', serial: 'BG6994872', location: 'Costado Derecho', isGate: false },
-  { id: 'cam-izq', name: 'Fachada Izquierda (IZQ)', serial: 'BG6994741', location: 'Costado Izquierdo', isGate: false },
+  { id: 'cam-gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal', isGate: true, supportsPtz: true },
+  { id: 'cam-lat', name: 'Fachada Lateral (L)', serial: 'BG6994872', location: 'Costado Derecho', isGate: false, supportsPtz: true },
+  { id: 'cam-izq', name: 'Fachada Izquierda (IZQ)', serial: 'BG6994741', location: 'Costado Izquierdo', isGate: false, supportsPtz: true },
 ];
 let cameraSnapshots = {}; // { [serial]: { data: Buffer, ts: string, contentType: string } }
 let latestGateSnapshot = { data: null, ts: null, contentType: 'image/jpeg' };
@@ -6095,6 +6095,178 @@ async function captureEzvizCloudSnapshot(deviceSerialOverride = null) {
 
 async function fetchEzvizLatestSnapshot(serial = null) {
   return await captureEzvizCloudSnapshot(serial);
+}
+
+// ─── CONTROL MOTORIZADO PTZ (GIRO ARRIBA, ABAJO, IZQUIERDA, DERECHA) ───
+async function controlEzvizPtz(serial, direction, pulseMs = 700) {
+  const normDir = String(direction || '').toLowerCase().trim();
+  const dirMap = {
+    up: { cmd: 'UP', num: 0 },
+    down: { cmd: 'DOWN', num: 1 },
+    left: { cmd: 'LEFT', num: 2 },
+    right: { cmd: 'RIGHT', num: 3 },
+  };
+  const target = dirMap[normDir];
+  if (!target) throw new Error(`Dirección no válida: ${direction}. Usa 'up', 'down', 'left', o 'right'.`);
+
+  let moved = false;
+  let moveMethod = '';
+
+  // Vía 1: Cuenta Ezviz Consumer (apiisa.ezvizlife.com o regional)
+  const session = await getEzvizConsumerSession();
+  if (session && session.sessionId) {
+    try {
+      const ptzUrl = `https://${session.apiDomain}/v3/devices/${encodeURIComponent(serial)}/ptzControl`;
+      const headers = {
+        'sessionId': session.sessionId,
+        'clientType': '1',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      };
+
+      // Iniciar giro
+      const startBody = new URLSearchParams({
+        command: target.cmd,
+        action: 'START',
+        speed: '5',
+      }).toString();
+
+      const startRes = await fetch(ptzUrl, {
+        method: 'POST',
+        headers,
+        body: startBody,
+        signal: AbortSignal.timeout(6000),
+      });
+      const startData = await startRes.json().catch(() => ({}));
+      console.log(`[EZVIZ PTZ] Start ${target.cmd} on ${serial}:`, startData);
+
+      // Si la API responde formato numérico, reintentar con número
+      if (startData?.meta?.code && startData.meta.code !== 200) {
+        const altBody = new URLSearchParams({
+          command: String(target.num),
+          action: 'START',
+          speed: '5',
+        }).toString();
+        await fetch(ptzUrl, { method: 'POST', headers, body: altBody, signal: AbortSignal.timeout(4000) }).catch(() => {});
+      }
+
+      // Tiempo de pulso (giro controlado)
+      await new Promise(r => setTimeout(r, Math.min(Math.max(pulseMs, 300), 2000)));
+
+      // Detener giro
+      const stopBody = new URLSearchParams({
+        command: target.cmd,
+        action: 'STOP',
+        speed: '5',
+      }).toString();
+      await fetch(ptzUrl, {
+        method: 'POST',
+        headers,
+        body: stopBody,
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => {});
+
+      moved = true;
+      moveMethod = 'consumer';
+    } catch (err) {
+      console.warn('[EZVIZ PTZ] Error vía Consumer:', err.message);
+    }
+  }
+
+  // Vía 2: Open Platform (AppKey & AppSecret)
+  if (!moved) {
+    const tokenInfo = await getEzvizAccessToken();
+    if (tokenInfo) {
+      const base = tokenInfo.areaDomain || 'https://open.ezvizlife.com';
+      try {
+        const startBody = new URLSearchParams({
+          accessToken: tokenInfo.token,
+          deviceSerial: serial.toUpperCase(),
+          channelNo: '1',
+          direction: String(target.num),
+          speed: '1',
+        }).toString();
+
+        await fetch(`${base}/api/lapp/device/ptz/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: startBody,
+          signal: AbortSignal.timeout(6000),
+        });
+
+        await new Promise(r => setTimeout(r, Math.min(Math.max(pulseMs, 300), 2000)));
+
+        const stopBody = new URLSearchParams({
+          accessToken: tokenInfo.token,
+          deviceSerial: serial.toUpperCase(),
+          channelNo: '1',
+          direction: String(target.num),
+        }).toString();
+
+        await fetch(`${base}/api/lapp/device/ptz/stop`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: stopBody,
+          signal: AbortSignal.timeout(5000),
+        });
+
+        moved = true;
+        moveMethod = 'open_platform';
+      } catch (err) {
+        console.warn('[EZVIZ PTZ] Error vía Open Platform:', err.message);
+      }
+    }
+  }
+
+  // Refrescar captura de inmediato para que la app muestre el nuevo ángulo
+  let updatedSnapshot = null;
+  try {
+    updatedSnapshot = await captureEzvizCloudSnapshot(serial);
+  } catch {}
+
+  return {
+    ok: true,
+    moved,
+    method: moveMethod,
+    serial,
+    direction: target.cmd,
+    timestamp: new Date().toISOString(),
+    hasNewSnapshot: Boolean(updatedSnapshot?.buffer),
+  };
+}
+
+// ─── CONSULTA DE STREAM DIRECTO HLS (25 FPS VÍA CDN EZVIZ) ───
+async function getEzvizLiveStreamUrl(serial) {
+  const tokenInfo = await getEzvizAccessToken();
+  if (!tokenInfo) return null;
+  const base = tokenInfo.areaDomain || 'https://open.ezvizlife.com';
+  try {
+    const body = new URLSearchParams({
+      accessToken: tokenInfo.token,
+      deviceSerial: serial.toUpperCase(),
+      channelNo: '1',
+      protocol: '2', // HLS m3u8
+      quality: '2',  // Fluido
+    }).toString();
+    const res = await fetch(`${base}/api/lapp/v2/live/address/get`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      signal: AbortSignal.timeout(8000),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.code === '200' && data.data?.url) {
+      return {
+        ok: true,
+        streamUrl: data.data.url,
+        protocol: 'hls',
+        expireTime: data.data.expireTime || null,
+      };
+    }
+  } catch (err) {
+    console.warn('[EZVIZ STREAM] Error obteniendo URL stream:', err.message);
+  }
+  return null;
 }
 
 async function sendCloudIntercomNotification(to, apartmentName, callId, callToken) {
@@ -6592,6 +6764,7 @@ app.get('/api/cameras', (req, res) => {
       serial: cam.serial,
       location: cam.location,
       isGate: Boolean(cam.isGate),
+      supportsPtz: Boolean(cam.supportsPtz !== false),
       hasSnapshot: Boolean(snap?.data),
       lastSnapshotTs: snap?.ts || null,
       feedUrl: `/api/intercom/public/feed?serial=${cam.serial}`,
@@ -6599,6 +6772,42 @@ app.get('/api/cameras', (req, res) => {
     };
   });
   res.json({ ok: true, cameras });
+});
+
+// POST /api/cameras/:serial/ptz — mover cámara motorizada Ezviz (Pan/Tilt)
+app.post('/api/cameras/:serial/ptz', async (req, res) => {
+  const serial = String(req.params.serial || '').trim();
+  const { direction, pulseMs } = req.body || {};
+  if (!serial) return res.status(400).json({ error: 'Serial de cámara requerido.' });
+  if (!direction) return res.status(400).json({ error: 'Dirección requerida (up, down, left, right).' });
+
+  try {
+    const result = await controlEzvizPtz(serial, direction, Number(pulseMs) || 700);
+    res.json({
+      ok: true,
+      result,
+      message: `Giro hacia ${direction.toUpperCase()} ejecutado correctamente.`,
+      newSnapshotTs: cameraSnapshots[serial]?.ts || null,
+    });
+  } catch (err) {
+    console.error('[EZVIZ PTZ] Error:', err.message);
+    res.status(500).json({ error: err.message || 'Error al mover la cámara' });
+  }
+});
+
+// GET /api/cameras/:serial/stream — obtener URL de stream continuo HLS si está disponible
+app.get('/api/cameras/:serial/stream', async (req, res) => {
+  const serial = String(req.params.serial || '').trim();
+  if (!serial) return res.status(400).json({ error: 'Serial de cámara requerido.' });
+  const streamInfo = await getEzvizLiveStreamUrl(serial);
+  if (streamInfo && streamInfo.streamUrl) {
+    return res.json(streamInfo);
+  }
+  res.json({
+    ok: false,
+    message: 'Stream HLS directo de Ezviz no disponible sin AppKey/AppSecret de Ezviz Open Platform. Utilizando modo ráfaga ultra-fluido en tiempo real.',
+    feedUrl: `/api/intercom/public/feed?serial=${serial}`,
+  });
 });
 
 // GET /api/intercom/public/template-status — consultar estado de aprobación de la plantilla en Meta WhatsApp

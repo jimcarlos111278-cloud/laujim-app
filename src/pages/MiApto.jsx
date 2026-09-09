@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle, Building2, Calendar, Camera, Check, ChevronDown, ChevronUp,
-  Copy, Download, Droplets, ExternalLink, FileText, Flame, Info, Key,
-  LockKeyhole, LogOut, MapPin, QrCode, RefreshCw, ShieldCheck, Video, Zap,
+  AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Building2, Calendar, Camera, Check, ChevronDown, ChevronUp,
+  Compass, Copy, Download, Droplets, ExternalLink, Eye, FileText, Flame, Info, Key, LayoutGrid, Loader2,
+  LockKeyhole, LogOut, MapPin, Maximize2, Move, QrCode, RefreshCw, ShieldCheck, Video, Zap,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { clearAuth, isTenant } from '../utils/auth';
@@ -93,9 +93,9 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
 }
 
 const APTO_CAMERAS = [
-  { id: 'gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal' },
-  { id: 'lat', name: 'Fachada Lateral (L)', serial: 'BG6994872', location: 'Costado Derecho' },
-  { id: 'izq', name: 'Fachada Izquierda (IZQ)', serial: 'BG6994741', location: 'Costado Izquierdo' },
+  { id: 'gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal', badge: 'ACCESO PRINCIPAL', isGate: true },
+  { id: 'lat', name: 'Fachada Lateral (L)', serial: 'BG6994872', location: 'Costado Derecho', badge: 'CALLE DERECHA', isGate: false },
+  { id: 'izq', name: 'Fachada Izquierda (IZQ)', serial: 'BG6994741', location: 'Costado Izquierdo', badge: 'CALLE IZQUIERDA', isGate: false },
 ];
 
 export default function MiApto() {
@@ -111,10 +111,17 @@ export default function MiApto() {
   const [actionMessage, setActionMessage] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [cameraLive, setCameraLive] = useState(true);
+  const [cameraCountdown, setCameraCountdown] = useState(60); // 60s auto-pause de seguridad
   const [selectedCamSerial, setSelectedCamSerial] = useState('BG6994814');
-  const [cameraImageSrc, setCameraImageSrc] = useState(`${getRawBase()}/api/intercom/public/feed?serial=BG6994814&t=${Date.now()}`);
-  const [cameraCountdown, setCameraCountdown] = useState(60); // 60s auto-pause to protect Render bandwidth
-  const [cameraError, setCameraError] = useState(false);
+  const [camViewMode, setCamViewMode] = useState('mosaic'); // 'mosaic' (1 hero + 2 secundarios) | 'grid' (3 iguales)
+  const [cameraFeeds, setCameraFeeds] = useState({
+    BG6994814: `${getRawBase()}/api/intercom/public/feed?serial=BG6994814&t=${Date.now()}`,
+    BG6994872: `${getRawBase()}/api/intercom/public/feed?serial=BG6994872&t=${Date.now()}`,
+    BG6994741: `${getRawBase()}/api/intercom/public/feed?serial=BG6994741&t=${Date.now()}`,
+  });
+  const [cameraErrors, setCameraErrors] = useState({});
+  const [ptzMoving, setPtzMoving] = useState(''); // 'up' | 'down' | 'left' | 'right' | ''
+  const [ptzFeedback, setPtzFeedback] = useState('');
   const [showEzvizGuide, setShowEzvizGuide] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
 
@@ -128,35 +135,90 @@ export default function MiApto() {
     } catch {}
   }
 
-  // Preload next image silently in background to eliminate flickering (cero parpadeo)
+  // Motor de ráfaga concurrente con doble búfer: actualiza las 3 cámaras simultáneamente de forma escalonada
   useEffect(() => {
     if (!cameraLive) return;
+    let step = 0;
     const interval = setInterval(() => {
       setCameraCountdown(prev => {
-        if (prev <= 2) {
+        if (prev <= 1) {
           setCameraLive(false);
           return 0;
         }
-        return prev - 2;
+        return prev - 1;
       });
 
-      const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&t=${Date.now()}`;
+      // Refresca una cámara cada 750ms, completando el ciclo de las 3 en ~2.2s (sensación continua y fluida)
+      const targetCam = APTO_CAMERAS[step % APTO_CAMERAS.length];
+      step++;
+      const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${targetCam.serial}&t=${Date.now()}`;
       const img = new Image();
       img.onload = () => {
-        setCameraImageSrc(nextUrl);
-        setCameraError(false);
+        setCameraFeeds(prev => ({ ...prev, [targetCam.serial]: nextUrl }));
+        setCameraErrors(prev => ({ ...prev, [targetCam.serial]: false }));
+      };
+      img.onerror = () => {
+        // Si hay error momentáneo, conserva la imagen anterior
       };
       img.src = nextUrl;
-    }, 2000);
+    }, 750);
 
     return () => clearInterval(interval);
-  }, [cameraLive, selectedCamSerial]);
+  }, [cameraLive]);
 
   function toggleCameraLive() {
     setCameraLive(prev => {
       const next = !prev;
       if (next) setCameraCountdown(60);
       return next;
+    });
+  }
+
+  async function handleMovePtz(direction) {
+    if (ptzMoving) return;
+    setPtzMoving(direction);
+    const dirNames = { up: 'ARRIBA', down: 'ABAJO', left: 'IZQUIERDA', right: 'DERECHA' };
+    setPtzFeedback(`Moviendo ${dirNames[direction] || direction}...`);
+    try {
+      const res = await fetch(`${getRawBase()}/api/cameras/${selectedCamSerial}/ptz`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-auth-token': AUTH_TOKEN,
+        },
+        body: JSON.stringify({ direction, pulseMs: 700 }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Error al mover');
+      setPtzFeedback(`Giro hacia ${dirNames[direction] || direction} ejecutado`);
+      // Refresco inmediato de la cámara activa
+      setTimeout(() => {
+        const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&refresh=1&t=${Date.now()}`;
+        const img = new Image();
+        img.onload = () => {
+          setCameraFeeds(prev => ({ ...prev, [selectedCamSerial]: nextUrl }));
+        };
+        img.src = nextUrl;
+      }, 350);
+    } catch (err) {
+      setPtzFeedback(`Error: ${err.message}`);
+    } finally {
+      setTimeout(() => {
+        setPtzMoving('');
+        setPtzFeedback('');
+      }, 2200);
+    }
+  }
+
+  function refreshAllCameras() {
+    APTO_CAMERAS.forEach(cam => {
+      fetch(`${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1`).catch(() => {});
+      const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
+      const img = new Image();
+      img.onload = () => {
+        setCameraFeeds(prev => ({ ...prev, [cam.serial]: nextUrl }));
+      };
+      img.src = nextUrl;
     });
   }
 
@@ -311,113 +373,306 @@ export default function MiApto() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between">
+        <section className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+          {/* Cabecera del Centro de Monitoreo */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-blue-100 p-2.5 text-blue-700"><Camera className="h-5 w-5" /></div>
+              <div className="rounded-2xl bg-blue-600 p-2.5 text-white shadow-md shadow-blue-500/20">
+                <Camera className="h-5 w-5" />
+              </div>
               <div>
-                <h2 className="font-bold text-slate-900">Cámara del frente</h2>
-                <p className="text-xs text-slate-500">Portón principal • En vivo para residentes</p>
+                <h2 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                  Cámaras de Seguridad Laujim
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                    3 ACTIVAS
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-500">Mosaico simultáneo • Control motorizado PTZ</p>
               </div>
             </div>
-            <button
-              onClick={toggleCameraLive}
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-                cameraLive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${cameraLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {cameraLive ? `EN VIVO (${cameraCountdown}s)` : 'PAUSADO (Toca para ver)'}
-            </button>
-          </div>
 
-          {/* Selector de Cámaras (3 Cámaras Ezviz) */}
-          <div className="mt-3 flex gap-1.5 p-1 bg-slate-100 rounded-xl">
-            {APTO_CAMERAS.map(cam => (
+            <div className="flex items-center gap-2">
               <button
-                key={cam.serial}
-                onClick={() => {
-                  setSelectedCamSerial(cam.serial);
-                  const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
-                  setCameraImageSrc(nextUrl);
-                  fetch(`${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1`).catch(() => {});
-                }}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all truncate ${
-                  selectedCamSerial === cam.serial
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                onClick={refreshAllCameras}
+                title="Refrescar las 3 cámaras ahora"
+                className="rounded-xl border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition active:scale-95"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+
+              <button
+                onClick={toggleCameraLive}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition shadow-sm ${
+                  cameraLive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
                 }`}
               >
-                {cam.name}
+                <span className={`h-2 w-2 rounded-full ${cameraLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                {cameraLive ? `EN VIVO (${cameraCountdown}s)` : 'PAUSADO'}
               </button>
-            ))}
-          </div>
-
-          <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-inner">
-            <img
-              src={cameraImageSrc}
-              alt="Cámara del edificio"
-              className="h-full w-full object-cover transition-opacity duration-300"
-              onError={() => setCameraError(true)}
-              onLoad={() => setCameraError(false)}
-            />
-            {cameraError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 p-4 text-center text-white">
-                <Camera className="mb-2 h-8 w-8 text-slate-500" />
-                <p className="text-xs text-slate-300">Conectando con la cámara Ezviz...</p>
-                <button
-                  onClick={() => {
-                    setCameraError(false);
-                    const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&t=${Date.now()}`;
-                    setCameraImageSrc(nextUrl);
-                    fetch(`${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&refresh=1`).catch(() => {});
-                  }}
-                  className="mt-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold"
-                >
-                  Reintentar captura
-                </button>
-              </div>
-            )}
-            <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-              {APTO_CAMERAS.find(c => c.serial === selectedCamSerial)?.name || 'Cámara Ezviz'}
             </div>
-            <button
-              onClick={() => {
-                fetch(`${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&refresh=1`).catch(() => {});
-                const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&t=${Date.now()}`;
-                const img = new Image();
-                img.onload = () => setCameraImageSrc(nextUrl);
-                img.src = nextUrl;
-              }}
-              title="Refrescar foto ahora"
-              className="absolute bottom-2 right-2 rounded-lg bg-black/60 p-1.5 text-white hover:bg-black/80 backdrop-blur transition"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </button>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+          {/* Barra de modos de visualización (Mosaico 3-en-1 vs Cuadrícula) */}
+          <div className="mt-3.5 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
+              <button
+                onClick={() => setCamViewMode('mosaic')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  camViewMode === 'mosaic' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>Mosaico 3-en-1</span>
+              </button>
+              <button
+                onClick={() => setCamViewMode('grid')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  camViewMode === 'grid' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Move className="h-3.5 w-3.5" />
+                <span>Cuadrícula</span>
+              </button>
+            </div>
+
+            <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+              Toca cualquier cámara para enfocarla y moverla
+            </span>
+          </div>
+
+          {/* VISTA 1: MODO MOSAICO (1 Hero Grande con PTZ + 2 Sub-monitores en vivo abajo) */}
+          {camViewMode === 'mosaic' && (
+            <div className="mt-3.5 space-y-3">
+              {/* Monitor Principal (Hero) */}
+              {(() => {
+                const heroCam = APTO_CAMERAS.find(c => c.serial === selectedCamSerial) || APTO_CAMERAS[0];
+                const heroFeed = cameraFeeds[heroCam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}`;
+                return (
+                  <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-lg border border-slate-800">
+                    <img
+                      src={heroFeed}
+                      alt={heroCam.name}
+                      className="h-full w-full object-cover transition-opacity duration-200"
+                    />
+
+                    {/* Top Overlay: Info de la cámara principal */}
+                    <div className="absolute top-3 left-3 flex items-center gap-2 rounded-xl bg-black/70 px-3 py-1.5 backdrop-blur-md border border-white/10">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                      <div>
+                        <p className="text-xs font-bold text-white leading-tight">{heroCam.name}</p>
+                        <p className="text-[10px] text-slate-300">{heroCam.location} • {heroCam.badge}</p>
+                      </div>
+                    </div>
+
+                    {/* Top Right: Botón refresco rápido */}
+                    <button
+                      onClick={() => {
+                        fetch(`${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1`).catch(() => {});
+                        const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&t=${Date.now()}`;
+                        const img = new Image();
+                        img.onload = () => setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: nextUrl }));
+                        img.src = nextUrl;
+                      }}
+                      title="Refrescar fotograma"
+                      className="absolute top-3 right-3 rounded-xl bg-black/60 p-2 text-white hover:bg-black/80 backdrop-blur-md transition border border-white/10"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
+
+                    {/* Cruceta Táctil Flotante PTZ Glassmorphic */}
+                    <div className="absolute bottom-3 right-3 flex flex-col items-center bg-slate-950/80 backdrop-blur-md p-2 rounded-2xl border border-white/15 shadow-2xl z-10 select-none">
+                      <div className="flex items-center justify-between w-full mb-1 px-1">
+                        <span className="text-[9px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                          <Compass className="h-3 w-3 animate-spin-slow" /> Mover
+                        </span>
+                        {ptzMoving && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
+                        )}
+                      </div>
+
+                      {/* D-Pad Cruceta */}
+                      <div className="grid grid-cols-3 gap-1 w-24 h-24 place-items-center">
+                        <div />
+                        <button
+                          onClick={() => handleMovePtz('up')}
+                          disabled={Boolean(ptzMoving)}
+                          title="Girar hacia Arriba"
+                          className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
+                        >
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        </button>
+                        <div />
+
+                        <button
+                          onClick={() => handleMovePtz('left')}
+                          disabled={Boolean(ptzMoving)}
+                          title="Girar hacia Izquierda"
+                          className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[8px] font-bold text-amber-400 border border-white/10">
+                          {ptzMoving ? <Loader2 className="h-3 w-3 animate-spin text-amber-400" /> : 'PTZ'}
+                        </div>
+                        <button
+                          onClick={() => handleMovePtz('right')}
+                          disabled={Boolean(ptzMoving)}
+                          title="Girar hacia Derecha"
+                          className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
+                        >
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+
+                        <div />
+                        <button
+                          onClick={() => handleMovePtz('down')}
+                          disabled={Boolean(ptzMoving)}
+                          title="Girar hacia Abajo"
+                          className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
+                        >
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        </button>
+                        <div />
+                      </div>
+
+                      {ptzFeedback && (
+                        <p className="mt-1 text-[8px] text-amber-300 text-center font-medium max-w-[100px] truncate animate-pulse">
+                          {ptzFeedback}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Bottom Left: Tag de resolución en vivo */}
+                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-lg bg-black/60 px-2 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-md">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      <span>HD En Vivo • ~0.8s Ráfaga</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Sub-Monitores Simultáneos en Vivo (Las otras 2 cámaras transmitiendo a la vez) */}
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1.5">
+                  <Eye className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Cámaras Secundarias en Vivo (Toca para intercambiar foco)</span>
+                </p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {APTO_CAMERAS.filter(c => c.serial !== selectedCamSerial).map(cam => {
+                    const subFeed = cameraFeeds[cam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}`;
+                    return (
+                      <button
+                        key={cam.serial}
+                        onClick={() => setSelectedCamSerial(cam.serial)}
+                        className="group relative aspect-video w-full overflow-hidden rounded-xl bg-slate-950 shadow border-2 border-transparent hover:border-blue-500 transition text-left focus:outline-none"
+                      >
+                        <img
+                          src={subFeed}
+                          alt={cam.name}
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+
+                        {/* Top Badge */}
+                        <div className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>{cam.badge}</span>
+                        </div>
+
+                        {/* Bottom Name & Action */}
+                        <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-white truncate drop-shadow">{cam.name}</span>
+                          <span className="rounded bg-blue-600/90 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
+                            Enfocar
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VISTA 2: MODO CUADRÍCULA (3 Cámaras Iguales Simultáneas) */}
+          {camViewMode === 'grid' && (
+            <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {APTO_CAMERAS.map(cam => {
+                const isSelected = selectedCamSerial === cam.serial;
+                const camFeed = cameraFeeds[cam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}`;
+                return (
+                  <div
+                    key={cam.serial}
+                    className={`relative overflow-hidden rounded-2xl bg-slate-950 shadow border-2 transition ${
+                      isSelected ? 'border-blue-500 shadow-blue-500/20' : 'border-slate-800'
+                    }`}
+                  >
+                    <div className="relative aspect-video w-full">
+                      <img
+                        src={camFeed}
+                        alt={cam.name}
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>{cam.badge}</span>
+                      </div>
+                      <button
+                        onClick={() => setSelectedCamSerial(cam.serial)}
+                        className={`absolute top-2 right-2 rounded-lg px-2 py-1 text-[10px] font-bold transition ${
+                          isSelected ? 'bg-blue-600 text-white shadow' : 'bg-black/60 text-slate-300 hover:text-white'
+                        }`}
+                      >
+                        {isSelected ? 'Activa' : 'Seleccionar'}
+                      </button>
+                    </div>
+
+                    <div className="p-2.5 bg-slate-900 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-white">{cam.name}</p>
+                        <p className="text-[10px] text-slate-400">{cam.location}</p>
+                      </div>
+
+                      {/* Botones PTZ rápidos */}
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => { setSelectedCamSerial(cam.serial); handleMovePtz('left'); }}
+                          title="Girar izquierda"
+                          className="p-1 rounded bg-white/10 hover:bg-blue-600 text-white transition text-xs"
+                        >
+                          <ArrowLeft className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => { setSelectedCamSerial(cam.serial); handleMovePtz('right'); }}
+                          title="Girar derecha"
+                          className="p-1 rounded bg-white/10 hover:bg-blue-600 text-white transition text-xs"
+                        >
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Barra de Acciones y Acceso a la App Ezviz */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
             <button
-              onClick={() => {
-                fetch(`${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&refresh=1`).catch(() => {});
-                const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&t=${Date.now()}`;
-                const img = new Image();
-                img.onload = () => setCameraImageSrc(nextUrl);
-                img.src = nextUrl;
-              }}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+              onClick={refreshAllCameras}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
             >
               <RefreshCw className="h-3.5 w-3.5 text-slate-500" />
-              Actualizar foto
+              Actualizar las 3 fotos
             </button>
 
             <button
               onClick={openEzvizApp}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20 active:scale-95 transition"
+              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20 active:scale-95 transition"
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              Ver en App Ezviz (3K y Grabaciones)
+              Ver en App Ezviz (3K a 25fps + Joystick 360°)
             </button>
           </div>
 
