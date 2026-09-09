@@ -55,7 +55,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
-    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/');
+    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path === '/api/cameras';
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -2210,14 +2210,35 @@ function cameraDefinitions() {
   })).filter(item => item.enabled);
 
   if (list.length === 0) {
-    list.push({
-      id: 'gate-cam',
-      gatewayId: 'gate-cam',
-      name: 'Cámara del frente (Portón)',
-      location: 'Entrada principal',
-      tenantVisible: true,
-      enabled: true,
-    });
+    list.push(
+      {
+        id: 'gate-cam',
+        gatewayId: 'gate-cam',
+        name: 'Portón Principal',
+        location: 'Entrada Principal',
+        serial: 'BG6994814',
+        tenantVisible: true,
+        enabled: true,
+      },
+      {
+        id: 'cam-lat',
+        gatewayId: 'cam-lat',
+        name: 'Fachada Lateral (L)',
+        location: 'Costado Derecho',
+        serial: 'BG6994872',
+        tenantVisible: true,
+        enabled: true,
+      },
+      {
+        id: 'cam-izq',
+        gatewayId: 'cam-izq',
+        name: 'Fachada Izquierda (IZQ)',
+        location: 'Costado Izquierdo',
+        serial: 'BG6994741',
+        tenantVisible: true,
+        enabled: true,
+      }
+    );
   }
   return list;
 }
@@ -5679,15 +5700,17 @@ app.get('/api/tenant/overview', (req, res) => {
 app.post('/api/tenant/cameras/:id/ticket', async (req, res) => {
   const camera = cameraDefinitions().find(item => item.id === safeEdgeId(req.params.id) && item.tenantVisible);
   if (!camera) return res.status(404).json({ error: 'Cámara no disponible para este portal.' });
-  if (camera.id === 'gate-cam' || !edgeGatewayReady()) {
-    fetchEzvizLatestSnapshot().catch(() => {});
+  if (camera.id === 'gate-cam' || camera.id === 'cam-lat' || camera.id === 'cam-izq' || !edgeGatewayReady()) {
+    const serial = camera.serial || (camera.id === 'cam-lat' ? 'BG6994872' : camera.id === 'cam-izq' ? 'BG6994741' : 'BG6994814');
+    fetchEzvizLatestSnapshot(serial).catch(() => {});
+    const snap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
     return res.json({
       ok: true,
       camera: publicEdgeView(camera),
       playbackUrl: null,
-      feedUrl: '/api/intercom/feed',
+      feedUrl: `/api/intercom/public/feed?serial=${serial}`,
       mode: 'snapshot',
-      ts: latestGateSnapshot.ts || new Date().toISOString(),
+      ts: snap?.ts || new Date().toISOString(),
     });
   }
   try {
@@ -5781,6 +5804,14 @@ app.post('/api/security/doors/:id/unlock', async (req, res) => {
 
 const INTERCOM_SECRET = String(process.env.INTERCOM_SECRET || '').trim();
 const INTERCOM_CALL_TIMEOUT_MS = 90_000; // 90 seconds
+
+// Definición de las 3 cámaras activas del edificio (misma cuenta Ezviz)
+const KNOWN_CAMERAS = [
+  { id: 'cam-gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal', isGate: true },
+  { id: 'cam-lat', name: 'Fachada Lateral (L)', serial: 'BG6994872', location: 'Costado Derecho', isGate: false },
+  { id: 'cam-izq', name: 'Fachada Izquierda (IZQ)', serial: 'BG6994741', location: 'Costado Izquierdo', isGate: false },
+];
+let cameraSnapshots = {}; // { [serial]: { data: Buffer, ts: string, contentType: string } }
 let latestGateSnapshot = { data: null, ts: null, contentType: 'image/jpeg' };
 
 // ─── EZVIZ CLOUD CLIENT (SOPORTA CUENTA APP EZVIZ DIRECTA O DEVELOPER KEY) ───
@@ -5950,20 +5981,24 @@ async function captureFromEzvizConsumerAccount(serial) {
           const secondRes = await fetch(realUrl, { headers, signal: AbortSignal.timeout(10000) });
           if (secondRes.ok) {
             const buffer = Buffer.from(await secondRes.arrayBuffer());
-            latestGateSnapshot = { data: buffer, ts: new Date().toISOString(), contentType: secondRes.headers.get('content-type') || 'image/jpeg' };
-            console.log('[EZVIZ] Foto capturada con éxito vía JSON redirect. Tamaño:', buffer.length, 'bytes');
+            const snap = { data: buffer, ts: new Date().toISOString(), contentType: secondRes.headers.get('content-type') || 'image/jpeg' };
+            cameraSnapshots[serial] = snap;
+            if (serial === 'BG6994814' || serial === (process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814')) latestGateSnapshot = snap;
+            console.log(`[EZVIZ] Foto capturada con éxito para cámara ${serial}. Tamaño:`, buffer.length, 'bytes');
             return { picUrl: realUrl, buffer };
           }
         }
       } else if (imgRes.ok) {
         const buffer = Buffer.from(await imgRes.arrayBuffer());
         if (buffer.length > 200) {
-          latestGateSnapshot = {
+          const snap = {
             data: buffer,
             ts: new Date().toISOString(),
             contentType: ct.includes('image/') ? ct : 'image/jpeg',
           };
-          console.log('[EZVIZ] Foto capturada con éxito desde cuenta Ezviz. Tamaño:', buffer.length, 'bytes');
+          cameraSnapshots[serial] = snap;
+          if (serial === 'BG6994814' || serial === (process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814')) latestGateSnapshot = snap;
+          console.log(`[EZVIZ] Foto capturada con éxito desde cuenta Ezviz para ${serial}. Tamaño:`, buffer.length, 'bytes');
           return { picUrl: candidatePicUrl, buffer };
         }
       }
@@ -6040,11 +6075,13 @@ async function captureEzvizCloudSnapshot(deviceSerialOverride = null) {
         const imgRes = await fetch(data.data.picUrl, { signal: AbortSignal.timeout(10000) });
         if (imgRes.ok) {
           const buffer = Buffer.from(await imgRes.arrayBuffer());
-          latestGateSnapshot = {
+          const snap = {
             data: buffer,
             ts: new Date().toISOString(),
             contentType: imgRes.headers.get('content-type') || 'image/jpeg',
           };
+          cameraSnapshots[serial] = snap;
+          if (serial === 'BG6994814' || serial === (process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814')) latestGateSnapshot = snap;
           return { picUrl: data.data.picUrl, buffer };
         }
       }
@@ -6054,6 +6091,108 @@ async function captureEzvizCloudSnapshot(deviceSerialOverride = null) {
   }
 
   return null;
+}
+
+async function fetchEzvizLatestSnapshot(serial = null) {
+  return await captureEzvizCloudSnapshot(serial);
+}
+
+async function sendCloudIntercomNotification(to, apartmentName, callId, callToken) {
+  const callUrl = `${PUBLIC_APP_URL}/intercom/call/${callId}?token=${callToken}`;
+  const portalUrl = `${PUBLIC_APP_URL}/mi-apto`;
+  const appDownloadUrl = `${PUBLIC_APP_URL}/app-debug.apk`;
+  const templateName = String(process.env.WHATSAPP_INTERCOM_TEMPLATE || 'timbre_videoportero').trim();
+
+  // 1. Intento con Plantilla Oficial de WhatsApp (para saltar la restricción de 24h de Meta)
+  try {
+    const resCo = await cloudApiRequest('/messages', 'POST', {
+      messaging_product: 'whatsapp',
+      to: whatsappRecipientPhone(to),
+      type: 'template',
+      template: {
+        name: templateName,
+        language: { code: 'es_CO' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: String(apartmentName || 'tu apartamento') },
+            ],
+          },
+          {
+            type: 'button',
+            sub_type: 'url',
+            index: '0',
+            parameters: [
+              { type: 'text', text: `${callId}?token=${callToken}` },
+            ],
+          },
+        ],
+      },
+    });
+    console.log(`[INTERCOM] WhatsApp template (${templateName} es_CO) enviado con éxito a ${to}`);
+    return resCo;
+  } catch (errTemplateCo) {
+    try {
+      const resEs = await cloudApiRequest('/messages', 'POST', {
+        messaging_product: 'whatsapp',
+        to: whatsappRecipientPhone(to),
+        type: 'template',
+        template: {
+          name: templateName,
+          language: { code: 'es' },
+          components: [
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: String(apartmentName || 'tu apartamento') },
+              ],
+            },
+            {
+              type: 'button',
+              sub_type: 'url',
+              index: '0',
+              parameters: [
+                { type: 'text', text: `${callId}?token=${callToken}` },
+              ],
+            },
+          ],
+        },
+      });
+      console.log(`[INTERCOM] WhatsApp template (${templateName} es) enviado con éxito a ${to}`);
+      return resEs;
+    } catch (errTemplate) {
+      console.warn(`[INTERCOM] Plantilla ${templateName} no disponible (${errTemplate.message}), usando notificación enriquecida...`);
+    }
+  }
+
+  // 2. Fallback: Botón Interactivo CTA si el inquilino interactuó en las últimas 24h
+  const fullText = `🔔 *TIMBRE EDIFICIO LAUJIM*\n\nAlguien está en el portón llamando al *Apto ${apartmentName}*.\n\n📹 *Videoportero y abrir puerta:*\n${callUrl}\n\n🏢 *Portal Residente:* ${portalUrl}\n📲 *Descargar App Android:* ${appDownloadUrl}`;
+
+  try {
+    const resInteractive = await cloudApiRequest('/messages', 'POST', {
+      messaging_product: 'whatsapp',
+      to: whatsappRecipientPhone(to),
+      type: 'interactive',
+      interactive: {
+        type: 'cta_url',
+        body: { text: fullText },
+        action: {
+          name: 'cta_url',
+          parameters: {
+            display_text: '📹 Ver y Abrir Portón',
+            url: callUrl,
+          },
+        },
+      },
+    });
+    console.log(`[INTERCOM] WhatsApp CTA enviado con éxito a ${to}`);
+    return resInteractive;
+  } catch (errInteractive) {
+    // 3. Fallback de texto con todos los enlaces directos
+    console.warn('[INTERCOM] Fallback a texto plano WhatsApp:', errInteractive.message);
+    return await sendCloudText(to, fullText);
+  }
 }
 
 async function getEzvizLiveStreamUrl(deviceSerialOverride = null, protocol = '2') {
@@ -6181,9 +6320,7 @@ app.post('/api/intercom/webhook', (req, res) => {
   // Try to notify tenant via WhatsApp
   const tenant = resolveTenantForApartment(apartment.id);
   if (tenant?.phone && cloudReady()) {
-    const callUrl = `${PUBLIC_APP_URL}/intercom/call/${call.id}?token=${call.token}`;
-    const body = `🔔 Alguien está en el portón del edificio y quiere comunicarse con el apartamento ${apartment.name}.`;
-    sendCloudAdminAccessButton(tenant.phone, body + `\n\nAbre este enlace para ver y responder:\n${callUrl}`)
+    sendCloudIntercomNotification(tenant.phone, apartment.name, call.id, call.token)
       .catch(e => console.warn('[INTERCOM] WhatsApp notification failed:', e.message));
   }
   console.log(`[INTERCOM] Call ${call.id} for apt ${apartment.name} from ${call.sourceDevice}`);
@@ -6404,10 +6541,8 @@ app.post('/api/intercom/public/call', async (req, res) => {
   // Notify tenant
   const tenant = resolveTenantForApartment(apartment.id);
   if (tenant?.phone && cloudReady()) {
-    const callUrl = `${PUBLIC_APP_URL}/intercom/call/${call.id}?token=${call.token}`;
-    sendCloudAdminAccessButton(tenant.phone,
-      `🔔 Alguien está en el portón del edificio para el apartamento ${apartment.name}.\n\nAbre este enlace para ver y responder:\n${callUrl}`
-    ).catch(e => console.warn('[INTERCOM] WhatsApp notification failed:', e.message));
+    sendCloudIntercomNotification(tenant.phone, apartment.name, call.id, call.token)
+      .catch(e => console.warn('[INTERCOM] WhatsApp notification failed:', e.message));
   }
   console.log(`[INTERCOM] Public call ${call.id} for apt ${apartment.name}`);
   res.json({ ok: true, callId: call.id, token: call.token, message: 'Llamando al apartamento ' + apartment.name + '...' });
@@ -6430,17 +6565,78 @@ app.get('/api/intercom/public/call/:id', (req, res) => {
   });
 });
 
-// GET /api/intercom/public/feed — latest gate snapshot (no auth, for call page)
+// GET /api/intercom/public/feed — snapshot por cámara (no auth, soporta ?serial=...)
 app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) => {
-  if (req.query.refresh === '1' && Date.now() - new Date(latestGateSnapshot.ts || 0).getTime() > 2500) {
+  const serial = String(req.query.serial || process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814').trim();
+  const currentSnap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
+  const isStale = !currentSnap?.data || (Date.now() - new Date(currentSnap?.ts || 0).getTime() > 2500);
+  if (req.query.refresh === '1' || isStale) {
     try {
-      await captureEzvizCloudSnapshot();
+      await captureEzvizCloudSnapshot(serial);
     } catch {}
   }
-  if (!latestGateSnapshot.data) return res.status(404).json({ error: 'No hay imagen.' });
-  res.setHeader('Content-Type', latestGateSnapshot.contentType);
+  const snap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null) || latestGateSnapshot;
+  if (!snap || !snap.data) return res.status(404).json({ error: 'No hay imagen disponible.' });
+  res.setHeader('Content-Type', snap.contentType || 'image/jpeg');
   res.setHeader('Cache-Control', 'no-cache, no-store');
-  res.send(latestGateSnapshot.data);
+  res.send(snap.data);
+});
+
+// GET /api/cameras — listar las 3 cámaras del edificio y su feed actual
+app.get('/api/cameras', (req, res) => {
+  const cameras = KNOWN_CAMERAS.map(cam => {
+    const snap = cameraSnapshots[cam.serial] || (cam.isGate ? latestGateSnapshot : null);
+    return {
+      id: cam.id,
+      name: cam.name,
+      serial: cam.serial,
+      location: cam.location,
+      isGate: Boolean(cam.isGate),
+      hasSnapshot: Boolean(snap?.data),
+      lastSnapshotTs: snap?.ts || null,
+      feedUrl: `/api/intercom/public/feed?serial=${cam.serial}`,
+      status: 'online',
+    };
+  });
+  res.json({ ok: true, cameras });
+});
+
+// GET /api/intercom/public/template-status — consultar estado de aprobación de la plantilla en Meta WhatsApp
+app.get('/api/intercom/public/template-status', async (req, res) => {
+  const c = cloudConfig();
+  if (!cloudReady()) {
+    return res.json({ ok: false, message: 'WhatsApp Cloud API no configurada en las variables de entorno.' });
+  }
+  const templateName = String(req.query.name || process.env.WHATSAPP_INTERCOM_TEMPLATE || 'timbre_videoportero').trim();
+  try {
+    const phoneData = await cloudApiRequest(`?fields=id,display_phone_number,whatsapp_business_account`, 'GET').catch(() => null);
+    const wabaId = phoneData?.whatsapp_business_account?.id || process.env.WHATSAPP_WABA_ID || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
+    
+    if (!wabaId) {
+      return res.json({
+        ok: false,
+        message: 'No se pudo detectar el WABA ID automáticamente desde el número de teléfono.',
+        phoneData,
+      });
+    }
+
+    const templatesRes = await cloudGraphRequest(`/${wabaId}/message_templates?name=${encodeURIComponent(templateName)}`, 'GET');
+    const templates = Array.isArray(templatesRes?.data) ? templatesRes.data : [];
+    const matched = templates.find(t => t.name === templateName) || templates[0] || null;
+
+    res.json({
+      ok: true,
+      templateName,
+      wabaId,
+      found: Boolean(matched),
+      status: matched?.status || 'NOT_FOUND',
+      isApproved: matched?.status === 'APPROVED',
+      template: matched,
+      allTemplatesCount: templates.length,
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // GET /api/intercom/public/debug — diagnostico completo de conexión con Ezviz

@@ -22,6 +22,12 @@ function colombiaTime(value) {
   return new Date(value).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
 }
 
+const BUILDING_CAMERAS = [
+  { id: 'gate', name: 'Portón', serial: 'BG6994814' },
+  { id: 'lat', name: 'Lateral (L)', serial: 'BG6994872' },
+  { id: 'izq', name: 'Izquierda (IZQ)', serial: 'BG6994741' },
+];
+
 export default function IntercomCallPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -35,6 +41,7 @@ export default function IntercomCallPage() {
 
   // Video & Stream State
   const [viewMode, setViewMode] = useState('visitor'); // 'visitor' | 'ezviz'
+  const [selectedCameraSerial, setSelectedCameraSerial] = useState('BG6994814');
   const [imgKey, setImgKey] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [isLiveActive, setIsLiveActive] = useState(true);
@@ -213,11 +220,7 @@ export default function IntercomCallPage() {
   const st = statusConfig[call?.status] || statusConfig.missed;
   const StatusIcon = st.icon;
 
-  const feedUrl = call?.feedAvailable
-    ? `${API_BASE}/api/intercom/public/feed?t=${Date.now()}&refresh=1`
-    : call?.snapshotUrl
-      ? `${API_BASE}${call.snapshotUrl}`
-      : null;
+  const feedUrl = `${API_BASE}/api/intercom/public/feed?serial=${selectedCameraSerial}&t=${Date.now()}&refresh=1`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-4 pb-10">
@@ -254,9 +257,31 @@ export default function IntercomCallPage() {
             }`}
           >
             <Camera className="h-3.5 w-3.5" />
-            <span>Cámara Portón</span>
+            <span>Cámaras Ezviz (3)</span>
           </button>
         </div>
+
+        {/* Ezviz Multi-Camera Sub-Tabs */}
+        {viewMode === 'ezviz' && (
+          <div className="flex bg-slate-900 px-2 py-1.5 gap-1.5 border-t border-slate-800">
+            {BUILDING_CAMERAS.map(cam => (
+              <button
+                key={cam.serial}
+                onClick={() => {
+                  setSelectedCameraSerial(cam.serial);
+                  setImgKey(k => k + 1);
+                }}
+                className={`flex-1 py-1 px-1.5 rounded-md text-[11px] font-bold truncate transition-all ${
+                  selectedCameraSerial === cam.serial
+                    ? 'bg-amber-500 text-slate-950 shadow'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                {cam.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Video / Camera View */}
         <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">

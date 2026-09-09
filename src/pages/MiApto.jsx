@@ -92,6 +92,12 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
   );
 }
 
+const APTO_CAMERAS = [
+  { id: 'gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal' },
+  { id: 'lat', name: 'Fachada Lateral (L)', serial: 'BG6994872', location: 'Costado Derecho' },
+  { id: 'izq', name: 'Fachada Izquierda (IZQ)', serial: 'BG6994741', location: 'Costado Izquierdo' },
+];
+
 export default function MiApto() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -105,7 +111,8 @@ export default function MiApto() {
   const [actionMessage, setActionMessage] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [cameraLive, setCameraLive] = useState(true);
-  const [cameraImageSrc, setCameraImageSrc] = useState(`${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`);
+  const [selectedCamSerial, setSelectedCamSerial] = useState('BG6994814');
+  const [cameraImageSrc, setCameraImageSrc] = useState(`${getRawBase()}/api/intercom/public/feed?serial=BG6994814&t=${Date.now()}`);
   const [cameraCountdown, setCameraCountdown] = useState(60); // 60s auto-pause to protect Render bandwidth
   const [cameraError, setCameraError] = useState(false);
   const [showEzvizGuide, setShowEzvizGuide] = useState(false);
@@ -133,7 +140,7 @@ export default function MiApto() {
         return prev - 2;
       });
 
-      const nextUrl = `${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`;
+      const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&t=${Date.now()}`;
       const img = new Image();
       img.onload = () => {
         setCameraImageSrc(nextUrl);
@@ -143,7 +150,7 @@ export default function MiApto() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [cameraLive]);
+  }, [cameraLive, selectedCamSerial]);
 
   function toggleCameraLive() {
     setCameraLive(prev => {
@@ -324,10 +331,32 @@ export default function MiApto() {
             </button>
           </div>
 
+          {/* Selector de Cámaras (3 Cámaras Ezviz) */}
+          <div className="mt-3 flex gap-1.5 p-1 bg-slate-100 rounded-xl">
+            {APTO_CAMERAS.map(cam => (
+              <button
+                key={cam.serial}
+                onClick={() => {
+                  setSelectedCamSerial(cam.serial);
+                  const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
+                  setCameraImageSrc(nextUrl);
+                  fetch(`${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1`).catch(() => {});
+                }}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all truncate ${
+                  selectedCamSerial === cam.serial
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {cam.name}
+              </button>
+            ))}
+          </div>
+
           <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-inner">
             <img
               src={cameraImageSrc}
-              alt="Cámara del portón"
+              alt="Cámara del edificio"
               className="h-full w-full object-cover transition-opacity duration-300"
               onError={() => setCameraError(true)}
               onLoad={() => setCameraError(false)}
@@ -335,13 +364,13 @@ export default function MiApto() {
             {cameraError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 p-4 text-center text-white">
                 <Camera className="mb-2 h-8 w-8 text-slate-500" />
-                <p className="text-xs text-slate-300">Conectando con la cámara Ezviz H8c...</p>
+                <p className="text-xs text-slate-300">Conectando con la cámara Ezviz...</p>
                 <button
                   onClick={() => {
                     setCameraError(false);
-                    const nextUrl = `${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`;
+                    const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&t=${Date.now()}`;
                     setCameraImageSrc(nextUrl);
-                    fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
+                    fetch(`${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&refresh=1`).catch(() => {});
                   }}
                   className="mt-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold"
                 >
@@ -351,12 +380,12 @@ export default function MiApto() {
             )}
             <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-              Ezviz H8c 5MP
+              {APTO_CAMERAS.find(c => c.serial === selectedCamSerial)?.name || 'Cámara Ezviz'}
             </div>
             <button
               onClick={() => {
-                fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
-                const nextUrl = `${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`;
+                fetch(`${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&refresh=1`).catch(() => {});
+                const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&t=${Date.now()}`;
                 const img = new Image();
                 img.onload = () => setCameraImageSrc(nextUrl);
                 img.src = nextUrl;
@@ -371,8 +400,8 @@ export default function MiApto() {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
             <button
               onClick={() => {
-                fetch(`${getRawBase()}/api/intercom/public/feed?refresh=1`).catch(() => {});
-                const nextUrl = `${getRawBase()}/api/intercom/public/feed?t=${Date.now()}`;
+                fetch(`${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&refresh=1`).catch(() => {});
+                const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&t=${Date.now()}`;
                 const img = new Image();
                 img.onload = () => setCameraImageSrc(nextUrl);
                 img.src = nextUrl;

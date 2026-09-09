@@ -15,10 +15,17 @@ async function intercomRequest(route, options = {}) {
   return payload;
 }
 
+const BUILDING_CAMERAS = [
+  { id: 'gate', name: 'Portón', serial: 'BG6994814' },
+  { id: 'lat', name: 'Lateral (L)', serial: 'BG6994872' },
+  { id: 'izq', name: 'Izquierda (IZQ)', serial: 'BG6994741' },
+];
+
 export default function IntercomCallModal({ call, onClose, onAction }) {
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState(null);
   const [viewMode, setViewMode] = useState('visitor'); // 'visitor' | 'ezviz'
+  const [selectedCameraSerial, setSelectedCameraSerial] = useState('BG6994814');
   const [imgKey, setImgKey] = useState(Date.now());
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [isLiveActive, setIsLiveActive] = useState(true);
@@ -159,11 +166,7 @@ export default function IntercomCallModal({ call, onClose, onAction }) {
     }
   }
 
-  const feedUrl = call.feedUrl
-    ? `${getRawBase()}${call.feedUrl}?t=${imgKey}&refresh=1`
-    : call.snapshotUrl
-      ? `${getRawBase()}${call.snapshotUrl}`
-      : null;
+  const feedUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCameraSerial}&t=${imgKey}&refresh=1`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -206,9 +209,31 @@ export default function IntercomCallModal({ call, onClose, onAction }) {
             }`}
           >
             <Camera className="h-3.5 w-3.5" />
-            <span>Cámara Portón (Ezviz)</span>
+            <span>Cámaras Ezviz (3)</span>
           </button>
         </div>
+
+        {/* Ezviz Multi-Camera Sub-Tabs */}
+        {viewMode === 'ezviz' && (
+          <div className="flex bg-slate-900 px-2 py-1.5 gap-1.5 border-t border-slate-800">
+            {BUILDING_CAMERAS.map(cam => (
+              <button
+                key={cam.serial}
+                onClick={() => {
+                  setSelectedCameraSerial(cam.serial);
+                  setImgKey(Date.now());
+                }}
+                className={`flex-1 py-1 px-1.5 rounded-md text-[11px] font-bold truncate transition-all ${
+                  selectedCameraSerial === cam.serial
+                    ? 'bg-amber-500 text-slate-950 shadow'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                {cam.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Video / Snapshot Display */}
         <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
