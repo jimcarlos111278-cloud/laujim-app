@@ -5813,6 +5813,44 @@ const KNOWN_CAMERAS = [
 ];
 let cameraSnapshots = {}; // { [serial]: { data: Buffer, ts: string, contentType: string } }
 let latestGateSnapshot = { data: null, ts: null, contentType: 'image/jpeg' };
+const captureInFlight = new Map();
+
+function getEzvizOpenPlatformKeys() {
+  const envKey = String(process.env.EZVIZ_APP_KEY || '').trim();
+  const envSecret = String(process.env.EZVIZ_APP_SECRET || '').trim();
+  if (envKey && envSecret) return { appKey: envKey, appSecret: envSecret, source: 'env' };
+  const dbKey = (db.settings || []).find(s => s.key === 'EZVIZ_APP_KEY')?.value || '';
+  const dbSecret = (db.settings || []).find(s => s.key === 'EZVIZ_APP_SECRET')?.value || '';
+  if (dbKey && dbSecret) return { appKey: String(dbKey).trim(), appSecret: String(dbSecret).trim(), source: 'database' };
+  return { appKey: '', appSecret: '', source: 'none' };
+}
+
+function generateCameraStandbySvg(cameraName = 'Cámara Laujim', serial = '') {
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="lensGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="85%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bgGrad)"/>
+  <circle cx="320" cy="140" r="54" fill="none" stroke="#1e293b" stroke-width="6"/>
+  <circle cx="320" cy="140" r="46" fill="url(#lensGrad)" stroke="#38bdf8" stroke-width="2" stroke-dasharray="8 4"/>
+  <circle cx="320" cy="140" r="24" fill="#0369a1" opacity="0.4"/>
+  <circle cx="320" cy="140" r="10" fill="#38bdf8"/>
+  <circle cx="330" cy="130" r="3" fill="#ffffff" opacity="0.8"/>
+  <text x="320" y="224" fill="#f8fafc" font-size="16" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" letter-spacing="0.5">${cameraName}</text>
+  <text x="320" y="248" fill="#94a3b8" font-size="12" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" text-anchor="middle">Sincronizando señal en vivo (${serial || 'En línea'})...</text>
+  <rect x="235" y="272" width="170" height="26" rx="13" fill="#0f172a" stroke="#1e293b"/>
+  <circle cx="253" cy="285" r="4" fill="#10b981"/>
+  <text x="325" y="289" fill="#10b981" font-size="10" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="800" text-anchor="middle" letter-spacing="1">SEÑAL ACTIVA • LAUJIM</text>
+</svg>`, 'utf8');
+}
 
 // ─── EZVIZ CLOUD CLIENT (SOPORTA CUENTA APP EZVIZ DIRECTA O DEVELOPER KEY) ───
 let ezvizTokenCache = { token: '', expireTime: 0, areaDomain: 'https://open.ezvizlife.com' };
@@ -6011,8 +6049,7 @@ async function captureFromEzvizConsumerAccount(serial) {
 }
 
 async function getEzvizAccessToken() {
-  const appKey = String(process.env.EZVIZ_APP_KEY || '').trim();
-  const appSecret = String(process.env.EZVIZ_APP_SECRET || '').trim();
+  const { appKey, appSecret } = getEzvizOpenPlatformKeys();
   if (!appKey || !appSecret) return null;
 
   if (ezvizTokenCache.token && Date.now() < ezvizTokenCache.expireTime - 600_000) {
@@ -6044,53 +6081,67 @@ async function getEzvizAccessToken() {
 }
 
 async function captureEzvizCloudSnapshot(deviceSerialOverride = null) {
-  const serial = String(deviceSerialOverride || process.env.EZVIZ_DEVICE_SERIAL || '').trim();
+  const serial = String(deviceSerialOverride || process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814').trim();
   if (!serial) return null;
 
-  // Vía 1: Cuenta Ezviz Consumer (Directo con tu app del celular)
-  if (process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD) {
-    const result = await captureFromEzvizConsumerAccount(serial);
-    if (result) return result;
+  if (captureInFlight.has(serial)) {
+    return await captureInFlight.get(serial);
   }
 
-  // Vía 2: Open Platform (AppKey / AppSecret)
-  const tokenInfo = await getEzvizAccessToken();
-  if (tokenInfo) {
-    const base = tokenInfo.areaDomain || 'https://open.ezvizlife.com';
-    const body = new URLSearchParams({
-      accessToken: tokenInfo.token,
-      deviceSerial: serial.toUpperCase(),
-      channelNo: '1',
-    }).toString();
-
+  const promise = (async () => {
     try {
-      const res = await fetch(`${base}/api/lapp/device/capture`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
-        signal: AbortSignal.timeout(12000),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (data.code === '200' && data.data?.picUrl) {
-        const imgRes = await fetch(data.data.picUrl, { signal: AbortSignal.timeout(10000) });
-        if (imgRes.ok) {
-          const buffer = Buffer.from(await imgRes.arrayBuffer());
-          const snap = {
-            data: buffer,
-            ts: new Date().toISOString(),
-            contentType: imgRes.headers.get('content-type') || 'image/jpeg',
-          };
-          cameraSnapshots[serial] = snap;
-          if (serial === 'BG6994814' || serial === (process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814')) latestGateSnapshot = snap;
-          return { picUrl: data.data.picUrl, buffer };
+      // Vía 1: Cuenta Ezviz Consumer (Directo con tu app del celular)
+      if (process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD) {
+        const result = await captureFromEzvizConsumerAccount(serial);
+        if (result) return result;
+      }
+
+      // Vía 2: Open Platform (AppKey / AppSecret)
+      const tokenInfo = await getEzvizAccessToken();
+      if (tokenInfo) {
+        const base = tokenInfo.areaDomain || 'https://open.ezvizlife.com';
+        const body = new URLSearchParams({
+          accessToken: tokenInfo.token,
+          deviceSerial: serial.toUpperCase(),
+          channelNo: '1',
+        }).toString();
+
+        try {
+          const res = await fetch(`${base}/api/lapp/device/capture`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+            signal: AbortSignal.timeout(12000),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (data.code === '200' && data.data?.picUrl) {
+            const imgRes = await fetch(data.data.picUrl, { signal: AbortSignal.timeout(10000) });
+            if (imgRes.ok) {
+              const buffer = Buffer.from(await imgRes.arrayBuffer());
+              const snap = {
+                data: buffer,
+                ts: new Date().toISOString(),
+                contentType: imgRes.headers.get('content-type') || 'image/jpeg',
+              };
+              cameraSnapshots[serial] = snap;
+              if (serial === 'BG6994814' || serial === (process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814')) latestGateSnapshot = snap;
+              return { picUrl: data.data.picUrl, buffer };
+            }
+          }
+        } catch (err) {
+          console.warn('[EZVIZ] capture request network error:', err.message);
         }
       }
     } catch (err) {
-      console.warn('[EZVIZ] capture request network error:', err.message);
+      console.warn(`[EZVIZ] Error capturando fotograma para ${serial}:`, err.message);
+    } finally {
+      captureInFlight.delete(serial);
     }
-  }
+    return null;
+  })();
 
-  return null;
+  captureInFlight.set(serial, promise);
+  return await promise;
 }
 
 async function fetchEzvizLatestSnapshot(serial = null) {
@@ -6248,21 +6299,38 @@ async function getEzvizLiveStreamUrl(serial) {
       protocol: '2', // HLS m3u8
       quality: '2',  // Fluido
     }).toString();
-    const res = await fetch(`${base}/api/lapp/v2/live/address/get`, {
+
+    let res = await fetch(`${base}/api/lapp/v2/live/address/get`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
       signal: AbortSignal.timeout(8000),
     });
-    const data = await res.json().catch(() => ({}));
-    if (data.code === '200' && data.data?.url) {
+    let data = await res.json().catch(() => ({}));
+
+    // Fallback al endpoint clásico si v2 no respondió código 200
+    if (data?.code !== '200') {
+      res = await fetch(`${base}/api/lapp/live/address/get`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: AbortSignal.timeout(8000),
+      });
+      data = await res.json().catch(() => ({}));
+    }
+
+    if (data.code === '200' && (data.data?.url || data.data?.hls)) {
       return {
         ok: true,
-        streamUrl: data.data.url,
+        streamUrl: data.data.url || data.data.hls,
+        rtmpUrl: data.data.rtmp || null,
+        flvUrl: data.data.flv || null,
         protocol: 'hls',
+        serial,
         expireTime: data.data.expireTime || null,
       };
     }
+    console.warn(`[EZVIZ STREAM] Código de respuesta Ezviz (${serial}):`, data?.code, data?.msg || data?.message);
   } catch (err) {
     console.warn('[EZVIZ STREAM] Error obteniendo URL stream:', err.message);
   }
@@ -6747,15 +6815,23 @@ app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) =>
       await captureEzvizCloudSnapshot(serial);
     } catch {}
   }
+  const camMeta = KNOWN_CAMERAS.find(c => c.serial === serial);
   const snap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null) || latestGateSnapshot;
-  if (!snap || !snap.data) return res.status(404).json({ error: 'No hay imagen disponible.' });
-  res.setHeader('Content-Type', snap.contentType || 'image/jpeg');
+  
   res.setHeader('Cache-Control', 'no-cache, no-store');
-  res.send(snap.data);
+  if (snap && snap.data) {
+    res.setHeader('Content-Type', snap.contentType || 'image/jpeg');
+    return res.send(snap.data);
+  }
+
+  // Zero-404 Fallback elegante: envía fotograma SVG de espera corporativo en vez de 404
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.send(generateCameraStandbySvg(camMeta?.name || 'Cámara Laujim', serial));
 });
 
 // GET /api/cameras — listar las 3 cámaras del edificio y su feed actual
 app.get('/api/cameras', (req, res) => {
+  const { appKey } = getEzvizOpenPlatformKeys();
   const cameras = KNOWN_CAMERAS.map(cam => {
     const snap = cameraSnapshots[cam.serial] || (cam.isGate ? latestGateSnapshot : null);
     return {
@@ -6768,10 +6844,15 @@ app.get('/api/cameras', (req, res) => {
       hasSnapshot: Boolean(snap?.data),
       lastSnapshotTs: snap?.ts || null,
       feedUrl: `/api/intercom/public/feed?serial=${cam.serial}`,
+      streamApiUrl: `/api/cameras/${cam.serial}/stream`,
       status: 'online',
     };
   });
-  res.json({ ok: true, cameras });
+  res.json({
+    ok: true,
+    cameras,
+    streamingActive: Boolean(appKey),
+  });
 });
 
 // POST /api/cameras/:serial/ptz — mover cámara motorizada Ezviz (Pan/Tilt)
@@ -6809,6 +6890,62 @@ app.get('/api/cameras/:serial/stream', async (req, res) => {
     feedUrl: `/api/intercom/public/feed?serial=${serial}`,
   });
 });
+
+// POST /api/cameras/settings/ezviz-keys — configurar AppKey y AppSecret de Ezviz Open Platform
+app.post('/api/cameras/settings/ezviz-keys', (req, res) => {
+  const { appKey, appSecret } = req.body || {};
+  const cleanKey = String(appKey || '').trim();
+  const cleanSecret = String(appSecret || '').trim();
+  if (!cleanKey || !cleanSecret) {
+    return res.status(400).json({ error: 'AppKey y AppSecret son obligatorios.' });
+  }
+
+  if (!Array.isArray(db.settings)) db.settings = [];
+
+  let keyItem = db.settings.find(s => s.key === 'EZVIZ_APP_KEY');
+  if (keyItem) keyItem.value = cleanKey;
+  else db.settings.push({ key: 'EZVIZ_APP_KEY', value: cleanKey });
+
+  let secItem = db.settings.find(s => s.key === 'EZVIZ_APP_SECRET');
+  if (secItem) secItem.value = cleanSecret;
+  else db.settings.push({ key: 'EZVIZ_APP_SECRET', value: cleanSecret });
+
+  // Limpiar caché de token para forzar regeneración con las nuevas credenciales
+  ezvizTokenCache = { token: '', expireTime: 0, areaDomain: 'https://open.ezvizlife.com' };
+  saveData();
+
+  console.log('[EZVIZ] Nuevas credenciales Open Platform guardadas en la configuración.');
+  res.json({ ok: true, message: 'Credenciales de Ezviz Open Platform guardadas exitosamente.' });
+});
+
+// GET /api/cameras/settings/ezviz-status — estado de conexión de cámaras y streaming
+app.get('/api/cameras/settings/ezviz-status', (req, res) => {
+  const { appKey, source } = getEzvizOpenPlatformKeys();
+  const hasConsumer = Boolean(process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD);
+  res.json({
+    ok: true,
+    hasConsumerAccount: hasConsumer,
+    hasOpenPlatform: Boolean(appKey),
+    keysSource: source,
+    appKeyMasked: appKey ? `${appKey.slice(0, 4)}••••${appKey.slice(-4)}` : null,
+    cameras: KNOWN_CAMERAS.map(c => ({
+      name: c.name,
+      serial: c.serial,
+      hasSnapshot: Boolean(cameraSnapshots[c.serial]?.data),
+    })),
+  });
+});
+
+// Precarga inicial caliente en segundo plano de las 3 cámaras
+async function prewarmAllCameras() {
+  for (const cam of KNOWN_CAMERAS) {
+    try {
+      await captureEzvizCloudSnapshot(cam.serial);
+      await new Promise(r => setTimeout(r, 700));
+    } catch {}
+  }
+}
+setTimeout(prewarmAllCameras, 3000);
 
 // GET /api/intercom/public/template-status — consultar estado de aprobación de la plantilla en Meta WhatsApp
 app.get('/api/intercom/public/template-status', async (req, res) => {

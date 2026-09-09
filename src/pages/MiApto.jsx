@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Hls from 'hls.js';
 import {
   AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Building2, Calendar, Camera, Check, ChevronDown, ChevronUp,
   Compass, Copy, Download, Droplets, ExternalLink, Eye, FileText, Flame, Info, Key, LayoutGrid, Loader2,
-  LockKeyhole, LogOut, MapPin, Maximize2, Move, QrCode, RefreshCw, ShieldCheck, Video, Zap,
+  LockKeyhole, LogOut, MapPin, Maximize2, Move, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, X, Zap,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { clearAuth, isTenant } from '../utils/auth';
@@ -120,6 +121,16 @@ export default function MiApto() {
     BG6994741: `${getRawBase()}/api/intercom/public/feed?serial=BG6994741&t=${Date.now()}`,
   });
   const [cameraErrors, setCameraErrors] = useState({});
+  const [streamUrls, setStreamUrls] = useState({});
+  const [streamErrors, setStreamErrors] = useState({});
+  const [streamingActive, setStreamingActive] = useState(false);
+  const [showStreamSetup, setShowStreamSetup] = useState(false);
+  const [appKeyInput, setAppKeyInput] = useState('');
+  const [appSecretInput, setAppSecretInput] = useState('');
+  const [savingKeys, setSavingKeys] = useState(false);
+  const [keysFeedback, setKeysFeedback] = useState(null);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef(null);
   const [ptzMoving, setPtzMoving] = useState(''); // 'up' | 'down' | 'left' | 'right' | ''
   const [ptzFeedback, setPtzFeedback] = useState('');
   const [showEzvizGuide, setShowEzvizGuide] = useState(false);
@@ -135,6 +146,114 @@ export default function MiApto() {
     } catch {}
   }
 
+  // Consultar streams HLS de Ezviz para cada cámara
+  async function loadStreams() {
+    try {
+      const statusRes = await fetch(`${getRawBase()}/api/cameras/settings/ezviz-status`);
+      const statusData = await statusRes.json().catch(() => ({}));
+      if (statusData.ok && statusData.hasOpenPlatform) {
+        setStreamingActive(true);
+      }
+    } catch {}
+
+    for (const cam of APTO_CAMERAS) {
+      try {
+        const res = await fetch(`${getRawBase()}/api/cameras/${cam.serial}/stream`);
+        const data = await res.json().catch(() => ({}));
+        if (data.ok && data.streamUrl) {
+          setStreamUrls(prev => ({ ...prev, [cam.serial]: data.streamUrl }));
+          setStreamErrors(prev => ({ ...prev, [cam.serial]: false }));
+        }
+      } catch {}
+    }
+  }
+
+  useEffect(() => {
+    loadStreams();
+  }, []);
+
+  // Precarga escalonada inicial para garantizar que las 3 cámaras respondan de inmediato
+  useEffect(() => {
+    APTO_CAMERAS.forEach((cam, idx) => {
+      setTimeout(() => {
+        const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
+        const img = new Image();
+        img.onload = () => {
+          setCameraFeeds(prev => ({ ...prev, [cam.serial]: nextUrl }));
+          setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
+        };
+        img.src = nextUrl;
+      }, idx * 400);
+    });
+  }, []);
+
+  // Reproductor HLS para la cámara Hero seleccionada
+  useEffect(() => {
+    const streamUrl = streamUrls[selectedCamSerial];
+    const isFailed = streamErrors[selectedCamSerial];
+    const video = videoRef.current;
+    if (!video || !streamUrl || isFailed) return;
+
+    let hls = null;
+    if (Hls.isSupported()) {
+      hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 30,
+      });
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.warn('[HLS] Error en stream HLS:', data);
+          setStreamErrors(prev => ({ ...prev, [selectedCamSerial]: true }));
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
+      video.addEventListener('loadedmetadata', () => {
+        video.play().catch(() => {});
+      });
+    }
+
+    return () => {
+      if (hls) hls.destroy();
+    };
+  }, [selectedCamSerial, streamUrls[selectedCamSerial], streamErrors[selectedCamSerial]]);
+
+  // Guardar llaves de Ezviz Open Platform
+  async function handleSaveOpenPlatformKeys(e) {
+    if (e) e.preventDefault();
+    if (!appKeyInput.trim() || !appSecretInput.trim()) {
+      setKeysFeedback({ type: 'error', text: 'Por favor ingresa tanto el AppKey como el AppSecret.' });
+      return;
+    }
+    setSavingKeys(true);
+    setKeysFeedback(null);
+    try {
+      const res = await fetch(`${getRawBase()}/api/cameras/settings/ezviz-keys`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ appKey: appKeyInput.trim(), appSecret: appSecretInput.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Error al guardar credenciales');
+      setKeysFeedback({ type: 'success', text: '¡Conectado! Verificando transmisión en vivo a 25 FPS...' });
+      await loadStreams();
+      setTimeout(() => {
+        setShowStreamSetup(false);
+        setKeysFeedback(null);
+      }, 1500);
+    } catch (err) {
+      setKeysFeedback({ type: 'error', text: err.message });
+    } finally {
+      setSavingKeys(false);
+    }
+  }
+
   // Motor de ráfaga concurrente con doble búfer: actualiza las 3 cámaras simultáneamente de forma escalonada
   useEffect(() => {
     if (!cameraLive) return;
@@ -148,7 +267,7 @@ export default function MiApto() {
         return prev - 1;
       });
 
-      // Refresca una cámara cada 750ms, completando el ciclo de las 3 en ~2.2s (sensación continua y fluida)
+      // Refresca una cámara cada 750ms, completando el ciclo de las 3 en ~2.2s
       const targetCam = APTO_CAMERAS[step % APTO_CAMERAS.length];
       step++;
       const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${targetCam.serial}&t=${Date.now()}`;
@@ -400,6 +519,22 @@ export default function MiApto() {
                 <RefreshCw className="h-4 w-4" />
               </button>
 
+              {streamingActive ? (
+                <span className="flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2.5 py-1 text-[11px] font-extrabold border border-red-200">
+                  <Radio className="h-3 w-3 animate-pulse text-red-600" />
+                  <span>25 FPS ACTIVO</span>
+                </span>
+              ) : (
+                <button
+                  onClick={() => setShowStreamSetup(true)}
+                  className="flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-2.5 py-1 text-[11px] font-bold border border-blue-200 transition shadow-sm"
+                  title="Conectar Ezviz Open Platform para 25 FPS continuo sin costo"
+                >
+                  <Video className="h-3 w-3 text-blue-600" />
+                  <span>Activar 25 FPS</span>
+                </button>
+              )}
+
               <button
                 onClick={toggleCameraLive}
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition shadow-sm ${
@@ -447,37 +582,88 @@ export default function MiApto() {
               {(() => {
                 const heroCam = APTO_CAMERAS.find(c => c.serial === selectedCamSerial) || APTO_CAMERAS[0];
                 const heroFeed = cameraFeeds[heroCam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}`;
+                const hasStream = streamUrls[heroCam.serial] && !streamErrors[heroCam.serial];
+                const hasHeroError = cameraErrors[heroCam.serial];
+
                 return (
                   <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-lg border border-slate-800">
-                    <img
-                      src={heroFeed}
-                      alt={heroCam.name}
-                      className="h-full w-full object-cover transition-opacity duration-200"
-                    />
+                    {hasStream ? (
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted={isMuted}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : hasHeroError ? (
+                      <div className="flex h-full w-full flex-col items-center justify-center bg-slate-950 p-4 text-center">
+                        <div className="relative mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                          <Camera className="h-6 w-6 text-blue-400 animate-pulse" />
+                        </div>
+                        <p className="text-xs font-bold text-white">{heroCam.name}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Sincronizando señal en vivo...</p>
+                        <button
+                          onClick={() => {
+                            setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));
+                            setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1&t=${Date.now()}` }));
+                          }}
+                          className="mt-3 flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-700 active:scale-95 transition"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" /> Reintentar ahora
+                        </button>
+                      </div>
+                    ) : (
+                      <img
+                        src={heroFeed}
+                        alt={heroCam.name}
+                        onError={() => {
+                          setCameraErrors(prev => ({ ...prev, [heroCam.serial]: true }));
+                          setTimeout(() => {
+                            setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1&t=${Date.now()}` }));
+                          }, 2000);
+                        }}
+                        onLoad={() => {
+                          setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));
+                        }}
+                        className="h-full w-full object-cover transition-opacity duration-200"
+                      />
+                    )}
 
                     {/* Top Overlay: Info de la cámara principal */}
-                    <div className="absolute top-3 left-3 flex items-center gap-2 rounded-xl bg-black/70 px-3 py-1.5 backdrop-blur-md border border-white/10">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                    <div className="absolute top-3 left-3 flex items-center gap-2 rounded-xl bg-black/75 px-3 py-1.5 backdrop-blur-md border border-white/10 z-10">
+                      <span className={`h-2 w-2 rounded-full ${hasStream ? 'bg-red-500' : 'bg-emerald-400'} animate-ping`} />
                       <div>
                         <p className="text-xs font-bold text-white leading-tight">{heroCam.name}</p>
                         <p className="text-[10px] text-slate-300">{heroCam.location} • {heroCam.badge}</p>
                       </div>
                     </div>
 
-                    {/* Top Right: Botón refresco rápido */}
-                    <button
-                      onClick={() => {
-                        fetch(`${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1`).catch(() => {});
-                        const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&t=${Date.now()}`;
-                        const img = new Image();
-                        img.onload = () => setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: nextUrl }));
-                        img.src = nextUrl;
-                      }}
-                      title="Refrescar fotograma"
-                      className="absolute top-3 right-3 rounded-xl bg-black/60 p-2 text-white hover:bg-black/80 backdrop-blur-md transition border border-white/10"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                    </button>
+                    {/* Top Right: Controles y badges */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                      {hasStream && (
+                        <button
+                          onClick={() => setIsMuted(!isMuted)}
+                          className="rounded-xl bg-black/70 p-2 text-white hover:bg-black/90 backdrop-blur-md border border-white/10 transition"
+                          title={isMuted ? 'Activar audio' : 'Silenciar'}
+                        >
+                          {isMuted ? <VolumeX className="h-3.5 w-3.5 text-slate-300" /> : <Volume2 className="h-3.5 w-3.5 text-emerald-400" />}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          fetch(`${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1`).catch(() => {});
+                          const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&t=${Date.now()}`;
+                          const img = new Image();
+                          img.onload = () => setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: nextUrl }));
+                          img.src = nextUrl;
+                        }}
+                        title="Refrescar fotograma"
+                        className="rounded-xl bg-black/60 p-2 text-white hover:bg-black/80 backdrop-blur-md transition border border-white/10"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
 
                     {/* Cruceta Táctil Flotante PTZ Glassmorphic */}
                     <div className="absolute bottom-3 right-3 flex flex-col items-center bg-slate-950/80 backdrop-blur-md p-2 rounded-2xl border border-white/15 shadow-2xl z-10 select-none">
@@ -542,10 +728,28 @@ export default function MiApto() {
                       )}
                     </div>
 
-                    {/* Bottom Left: Tag de resolución en vivo */}
-                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-lg bg-black/60 px-2 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-md">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      <span>HD En Vivo • ~0.8s Ráfaga</span>
+                    {/* Bottom Left: Tag de resolución en vivo y botón 25 FPS */}
+                    <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-2 z-10">
+                      {hasStream ? (
+                        <div className="flex items-center gap-1.5 rounded-lg bg-red-600/90 px-2.5 py-1 text-[10px] font-extrabold text-white shadow backdrop-blur-md">
+                          <Radio className="h-3 w-3 animate-pulse text-white" />
+                          <span>25 FPS CONTINUO EN VIVO</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-1.5 rounded-lg bg-black/70 px-2.5 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-md border border-white/10">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                            <span>HD • ~0.8s Ráfaga</span>
+                          </div>
+                          <button
+                            onClick={() => setShowStreamSetup(true)}
+                            className="flex items-center gap-1 rounded-lg bg-blue-600/90 hover:bg-blue-600 px-2.5 py-1 text-[10px] font-bold text-white shadow backdrop-blur-md transition active:scale-95"
+                          >
+                            <Video className="h-3 w-3" />
+                            <span>Activar 25 FPS</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -560,18 +764,36 @@ export default function MiApto() {
                 <div className="grid grid-cols-2 gap-2.5">
                   {APTO_CAMERAS.filter(c => c.serial !== selectedCamSerial).map(cam => {
                     const subFeed = cameraFeeds[cam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}`;
+                    const hasSubError = cameraErrors[cam.serial];
                     return (
                       <button
                         key={cam.serial}
                         onClick={() => setSelectedCamSerial(cam.serial)}
                         className="group relative aspect-video w-full overflow-hidden rounded-xl bg-slate-950 shadow border-2 border-transparent hover:border-blue-500 transition text-left focus:outline-none"
                       >
-                        <img
-                          src={subFeed}
-                          alt={cam.name}
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+                        {hasSubError ? (
+                          <div className="flex h-full w-full flex-col items-center justify-center bg-slate-900 p-2 text-center">
+                            <Camera className="h-5 w-5 text-blue-400 animate-pulse mb-1" />
+                            <span className="text-[10px] font-bold text-white truncate max-w-[90%]">{cam.name}</span>
+                            <span className="text-[9px] text-slate-400">Sincronizando señal...</span>
+                          </div>
+                        ) : (
+                          <img
+                            src={subFeed}
+                            alt={cam.name}
+                            onError={() => {
+                              setCameraErrors(prev => ({ ...prev, [cam.serial]: true }));
+                              setTimeout(() => {
+                                setCameraFeeds(prev => ({ ...prev, [cam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1&t=${Date.now()}` }));
+                              }, 2000);
+                            }}
+                            onLoad={() => {
+                              setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
+                            }}
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
 
                         {/* Top Badge */}
                         <div className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur">
@@ -580,9 +802,9 @@ export default function MiApto() {
                         </div>
 
                         {/* Bottom Name & Action */}
-                        <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between">
+                        <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between pointer-events-none">
                           <span className="text-[11px] font-bold text-white truncate drop-shadow">{cam.name}</span>
-                          <span className="rounded bg-blue-600/90 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
+                          <span className="rounded bg-blue-600/90 px-1.5 py-0.5 text-[9px] font-bold text-white shadow group-hover:bg-blue-500">
                             Enfocar
                           </span>
                         </div>
@@ -600,6 +822,7 @@ export default function MiApto() {
               {APTO_CAMERAS.map(cam => {
                 const isSelected = selectedCamSerial === cam.serial;
                 const camFeed = cameraFeeds[cam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}`;
+                const hasGridError = cameraErrors[cam.serial];
                 return (
                   <div
                     key={cam.serial}
@@ -608,18 +831,35 @@ export default function MiApto() {
                     }`}
                   >
                     <div className="relative aspect-video w-full">
-                      <img
-                        src={camFeed}
-                        alt={cam.name}
-                        className="h-full w-full object-cover"
-                      />
-                      <div className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">
+                      {hasGridError ? (
+                        <div className="flex h-full w-full flex-col items-center justify-center bg-slate-900 p-3 text-center">
+                          <Camera className="h-6 w-6 text-blue-400 animate-pulse mb-1" />
+                          <span className="text-xs font-bold text-white">{cam.name}</span>
+                          <span className="text-[10px] text-slate-400">Sincronizando señal...</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={camFeed}
+                          alt={cam.name}
+                          onError={() => {
+                            setCameraErrors(prev => ({ ...prev, [cam.serial]: true }));
+                            setTimeout(() => {
+                              setCameraFeeds(prev => ({ ...prev, [cam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1&t=${Date.now()}` }));
+                            }, 2000);
+                          }}
+                          onLoad={() => {
+                            setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
+                          }}
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                      <div className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur pointer-events-none">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                         <span>{cam.badge}</span>
                       </div>
                       <button
                         onClick={() => setSelectedCamSerial(cam.serial)}
-                        className={`absolute top-2 right-2 rounded-lg px-2 py-1 text-[10px] font-bold transition ${
+                        className={`absolute top-2 right-2 rounded-lg px-2 py-1 text-[10px] font-bold transition z-10 ${
                           isSelected ? 'bg-blue-600 text-white shadow' : 'bg-black/60 text-slate-300 hover:text-white'
                         }`}
                       >
@@ -803,6 +1043,104 @@ export default function MiApto() {
           onClose={() => setActiveCall(null)}
           onAction={() => setActiveCall(null)}
         />
+      )}
+
+      {/* Modal para activar video continuo 25 FPS sin costo en Render */}
+      {showStreamSetup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-100">
+            {/* Header */}
+            <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-700 px-5 py-4 text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-white/20">
+                  <Video className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Activar Video Continuo 25 FPS</h3>
+                  <p className="text-[11px] text-blue-100">Ezviz Open Platform • 100% Gratuito y 0 KB en Render</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowStreamSetup(false); setKeysFeedback(null); }}
+                className="rounded-lg p-1 text-white/80 hover:text-white hover:bg-white/10 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4">
+              <div className="rounded-2xl bg-blue-50/70 border border-blue-100 p-3.5 space-y-2 text-xs text-blue-900">
+                <p className="font-bold flex items-center gap-1.5 text-blue-950">
+                  <Info className="h-4 w-4 text-blue-600 shrink-0" />
+                  <span>¿Cómo funciona el video en vivo a 25 FPS?</span>
+                </p>
+                <p className="text-[11px] leading-relaxed text-blue-800">
+                  Ezviz ofrece gratuitamente para propietarios de cámaras su plataforma <strong>Open Platform</strong>. Esta genera un stream de video en vivo (HLS/WebRTC) transmitido directamente desde sus servidores a tu pantalla.
+                </p>
+                <div className="pt-2 border-t border-blue-200/50 space-y-1.5 text-[11px] text-slate-700">
+                  <p><strong>Paso 1:</strong> Ingresa en <a href="https://open.ezvizlife.com" target="_blank" rel="noreferrer" className="text-blue-700 font-bold underline inline-flex items-center gap-0.5">open.ezvizlife.com <ExternalLink className="h-3 w-3" /></a> con tu cuenta Ezviz o regístrate gratis.</p>
+                  <p><strong>Paso 2:</strong> En la sección <em>Console / Control Panel</em>, copia tu <strong>AppKey</strong> y <strong>AppSecret</strong>.</p>
+                  <p><strong>Paso 3:</strong> Pégalos a continuación y pulsa Guardar.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveOpenPlatformKeys} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    AppKey de Ezviz Open Platform
+                  </label>
+                  <input
+                    type="text"
+                    value={appKeyInput}
+                    onChange={e => setAppKeyInput(e.target.value)}
+                    placeholder="Ej: 9f3c7e42d8a1..."
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    AppSecret
+                  </label>
+                  <input
+                    type="password"
+                    value={appSecretInput}
+                    onChange={e => setAppSecretInput(e.target.value)}
+                    placeholder="••••••••••••••••••••••••"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+
+                {keysFeedback && (
+                  <div className={`rounded-xl p-3 text-xs font-semibold ${
+                    keysFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}>
+                    {keysFeedback.text}
+                  </div>
+                )}
+
+                <div className="pt-2 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowStreamSetup(false); setKeysFeedback(null); }}
+                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-xl"
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingKeys}
+                    className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition disabled:opacity-60 shadow-sm"
+                  >
+                    {savingKeys ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+                    <span>{savingKeys ? 'Conectando...' : 'Guardar y Activar 25 FPS'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
