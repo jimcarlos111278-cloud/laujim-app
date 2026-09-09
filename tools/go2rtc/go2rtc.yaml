@@ -1,0 +1,27 @@
+# Configuracion go2rtc para Edificio Laujim
+api:
+  listen:  127.0.0.1:1984
+
+rtsp:
+  listen: :8554
+
+webrtc:
+  listen: :8555
+
+streams:
+  # Porton Principal - Serial BG6994814 (192.168.1.25)
+  cam_gate:
+    - rtsp://admin:CODIGO_PORTON@192.168.1.25:554/h264/ch1/main/av_stream
+    - rtsp://admin:CODIGO_PORTON@192.168.1.25:554/h264/ch1/sub/av_stream
+
+  # Cámara Izquierda (Fachada Izquierda) - Serial BG6994872 (192.168.1.9)
+  cam_izq:
+    - rtsp://admin:CODIGO_IZQUIERDA@192.168.1.9:554/h264/ch1/main/av_stream
+    - rtsp://admin:CODIGO_IZQUIERDA@192.168.1.9:554/h264/ch1/sub/av_stream
+  cam_lat:
+    - rtsp://admin:CODIGO_IZQUIERDA@192.168.1.9:554/h264/ch1/main/av_stream
+
+  # Cámara Derecha (Fachada Derecha) - Serial BG6994741 (192.168.1.28)
+  cam_der:
+    - rtsp://admin:CODIGO_DERECHA@192.168.1.28:554/h264/ch1/main/av_stream
+    - rtsp://admin:CODIGO_DERECHA@192.168.1.28:554/h264/ch1/sub/av_stream

@@ -2221,19 +2221,19 @@ function cameraDefinitions() {
         enabled: true,
       },
       {
-        id: 'cam-lat',
-        gatewayId: 'cam-lat',
-        name: 'Fachada Lateral (L)',
-        location: 'Costado Derecho',
+        id: 'cam-izq',
+        gatewayId: 'cam-izq',
+        name: 'Cámara Izquierda',
+        location: 'Fachada Izquierda',
         serial: 'BG6994872',
         tenantVisible: true,
         enabled: true,
       },
       {
-        id: 'cam-izq',
-        gatewayId: 'cam-izq',
-        name: 'Fachada Izquierda (IZQ)',
-        location: 'Costado Izquierdo',
+        id: 'cam-der',
+        gatewayId: 'cam-der',
+        name: 'Cámara Derecha',
+        location: 'Fachada Derecha',
         serial: 'BG6994741',
         tenantVisible: true,
         enabled: true,
@@ -5700,8 +5700,8 @@ app.get('/api/tenant/overview', (req, res) => {
 app.post('/api/tenant/cameras/:id/ticket', async (req, res) => {
   const camera = cameraDefinitions().find(item => item.id === safeEdgeId(req.params.id) && item.tenantVisible);
   if (!camera) return res.status(404).json({ error: 'Cámara no disponible para este portal.' });
-  if (camera.id === 'gate-cam' || camera.id === 'cam-lat' || camera.id === 'cam-izq' || !edgeGatewayReady()) {
-    const serial = camera.serial || (camera.id === 'cam-lat' ? 'BG6994872' : camera.id === 'cam-izq' ? 'BG6994741' : 'BG6994814');
+  if (camera.id === 'gate-cam' || camera.id === 'cam-gate' || camera.id === 'cam-izq' || camera.id === 'cam-der' || camera.id === 'cam-lat' || !edgeGatewayReady()) {
+    const serial = camera.serial || (camera.id === 'cam-izq' || camera.id === 'cam-lat' ? 'BG6994872' : camera.id === 'cam-der' ? 'BG6994741' : 'BG6994814');
     fetchEzvizLatestSnapshot(serial).catch(() => {});
     const snap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
     return res.json({
@@ -5808,8 +5808,8 @@ const INTERCOM_CALL_TIMEOUT_MS = 90_000; // 90 seconds
 // Definición de las 3 cámaras activas del edificio (misma cuenta Ezviz)
 const KNOWN_CAMERAS = [
   { id: 'cam-gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal', isGate: true, supportsPtz: true },
-  { id: 'cam-lat', name: 'Fachada Lateral (L)', serial: 'BG6994872', location: 'Costado Derecho', isGate: false, supportsPtz: true },
-  { id: 'cam-izq', name: 'Fachada Izquierda (IZQ)', serial: 'BG6994741', location: 'Costado Izquierdo', isGate: false, supportsPtz: true },
+  { id: 'cam-izq', name: 'Cámara Izquierda', serial: 'BG6994872', location: 'Fachada Izquierda', isGate: false, supportsPtz: true },
+  { id: 'cam-der', name: 'Cámara Derecha', serial: 'BG6994741', location: 'Fachada Derecha', isGate: false, supportsPtz: true },
 ];
 let cameraSnapshots = {}; // { [serial]: { data: Buffer, ts: string, contentType: string } }
 let latestGateSnapshot = { data: null, ts: null, contentType: 'image/jpeg' };
@@ -6874,13 +6874,106 @@ app.get('/api/intercom/public/call/:id', (req, res) => {
   });
 });
 
+// ─── STREAMING MJPEG & FEED EN TIEMPO REAL ───
+const mjpegClients = new Map(); // serial -> Set<res>
+const mjpegLoopActive = new Map(); // serial -> boolean
+const activeViewersLastSeen = new Map(); // serial -> timestamp
+
+function triggerMjpegContinuousCapture(serial) {
+  if (mjpegLoopActive.get(serial)) return;
+  mjpegLoopActive.set(serial, true);
+  console.log(`[MJPEG TURBO] Iniciando loop continuo de alta velocidad para cámara ${serial}`);
+
+  (async () => {
+    while (true) {
+      const clients = mjpegClients.get(serial);
+      const hasHttpClients = clients && clients.size > 0;
+      const lastSeen = activeViewersLastSeen.get(serial) || 0;
+      const isViewerRecentlyActive = (Date.now() - lastSeen) < 15_000;
+
+      if (!hasHttpClients && !isViewerRecentlyActive) {
+        break; // Detener loop si nadie está viendo esta cámara
+      }
+
+      const t0 = Date.now();
+      try {
+        const result = await captureEzvizCloudSnapshot(serial);
+        if (result?.buffer && clients && clients.size > 0) {
+          const frameHeader = `--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${result.buffer.length}\r\n\r\n`;
+          for (const clientRes of clients) {
+            try {
+              clientRes.write(frameHeader);
+              clientRes.write(result.buffer);
+              clientRes.write('\r\n');
+            } catch {
+              clients.delete(clientRes);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[MJPEG TURBO] Error en captura ${serial}:`, err.message);
+        await new Promise(r => setTimeout(r, 600));
+      }
+
+      const elapsed = Date.now() - t0;
+      const wait = Math.max(20, 180 - elapsed);
+      await new Promise(r => setTimeout(r, wait));
+    }
+
+    mjpegLoopActive.set(serial, false);
+    console.log(`[MJPEG TURBO] Loop detenido para cámara ${serial} (inactiva)`);
+  })();
+}
+
+// GET /api/intercom/public/mjpeg — transmisión de video continua multipart MJPEG (FPS nativo de cámara)
+app.get(['/api/intercom/public/mjpeg', '/api/cameras/:serial/mjpeg'], (req, res) => {
+  const serial = String(req.query.serial || req.params.serial || process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814').trim();
+
+  res.writeHead(200, {
+    'Content-Type': 'multipart/x-mixed-replace; boundary=--frame',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Connection': 'close',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  if (!mjpegClients.has(serial)) {
+    mjpegClients.set(serial, new Set());
+  }
+  const set = mjpegClients.get(serial);
+  set.add(res);
+  activeViewersLastSeen.set(serial, Date.now());
+
+  // Enviar el fotograma más reciente de inmediato desde memoria RAM (0ms)
+  const current = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
+  if (current?.data) {
+    try {
+      res.write(`--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${current.data.length}\r\n\r\n`);
+      res.write(current.data);
+      res.write('\r\n');
+    } catch {}
+  }
+
+  triggerMjpegContinuousCapture(serial);
+
+  req.on('close', () => {
+    const clients = mjpegClients.get(serial);
+    if (clients) clients.delete(res);
+  });
+});
+
 // GET /api/intercom/public/feed — snapshot por cámara en tiempo real (0ms latencia, precalentamiento continuo)
 app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) => {
   const serial = String(req.query.serial || process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814').trim();
   const camMeta = KNOWN_CAMERAS.find(c => c.serial === serial);
   const currentSnap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
 
-  const isStale = !currentSnap?.data || (Date.now() - new Date(currentSnap?.ts || 0).getTime() > 2000);
+  activeViewersLastSeen.set(serial, Date.now());
+  triggerMjpegContinuousCapture(serial);
+
+  const snapAge = currentSnap?.ts ? (Date.now() - new Date(currentSnap.ts).getTime()) : 999999;
+  const isStale = !currentSnap?.data || (snapAge > 350);
 
   if (isStale || req.query.refresh === '1') {
     // Si aún no tenemos ningún fotograma en memoria para esta cámara, esperamos la primera captura
@@ -6913,8 +7006,8 @@ app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) =>
 // ─── INTEGRACIÓN PUENTE LOCAL 25 FPS (go2rtc) ───
 const GO2RTC_STREAM_MAP = {
   'BG6994814': 'cam_gate',
-  'BG6994872': 'cam_lat',
-  'BG6994741': 'cam_izq',
+  'BG6994872': 'cam_izq',
+  'BG6994741': 'cam_der',
 };
 
 async function checkGo2RtcOnline() {
@@ -6976,8 +7069,9 @@ app.get('/api/cameras', async (req, res) => {
   });
 });
 
-// POST /api/cameras/:serial/ptz — mover cámara motorizada Ezviz (Pan/Tilt)
+// POST /api/cameras/:serial/ptz — mover cámara motorizada Ezviz (Pan/Tilt) [EXCLUSIVO ADMINISTRADOR]
 app.post('/api/cameras/:serial/ptz', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
   const serial = String(req.params.serial || '').trim();
   const { direction, pulseMs } = req.body || {};
   if (!serial) return res.status(400).json({ error: 'Serial de cámara requerido.' });

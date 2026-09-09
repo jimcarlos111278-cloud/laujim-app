@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { startIntercomCall } from '../utils/intercomAudio';
 import { openEzvizApp } from '../utils/helpers';
+import { isAdmin } from '../utils/auth';
 
 const API_BASE = window.location.origin;
 
@@ -27,8 +28,8 @@ function colombiaTime(value) {
 
 const BUILDING_CAMERAS = [
   { id: 'gate', name: 'Portón', serial: 'BG6994814' },
-  { id: 'lat', name: 'Lateral (L)', serial: 'BG6994872' },
-  { id: 'izq', name: 'Izquierda (IZQ)', serial: 'BG6994741' },
+  { id: 'izq', name: 'Izquierda', serial: 'BG6994872' },
+  { id: 'der', name: 'Derecha', serial: 'BG6994741' },
 ];
 
 export default function IntercomCallPage() {
@@ -364,57 +365,59 @@ export default function IntercomCallPage() {
                 onError={e => { e.target.style.display = 'none'; }}
               />
 
-              {/* PTZ Mini D-Pad Flotante para mover la cámara */}
-              <div className="absolute bottom-2 right-2 flex flex-col items-center bg-black/75 backdrop-blur-md p-1.5 rounded-xl border border-white/20 z-10 select-none">
-                <div className="grid grid-cols-3 gap-0.5 w-20 h-20 place-items-center">
-                  <div />
-                  <button
-                    onClick={() => handleMovePtz('up')}
-                    disabled={Boolean(ptzMoving)}
-                    className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
-                    title="Mover arriba"
-                  >
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </button>
-                  <div />
+              {/* PTZ Mini D-Pad Flotante para mover la cámara (Solo Administrador) */}
+              {isAdmin() && (
+                <div className="absolute bottom-2 right-2 flex flex-col items-center bg-black/75 backdrop-blur-md p-1.5 rounded-xl border border-white/20 z-10 select-none">
+                  <div className="grid grid-cols-3 gap-0.5 w-20 h-20 place-items-center">
+                    <div />
+                    <button
+                      onClick={() => handleMovePtz('up')}
+                      disabled={Boolean(ptzMoving)}
+                      className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
+                      title="Mover arriba"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+                    <div />
 
-                  <button
-                    onClick={() => handleMovePtz('left')}
-                    disabled={Boolean(ptzMoving)}
-                    className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
-                    title="Mover izquierda"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                  </button>
-                  <div className="text-[8px] font-bold text-amber-400">
-                    {ptzMoving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'PTZ'}
+                    <button
+                      onClick={() => handleMovePtz('left')}
+                      disabled={Boolean(ptzMoving)}
+                      className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
+                      title="Mover izquierda"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="text-[8px] font-bold text-amber-400">
+                      {ptzMoving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'PTZ'}
+                    </div>
+                    <button
+                      onClick={() => handleMovePtz('right')}
+                      disabled={Boolean(ptzMoving)}
+                      className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
+                      title="Mover derecha"
+                    >
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+
+                    <div />
+                    <button
+                      onClick={() => handleMovePtz('down')}
+                      disabled={Boolean(ptzMoving)}
+                      className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
+                      title="Mover abajo"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                    <div />
                   </div>
-                  <button
-                    onClick={() => handleMovePtz('right')}
-                    disabled={Boolean(ptzMoving)}
-                    className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
-                    title="Mover derecha"
-                  >
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-
-                  <div />
-                  <button
-                    onClick={() => handleMovePtz('down')}
-                    disabled={Boolean(ptzMoving)}
-                    className="w-6 h-6 rounded bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition disabled:opacity-40"
-                    title="Mover abajo"
-                  >
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </button>
-                  <div />
+                  {ptzNotice && (
+                    <p className="text-[8px] text-amber-300 text-center font-medium max-w-[80px] truncate animate-pulse">
+                      {ptzNotice}
+                    </p>
+                  )}
                 </div>
-                {ptzNotice && (
-                  <p className="text-[8px] text-amber-300 text-center font-medium max-w-[80px] truncate animate-pulse">
-                    {ptzNotice}
-                  </p>
-                )}
-              </div>
+              )}
             </>
           )}
 
@@ -468,25 +471,22 @@ export default function IntercomCallPage() {
                 <Eye className="h-3 w-3 text-blue-400" /> Otras Cámaras en Vivo (Toca para cambiar)
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {BUILDING_CAMERAS.filter(c => c.serial !== selectedCameraSerial).map(cam => (
                 <button
                   key={cam.serial}
                   onClick={() => setSelectedCameraSerial(cam.serial)}
-                  className="relative aspect-video rounded-lg overflow-hidden border border-slate-700 hover:border-amber-400 transition text-left group"
+                  className="group flex flex-col text-left focus:outline-none"
                 >
-                  <img
-                    src={camFeeds[cam.serial] || `${API_BASE}/api/intercom/public/feed?serial=${cam.serial}`}
-                    alt={cam.name}
-                    className="h-full w-full object-cover group-hover:scale-105 transition"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-                  <div className="absolute top-1 left-1 flex items-center gap-1 bg-black/60 px-1 py-0.5 rounded text-[8px] text-white">
-                    <span className="h-1 w-1 rounded-full bg-emerald-400 animate-ping" />
-                    <span>{cam.name}</span>
+                  <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-slate-700 group-hover:border-blue-500 transition">
+                    <img
+                      src={camFeeds[cam.serial] || `${API_BASE}/api/intercom/public/feed?serial=${cam.serial}`}
+                      alt={cam.name}
+                      className="h-full w-full object-cover group-hover:scale-105 transition"
+                    />
                   </div>
-                  <span className="absolute bottom-1 right-1 bg-blue-600 px-1 py-0.5 rounded text-[8px] font-bold text-white">
-                    Ver
+                  <span className="mt-1 text-[11px] font-semibold text-slate-300 group-hover:text-white transition">
+                    {cam.name}
                   </span>
                 </button>
               ))}

@@ -7,7 +7,7 @@ import {
   LockKeyhole, LogOut, MapPin, Maximize2, Move, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, X, Zap,
 } from 'lucide-react';
 import QRCode from 'qrcode';
-import { clearAuth, isTenant } from '../utils/auth';
+import { clearAuth, isTenant, isAdmin } from '../utils/auth';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp } from '../utils/helpers';
 import IntercomCallModal from '../components/IntercomCallModal';
@@ -94,9 +94,9 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
 }
 
 const APTO_CAMERAS = [
-  { id: 'gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal', badge: 'ACCESO PRINCIPAL', isGate: true },
-  { id: 'lat', name: 'Fachada Lateral (L)', serial: 'BG6994872', location: 'Costado Derecho', badge: 'CALLE DERECHA', isGate: false },
-  { id: 'izq', name: 'Fachada Izquierda (IZQ)', serial: 'BG6994741', location: 'Costado Izquierdo', badge: 'CALLE IZQUIERDA', isGate: false },
+  { id: 'gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal', isGate: true },
+  { id: 'izq', name: 'Cámara Izquierda', serial: 'BG6994872', location: 'Fachada Izquierda', isGate: false },
+  { id: 'der', name: 'Cámara Derecha', serial: 'BG6994741', location: 'Fachada Derecha', isGate: false },
 ];
 
 export default function MiApto() {
@@ -115,6 +115,7 @@ export default function MiApto() {
   const [cameraCountdown, setCameraCountdown] = useState(60); // 60s auto-pause de seguridad
   const [selectedCamSerial, setSelectedCamSerial] = useState('BG6994814');
   const [camViewMode, setCamViewMode] = useState('mosaic'); // 'mosaic' (1 hero + 2 secundarios) | 'grid' (3 iguales)
+  const [useMjpeg, setUseMjpeg] = useState(true);
   const [cameraFeeds, setCameraFeeds] = useState({
     BG6994814: `${getRawBase()}/api/intercom/public/feed?serial=BG6994814&t=${Date.now()}`,
     BG6994872: `${getRawBase()}/api/intercom/public/feed?serial=BG6994872&t=${Date.now()}`,
@@ -254,11 +255,14 @@ export default function MiApto() {
     }
   }
 
-  // Motor de ráfaga concurrente con doble búfer: actualiza las 3 cámaras simultáneamente de forma escalonada
+  // Motor de transmisión de alta velocidad:
+  // - En modo ráfaga, la cámara activa (Hero) se actualiza de inmediato al completar cada fotograma (~250-350ms)
+  // - Las 2 cámaras secundarias se actualizan espaciadamente (cada 3.5s) para maximizar el ancho de banda hacia la cámara activa
   useEffect(() => {
     if (!cameraLive) return;
-    let step = 0;
-    const interval = setInterval(() => {
+
+    // Temporizador de seguridad (60s)
+    const countdownInterval = setInterval(() => {
       setCameraCountdown(prev => {
         if (prev <= 1) {
           setCameraLive(false);
@@ -266,24 +270,57 @@ export default function MiApto() {
         }
         return prev - 1;
       });
+    }, 1000);
 
-      // Refresca una cámara cada 750ms, completando el ciclo de las 3 en ~2.2s
-      const targetCam = APTO_CAMERAS[step % APTO_CAMERAS.length];
-      step++;
-      const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${targetCam.serial}&t=${Date.now()}`;
+    let heroTimer = null;
+    let isCancelled = false;
+
+    // Ráfaga turbo para la cámara Hero cuando useMjpeg sea falso
+    function pollHeroCam() {
+      if (isCancelled || !cameraLive) return;
+      const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&stream=1&t=${Date.now()}`;
       const img = new Image();
       img.onload = () => {
-        setCameraFeeds(prev => ({ ...prev, [targetCam.serial]: nextUrl }));
-        setCameraErrors(prev => ({ ...prev, [targetCam.serial]: false }));
+        if (isCancelled) return;
+        setCameraFeeds(prev => ({ ...prev, [selectedCamSerial]: nextUrl }));
+        setCameraErrors(prev => ({ ...prev, [selectedCamSerial]: false }));
+        heroTimer = setTimeout(pollHeroCam, 200);
       };
       img.onerror = () => {
-        // Si hay error momentáneo, conserva la imagen anterior
+        if (isCancelled) return;
+        heroTimer = setTimeout(pollHeroCam, 1200);
       };
       img.src = nextUrl;
-    }, 750);
+    }
 
-    return () => clearInterval(interval);
-  }, [cameraLive]);
+    if (!useMjpeg) {
+      pollHeroCam();
+    }
+
+    // Actualización pausada y escalonada de las cámaras secundarias (cada 3.5s)
+    const secondaryInterval = setInterval(() => {
+      APTO_CAMERAS.filter(c => c.serial !== selectedCamSerial).forEach((cam, i) => {
+        setTimeout(() => {
+          if (isCancelled) return;
+          const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
+          const img = new Image();
+          img.onload = () => {
+            if (isCancelled) return;
+            setCameraFeeds(prev => ({ ...prev, [cam.serial]: nextUrl }));
+            setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
+          };
+          img.src = nextUrl;
+        }, i * 1200);
+      });
+    }, 3500);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(countdownInterval);
+      clearInterval(secondaryInterval);
+      if (heroTimer) clearTimeout(heroTimer);
+    };
+  }, [cameraLive, selectedCamSerial, useMjpeg]);
 
   function toggleCameraLive() {
     setCameraLive(prev => {
@@ -586,182 +623,173 @@ export default function MiApto() {
                 const hasHeroError = cameraErrors[heroCam.serial];
 
                 return (
-                  <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-lg border border-slate-800">
-                    {hasStream ? (
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted={isMuted}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : hasHeroError ? (
-                      <div className="flex h-full w-full flex-col items-center justify-center bg-slate-950 p-4 text-center">
-                        <div className="relative mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20">
-                          <Camera className="h-6 w-6 text-blue-400 animate-pulse" />
+                  <div className="space-y-2">
+                    {/* Barra Informativa y Estado de la Cámara FUERA de la Imagen */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                      <div className="flex items-center gap-2.5">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                        </span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-900 leading-none">{heroCam.name}</h3>
+                            <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
+                              En vivo
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">{heroCam.location}</p>
                         </div>
-                        <p className="text-xs font-bold text-white">{heroCam.name}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">Sincronizando señal en vivo...</p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setUseMjpeg(!useMjpeg)}
+                          className="flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 transition"
+                          title="Alternar motor de video"
+                        >
+                          <span>{useMjpeg ? '⚡ Stream MJPEG' : '🚀 Ráfaga Directa'}</span>
+                        </button>
+
                         <button
                           onClick={() => {
-                            setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));
-                            setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1&t=${Date.now()}` }));
+                            fetch(`${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1`).catch(() => {});
+                            const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&t=${Date.now()}`;
+                            const img = new Image();
+                            img.onload = () => setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: nextUrl }));
+                            img.src = nextUrl;
                           }}
-                          className="mt-3 flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-700 active:scale-95 transition"
+                          title="Refrescar fotograma"
+                          className="rounded-xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition"
                         >
-                          <RefreshCw className="h-3.5 w-3.5" /> Reintentar ahora
+                          <RefreshCw className="h-3.5 w-3.5" />
                         </button>
-                      </div>
-                    ) : (
-                      <img
-                        src={heroFeed}
-                        alt={heroCam.name}
-                        onError={() => {
-                          setCameraErrors(prev => ({ ...prev, [heroCam.serial]: true }));
-                          setTimeout(() => {
-                            setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1&t=${Date.now()}` }));
-                          }, 2000);
-                        }}
-                        onLoad={() => {
-                          setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));
-                        }}
-                        className="h-full w-full object-cover transition-opacity duration-200"
-                      />
-                    )}
-
-                    {/* Top Overlay: Info de la cámara principal */}
-                    <div className="absolute top-3 left-3 flex items-center gap-2 rounded-xl bg-black/75 px-3 py-1.5 backdrop-blur-md border border-white/10 z-10">
-                      <span className={`h-2 w-2 rounded-full ${hasStream ? 'bg-red-500' : 'bg-emerald-400'} animate-ping`} />
-                      <div>
-                        <p className="text-xs font-bold text-white leading-tight">{heroCam.name}</p>
-                        <p className="text-[10px] text-slate-300">{heroCam.location} • {heroCam.badge}</p>
                       </div>
                     </div>
 
-                    {/* Top Right: Controles y badges */}
-                    <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-                      {hasStream && (
-                        <button
-                          onClick={() => setIsMuted(!isMuted)}
-                          className="rounded-xl bg-black/70 p-2 text-white hover:bg-black/90 backdrop-blur-md border border-white/10 transition"
-                          title={isMuted ? 'Activar audio' : 'Silenciar'}
-                        >
-                          {isMuted ? <VolumeX className="h-3.5 w-3.5 text-slate-300" /> : <Volume2 className="h-3.5 w-3.5 text-emerald-400" />}
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => {
-                          fetch(`${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1`).catch(() => {});
-                          const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&t=${Date.now()}`;
-                          const img = new Image();
-                          img.onload = () => setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: nextUrl }));
-                          img.src = nextUrl;
-                        }}
-                        title="Refrescar fotograma"
-                        className="rounded-xl bg-black/60 p-2 text-white hover:bg-black/80 backdrop-blur-md transition border border-white/10"
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Cruceta Táctil Flotante PTZ Glassmorphic */}
-                    <div className="absolute bottom-3 right-3 flex flex-col items-center bg-slate-950/80 backdrop-blur-md p-2 rounded-2xl border border-white/15 shadow-2xl z-10 select-none">
-                      <div className="flex items-center justify-between w-full mb-1 px-1">
-                        <span className="text-[9px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                          <Compass className="h-3 w-3 animate-spin-slow" /> Mover
-                        </span>
-                        {ptzMoving && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
-                        )}
-                      </div>
-
-                      {/* D-Pad Cruceta */}
-                      <div className="grid grid-cols-3 gap-1 w-24 h-24 place-items-center">
-                        <div />
-                        <button
-                          onClick={() => handleMovePtz('up')}
-                          disabled={Boolean(ptzMoving)}
-                          title="Girar hacia Arriba"
-                          className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
-                        >
-                          <ArrowUp className="h-3.5 w-3.5" />
-                        </button>
-                        <div />
-
-                        <button
-                          onClick={() => handleMovePtz('left')}
-                          disabled={Boolean(ptzMoving)}
-                          title="Girar hacia Izquierda"
-                          className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
-                        >
-                          <ArrowLeft className="h-3.5 w-3.5" />
-                        </button>
-                        <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[8px] font-bold text-amber-400 border border-white/10">
-                          {ptzMoving ? <Loader2 className="h-3 w-3 animate-spin text-amber-400" /> : 'PTZ'}
-                        </div>
-                        <button
-                          onClick={() => handleMovePtz('right')}
-                          disabled={Boolean(ptzMoving)}
-                          title="Girar hacia Derecha"
-                          className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
-                        >
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
-
-                        <div />
-                        <button
-                          onClick={() => handleMovePtz('down')}
-                          disabled={Boolean(ptzMoving)}
-                          title="Girar hacia Abajo"
-                          className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
-                        >
-                          <ArrowDown className="h-3.5 w-3.5" />
-                        </button>
-                        <div />
-                      </div>
-
-                      {ptzFeedback && (
-                        <p className="mt-1 text-[8px] text-amber-300 text-center font-medium max-w-[100px] truncate animate-pulse">
-                          {ptzFeedback}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Bottom Left: Tag de resolución en vivo y botón 25 FPS */}
-                    <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-2 z-10">
+                    {/* Contenedor del video principal 100% limpio sin leds ni badges encima */}
+                    <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-lg border border-slate-800">
                       {hasStream ? (
-                        <div className="flex items-center gap-1.5 rounded-lg bg-red-600/90 px-2.5 py-1 text-[10px] font-extrabold text-white shadow backdrop-blur-md">
-                          <Radio className="h-3 w-3 animate-pulse text-white" />
-                          <span>25 FPS CONTINUO EN VIVO</span>
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          muted={isMuted}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : hasHeroError ? (
+                        <div className="flex h-full w-full flex-col items-center justify-center bg-slate-950 p-4 text-center">
+                          <div className="relative mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                            <Camera className="h-6 w-6 text-blue-400 animate-pulse" />
+                          </div>
+                          <p className="text-xs font-bold text-white">{heroCam.name}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Sincronizando señal en vivo...</p>
+                          <button
+                            onClick={() => {
+                              setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));
+                              setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1&t=${Date.now()}` }));
+                            }}
+                            className="mt-3 flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-700 active:scale-95 transition"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" /> Reintentar ahora
+                          </button>
                         </div>
                       ) : (
-                        <>
-                          <div className="flex items-center gap-1.5 rounded-lg bg-black/70 px-2.5 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-md border border-white/10">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                            <span>HD • ~0.8s Ráfaga</span>
+                        <img
+                          key={heroCam.serial + (useMjpeg ? '-mjpeg' : '-burst')}
+                          src={useMjpeg ? `${getRawBase()}/api/intercom/public/mjpeg?serial=${heroCam.serial}` : heroFeed}
+                          alt={heroCam.name}
+                          onError={() => {
+                            if (useMjpeg) {
+                              console.warn('[CAM] Fallback de MJPEG a ráfaga activa continua');
+                              setUseMjpeg(false);
+                            } else {
+                              setCameraErrors(prev => ({ ...prev, [heroCam.serial]: true }));
+                            }
+                          }}
+                          onLoad={() => {
+                            setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));
+                          }}
+                          className="h-full w-full object-cover transition-opacity duration-150"
+                        />
+                      )}
+
+                      {/* Cruceta Táctil Flotante PTZ (Exclusivo Administrador) */}
+                      {isAdmin() && (
+                        <div className="absolute bottom-3 right-3 flex flex-col items-center bg-slate-950/80 backdrop-blur-md p-2 rounded-2xl border border-white/15 shadow-2xl z-10 select-none">
+                          <div className="flex items-center justify-between w-full mb-1 px-1">
+                            <span className="text-[9px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                              <Compass className="h-3 w-3 animate-spin-slow" /> Mover
+                            </span>
+                            {ptzMoving && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
+                            )}
                           </div>
-                          <button
-                            onClick={() => setShowStreamSetup(true)}
-                            className="flex items-center gap-1 rounded-lg bg-blue-600/90 hover:bg-blue-600 px-2.5 py-1 text-[10px] font-bold text-white shadow backdrop-blur-md transition active:scale-95"
-                          >
-                            <Video className="h-3 w-3" />
-                            <span>Activar 25 FPS</span>
-                          </button>
-                        </>
+
+                          {/* D-Pad Cruceta */}
+                          <div className="grid grid-cols-3 gap-1 w-24 h-24 place-items-center">
+                            <div />
+                            <button
+                              onClick={() => handleMovePtz('up')}
+                              disabled={Boolean(ptzMoving)}
+                              title="Girar hacia Arriba"
+                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </button>
+                            <div />
+
+                            <button
+                              onClick={() => handleMovePtz('left')}
+                              disabled={Boolean(ptzMoving)}
+                              title="Girar hacia Izquierda"
+                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
+                            >
+                              <ArrowLeft className="h-3.5 w-3.5" />
+                            </button>
+                            <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[8px] font-bold text-amber-400 border border-white/10">
+                              {ptzMoving ? <Loader2 className="h-3 w-3 animate-spin text-amber-400" /> : 'PTZ'}
+                            </div>
+                            <button
+                              onClick={() => handleMovePtz('right')}
+                              disabled={Boolean(ptzMoving)}
+                              title="Girar hacia Derecha"
+                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
+                            >
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </button>
+
+                            <div />
+                            <button
+                              onClick={() => handleMovePtz('down')}
+                              disabled={Boolean(ptzMoving)}
+                              title="Girar hacia Abajo"
+                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </button>
+                            <div />
+                          </div>
+
+                          {ptzFeedback && (
+                            <p className="mt-1 text-[8px] text-amber-300 text-center font-medium max-w-[100px] truncate animate-pulse">
+                              {ptzFeedback}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
                 );
               })()}
 
-              {/* Sub-Monitores Simultáneos en Vivo (Las otras 2 cámaras transmitiendo a la vez) */}
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1.5">
+              {/* Sub-Monitores Simultáneos en Vivo (Las otras 2 cámaras) */}
+              <div className="pt-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
                   <Eye className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Cámaras Secundarias en Vivo (Toca para intercambiar foco)</span>
+                  <span>Cámaras Secundarias (Toca una para cambiar pantalla)</span>
                 </p>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-2 gap-3">
                   {APTO_CAMERAS.filter(c => c.serial !== selectedCamSerial).map(cam => {
                     const subFeed = cameraFeeds[cam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}`;
                     const hasSubError = cameraErrors[cam.serial];
@@ -769,44 +797,35 @@ export default function MiApto() {
                       <button
                         key={cam.serial}
                         onClick={() => setSelectedCamSerial(cam.serial)}
-                        className="group relative aspect-video w-full overflow-hidden rounded-xl bg-slate-950 shadow border-2 border-transparent hover:border-blue-500 transition text-left focus:outline-none"
+                        className="group flex flex-col text-left focus:outline-none"
                       >
-                        {hasSubError ? (
-                          <div className="flex h-full w-full flex-col items-center justify-center bg-slate-900 p-2 text-center">
-                            <Camera className="h-5 w-5 text-blue-400 animate-pulse mb-1" />
-                            <span className="text-[10px] font-bold text-white truncate max-w-[90%]">{cam.name}</span>
-                            <span className="text-[9px] text-slate-400">Sincronizando señal...</span>
-                          </div>
-                        ) : (
-                          <img
-                            src={subFeed}
-                            alt={cam.name}
-                            onError={() => {
-                              setCameraErrors(prev => ({ ...prev, [cam.serial]: true }));
-                              setTimeout(() => {
-                                setCameraFeeds(prev => ({ ...prev, [cam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1&t=${Date.now()}` }));
-                              }, 2000);
-                            }}
-                            onLoad={() => {
-                              setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
-                            }}
-                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
-
-                        {/* Top Badge */}
-                        <div className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>{cam.badge}</span>
+                        <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-slate-950 shadow border-2 border-transparent group-hover:border-blue-500 transition">
+                          {hasSubError ? (
+                            <div className="flex h-full w-full flex-col items-center justify-center bg-slate-900 p-2 text-center">
+                              <Camera className="h-5 w-5 text-blue-400 animate-pulse mb-1" />
+                              <span className="text-[10px] font-bold text-white truncate max-w-[90%]">{cam.name}</span>
+                              <span className="text-[9px] text-slate-400">Sincronizando...</span>
+                            </div>
+                          ) : (
+                            <img
+                              src={subFeed}
+                              alt={cam.name}
+                              onError={() => {
+                                setCameraErrors(prev => ({ ...prev, [cam.serial]: true }));
+                                setTimeout(() => {
+                                  setCameraFeeds(prev => ({ ...prev, [cam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1&t=${Date.now()}` }));
+                                }, 2000);
+                              }}
+                              onLoad={() => {
+                                setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
+                              }}
+                              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                            />
+                          )}
                         </div>
-
-                        {/* Bottom Name & Action */}
-                        <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between pointer-events-none">
-                          <span className="text-[11px] font-bold text-white truncate drop-shadow">{cam.name}</span>
-                          <span className="rounded bg-blue-600/90 px-1.5 py-0.5 text-[9px] font-bold text-white shadow group-hover:bg-blue-500">
-                            Enfocar
-                          </span>
+                        <div className="mt-1 px-1 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition">{cam.name}</span>
+                          <span className="text-[10px] text-slate-400">{cam.location}</span>
                         </div>
                       </button>
                     );
@@ -826,8 +845,9 @@ export default function MiApto() {
                 return (
                   <div
                     key={cam.serial}
-                    className={`relative overflow-hidden rounded-2xl bg-slate-950 shadow border-2 transition ${
-                      isSelected ? 'border-blue-500 shadow-blue-500/20' : 'border-slate-800'
+                    onClick={() => setSelectedCamSerial(cam.serial)}
+                    className={`relative overflow-hidden rounded-2xl bg-slate-950 shadow border-2 transition cursor-pointer ${
+                      isSelected ? 'border-blue-500 shadow-blue-500/20' : 'border-slate-800 hover:border-slate-700'
                     }`}
                   >
                     <div className="relative aspect-video w-full">
@@ -853,43 +873,36 @@ export default function MiApto() {
                           className="h-full w-full object-cover"
                         />
                       )}
-                      <div className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur pointer-events-none">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>{cam.badge}</span>
-                      </div>
-                      <button
-                        onClick={() => setSelectedCamSerial(cam.serial)}
-                        className={`absolute top-2 right-2 rounded-lg px-2 py-1 text-[10px] font-bold transition z-10 ${
-                          isSelected ? 'bg-blue-600 text-white shadow' : 'bg-black/60 text-slate-300 hover:text-white'
-                        }`}
-                      >
-                        {isSelected ? 'Activa' : 'Seleccionar'}
-                      </button>
                     </div>
 
                     <div className="p-2.5 bg-slate-900 flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-bold text-white">{cam.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                          <p className="text-xs font-bold text-white">{cam.name}</p>
+                        </div>
                         <p className="text-[10px] text-slate-400">{cam.location}</p>
                       </div>
 
-                      {/* Botones PTZ rápidos */}
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => { setSelectedCamSerial(cam.serial); handleMovePtz('left'); }}
-                          title="Girar izquierda"
-                          className="p-1 rounded bg-white/10 hover:bg-blue-600 text-white transition text-xs"
-                        >
-                          <ArrowLeft className="h-3 w-3" />
-                        </button>
-                        <button
-                          onClick={() => { setSelectedCamSerial(cam.serial); handleMovePtz('right'); }}
-                          title="Girar derecha"
-                          className="p-1 rounded bg-white/10 hover:bg-blue-600 text-white transition text-xs"
-                        >
-                          <ArrowRight className="h-3 w-3" />
-                        </button>
-                      </div>
+                      {/* Botones PTZ rápidos solo para Administrador */}
+                      {isAdmin() && (
+                        <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => { setSelectedCamSerial(cam.serial); handleMovePtz('left'); }}
+                            title="Girar izquierda"
+                            className="p-1 rounded bg-white/10 hover:bg-blue-600 text-white transition text-xs"
+                          >
+                            <ArrowLeft className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => { setSelectedCamSerial(cam.serial); handleMovePtz('right'); }}
+                            title="Girar derecha"
+                            className="p-1 rounded bg-white/10 hover:bg-blue-600 text-white transition text-xs"
+                          >
+                            <ArrowRight className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
