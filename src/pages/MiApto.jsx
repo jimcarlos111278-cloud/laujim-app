@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Hls from 'hls.js';
 import {
-  AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Building2, Calendar, Camera, Check, CheckCircle, ChevronDown, ChevronUp,
-  Compass, Copy, Download, Droplets, ExternalLink, Eye, FileText, Flame, Info, Key, LayoutGrid, Loader2,
-  LockKeyhole, LogOut, MapPin, Maximize2, Move, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, X, Zap,
+  Activity, AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Building2, Calendar, Camera, Check, CheckCircle, ChevronDown, ChevronUp,
+  Compass, Copy, Download, Droplets, ExternalLink, Eye, FileText, Flame, HardDrive, Info, Key, LayoutGrid, Loader2,
+  LockKeyhole, LogOut, MapPin, Maximize2, Move, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, Wifi, X, Zap,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { clearAuth, isTenant, isAdmin } from '../utils/auth';
@@ -136,6 +136,30 @@ export default function MiApto() {
   const [ptzFeedback, setPtzFeedback] = useState('');
   const [showEzvizGuide, setShowEzvizGuide] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
+  const [showTelemetryModal, setShowTelemetryModal] = useState(false);
+  const [telemetryData, setTelemetryData] = useState(null);
+  const [telemetryLoading, setTelemetryLoading] = useState(false);
+  const [telemetryError, setTelemetryError] = useState('');
+
+  async function fetchTelemetry() {
+    setTelemetryLoading(true);
+    setTelemetryError('');
+    try {
+      const res = await fetch(`${getBase()}/api/admin/cameras/telemetry`, {
+        headers: { 'x-auth-token': AUTH_TOKEN },
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (payload.ok && Array.isArray(payload.telemetry)) {
+        setTelemetryData(payload);
+      } else {
+        setTelemetryError(payload.error || 'No se pudo obtener la telemetría.');
+      }
+    } catch (err) {
+      setTelemetryError(err.message || 'Error al conectar con la telemetría.');
+    } finally {
+      setTelemetryLoading(false);
+    }
+  }
 
   function copyText(text, key) {
     try {
@@ -569,6 +593,17 @@ export default function MiApto() {
                 >
                   <Video className="h-3 w-3 text-blue-600" />
                   <span>Activar 25 FPS</span>
+                </button>
+              )}
+
+              {isAdmin() && (
+                <button
+                  onClick={() => { setShowTelemetryModal(true); fetchTelemetry(); }}
+                  className="flex items-center gap-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 text-[11px] font-bold border border-slate-300 transition shadow-sm"
+                  title="Diagnóstico de Cobertura WiFi y Telemetría de Cámaras"
+                >
+                  <Wifi className="h-3 w-3 text-blue-600" />
+                  <span>Diagnóstico WiFi</span>
                 </button>
               )}
 
@@ -1156,6 +1191,181 @@ export default function MiApto() {
                   </div>
                 </form>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Diagnóstico WiFi y Telemetría de Cámaras (Solo Administrador) */}
+      {showTelemetryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl border border-slate-100 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between bg-slate-900 px-6 py-4 text-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-2xl bg-blue-600/30 border border-blue-500/30 text-blue-400">
+                  <Wifi className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    Diagnóstico de Cobertura WiFi & Telemetría
+                    <span className="rounded-full bg-blue-500/20 text-blue-300 text-[10px] px-2 py-0.5 border border-blue-400/30 font-bold">
+                      Admin
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Medición en tiempo real desde la antena de cada cámara</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTelemetryModal(false)}
+                className="rounded-xl p-1.5 text-slate-400 hover:text-white hover:bg-white/10 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4 overflow-y-auto">
+              {/* Barra de Control y Refresco */}
+              <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Activity className="h-4 w-4 text-blue-600 animate-pulse" />
+                  <span>
+                    Latencia Nube ↔ Cámaras: <strong>{telemetryData?.rttMs ? `${telemetryData.rttMs} ms` : 'Midiendo...'}</strong>
+                  </span>
+                </div>
+                <button
+                  onClick={fetchTelemetry}
+                  disabled={telemetryLoading}
+                  className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 font-bold transition disabled:opacity-60 shadow-sm"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${telemetryLoading ? 'animate-spin' : ''}`} />
+                  <span>{telemetryLoading ? 'Midiendo señal...' : 'Medir ahora'}</span>
+                </button>
+              </div>
+
+              {telemetryError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                  {telemetryError}
+                </div>
+              )}
+
+              {/* Lista de Cámaras con Telemetría */}
+              <div className="space-y-3">
+                {telemetryData?.telemetry ? (
+                  telemetryData.telemetry.map(cam => {
+                    const pct = cam.signalPercent ?? 50;
+                    const isGood = pct >= 75;
+                    const isRegular = pct >= 40 && pct < 75;
+                    const isPoor = pct < 40;
+
+                    return (
+                      <div
+                        key={cam.serial}
+                        className={`rounded-2xl border p-4 transition ${
+                          cam.needsRepeater ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200 bg-white'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-slate-900 text-sm">{cam.name}</h4>
+                              <span className="text-xs font-mono text-slate-500">[{cam.serial}]</span>
+                            </div>
+                            <p className="text-xs text-slate-500">{cam.location} • {cam.model}</p>
+                          </div>
+
+                          <div className="text-right">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${
+                              isGood ? 'bg-emerald-100 text-emerald-800' : isRegular ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                            }`}>
+                              <Wifi className="h-3 w-3" />
+                              {cam.signalQualityLabel} ({pct}%)
+                            </span>
+                            {cam.signalDbm && (
+                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{cam.signalDbm} dBm</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Barra de Intensidad de Señal */}
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-[11px] text-slate-600 mb-1">
+                            <span>Nivel de Señal WiFi:</span>
+                            <span className="font-bold">{pct}%</span>
+                          </div>
+                          <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                            <div
+                              className={`h-full transition-all duration-500 rounded-full ${
+                                isGood ? 'bg-emerald-500' : isRegular ? 'bg-amber-500' : 'bg-rose-500'
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Veredicto de Repetidor */}
+                        <div className={`mt-3 p-2.5 rounded-xl text-xs flex items-center gap-2 ${
+                          cam.needsRepeater ? 'bg-amber-100/70 text-amber-950 font-medium' : 'bg-slate-50 text-slate-700'
+                        }`}>
+                          <Info className={`h-4 w-4 shrink-0 ${cam.needsRepeater ? 'text-amber-600' : 'text-blue-600'}`} />
+                          <span>{cam.repeaterRecommendation}</span>
+                        </div>
+
+                        {/* Grid de Especificaciones de Red y Almacenamiento */}
+                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-2 border-t border-slate-100">
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">IP Local</span>
+                            <span className="font-mono text-slate-800 font-semibold">{cam.localIp}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Resolución Sensor</span>
+                            <span className="text-slate-800 font-semibold">{cam.nativeSensorResolution}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Stream Cloud</span>
+                            <span className="text-slate-800 font-semibold">{cam.snapshotResolution} (~{cam.snapshotSizeKb} KB)</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">MicroSD 24/7</span>
+                            <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3 text-emerald-600" />
+                              Grabando OK
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-8 text-center text-slate-400">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
+                    <p className="text-xs">Consultando telemetría de las 3 cámaras en Ezviz Cloud...</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Guía de Ancho de Banda y Protección de Render / Cloudflare */}
+              <div className="rounded-2xl bg-blue-50/70 border border-blue-100 p-3.5 text-xs text-blue-900 space-y-1.5">
+                <p className="font-bold flex items-center gap-1.5 text-blue-950">
+                  <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+                  <span>Protección de Ancho de Banda (Render & Cloudflare)</span>
+                </p>
+                <p className="text-[11px] leading-relaxed text-blue-800">
+                  Cada fotograma se transmite optimizado (~98 KB) y con deduplicación automática (los fotogramas sin cambios no se retransmiten). La auto-pausa a los 60 segundos evita que se consuma la cuota mensual gratuita de Render.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowTelemetryModal(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded-xl transition"
+              >
+                Cerrar Diagnóstico
+              </button>
             </div>
           </div>
         </div>

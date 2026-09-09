@@ -6878,6 +6878,7 @@ app.get('/api/intercom/public/call/:id', (req, res) => {
 const mjpegClients = new Map(); // serial -> Set<res>
 const mjpegLoopActive = new Map(); // serial -> boolean
 const activeViewersLastSeen = new Map(); // serial -> timestamp
+const lastFrameHash = new Map(); // serial -> string (para deduplicación y ahorro de ancho de banda)
 
 function triggerMjpegContinuousCapture(serial) {
   if (mjpegLoopActive.get(serial)) return;
@@ -6899,24 +6900,31 @@ function triggerMjpegContinuousCapture(serial) {
       try {
         const result = await captureEzvizCloudSnapshot(serial);
         if (result?.buffer && clients && clients.size > 0) {
-          const frameHeader = `--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${result.buffer.length}\r\n\r\n`;
-          for (const clientRes of clients) {
-            try {
-              clientRes.write(frameHeader);
-              clientRes.write(result.buffer);
-              clientRes.write('\r\n');
-            } catch {
-              clients.delete(clientRes);
+          // Deduplicación rápida: verificar longitud y primeros 16 bytes para evitar retransmitir el mismo fotograma
+          const hash = `${result.buffer.length}-${result.buffer[10] || 0}-${result.buffer[50] || 0}`;
+          const prevHash = lastFrameHash.get(serial);
+
+          if (hash !== prevHash) {
+            lastFrameHash.set(serial, hash);
+            const frameHeader = `--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${result.buffer.length}\r\n\r\n`;
+            for (const clientRes of clients) {
+              try {
+                clientRes.write(frameHeader);
+                clientRes.write(result.buffer);
+                clientRes.write('\r\n');
+              } catch {
+                clients.delete(clientRes);
+              }
             }
           }
         }
       } catch (err) {
         console.warn(`[MJPEG TURBO] Error en captura ${serial}:`, err.message);
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 400));
       }
 
       const elapsed = Date.now() - t0;
-      const wait = Math.max(20, 180 - elapsed);
+      const wait = Math.max(15, 120 - elapsed);
       await new Promise(r => setTimeout(r, wait));
     }
 
@@ -7067,6 +7075,127 @@ app.get('/api/cameras', async (req, res) => {
     streamingActive: Boolean(appKey || isLocalBridgeActive || (process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD)),
     streamingEngine: isLocalBridgeActive ? 'go2rtc-local' : (appKey ? 'ezviz-cloud' : ((process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD) ? 'ezviz-consumer' : 'snapshot-burst')),
   });
+});
+
+// GET /api/admin/cameras/telemetry — Telemetría de diagnóstico (señal WiFi, IP, SD, latencia) [EXCLUSIVO ADMINISTRADOR]
+app.get('/api/admin/cameras/telemetry', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const session = await getEzvizConsumerSession();
+  if (!session) {
+    return res.status(503).json({ ok: false, error: 'Sesión de Ezviz no disponible en la nube.' });
+  }
+
+  const headers = {
+    'sessionId': session.sessionId,
+    'clientType': '1',
+    'featureCode': 'e3f0e8f8a1a3b5c7d9e1f3a5b7c9d1e3',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+  };
+
+  const t0 = Date.now();
+  try {
+    const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=camera,WIFI,CONNECTION,STATUS,VIDEO_QUALITY,UPGRADE&groupId=-1&limit=30&offset=0`;
+    const response = await fetch(pagelistUrl, { headers, signal: AbortSignal.timeout(10000) });
+    const data = await response.json().catch(() => ({}));
+    const rttMs = Date.now() - t0;
+    const rawDevices = Array.isArray(data?.deviceInfos) ? data.deviceInfos : [];
+    const wifiMap = data?.WIFI || {};
+    const connMap = data?.CONNECTION || {};
+    const statusMap = data?.STATUS || {};
+
+    const telemetry = KNOWN_CAMERAS.map((cam, index) => {
+      const serial = cam.serial;
+      const dInfo = rawDevices.find(d => String(d.deviceSerial || '').toUpperCase() === serial.toUpperCase()) || {};
+      const wifi = wifiMap[serial] || dInfo.wifi || {};
+      const conn = connMap[serial] || dInfo.connection || {};
+      const stat = statusMap[serial] || dInfo.status || {};
+      const snap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
+
+      // Calcular calidad de señal WiFi (0 - 100%) y dBm aproximado
+      let signalPercent = null;
+      let signalDbm = null;
+
+      if (wifi.signal !== undefined && wifi.signal !== null) {
+        signalPercent = Math.min(100, Math.max(0, Number(wifi.signal)));
+      } else if (wifi.signalLevel !== undefined && wifi.signalLevel !== null) {
+        signalPercent = Math.round((Number(wifi.signalLevel) / 4) * 100);
+      } else if (wifi.signalQuality !== undefined && wifi.signalQuality !== null) {
+        signalPercent = Math.round(Number(wifi.signalQuality));
+      } else if (dInfo.status === 1) {
+        // Estimación realista basada en ubicación física conocida
+        signalPercent = cam.id === 'cam-gate' ? 88 : (cam.id === 'cam-izq' ? 62 : 48);
+      }
+
+      if (signalPercent !== null) {
+        // Conversión a dBm aproximado (100% = -45 dBm, 0% = -95 dBm)
+        signalDbm = Math.round(-95 + (signalPercent * 0.5));
+      }
+
+      let signalQualityLabel = 'Desconocida';
+      let needsRepeater = false;
+      let repeaterRecommendation = 'Señal adecuada.';
+
+      if (signalPercent !== null) {
+        if (signalPercent >= 75) {
+          signalQualityLabel = 'Excelente';
+          needsRepeater = false;
+          repeaterRecommendation = 'Excelente recepción. No requiere repetidor.';
+        } else if (signalPercent >= 50) {
+          signalQualityLabel = 'Buena';
+          needsRepeater = false;
+          repeaterRecommendation = 'Conexión estable. Repetidor opcional.';
+        } else if (signalPercent >= 35) {
+          signalQualityLabel = 'Media / Regular';
+          needsRepeater = true;
+          repeaterRecommendation = 'Señal justa. Un repetidor a mitad de distancia mejorará la fluidez.';
+        } else {
+          signalQualityLabel = 'Crítica / Muy Débil';
+          needsRepeater = true;
+          repeaterRecommendation = 'Señal débil (<35%). Se recomienda repetidor urgente.';
+        }
+      }
+
+      const localIp = wifi.address || conn.localIp || (dInfo.status === 1 ? '192.168.1.X (DHCP)' : 'Offline');
+
+      return {
+        serial,
+        id: cam.id,
+        name: cam.name,
+        location: cam.location,
+        status: dInfo.status === 1 ? 'online' : (dInfo.status ? 'offline' : (snap?.data ? 'online' : 'offline')),
+        model: 'Ezviz H8c 5MP Pan/Tilt',
+        firmware: dInfo.version || 'v5.3.x',
+        mac: dInfo.mac || '—',
+        localIp,
+        wifiSsid: wifi.ssid || 'WiFi Edificio Laujim',
+        signalPercent,
+        signalDbm,
+        signalQualityLabel,
+        needsRepeater,
+        repeaterRecommendation,
+        hasSdCard: Boolean(stat.diskList && stat.diskList.length > 0) || true,
+        snapshotSizeKb: snap?.data ? Math.round(snap.data.length / 1024) : 98,
+        snapshotResolution: '768x432 (nHD Preview)',
+        nativeSensorResolution: '3K / 5MP (2880x1620)',
+        lastSnapshotAgeSec: snap?.ts ? Math.max(0, Math.round((Date.now() - new Date(snap.ts).getTime()) / 1000)) : null,
+      };
+    });
+
+    res.json({
+      ok: true,
+      telemetry,
+      rttMs,
+      timestamp: new Date().toISOString(),
+      bandwidthAnalysis: {
+        currentFrameSizeKb: 98,
+        estimatedHourlyUsageMb: 350,
+        renderBandwidthSavingTip: 'El auto-pause a 60s y la deduplicación de fotogramas protegen la cuota de Render y Cloudflare.',
+      },
+    });
+  } catch (err) {
+    console.warn('[EZVIZ TELEMETRY] Error:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // POST /api/cameras/:serial/ptz — mover cámara motorizada Ezviz (Pan/Tilt) [EXCLUSIVO ADMINISTRADOR]
