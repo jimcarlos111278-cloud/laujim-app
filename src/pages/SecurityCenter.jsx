@@ -5,6 +5,7 @@ import {
   Maximize2, Eye, ShieldAlert, Sparkles, Check
 } from 'lucide-react';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
+import { getAuth } from '../utils/auth';
 
 const ADMIN_CAMERAS = [
   { id: 'cam-gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal / Vehicular' },
@@ -35,8 +36,10 @@ export default function SecurityCenter() {
     setTelemetryLoading(true);
     setTelemetryError('');
     try {
-      const res = await fetch(`${getBase()}/api/admin/cameras/telemetry`, {
-        headers: { 'x-auth-token': AUTH_TOKEN },
+      const auth = getAuth();
+      const token = auth?.token || AUTH_TOKEN;
+      const res = await fetch(`${getBase()}/api/cameras/telemetry`, {
+        headers: { 'x-auth-token': token },
         signal: AbortSignal.timeout(12000),
       });
       const payload = await res.json().catch(() => ({}));
@@ -542,10 +545,14 @@ export default function SecurityCenter() {
                       </div>
                     );
                   })
-                ) : (
+                ) : telemetryLoading ? (
                   <div className="p-8 text-center text-slate-400">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
                     <p className="text-xs">Consultando telemetría de las 3 cámaras en Ezviz Cloud...</p>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-slate-500 text-xs">
+                    No se pudieron cargar los datos de telemetría. Presiona &quot;Medir ahora&quot; para reintentar.
                   </div>
                 )}
               </div>
