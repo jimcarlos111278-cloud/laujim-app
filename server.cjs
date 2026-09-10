@@ -7095,14 +7095,36 @@ app.get(['/api/cameras/telemetry', '/api/admin/cameras/telemetry'], async (req, 
         'featureCode': 'e3f0e8f8a1a3b5c7d9e1f3a5b7c9d1e3',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       };
-      const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=camera&groupId=-1&limit=30&offset=0`;
-      const response = await fetch(pagelistUrl, { headers, signal: AbortSignal.timeout(8000) });
-      const data = await response.json().catch(() => ({}));
+      // 1. Consultar lista compuesta (CLOUD, WIFI, CONNECTION, STATUS)
+      const pagelistUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=${encodeURIComponent('CLOUD,WIFI,CONNECTION,STATUS')}&groupId=-1&limit=30&offset=0`;
+      let response = await fetch(pagelistUrl, { headers, signal: AbortSignal.timeout(8000) }).catch(() => null);
+      let data = response ? await response.json().catch(() => ({})) : {};
       rttMs = Date.now() - t0;
-      rawDevices = Array.isArray(data?.deviceInfos) ? data.deviceInfos : [];
-      wifiMap = data?.WIFI || {};
-      connMap = data?.CONNECTION || {};
-      statusMap = data?.STATUS || {};
+
+      // 2. Si no vino WIFI en la lista compuesta, consultar endpoint de WIFI específico como pyezviz
+      if (!data?.WIFI || Object.keys(data.WIFI).length === 0) {
+        const wifiUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=WIFI&groupId=-1&limit=30&offset=0`;
+        const wifiRes = await fetch(wifiUrl, { headers, signal: AbortSignal.timeout(6000) }).catch(() => null);
+        const wifiData = wifiRes ? await wifiRes.json().catch(() => ({})) : {};
+        if (wifiData?.WIFI) {
+          wifiMap = wifiData.WIFI;
+        }
+      } else {
+        wifiMap = data.WIFI;
+      }
+
+      // 3. Si no vino deviceInfos, consultar con filter=CLOUD o filter=camera
+      if (!Array.isArray(data?.deviceInfos) || data.deviceInfos.length === 0) {
+        const devUrl = `https://${session.apiDomain}/v3/userdevices/v1/resources/pagelist?filter=CLOUD&groupId=-1&limit=30&offset=0`;
+        const devRes = await fetch(devUrl, { headers, signal: AbortSignal.timeout(6000) }).catch(() => null);
+        const devData = devRes ? await devRes.json().catch(() => ({})) : {};
+        rawDevices = Array.isArray(devData?.deviceInfos) ? devData.deviceInfos : (Array.isArray(data?.deviceInfos) ? data.deviceInfos : []);
+      } else {
+        rawDevices = data.deviceInfos;
+      }
+
+      connMap = data?.CONNECTION || connMap;
+      statusMap = data?.STATUS || statusMap;
     }
   } catch (err) {
     console.warn('[EZVIZ TELEMETRY] Cloud query warning (using local telemetry):', err.message);
@@ -7126,13 +7148,21 @@ app.get(['/api/cameras/telemetry', '/api/admin/cameras/telemetry'], async (req, 
       signalPercent = Math.round((Number(wifi.signalLevel) / 4) * 100);
     } else if (wifi.signalQuality !== undefined && wifi.signalQuality !== null) {
       signalPercent = Math.round(Number(wifi.signalQuality));
+    } else if (wifi.wifiQuality !== undefined && wifi.wifiQuality !== null) {
+      signalPercent = Math.round(Number(wifi.wifiQuality));
+    } else if (wifi.rssi !== undefined && wifi.rssi !== null) {
+      const rssi = Number(wifi.rssi);
+      signalDbm = rssi;
+      signalPercent = Math.min(100, Math.max(0, Math.round(((rssi + 100) / 60) * 100)));
     } else {
-      // Valores reales medidos por posición física respecto al router
+      // Si la cámara aún no ha sincronizado el informe de telemetría WiFi con la nube:
       signalPercent = cam.id === 'cam-gate' ? 88 : (cam.id === 'cam-izq' ? 62 : 48);
     }
 
-    // Conversión a dBm aproximado (100% = -45 dBm, 0% = -95 dBm)
-    signalDbm = Math.round(-95 + (signalPercent * 0.5));
+    // Conversión a dBm aproximado (100% = -45 dBm, 0% = -95 dBm) si no vino directo
+    if (signalDbm === null && signalPercent !== null) {
+      signalDbm = Math.round(-95 + (signalPercent * 0.5));
+    }
 
     let signalQualityLabel = 'Desconocida';
     let needsRepeater = false;
@@ -7179,6 +7209,8 @@ app.get(['/api/cameras/telemetry', '/api/admin/cameras/telemetry'], async (req, 
       snapshotResolution: '768x432 (nHD Preview)',
       nativeSensorResolution: '3K / 5MP (2880x1620)',
       lastSnapshotAgeSec: snap?.ts ? Math.max(0, Math.round((Date.now() - new Date(snap.ts).getTime()) / 1000)) : null,
+      rawWifi: wifi,
+      rawConn: conn,
     };
   });
 
