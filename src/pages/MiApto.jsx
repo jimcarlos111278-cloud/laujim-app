@@ -403,8 +403,8 @@ export default function MiApto() {
   }
 
   useEffect(() => {
-    if (!isTenant()) { navigate('/login', { replace: true }); return; }
-    loadData();
+    if (!isTenant() && !isAdmin()) { navigate('/login', { replace: true }); return; }
+    if (isTenant()) loadData();
   }, []);
 
   // Poll for active intercom calls every 3 seconds for instant response

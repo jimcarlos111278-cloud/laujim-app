@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon, ArrowUpDown, ChevronLeft, ChevronRight, Camera, Wifi } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsCard from '../components/StatsCard';
 import Modal from '../components/Modal';
@@ -275,7 +275,7 @@ const occupiedApts = apartments.filter(apartment =>
     );
   }
 
-async function handleSyncReminders() {
+  async function handleSyncReminders() {
     setSyncMsg('Generando...');
     try {
       const apartments = await api.apartments.toArray();
@@ -302,6 +302,26 @@ async function handleSyncReminders() {
         </div>
       </div>
       {syncMsg && <p className="text-xs text-emerald-600 dark:text-emerald-400">{syncMsg}</p>}
+
+      {/* Acceso Rápido a Cámaras y Diagnóstico WiFi */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-md shrink-0">
+            <Camera className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm sm:text-base text-white">Monitoreo de Cámaras y Diagnóstico WiFi</h3>
+            <p className="text-xs text-blue-100">3 Cámaras en vivo, controles motorizados PTZ y test de cobertura de repetidor.</p>
+          </div>
+        </div>
+        <Link
+          to="/security"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-blue-50 text-blue-900 font-bold text-xs rounded-xl transition shadow shrink-0 active:scale-95"
+        >
+          <Wifi className="w-3.5 h-3.5 text-blue-600" />
+          <span>Ver Cámaras & Test WiFi</span>
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Apartamentos" value={`${stats.occupied}/${stats.totalApts}`} subtitle={`${stats.vacant} disponibles`} icon={Building2} color="blue" />
