@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon, ArrowUpDown, ChevronLeft, ChevronRight, Camera, Wifi } from 'lucide-react';
+import { Building2, Users, DollarSign, CalendarCheck, TrendingUp, Home, AlertTriangle, Clock, Bell, AlertCircle, CheckCircle2, XCircle, Plus, Trash2, AlertOctagon, ArrowUpDown, ChevronLeft, ChevronRight, Camera, Wifi, RefreshCw, ExternalLink, Activity, Radio, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsCard from '../components/StatsCard';
 import Modal from '../components/Modal';
@@ -8,6 +8,8 @@ import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriod
 import { addCalendarReminder, syncAndGenerateReminders } from '../utils/calendar';
 import { notifyPaymentReminder } from '../utils/notifications';
 import ThemeSelector from '../components/ThemeSelector';
+import { getBase, AUTH_TOKEN } from '../utils/config';
+import { getAuth } from '../utils/auth';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ totalApts: 0, occupied: 0, vacant: 0, totalTenants: 0, monthlyIncome: 0, expectedIncome: 0, collectedIncome: 0, pendingPayments: 0, vacantApts: [], overdue: [], lastMonthMissing: [], thisMonthMissing: [], nextMonthMissing: [], nextMonthAlreadyPaid: [] });
@@ -18,14 +20,47 @@ export default function Dashboard() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [showExpense, setShowExpense] = useState(null);
   const [expenseForm, setExpenseForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], description: '', category: 'Mantenimiento', isUnexpected: true });
-const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
+  const [sortBy, setSortBy] = useState('name'); // 'name' | 'due'
   const [collectionPeriod, setCollectionPeriod] = useState(getCurrentPeriod());
   const [syncMsg, setSyncMsg] = useState('');
+
+  // Estados de Telemetría en Tiempo Real para Cámaras y WiFi
+  const [telemetry, setTelemetry] = useState(null);
+  const [telemetryLoading, setTelemetryLoading] = useState(false);
+  const [telemetryLastUpdated, setTelemetryLastUpdated] = useState(null);
+
+  async function fetchTelemetryData(isManual = false) {
+    if (isManual) setTelemetryLoading(true);
+    try {
+      const auth = getAuth();
+      const token = auth?.token || AUTH_TOKEN;
+      const res = await fetch(`${getBase()}/api/cameras/telemetry${isManual ? '?force=true' : ''}`, {
+        headers: { 'x-auth-token': token },
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.ok && Array.isArray(data.telemetry)) {
+        setTelemetry(data);
+        setTelemetryLastUpdated(new Date());
+      }
+    } catch (e) {
+      console.warn('[DASHBOARD TELEMETRY] Error:', e.message);
+    } finally {
+      if (isManual) setTelemetryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchTelemetryData(false);
+    const interval = setInterval(() => {
+      fetchTelemetryData(false);
+    }, 12000); // Polling sincronizado cada 12 segundos
+    return () => clearInterval(interval);
+  }, []);
 
   const expenseCategories = ['Mantenimiento', 'Reparación', 'Limpieza', 'Impuesto', 'Seguro', 'Adecuación', 'Otro'];
 
   useEffect(() => { loadStats(); }, [collectionPeriod]);
-
   async function loadStats() {
     const [apartments, tenants, contracts, payments, expenses] = await Promise.all([
       api.apartments.toArray(), api.tenants.toArray(), api.contracts.toArray(), api.payments.toArray(), api.expenses.toArray(),
@@ -303,24 +338,133 @@ const occupiedApts = apartments.filter(apartment =>
       </div>
       {syncMsg && <p className="text-xs text-emerald-600 dark:text-emerald-400">{syncMsg}</p>}
 
-      {/* Acceso Rápido a Cámaras y Diagnóstico WiFi */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-md shrink-0">
-            <Camera className="w-6 h-6 text-white" />
+      {/* MONITOREO DE CÁMARAS Y TELEMETRÍA WIFI EN TIEMPO REAL */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-sm space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900 text-blue-600 dark:text-blue-400 shrink-0">
+              <Camera className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
+                  Monitoreo y Telemetría WiFi de Cámaras
+                </h3>
+                <span className="relative flex h-2 w-2" title="Sincronizado en tiempo real">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/60">
+                  En vivo
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Señal de radio en tiempo real, dBm, IP local y estado de repetidor para las 3 cámaras.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-sm sm:text-base text-white">Monitoreo de Cámaras y Diagnóstico WiFi</h3>
-            <p className="text-xs text-blue-100">3 Cámaras en vivo, controles motorizados PTZ y test de cobertura de repetidor.</p>
+
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            {telemetry?.rttMs && (
+              <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 hidden md:inline">
+                RTT: {telemetry.rttMs}ms
+              </span>
+            )}
+            <button
+              onClick={() => fetchTelemetryData(true)}
+              disabled={telemetryLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs rounded-xl transition disabled:opacity-50"
+              title="Actualizar mediciones de señal ahora"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${telemetryLoading ? 'animate-spin text-blue-600' : ''}`} />
+              <span>{telemetryLoading ? 'Midiendo...' : 'Actualizar señal'}</span>
+            </button>
+            <Link
+              to="/security"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-sm active:scale-95"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Ver Cámaras & PTZ</span>
+            </Link>
           </div>
         </div>
-        <Link
-          to="/security"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-blue-50 text-blue-900 font-bold text-xs rounded-xl transition shadow shrink-0 active:scale-95"
-        >
-          <Wifi className="w-3.5 h-3.5 text-blue-600" />
-          <span>Ver Cámaras & Test WiFi</span>
-        </Link>
+
+        {/* Grid de las 3 Cámaras con Telemetría en Vivo */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {telemetry?.telemetry ? (
+            telemetry.telemetry.map(cam => {
+              const pct = cam.signalPercent ?? 50;
+              const isGood = pct >= 70;
+              const isRegular = pct >= 40 && pct < 70;
+
+              return (
+                <div
+                  key={cam.serial}
+                  className={`rounded-xl border p-3.5 transition flex flex-col justify-between gap-2.5 ${
+                    cam.needsRepeater
+                      ? 'border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-950/20'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30'
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-1.5">
+                      <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate" title={cam.name}>
+                        {cam.name}
+                      </h4>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        isGood
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                          : isRegular
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                          : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                      }`}>
+                        <Wifi className="w-2.5 h-2.5" />
+                        {pct}% {cam.signalDbm ? `(${cam.signalDbm} dBm)` : ''}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      {cam.location} • <span className="font-mono text-[10px]">{cam.serial}</span>
+                    </p>
+                  </div>
+
+                  {/* Barra visual de señal WiFi */}
+                  <div>
+                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          isGood ? 'bg-emerald-500' : isRegular ? 'bg-amber-500' : 'bg-rose-500'
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Metadata de Red & Diagnóstico */}
+                  <div className="space-y-1 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px]">
+                    <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 font-mono text-[10px]">
+                      <span>IP: <strong className="text-slate-800 dark:text-slate-200">{cam.localIp || 'DHCP'}</strong></span>
+                      <span className="text-slate-400">SSID: {cam.wifiSsid || 'Laujim'}</span>
+                    </div>
+
+                    <div className={`p-1.5 rounded-lg text-[10px] leading-tight font-medium flex items-center gap-1.5 ${
+                      cam.needsRepeater
+                        ? 'bg-amber-100/80 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200'
+                        : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300'
+                    }`}>
+                      <span>{cam.needsRepeater ? '⚠️' : '✅'}</span>
+                      <span className="truncate">{cam.repeaterRecommendation}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="col-span-1 md:col-span-3 py-6 text-center text-slate-400 text-xs">
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-1 text-blue-600" />
+              <span>Sincronizando telemetría en tiempo real desde la nube Ezviz...</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

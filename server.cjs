@@ -7077,8 +7077,15 @@ app.get('/api/cameras', async (req, res) => {
   });
 });
 
+let telemetryCache = null;
+let telemetryCacheTime = 0;
+
 // GET /api/cameras/telemetry y /api/admin/cameras/telemetry — Telemetría de diagnóstico (señal WiFi, IP, SD, latencia)
 app.get(['/api/cameras/telemetry', '/api/admin/cameras/telemetry'], async (req, res) => {
+  if (req.query.force !== 'true' && telemetryCache && (Date.now() - telemetryCacheTime < 6000)) {
+    return res.json({ ...telemetryCache, cached: true });
+  }
+
   const t0 = Date.now();
   let rawDevices = [];
   let wifiMap = {};
@@ -7214,7 +7221,7 @@ app.get(['/api/cameras/telemetry', '/api/admin/cameras/telemetry'], async (req, 
     };
   });
 
-  res.json({
+  const payload = {
     ok: true,
     telemetry,
     rttMs,
@@ -7224,7 +7231,10 @@ app.get(['/api/cameras/telemetry', '/api/admin/cameras/telemetry'], async (req, 
       estimatedHourlyUsageMb: 350,
       renderBandwidthSavingTip: 'El auto-pause a 60s y la deduplicación de fotogramas protegen la cuota de Render y Cloudflare.',
     },
-  });
+  };
+  telemetryCache = payload;
+  telemetryCacheTime = Date.now();
+  res.json(payload);
 });
 
 // POST /api/cameras/:serial/ptz — mover cámara motorizada Ezviz (Pan/Tilt) [EXCLUSIVO ADMINISTRADOR]
