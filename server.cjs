@@ -55,7 +55,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
-    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path === '/api/admin/cameras/telemetry';
+    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry';
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -7080,8 +7080,8 @@ app.get('/api/cameras', async (req, res) => {
 let telemetryCache = null;
 let telemetryCacheTime = 0;
 
-// GET /api/cameras/telemetry y /api/admin/cameras/telemetry — Telemetría de diagnóstico (señal WiFi, IP, SD, latencia)
-app.get(['/api/cameras/telemetry', '/api/admin/cameras/telemetry'], async (req, res) => {
+// GET /api/cameras/telemetry, /api/api/cameras/telemetry y /api/admin/cameras/telemetry
+app.get(['/api/cameras/telemetry', '/api/api/cameras/telemetry', '/api/admin/cameras/telemetry'], async (req, res) => {
   if (req.query.force !== 'true' && telemetryCache && (Date.now() - telemetryCacheTime < 6000)) {
     return res.json({ ...telemetryCache, cached: true });
   }
@@ -10414,9 +10414,18 @@ app.get('/app-debug.apk', (req, res) => {
   res.redirect(302, 'https://github.com/jimcarlos111278-cloud/laujim-app/releases/latest/download/app-debug.apk');
 });
 
-app.use(express.static(path.resolve(__dirname, 'dist')));
+app.use(express.static(path.resolve(__dirname, 'dist'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+    }
+  },
+}));
 
 app.use((req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.resolve(__dirname, 'dist', 'index.html'), err => {
     if (err) {
       console.error('Error sending index.html:', err.message);

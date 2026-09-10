@@ -34,7 +34,7 @@ export default function Dashboard() {
     try {
       const auth = getAuth();
       const token = auth?.token || AUTH_TOKEN;
-      const res = await fetch(`${getBase()}/api/cameras/telemetry${isManual ? '?force=true' : ''}`, {
+      const res = await fetch(`${getBase()}/cameras/telemetry${isManual ? '?force=true' : ''}`, {
         headers: { 'x-auth-token': token },
         signal: AbortSignal.timeout(10000),
       });

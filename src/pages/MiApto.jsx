@@ -147,7 +147,7 @@ export default function MiApto() {
     try {
       const auth = getAuth();
       const token = auth?.token || AUTH_TOKEN;
-      const res = await fetch(`${getBase()}/api/cameras/telemetry`, {
+      const res = await fetch(`${getBase()}/cameras/telemetry`, {
         headers: { 'x-auth-token': token },
         signal: AbortSignal.timeout(12000),
       });
