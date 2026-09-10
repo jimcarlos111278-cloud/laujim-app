@@ -43,7 +43,7 @@ const appVersion = {
   // Keep this absolute so an older APK with a stale localhost server setting
   // can still download the release. The backup Render node is the current
   // static release host and the new APK keeps the same failover pair.
-  apkUrl: `${String(process.env.PUBLIC_APK_BASE_URL || 'https://laujim-app-backup.onrender.com').replace(/\/+$/, '')}/app-debug.apk?v=${encodeURIComponent(apkVersion)}`,
+  apkUrl: `${String(process.env.PUBLIC_APK_BASE_URL || 'https://laujim-app.onrender.com').replace(/\/+$/, '')}/app-debug.apk?v=${encodeURIComponent(apkVersion)}`,
 };
 const appVersionJson = `${JSON.stringify(appVersion, null, 2)}\n`;
 writeFileSync(join(publicDir, 'app-version.json'), appVersionJson);

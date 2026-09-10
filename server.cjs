@@ -10357,14 +10357,20 @@ app.get('/', (req, res) => {
   });
 });
 
-// Prefer the APK bundled by the web build. Keep the GitHub release as a
+// Prefer the APK bundled in public/ or dist/. Keep the GitHub release as a
 // fallback for older deployments that do not yet contain the public asset.
 app.get('/app-debug.apk', (req, res) => {
-  const localApk = path.join(__dirname, 'dist', 'app-debug.apk');
-  if (fs.existsSync(localApk)) {
-    return res.download(localApk, 'laujim-app-debug.apk', {
-      headers: { 'Content-Type': 'application/vnd.android.package-archive' },
-    });
+  const candidates = [
+    path.join(__dirname, 'public', 'app-debug.apk'),
+    path.join(__dirname, 'dist', 'app-debug.apk'),
+    path.join(__dirname, 'Laujim-1.0.122.apk'),
+  ];
+  for (const apk of candidates) {
+    if (fs.existsSync(apk)) {
+      return res.download(apk, 'Laujim-Tracker-v1.0.122.apk', {
+        headers: { 'Content-Type': 'application/vnd.android.package-archive' },
+      });
+    }
   }
   res.redirect(302, 'https://github.com/jimcarlos111278-cloud/laujim-app/releases/latest/download/app-debug.apk');
 });
