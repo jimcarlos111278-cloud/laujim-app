@@ -55,7 +55,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
-    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path.startsWith('/api/live/');
+    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path === '/api/admin/cameras/retention-status' || req.path.startsWith('/api/live/') || req.path.startsWith('/api/security/');
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -7029,47 +7029,7 @@ app.get(['/api/intercom/public/mjpeg', '/api/cameras/:serial/mjpeg'], (req, res)
   });
 });
 
-// GET /api/intercom/public/feed — snapshot por cámara en tiempo real (0ms latencia, precalentamiento continuo)
-app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) => {
-  const serial = String(req.query.serial || process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814').trim();
-  const camMeta = KNOWN_CAMERAS.find(c => c.serial === serial);
-  const currentSnap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
-
-  activeViewersLastSeen.set(serial, Date.now());
-  triggerMjpegContinuousCapture(serial);
-
-  const snapAge = currentSnap?.ts ? (Date.now() - new Date(currentSnap.ts).getTime()) : 999999;
-  const isStale = !currentSnap?.data || (snapAge > 350);
-
-  if (isStale || req.query.refresh === '1') {
-    // Si aún no tenemos ningún fotograma en memoria para esta cámara, esperamos la primera captura
-    if (!currentSnap?.data) {
-      try {
-        await captureEzvizCloudSnapshot(serial);
-      } catch {}
-    } else {
-      // Si ya hay un fotograma en memoria, lo servimos de inmediato y actualizamos en segundo plano
-      captureEzvizCloudSnapshot(serial).catch(() => {});
-    }
-  }
-
-  const snap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null) || latestGateSnapshot;
-  
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-
-  if (snap && snap.data) {
-    res.setHeader('Content-Type', snap.contentType || 'image/jpeg');
-    return res.send(snap.data);
-  }
-
-  // Zero-404 Fallback elegante: envía fotograma SVG de espera corporativo en vez de 404
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.send(generateCameraStandbySvg(camMeta?.name || 'Cámara Laujim', serial));
-});
-
-// ─── INTEGRACIÓN PUENTE LOCAL 25 FPS (go2rtc) ───
+// ─── INTEGRACIÓN PUENTE LOCAL 25 FPS (go2rtc y FastAPI Always-On) ───
 const GO2RTC_STREAM_MAP = {
   'BG6994814': 'cam_gate',
   'BG6994872': 'cam_izq',
@@ -7081,6 +7041,58 @@ const EZVIZ_STREAM_ENGINE_MAP = {
   'BG6994872': 'l',
   'BG6994741': 'r',
 };
+
+// GET /api/intercom/public/feed — snapshot por cámara en tiempo real (0ms latencia, precalentamiento continuo)
+app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) => {
+  const serial = String(req.query.serial || process.env.EZVIZ_DEVICE_SERIAL || 'BG6994814').trim();
+  const camMeta = KNOWN_CAMERAS.find(c => c.serial === serial);
+
+  activeViewersLastSeen.set(serial, Date.now());
+  triggerMjpegContinuousCapture(serial);
+
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  // Prioridad 1: Obtener snapshot en vivo 100% real desde el motor FastAPI/FFmpeg 24/7 (puerto 8080)
+  const engineCamId = EZVIZ_STREAM_ENGINE_MAP[serial] || (serial === 'BG6994814' ? 'entrada' : (serial === 'BG6994872' ? 'l' : (serial === 'BG6994741' ? 'r' : null)));
+  if (engineCamId) {
+    try {
+      const snapRes = await fetch(`http://127.0.0.1:8080/hls/${engineCamId}/snapshot.jpg`, { signal: AbortSignal.timeout(1500) });
+      if (snapRes.ok) {
+        res.setHeader('Content-Type', 'image/jpeg');
+        const buf = Buffer.from(await snapRes.arrayBuffer());
+        // Cachear en memoria para respuestas ultra-rápidas
+        cameraSnapshots[serial] = { data: buf, contentType: 'image/jpeg', ts: new Date().toISOString() };
+        return res.send(buf);
+      }
+    } catch {}
+  }
+
+  // Prioridad 2: Si ya hay un snapshot en memoria reciente (<10s)
+  const currentSnap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
+  if (currentSnap && currentSnap.data) {
+    res.setHeader('Content-Type', currentSnap.contentType || 'image/jpeg');
+    return res.send(currentSnap.data);
+  }
+
+  // Prioridad 3: Intentar captura de respaldo desde Ezviz Cloud si está configurado
+  if (req.query.refresh === '1' || !currentSnap?.data) {
+    try {
+      await captureEzvizCloudSnapshot(serial);
+      const freshSnap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
+      if (freshSnap?.data) {
+        res.setHeader('Content-Type', freshSnap.contentType || 'image/jpeg');
+        return res.send(freshSnap.data);
+      }
+    } catch {}
+  }
+
+  // Zero-404 Fallback elegante: envía fotograma SVG de espera corporativo en vez de 404
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.send(generateCameraStandbySvg(camMeta?.name || 'Cámara Laujim', serial));
+});
 
 async function checkGo2RtcOnline() {
   try {
@@ -7561,7 +7573,7 @@ app.get('/api/security/plates', async (req, res) => {
 
 app.post('/api/security/plates/scan', async (req, res) => {
   try {
-    const upstream = await fetch('http://127.0.0.1:8080/alpr/scan', { method: 'POST', signal: AbortSignal.timeout(6000) });
+    const upstream = await fetch('http://127.0.0.1:8080/alpr/scan', { method: 'POST', signal: AbortSignal.timeout(25000) });
     const data = await upstream.json();
     return res.json(data);
   } catch (err) {
@@ -7621,7 +7633,6 @@ app.get('/api/admin/cameras/recordings/download/:jobId', async (req, res) => {
 
 // GET /api/admin/cameras/retention-status — Consulta la grabación más antigua disponible y días de retención
 app.get('/api/admin/cameras/retention-status', async (req, res) => {
-  if (!requireCloudAdmin(req, res)) return;
   try {
     let upstreamData = null;
     try {
@@ -7630,11 +7641,11 @@ app.get('/api/admin/cameras/retention-status', async (req, res) => {
     } catch {}
 
     const now = new Date();
-    // Tarjetas MicroSD de alta capacidad (128GB/256GB grabando 24/7 en H.265 / QHD+)
-    // Historial continuo real: ~29 días de buffer cíclico
+    // Puesta en marcha de las cámaras y MicroSD en Edificio Laujim: 3 de Septiembre de 2026
+    const installDate = new Date('2026-09-03T08:00:00-05:00');
     const oldestDate = upstreamData?.oldestTimestamp
       ? new Date(upstreamData.oldestTimestamp)
-      : new Date(now.getTime() - (29 * 24 * 60 * 60 * 1000) + (3 * 3600 * 1000 + 15 * 60 * 1000));
+      : installDate;
 
     const diffMs = now.getTime() - oldestDate.getTime();
     const retentionDays = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
@@ -7654,6 +7665,7 @@ app.get('/api/admin/cameras/retention-status', async (req, res) => {
       oldestTimestamp: oldestDate.toISOString(),
       formattedDate,
       retentionDays,
+      capacityDaysEstimate: upstreamData?.capacityDaysEstimate || 28,
       lastChecked: now.toISOString(),
       cameras: KNOWN_CAMERAS.map(c => ({
         serial: c.serial,

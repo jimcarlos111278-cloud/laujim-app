@@ -73,6 +73,7 @@ export default function SecurityCenter() {
   const [alprPlates, setAlprPlates] = useState([]);
   const [alprLoading, setAlprLoading] = useState(false);
   const [alprScanning, setAlprScanning] = useState(false);
+  const [alprFeedback, setAlprFeedback] = useState(null);
 
   // Modal de Configuración EZVIZ (Cloud & Router)
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -225,12 +226,22 @@ export default function SecurityCenter() {
     return () => clearInterval(interval);
   }, [cameraLive, selectedCamSerial]);
 
+  // Pre-solicitar streams para todas las cámaras al inicio
+  useEffect(() => {
+    ADMIN_CAMERAS.forEach(c => requestCameraStream(c.serial));
+  }, []);
+
   // Reproductor HLS para el video Hero
   useEffect(() => {
     const streamUrl = streamUrls[selectedCamSerial];
     const isFailed = streamErrors[selectedCamSerial];
     const video = videoRef.current;
     if (!video || !streamUrl || isFailed || !cameraLive) return;
+
+    // Garantizar bypass de políticas de reproducción automática en navegadores modernos
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
 
     const rawBase = getRawBase();
     const fullStreamUrl = streamUrl.startsWith('http')
@@ -381,7 +392,11 @@ export default function SecurityCenter() {
   // Consultar historial de placas detectadas (ALPR)
   async function fetchAlprPlates() {
     try {
-      const res = await fetch(`${getRawBase()}/api/security/plates`);
+      const auth = getAuth();
+      const token = auth?.token || AUTH_TOKEN;
+      const res = await fetch(`${getRawBase()}/api/security/plates`, {
+        headers: token ? { 'x-auth-token': token } : {}
+      });
       const data = await res.json().catch(() => ({}));
       if (data?.ok && Array.isArray(data.plates)) {
         setAlprPlates(data.plates);
@@ -391,13 +406,38 @@ export default function SecurityCenter() {
 
   async function handleScanPlate() {
     setAlprScanning(true);
+    setAlprFeedback({ type: 'info', text: 'Analizando vía pública en Cámaras de Calle (Izquierda y Derecha)...' });
     try {
-      const res = await fetch(`${getRawBase()}/api/security/plates/scan`, { method: 'POST' });
-      await res.json().catch(() => ({}));
+      const auth = getAuth();
+      const token = auth?.token || AUTH_TOKEN;
+      const res = await fetch(`${getRawBase()}/api/security/plates/scan`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {})
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.plates_detected && data.plates_detected.length > 0) {
+        setAlprFeedback({
+          type: 'success',
+          text: `¡Placa detectada con éxito! [${data.plates_detected.join(', ')}]`
+        });
+      } else {
+        setAlprFeedback({
+          type: 'info',
+          text: 'Escaneo completado: No se observan placas de vehículos en este instante frente al edificio.'
+        });
+      }
       await fetchAlprPlates();
-    } catch {}
-    finally {
+    } catch (err) {
+      setAlprFeedback({
+        type: 'error',
+        text: `Error al escanear: ${err.message || 'Verifique la conexión'}`
+      });
+    } finally {
       setAlprScanning(false);
+      setTimeout(() => setAlprFeedback(null), 8000);
     }
   }
 
@@ -1119,15 +1159,22 @@ export default function SecurityCenter() {
                   <div className="flex items-center gap-1.5">
                     <span className="text-slate-500 dark:text-slate-400 font-medium">Grabación más antigua disponible:</span>
                     <strong className="text-emerald-700 dark:text-emerald-300 font-bold bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-900/60">
-                      {retentionInfo?.formattedDate || '15 de Agosto de 2026, 03:15 AM'}
+                      {retentionInfo?.formattedDate || '3 de Septiembre de 2026, 08:00 AM'}
                     </strong>
                   </div>
                   <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-slate-500 dark:text-slate-400 font-medium">Retención continua activa:</span>
                     <strong className="text-blue-700 dark:text-blue-300 font-bold bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-900/60">
-                      {retentionInfo?.retentionDays || 29} días
+                      {retentionInfo?.retentionDays ? `${retentionInfo.retentionDays} días activos` : '11 días activos'}
                     </strong>
+                  </div>
+                  <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Capacidad MicroSD 128GB:</span>
+                    <span className="text-slate-600 dark:text-slate-300 font-semibold bg-white/60 dark:bg-slate-800/60 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                      ~28 días máx. cíclico
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1398,6 +1445,20 @@ export default function SecurityCenter() {
             </button>
           </div>
         </div>
+
+        {/* Notificación y Feedback Visual de Escaneo ALPR */}
+        {alprFeedback && (
+          <div className={`mb-4 p-3 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+            alprFeedback.type === 'success'
+              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+              : alprFeedback.type === 'error'
+              ? 'bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300'
+              : 'bg-blue-500/10 border border-blue-500/30 text-blue-700 dark:text-blue-300'
+          }`}>
+            {alprScanning ? <Loader2 className="w-4 h-4 animate-spin shrink-0 text-amber-500" /> : <Info className="w-4 h-4 shrink-0" />}
+            <span>{alprFeedback.text}</span>
+          </div>
+        )}
 
         {/* Tabla o Lista de Placas Detectadas */}
         {alprPlates.length === 0 ? (

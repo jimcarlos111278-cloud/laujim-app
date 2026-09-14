@@ -182,13 +182,14 @@ def _alpr_worker():
     time.sleep(5.0)
     print("[ALPR] Módulo de Reconocimiento de Placas iniciado en Cámaras de Calle (Izquierda y Derecha).")
 
-    street_cams = [
-        ("l", "Cámara Izquierda (Calle)"),
-        ("r", "Cámara Derecha (Calle)")
+    all_cams = [
+        ("entrada", "Cámara Entrada (Portón)", False),
+        ("l", "Cámara Izquierda (Calle)", True),
+        ("r", "Cámara Derecha (Calle)", True)
     ]
 
     while True:
-        for cam_id, cam_label in street_cams:
+        for cam_id, cam_label, is_alpr in all_cams:
             try:
                 cam_dir = os.path.join(HLS_DIR, cam_id).replace("\\", "/")
                 m3u8_path = os.path.join(cam_dir, "index.m3u8")
@@ -205,7 +206,7 @@ def _alpr_worker():
                     ]
                     subprocess.run(snap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5.0)
 
-                    if os.path.exists(snapshot_path) and os.path.getsize(snapshot_path) > 1000:
+                    if is_alpr and os.path.exists(snapshot_path) and os.path.getsize(snapshot_path) > 1000:
                         ocr_cmd = ["tesseract", snapshot_path, "stdout", "--psm", "11"]
                         res = subprocess.run(ocr_cmd, capture_output=True, text=True, timeout=15.0)
                         text = res.stdout.upper()
@@ -243,7 +244,7 @@ def _alpr_worker():
                                 print(f"[ALPR DETECTADA] Placa: {plate} ({vtype}) en {cam_label} a las {now_str}")
             except Exception:
                 pass
-            time.sleep(2.5)
+            time.sleep(2.0)
         time.sleep(1.0)
 
 
@@ -524,15 +525,21 @@ def download_recording(job_id: str):
     )
 
 
+# Fecha de puesta en marcha física de las cámaras y MicroSD en Edificio Laujim
+INSTALLATION_DATE = datetime.datetime(2026, 9, 3, 8, 0, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=-5)))
+
 @app.get("/recordings/retention")
+@app.get("/api/retention")
 def get_retention():
-    now = datetime.datetime.now(datetime.timezone.utc)
-    oldest = now - datetime.timedelta(days=29)
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5)))
+    actual_days = max(1, (now - INSTALLATION_DATE).days)
     return {
         "ok": True,
-        "retentionDays": 29,
-        "oldestTimestamp": oldest.isoformat(),
+        "retentionDays": actual_days,
+        "capacityDaysEstimate": 28,
+        "oldestTimestamp": INSTALLATION_DATE.isoformat(),
         "storageType": "MicroSD 24/7 Local",
+        "installDate": "2026-09-03",
     }
 
 
