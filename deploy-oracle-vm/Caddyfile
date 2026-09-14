@@ -1,0 +1,21 @@
+# Configuración Caddy para Laujim App (Oracle VM + Cloudflare)
+# Reemplaza 'tu-dominio.com' por tu dominio configurado en Cloudflare
+
+{
+    email admin@edificiolaujim.com
+    admin off
+}
+
+# Dominio principal (tráfico web, app y API)
+:80, :443 {
+    # Proxy a la aplicación Node.js principal (puerto 10000)
+    reverse_proxy localhost:10000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Optimización de buffer para video HLS y llamadas pesadas
+    encode gzip zstd
+}

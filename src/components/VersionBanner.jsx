@@ -91,19 +91,36 @@ export default function VersionBanner() {
     }
 
     try {
-      const res = await fetch('/version.json?t=' + Date.now(), { signal: AbortSignal.timeout(3000) });
-      const local = await res.json();
-      if (!local.build) return;
-      const key = 'apt_build_' + local.build;
-      if (!sessionStorage.getItem(key)) {
-        setShow({ build: local.build, isPwa: true });
+      const serverBase = getRawBase();
+      const [verRes, appVerRes] = await Promise.all([
+        fetch('/version.json?t=' + Date.now(), { signal: AbortSignal.timeout(3000) }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/app-version.json?t=' + Date.now(), { signal: AbortSignal.timeout(3000) }).then(r => r.ok ? r.json() : null).catch(() => null),
+      ]);
+
+      if (appVerRes?.version) {
+        const dismissedVer = localStorage.getItem('apt_apk_dismissed_version');
+        if (dismissedVer !== appVerRes.version) {
+          setShow({
+            version: appVerRes.version,
+            apkUrl: absoluteApkUrl(serverBase, appVerRes.apkUrl),
+            isApkUpdateOnWeb: true,
+          });
+          return;
+        }
+      }
+
+      if (verRes?.build) {
+        const key = 'apt_build_' + verRes.build;
+        if (!sessionStorage.getItem(key)) {
+          setShow({ build: verRes.build, isPwa: true });
+        }
       }
     } catch {}
   }, []);
 
   useEffect(() => {
     checkVersion();
-    const interval = setInterval(checkVersion, 3 * 60 * 1000);
+    const interval = setInterval(checkVersion, 60 * 1000);
     const onFocus = () => checkVersion();
     window.addEventListener('focus', onFocus);
 
@@ -124,6 +141,9 @@ export default function VersionBanner() {
 
   function closeBanner() {
     setDismissed(true);
+    if (show?.version) {
+      localStorage.setItem('apt_apk_dismissed_version', show.version);
+    }
   }
 
   function handleDownload() {

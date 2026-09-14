@@ -1,0 +1,25 @@
+FROM python:3.12-slim-bookworm
+
+# Instalar FFmpeg y Tesseract OCR nativos para ARM64
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    tesseract-ocr \
+    tesseract-ocr-spa \
+    procps \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Instalar dependencias de Python
+RUN pip install --no-cache-dir fastapi uvicorn pydantic
+
+# Copiar el servidor de streaming y ALPR
+COPY ezviz_stream_server.py /app/
+COPY web /app/web
+
+RUN mkdir -p /app/hls /app/recordings
+
+EXPOSE 8080
+
+CMD ["python3", "ezviz_stream_server.py"]

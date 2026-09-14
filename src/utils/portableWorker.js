@@ -179,7 +179,7 @@ export async function autoRecoverWorkerToken(authToken) {
   const current = getPortableWorkerSettings();
   if (current.token) return current;
   try {
-    const base = cleanServerUrl(current.serverUrl) || 'https://laujim-app.onrender.com';
+    const base = cleanServerUrl(current.serverUrl) || 'https://conjunto-residendial-laujim.duckdns.org';
     const response = await fetch(`${base}/api/worker-token`, {
       headers: { 'x-auth-token': authToken },
       signal: AbortSignal.timeout(8000),

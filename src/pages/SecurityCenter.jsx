@@ -3,7 +3,7 @@ import Hls from 'hls.js';
 import {
   Camera, Wifi, RefreshCw, AlertTriangle, CheckCircle2, ShieldCheck, LockKeyhole,
   Activity, Radio, HardDrive, Info, Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  Maximize2, Eye, ShieldAlert, Sparkles, Check, Download, Film, Compass, Play, Clock, Calendar,
+  Maximize2, Minimize2, ChevronLeft, ChevronRight, Eye, ShieldAlert, Sparkles, Check, Download, Film, Compass, Play, Clock, Calendar,
   Settings, KeyRound, Video, Globe, Car
 } from 'lucide-react';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
@@ -60,8 +60,14 @@ export default function SecurityCenter() {
 
   // Reproductor HLS en Vivo (25 FPS)
   const videoRef = useRef(null);
+  const videoContainerRef = useRef(null);
   const [streamUrls, setStreamUrls] = useState({});
   const [streamErrors, setStreamErrors] = useState({});
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [touchStartX, setTouchStartX] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(null);
+  const [swipeHint, setSwipeHint] = useState('');
+  const [showPtzControls, setShowPtzControls] = useState(true);
 
   // Control Vehicular ALPR (Reconocimiento OCR en Vivo)
   const [alprPlates, setAlprPlates] = useState([]);
@@ -135,6 +141,60 @@ export default function SecurityCenter() {
     }
   }
 
+  // Fullscreen listener
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+    };
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    const elem = videoContainerRef.current || videoRef.current;
+    if (!elem) return;
+    if (!document.fullscreenElement) {
+      if (elem.requestFullscreen) elem.requestFullscreen().catch(() => {});
+      else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+  };
+
+  const handleTouchStart = (e) => {
+    if (!e.touches || !e.touches[0]) return;
+    setTouchStartX(e.touches[0].clientX);
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX === null || !e.changedTouches || !e.changedTouches[0]) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    const deltaY = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      const currentIndex = ADMIN_CAMERAS.findIndex(c => c.serial === selectedCamSerial);
+      if (deltaX < 0) {
+        // Swipe left -> siguiente cámara
+        const nextIndex = (currentIndex + 1) % ADMIN_CAMERAS.length;
+        setSelectedCamSerial(ADMIN_CAMERAS[nextIndex].serial);
+        setSwipeHint(`Mostrando: ${ADMIN_CAMERAS[nextIndex].name}`);
+      } else {
+        // Swipe right -> cámara anterior
+        const prevIndex = (currentIndex - 1 + ADMIN_CAMERAS.length) % ADMIN_CAMERAS.length;
+        setSelectedCamSerial(ADMIN_CAMERAS[prevIndex].serial);
+        setSwipeHint(`Mostrando: ${ADMIN_CAMERAS[prevIndex].name}`);
+      }
+      setTimeout(() => setSwipeHint(''), 2500);
+    }
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
   // Solicitar o renovar stream HLS para una cámara
   async function requestCameraStream(serial) {
     if (!serial) return;
@@ -142,7 +202,11 @@ export default function SecurityCenter() {
       const res = await fetch(`${getRawBase()}/api/cameras/${serial}/stream`);
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.streamUrl) {
-        setStreamUrls(prev => ({ ...prev, [serial]: data.streamUrl }));
+        const rawBase = getRawBase();
+        const fullUrl = data.streamUrl.startsWith('http')
+          ? data.streamUrl
+          : `${rawBase}${data.streamUrl.startsWith('/') ? '' : '/'}${data.streamUrl}`;
+        setStreamUrls(prev => ({ ...prev, [serial]: fullUrl }));
         setStreamErrors(prev => ({ ...prev, [serial]: false }));
       }
     } catch {}
@@ -168,6 +232,11 @@ export default function SecurityCenter() {
     const video = videoRef.current;
     if (!video || !streamUrl || isFailed || !cameraLive) return;
 
+    const rawBase = getRawBase();
+    const fullStreamUrl = streamUrl.startsWith('http')
+      ? streamUrl
+      : `${rawBase}${streamUrl.startsWith('/') ? '' : '/'}${streamUrl}`;
+
     let hls = null;
     if (Hls.isSupported()) {
       hls = new Hls({
@@ -181,7 +250,7 @@ export default function SecurityCenter() {
         fragLoadingTimeOut: 10000,
         fragLoadingMaxRetry: 8,
       });
-      hls.loadSource(streamUrl);
+      hls.loadSource(fullStreamUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch(() => {});
@@ -198,7 +267,7 @@ export default function SecurityCenter() {
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = streamUrl;
+      video.src = fullStreamUrl;
       video.play().catch(() => {});
     }
 
@@ -718,7 +787,15 @@ export default function SecurityCenter() {
         </div>
 
         {/* Marco de Video Hero (Transmisión HLS en Vivo 25 FPS con Fallback a Fotogramas) */}
-        <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner flex items-center justify-center">
+        <div
+          ref={videoContainerRef}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onDoubleClick={handleToggleFullscreen}
+          className={`relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner flex items-center justify-center select-none ${
+            isFullscreen ? 'fixed inset-0 z-50 rounded-none border-none aspect-auto h-screen w-screen' : ''
+          }`}
+        >
           {streamUrls[selectedCamSerial] && !streamErrors[selectedCamSerial] && cameraLive ? (
             <video
               ref={videoRef}
@@ -726,13 +803,13 @@ export default function SecurityCenter() {
               playsInline
               muted
               controls
-              className="h-full w-full object-contain"
+              className="h-full w-full object-contain cursor-pointer"
             />
           ) : cameraFeeds[selectedCamSerial] ? (
             <img
               src={cameraFeeds[selectedCamSerial]}
               alt={selectedCam.name}
-              className="h-full w-full object-contain"
+              className="h-full w-full object-contain cursor-pointer"
             />
           ) : (
             <div className="text-center text-slate-500">
@@ -742,8 +819,8 @@ export default function SecurityCenter() {
             </div>
           )}
 
-          {/* Badge de Estado del Stream en Vivo */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+          {/* Badge de Estado del Stream en Vivo y Controles Superiores */}
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
             {streamUrls[selectedCamSerial] && !streamErrors[selectedCamSerial] && cameraLive ? (
               <span className="bg-red-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg backdrop-blur-md flex items-center gap-1">
                 <Radio className="h-3 w-3 animate-pulse" />
@@ -758,52 +835,132 @@ export default function SecurityCenter() {
                 <span>Configurar Stream en Vivo</span>
               </button>
             )}
+
+            {/* Botón de Pantalla Completa */}
+            <button
+              onClick={handleToggleFullscreen}
+              className="bg-slate-900/80 hover:bg-slate-800 text-white p-1.5 rounded-full shadow-lg backdrop-blur-md border border-white/20 transition active:scale-95"
+              title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+            >
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            </button>
           </div>
 
-          {/* D-Pad / Cruceta Motorizada PTZ Superpuesta (Solo Admin) */}
-          <div className="absolute bottom-3 right-3 bg-slate-900/80 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-xl flex flex-col items-center">
-            <button
-              onClick={() => handleMovePtz('up')}
-              disabled={Boolean(ptzMoving)}
-              className="p-2 rounded-xl text-white hover:bg-white/20 active:scale-95 transition disabled:opacity-40"
-              title="Girar Arriba"
-            >
-              <ArrowUp className="h-4 w-4" />
-            </button>
-            <div className="flex items-center gap-1">
+          {/* Indicador de Swipe y Cámara Actual (Top Left) */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1 z-20">
+            <div className="bg-slate-900/80 backdrop-blur-md text-white px-2.5 py-1 rounded-lg border border-white/10 text-[11px] font-bold flex items-center gap-1.5 shadow">
+              <Camera className="h-3.5 w-3.5 text-blue-400" />
+              <span>{selectedCam.name}</span>
+            </div>
+            {swipeHint && (
+              <div className="bg-blue-600 text-white px-2.5 py-0.5 rounded-md text-[10px] font-bold animate-bounce shadow">
+                {swipeHint}
+              </div>
+            )}
+          </div>
+
+          {/* Flechas de Navegación Rápida a los lados (Táctil / Click) */}
+          <button
+            onClick={() => {
+              const idx = ADMIN_CAMERAS.findIndex(c => c.serial === selectedCamSerial);
+              const prev = (idx - 1 + ADMIN_CAMERAS.length) % ADMIN_CAMERAS.length;
+              setSelectedCamSerial(ADMIN_CAMERAS[prev].serial);
+            }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-900/40 hover:bg-slate-900/80 text-white/70 hover:text-white backdrop-blur-sm transition active:scale-95 z-20"
+            title="Cámara Anterior"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => {
+              const idx = ADMIN_CAMERAS.findIndex(c => c.serial === selectedCamSerial);
+              const next = (idx + 1) % ADMIN_CAMERAS.length;
+              setSelectedCamSerial(ADMIN_CAMERAS[next].serial);
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-900/40 hover:bg-slate-900/80 text-white/70 hover:text-white backdrop-blur-sm transition active:scale-95 z-20"
+            title="Siguiente Cámara"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+
+          {/* Notificación flotante de PTZ */}
+          {ptzFeedback && (
+            <div className="absolute bottom-3 left-3 bg-slate-900/90 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl border border-white/10 backdrop-blur-md z-20">
+              {ptzFeedback}
+            </div>
+          )}
+        </div>
+
+        {/* ─── BARRA DE CONTROL ERGONÓMICA DEBAJO DEL VIDEO (CRUCETA PTZ Y DESCARGA) ─── */}
+        <div className="mt-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          {/* Controles PTZ (Cruceta Motorizada Ergonómica fuera de la imagen) */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <Compass className="h-4 w-4 text-blue-600" />
+              <span>Giro PTZ:</span>
+            </span>
+
+            {/* D-Pad Horizontal Compacto y Cómodo */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
               <button
                 onClick={() => handleMovePtz('left')}
                 disabled={Boolean(ptzMoving)}
-                className="p-2 rounded-xl text-white hover:bg-white/20 active:scale-95 transition disabled:opacity-40"
+                className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 transition disabled:opacity-40"
                 title="Girar Izquierda"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
-              <div className="w-4 h-4 rounded-full bg-blue-500/40 border border-blue-400" />
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => handleMovePtz('up')}
+                  disabled={Boolean(ptzMoving)}
+                  className="p-1 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 transition disabled:opacity-40"
+                  title="Girar Arriba"
+                >
+                  <ArrowUp className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => handleMovePtz('down')}
+                  disabled={Boolean(ptzMoving)}
+                  className="p-1 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 transition disabled:opacity-40"
+                  title="Girar Abajo"
+                >
+                  <ArrowDown className="h-3.5 w-3.5" />
+                </button>
+              </div>
               <button
                 onClick={() => handleMovePtz('right')}
                 disabled={Boolean(ptzMoving)}
-                className="p-2 rounded-xl text-white hover:bg-white/20 active:scale-95 transition disabled:opacity-40"
+                className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 transition disabled:opacity-40"
                 title="Girar Derecha"
               >
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
-            <button
-              onClick={() => handleMovePtz('down')}
-              disabled={Boolean(ptzMoving)}
-              className="p-2 rounded-xl text-white hover:bg-white/20 active:scale-95 transition disabled:opacity-40"
-              title="Girar Abajo"
-            >
-              <ArrowDown className="h-4 w-4" />
-            </button>
           </div>
 
-          {ptzFeedback && (
-            <div className="absolute top-3 left-3 bg-slate-900/90 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl border border-white/10 backdrop-blur-md">
-              {ptzFeedback}
-            </div>
-          )}
+          {/* Acciones Rápidas: Descargar Grabación MicroSD & Pantalla Completa */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                document.getElementById('recordings-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm active:scale-95"
+              title="Descargar grabaciones grabadas en la MicroSD"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>Descargar Grabación MicroSD</span>
+            </button>
+
+            <button
+              onClick={handleToggleFullscreen}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-100 transition"
+              title="Ver en pantalla completa"
+            >
+              <Maximize2 className="h-3.5 w-3.5 text-slate-500" />
+              <span className="hidden sm:inline">Pantalla Completa</span>
+            </button>
+          </div>
         </div>
 
         {/* Miniaturas de Selección de las 3 Cámaras */}
@@ -989,7 +1146,7 @@ export default function SecurityCenter() {
         </div>
 
         {/* ─── EXTRACTOR DE GRABACIONES MICROSD (QHD+ 2880x1620) ─── */}
-        <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
+        <div id="recordings-section" className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 scroll-mt-6">
           <div className="rounded-2xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/20 dark:bg-blue-950/20 p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
               <div className="flex items-center gap-2.5">
@@ -1212,11 +1369,11 @@ export default function SecurityCenter() {
                 </h2>
                 <span className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Portón 24/7 Activo
+                  Calle 24/7 Activo
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Lectura óptica automática de placas vehiculares (formato colombiano AAA-123 y AAA-12B) en la Cámara 1.
+                Lectura óptica automática de placas vehiculares (formato colombiano AAA-123 y AAA-12B) en las cámaras de la vía pública (Izquierda y Derecha).
               </p>
             </div>
           </div>
@@ -1237,7 +1394,7 @@ export default function SecurityCenter() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition active:scale-95 disabled:opacity-50"
             >
               <Car className="h-4 w-4" />
-              <span>{alprScanning ? 'Escaneando placa...' : 'Escanear Placa Ahora'}</span>
+              <span>{alprScanning ? 'Escaneando vía...' : 'Escanear Calle Ahora'}</span>
             </button>
           </div>
         </div>
@@ -1247,10 +1404,10 @@ export default function SecurityCenter() {
           <div className="text-center py-8 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800">
             <Car className="h-10 w-10 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
             <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Detector ALPR en guardia sobre el Portón Principal
+              Detector ALPR en guardia sobre la Calle (Cámaras Izquierda y Derecha)
             </p>
             <p className="text-[11px] text-slate-400 mt-1 max-w-md mx-auto">
-              Cada vehículo o motocicleta que se detenga frente al portón será escaneado automáticamente y su placa quedará registrada aquí con fecha y hora.
+              Cada vehículo o motocicleta que transite frente al edificio será escaneado automáticamente y su placa quedará registrada aquí con fecha y hora.
             </p>
           </div>
         ) : (

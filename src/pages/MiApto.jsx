@@ -158,7 +158,11 @@ export default function MiApto() {
         const res = await fetch(`${getRawBase()}/api/cameras/${cam.serial}/stream`);
         const data = await res.json().catch(() => ({}));
         if (data.ok && data.streamUrl) {
-          setStreamUrls(prev => ({ ...prev, [cam.serial]: data.streamUrl }));
+          const rawBase = getRawBase();
+          const fullUrl = data.streamUrl.startsWith('http')
+            ? data.streamUrl
+            : `${rawBase}${data.streamUrl.startsWith('/') ? '' : '/'}${data.streamUrl}`;
+          setStreamUrls(prev => ({ ...prev, [cam.serial]: fullUrl }));
           setStreamErrors(prev => ({ ...prev, [cam.serial]: false }));
         }
       } catch {}
@@ -191,7 +195,11 @@ export default function MiApto() {
       const res = await fetch(`${getRawBase()}/api/cameras/${serial}/stream`);
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.streamUrl) {
-        setStreamUrls(prev => ({ ...prev, [serial]: data.streamUrl }));
+        const rawBase = getRawBase();
+        const fullUrl = data.streamUrl.startsWith('http')
+          ? data.streamUrl
+          : `${rawBase}${data.streamUrl.startsWith('/') ? '' : '/'}${data.streamUrl}`;
+        setStreamUrls(prev => ({ ...prev, [serial]: fullUrl }));
         setStreamErrors(prev => ({ ...prev, [serial]: false }));
       }
     } catch {}

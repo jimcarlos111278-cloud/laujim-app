@@ -1,0 +1,69 @@
+services:
+  # ─── 1. BASE DE DATOS LOCAL POSTGRESQL (0ms de latencia, sin límites) ───
+  db:
+    image: postgres:16-alpine
+    container_name: laujim-db
+    restart: always
+    environment:
+      POSTGRES_DB: laujim_prod
+      POSTGRES_USER: laujim
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-LaujimDB2026Secure!}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  # ─── 2. MOTOR DE VIDEO BAJO DEMANDA (FastAPI + FFmpeg ARM64) ───
+  video-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.video
+    container_name: laujim-video
+    restart: always
+    network_mode: host
+    volumes:
+      - ./hls:/app/hls
+      - ./recordings:/app/recordings
+    environment:
+      - PORT=8080
+
+  # ─── 3. APLICACIÓN PRINCIPAL LAUJIM (Node 22 Express) ───
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: laujim-app
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - NODE_ENV=production
+      - PORT=10000
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-laujim123}
+      - DATABASE_URL=postgres://laujim:${DB_PASSWORD:-LaujimDB2026Secure!}@127.0.0.1:5432/laujim_prod
+      - STREAM_ENGINE_URL=http://127.0.0.1:8080
+      - WHATSAPP_CLOUD_ENABLED=true
+      - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+    network_mode: host
+
+  # ─── 4. PROXY INVERSO CADDY (HTTPS / SSL Cloudflare Automático) ───
+  caddy:
+    image: caddy:2-alpine
+    container_name: laujim-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    network_mode: host
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

@@ -553,7 +553,7 @@ export default function ScraperWorker() {
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm text-gray-700 dark:text-gray-300">
             URL del servidor
-            <input value={settings.serverUrl} onChange={e => updateField('serverUrl', e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white" placeholder="https://laujim-app.onrender.com" />
+            <input value={settings.serverUrl} onChange={e => updateField('serverUrl', e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white" placeholder="https://conjunto-residendial-laujim.duckdns.org" />
           </label>
           <label className="text-sm text-gray-700 dark:text-gray-300">
             Identificador del dispositivo

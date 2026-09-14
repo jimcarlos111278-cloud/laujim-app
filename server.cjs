@@ -10987,11 +10987,18 @@ app.get('/app-debug.apk', (req, res) => {
   const candidates = [
     path.join(__dirname, 'public', 'app-debug.apk'),
     path.join(__dirname, 'dist', 'app-debug.apk'),
-    path.join(__dirname, 'Laujim-1.0.122.apk'),
   ];
+  let vName = '1.0.125';
+  try {
+    const vPath = fs.existsSync(path.join(__dirname, 'public', 'app-version.json'))
+      ? path.join(__dirname, 'public', 'app-version.json')
+      : path.join(__dirname, 'dist', 'app-version.json');
+    const vInfo = JSON.parse(fs.readFileSync(vPath, 'utf-8'));
+    if (vInfo && vInfo.version) vName = vInfo.version;
+  } catch {}
   for (const apk of candidates) {
     if (fs.existsSync(apk)) {
-      return res.download(apk, 'Laujim-Tracker-v1.0.122.apk', {
+      return res.download(apk, `Laujim-Tracker-v${vName}.apk`, {
         headers: { 'Content-Type': 'application/vnd.android.package-archive' },
       });
     }
