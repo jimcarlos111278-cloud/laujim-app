@@ -104,6 +104,8 @@ async function resolveChromium(profileName = 'services', useFullChrome = FULL_CH
         '--window-size=1366,768',
         '--no-first-run',
         '--no-default-browser-check',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-infobars',
       ],
     };
   }
@@ -411,7 +413,7 @@ async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHRO
   }
 
   const cfg = await resolveChromium(profileName, useFullChrome);
-  return await puppeteer.launch({
+  const browser = await puppeteer.launch({
     args: cfg.args,
     defaultViewport: { width: 1366, height: 768 },
     executablePath: cfg.executablePath,
@@ -419,6 +421,15 @@ async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHRO
     protocolTimeout: 60000,
     ...(cfg.userDataDir ? { userDataDir: cfg.userDataDir } : {}),
   });
+  const origNewPage = browser.newPage.bind(browser);
+  browser.newPage = async (...args) => {
+    const page = await origNewPage(...args);
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    }).catch(() => {});
+    return page;
+  };
+  return browser;
 }
 
 // Local-only browser for server-generated artifacts (for example the global
@@ -684,6 +695,8 @@ function configuredApartmentTargets(apartments = db?.apartments || []) {
   return (apartments || [])
     .filter(apartment => apartment && apartment.name)
     .map(apartment => ({
+      id: apartment.id,
+      name: apartment.name,
       apartmentId: apartment.id,
       apartment: apartment.name,
       apartmentNumber: apartmentNumberFrom(apartment.name),
@@ -818,7 +831,8 @@ async function renderedWaterPolicies(page) {
       let name = cells[1] || '';
       let code = String(cells[2] || '').replace(/\D/g, '');
       const address = cells[3] || '';
-      const match = rowText.match(/((?:AP|Casa)\s*\d{3})\s*[-\u2013\u2014:]\s*(\d{4,})/i);
+      const match = rowText.match(/((?:AP|Casa)\s*\d{3})\s+(\d{4,})/i) ||
+                    rowText.match(/((?:AP|Casa)\s*\d{3})\s*[-\u2013\u2014:]\s*(\d{4,})/i);
       if (match) {
         name = match[1];
         code = match[2].replace(/\D/g, '');
@@ -828,12 +842,15 @@ async function renderedWaterPolicies(page) {
       result.push({ name, code, address, status: cells[6] || '' });
     }
     if (result.length) return result;
-    const candidates = [...document.querySelectorAll('p, li, [role="cell"]')].filter(available).map(text)
-      .concat(String(document.body?.innerText || document.body?.textContent || '').split(/\r?\n/).map(value => value.trim()).filter(Boolean));
-    for (const value of candidates) {
-      const match = value.match(/((?:AP|Casa)\s*\d{3})\s*[-\u2013\u2014:]\s*(\d{4,})/i);
-      if (!match || result.some(item => item.code === match[2])) continue;
-      result.push({ name: match[1], code: match[2].replace(/\D/g, ''), address: '', status: '' });
+    const bodyText = String(document.body?.innerText || document.body?.textContent || '');
+    const regex = /((?:AP|Casa)\s*\d{3})\s+(\d{5,8})/gi;
+    let m;
+    while ((m = regex.exec(bodyText)) !== null) {
+      const code = m[2];
+      if (!seen.has(code)) {
+        seen.add(code);
+        result.push({ name: m[1].trim(), code, address: '', status: '' });
+      }
     }
     return result;
   }).catch(() => []);
@@ -1135,13 +1152,16 @@ async function scrapeTripleAFromRenderedUi() {
     });
     const policies = await collectRenderedWaterPolicies(page);
     if (!policies?.length) throw new Error('Triple A no mostro polizas en la sesion autenticada.');
-    const opened = await page.evaluate(() => {
+    let opened = await page.evaluate(() => {
       const link = [...document.querySelectorAll('a')].find(element => /pagos-usuario/.test(String(element.getAttribute('href') || '')) || /^pagos$/i.test(element.innerText || ''));
       if (!link) return false;
       link.click();
       return true;
     });
-    if (!opened) throw new Error('Triple A no abrio la pantalla de pagos autenticada.');
+    if (!opened) {
+      await page.goto('https://portal.aaa.com.co/pagos-usuario', { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+      opened = true;
+    }
     await waitForRenderedPortal(page, () => Boolean(document.querySelector?.('input[name="paymentNumber"], input[type="number"]')), 30000).catch(() => null);
     let apiSubscriptions = [];
     const apiSubscriptionsResponse = await fetchPortalJson(page, '/bff/subscriptions');
@@ -2017,29 +2037,48 @@ async function readPortalTurnstileToken(page) {
 }
 
 async function executePortalTurnstile(page) {
-  if (typeof page?.evaluate !== 'function') return false;
-  return page.evaluate(() => {
-    const api = window.turnstile;
-    if (!api || typeof api.execute !== 'function') return false;
-    const hidden = document.querySelector('input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]');
-    const widgetId = hidden?.id?.replace(/_response$/, '') || null;
-    const candidates = [
-      widgetId,
-      ...[...document.querySelectorAll('[data-sitekey], .cf-turnstile')].map(element => element.id || element),
-    ].filter(Boolean);
-    for (const candidate of candidates) {
+  if (!page) return false;
+  // 1. Try clicking Turnstile iframe checkbox directly
+  try {
+    const frames = typeof page.frames === 'function' ? page.frames() : [];
+    const turnstileFrame = frames.find(f => {
+      const u = (typeof f.url === 'function' ? f.url() : '') || '';
+      return u.includes('cloudflare') || u.includes('turnstile');
+    });
+    if (turnstileFrame) {
+      const checkbox = await turnstileFrame.$('input[type="checkbox"], #checkbox, .ctp-checkbox-label, body');
+      if (checkbox) {
+        await checkbox.click().catch(() => {});
+      }
+    }
+  } catch {}
+
+  // 2. Also try API execution if present
+  if (typeof page?.evaluate === 'function') {
+    await page.evaluate(() => {
+      const api = window.turnstile;
+      if (!api || typeof api.execute !== 'function') return false;
+      const hidden = document.querySelector('input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]');
+      const widgetId = hidden?.id?.replace(/_response$/, '') || null;
+      const candidates = [
+        widgetId,
+        ...[...document.querySelectorAll('[data-sitekey], .cf-turnstile')].map(element => element.id || element),
+      ].filter(Boolean);
+      for (const candidate of candidates) {
+        try {
+          api.execute(candidate);
+          return true;
+        } catch {}
+      }
       try {
-        api.execute(candidate);
+        api.execute();
         return true;
-      } catch {}
-    }
-    try {
-      api.execute();
-      return true;
-    } catch {
-      return false;
-    }
-  }).catch(() => false);
+      } catch {
+        return false;
+      }
+    }).catch(() => false);
+  }
+  return true;
 }
 
 async function submitPortalLoginForm(page, {
@@ -2058,42 +2097,70 @@ async function submitPortalLoginForm(page, {
     await prepareSubmit();
   }
 
+  // Ensure Turnstile is solved if present
+  await executePortalTurnstile(page).catch(() => {});
+  const turnstileWaitStart = Date.now();
+  while (Date.now() - turnstileWaitStart < 15000) {
+    const isReady = await page.evaluate(() => {
+      const inp = document.querySelector('input[name="cf-turnstile-response"]');
+      const btn = document.querySelector('form button[type="submit"]') ||
+        document.querySelector('button[type="submit"]') ||
+        [...document.querySelectorAll('button')].find(b => /iniciar|ingresar/i.test(b.innerText || ''));
+      const hasToken = inp && inp.value && inp.value.length > 0;
+      const btnEnabled = btn && !btn.disabled;
+      return hasToken || btnEnabled;
+    }).catch(() => false);
+    if (isReady) break;
+    await executePortalTurnstile(page).catch(() => {});
+    await sleep(1000);
+  }
+
   let submitted = false;
-  for (let attempt = 1; attempt <= 2 && !submitted; attempt += 1) {
+  for (let attempt = 1; attempt <= 3 && !submitted; attempt += 1) {
     try {
       submitted = await page.evaluate(() => {
+        const submitBtn = document.querySelector('form button[type="submit"]') ||
+          document.querySelector('button[type="submit"]') ||
+          [...document.querySelectorAll('button, input[type="submit"]')].find(
+            element => !element.disabled && (element.type === 'submit' || /iniciar|ingresar|login|entrar/i.test(element.innerText || element.value || ''))
+          );
+        if (submitBtn && !submitBtn.disabled) {
+          submitBtn.click();
+          return true;
+        }
         const form = document.querySelector('form');
         if (form) {
           if (typeof form.requestSubmit === 'function') form.requestSubmit();
           else form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
           return true;
         }
-        const button = [...document.querySelectorAll('button, input[type="submit"]')]
-          .find(element => !element.disabled && (element.type === 'submit' || /iniciar|ingresar|login|entrar/i.test(element.innerText || element.value || '')));
-        if (!button) return false;
-        button.click();
-        return true;
+        return false;
       });
     } catch (error) {
-      if (attempt >= 2 || !/detached|execution context|target closed/i.test(String(error?.message || error))) throw error;
+      if (attempt >= 3 || !/detached|execution context|target closed/i.test(String(error?.message || error))) throw error;
       await sleep(1500);
     }
   }
-  if (!submitted) throw new Error(`No se pudo enviar el formulario de inicio de sesiÃ³n de ${provider}.`);
+  if (!submitted) throw new Error(`No se pudo enviar el formulario de inicio de sesión de ${provider}.`);
 
   console.log(`[${provider}] Formulario enviado; esperando la respuesta del portal.`);
   const deadline = Date.now() + PORTAL_AUTH_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (authState?.done) {
       console.log(`[${provider}] Respuesta de login recibida: HTTP ${authState.status || 'sin respuesta'}; ok=${Boolean(authState.ok)}.`);
-      if (!authState.ok) throw new Error(`${provider} rechazÃ³ el inicio de sesiÃ³n (HTTP ${authState.status || 'sin respuesta'}).`);
+      if (!authState.ok) throw new Error(`${provider} rechazó el inicio de sesión (HTTP ${authState.status || 'sin respuesta'}).`);
+      return true;
+    }
+    const currentUrl = String(typeof page?.url === 'function' ? page.url() : '');
+    if (currentUrl && !/login|iniciar-sesion/i.test(currentUrl)) {
+      console.log(`[${provider}] Navegación post-login detectada exitosamente (${currentUrl}).`);
       return true;
     }
     if (!(await visibleSelectorExists(page, passwordSelectors))) return true;
     await sleep(1000);
   }
   if (authState?.ok) return true;
-  throw new Error(`${provider} no confirmÃ³ el inicio de sesiÃ³n dentro del tiempo permitido.`);
+  throw new Error(`${provider} no confirmó el inicio de sesión dentro del tiempo permitido.`);
 }
 
 async function loginTripleAWithGoogle(page) {
@@ -2493,290 +2560,115 @@ async function fetchTripleAPortalSummary(page, subscription, authHeader) {
 }
 
 async function scrapeTripleAAccount() {
-  if (!/^(0|false|no)$/i.test(String(process.env.PORTAL_UI_SCRAPE || 'true'))) {
-    return scrapeTripleAFromRenderedUi();
-  }
   let browser;
-  let page;
-  let dataPage;
-  let subscriptionPayload = null;
-  let authHeader = null;
-  let captureSubscriptions;
-  let captureAuthResponse;
-  let captchaSolver;
-  const authState = { done: false, ok: false, status: 0 };
   try {
     lastWaterScrapeError = null;
     const credentials = getPortalCredentials('triple-a');
-    const browserless = browserlessEndpointCandidates('water').length > 0;
-    console.log(`[TRIPLE A] Portal global: iniciando sesión (${browserless ? 'Browserless remoto' : 'Chromium local'}).`);
+    if (!credentials || !credentials.username || !credentials.password) {
+      throw new Error('No hay credenciales configuradas para Triple A.');
+    }
+    console.log(`[TRIPLE A] Portal global: iniciando sesión para ${credentials.username}...`);
     browser = await launchBrowser('water');
-    page = await browser.newPage();
+    const page = await browser.newPage();
     page.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
-    captchaSolver = await attachBrowserlessCaptchaSolver(page, 'Triple A');
 
-    captureSubscriptions = response => {
-      if (!/\/bff\/subscriptions(?:[/?#]|$)/i.test(response.url())) return;
-      responseTextWithTimeout(response, PORTAL_RESPONSE_TIMEOUT_MS)
-        .then(body => {
-          const parsed = parsePortalResponseBody(body);
-          if (parsed) subscriptionPayload = parsed;
-        })
-        .catch(() => {});
-    };
-    captureAuthResponse = response => {
-      if (!/\/api\/auth\/callback\/credentials(?:[/?#]|$)/i.test(response.url())) return;
-      authState.status = response.status();
-      responseTextWithTimeout(response, PORTAL_RESPONSE_TIMEOUT_MS)
-        .then(body => {
-          const payload = parsePortalResponseBody(body) || {};
-          authState.done = true;
-          authState.ok = response.status() >= 200 && response.status() < 300 && !payload.error;
-          console.log(`[TRIPLE A] Respuesta de login: HTTP ${response.status()}; ok=${Boolean(authState.ok)}; campos=${Object.keys(payload).slice(0, 8).join(',') || 'sin cuerpo'}.`);
-        })
-        .catch(() => {
-          authState.done = true;
-          authState.ok = response.status() >= 200 && response.status() < 300;
-          console.log(`[TRIPLE A] Respuesta de login: HTTP ${response.status()}; ok=${Boolean(authState.ok)}; cuerpo no legible.`);
-        });
-    };
-    page.on?.('response', captureSubscriptions);
-    page.on?.('response', captureAuthResponse);
-
-    await gotoPortalPage(page, TRIPLE_A_URLS.login, {
-      waitUntil: 'domcontentloaded',
-      timeout: PORTAL_AUTH_TIMEOUT_MS,
-    }, 'Triple A');
-
-    // Keep a second tab alive before submitting the React form. Some
-    // Browserless sessions detach the login frame during the NextAuth redirect;
-    // an already-open tab preserves the remote connection and shares cookies.
-    dataPage = await browser.newPage().catch(() => null);
-    if (dataPage) {
-      dataPage.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
-      dataPage.on?.('response', captureSubscriptions);
-      console.log('[TRIPLE A] Página de trabajo preparada antes del login.');
-    }
-
-    const tripleEmailSelectors = [
-      'input[name="email" i]',
-      'input[id*="email" i]',
-      'input[type="email"]',
-      'input[autocomplete="username"]',
-      'input[name*="user" i]',
-      'input[id*="user" i]',
-      'input[placeholder*="correo" i]',
-      'input[placeholder*="email" i]',
-      'input[type="text"]',
-    ];
-    const triplePasswordSelectors = [
-      'input[name="password" i]',
-      'input[id*="password" i]',
-      'input[id*="pass" i]',
-      'input[type="password"]',
-    ];
-    let authenticatedByLogin = false;
-    let authenticatedByApi = false;
-    let loginError = null;
-    const googleLoginRequested = /^(google|auto)$/.test(TRIPLE_A_LOGIN_METHOD);
-    if (googleLoginRequested) {
-      try {
-        authenticatedByLogin = await loginTripleAWithGoogle(page);
-        console.log('[TRIPLE A] Login oficial con Google confirmado; se conservará la misma sesión para consultar pólizas.');
-      } catch (error) {
-        loginError = error;
-        console.warn(`[TRIPLE A] El login con Google no se confirmó: ${error.message}`);
-      }
-    }
-    if (!authenticatedByLogin && TRIPLE_A_LOGIN_METHOD !== 'google') {
-    try {
-      const apiLogin = await loginTripleAWithPortalApi(page, credentials, captchaSolver);
-      authHeader = apiLogin?.authHeader || null;
-      authenticatedByLogin = Boolean(apiLogin?.ok);
-      authenticatedByApi = authenticatedByLogin;
-      if (authenticatedByApi) console.log('[TRIPLE A] Login API oficial confirmado; se conservara la misma sesion para consultar polizas.');
-    } catch (error) {
-      loginError = error;
-      console.warn(`[TRIPLE A] El login API no se confirmo; se probara el formulario del portal: ${error.message}`);
-    }
-    if (!authenticatedByApi) {
-      try {
-      authenticatedByLogin = await submitPortalLoginForm(page, {
-        provider: 'Triple A',
-        username: credentials.username,
-        password: credentials.password,
-        emailSelectors: tripleEmailSelectors,
-        passwordSelectors: triplePasswordSelectors,
-        authState,
-        prepareSubmit: async () => {
-          const executed = await executePortalTurnstile(page).catch(error => {
-            if (/detached|execution context|target closed|connection closed/i.test(String(error?.message || error))) {
-              console.warn('[TRIPLE A] Turnstile cambió el contexto; se esperará el estado del navegador.');
-              return false;
-            }
-            throw error;
-          });
-          if (executed) console.log('[TRIPLE A] Turnstile preparado antes de enviar el formulario.');
-          if (captchaSolver) await captchaSolver.waitForSolved(60000);
-          await sleep(500);
-        },
-      });
-    } catch (error) {
-      loginError = error;
-      console.warn(`[TRIPLE A] El login visual no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
-    }
-    }
-    }
-    if (!authenticatedByLogin && loginError && /detached|execution context|target closed|connection closed|captcha|turnstile|HTTP (?:401|422)/i.test(String(loginError.message || loginError))) {
-      for (let retry = 2; retry <= PORTAL_LOGIN_ATTEMPTS && !authenticatedByLogin; retry += 1) {
+    let subs = null;
+    page.on?.('response', async (res) => {
+      if (res.url().includes('/bff/subscriptions')) {
         try {
-          const oldPage = page;
-          const oldSolver = captchaSolver;
-          const retryPage = await browser.newPage();
-          retryPage.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
-          retryPage.on?.('response', captureSubscriptions);
-          retryPage.on?.('response', captureAuthResponse);
-          page = retryPage;
-          captchaSolver = await attachBrowserlessCaptchaSolver(page, 'Triple A');
-          if (oldSolver) await oldSolver.close().catch(() => {});
-          await oldPage?.close?.().catch?.(() => {});
-          authState.done = false;
-          authState.ok = false;
-          authState.status = 0;
-          await gotoPortalPage(page, TRIPLE_A_URLS.login, {
-            waitUntil: 'domcontentloaded',
-            timeout: PORTAL_AUTH_TIMEOUT_MS,
-          }, 'Triple A');
-          authenticatedByLogin = await submitPortalLoginForm(page, {
-            provider: 'Triple A',
-            username: credentials.username,
-            password: credentials.password,
-            emailSelectors: tripleEmailSelectors,
-            passwordSelectors: triplePasswordSelectors,
-            authState,
-            prepareSubmit: async () => {
-              await executePortalTurnstile(page);
-              if (captchaSolver) await captchaSolver.waitForSolved(60000);
-              await sleep(500);
-            },
-          });
-        } catch (error) {
-          loginError = error;
-          console.warn(`[TRIPLE A] Reintento de login ${retry}/${PORTAL_LOGIN_ATTEMPTS}: ${error.message}`);
+          const j = await res.json();
+          if (j && j.data && Array.isArray(j.data)) subs = j.data;
+        } catch (e) {}
+      }
+    });
+
+    await gotoPortalPage(page, TRIPLE_A_URLS.login, { waitUntil: 'networkidle2', timeout: 30000 }, 'Triple A');
+    const isLogin = /iniciar-sesion|login/i.test(page.url());
+    if (isLogin) {
+      const pwdSelector = await page.waitForSelector('input[type="password"]', { timeout: 15000 }).catch(() => null);
+      if (pwdSelector) {
+        await page.type('input[type="text"], input[type="email"]', credentials.username, { delay: 30 });
+        await page.type('input[type="password"]', credentials.password, { delay: 30 });
+
+        const frames = typeof page.frames === 'function' ? page.frames() : [];
+        const turnstile = frames.find(f => {
+          const u = (typeof f.url === 'function' ? f.url() : '') || '';
+          return u.includes('cloudflare') || u.includes('turnstile');
+        });
+        if (turnstile) {
+          const cb = await turnstile.$('input[type="checkbox"], #checkbox, body');
+          if (cb) await cb.click().catch(() => {});
+          await sleep(4000);
         }
-      }
-    }
-    if (!authenticatedByLogin) {
-      console.log('[TRIPLE A] La sesión ya estaba autenticada; se reutiliza el portal global.');
-    }
+        await executePortalTurnstile(page).catch(() => {});
 
-    // Let NextAuth mount the protected route once so its BFF request runs in
-    // the authenticated browser context. A direct fetch from a stale login
-    // document can otherwise remain pending indefinitely.
-    if (authenticatedByLogin && !authenticatedByApi) {
-      if (dataPage) {
-        const loginPage = page;
-        page = dataPage;
-        dataPage = null;
-        await loginPage?.close?.().catch?.(() => {});
-        console.log('[TRIPLE A] Se cambiÃ³ a la pÃ¡gina de trabajo conservando la sesiÃ³n autenticada.');
-      } else {
-      try {
-        const replacement = await recreatePortalPage(browser, page, captchaSolver, 'Triple A');
-        page = replacement.page;
-        captchaSolver = replacement.captchaSolver;
-        page.on?.('response', captureSubscriptions);
-        page.on?.('response', captureAuthResponse);
-        console.log('[TRIPLE A] Se creó una página nueva conservando la sesión autenticada.');
-      } catch (error) {
-        console.warn('[TRIPLE A] No se pudo recrear la página autenticada; se continuará con la actual:', error.message);
-      }
-      }
-      await gotoPortalPage(page, TRIPLE_A_URLS.policies, {
-        waitUntil: 'domcontentloaded',
-        timeout: PORTAL_AUTH_TIMEOUT_MS,
-      }, 'Triple A').catch(error => {
-        console.warn('[TRIPLE A] No se pudo abrir la vista protegida; se continuará con la consulta autenticada:', error.message);
-      });
-      await sleep(1500);
-    }
-    let tripleWorkUrl = 'desconocida';
-    try { tripleWorkUrl = page.url(); } catch {}
-    console.log(`[TRIPLE A] Sesión lista; URL de trabajo: ${tripleWorkUrl}.`);
-
-    // If the React page did not issue the request again (for example after a
-    // cached navigation), ask the same authenticated browser session directly.
-    for (let attempt = 1; !subscriptionPayload && attempt <= PORTAL_DATA_ATTEMPTS; attempt += 1) {
-      if (attempt > 1) {
-        console.warn(`[TRIPLE A] La lista global no llegó; reintentando la consulta autenticada (${attempt}/${PORTAL_DATA_ATTEMPTS}).`);
-        await sleep(PORTAL_DATA_RETRY_DELAY_MS);
-      }
-      const direct = await fetchPortalJson(page, '/bff/subscriptions', authHeader ? { Authorization: authHeader } : {});
-      if (direct.status >= 200 && direct.status < 300) {
-        subscriptionPayload = parsePortalResponseBody(direct.body);
-      } else if (attempt === PORTAL_DATA_ATTEMPTS) {
-        throw new Error(`Triple A rechazó la consulta global (HTTP ${direct.status || 'sin respuesta'}${direct.error ? `: ${direct.error}` : ''}).`);
+        const submitBtn = await page.$('button[type="submit"]');
+        if (submitBtn) await submitBtn.click();
+        await sleep(8000);
       }
     }
 
-    let subscriptions = unwrapPortalList(subscriptionPayload, ['subscriptions', 'policies', 'items']);
-    if (!subscriptions.length) {
-      for (let attempt = 1; attempt <= PORTAL_DATA_ATTEMPTS && !subscriptions.length; attempt += 1) {
-        if (attempt > 1) await sleep(PORTAL_DATA_RETRY_DELAY_MS);
-        const direct = await fetchPortalJson(page, '/bff/subscriptions', authHeader ? { Authorization: authHeader } : {});
-        if (direct.status < 200 || direct.status >= 300) continue;
-        const retryPayload = parsePortalResponseBody(direct.body);
-        const retrySubscriptions = unwrapPortalList(retryPayload, ['subscriptions', 'policies', 'items']);
-        if (retrySubscriptions.length) {
-          subscriptionPayload = retryPayload;
-          subscriptions = retrySubscriptions;
-        }
-      }
+    await gotoPortalPage(page, TRIPLE_A_URLS.policies, { waitUntil: 'networkidle2', timeout: 30000 }, 'Triple A');
+    await sleep(6000);
+
+    if (!subs) {
+      subs = await page.evaluate(async () => {
+        try {
+          const r = await fetch('/bff/subscriptions');
+          const j = await r.json();
+          return j.data || [];
+        } catch (e) { return []; }
+      }).catch(() => []);
     }
-    console.log('[TRIPLE A] Respuesta global:', JSON.stringify(portalPayloadDiagnostics(subscriptionPayload, subscriptions)));
+
+    await browser.close().catch(() => {});
+    browser = null;
+
+    if (!subs || !subs.length) {
+      throw new Error('Triple A no devolvió pólizas/suscripciones en la sesión autenticada.');
+    }
+
     const targets = configuredApartmentTargets();
-    const results = [];
-    const seenApartments = new Set();
-    for (const subscription of subscriptions) {
-      const target = matchPortalApartmentForService(targets, subscription, 'water');
-      if (!target || seenApartments.has(String(target.apartmentId || target.apartment))) continue;
-      seenApartments.add(String(target.apartmentId || target.apartment));
-      const portalSummary = await fetchTripleAPortalSummary(page, subscription, authHeader).catch(error => ({
-        error: error.message,
-        debtSource: 'subscription_fallback',
-      }));
-      const record = tripleARecord(target, subscription, new Date().toISOString(), portalSummary);
-      if (portalSummary.error && !record.error) record.error = portalSummary.error;
-      results.push(record);
-      const amount = record.deudaCOP === null ? 'sin valor' : `$${record.deudaCOP.toLocaleString('es-CO')}`;
-      const month = record.deudaMesCOP === null ? 'sin mes' : `$${record.deudaMesCOP.toLocaleString('es-CO')}`;
-      const financed = record.financiadaCOP === null ? 'sin financiación' : `$${record.financiadaCOP.toLocaleString('es-CO')}`;
-      console.log(`[TRIPLE A] Portal global ${target.apartment}: ${record.status} (mes ${month}; total ${amount}; financiada ${financed}; endpoint deuda HTTP ${record.debtEndpointStatus || 'no disponible'}).`);
+    const records = [];
+    const now = new Date().toISOString();
+    for (const s of subs) {
+      const target = matchPortalApartmentForService(targets, [s.name, s.subscriptionExternalId, s.subscriptionAddress], 'water');
+      if (!target) {
+        console.warn(`[TRIPLE A] Suscripción no emparejada con apartamento: ${s.name} (${s.subscriptionExternalId})`);
+        continue;
+      }
+      const isPaid = s.status === 'paid' || Number(s.pendingValue) === 0;
+      const total = isPaid ? 0 : Number(s.pendingValue) || 0;
+      records.push({
+        provider: 'Triple A',
+        service: 'water',
+        apartmentId: target.apartmentId,
+        apartment: target.apartment,
+        waterPaymentCode: String(s.subscriptionExternalId || target.waterPaymentCode || ''),
+        waterPaymentUrl: target.waterPaymentUrl || null,
+        status: isPaid ? 'paid' : 'pending',
+        deudaCOP: total,
+        deudaTotalCOP: total,
+        deudaMesCOP: total,
+        deudaConveniosCOP: 0,
+        deudaLabel: 'Deuda Total',
+        periodo: s.expirationDate || null,
+        facturasTotales: isPaid ? 0 : 1,
+        facturasPendientes: isPaid ? 0 : 1,
+        numFacturas: isPaid ? 0 : 1,
+        checkedAt: now,
+        scrapedAt: now,
+        valueCheckedAt: now,
+      });
     }
-
-    if (results.length < Math.min(targets.length, subscriptions.length)) {
-      logUnmatchedPortalItems('TRIPLE A', subscriptions.filter(subscription =>
-        !matchPortalApartmentForService(targets, subscription, 'water')
-      ), 'water');
-    }
-    if (!results.length) {
-      lastWaterScrapeError = 'Triple A autenticó el portal, pero no se pudo asociar ninguna póliza con los apartamentos configurados.';
-      console.warn('[TRIPLE A] Portal global no devolvió pólizas asociables; no se usará ningún respaldo por QR.');
-    } else {
-      console.log(`[TRIPLE A] Portal global: ${results.length} apartamento(s) con datos.`);
-    }
-    return results;
+    console.log(`[TRIPLE A] Portal global: ${records.length} apartamento(s) con datos confirmados.`);
+    return records;
   } catch (error) {
     lastWaterScrapeError = error.message;
-    console.error('[TRIPLE A] Portal global error:', error.message);
+    console.error('[TRIPLE A] Error en portal:', error.message);
     return [];
   } finally {
-    if (dataPage && captureSubscriptions) dataPage.off?.('response', captureSubscriptions);
-    if (dataPage) await closeWaterResource(dataPage);
-    if (page && captureSubscriptions) page.off?.('response', captureSubscriptions);
-    if (page && captureAuthResponse) page.off?.('response', captureAuthResponse);
-    if (captchaSolver) await captchaSolver.close();
-    if (browser) await closeWaterBrowser(browser);
+    if (browser) await browser.close().catch(() => {});
   }
 }
 
@@ -3265,361 +3157,156 @@ async function fetchGasDebtSummary(page, contractId, authHeader) {
   };
 }
 
-async function scrapeGasPortal(credentials, targets, portalLabel = 'Portal global') {
-  if (!/^(0|false|no)$/i.test(String(process.env.PORTAL_UI_SCRAPE || 'true'))) {
-    return scrapeGasFromRenderedUi();
-  }
+async function scrapeGasPortal(credential, targets, portalLabel = 'Portal global') {
   let browser;
-  let page;
-  let dataPage;
-  let contractsPayload = null;
-  let authHeader = null;
-  let gasCaptchaToken = '';
-  let captureContracts;
-  let captureAuth;
-  let captureLoginResponse;
-  let captchaSolver;
-  const authState = { done: false, ok: false, status: 0 };
   try {
     lastGasScrapeError = null;
-    const browserless = browserlessEndpointCandidates('gas').length > 0;
-    console.log(`[GAS] ${portalLabel}: iniciando sesión (${browserless ? 'Browserless remoto' : 'Chromium local'}).`);
-    browser = await launchBrowser('gas');
-    page = await browser.newPage();
+    console.log(`[GAS] ${portalLabel}: iniciando sesión para ${credential.username}...`);
+    const profileKey = (credential.provider === 'gascaribe-portal2' || credential.provider === 'gascaribe-2') ? 'gas-portal2' : 'gas-portal1';
+    browser = await launchBrowser(profileKey);
+    const page = await browser.newPage();
     page.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
-    captchaSolver = await attachBrowserlessCaptchaSolver(page, 'Gases del Caribe');
 
-    captureAuth = request => {
-      const requestUrl = request.url();
-      if (!/pagosweb-production-api\.innovacion-gascaribe\.com/i.test(requestUrl)) return;
-      const pathname = (() => {
-        try { return new URL(requestUrl).pathname; } catch { return ''; }
-      })();
-      if (/\/contracts\/?$/i.test(pathname)) {
-        authHeader = request.headers()?.authorization || authHeader;
-      }
-    };
-    captureContracts = response => {
-      const responseUrl = response.url();
-      let pathname = '';
-      try { pathname = new URL(responseUrl).pathname; } catch {}
-      if (!/pagosweb-production-api\.innovacion-gascaribe\.com/i.test(responseUrl) || !/\/contracts\/?$/i.test(pathname)) return;
-      responseTextWithTimeout(response, GAS_RESPONSE_TIMEOUT_MS)
-        .then(body => {
-          const parsed = parsePortalResponseBody(body);
-          if (parsed) contractsPayload = parsed;
-        })
-        .catch(() => {});
-    };
-    captureLoginResponse = response => {
-      const responseUrl = response.url();
-      let pathname = '';
-      try { pathname = new URL(responseUrl).pathname; } catch {}
-      if (!/pagosweb-production-api\.innovacion-gascaribe\.com/i.test(responseUrl) || !/\/login\/?$/i.test(pathname)) return;
-      authState.status = response.status();
-      responseTextWithTimeout(response, GAS_RESPONSE_TIMEOUT_MS)
-        .then(body => {
-          const payload = parsePortalResponseBody(body) || {};
-          const token = portalFieldValue(payload, ['token', 'appToken', 'accessToken', 'authorization', 'jwt']);
-          if (!authHeader && token) authHeader = String(token).trim();
-          authState.done = true;
-          authState.ok = response.status() >= 200 && response.status() < 300;
-          console.log(`[GAS] Respuesta de login: HTTP ${response.status()}; ok=${Boolean(authState.ok)}; token=${Boolean(token)}; campos=${Object.keys(payload).slice(0, 8).join(',') || 'sin cuerpo'}.`);
-        })
-        .catch(() => {
-          authState.done = true;
-          authState.ok = response.status() >= 200 && response.status() < 300;
-          console.log(`[GAS] Respuesta de login: HTTP ${response.status()}; ok=${Boolean(authState.ok)}; cuerpo no legible.`);
-        });
-    };
-    page.on?.('request', captureAuth);
-    page.on?.('response', captureContracts);
-    page.on?.('response', captureLoginResponse);
-
-    await gotoPortalPage(page, GAS_PORTAL_URLS.login, {
-      waitUntil: 'domcontentloaded',
-      timeout: PORTAL_AUTH_TIMEOUT_MS,
-    }, 'Gases del Caribe');
-
-    // Keep a second tab open before submitting the React/Turnstile form. The
-    // portal can detach the login frame during the redirect; this spare tab
-    // preserves the Browserless session and shares the authenticated cookies.
-    dataPage = await browser.newPage().catch(() => null);
-    if (dataPage) {
-      dataPage.setDefaultNavigationTimeout?.(PORTAL_AUTH_TIMEOUT_MS);
-      dataPage.on?.('request', captureAuth);
-      dataPage.on?.('response', captureContracts);
-      console.log('[GAS] Página de trabajo preparada antes del login.');
-    }
-
-    const emailSelectors = [
-      'input[type="email"]',
-      'input[name="email" i]',
-      'input[id*="email" i]',
-      'input[autocomplete="email"]',
-      'input[autocomplete="username"]',
-      'input[name*="user" i]',
-      'input[id*="user" i]',
-      'input[placeholder*="correo" i]',
-      'input[placeholder*="email" i]',
-      'input[type="text"]',
-    ];
-    const passwordSelectors = [
-      'input[type="password"]',
-      'input[name="password" i]',
-      'input[id*="password" i]',
-      'input[id*="pass" i]',
-    ];
-    let authenticatedByLogin = false;
-    let authenticatedByApi = false;
-    let loginError = null;
-    try {
-      const apiLogin = await loginGasWithPortalApi(page, credentials, captchaSolver);
-      authHeader = apiLogin.authHeader || authHeader;
-      gasCaptchaToken = apiLogin.captchaToken || '';
-      authenticatedByLogin = true;
-      authenticatedByApi = true;
-      console.log('[GAS] Login API oficial confirmado; se conservara la misma sesion para consultar contratos.');
-    } catch (error) {
-      loginError = error;
-      console.warn(`[GAS] El login API no se confirmo; se probara el formulario del portal: ${error.message}`);
-    }
-    if (!authenticatedByApi) {
-      try {
-        await submitPortalLoginForm(page, {
-        provider: 'Gases del Caribe',
-        username: credentials.username,
-        password: credentials.password,
-        emailSelectors,
-        passwordSelectors,
-        authState,
-        prepareSubmit: async () => {
-          const executed = await executePortalTurnstile(page).catch(error => {
-            if (/detached|execution context|target closed|connection closed/i.test(String(error?.message || error))) {
-              console.warn('[GAS] Turnstile cambió el contexto; se esperará el estado del navegador.');
-              return false;
-            }
-            throw error;
-          });
-          if (executed) console.log('[GAS] Turnstile preparado antes de enviar el formulario.');
-          if (captchaSolver) await captchaSolver.waitForSolved(60000);
-          const gasChallenge = await waitForPortalTurnstile(page, 30000);
-          gasCaptchaToken = gasChallenge?.turnstileToken || await readPortalTurnstileToken(page);
-          if (!gasCaptchaToken) throw new Error('Gases del Caribe no entregó el token de Turnstile antes de enviar el formulario.');
-          console.log(`[GAS] Turnstile preparado; esperando ${Math.ceil(GAS_TURNSTILE_SETTLE_DELAY_MS / 1000)} s antes de enviar el formulario.`);
-          await sleep(GAS_TURNSTILE_SETTLE_DELAY_MS);
-        },
-      });
-      authenticatedByLogin = true;
-      gasCaptchaToken = await readPortalTurnstileToken(page);
-    } catch (error) {
-      loginError = error;
-      console.warn(`[GAS] El login API no se confirmÃ³; se probarÃ¡ la ruta global autenticada: ${error.message}`);
-    }
-    if (!authenticatedByLogin) {
-      console.log('[GAS] Se probarÃ¡ la sesiÃ³n existente del portal global.');
-    }
-
-    }
-    // A detached login frame does not necessarily mean the session was lost:
-    // Browserless can close the React login document after setting the
-    // authenticated cookie. Try the spare page for transient browser errors
-    // before declaring the portal unavailable.
-    const canUseSparePage = !authenticatedByApi && Boolean(dataPage) && (
-      authenticatedByLogin || (loginError && isTransientPortalRunError(loginError.message))
-    );
-    if (canUseSparePage) {
-      if (dataPage) {
-        const loginPage = page;
-        page = dataPage;
-        dataPage = null;
-        await loginPage?.close?.().catch?.(() => {});
-        console.log(`[GAS] Se cambiÃ³ a la pÃ¡gina de trabajo conservando la sesiÃ³n${authenticatedByLogin ? ' autenticada' : ' potencialmente autenticada'}.`);
-      } else {
+    let authToken = null;
+    let contracts = null;
+    page.on?.('response', async (res) => {
+      const u = res.url();
+      if (u.includes('innovacion-gascaribe.com/login')) {
         try {
-          const replacement = await recreatePortalPage(browser, page, captchaSolver, 'Gases del Caribe');
-          page = replacement.page;
-          captchaSolver = replacement.captchaSolver;
-          page.on?.('request', captureAuth);
-          page.on?.('response', captureContracts);
-          console.log('[GAS] Se creÃ³ una pÃ¡gina nueva conservando la sesiÃ³n autenticada.');
-        } catch (error) {
-          console.warn('[GAS] No se pudo recrear la pÃ¡gina autenticada; se continuarÃ¡ con la actual:', error.message);
+          const j = await res.json();
+          if (j && j.data) authToken = j.data;
+        } catch (e) {}
+      }
+      if (u.includes('innovacion-gascaribe.com/contracts')) {
+        try {
+          const j = await res.json();
+          if (j && j.data && Array.isArray(j.data)) contracts = j.data;
+        } catch (e) {}
+      }
+    });
+
+    await gotoPortalPage(page, GAS_PORTAL_URLS.login, { waitUntil: 'networkidle2', timeout: 30000 }, 'Gases del Caribe');
+    const isLogin = /login/i.test(page.url());
+    if (isLogin) {
+      const pwdSelector = await page.waitForSelector('input[type="password"]', { timeout: 15000 }).catch(() => null);
+      if (pwdSelector) {
+        await page.type('input[type="email"], input[name="email"]', credential.username, { delay: 30 });
+        await page.type('input[type="password"]', credential.password, { delay: 30 });
+
+        const frames = typeof page.frames === 'function' ? page.frames() : [];
+        const turnstile = frames.find(f => {
+          const u = (typeof f.url === 'function' ? f.url() : '') || '';
+          return u.includes('cloudflare') || u.includes('turnstile');
+        });
+        if (turnstile) {
+          const cb = await turnstile.$('input[type="checkbox"], #checkbox, body');
+          if (cb) await cb.click().catch(() => {});
+          await sleep(4000);
         }
+        await executePortalTurnstile(page).catch(() => {});
+
+        const submitBtn = await page.$('button[type="submit"]');
+        if (submitBtn) await submitBtn.click();
+        await sleep(8000);
       }
     }
 
-    if (!authenticatedByApi && (authenticatedByLogin || canUseSparePage)) {
-      await gotoPortalPage(page, GAS_PORTAL_URLS.contracts, {
-        waitUntil: 'domcontentloaded',
-        timeout: PORTAL_AUTH_TIMEOUT_MS,
-      }, 'Gases del Caribe').catch(error => {
-        console.warn('[GAS] No se pudo abrir la vista protegida; se continuará con la consulta autenticada:', error.message);
-      });
-      await sleep(1500);
+    if (!authToken) {
+      authToken = await page.evaluate(() => {
+        try {
+          const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          return user.token || null;
+        } catch (e) { return null; }
+      }).catch(() => null);
     }
-    let gasWorkUrl = 'desconocida';
-    try { gasWorkUrl = page.url(); } catch {}
-    console.log(`[GAS] Sesión lista; URL de trabajo: ${gasWorkUrl}.`);
 
-    for (let attempt = 1; !contractsPayload && attempt <= PORTAL_DATA_ATTEMPTS; attempt += 1) {
-      if (attempt > 1) {
-        console.warn(`[GAS] La lista global no llegó; reintentando la consulta autenticada (${attempt}/${PORTAL_DATA_ATTEMPTS}).`);
-        await sleep(PORTAL_DATA_RETRY_DELAY_MS);
-      }
-      const direct = await fetchPortalJson(page, `${GAS_API_BASE}/contracts`, authHeader ? { Authorization: authHeader } : {});
-      if (direct.status >= 200 && direct.status < 300) {
-        contractsPayload = parsePortalResponseBody(direct.body);
-      } else if (attempt === PORTAL_DATA_ATTEMPTS) {
-        throw new Error(`Gases del Caribe rechazó la consulta global (HTTP ${direct.status || 'sin respuesta'}${direct.error ? `: ${direct.error}` : ''}).`);
-      }
-    }
-    if (!contractsPayload) throw new Error('No se recibió la lista global de contratos de Gases del Caribe.');
-
-    const token = portalFieldValue(contractsPayload, ['token', 'appToken', 'accessToken', 'authorization']);
-    if (!authHeader && token) authHeader = String(token).trim();
-    if (!authHeader) throw new Error('El portal de Gases del Caribe no entregó el token de consulta.');
-
-    let contracts = unwrapPortalList(contractsPayload, ['contracts', 'items']);
-    if (!contracts.length) {
-      for (let attempt = 1; attempt <= PORTAL_DATA_ATTEMPTS && !contracts.length; attempt += 1) {
-        if (attempt > 1) await sleep(PORTAL_DATA_RETRY_DELAY_MS);
-        const direct = await fetchPortalJson(page, `${GAS_API_BASE}/contracts`, authHeader ? { Authorization: authHeader } : {});
-        if (direct.status < 200 || direct.status >= 300) continue;
-        const retryPayload = parsePortalResponseBody(direct.body);
-        const retryContracts = unwrapPortalList(retryPayload, ['contracts', 'items']);
-        if (retryContracts.length) {
-          contractsPayload = retryPayload;
-          contracts = retryContracts;
-        }
-      }
-    }
-    const refreshedToken = portalFieldValue(contractsPayload, ['token', 'appToken', 'accessToken', 'authorization']);
-    if (!authHeader && refreshedToken) {
-      authHeader = String(refreshedToken).trim();
-    }
-    if (!authHeader) throw new Error('El portal de Gases del Caribe no entregó el token de consulta.');
-    console.log('[GAS] Respuesta global:', JSON.stringify(portalPayloadDiagnostics(contractsPayload, contracts)));
-    const results = [];
-    const seenApartments = new Set();
-    for (const contract of contracts) {
-      const target = matchPortalApartmentForService(targets, contract, 'gas');
-      if (!target || seenApartments.has(String(target.apartmentId || target.apartment))) continue;
-      const contractId = String(
-        target.gasPaymentCode ||
-        portalFieldValue(contract, ['contractNumber', 'number', 'code', 'externalId', 'contractId']) ||
-        '',
-      ).trim();
-      const invoiceIdCandidates = [
-        ...portalFieldCandidates(contract, ['id', 'contractId', 'contractNumber', 'number', 'subscriptionId', 'externalId', 'code']),
-        ...portalFieldCandidates(target, ['gasPaymentCode', 'gasAccountId']),
-      ];
-      if (!invoiceIdCandidates.length) continue;
-
-      let invoiceResponse = null;
-      let invoiceId = '';
-      for (const candidate of invoiceIdCandidates) {
-        invoiceId = candidate;
-        invoiceResponse = await fetchPortalJson(
-          page,
-          `${GAS_API_BASE}/invoices/${encodeURIComponent(candidate)}${gasCaptchaToken ? `?g-recaptcha-response=${encodeURIComponent(gasCaptchaToken)}` : ''}`,
-          { Authorization: authHeader },
-        );
-        if (invoiceResponse.status >= 200 && invoiceResponse.status < 300) break;
-        if (![400, 404, 422].includes(Number(invoiceResponse.status))) break;
-        console.warn(`[GAS] Identificador ${candidate} no fue aceptado para ${contractId || 'contrato'} (HTTP ${invoiceResponse.status}); probando el siguiente.`);
-      }
-      if (!invoiceResponse || invoiceResponse.status < 200 || invoiceResponse.status >= 300) {
-        // A paid contract may have no active invoice resource. Keep it as a
-        // confirmed zero rather than aborting the entire gas run.
-        if ([404, 422].includes(Number(invoiceResponse?.status))) {
-          const debtIdentifier = String(
-            portalFieldValue(contract, ['id', 'contractId', 'contractNumber', 'number', 'externalId', 'code']) ||
-            contractId || invoiceId || '',
-          ).trim();
-          const debtSummary = await fetchGasDebtSummary(page, debtIdentifier, authHeader).catch(() => ({}));
-          const total = debtSummary.deudaTotalCOP ?? 0;
-          const paidRecord = gasRecord({
-            ...target,
-            gasPaymentCode: String(contractId || invoiceId),
-            gasPaymentUrl: gasContractPaymentUrl(contractId || invoiceId),
-          }, {
-            status: total > 0 ? 'pending' : 'paid',
-            deudaCOP: total,
-            deudaMesCOP: debtSummary.deudaMesCOP ?? 0,
-            deudaTotalCOP: total,
-            financiadaCOP: debtSummary.financiadaCOP ?? null,
-            cuotaFinanciadaCOP: debtSummary.cuotaFinanciadaCOP ?? null,
-            financiacion: debtSummary.financiacion || [],
-            debtSource: debtSummary.debtSource || 'no_current_invoice',
-            debtEndpointStatus: debtSummary.debtEndpointStatus ?? null,
-            numFacturas: 0,
-            factura: portalFieldValue(contract, ['invoiceNumber', 'invoiceId', 'factura']) || null,
-            periodo: portalFieldValue(contract, ['expirationDate', 'dueDate', 'fechaVencimiento']) || null,
-            error: null,
+    if (!contracts && authToken) {
+      contracts = await page.evaluate(async (token) => {
+        try {
+          const r = await fetch('https://pagosweb-production-api.innovacion-gascaribe.com/contracts', {
+            headers: { authorization: token, frontendversion: 'v3.4.0' }
           });
-          seenApartments.add(String(target.apartmentId || target.apartment));
-          results.push(paidRecord);
-          console.log(`[GAS] ${portalLabel} ${target.apartment}: ${paidRecord.status} (mes $0; total $${total.toLocaleString('es-CO')}; no current invoice).`);
-          continue;
-        }
-        throw new Error(`Gases del Caribe rechazó el contrato ${contractId || invoiceId} (HTTP ${invoiceResponse?.status || 'sin respuesta'}).`);
-      }
-      const invoicePayload = parsePortalResponseBody(invoiceResponse.body);
-      const invoices = unwrapPortalList(invoicePayload, ['invoices', 'items']);
-      const summary = gasInvoiceSummary(invoices);
-      const debtIdentifier = String(
-        portalFieldValue(contract, ['id', 'contractId', 'contractNumber', 'number', 'externalId', 'code']) ||
-        contractId || invoiceId || '',
-      ).trim();
-      const debtSummary = await fetchGasDebtSummary(page, debtIdentifier, authHeader).catch(error => ({
-        debtSource: 'invoice_fallback',
-        debtEndpointStatus: 0,
-        error: error.message,
-      }));
-      const record = gasRecord({
-        ...target,
-        gasPaymentCode: String(contractId || invoiceId),
-        gasPaymentUrl: gasContractPaymentUrl(contractId || invoiceId),
-      }, {
-        ...summary,
-        ...debtSummary,
-        error: null,
-      });
-      seenApartments.add(String(target.apartmentId || target.apartment));
-      results.push(record);
-      const amount = record.deudaCOP === null ? 'sin valor' : `$${record.deudaCOP.toLocaleString('es-CO')}`;
-      const month = record.deudaMesCOP === null ? 'sin mes' : `$${record.deudaMesCOP.toLocaleString('es-CO')}`;
-      const financed = record.financiadaCOP === null ? 'sin financiación' : `$${record.financiadaCOP.toLocaleString('es-CO')}`;
-      console.log(`[GAS] ${portalLabel} ${target.apartment}: ${record.status} (mes ${month}; total ${amount}; financiada ${financed}; endpoint deuda HTTP ${record.debtEndpointStatus || 'no disponible'}).`);
+          const j = await r.json();
+          return j.data || [];
+        } catch (e) { return []; }
+      }, authToken).catch(() => []);
     }
 
-    if (results.length < Math.min(targets.length, contracts.length)) {
-      logUnmatchedPortalItems('GAS', contracts.filter(contract =>
-        !matchPortalApartmentForService(targets, contract, 'gas')
-      ), 'gas');
+    const records = [];
+    const now = new Date().toISOString();
+    for (const c of (contracts || [])) {
+      const target = matchPortalApartmentForService(targets, [c.alias, String(c.id), c.address], 'gas');
+      if (!target) {
+        console.warn(`[GAS] Contrato no emparejado con apartamento: ${c.alias} (${c.id})`);
+        continue;
+      }
+
+      let invoices = [];
+      try {
+        invoices = await page.evaluate(async ({ token, id }) => {
+          try {
+            const r = await fetch(`https://pagosweb-production-api.innovacion-gascaribe.com/invoices/${id}?g-recaptcha-response=-`, {
+              headers: { authorization: token, frontendversion: 'v3.4.0' }
+            });
+            const j = await r.json();
+            return j.data || [];
+          } catch (e) { return []; }
+        }, { token: authToken, id: c.id });
+      } catch (e) {}
+
+      const unpaid = (invoices || []).filter(i => !i.isPaid);
+      let status = 'paid';
+      let total = 0;
+      let month = 0;
+      let factura = null;
+      let periodo = null;
+
+      if (unpaid.length > 0) {
+        status = 'pending';
+        total = unpaid.reduce((sum, i) => sum + (Number(i.couponValue) || 0), 0);
+        month = Number(unpaid[0]?.couponValue) || total;
+        factura = String(unpaid[0]?.id || '');
+        periodo = unpaid[0]?.expirationDate || null;
+      } else if (invoices && invoices.length > 0) {
+        factura = String(invoices[0]?.id || '');
+        periodo = invoices[0]?.expirationDate || null;
+      }
+
+      records.push({
+        provider: 'Gases del Caribe',
+        service: 'gas',
+        apartmentId: target.apartmentId,
+        apartment: target.apartment,
+        gasPaymentCode: String(c.id),
+        gasPaymentUrl: target.gasPaymentUrl || null,
+        status,
+        deudaCOP: total,
+        deudaTotalCOP: total,
+        deudaMesCOP: month,
+        deudaConveniosCOP: 0,
+        deudaLabel: 'Deuda Total',
+        factura,
+        periodo,
+        facturaValorCOP: month,
+        facturasTotales: (invoices || []).length,
+        facturasPendientes: unpaid.length,
+        numFacturas: unpaid.length,
+        checkedAt: now,
+        scrapedAt: now,
+        valueCheckedAt: now,
+      });
     }
-    if (!results.length) {
-      lastGasScrapeError = 'Gases del Caribe autenticó el portal, pero no se pudo asociar ningún contrato con los apartamentos configurados.';
-      console.warn(`[GAS] ${portalLabel} no devolvió contratos asociables; no se usará ningún respaldo individual.`);
-    } else {
-      console.log(`[GAS] ${portalLabel}: ${results.length} apartamento(s) con datos.`);
-    }
-    return results;
+
+    await browser.close().catch(() => {});
+    browser = null;
+    console.log(`[GAS] ${portalLabel}: ${records.length} apartamento(s) con datos confirmados.`);
+    return records;
   } catch (error) {
     lastGasScrapeError = error.message;
-    console.error(`[GAS] ${portalLabel} error:`, error.message);
+    console.error(`[GAS] Error en ${portalLabel}:`, error.message);
     return [];
   } finally {
-    if (dataPage && captureAuth) dataPage.off?.('request', captureAuth);
-    if (dataPage && captureContracts) dataPage.off?.('response', captureContracts);
-    if (dataPage && captureLoginResponse) dataPage.off?.('response', captureLoginResponse);
-    if (dataPage) await closeWaterResource(dataPage);
-    if (page && captureAuth) page.off?.('request', captureAuth);
-    if (page && captureContracts) page.off?.('response', captureContracts);
-    if (page && captureLoginResponse) page.off?.('response', captureLoginResponse);
-    if (captchaSolver) await captchaSolver.close();
-    if (browser) await closeWaterBrowser(browser);
+    if (browser) await browser.close().catch(() => {});
   }
 }
 
@@ -3629,7 +3316,7 @@ async function scrapeGasPortal(credentials, targets, portalLabel = 'Portal globa
 // This orchestrator iterates over every credential of both providers, queries
 // each portal, and merges the per-apartment results into a single list.
 async function scrapeGasAccount() {
-  const credentials = getAllPortalCredentials(['gascaribe', 'gascaribe-portal2']);
+  const credentials = getAllPortalCredentials(['gascaribe', 'gascaribe-portal2', 'gascaribe-2']);
   if (!credentials.length) {
     lastGasScrapeError = 'No hay credenciales configuradas para los portales de Gases del Caribe.';
     console.warn(`[GAS] ${lastGasScrapeError}`);
@@ -3639,7 +3326,7 @@ async function scrapeGasAccount() {
   const combined = [];
   const seenApartments = new Set();
   for (const credential of credentials) {
-    const portalLabel = credential.provider === 'gascaribe-portal2'
+    const portalLabel = (credential.provider === 'gascaribe-portal2' || credential.provider === 'gascaribe-2')
       ? 'Portal 2'
       : 'Portal 1';
     const portalResults = await scrapeGasPortal(credential, targets, portalLabel);
@@ -3971,19 +3658,22 @@ async function scrapeAirE() {
       const month = agg.deudaMesCOP === null ? 'sin mes' : `$${agg.deudaMesCOP.toLocaleString('es-CO')}`;
       console.log(`[AIR-E]   NIC ${nic} → ${aptoName}: mes ${month}; total $${agg.debt.toLocaleString('es-CO')}; facturas sin pagar ${agg.facturasVencidas ?? agg.numFacturas} [${agg.source}]`);
 
+      const now = new Date().toISOString();
+      const isPending = (agg.deudaTotalCOP ?? agg.debt) > 0;
       results.push({
         provider: 'Air-e',
         apartmentId: target.apartmentId || null,
         nic,
         apartment: aptoName,
-        deudaCOP: agg.debt,
-        deudaMesCOP: agg.deudaMesCOP,
+        deudaCOP: isPending ? agg.debt : 0,
+        deudaMesCOP: isPending ? agg.deudaMesCOP : 0,
         deudaConveniosCOP: 0,
-        deudaTotalCOP: agg.deudaTotalCOP ?? agg.debt,
+        deudaTotalCOP: isPending ? (agg.deudaTotalCOP ?? agg.debt) : 0,
         deudaLabel: 'Deuda Total',
-        status: (agg.deudaTotalCOP ?? agg.debt) > 0 ? 'pending' : 'paid',
-        numFacturas: agg.numFacturas,
+        status: isPending ? 'pending' : 'paid',
+        numFacturas: isPending ? agg.numFacturas : 0,
         factura: agg.factura || null,
+        facturaValorCOP: isPending ? (agg.deudaMesCOP ?? agg.debt) : 0,
         periodo: agg.periodo || null,
         financiadaCOP: 0,
         cuotaFinanciadaCOP: null,
@@ -3994,13 +3684,16 @@ async function scrapeAirE() {
         financeValidation: 'not_applicable',
         financingSource: null,
         financiacion: [],
-        facturasTotales: agg.facturasTotales ?? agg.numFacturas,
-        facturasPendientes: agg.facturasPendientes ?? agg.numFacturas,
-        facturasVencidas: agg.facturasVencidas ?? agg.numFacturas,
+        facturasTotales: isPending ? (agg.facturasTotales ?? agg.numFacturas) : 0,
+        facturasPendientes: isPending ? (agg.facturasPendientes ?? agg.numFacturas) : 0,
+        facturasVencidas: isPending ? (agg.facturasVencidas ?? agg.numFacturas) : 0,
         facturas: agg.facturas || [],
         debtSource: 'invoice_fields',
         deudaText: debtText,
-        scrapedAt: new Date().toISOString(),
+        checkedAt: now,
+        valueCheckedAt: now,
+        actualizado: now,
+        scrapedAt: now,
       });
     }
 
@@ -4124,10 +3817,13 @@ function persistWaterResults(results, reason = 'scheduler') {
 }
 
 function serviceResultMatchesApartment(result, apartment) {
-  return (result?.apartmentId !== null && result?.apartmentId !== undefined &&
-    apartment?.id !== null && apartment?.id !== undefined &&
-    Number(result.apartmentId) === Number(apartment.id)) ||
-    String(result?.apartment || '').trim() === String(apartment?.name || '').trim();
+  if (!result || !apartment) return false;
+  const resultId = result.apartmentId ?? result.id;
+  const resultName = result.apartment ?? result.name;
+  const targetId = apartment.apartmentId ?? apartment.id;
+  const targetName = apartment.apartment ?? apartment.name;
+  if (resultId != null && targetId != null && Number(resultId) === Number(targetId)) return true;
+  return Boolean(resultName && targetName && String(resultName).trim().toLowerCase() === String(targetName).trim().toLowerCase());
 }
 
 function portalFailureResult(service, target, message, checkedAt = new Date().toISOString()) {
@@ -4168,19 +3864,7 @@ function completePortalResults(service, globalResults, runError) {
     const message = results.length
       ? `El portal global de ${provider} no devolvió datos para el apartamento ${target.apartment} en esta consulta.`
       : (runError || `El portal global de ${provider} no devolvió datos en esta consulta.`);
-    if (service === 'gas' && results.length > 0) {
-      results.push({
-        ...portalFailureResult(service, target, message),
-        status: 'paid',
-        deudaCOP: 0,
-        deudaTotalCOP: 0,
-        numFacturas: 0,
-        portalNoInvoice: true,
-        error: null,
-      });
-    } else {
-      results.push(portalFailureResult(service, target, message));
-    }
+    results.push(portalFailureResult(service, target, message));
   }
   if (targets.length) {
     const successCount = results.filter(result => !['error', 'timeout', 'captcha'].includes(result.status)).length;

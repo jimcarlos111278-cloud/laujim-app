@@ -18,26 +18,25 @@ export function isCapacitor() {
   return typeof window !== 'undefined' && window.Capacitor !== undefined;
 }
 
-// The two Render services are a logical pair. They use the same Git branch
-// and Aiven database; only the HTTP endpoint changes when one node is down.
-// URLs can be replaced from Settings without rebuilding the APK.
-export const DEFAULT_SERVER = 'https://laujim-app.onrender.com';
-export const FALLBACK_SERVER = 'https://laujim-app-backup.onrender.com';
+export const CLOUD_SERVER = 'https://conjunto-residendial-laujim.duckdns.org';
+export const DEFAULT_SERVER = typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !/^(?:localhost|127\.0\.0\.1)/i.test(window.location.hostname)
+  ? window.location.origin
+  : CLOUD_SERVER;
+export const FALLBACK_SERVER = DEFAULT_SERVER;
 const SERVER_CONFIG_KEY = 'laujim_server_pair';
 
 function normalizeServer(value) {
   const normalized = String(value || '').trim().replace(/\/+$/, '').replace(/\/api$/i, '');
-  // A development URL must never survive in the production APK. Older
-  // builds could persist the local desktop server in localStorage and then
-  // use it for API calls, images, or APK updates after deployment.
   if (/^https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?$/i.test(normalized)) return '';
+  // Descartar automáticamente URLs obsoletas de Render
+  if (/onrender\.com$/i.test(normalized)) return '';
   return normalized;
 }
 
 export function getServerCandidates(preferred) {
   const config = getServerConfig();
   const selected = normalizeServer(preferred);
-  const candidates = [selected, config.active, config.primary, config.backup]
+  const candidates = [selected, config.active, config.primary, DEFAULT_SERVER]
     .filter(Boolean);
   return [...new Set(candidates)];
 }
@@ -46,22 +45,22 @@ export function getServerConfig() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SERVER_CONFIG_KEY) || '{}'); } catch {}
   const legacy = normalizeServer(localStorage.getItem('apt_server_url'));
-  const legacyIsBelmo = /onbelmo\.uk$/i.test(legacy);
-  const primary = normalizeServer(saved.primary || (!legacyIsBelmo && legacy) || DEFAULT_SERVER);
-  const backup = normalizeServer(saved.backup || FALLBACK_SERVER);
-  const active = normalizeServer(saved.active);
-  return { primary, backup, active: [primary, backup].includes(active) ? active : '' };
+  const currentOrigin = typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !/^(?:localhost|127\.0\.0\.1)/i.test(window.location.hostname)
+    ? normalizeServer(window.location.origin)
+    : '';
+  const primary = currentOrigin || normalizeServer(saved.primary || legacy) || DEFAULT_SERVER;
+  const backup = normalizeServer(saved.backup) || primary;
+  const active = currentOrigin || normalizeServer(saved.active) || primary;
+  return { primary, backup, active };
 }
 
 export function saveServerConfig(values = {}) {
   const current = getServerConfig();
   const next = {
-    primary: normalizeServer(values.primary || current.primary),
-    backup: normalizeServer(values.backup || current.backup),
-    active: normalizeServer(values.active || current.active),
+    primary: normalizeServer(values.primary || current.primary) || DEFAULT_SERVER,
+    backup: normalizeServer(values.backup || current.backup) || DEFAULT_SERVER,
+    active: normalizeServer(values.active || current.active) || DEFAULT_SERVER,
   };
-  if (!next.primary) next.primary = DEFAULT_SERVER;
-  if (next.active && ![next.primary, next.backup].includes(next.active)) next.active = '';
   localStorage.setItem(SERVER_CONFIG_KEY, JSON.stringify(next));
   return next;
 }
@@ -73,6 +72,9 @@ export function setActiveServer(server) {
 }
 
 export function getBase() {
+  if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !/^(?:localhost|127\.0\.0\.1)/i.test(window.location.hostname)) {
+    return window.location.origin + '/api';
+  }
   const config = getServerConfig();
   const raw = config.active || config.primary || DEFAULT_SERVER;
   return raw + '/api';
@@ -86,13 +88,11 @@ export function getPublicBaseUrl() {
   const pageOrigin = typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol)
     ? normalizeServer(window.location.origin)
     : '';
-  // A normal browser already knows the correct node. Capacitor uses a
-  // localhost origin, so the APK must use its configured Render pair instead.
   if (pageOrigin) return pageOrigin;
   const config = getServerConfig();
-  return [config.active, config.primary, config.backup, FALLBACK_SERVER, DEFAULT_SERVER]
+  return [config.active, config.primary, DEFAULT_SERVER]
     .map(normalizeServer)
-    .find(Boolean) || FALLBACK_SERVER;
+    .find(Boolean) || CLOUD_SERVER;
 }
 
 function photoRawValue(photo) {

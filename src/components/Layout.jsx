@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2, Camera, UserPlus
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2, Camera, UserPlus, ShieldCheck
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
 import { clearAuth } from '../utils/auth';
@@ -22,10 +22,10 @@ const navItems = [
   { to: '/whatsapp-contactos', label: 'Contactos WhatsApp', icon: Users },
   { to: '/utilities', label: 'Servicios Públicos', icon: Zap },
   { to: '/scraper-worker', label: 'Worker scraper', icon: Smartphone },
-  { to: '/security', label: 'Seguridad y cámaras', icon: Camera },
+  { to: '/security', label: 'Cámaras y Detección ALPR', icon: Camera },
   { to: '/share', label: 'Compartir', icon: Share2 },
   { to: '/reports', label: 'Reportes', icon: BarChart3 },
-  { to: '/settings', label: 'Configuración', icon: Settings },
+  { to: '/settings', label: 'Seguridad y Ajustes (CallGuard)', icon: ShieldCheck },
 ];
 
 export default function Layout({ children }) {
@@ -118,7 +118,7 @@ const [installPrompt, setInstallPrompt] = useState(null);
         <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="flex items-center gap-2">
             <Home className="w-5 h-5 text-blue-600" />
-            <span className="font-bold text-base text-gray-900 dark:text-white whitespace-nowrap">Gestión Aptos</span>
+            <span className="font-bold text-base text-gray-900 dark:text-white whitespace-nowrap">Laujim Tracker</span>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400 lg:hidden">
             <X className="w-5 h-5" />
@@ -172,7 +172,7 @@ const [installPrompt, setInstallPrompt] = useState(null);
           </button>
           <div className="flex items-center gap-2">
             <Home className="w-5 h-5 text-blue-600" />
-            <span className="font-semibold text-gray-900 dark:text-white truncate">Gestión Aptos</span>
+            <span className="font-semibold text-gray-900 dark:text-white truncate">Laujim Tracker</span>
           </div>
           {installPrompt && <button onClick={installApp} className="ml-auto inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2 py-1.5 text-xs font-medium text-white"><Download className="w-3.5 h-3.5" /> Instalar app</button>}
         </header>

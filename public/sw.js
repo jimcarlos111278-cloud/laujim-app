@@ -1,13 +1,16 @@
-const CACHE = 'apt-manager-v1';
+const CACHE = 'apt-manager-v1.0.123';
 const ASSETS = ['/', '/manifest.json', '/icons.svg'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(clients.claim());
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    ).then(() => clients.claim())
+  );
 });
 
 self.addEventListener('notificationclick', e => {
@@ -20,13 +23,14 @@ self.addEventListener('fetch', e => {
     return;
   }
   e.respondWith(
-    caches.open(CACHE).then(cache =>
-      fetch(e.request)
-        .then(res => {
-          if (res.ok) cache.put(e.request, res.clone());
-          return res;
-        })
-        .catch(() => caches.match(e.request))
-    )
+    fetch(e.request)
+      .then(res => {
+        if (res.ok && e.request.method === 'GET') {
+          const clone = res.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        }
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });

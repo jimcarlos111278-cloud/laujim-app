@@ -1,6 +1,6 @@
 {
   "appId": "com.laujim.aptmanager",
-  "appName": "Gestion Apartamentos",
+  "appName": "Laujim Tracker",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {

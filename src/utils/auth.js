@@ -113,14 +113,13 @@ export function clearAuth(options = {}, reason = 'unspecified') {
   stopBackgroundNotifications().catch(() => {});
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(BACKUP_STORAGE_KEY);
     sessionStorage.removeItem(STORAGE_KEY);
-    if (options.permanent === true) {
-      localStorage.removeItem(BACKUP_STORAGE_KEY);
-      if (typeof window !== 'undefined' && window.Capacitor) {
-        import('@capacitor/filesystem').then(({ Filesystem, Directory }) => {
-          Filesystem.deleteFile({ path: 'laujim_auth.json', directory: Directory.Data }).catch(() => {});
-        }).catch(() => {});
-      }
+    sessionStorage.removeItem(BACKUP_STORAGE_KEY);
+    if (typeof window !== 'undefined' && window.Capacitor) {
+      import('@capacitor/filesystem').then(({ Filesystem, Directory }) => {
+        Filesystem.deleteFile({ path: 'laujim_auth.json', directory: Directory.Data }).catch(() => {});
+      }).catch(() => {});
     }
   } catch {}
   setApiToken('');

@@ -79,6 +79,7 @@ function firstBillAmount(bill, fields) {
 }
 
 function billMonthDebt(bill) {
+  if (bill?.status === 'paid' || bill?.deudaTotalCOP === 0 || bill?.deudaCOP === 0 || bill?.facturasPendientes === 0) return 0;
   return firstBillAmount(bill, [
     'deudaMesCOP', 'valorMesCOP', 'monthValueCOP', 'facturaValorCOP',
     'invoiceValueCOP', 'valorFacturaCOP', 'amt_ValorMes', 'amt_Valor',
@@ -227,7 +228,12 @@ export default function Utilities() {
   const videoRef = useRef(null);
   const gasAccountSummary = buildGasAccounts(apartments);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const onFocus = () => loadDebts();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   async function load() {
     const [a, t, c] = await Promise.all([
@@ -793,7 +799,7 @@ export default function Utilities() {
           <dt className="text-gray-500 dark:text-gray-400">Deuda del mes</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(month)}</dd>
           {svc === 'electricity' ? <><dt className="text-gray-500 dark:text-gray-400">Facturas sin pagar</dt><dd className="font-semibold text-gray-900 dark:text-white">{invoicePending ?? invoiceTotal ?? '—'}</dd></> : <><dt className="text-gray-500 dark:text-gray-400">Saldo financiado</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(convenio)}</dd><dt className="text-gray-500 dark:text-gray-400">Próximo pago</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(nextPayment ?? quota)}</dd><dt className="text-gray-500 dark:text-gray-400">Avance</dt><dd className="font-semibold text-gray-900 dark:text-white">{progressCurrent ?? '—'} de {progressTotal ?? '—'}</dd>{svc === 'gas' && (pendingGas !== null || pendingFinancial !== null) && <><dt className="text-gray-500 dark:text-gray-400">Por facturar gas</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(pendingGas)}</dd><dt className="text-gray-500 dark:text-gray-400">Por facturar financiero</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(pendingFinancial)}</dd></>}</>}
           <dt className="text-gray-500 dark:text-gray-400">Deuda total</dt><dd className="font-bold text-gray-900 dark:text-white">{billMoney(total)}</dd>
-          <dt className="text-gray-500 dark:text-gray-400">Actualizado</dt><dd className="text-right text-gray-600 dark:text-gray-300">{timeAgo(bill?.actualizado)}</dd>
+          <dt className="text-gray-500 dark:text-gray-400">Actualizado</dt><dd className="text-right text-gray-600 dark:text-gray-300">{timeAgo(bill?.actualizado || bill?.scrapedAt || bill?.checkedAt)}</dd>
         </dl>
         {changeLabel && <p className={`mt-2 text-xs font-semibold ${changeStatus === 'full_payment' ? 'text-emerald-600' : 'text-amber-600'}`}>{changeLabel}</p>}
         {(financing.length > 0 || invoices.length > 0) && (

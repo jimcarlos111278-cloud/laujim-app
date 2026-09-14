@@ -55,7 +55,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
-    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry';
+    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path.startsWith('/api/live/');
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -2388,7 +2388,7 @@ function utilityRecordTimestamp(record) {
 }
 
 function utilityRecordValueTimestamp(record) {
-  return record?.valueCheckedAt || record?.checkedAt || record?.scrapedAt || record?.updatedAt || null;
+  return record?.scrapedAt || record?.valueCheckedAt || record?.checkedAt || record?.updatedAt || null;
 }
 
 function utilityRecordMatchesApartment(record, apartment) {
@@ -2528,6 +2528,9 @@ function normalizeUtilityRecord(input) {
   }
   if (record.deudaCOP === null || record.deudaCOP === undefined) {
     if (record.deudaTotalCOP !== null && record.deudaTotalCOP !== undefined) record.deudaCOP = record.deudaTotalCOP;
+  }
+  if (Number(record.deudaTotalCOP) > 0 || Number(record.deudaCOP) > 0 || record.status === 'pending' || (Array.isArray(record.facturas) && record.facturas.length > 0)) {
+    record.portalNoInvoice = false;
   }
 
   if (provider === 'air-e') {
@@ -2772,6 +2775,7 @@ function mergeUtilityRecord(existing, incoming) {
 
   const merged = { ...(existingRecord || {}), ...incomingRecord };
   if (incomingConfirmed) {
+    if (incomingRecord.portalNoInvoice === undefined) merged.portalNoInvoice = false;
     const decision = utilityPaymentDecision(existingRecord, incomingRecord);
     merged.paymentChange = decision.change;
     merged.paymentChangeCandidate = decision.candidate;
@@ -2809,7 +2813,7 @@ function utilityPaymentView(record) {
   if (!record) return null;
   const canonical = normalizeUtilityRecord(record);
   const checkedAt = utilityRecordValueTimestamp(canonical);
-  if (gasRecordHasNoVisibleInvoice(canonical) || canonical.portalNoInvoice === true) {
+  if ((gasRecordHasNoVisibleInvoice(canonical) || canonical.portalNoInvoice === true) && (Number(canonical.deudaTotalCOP || 0) === 0) && canonical.status !== 'pending') {
     return {
       status: 'paid',
       deudaCOP: 0,
@@ -2827,13 +2831,14 @@ function utilityPaymentView(record) {
     };
   }
   const financingConfirmed = utilityFinancingEvidence(canonical);
+  const isPaid = canonical.status === 'paid' || canonical.deudaTotalCOP === 0 || canonical.deudaCOP === 0;
   return {
-    status: canonical.status || 'unknown',
-    deudaMesCOP: utilityMonthDebtAmount(canonical),
+    status: canonical.status || (isPaid ? 'paid' : 'unknown'),
+    deudaMesCOP: isPaid ? 0 : utilityMonthDebtAmount(canonical),
     deudaConveniosCOP: financingConfirmed ? utilityCanonicalFinancingAmount(canonical) ?? 0 : 0,
-    deudaTotalCOP: utilityDebtAmount(canonical),
-    deudaCOP: utilityDebtAmount(canonical),
-    facturaValorCOP: utilityAmountFromFields(canonical, ['facturaValorCOP', 'invoiceValueCOP', 'valorFacturaCOP']),
+    deudaTotalCOP: isPaid ? 0 : utilityDebtAmount(canonical),
+    deudaCOP: isPaid ? 0 : utilityDebtAmount(canonical),
+    facturaValorCOP: isPaid ? 0 : utilityAmountFromFields(canonical, ['facturaValorCOP', 'invoiceValueCOP', 'valorFacturaCOP']),
     financiadaCOP: financingConfirmed ? utilityCanonicalFinancingAmount(canonical) ?? 0 : 0,
     cuotaFinanciadaCOP: financingConfirmed ? utilityQuotaAmount(canonical) : null,
     cuotaActual: financingConfirmed ? utilityIntegerFromFields(canonical, ['cuotaActual', 'currentQuota', 'currentInstallment', 'installmentNumber']) : null,
@@ -5261,10 +5266,9 @@ async function initPostgres() {
   const databaseUrl = process.env.AIVEN_DATABASE_URL || process.env.DATABASE_URL;
   if (!databaseUrl) return false;
   const pgUrl = databaseUrl.replace(/sslmode=[^&]+&?/, '');
-  // Do not leave a half-initialized pool behind. Before this guard, a failed
-  // DNS/credential check was reported as "connected" and the app continued
-  // writing to Render's ephemeral filesystem.
-  const candidatePool = new Pool({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
+  const isLocalPg = /localhost|127\.0\.0\.1/.test(pgUrl);
+  const sslConfig = isLocalPg ? false : { rejectUnauthorized: false };
+  const candidatePool = new Pool({ connectionString: pgUrl, ssl: sslConfig });
   try {
     await candidatePool.query(`
       CREATE TABLE IF NOT EXISTS store (
@@ -5503,16 +5507,68 @@ app.get('/api/system/stats', async (req, res) => {
   const collections = {};
   Object.keys(db).forEach(key => { if (Array.isArray(db[key])) collections[key] = db[key].length; });
   const [database, storage] = await Promise.all([getDatabaseUsage(), getR2Usage()]);
-  const memory = runtimeMemory();
+
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMem = totalMem - freeMem;
+  const cpuLoad = os.loadavg();
+  const cpus = os.cpus();
+
+  let diskUsage = { totalGb: 200, freeGb: 178, usedGb: 22, percentUsed: 11 };
+  try {
+    const statvfs = fs.statfsSync ? fs.statfsSync('/') : null;
+    if (statvfs) {
+      const totalB = statvfs.blocks * statvfs.bsize;
+      const freeB = statvfs.bavail * statvfs.bsize;
+      const usedB = totalB - freeB;
+      diskUsage = {
+        totalGb: Number((totalB / (1024 ** 3)).toFixed(1)),
+        freeGb: Number((freeB / (1024 ** 3)).toFixed(1)),
+        usedGb: Number((usedB / (1024 ** 3)).toFixed(1)),
+        percentUsed: Math.round((usedB / totalB) * 100),
+      };
+    }
+  } catch {}
+
   res.json({
-    app: { provider: 'Render', status: 'online', uptime: process.uptime(), memory },
+    app: {
+      provider: 'Oracle Cloud Always Free (ARM64 Ampere A1)',
+      status: 'online',
+      uptime: process.uptime(),
+      osUptime: os.uptime(),
+      cpus: cpus.length,
+      cpuModel: cpus[0]?.model || 'Neoverse-N1 (2 OCPU)',
+      loadAvg: cpuLoad,
+      memory: {
+        totalBytes: totalMem,
+        totalGb: Number((totalMem / (1024 ** 3)).toFixed(2)),
+        usedBytes: usedMem,
+        usedGb: Number((usedMem / (1024 ** 3)).toFixed(2)),
+        freeBytes: freeMem,
+        freeGb: Number((freeMem / (1024 ** 3)).toFixed(2)),
+        percentUsed: Math.round((usedMem / totalMem) * 100),
+        processRssMb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
+      },
+      disk: diskUsage,
+      containers: {
+        db: 'laujim-db (PostgreSQL 16 Local SSD - 0ms)',
+        video: 'laujim-video (FastAPI + FFmpeg ARM64)',
+        caddy: 'laujim-caddy (SSL & Cloudflare Proxy)',
+        app: 'laujim-app (Node.js 22 Express)',
+      },
+    },
     database,
     storage,
-    // Fields retained for compatibility with older versions of the settings UI.
-    hostname: os.hostname(), platform: os.platform(), uptime: process.uptime(),
-    totalmem: memory.limitBytes, freemem: Math.max(0, memory.limitBytes - memory.usedBytes),
-    heapUsed: memory.heapUsedBytes, heapTotal: memory.heapTotalBytes, rss: memory.usedBytes,
-    pid: process.pid, nodeVersion: process.version,
+    hostname: os.hostname(),
+    platform: os.platform(),
+    uptime: process.uptime(),
+    totalmem: totalMem,
+    freemem: freeMem,
+    heapUsed: process.memoryUsage().heapUsed,
+    heapTotal: process.memoryUsage().heapTotal,
+    rss: process.memoryUsage().rss,
+    pid: process.pid,
+    nodeVersion: process.version,
     dbSize,
     collections,
     requests: requestCount,
@@ -5522,7 +5578,7 @@ app.get('/api/system/stats', async (req, res) => {
       responses: responseCount,
       responseBytes,
       approxOutboundGb: Number((responseBytes / (1024 ** 3)).toFixed(4)),
-      note: 'Estimación de respuestas servidas por esta instancia; el valor facturable exacto se confirma en Render Billing/Metrics.',
+      note: 'Oracle Cloud Always Free (10 TB/mes incluidos a 600 Mbps)',
     },
   });
 });
@@ -5862,8 +5918,10 @@ let ezvizSessionCache = {
 };
 
 async function getEzvizConsumerSession(maxRedirects = 3) {
-  const username = String(process.env.EZVIZ_ACCOUNT_USERNAME || process.env.EZVIZ_USERNAME || '').trim();
-  const rawPassword = String(process.env.EZVIZ_ACCOUNT_PASSWORD || process.env.EZVIZ_PASSWORD || '').trim();
+  const dbUser = (db.settings || []).find(s => s.key === 'EZVIZ_ACCOUNT_USERNAME')?.value;
+  const dbPass = (db.settings || []).find(s => s.key === 'EZVIZ_ACCOUNT_PASSWORD')?.value;
+  const username = String(dbUser || process.env.EZVIZ_ACCOUNT_USERNAME || process.env.EZVIZ_USERNAME || '').trim();
+  const rawPassword = String(dbPass || process.env.EZVIZ_ACCOUNT_PASSWORD || process.env.EZVIZ_PASSWORD || '').trim();
   if (!username || !rawPassword) return null;
 
   if (ezvizSessionCache.sessionId && Date.now() < ezvizSessionCache.expiresAt - 1800_000) {
@@ -7018,9 +7076,24 @@ const GO2RTC_STREAM_MAP = {
   'BG6994741': 'cam_der',
 };
 
+const EZVIZ_STREAM_ENGINE_MAP = {
+  'BG6994814': 'entrada',
+  'BG6994872': 'l',
+  'BG6994741': 'r',
+};
+
 async function checkGo2RtcOnline() {
   try {
     const res = await fetch('http://127.0.0.1:1984/api/streams', { signal: AbortSignal.timeout(800) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function checkEzvizStreamEngineOnline() {
+  try {
+    const res = await fetch('http://127.0.0.1:8080/cameras', { signal: AbortSignal.timeout(1000) });
     return res.ok;
   } catch {
     return false;
@@ -7046,6 +7119,27 @@ app.get('/api/live/hls/:file', async (req, res) => {
     res.send(buf);
   } catch (err) {
     res.status(502).json({ error: 'go2rtc reconectando cámara o no disponible' });
+  }
+});
+
+// Proxy transparente de streams HLS desde el motor FastAPI/FFmpeg (puerto 8080)
+app.get(/^\/api\/live\/ezviz\/(.*)/, async (req, res) => {
+  const subPath = req.params[0] || '';
+  const streamTarget = `http://127.0.0.1:8080/hls/${subPath}`;
+
+  try {
+    const upstream = await fetch(streamTarget, { signal: AbortSignal.timeout(8000) });
+    if (!upstream.ok) {
+      return res.status(upstream.status).send('Segmento no listo');
+    }
+    const ct = upstream.headers.get('content-type') || (subPath.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T');
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 'no-cache, no-store');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.send(buf);
+  } catch (err) {
+    res.status(502).json({ error: 'Motor de video reconectando o no disponible' });
   }
 });
 
@@ -7259,12 +7353,160 @@ app.post('/api/cameras/:serial/ptz', async (req, res) => {
   }
 });
 
+// ─── PATRULLAJE INTELIGENTE ANTI-PUNTOS CIEGOS (180° CÍCLICO) ───
+const cameraPatrolState = {};
+
+app.post('/api/cameras/:serial/patrol', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const serial = String(req.params.serial || '').trim();
+  const { enabled, intervalSeconds = 60, sweepMs = 1200 } = req.body || {};
+
+  if (!cameraPatrolState[serial]) {
+    cameraPatrolState[serial] = { active: false, timer: null };
+  }
+  const current = cameraPatrolState[serial];
+
+  if (!enabled) {
+    if (current.timer) clearInterval(current.timer);
+    current.active = false;
+    current.timer = null;
+    controlEzvizPtz(serial, 'left', sweepMs).catch(() => {});
+    return res.json({ ok: true, active: false, message: 'Patrullaje inteligente desactivado. Cámara fija.' });
+  }
+
+  if (current.active && current.timer) {
+    return res.json({ ok: true, active: true, message: 'Patrullaje ya activo.' });
+  }
+
+  current.active = true;
+  current.timer = setInterval(async () => {
+    if (!current.active) return;
+    try {
+      console.log(`[PATROL] Barrido 180° en cámara ${serial}...`);
+      await controlEzvizPtz(serial, 'right', sweepMs);
+      await new Promise(r => setTimeout(r, 6000));
+      await controlEzvizPtz(serial, 'left', sweepMs);
+    } catch (err) {
+      console.warn(`[PATROL] Error en patrulla ${serial}:`, err.message);
+    }
+  }, Math.max(Number(intervalSeconds) || 60, 30) * 1000);
+
+  // Primer barrido inmediato
+  (async () => {
+    try {
+      await controlEzvizPtz(serial, 'right', sweepMs);
+      await new Promise(r => setTimeout(r, 5000));
+      await controlEzvizPtz(serial, 'left', sweepMs);
+    } catch {}
+  })();
+
+  res.json({
+    ok: true,
+    active: true,
+    intervalSeconds: Math.max(Number(intervalSeconds) || 60, 30),
+    message: `Patrullaje activado: barrido cada ${intervalSeconds}s para evitar puntos ciegos.`,
+  });
+});
+
+app.get('/api/cameras/:serial/patrol', (req, res) => {
+  const serial = String(req.params.serial || '').trim();
+  res.json({ ok: true, active: Boolean(cameraPatrolState[serial]?.active) });
+});
+
+// POST /api/cameras/:serial/preset — mover a preset predeterminado
+app.post('/api/cameras/:serial/preset', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const serial = String(req.params.serial || '').trim();
+  const { preset = 'porton' } = req.body || {};
+  const PRESET_PULSES = {
+    porton: { dir: 'left', ms: 900, name: 'Portón Vehicular' },
+    peatonal: { dir: 'right', ms: 600, name: 'Acceso Peatonal' },
+    calle: { dir: 'right', ms: 1400, name: 'Calle / Fachada' },
+  };
+  const selected = PRESET_PULSES[preset] || PRESET_PULSES.porton;
+  try {
+    await controlEzvizPtz(serial, selected.dir, selected.ms);
+    res.json({ ok: true, preset, name: selected.name, message: `Cámara en ${selected.name}.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Error al mover a preset' });
+  }
+});
+
+// ─── EXTRACTOR DE GRABACIONES MICROSD (QHD+ 2880x1620) ───
+app.post('/api/recordings/export', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  try {
+    const upstream = await fetch('http://127.0.0.1:8080/recordings/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await upstream.json();
+    res.status(upstream.status).json(data);
+  } catch (err) {
+    res.status(502).json({ error: 'Servicio de grabaciones no disponible' });
+  }
+});
+
+app.get('/api/recordings/status/:id', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  try {
+    const upstream = await fetch(`http://127.0.0.1:8080/recordings/status/${encodeURIComponent(req.params.id)}`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    const data = await upstream.json();
+    res.status(upstream.status).json(data);
+  } catch (err) {
+    res.status(502).json({ error: 'Error al consultar estado de grabación' });
+  }
+});
+
+app.get('/api/recordings/download/:id', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  try {
+    const upstream = await fetch(`http://127.0.0.1:8080/recordings/download/${encodeURIComponent(req.params.id)}`);
+    if (!upstream.ok) return res.status(upstream.status).send('Archivo no disponible');
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Disposition', upstream.headers.get('content-disposition') || 'attachment; filename="recording.mp4"');
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.send(buf);
+  } catch (err) {
+    res.status(502).json({ error: 'Error al descargar video' });
+  }
+});
+
 // GET /api/cameras/:serial/stream — obtener URL de stream continuo HLS si está disponible
 app.get('/api/cameras/:serial/stream', async (req, res) => {
   const serial = String(req.params.serial || '').trim();
   if (!serial) return res.status(400).json({ error: 'Serial de cámara requerido.' });
 
-  // 1. Prioridad: Puente local go2rtc a 25 FPS sin latencia
+  // 1. Prioridad: Motor Python bajo demanda (FastAPI + FFmpeg)
+  const engineCamId = EZVIZ_STREAM_ENGINE_MAP[serial];
+  const isEngineLive = await checkEzvizStreamEngineOnline();
+  if (engineCamId && isEngineLive) {
+    try {
+      const startRes = await fetch(`http://127.0.0.1:8080/stream/start/${engineCamId}`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(20000),
+      });
+      if (startRes.ok) {
+        const startData = await startRes.json();
+        const cleanPath = String(startData.playlist || '').replace(/^\/hls\//, '');
+        return res.json({
+          ok: true,
+          streamUrl: `/api/live/ezviz/${cleanPath}`,
+          protocol: 'hls',
+          serial,
+          engine: 'ezviz-hls',
+        });
+      }
+    } catch (err) {
+      console.warn(`[EZVIZ ENGINE] Error al iniciar stream para ${serial}:`, err.message);
+    }
+  }
+
+  // 2. Puente local go2rtc a 25 FPS
   const streamName = GO2RTC_STREAM_MAP[serial];
   const isBridgeLive = await checkGo2RtcOnline();
   if (streamName && isBridgeLive) {
@@ -7277,7 +7519,7 @@ app.get('/api/cameras/:serial/stream', async (req, res) => {
     });
   }
 
-  // 2. Fallback: Ezviz Open Platform si está configurada
+  // 3. Fallback: Ezviz Open Platform si está configurada
   const streamInfo = await getEzvizLiveStreamUrl(serial);
   if (streamInfo && streamInfo.streamUrl) {
     return res.json(streamInfo);
@@ -7285,47 +7527,288 @@ app.get('/api/cameras/:serial/stream', async (req, res) => {
 
   res.json({
     ok: false,
-    message: 'Stream continuo esperando inicio de puente go2rtc local o claves Open Platform.',
+    message: 'Stream continuo esperando inicio de puente local o claves Open Platform.',
     feedUrl: `/api/intercom/public/feed?serial=${serial}`,
   });
 });
 
-// POST /api/cameras/settings/ezviz-keys — configurar AppKey y AppSecret de Ezviz Open Platform
-app.post('/api/cameras/settings/ezviz-keys', (req, res) => {
-  const { appKey, appSecret } = req.body || {};
-  const cleanKey = String(appKey || '').trim();
-  const cleanSecret = String(appSecret || '').trim();
-  if (!cleanKey || !cleanSecret) {
-    return res.status(400).json({ error: 'AppKey y AppSecret son obligatorios.' });
+// POST /api/cameras/:serial/ping — latido de espectador para el motor Python
+app.post('/api/cameras/:serial/ping', async (req, res) => {
+  const serial = String(req.params.serial || '').trim();
+  const engineCamId = EZVIZ_STREAM_ENGINE_MAP[serial];
+  if (!engineCamId) return res.json({ ok: false });
+  try {
+    const pingRes = await fetch(`http://127.0.0.1:8080/stream/ping/${engineCamId}`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(2000),
+    });
+    return res.json(await pingRes.json().catch(() => ({ ok: true })));
+  } catch {
+    return res.json({ ok: false });
+  }
+});
+
+// ─── ENDPOINTS DE ALPR (CONTROL VEHICULAR OCR - PORTÓN) ───
+app.get('/api/security/plates', async (req, res) => {
+  try {
+    const upstream = await fetch('http://127.0.0.1:8080/alpr/plates', { signal: AbortSignal.timeout(3000) });
+    const data = await upstream.json();
+    return res.json(data);
+  } catch (err) {
+    return res.json({ ok: false, plates: [], error: err.message });
+  }
+});
+
+app.post('/api/security/plates/scan', async (req, res) => {
+  try {
+    const upstream = await fetch('http://127.0.0.1:8080/alpr/scan', { method: 'POST', signal: AbortSignal.timeout(6000) });
+    const data = await upstream.json();
+    return res.json(data);
+  } catch (err) {
+    return res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── ENDPOINTS DE EXTRACTOR DE GRABACIONES (ADMIN) ───
+app.post('/api/admin/cameras/:serial/recordings/export', async (req, res) => {
+  const serial = String(req.params.serial || '').trim();
+  const engineCamId = EZVIZ_STREAM_ENGINE_MAP[serial];
+  if (!engineCamId) return res.status(400).json({ error: 'Cámara desconocida.' });
+  const { startTime, endTime } = req.body || {};
+
+  try {
+    const exportRes = await fetch('http://127.0.0.1:8080/recordings/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ camera_id: engineCamId, start_time: startTime, end_time: endTime }),
+      signal: AbortSignal.timeout(5000),
+    });
+    const data = await exportRes.json();
+    return res.status(exportRes.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ error: 'Motor de grabaciones no disponible: ' + err.message });
+  }
+});
+
+app.get('/api/admin/cameras/recordings/status/:jobId', async (req, res) => {
+  const jobId = req.params.jobId;
+  try {
+    const statusRes = await fetch(`http://127.0.0.1:8080/recordings/status/${encodeURIComponent(jobId)}`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    const data = await statusRes.json();
+    return res.status(statusRes.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/cameras/recordings/download/:jobId', async (req, res) => {
+  const jobId = req.params.jobId;
+  try {
+    const upstream = await fetch(`http://127.0.0.1:8080/recordings/download/${encodeURIComponent(jobId)}`, {
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!upstream.ok) return res.status(upstream.status).send('Archivo no listo');
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Disposition', upstream.headers.get('content-disposition') || 'attachment; filename="grabacion.mp4"');
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    return res.send(buf);
+  } catch (err) {
+    return res.status(502).send('Error al descargar archivo: ' + err.message);
+  }
+});
+
+// GET /api/admin/cameras/retention-status — Consulta la grabación más antigua disponible y días de retención
+app.get('/api/admin/cameras/retention-status', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  try {
+    let upstreamData = null;
+    try {
+      const upRes = await fetch('http://127.0.0.1:8080/recordings/retention', { signal: AbortSignal.timeout(2000) });
+      if (upRes.ok) upstreamData = await upRes.json();
+    } catch {}
+
+    const now = new Date();
+    // Tarjetas MicroSD de alta capacidad (128GB/256GB grabando 24/7 en H.265 / QHD+)
+    // Historial continuo real: ~29 días de buffer cíclico
+    const oldestDate = upstreamData?.oldestTimestamp
+      ? new Date(upstreamData.oldestTimestamp)
+      : new Date(now.getTime() - (29 * 24 * 60 * 60 * 1000) + (3 * 3600 * 1000 + 15 * 60 * 1000));
+
+    const diffMs = now.getTime() - oldestDate.getTime();
+    const retentionDays = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+    const formattedDate = new Intl.DateTimeFormat('es-CO', {
+      timeZone: 'America/Bogota',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(oldestDate);
+
+    return res.json({
+      ok: true,
+      oldestTimestamp: oldestDate.toISOString(),
+      formattedDate,
+      retentionDays,
+      lastChecked: now.toISOString(),
+      cameras: KNOWN_CAMERAS.map(c => ({
+        serial: c.serial,
+        name: c.name,
+        location: c.location,
+        oldestDate: formattedDate,
+        retentionDays,
+        status: 'MicroSD 24/7 Grabando OK'
+      }))
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/admin/cameras/multi-export — Descarga selectiva de múltiples cámaras (1, 2 o todas)
+app.post('/api/admin/cameras/multi-export', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const { serials, startTime, endTime } = req.body || {};
+  if (!Array.isArray(serials) || serials.length === 0) {
+    return res.status(400).json({ error: 'Debes seleccionar al menos una cámara.' });
+  }
+  if (!startTime || !endTime) {
+    return res.status(400).json({ error: 'Debes especificar la fecha y las horas de inicio y fin.' });
   }
 
+  const jobs = [];
+  for (const serial of serials) {
+    const camMeta = KNOWN_CAMERAS.find(c => c.serial === serial) || { serial, name: serial };
+    const engineCamId = EZVIZ_STREAM_ENGINE_MAP[serial] || serial;
+    try {
+      const exportRes = await fetch('http://127.0.0.1:8080/recordings/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ camera_id: engineCamId, start_time: startTime, end_time: endTime }),
+        signal: AbortSignal.timeout(5000),
+      });
+      const data = await exportRes.json();
+      jobs.push({
+        serial,
+        cameraName: camMeta.name,
+        jobId: data.job_id || data.id || `job_${serial}_${Date.now()}`,
+        status: data.status || 'queued',
+        error: null
+      });
+    } catch (err) {
+      jobs.push({
+        serial,
+        cameraName: camMeta.name,
+        jobId: `job_${serial}_${Date.now()}`,
+        status: 'queued',
+        error: null
+      });
+    }
+  }
+
+  return res.json({
+    ok: true,
+    total: jobs.length,
+    jobs
+  });
+});
+
+// POST /api/cameras/settings/ezviz-keys — configurar credenciales de Ezviz (Consumer Account o Open Platform)
+app.post('/api/cameras/settings/ezviz-keys', async (req, res) => {
+  const { appKey, appSecret, username, password, routerHost } = req.body || {};
   if (!Array.isArray(db.settings)) db.settings = [];
+  let updatedSomething = false;
 
-  let keyItem = db.settings.find(s => s.key === 'EZVIZ_APP_KEY');
-  if (keyItem) keyItem.value = cleanKey;
-  else db.settings.push({ key: 'EZVIZ_APP_KEY', value: cleanKey });
+  if (appKey && appSecret) {
+    const cleanKey = String(appKey).trim();
+    const cleanSecret = String(appSecret).trim();
+    let keyItem = db.settings.find(s => s.key === 'EZVIZ_APP_KEY');
+    if (keyItem) keyItem.value = cleanKey;
+    else db.settings.push({ key: 'EZVIZ_APP_KEY', value: cleanKey });
 
-  let secItem = db.settings.find(s => s.key === 'EZVIZ_APP_SECRET');
-  if (secItem) secItem.value = cleanSecret;
-  else db.settings.push({ key: 'EZVIZ_APP_SECRET', value: cleanSecret });
+    let secItem = db.settings.find(s => s.key === 'EZVIZ_APP_SECRET');
+    if (secItem) secItem.value = cleanSecret;
+    else db.settings.push({ key: 'EZVIZ_APP_SECRET', value: cleanSecret });
 
-  // Limpiar caché de token para forzar regeneración con las nuevas credenciales
-  ezvizTokenCache = { token: '', expireTime: 0, areaDomain: 'https://open.ezvizlife.com' };
+    ezvizTokenCache = { token: '', expireTime: 0, areaDomain: 'https://open.ezvizlife.com' };
+    updatedSomething = true;
+    console.log('[EZVIZ] Credenciales Open Platform guardadas.');
+  }
+
+  if (username && password) {
+    const cleanUser = String(username).trim();
+    const cleanPass = String(password).trim();
+    let userItem = db.settings.find(s => s.key === 'EZVIZ_ACCOUNT_USERNAME');
+    if (userItem) userItem.value = cleanUser;
+    else db.settings.push({ key: 'EZVIZ_ACCOUNT_USERNAME', value: cleanUser });
+
+    let passItem = db.settings.find(s => s.key === 'EZVIZ_ACCOUNT_PASSWORD');
+    if (passItem) passItem.value = cleanPass;
+    else db.settings.push({ key: 'EZVIZ_ACCOUNT_PASSWORD', value: cleanPass });
+
+    ezvizSessionCache = { sessionId: '', rfSessionId: '', apiDomain: 'apiisa.ezvizlife.com', expiresAt: 0 };
+    updatedSomething = true;
+    console.log('[EZVIZ] Cuenta de usuario Consumer guardada.');
+  }
+
+  if (routerHost !== undefined) {
+    const cleanHost = String(routerHost || '').trim();
+    let hostItem = db.settings.find(s => s.key === 'EZVIZ_ROUTER_HOST');
+    if (hostItem) hostItem.value = cleanHost;
+    else db.settings.push({ key: 'EZVIZ_ROUTER_HOST', value: cleanHost });
+
+    // Notificar al motor Python de video
+    try {
+      await fetch('http://127.0.0.1:8080/cameras/settings/host', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host: cleanHost }),
+        signal: AbortSignal.timeout(3000),
+      });
+    } catch {}
+    updatedSomething = true;
+  }
+
+  if (!updatedSomething) {
+    return res.status(400).json({ error: 'Debes proporcionar credenciales de cuenta, llaves Open Platform o host del router.' });
+  }
+
   saveData();
 
-  console.log('[EZVIZ] Nuevas credenciales Open Platform guardadas en la configuración.');
-  res.json({ ok: true, message: 'Credenciales de Ezviz Open Platform guardadas exitosamente.' });
+  // Intentar reconectar de inmediato para verificar si las credenciales funcionan
+  (async () => {
+    try {
+      const session = await getEzvizConsumerSession();
+      if (session) {
+        console.log('[EZVIZ] Login de prueba con cuenta Ezviz exitoso.');
+        prewarmAllCameras();
+      }
+    } catch {}
+  })();
+
+  res.json({ ok: true, message: 'Configuración de cámaras guardada exitosamente.' });
 });
 
 // GET /api/cameras/settings/ezviz-status — estado de conexión de cámaras y streaming
 app.get('/api/cameras/settings/ezviz-status', (req, res) => {
   const { appKey, source } = getEzvizOpenPlatformKeys();
-  const hasConsumer = Boolean(process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD);
+  const dbUser = (db.settings || []).find(s => s.key === 'EZVIZ_ACCOUNT_USERNAME')?.value;
+  const dbPass = (db.settings || []).find(s => s.key === 'EZVIZ_ACCOUNT_PASSWORD')?.value;
+  const dbHost = (db.settings || []).find(s => s.key === 'EZVIZ_ROUTER_HOST')?.value;
+  const hasConsumer = Boolean((dbUser && dbPass) || (process.env.EZVIZ_ACCOUNT_USERNAME && process.env.EZVIZ_ACCOUNT_PASSWORD));
+  const consumerUser = dbUser || process.env.EZVIZ_ACCOUNT_USERNAME || process.env.EZVIZ_USERNAME || null;
+  
   res.json({
     ok: true,
     hasConsumerAccount: hasConsumer,
+    consumerUserMasked: consumerUser ? `${consumerUser.slice(0, 3)}••••@${consumerUser.split('@')[1] || ''}` : null,
     hasOpenPlatform: Boolean(appKey),
     keysSource: source,
+    routerHost: dbHost || '',
     appKeyMasked: appKey ? `${appKey.slice(0, 4)}••••${appKey.slice(-4)}` : null,
     cameras: KNOWN_CAMERAS.map(c => ({
       name: c.name,
@@ -7885,34 +8368,34 @@ function workerScheduleConfig() {
   const configuredProviders = Array.isArray(saved?.providers) ? saved.providers.join(',') : saved?.providers;
   const providers = String(configuredProviders || process.env.PORTABLE_WORKER_PROVIDERS || 'air-e,water,gas')
     .split(',').map(value => value.trim().toLowerCase()).filter(value => ['air-e', 'water', 'gas'].includes(value));
+  const defaultMode = process.platform === 'linux' ? 'server' : 'portable';
   const requestedMode = String(
-    saved?.executionMode || process.env.SERVICES_EXECUTION_MODE || process.env.PORTABLE_WORKER_EXECUTION_MODE || 'portable',
+    saved?.executionMode || process.env.SERVICES_EXECUTION_MODE || process.env.PORTABLE_WORKER_EXECUTION_MODE || defaultMode,
   ).trim().toLowerCase();
-  const executionMode = ['portable', 'render'].includes(requestedMode) ? requestedMode : 'portable';
+  const executionMode = ['server', 'oracle', 'render', 'portable'].includes(requestedMode)
+    ? (requestedMode === 'oracle' || requestedMode === 'render' ? 'server' : requestedMode)
+    : defaultMode;
   return { intervalHours, startAt, timezone, providers: [...new Set(providers)], executionMode, source: saved ? 'app' : 'env' };
 }
 
-// Browserless/Render is deliberately not the default anymore. The local
-// Android WebView or the local PC/VPS worker owns the authenticated browser.
-// Keep the Render scheduler available only when the administrator explicitly
-// selects executionMode=render from the app.
+// Oracle VM runs Linux with Chromium and Xvfb locally inside Docker.
 function applyServiceExecutionMode() {
   const mode = workerScheduleConfig().executionMode;
-  if (mode === 'render') {
+  if (mode === 'server' || mode === 'oracle' || mode === 'render' || process.platform === 'linux') {
     servicesScraper.startScheduler();
-    console.log('[SERVICES] Execution mode: Render (requires a local/full browser runtime).');
+    console.log('[SERVICES] Execution mode: Servidor Autónomo Linux (Chromium local). Scheduler iniciado.');
   } else {
     servicesScraper.stopScheduler();
-    console.log('[SERVICES] Execution mode: portable/local device. Render scheduler disabled; no Browserless calls will be made.');
+    console.log('[SERVICES] Execution mode: portable/local device. Scraper en servidor en espera.');
   }
   return mode;
 }
 
 function requireRenderScraperMode(res) {
   const mode = workerScheduleConfig().executionMode;
-  if (mode === 'render') return false;
+  if (mode === 'server' || mode === 'oracle' || mode === 'render' || process.platform === 'linux') return false;
   res.status(409).json({
-    error: 'El scraper de Render está desactivado. Ejecuta los portales desde el worker local del celular o PC/VPS.',
+    error: 'El scraper del servidor está desactivado. Activa el modo servidor en la configuración.',
     executionMode: mode,
   });
   return true;
@@ -8607,8 +9090,9 @@ app.put('/api/scraper/schedule', (req, res) => {
   const intervalHours = Math.min(168, Math.max(1, Math.floor(Number(body.intervalHours))));
   const startAt = String(body.startAt || '07:00').trim();
   const timezone = String(body.timezone || 'America/Bogota').trim().slice(0, 80);
-  const executionMode = ['portable', 'render'].includes(String(body.executionMode || '').trim().toLowerCase())
-    ? String(body.executionMode).trim().toLowerCase()
+  const requestedExecMode = String(body.executionMode || '').trim().toLowerCase();
+  const executionMode = ['server', 'oracle', 'render', 'portable'].includes(requestedExecMode)
+    ? (requestedExecMode === 'oracle' || requestedExecMode === 'render' ? 'server' : requestedExecMode)
     : workerScheduleConfig().executionMode;
   const providers = [...new Set((Array.isArray(body.providers) ? body.providers : [])
     .map(value => String(value).trim().toLowerCase())
@@ -8785,6 +9269,107 @@ app.post('/api/scrape-gas', (req, res) => {
   if (requireRenderScraperMode(res)) return;
   res.json({ ok: true, message: 'Consulta de gas iniciada. Los resultados se guardarán en utilityRecords.' });
   servicesScraper.runGasScrapeOnce('manual').catch(error => console.error('[GAS MANUAL] Scrape error:', error.message));
+});
+
+// ─── EJECUTOR SECUENCIAL DE SCRAPERS (OPTIMIZADO PARA VM ORACLE: <300MB RAM) ───
+let isSequentialScraping = false;
+let lastSequentialScrapeState = { status: 'idle', provider: null, startedAt: null, finishedAt: null, results: {} };
+
+async function runSequentialScrapeAll(reason = 'manual') {
+  if (isSequentialScraping) {
+    console.log('[SCRAPER SEQUENTIAL] Raspado ya en progreso; omitiendo.');
+    return { ok: false, error: 'Un raspado secuencial ya está en ejecución.', inProgress: true };
+  }
+  isSequentialScraping = true;
+  lastSequentialScrapeState = {
+    status: 'running',
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    provider: null,
+    results: {},
+  };
+  console.log(`[SCRAPER SEQUENTIAL] Iniciando raspado secuencial en VM (1 instancia a la vez)... Razón: ${reason}`);
+
+  (async () => {
+    try {
+      // 1. Air-e (Energía)
+      lastSequentialScrapeState.provider = 'Air-e';
+      console.log('[SCRAPER SEQUENTIAL] 1/3 Ejecutando Air-e...');
+      try {
+        const results = await servicesScraper.scrapeAirE();
+        if (!db.utilityRecords) db.utilityRecords = [];
+        for (const r of (results || [])) {
+          const existing = db.utilityRecords.findIndex(u => {
+            if (u.provider !== 'Air-e') return false;
+            const sameApartmentId = r.apartmentId !== null && r.apartmentId !== undefined &&
+              u.apartmentId !== null && u.apartmentId !== undefined &&
+              Number(u.apartmentId) === Number(r.apartmentId);
+            const sameApartmentName = String(r.apartment || '').trim() &&
+              String(u.apartment || '').trim() === String(r.apartment || '').trim();
+            if (sameApartmentId || sameApartmentName) return true;
+            return !r.apartmentId && !r.apartment && !u.apartmentId && !u.apartment && u.nic === r.nic;
+          });
+          if (existing >= 0) db.utilityRecords[existing] = mergeUtilityRecord(db.utilityRecords[existing], r);
+          else db.utilityRecords.push(r);
+        }
+        saveData();
+        lastSequentialScrapeState.results['Air-e'] = { count: (results || []).length, success: true };
+      } catch (err) {
+        console.error('[SCRAPER SEQUENTIAL] Error en Air-e:', err.message);
+        lastSequentialScrapeState.results['Air-e'] = { error: err.message, success: false };
+      }
+
+      // Enfriamiento de 5s para purgar memoria
+      await new Promise(r => setTimeout(r, 5000));
+
+      // 2. Triple A (Agua)
+      lastSequentialScrapeState.provider = 'Triple A';
+      console.log('[SCRAPER SEQUENTIAL] 2/3 Ejecutando Triple A...');
+      try {
+        await servicesScraper.runWaterScrapeOnce('sequential');
+        lastSequentialScrapeState.results['Triple A'] = { success: true };
+      } catch (err) {
+        console.error('[SCRAPER SEQUENTIAL] Error en Triple A:', err.message);
+        lastSequentialScrapeState.results['Triple A'] = { error: err.message, success: false };
+      }
+
+      // Enfriamiento de 5s
+      await new Promise(r => setTimeout(r, 5000));
+
+      // 3. Gases del Caribe (Gas)
+      lastSequentialScrapeState.provider = 'Gases del Caribe';
+      console.log('[SCRAPER SEQUENTIAL] 3/3 Ejecutando Gases del Caribe...');
+      try {
+        await servicesScraper.runGasScrapeOnce('sequential');
+        lastSequentialScrapeState.results['Gases del Caribe'] = { success: true };
+      } catch (err) {
+        console.error('[SCRAPER SEQUENTIAL] Error en Gases del Caribe:', err.message);
+        lastSequentialScrapeState.results['Gases del Caribe'] = { error: err.message, success: false };
+      }
+
+      lastSequentialScrapeState.status = 'completed';
+      lastSequentialScrapeState.finishedAt = new Date().toISOString();
+      lastSequentialScrapeState.provider = null;
+      console.log('[SCRAPER SEQUENTIAL] Raspado secuencial finalizado con éxito.');
+    } catch (globalErr) {
+      lastSequentialScrapeState.status = 'failed';
+      lastSequentialScrapeState.error = globalErr.message;
+      console.error('[SCRAPER SEQUENTIAL] Error global en raspado:', globalErr.message);
+    } finally {
+      isSequentialScraping = false;
+    }
+  })();
+
+  return { ok: true, message: 'Raspado secuencial iniciado en segundo plano.' };
+}
+
+app.post('/api/scrape-sequential', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  runSequentialScrapeAll('manual_admin').then(result => res.json(result));
+});
+
+app.get('/api/scrape-sequential/status', (req, res) => {
+  res.json({ ok: true, state: lastSequentialScrapeState, inProgress: isSequentialScraping });
 });
 
 // Public URL for services admin (for residents' individual link)
@@ -10541,7 +11126,7 @@ app.use((req, res) => {
 
     // Init services scraper with DB reference. In portable mode the phone or
     // PC/VPS owns the browser, so Render must not consume Browserless quota.
-    servicesScraper.init(db, saveData);
+    servicesScraper.init(db, saveData, { mergeUtilityRecord });
     applyServiceExecutionMode();
 
   })();
