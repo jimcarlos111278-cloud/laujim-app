@@ -1,18 +1,26 @@
-let currentTab = 'tabKeypad';
+let currentTab = 'tabHistory';
+let activeFilter = 'all';
 let dialNumber = '';
 let tenantsList = [];
 let blockedList = [];
+let deviceContacts = [];
+let lookupCache = {};
+let lookupTimer = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
   setupDialer();
+  setupChips();
   loadData();
 
-  document.getElementById('btnSync').addEventListener('click', handleSync);
-  document.getElementById('btnSaveSettings').addEventListener('click', saveSettings);
-  document.getElementById('btnClearBlocked').addEventListener('click', clearBlocked);
-  document.getElementById('btnRequestRole').addEventListener('click', requestRole);
-  document.getElementById('contactSearch').addEventListener('input', filterContacts);
+  const btnSync = document.getElementById('btnSync');
+  if (btnSync) btnSync.addEventListener('click', handleSync);
+  const btnSave = document.getElementById('btnSaveSettings');
+  if (btnSave) btnSave.addEventListener('click', saveSettings);
+  const btnReqRole = document.getElementById('btnRequestRole');
+  if (btnReqRole) btnReqRole.addEventListener('click', requestRole);
+  const searchInput = document.getElementById('contactSearch');
+  if (searchInput) searchInput.addEventListener('input', filterContacts);
 
   const btnSetDefault = document.getElementById('btnSetDefaultDialer');
   if (btnSetDefault) {
@@ -33,6 +41,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+function setupChips() {
+  const chips = document.querySelectorAll('.chip');
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeFilter = chip.getAttribute('data-filter');
+      renderHistory();
+    });
+  });
+}
+
 function setupNavigation() {
   const items = document.querySelectorAll('.nav-item');
   items.forEach(item => {
@@ -42,11 +62,11 @@ function setupNavigation() {
 
       const tabId = item.getAttribute('data-tab');
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
+      const targetPane = document.getElementById(tabId);
+      if (targetPane) targetPane.classList.add('active');
       currentTab = tabId;
 
-      if (tabId === 'tabBlocked') renderBlocked();
-      if (tabId === 'tabContacts') renderContacts();
+      if (tabId === 'tabHistory') renderHistory();
       if (tabId === 'tabSettings') updateSettingsView();
     });
   });
@@ -125,7 +145,90 @@ function updateDialerDisplay() {
   } else {
     backspace.classList.add('hidden');
     document.getElementById('dialerMatches').classList.add('hidden');
+    hideLookupPreview();
   }
+
+  // Trigger lookup preview when 10+ digits are typed
+  const clean = dialNumber.replace(/\D/g, '');
+  if (clean.length >= 10) {
+    clearTimeout(lookupTimer);
+    lookupTimer = setTimeout(() => triggerLookupPreview(clean), 400);
+  } else {
+    hideLookupPreview();
+  }
+}
+
+function triggerLookupPreview(number) {
+  // Check cache first
+  if (lookupCache[number]) {
+    showLookupPreview(lookupCache[number]);
+    return;
+  }
+
+  // Check if it's a known tenant or device contact
+  const isKnownTenant = tenantsList.some(t => (t.phone || '').replace(/\D/g, '').includes(number));
+  const isKnownContact = deviceContacts.some(c => (c.phone || '').replace(/\D/g, '').includes(number));
+  if (isKnownTenant || isKnownContact) {
+    hideLookupPreview();
+    return;
+  }
+
+  // Call server API
+  if (window.CallGuardNative && window.CallGuardNative.lookupNumber) {
+    try {
+      const raw = window.CallGuardNative.lookupNumber(number);
+      const data = JSON.parse(raw || '{}');
+      if (data.ok !== false) {
+        lookupCache[number] = data;
+        showLookupPreview(data);
+      }
+    } catch (e) {
+      console.error('Lookup failed', e);
+    }
+  }
+}
+
+function showLookupPreview(data) {
+  let container = document.getElementById('lookupPreview');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'lookupPreview';
+    container.className = 'lookup-preview';
+    const dialerSection = document.getElementById('dialerMatches');
+    dialerSection.parentNode.insertBefore(container, dialerSection.nextSibling);
+  }
+
+  const spamClass = data.isSpam ? 'lookup-spam' : 'lookup-safe';
+  const spamIcon = data.isSpam ? '⚠️' : '🛡️';
+  const spamText = data.isSpam
+    ? `SPAM · ${data.category || 'Desconocido'} (${data.spamReports || 0} reportes)`
+    : (data.category || 'Número Limpio');
+
+  const avatarHtml = data.avatarUrl
+    ? `<img src="${data.avatarUrl}" class="lookup-avatar-img" onerror="this.style.display='none'">`
+    : `<div class="lookup-avatar-letter">${(data.name || '#').substring(0, 1).toUpperCase()}</div>`;
+
+  container.innerHTML = `
+    <div class="lookup-card ${spamClass}">
+      <div class="lookup-header">
+        ${avatarHtml}
+        <div class="lookup-info">
+          <div class="lookup-name">${data.name || 'Desconocido'}</div>
+          <div class="lookup-carrier">${data.carrier || ''} · ${data.city || 'Colombia'}</div>
+        </div>
+      </div>
+      <div class="lookup-badge">
+        <span>${spamIcon} ${spamText}</span>
+        ${data.spamScore > 0 ? `<span class="lookup-score">Score: ${data.spamScore}/100</span>` : ''}
+      </div>
+    </div>
+  `;
+  container.classList.remove('hidden');
+}
+
+function hideLookupPreview() {
+  const container = document.getElementById('lookupPreview');
+  if (container) container.classList.add('hidden');
 }
 
 function formatPhone(num) {
@@ -144,25 +247,40 @@ function searchDialerMatches() {
     return;
   }
   const query = dialNumber.replace(/\D/g, '');
-  const matches = (tenantsList || []).filter(t => {
+
+  // Search tenants
+  const tenantMatches = (tenantsList || []).filter(t => {
     const p = (t.phone || '').replace(/\D/g, '');
     const n = (t.name || '').toLowerCase();
     return p.includes(query) || n.includes(dialNumber.toLowerCase());
-  }).slice(0, 2);
+  }).slice(0, 2).map(m => ({ ...m, source: 'laujim' }));
+
+  // Search device contacts
+  const deviceMatches = (deviceContacts || []).filter(c => {
+    const p = (c.phone || '').replace(/\D/g, '');
+    const n = (c.name || '').toLowerCase();
+    return p.includes(query) || n.includes(dialNumber.toLowerCase());
+  }).slice(0, 2).map(m => ({ ...m, source: 'device' }));
+
+  const matches = [...tenantMatches, ...deviceMatches].slice(0, 3);
 
   if (matches.length === 0) {
     container.classList.add('hidden');
     return;
   }
 
-  container.innerHTML = matches.map(m => `
+  container.innerHTML = matches.map(m => {
+    const badge = m.source === 'laujim'
+      ? `<span class="match-apt">Apto ${m.apartment}</span>`
+      : `<span class="match-apt" style="background:#1E40AF;">📱 Contacto</span>`;
+    return `
     <div class="match-item">
       <div class="match-left" onclick="selectMatch('${m.phone}')">
         <div class="match-avatar">${(m.name || 'I').substring(0, 1).toUpperCase()}</div>
         <div>
           <div style="display:flex;align-items:center;">
             <span class="match-name">${m.name}</span>
-            <span class="match-apt">Apto ${m.apartment}</span>
+            ${badge}
           </div>
           <div style="font-size:11px;color:#94A3B8;margin-top:1px;">${m.phone}</div>
         </div>
@@ -171,7 +289,8 @@ function searchDialerMatches() {
         <button class="action-btn-call" style="width:32px;height:32px;" onclick="makeCall('${m.phone}')" title="Llamar">📞</button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
   container.classList.remove('hidden');
 }
 
@@ -222,14 +341,27 @@ function loadData() {
       if (!tenantsList || tenantsList.length === 0) {
         handleSync();
       } else {
-        renderContacts();
+        renderHistory();
+      }
+
+      // Load device contacts
+      if (window.CallGuardNative.getDeviceContacts) {
+        try {
+          const dcRaw = window.CallGuardNative.getDeviceContacts();
+          deviceContacts = JSON.parse(dcRaw || '[]');
+        } catch (e) {
+          deviceContacts = [];
+        }
       }
 
       const blockedRaw = window.CallGuardNative.getBlockedCalls();
       blockedList = JSON.parse(blockedRaw || '[]');
       updateBlockedBadge();
+      renderHistory();
     } catch (e) {
       console.error('Error loading native data', e);
+      renderHistory();
+      updateStatusDisplay({ isDefaultDialer: false, roleGranted: true, allowedCount: 2 });
     }
   } else {
     // Simulated in browser for testing
@@ -237,20 +369,19 @@ function loadData() {
       { id: 1, name: 'Jim Carlos Varela', apartment: '101', phone: '3001234567' },
       { id: 2, name: 'Ana Gomez', apartment: '201', phone: '3109876543' }
     ];
-    renderContacts();
+    deviceContacts = [
+      { name: 'Mamá', phone: '3001112233', isLocal: true },
+      { name: 'Trabajo', phone: '6053456789', isLocal: true }
+    ];
+    renderHistory();
     updateStatusDisplay({ isDefaultDialer: false, roleGranted: true, allowedCount: 2 });
   }
 }
 
 function updateStatusDisplay(status) {
-  const badge = document.getElementById('dbStatusBadge');
-  const text = document.getElementById('dbStatusText');
-  const count = status.allowedCount || tenantsList.length;
+  const dot = document.getElementById('dbStatusDot');
+  if (dot) dot.className = 'status-indicator ' + (status.roleGranted ? 'connected' : 'loading');
 
-  badge.className = 'db-status connected';
-  text.textContent = `Laujim DB (${count})`;
-
-  // Default Dialer Banner
   const banner = document.getElementById('bannerDefaultDialer');
   if (banner) {
     if (status.isDefaultDialer) {
@@ -260,27 +391,24 @@ function updateStatusDisplay(status) {
     }
   }
 
-  // Settings View Statuses
   const dialerDesc = document.getElementById('defaultDialerStatusDesc');
   if (dialerDesc) {
     dialerDesc.textContent = status.isDefaultDialer
-      ? '✅ Laujim es la app predeterminada para llamadas.'
-      : '⚠️ Laujim NO está predeterminada. Toca para asignar.';
+      ? 'Predeterminada para llamadas'
+      : 'No predeterminada · Toca para asignar';
   }
 
   const roleDesc = document.getElementById('roleStatusDesc');
   if (roleDesc) {
     roleDesc.textContent = status.roleGranted
-      ? '✅ Filtro Call Screening activo.'
-      : '⚠️ Permiso de screening no otorgado.';
+      ? 'Filtro activo 24/7'
+      : 'Permiso no otorgado';
   }
 }
 
 function handleSync() {
-  const badge = document.getElementById('dbStatusBadge');
-  const text = document.getElementById('dbStatusText');
-  badge.className = 'db-status loading';
-  text.textContent = 'Sincronizando...';
+  const dot = document.getElementById('dbStatusDot');
+  if (dot) dot.className = 'status-indicator loading';
 
   if (window.CallGuardNative && window.CallGuardNative.syncWithServer) {
     const resRaw = window.CallGuardNative.syncWithServer();
@@ -288,57 +416,120 @@ function handleSync() {
       const res = JSON.parse(resRaw);
       if (res.ok) {
         setTimeout(loadData, 300);
-      } else {
-        badge.className = 'db-status error';
-        text.textContent = 'Error de conexión';
       }
-    } catch (e) {
-      badge.className = 'db-status error';
-      text.textContent = 'Error';
-    }
+    } catch (e) {}
   }
 }
 
-function renderContacts() {
-  const container = document.getElementById('contactsList');
-  const badge = document.getElementById('tenantCountBadge');
-  badge.textContent = tenantsList.length;
+function filterContacts() {
+  renderHistory();
+}
 
-  if (tenantsList.length === 0) {
-    container.innerHTML = '<div class="empty-state">No hay inquilinos sincronizados.<br><br><button class="btn-primary-sm" onclick="handleSync()">Sincronizar con Laujim</button></div>';
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  if (!container) return;
+
+  const tenantBadge = document.getElementById('tenantChipBadge');
+  if (tenantBadge) tenantBadge.textContent = tenantsList.length;
+
+  const blockedBadge = document.getElementById('blockedChipBadge');
+  if (blockedBadge) {
+    blockedBadge.textContent = blockedList.length;
+    if (blockedList.length > 0) blockedBadge.classList.remove('hidden');
+    else blockedBadge.classList.add('hidden');
+  }
+
+  let items = [];
+
+  if (activeFilter === 'all' || activeFilter === 'tenants') {
+    (tenantsList || []).forEach(t => {
+      items.push({
+        type: 'tenant',
+        name: t.name || 'Inquilino',
+        phone: t.phone || '',
+        sub: `Apto ${t.apartment || ''}`,
+        isTenant: true,
+        photo: t.photo || null,
+        initial: (t.name || 'I').substring(0, 1).toUpperCase()
+      });
+    });
+  }
+
+  if (activeFilter === 'all') {
+    (deviceContacts || []).forEach(c => {
+      items.push({
+        type: 'device',
+        name: c.name || 'Contacto',
+        phone: c.phone || '',
+        sub: 'Contacto',
+        isTenant: false,
+        photo: null,
+        initial: (c.name || 'C').substring(0, 1).toUpperCase()
+      });
+    });
+  }
+
+  if (activeFilter === 'all' || activeFilter === 'blocked' || activeFilter === 'missed') {
+    (blockedList || []).forEach(b => {
+      items.push({
+        type: 'blocked',
+        name: b.name || 'Llamada no deseada',
+        phone: b.phone || '',
+        sub: b.category === 'fraud' ? 'Sospecha fraude' : 'Spam',
+        isBlocked: true,
+        photo: null,
+        initial: '⚠️'
+      });
+    });
+  }
+
+  const query = (document.getElementById('contactSearch')?.value || '').toLowerCase().trim();
+  if (query) {
+    items = items.filter(i => (i.name || '').toLowerCase().includes(query) || (i.phone || '').includes(query) || (i.sub && i.sub.toLowerCase().includes(query)));
+  }
+
+  if (items.length === 0) {
+    container.innerHTML = '<div class="empty-state">No hay llamadas o contactos registrados.</div>';
     return;
   }
 
-  container.innerHTML = tenantsList.map(t => {
-    const initial = (t.name || 'I').substring(0, 1).toUpperCase();
+  container.innerHTML = items.map(item => {
+    const isSpam = item.type === 'blocked';
+    const avatarContent = item.photo
+      ? `<img src="${item.photo}" class="call-avatar-img">`
+      : `<div class="call-avatar ${isSpam ? 'avatar-spam' : (item.isTenant ? 'avatar-tenant' : 'avatar-local')}">${item.initial}</div>`;
+
+    const subBadge = item.isTenant
+      ? `<span class="badge-tenant">${item.sub}</span>`
+      : (isSpam ? `<span class="badge-spam">${item.sub}</span>` : `<span class="badge-sub">${item.sub}</span>`);
+
     return `
-      <div class="contact-card">
-        <div class="contact-card-left" onclick="selectMatch('${t.phone}')">
-          <div class="contact-avatar">${initial}</div>
-          <div class="contact-info">
-            <span class="contact-name">${t.name}</span>
-            <div class="contact-meta">
-              <span class="contact-apt">Apto ${t.apartment}</span>
-              <span class="contact-phone">${formatPhone(t.phone)}</span>
+      <div class="call-card ${isSpam ? 'card-spam' : ''}">
+        <div class="call-card-left" onclick="selectMatch('${item.phone}')">
+          ${avatarContent}
+          <div class="call-info">
+            <div class="call-name-row">
+              <span class="call-name">${item.name}</span>
+              ${subBadge}
+            </div>
+            <div class="call-meta">
+              <svg class="call-dir-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+              </svg>
+              <span>${formatPhone(item.phone)}</span>
             </div>
           </div>
         </div>
-        <div class="contact-actions">
-          <button class="action-btn-call" onclick="makeCall('${t.phone}')" title="Llamar">📞</button>
-          <button class="action-btn-wa" onclick="openWhatsApp('${t.phone}')" title="WhatsApp">💬</button>
+        <div class="call-actions">
+          <button class="call-action-btn" onclick="makeCall('${item.phone}')" title="Llamar">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/>
+            </svg>
+          </button>
         </div>
       </div>
     `;
   }).join('');
-}
-
-function filterContacts() {
-  const query = (document.getElementById('contactSearch').value || '').toLowerCase().trim();
-  const cards = document.querySelectorAll('.contact-card');
-  cards.forEach(card => {
-    const text = card.textContent.toLowerCase();
-    card.style.display = text.includes(query) ? 'flex' : 'none';
-  });
 }
 
 function renderBlocked() {
@@ -410,4 +601,8 @@ function saveSettings() {
   const url = document.getElementById('txtServerUrl').value.trim();
   alert('Ajustes guardados. Conectando...');
   handleSync();
+}
+
+function updateSettingsView() {
+  // Update settings view
 }

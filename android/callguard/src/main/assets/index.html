@@ -8,54 +8,63 @@
 </head>
 <body>
   <div id="app">
-    <!-- Top Header Status Bar (Safe Area Protected) -->
+    <!-- Top Search & Safe-Area Header (Google Phone style) -->
     <header class="app-header">
-      <div class="header-left">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="white">
-            <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/>
-          </svg>
-        </div>
-        <div class="brand-text">
-          <h1 class="brand-title">Laujim CallGuard</h1>
-          <div id="dbStatusBadge" class="db-status loading">
-            <span class="dot"></span>
-            <span id="dbStatusText">Conectando...</span>
-          </div>
-        </div>
-      </div>
-      <div class="header-right">
-        <button id="btnSync" class="icon-btn" title="Sincronizar Inquilinos">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67"/>
+      <div class="search-pill">
+        <button id="btnMenuToggle" class="search-icon-btn" title="Menú">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
+        <input type="text" id="contactSearch" placeholder="Buscar contactos o números..." autocomplete="off">
+        <div class="search-actions">
+          <div id="dbStatusDot" class="status-indicator connected" title="Laujim DB Conectada"></div>
+          <button id="btnSync" class="search-icon-btn" title="Sincronizar">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Category Chips -->
+      <div class="filter-chips">
+        <button class="chip active" data-filter="all">Todas</button>
+        <button class="chip" data-filter="missed">Perdidas</button>
+        <button class="chip" data-filter="tenants">Inquilinos <span id="tenantChipBadge" class="chip-counter">15</span></button>
+        <button class="chip" data-filter="blocked">Spam <span id="blockedChipBadge" class="chip-counter hidden">0</span></button>
       </div>
     </header>
 
-    <!-- Default Dialer Promotion Banner (Shown if not default phone app) -->
-    <div id="bannerDefaultDialer" class="default-dialer-banner">
-      <div class="banner-body">
-        <div class="banner-icon">⭐</div>
-        <div class="banner-info">
-          <span class="banner-title">App de llamadas predeterminada</span>
-          <span class="banner-subtitle">Activa Laujim para llamar directamente sin apps externas</span>
-        </div>
-      </div>
-      <button id="btnSetDefaultDialer" class="banner-btn">Activar</button>
+    <!-- Default Dialer Promotion Pill (Discrete) -->
+    <div id="bannerDefaultDialer" class="default-dialer-pill hidden">
+      <span>⭐ Establecer como app de llamadas</span>
+      <button id="btnSetDefaultDialer" class="pill-action-btn">Activar</button>
     </div>
 
-    <!-- Main Content Area -->
+    <!-- Main Screens Viewport -->
     <main class="app-main">
-      <!-- TAB 1: TECLADO / DIALER -->
-      <section id="tabKeypad" class="tab-pane active">
-        <div class="dialer-display">
-          <!-- Tenant Match Preview Card -->
+      <!-- TAB 1: HISTORIAL / CONTACTOS (Default) -->
+      <section id="tabHistory" class="tab-pane active">
+        <div id="historyList" class="calls-container">
+          <div class="empty-state">Cargando registros...</div>
+        </div>
+      </section>
+
+      <!-- TAB 2: TECLADO (Keypad con Preview) -->
+      <section id="tabKeypad" class="tab-pane">
+        <div class="dialer-top">
+          <!-- 10-Digit Truecaller Preview Card -->
+          <div id="lookupPreview" class="lookup-preview hidden"></div>
+
+          <!-- Matching Contacts Bar -->
           <div id="dialerMatches" class="matches-container hidden"></div>
 
-          <!-- Displayed Phone Input -->
-          <div class="display-input-wrap">
-            <input type="text" id="phoneInput" class="phone-input" placeholder="Ingresa un número..." readonly>
+          <!-- Phone Number Display -->
+          <div class="dialer-input-wrap">
+            <input type="text" id="phoneInput" class="phone-input" placeholder="" readonly>
             <button id="btnBackspace" class="backspace-btn hidden" title="Borrar">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
                 <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H7.07L2.4 12l4.66-7H22v14zm-11.59-2L14 13.41 17.59 17 19 15.59 15.41 12 19 8.41 17.59 7 14 10.59 10.41 7 9 8.41 12.59 12 9 15.59z"/>
@@ -64,7 +73,7 @@
           </div>
         </div>
 
-        <!-- Samsung One UI Tactile Keypad -->
+        <!-- Google Phone Style Minimalist Round Keypad -->
         <div class="keypad-grid">
           <div class="keypad-row">
             <button class="key-btn" data-val="1"><span class="digit">1</span><span class="letters">&nbsp;</span></button>
@@ -88,133 +97,76 @@
           </div>
         </div>
 
-        <!-- Call Action Bar -->
-        <div class="dialer-action">
-          <button id="btnCall" class="call-btn" title="Llamar">
-            <svg viewBox="0 0 24 24" width="30" height="30" fill="white">
+        <!-- Call Action Floating Button -->
+        <div class="dialer-call-bar">
+          <button id="btnCall" class="call-fab" title="Llamar">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
               <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/>
             </svg>
           </button>
         </div>
       </section>
 
-      <!-- TAB 2: INQUILINOS LAUJIM -->
-      <section id="tabContacts" class="tab-pane">
-        <div class="section-search">
-          <div class="search-wrap">
-            <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#94A3B8" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="contactSearch" placeholder="Buscar inquilino, apto o teléfono...">
-          </div>
-        </div>
-        <div class="section-bar">
-          <span class="section-title">Directorio Oficial Laujim</span>
-          <span id="tenantCountBadge" class="badge">0</span>
-        </div>
-        <div id="contactsList" class="contacts-container">
-          <div class="empty-state">Cargando inquilinos autorizados...</div>
-        </div>
-      </section>
-
-      <!-- TAB 3: BLOQUEADOS -->
-      <section id="tabBlocked" class="tab-pane">
-        <div class="blocked-header">
-          <div>
-            <h2 class="sub-title">Llamadas Bloqueadas Silenciosamente</h2>
-            <p class="sub-desc">Protección activa 24/7 sin timbrar ni vibrar en el teléfono.</p>
-          </div>
-          <button id="btnClearBlocked" class="btn-clear-blocked">Limpiar</button>
-        </div>
-        <div id="blockedList" class="blocked-container">
-          <div class="empty-state">No hay llamadas bloqueadas registradas.</div>
-        </div>
-      </section>
-
-      <!-- TAB 4: AJUSTES -->
+      <!-- TAB 3: AJUSTES (Minimalista) -->
       <section id="tabSettings" class="tab-pane">
-        <div class="settings-group">
-          <h3 class="settings-header">Estado del Teléfono en Android</h3>
-          
-          <div class="setting-item">
-            <div>
-              <strong>App Predeterminada de Llamadas</strong>
-              <p id="defaultDialerStatusDesc" class="text-muted">Verificando rol predeterminado...</p>
+        <div class="settings-list">
+          <div class="settings-card">
+            <div class="settings-item">
+              <div class="settings-meta">
+                <span class="settings-title">App predeterminada</span>
+                <span id="defaultDialerStatusDesc" class="settings-sub">Predeterminada para llamadas</span>
+              </div>
+              <button id="btnSettingsRoleDialer" class="btn-pill-action">Configurar</button>
             </div>
-            <button id="btnSettingsRoleDialer" class="btn-primary-sm">Configurar</button>
-          </div>
-
-          <div class="setting-item">
-            <div>
-              <strong>Filtro Call Screening</strong>
-              <p id="roleStatusDesc" class="text-muted">Verificando servicio de filtrado...</p>
+            <div class="settings-item">
+              <div class="settings-meta">
+                <span class="settings-title">Filtro de llamadas spam</span>
+                <span id="roleStatusDesc" class="settings-sub">Protección activa 24/7</span>
+              </div>
+              <button id="btnRequestRole" class="btn-pill-action">Activar</button>
             </div>
-            <button id="btnRequestRole" class="btn-primary-sm">Activar</button>
           </div>
-        </div>
 
-        <div class="settings-group">
-          <h3 class="settings-header">Reglas de Protección Anti-Fraude</h3>
-          <label class="setting-toggle">
-            <span>Bloquear llamadas de números desconocidos</span>
-            <input type="checkbox" id="chkBlockUnknown" checked>
-          </label>
-          <label class="setting-toggle">
-            <span>Permitir contactos de la agenda local</span>
-            <input type="checkbox" id="chkAllowContacts" checked>
-          </label>
-          <label class="setting-toggle">
-            <span>Permitir empresas de domicilios (Rappi, Servientrega)</span>
-            <input type="checkbox" id="chkAllowDelivery" checked>
-          </label>
-          <label class="setting-toggle">
-            <span>Permitir entidades bancarias (Bancolombia, etc.)</span>
-            <input type="checkbox" id="chkAllowBanks" checked>
-          </label>
-        </div>
-
-        <div class="settings-group">
-          <h3 class="settings-header">Conexión con Base de Datos Laujim</h3>
-          <div class="setting-input-wrap">
-            <label>URL del Servidor Central</label>
-            <input type="text" id="txtServerUrl" value="https://conjunto-residendial-laujim.duckdns.org">
+          <div class="settings-card">
+            <div class="settings-item">
+              <div class="settings-meta">
+                <span class="settings-title">Servidor central</span>
+                <span class="settings-sub">conjunto-residendial-laujim.duckdns.org</span>
+              </div>
+            </div>
+            <input type="text" id="txtServerUrl" value="https://conjunto-residendial-laujim.duckdns.org" class="settings-input">
+            <button id="btnSaveSettings" class="btn-full-save">Guardar servidor</button>
           </div>
-          <button id="btnSaveSettings" class="btn-primary-full">Guardar y Re-sincronizar</button>
         </div>
       </section>
     </main>
 
-    <!-- Bottom Samsung Navigation Bar -->
+    <!-- Bottom Navigation Bar (Google Phone Style with Pill) -->
     <nav class="app-nav">
-      <button class="nav-item active" data-tab="tabKeypad">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-          <path d="M12 19c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM6 1c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12-8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6-4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6-2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6-4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-        </svg>
+      <button class="nav-item active" data-tab="tabHistory">
+        <div class="nav-pill">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+        </div>
+        <span>Principal</span>
+      </button>
+
+      <button class="nav-item" data-tab="tabKeypad">
+        <div class="nav-pill">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M12 19c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM6 1c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12-8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6-4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6-2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6-4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+          </svg>
+        </div>
         <span>Teclado</span>
       </button>
 
-      <button class="nav-item" data-tab="tabContacts">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-        </svg>
-        <span>Inquilinos</span>
-      </button>
-
-      <button class="nav-item" data-tab="tabBlocked">
-        <div class="icon-wrap">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z"/>
-          </svg>
-          <span id="blockedBadgeCount" class="nav-badge hidden">0</span>
-        </div>
-        <span>Bloqueados</span>
-      </button>
-
       <button class="nav-item" data-tab="tabSettings">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-          <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-        </svg>
+        <div class="nav-pill">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+          </svg>
+        </div>
         <span>Ajustes</span>
       </button>
     </nav>

@@ -7,7 +7,9 @@ xvfb_log=/tmp/laujim-xvfb.log
 
 # Clean up stale locks if Xvfb is not actively running
 if ! pgrep -x "Xvfb" >/dev/null 2>&1; then
-  rm -f "/tmp/.X${display_num}-lock" "/tmp/.X11-unix/X${display_num}" || true
+  rm -rf "/tmp/.X${display_num}-lock" "/tmp/.X11-unix/X${display_num}" /tmp/.X*-lock || true
+  mkdir -p /tmp/.X11-unix
+  chmod 1777 /tmp/.X11-unix 2>/dev/null || true
 fi
 
 echo "[BOOT] Starting Xvfb on ${display}..."

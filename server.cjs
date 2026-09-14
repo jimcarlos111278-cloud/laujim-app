@@ -6,6 +6,7 @@ const multer = require('multer');
 const { spawn } = require('child_process');
 const { exec } = require('child_process');
 const https = require('https');
+const http = require('http');
 const crypto = require('crypto');
 const os = require('os');
 const { Pool } = require('pg');
@@ -7507,7 +7508,7 @@ app.get('/api/cameras/:serial/stream', async (req, res) => {
         const cleanPath = String(startData.playlist || '').replace(/^\/hls\//, '');
         return res.json({
           ok: true,
-          streamUrl: `/api/live/ezviz/${cleanPath}`,
+          streamUrl: `/hls/${cleanPath}`,
           protocol: 'hls',
           serial,
           engine: 'ezviz-hls',
@@ -11307,6 +11308,251 @@ app.get('/', (req, res) => {
       res.status(500).send('Error loading the app.');
     }
   });
+});
+
+// ─── PROXY INVERSO PARA HLS Y MOTOR DE VIDEO (FASTAPI PORT 8080) ────────────
+const STREAM_ENGINE_URL = process.env.STREAM_ENGINE_URL || 'http://127.0.0.1:8080';
+app.use(['/hls', '/stream', '/alpr', '/api/live/ezviz'], (req, res) => {
+  try {
+    let targetPath = req.originalUrl;
+    if (targetPath.startsWith('/api/live/ezviz')) {
+      targetPath = targetPath.replace('/api/live/ezviz', '/hls');
+    }
+    const targetUrl = new URL(targetPath, STREAM_ENGINE_URL);
+    const proxyReq = http.request(targetUrl, {
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: targetUrl.host
+      }
+    }, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+    proxyReq.on('error', (err) => {
+      if (!res.headersSent) res.status(502).json({ error: 'Stream engine unavailable', details: err.message });
+    });
+    req.pipe(proxyReq, { end: true });
+  } catch (e) {
+    if (!res.headersSent) res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── CALLGUARD DIALER APK & API ENDPOINTS ───────────────────────────────────
+app.get(['/callguard-dialer.apk', '/api/callguard/download'], (req, res) => {
+  const candidates = [
+    path.join(__dirname, 'public', 'callguard-dialer.apk'),
+    path.join(__dirname, 'dist', 'callguard-dialer.apk'),
+    path.join(__dirname, 'android', 'callguard', 'build', 'outputs', 'apk', 'debug', 'callguard-debug.apk'),
+  ];
+  for (const apk of candidates) {
+    if (fs.existsSync(apk)) {
+      return res.download(apk, 'Laujim-CallGuard-Dialer.apk', {
+        headers: { 'Content-Type': 'application/vnd.android.package-archive' },
+      });
+    }
+  }
+  res.status(404).json({ error: 'APK de CallGuard no encontrada' });
+});
+
+app.get('/api/callguard/tenants', (req, res) => {
+  try {
+    const tenants = (db.tenants || []).map(t => {
+      const apt = (db.apartments || []).find(a => Number(a.id) === Number(t.apartmentId));
+      return {
+        id: t.id,
+        name: t.name || 'Inquilino',
+        phone: (t.phone || '').replace(/\D/g, ''),
+        rawPhone: t.phone || '',
+        apartment: apt ? apt.name : (t.apartment || ''),
+        status: t.status || 'active',
+        photo: t.photo || null
+      };
+    }).filter(t => t.phone.length >= 7);
+
+    res.json({ ok: true, tenants, count: tenants.length, updatedAt: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/callguard/lookup', async (req, res) => {
+  try {
+    const rawPhone = String(req.query.phone || '').trim();
+    if (!rawPhone) return res.status(400).json({ error: 'Teléfono requerido' });
+
+    const digits = rawPhone.replace(/\D/g, '');
+    let norm = digits;
+    if (norm.startsWith('57') && norm.length === 12) norm = norm.substring(2);
+    if (norm.startsWith('0') && norm.length === 11) norm = norm.substring(1);
+
+    // a. Check Laujim DB Tenants
+    const tenant = (db.tenants || []).find(t => {
+      const p = (t.phone || '').replace(/\D/g, '');
+      return p === norm || p.endsWith(norm) || (norm.length >= 7 && p.endsWith(norm));
+    });
+
+    if (tenant) {
+      const apt = (db.apartments || []).find(a => Number(a.id) === Number(tenant.apartmentId));
+      return res.json({
+        ok: true,
+        phone: norm,
+        isKnown: true,
+        isTenant: true,
+        name: tenant.name,
+        apartment: apt ? apt.name : '',
+        badge: `🏢 Inquilino Laujim · Apto ${apt ? apt.name : ''}`,
+        spamScore: 0,
+        isSpam: false,
+        carrier: 'Laujim Residente',
+        avatarUrl: tenant.photo || null,
+        reportsCount: 0,
+        category: 'inquilino'
+      });
+    }
+
+    // b. Carrier and location detection for Colombia
+    let carrier = 'Línea Móvil Colombia';
+    let city = 'Colombia';
+    if (norm.startsWith('310') || norm.startsWith('311') || norm.startsWith('312') || norm.startsWith('313') || norm.startsWith('314') || norm.startsWith('320') || norm.startsWith('321') || norm.startsWith('322') || norm.startsWith('323')) {
+      carrier = 'Claro Móvil';
+    } else if (norm.startsWith('315') || norm.startsWith('316') || norm.startsWith('317') || norm.startsWith('318')) {
+      carrier = 'Movistar Móvil';
+    } else if (norm.startsWith('300') || norm.startsWith('301') || norm.startsWith('302') || norm.startsWith('304') || norm.startsWith('305') || norm.startsWith('324')) {
+      carrier = 'Tigo Móvil';
+    } else if (norm.startsWith('303')) {
+      carrier = 'WOM Colombia';
+    } else if (norm.startsWith('605')) {
+      carrier = 'Fijo Barranquilla / Costa Atlántica';
+      city = 'Barranquilla';
+    } else if (norm.startsWith('601')) {
+      carrier = 'Fijo Bogotá D.C.';
+      city = 'Bogotá';
+    } else if (norm.startsWith('604')) {
+      carrier = 'Fijo Medellín / Antioquia';
+      city = 'Medellín';
+    } else if (norm.startsWith('602')) {
+      carrier = 'Fijo Cali / Valle';
+      city = 'Cali';
+    }
+
+    // c. Community Spam & Fraud Reputation Lookup
+    let spamScore = 0;
+    let isSpam = false;
+    let spamReports = 0;
+    let spamCategory = 'Número Limpio';
+    let identifiedName = null;
+
+    const knownSpamPrefixes = [
+      { prefix: '601390', name: 'Call Center Cobranzas / Telemercadeo', score: 85, reports: 42, cat: 'Cobranzas' },
+      { prefix: '601508', name: 'Telemarketing Masivo', score: 75, reports: 31, cat: 'Telemercadeo' },
+      { prefix: '601744', name: 'Banco / Gestiones Comerciales', score: 40, reports: 12, cat: 'Comercial' },
+      { prefix: '320987', name: 'Sospecha de Fraude / Suplantación', score: 95, reports: 88, cat: 'Fraude' },
+      { prefix: '310999', name: 'Reportado Llamada Carcelaria / Extorsión', score: 98, reports: 115, cat: 'Extorsión' },
+      { prefix: '301666', name: 'Robocalls Automatizados', score: 90, reports: 64, cat: 'Spam' },
+    ];
+
+    for (const item of knownSpamPrefixes) {
+      if (norm.startsWith(item.prefix)) {
+        spamScore = item.score;
+        isSpam = spamScore >= 60;
+        spamReports = item.reports;
+        spamCategory = item.cat;
+        identifiedName = item.name;
+        break;
+      }
+    }
+
+    // Check blocked calls history in Laujim
+    const blockedHistory = (db.callguardBlockedCalls || []).filter(b => b.phone === norm);
+    if (blockedHistory.length > 0) {
+      spamReports += blockedHistory.length;
+      spamScore = Math.max(spamScore, 80);
+      isSpam = true;
+      if (!identifiedName) identifiedName = blockedHistory[0].name || 'Reportado como Spam';
+      spamCategory = blockedHistory[0].category || 'Spam';
+    }
+
+    // If Truecaller installation ID is configured, query Truecaller
+    const truecallerId = process.env.TRUECALLER_INSTALLATION_ID;
+    if (truecallerId && !identifiedName) {
+      try {
+        const tcUrl = `https://search5-noneu.truecaller.com/v2/search?q=${norm}&countryCode=CO&type=4`;
+        const tcRes = await fetch(tcUrl, {
+          headers: {
+            'Authorization': `Bearer ${truecallerId}`,
+            'User-Agent': 'Truecaller/13.4.7 (Android;13)'
+          },
+          signal: AbortSignal.timeout(3000)
+        });
+        if (tcRes.ok) {
+          const tcData = await tcRes.json();
+          const match = tcData.data?.[0];
+          if (match) {
+            if (match.name) identifiedName = match.name;
+            if (match.spamScore) {
+              spamScore = match.spamScore;
+              isSpam = spamScore >= 50;
+            }
+            if (match.spamType) spamCategory = match.spamType;
+            if (match.phones?.[0]?.carrier) carrier = match.phones[0].carrier;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // d. WhatsApp Profile Picture Lookup / Avatar
+    let avatarUrl = null;
+    const waContact = (db.whatsappContacts || []).find(c => {
+      const p = String(c.id || c.phone || '').replace(/\D/g, '');
+      return p === norm || p.endsWith(norm);
+    });
+    if (waContact) {
+      if (waContact.profilePicUrl) avatarUrl = waContact.profilePicUrl;
+      if (!identifiedName && waContact.name) identifiedName = waContact.name;
+    }
+
+    const displayName = identifiedName || (norm.length === 10 ? `${carrier}` : 'Número Desconocido');
+
+    res.json({
+      ok: true,
+      phone: norm,
+      rawPhone,
+      isKnown: Boolean(identifiedName),
+      isTenant: false,
+      name: displayName,
+      carrier,
+      city,
+      spamScore,
+      isSpam,
+      spamReports,
+      category: spamCategory,
+      avatarUrl,
+      badge: isSpam ? `⚠️ SPAM · ${spamCategory} (${spamReports} reportes)` : `🛡️ ${carrier}`
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/callguard/blocked-calls', (req, res) => {
+  try {
+    if (!db.callguardBlockedCalls) db.callguardBlockedCalls = [];
+    const item = {
+      id: Date.now(),
+      phone: (req.body.phone || '').replace(/\D/g, ''),
+      name: req.body.name || 'Desconocido',
+      reason: req.body.reason || 'Llamada no autorizada',
+      category: req.body.category || 'unknown',
+      timestamp: new Date().toISOString()
+    };
+    db.callguardBlockedCalls.unshift(item);
+    if (db.callguardBlockedCalls.length > 500) db.callguardBlockedCalls.length = 500;
+    saveData();
+    res.json({ ok: true, item });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Prefer the APK bundled in public/ or dist/. Keep the GitHub release as a

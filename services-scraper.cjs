@@ -80,10 +80,7 @@ function firstExistingPath(candidates) {
 
 async function resolveChromium(profileName = 'services', useFullChrome = FULL_CHROME_ENABLED) {
   if (useFullChrome) {
-    if (!IS_WINDOWS && !process.env.DISPLAY) {
-      throw new Error('Full Chrome requires DISPLAY. Start Render with Xvfb (for example, xvfb-run).');
-    }
-
+    const hasDisplay = IS_WINDOWS || Boolean(process.env.DISPLAY);
     const executablePath = firstExistingPath(IS_WINDOWS ? CHROME_CANDIDATES : LINUX_CHROME_CANDIDATES);
     if (!executablePath) {
       throw new Error('Full Chrome is enabled but no Chromium/Chrome executable was found in the runtime image.');
@@ -96,7 +93,7 @@ async function resolveChromium(profileName = 'services', useFullChrome = FULL_CH
     return {
       executablePath,
       userDataDir,
-      headless: false,
+      headless: hasDisplay ? false : 'new',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -412,15 +409,33 @@ async function launchBrowser(profileName = 'services', useFullChrome = FULL_CHRO
     }
   }
 
-  const cfg = await resolveChromium(profileName, useFullChrome);
-  const browser = await puppeteer.launch({
-    args: cfg.args,
-    defaultViewport: { width: 1366, height: 768 },
-    executablePath: cfg.executablePath,
-    headless: cfg.headless,
-    protocolTimeout: 60000,
-    ...(cfg.userDataDir ? { userDataDir: cfg.userDataDir } : {}),
-  });
+  let cfg = await resolveChromium(profileName, useFullChrome);
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      args: cfg.args,
+      defaultViewport: { width: 1366, height: 768 },
+      executablePath: cfg.executablePath,
+      headless: cfg.headless,
+      protocolTimeout: 60000,
+      ...(cfg.userDataDir ? { userDataDir: cfg.userDataDir } : {}),
+    });
+  } catch (launchErr) {
+    if (/missing x server|xvfb-run/i.test(launchErr.message)) {
+      console.warn(`[SCRAPER] Missing X server for ${profileName}; retrying with headless: 'new'...`);
+      cfg.headless = 'new';
+      browser = await puppeteer.launch({
+        args: cfg.args,
+        defaultViewport: { width: 1366, height: 768 },
+        executablePath: cfg.executablePath,
+        headless: 'new',
+        protocolTimeout: 60000,
+        ...(cfg.userDataDir ? { userDataDir: cfg.userDataDir } : {}),
+      });
+    } else {
+      throw launchErr;
+    }
+  }
   const origNewPage = browser.newPage.bind(browser);
   browser.newPage = async (...args) => {
     const page = await origNewPage(...args);

@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#0B0F19"
+    android:background="#111318"
     android:gravity="center_horizontal"
     android:padding="24dp">
 
@@ -25,18 +25,30 @@
         android:layout_marginTop="28dp"
         android:layout_marginBottom="16dp" />
 
-    <!-- Avatar Circle -->
-    <TextView
-        android:id="@+id/tvAvatar"
+    <!-- Avatar Container (Photo or Initials) -->
+    <FrameLayout
         android:layout_width="96dp"
         android:layout_height="96dp"
-        android:gravity="center"
-        android:text="?"
-        android:textColor="#FFFFFF"
-        android:textSize="36sp"
-        android:textStyle="bold"
-        android:background="#1E293B"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:id="@+id/tvAvatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="?"
+            android:textColor="#FFFFFF"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:background="#1D1F24" />
+
+        <ImageView
+            android:id="@+id/ivAvatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <!-- Caller Name -->
     <TextView
@@ -112,7 +124,7 @@
                 android:text="🔇"
                 android:textSize="20sp"
                 android:textColor="#FFFFFF"
-                android:background="#1E293B" />
+                android:background="#1D1F24" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -138,7 +150,7 @@
                 android:text="🔊"
                 android:textSize="20sp"
                 android:textColor="#FFFFFF"
-                android:background="#1E293B" />
+                android:background="#1D1F24" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -164,7 +176,7 @@
                 android:text="⌨️"
                 android:textSize="20sp"
                 android:textColor="#FFFFFF"
-                android:background="#1E293B" />
+                android:background="#1D1F24" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -193,7 +205,7 @@
             android:text="✕"
             android:textSize="24sp"
             android:textColor="#FFFFFF"
-            android:background="#DC2626"
+            android:background="#EA4335"
             android:layout_marginEnd="40dp" />
 
         <Button
@@ -203,7 +215,7 @@
             android:text="📞"
             android:textSize="24sp"
             android:textColor="#FFFFFF"
-            android:background="#16A34A"
+            android:background="#34A853"
             android:layout_marginStart="40dp" />
     </LinearLayout>
 
@@ -214,7 +226,7 @@
         android:text="📞"
         android:textSize="26sp"
         android:textColor="#FFFFFF"
-        android:background="#DC2626"
+        android:background="#EA4335"
         android:layout_marginBottom="24dp" />
 
 </LinearLayout>

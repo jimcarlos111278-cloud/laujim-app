@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.telecom.TelecomManager;
 import android.webkit.JavascriptInterface;
 import androidx.core.content.ContextCompat;
@@ -66,20 +67,130 @@ public class CallGuardBridge {
     @JavascriptInterface
     public void requestDefaultDialer() {
         activity.runOnUiThread(() -> {
+            boolean handled = false;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 RoleManager rm = (RoleManager) activity.getSystemService(Context.ROLE_SERVICE);
                 if (rm != null && rm.isRoleAvailable(RoleManager.ROLE_DIALER)) {
-                    activity.startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_DIALER), 2001);
-                }
-            } else {
-                TelecomManager tm = (TelecomManager) activity.getSystemService(Context.TELECOM_SERVICE);
-                if (tm != null && !activity.getPackageName().equals(tm.getDefaultDialerPackage())) {
-                    Intent intent = new Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER);
-                    intent.putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, activity.getPackageName());
-                    activity.startActivityForResult(intent, 2001);
+                    try {
+                        activity.startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_DIALER), 2001);
+                        handled = true;
+                    } catch (Exception ignored) {}
                 }
             }
+            if (!handled) {
+                TelecomManager tm = (TelecomManager) activity.getSystemService(Context.TELECOM_SERVICE);
+                if (tm != null && !activity.getPackageName().equals(tm.getDefaultDialerPackage())) {
+                    try {
+                        Intent intent = new Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER);
+                        intent.putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, activity.getPackageName());
+                        activity.startActivityForResult(intent, 2001);
+                        handled = true;
+                    } catch (Exception ignored) {}
+                }
+            }
+            if (!handled) {
+                openDefaultAppsSettings();
+            }
         });
+    }
+
+    @JavascriptInterface
+    public void openDefaultAppsSettings() {
+        activity.runOnUiThread(() -> {
+            try {
+                Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
+                activity.startActivity(intent);
+            } catch (Exception e) {
+                try {
+                    Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.parse("package:" + activity.getPackageName()));
+                    activity.startActivity(intent);
+                } catch (Exception ignored) {}
+            }
+        });
+    }
+
+    @JavascriptInterface
+    public String getDeviceContacts() {
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+            activity.runOnUiThread(() -> {
+                activity.requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, 4001);
+            });
+            return "[]";
+        }
+
+        JSONArray arr = new JSONArray();
+        android.database.Cursor cursor = null;
+        try {
+            android.content.ContentResolver cr = activity.getContentResolver();
+            String[] projection = new String[]{
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI
+            };
+            cursor = cr.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                projection,
+                null,
+                null,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
+            );
+
+            if (cursor != null) {
+                Set<String> seen = new HashSet<>();
+                int nameIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME);
+                int numIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+                int photoIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI);
+
+                while (cursor.moveToNext()) {
+                    String rawNum = numIdx >= 0 ? cursor.getString(numIdx) : "";
+                    String name = nameIdx >= 0 ? cursor.getString(nameIdx) : "";
+                    String photo = photoIdx >= 0 ? cursor.getString(photoIdx) : null;
+                    String norm = CallGuardStore.normalize(rawNum);
+                    if (norm.isEmpty() || seen.contains(norm)) continue;
+                    seen.add(norm);
+
+                    JSONObject contact = new JSONObject();
+                    contact.put("name", (name != null && !name.trim().isEmpty()) ? name.trim() : norm);
+                    contact.put("phone", norm);
+                    contact.put("rawPhone", rawNum);
+                    contact.put("isLocal", true);
+                    if (photo != null) contact.put("photo", photo);
+                    arr.put(contact);
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return arr.toString();
+    }
+
+    @JavascriptInterface
+    public String lookupNumber(String number) {
+        if (number == null || number.trim().isEmpty()) return "{}";
+        try {
+            String server = CallGuardStore.getServerUrl(activity);
+            String norm = CallGuardStore.normalize(number);
+            URL url = new URL(server + "/api/callguard/lookup?phone=" + norm);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("x-auth-token", CallGuardStore.getAuthToken(activity));
+            conn.setConnectTimeout(4000);
+            conn.setReadTimeout(4000);
+
+            if (conn.getResponseCode() == 200) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+                br.close();
+                return sb.toString();
+            }
+            return "{\"ok\":false,\"status\":" + conn.getResponseCode() + "}";
+        } catch (Exception e) {
+            return "{\"ok\":false,\"error\":\"" + e.getMessage() + "\"}";
+        }
     }
 
     @JavascriptInterface

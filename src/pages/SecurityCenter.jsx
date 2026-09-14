@@ -4,7 +4,8 @@ import {
   Camera, Wifi, RefreshCw, AlertTriangle, CheckCircle2, ShieldCheck, LockKeyhole,
   Activity, Radio, HardDrive, Info, Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   Maximize2, Minimize2, ChevronLeft, ChevronRight, Eye, ShieldAlert, Sparkles, Check, Download, Film, Compass, Play, Clock, Calendar,
-  Settings, KeyRound, Video, Globe, Car, ZoomIn, ZoomOut, RotateCcw
+  Settings, KeyRound, Video, Globe, Car, ZoomIn, ZoomOut, RotateCcw,
+  Sliders, ChevronDown, ChevronUp, X, ExternalLink
 } from 'lucide-react';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { getAuth } from '../utils/auth';
@@ -74,12 +75,18 @@ export default function SecurityCenter() {
   const [touchStartY, setTouchStartY] = useState(null);
   const [swipeHint, setSwipeHint] = useState('');
   const [showPtzControls, setShowPtzControls] = useState(true);
+  const [showControlsModal, setShowControlsModal] = useState(false);
+  const [showRecordingsAccordion, setShowRecordingsAccordion] = useState(false);
+  const [needsUserPlay, setNeedsUserPlay] = useState(false);
 
-  // Control Vehicular ALPR (Reconocimiento OCR en Vivo)
+  // Control Vehicular ALPR (Reconocimiento OCR en Vivo con Auditoría Fotográfica)
   const [alprPlates, setAlprPlates] = useState([]);
   const [alprLoading, setAlprLoading] = useState(false);
   const [alprScanning, setAlprScanning] = useState(false);
   const [alprFeedback, setAlprFeedback] = useState(null);
+  const [expandedPlateIds, setExpandedPlateIds] = useState({});
+  const [inspectedPlate, setInspectedPlate] = useState(null);
+  const [inspectedTab, setInspectedTab] = useState('full'); // 'full' | 'plate'
 
   // Modal de Configuración EZVIZ (Cloud & Router)
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -151,7 +158,7 @@ export default function SecurityCenter() {
   // Fullscreen listener
   useEffect(() => {
     const onFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
+      setIsFullscreen(Boolean(document.fullscreenElement || document.webkitFullscreenElement));
     };
     document.addEventListener('fullscreenchange', onFullscreenChange);
     document.addEventListener('webkitfullscreenchange', onFullscreenChange);
@@ -164,12 +171,22 @@ export default function SecurityCenter() {
   const handleToggleFullscreen = () => {
     const elem = videoContainerRef.current || videoRef.current;
     if (!elem) return;
-    if (!document.fullscreenElement) {
-      if (elem.requestFullscreen) elem.requestFullscreen().catch(() => {});
-      else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+    const isCurrentlyFs = isFullscreen || Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    if (!isCurrentlyFs) {
+      setIsFullscreen(true);
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        try { elem.webkitRequestFullscreen(); } catch {}
+      } else if (videoRef.current?.webkitEnterFullscreen) {
+        try { videoRef.current.webkitEnterFullscreen(); } catch {}
+      }
     } else {
-      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      setIsFullscreen(false);
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
     }
   };
 
@@ -322,30 +339,39 @@ export default function SecurityCenter() {
       : `${rawBase}${streamUrl.startsWith('/') ? '' : '/'}${streamUrl}`;
 
     let hls = null;
+    setNeedsUserPlay(false);
+
+    const attemptPlay = () => {
+      video.muted = true;
+      video.play().then(() => {
+        setNeedsUserPlay(false);
+      }).catch(() => {
+        setNeedsUserPlay(true);
+      });
+    };
+
     if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: true,
-        initialLiveManifestSize: 1, // Inicia con el primer segmento de 1s (<0.8s inicio)
-        startFragPrefetch: true,
-        liveSyncDuration: 1.0,
-        liveMaxLatencyDuration: 2.5,
-        maxBufferLength: 4,
-        maxMaxBufferLength: 8,
-        backBufferLength: 2,
-        manifestLoadingTimeOut: 8000,
+        lowLatencyMode: false,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 6,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        backBufferLength: 10,
+        manifestLoadingTimeOut: 10000,
         manifestLoadingMaxRetry: 10,
-        manifestLoadingRetryDelay: 500,
-        levelLoadingTimeOut: 8000,
-        levelLoadingMaxRetry: 8,
-        fragLoadingTimeOut: 8000,
-        fragLoadingMaxRetry: 8,
+        manifestLoadingRetryDelay: 1000,
+        levelLoadingTimeOut: 10000,
+        levelLoadingMaxRetry: 10,
+        fragLoadingTimeOut: 10000,
+        fragLoadingMaxRetry: 10,
       });
-      hls.loadSource(fullStreamUrl);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.muted = true;
-        video.play().catch(() => {});
+
+      // Bind events BEFORE loading source to avoid race conditions
+      hls.on(Hls.Events.FRAG_BUFFERED, function onFirstFrag() {
+        hls.off(Hls.Events.FRAG_BUFFERED, onFirstFrag);
+        attemptPlay();
       });
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
@@ -358,9 +384,13 @@ export default function SecurityCenter() {
           }
         }
       });
+
+      hls.loadSource(fullStreamUrl);
+      hls.attachMedia(video);
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari native HLS: wait for loadedmetadata before playing
       video.src = fullStreamUrl;
-      video.play().catch(() => {});
+      video.addEventListener('loadedmetadata', () => attemptPlay(), { once: true });
     }
 
     return () => {
@@ -682,6 +712,12 @@ export default function SecurityCenter() {
 
     function pollHeroCam() {
       if (isCancelled || !cameraLive) return;
+      // Si el stream HLS está activo y sin errores, reducir la tasa de sondeo a 10s como respaldo
+      const hasHls = streamUrls[selectedCamSerial] && !streamErrors[selectedCamSerial];
+      if (hasHls) {
+        heroTimer = setTimeout(pollHeroCam, 10000);
+        return;
+      }
       const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&stream=1&t=${Date.now()}`;
       const img = new Image();
       img.onload = () => {
@@ -691,7 +727,7 @@ export default function SecurityCenter() {
       };
       img.onerror = () => {
         if (isCancelled) return;
-        heroTimer = setTimeout(pollHeroCam, 1200);
+        heroTimer = setTimeout(pollHeroCam, 1500);
       };
       img.src = nextUrl;
     }
@@ -720,7 +756,7 @@ export default function SecurityCenter() {
       clearInterval(secondaryInterval);
       if (heroTimer) clearTimeout(heroTimer);
     };
-  }, [cameraLive, continuousLive, selectedCamSerial]);
+  }, [cameraLive, continuousLive, selectedCamSerial, streamUrls[selectedCamSerial], streamErrors[selectedCamSerial]]);
 
   // Controles PTZ (Motor Pan/Tilt)
   async function handleMovePtz(direction) {
@@ -729,11 +765,13 @@ export default function SecurityCenter() {
     const dirNames = { up: 'ARRIBA', down: 'ABAJO', left: 'IZQUIERDA', right: 'DERECHA' };
     setPtzFeedback(`Moviendo ${dirNames[direction] || direction}...`);
     try {
+      const auth = getAuth();
+      const token = auth?.token || AUTH_TOKEN;
       const res = await fetch(`${getRawBase()}/api/cameras/${selectedCamSerial}/ptz`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-auth-token': AUTH_TOKEN,
+          'x-auth-token': token,
         },
         body: JSON.stringify({ direction, pulseMs: 700 }),
       });
@@ -764,9 +802,11 @@ export default function SecurityCenter() {
     setDoorBusy('gate');
     setDoorMessage(null);
     try {
-      const res = await fetch(`${getBase()}/api/security/doors/gate/unlock`, {
+      const auth = getAuth();
+      const token = auth?.token || AUTH_TOKEN;
+      const res = await fetch(`${getBase()}/security/doors/gate-door/unlock`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        headers: { 'content-type': 'application/json', 'x-auth-token': token },
         body: JSON.stringify({ confirm: true }),
         signal: AbortSignal.timeout(10000),
       });
@@ -783,163 +823,82 @@ export default function SecurityCenter() {
 
   const selectedCam = ADMIN_CAMERAS.find(c => c.serial === selectedCamSerial) || ADMIN_CAMERAS[0];
 
+  const togglePlateExpand = (id) => {
+    setExpandedPlateIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto max-w-5xl space-y-5 pb-16 px-2 sm:px-4">
+      {/* Header Minimalista */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pt-1">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
-            <Camera className="h-7 w-7 text-blue-600" />
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+            <Camera className="h-6 w-6 text-blue-600" />
             <span>Seguridad y Cámaras en Vivo</span>
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Monitoreo en tiempo real de las 3 cámaras Ezviz, control motorizado PTZ y diagnóstico WiFi.
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Monitoreo en tiempo real • 3 Cámaras 24/7 • Control de Acceso Vehicular ALPR
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => { setShowConfigModal(true); fetchCameraConnectionStatus(); }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2.5 font-bold border border-slate-700 shadow transition active:scale-95 text-xs shrink-0"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 font-bold border border-slate-700 shadow-sm transition active:scale-95 text-xs shrink-0"
           >
-            <Settings className="h-4 w-4 text-blue-400" />
-            <span>Configurar Cámaras EZVIZ</span>
+            <Settings className="h-3.5 w-3.5 text-blue-400" />
+            <span>Ajustes EZVIZ</span>
           </button>
 
           <button
             onClick={() => { setShowTelemetryModal(true); fetchTelemetry(); }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3.5 py-2.5 font-bold shadow-md shadow-blue-500/20 transition active:scale-95 text-xs shrink-0"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 px-3 py-2 font-bold border border-slate-200 dark:border-slate-700 transition active:scale-95 text-xs shrink-0"
           >
-            <Wifi className="h-4 w-4 text-white animate-pulse" />
-            <span>Test WiFi y Repetidor</span>
+            <Wifi className="h-3.5 w-3.5 text-blue-600" />
+            <span>Test WiFi</span>
           </button>
         </div>
       </div>
 
-      {/* Resumen Rápido de Señal WiFi de las 3 Cámaras */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {ADMIN_CAMERAS.map(cam => {
-          const tInfo = telemetryData?.telemetry?.find(t => t.serial === cam.serial);
-          const pct = tInfo?.signalPercent ?? 50;
-          const isGood = pct >= 75;
-          const isRegular = pct >= 40 && pct < 75;
-
-          return (
-            <div
-              key={cam.serial}
-              onClick={() => { setShowTelemetryModal(true); fetchTelemetry(); }}
-              className="cursor-pointer group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 hover:border-blue-400 hover:shadow-md transition flex items-center justify-between gap-3"
-            >
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-blue-600 transition">
-                  {cam.name}
-                </p>
-                <p className="text-[11px] text-slate-400 truncate">{cam.location}</p>
-                <p className="text-[11px] font-medium mt-1 text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                  <span className={`h-2 w-2 rounded-full ${isGood ? 'bg-emerald-500' : isRegular ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                  <span>Señal: <strong>{pct}%</strong> {tInfo?.signalDbm ? `(${tInfo.signalDbm} dBm)` : ''}</span>
-                </p>
-              </div>
-              <span className={`text-[10px] font-extrabold px-2 py-1 rounded-full shrink-0 ${
-                tInfo?.needsRepeater
-                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                  : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-              }`}>
-                {tInfo?.needsRepeater ? 'Repetidor Sugerido' : 'Señal OK'}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
       {doorMessage && (
-        <div className={`p-4 rounded-2xl text-sm font-semibold flex items-center gap-2 ${
-          doorMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+        <div className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fade-in ${
+          doorMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
         }`}>
-          <CheckCircle2 className="h-5 w-5 shrink-0" />
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{doorMessage.text}</span>
         </div>
       )}
 
-      {/* Monitor Hero de Cámara Seleccionada con PTZ */}
-      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm">
-        {/* Barra superior de estado de la cámara */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-3 w-3">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${cameraLive ? 'bg-emerald-400' : 'bg-slate-300'} opacity-75`} />
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${cameraLive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-            </span>
-            <div>
-              <h2 className="font-black text-slate-900 dark:text-white text-base leading-tight">
-                {selectedCam.name}
-              </h2>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {selectedCam.location} • [{selectedCam.serial}]
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Modo de Duración: 5 Minutos vs Continuo */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => {
-                  setContinuousLive(false);
-                  setCameraCountdown(300);
-                  setCameraLive(true);
-                }}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition ${
-                  !continuousLive ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Límite automático de 5 minutos para ahorrar datos"
-              >
-                ⏱️ 5 min
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setContinuousLive(true);
-                  setCameraLive(true);
-                }}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition ${
-                  continuousLive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Transmisión continua hasta salir de la página"
-              >
-                ♾️ Continuo
-              </button>
-            </div>
-
+      {/* ─── PESTAÑAS DE SELECCIÓN DE CÁMARA (PILL TABS MATERIAL YOU) ─── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        {ADMIN_CAMERAS.map(cam => {
+          const isSelected = cam.serial === selectedCamSerial;
+          const tInfo = telemetryData?.telemetry?.find(t => t.serial === cam.serial);
+          const pct = tInfo?.signalPercent ?? 60;
+          return (
             <button
-              onClick={() => {
-                setCameraLive(prev => {
-                  const next = !prev;
-                  if (next) setCameraCountdown(300);
-                  return next;
-                });
-              }}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                cameraLive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+              key={cam.serial}
+              onClick={() => setSelectedCamSerial(cam.serial)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all shrink-0 active:scale-95 ${
+                isSelected
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 ring-2 ring-blue-500/30'
+                  : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:border-slate-400'
               }`}
             >
-              <span className={`h-2 w-2 rounded-full ${cameraLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {cameraLive ? (continuousLive ? 'EN VIVO' : `EN VIVO (${cameraCountdown}s)`) : 'PAUSADO'}
+              <span className={`h-2 w-2 rounded-full ${isSelected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
+              <span>{cam.name}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
+                isSelected ? 'bg-blue-700/60 text-blue-100' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+              }`}>
+                {pct}% WiFi
+              </span>
             </button>
+          );
+        })}
+      </div>
 
-            <button
-              onClick={handleUnlockGate}
-              disabled={doorBusy === 'gate'}
-              className="flex items-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold transition shadow-sm disabled:opacity-60"
-            >
-              <LockKeyhole className="h-3.5 w-3.5" />
-              <span>{doorBusy === 'gate' ? 'Abriendo…' : 'Abrir Portón'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Marco de Video Hero (Transmisión HLS en Vivo 25 FPS con Fallback a Fotogramas) */}
+      {/* ─── REPRODUCTOR HERO (16:9 LIMPIO Y DESPEJADO) ─── */}
+      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-4 shadow-sm overflow-hidden">
         <div
           ref={videoContainerRef}
           onTouchStart={handleTouchStartWrapper}
@@ -950,18 +909,24 @@ export default function SecurityCenter() {
           onMouseUp={handlePanMouseUp}
           onMouseLeave={handlePanMouseUp}
           onDoubleClick={handleToggleFullscreen}
-          className={`relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner flex items-center justify-center select-none ${
+          onClick={(e) => {
+            if (zoomLevel === 1 && !isPanning && !needsUserPlay) {
+              handleToggleFullscreen();
+            }
+          }}
+          className={`relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800/80 shadow-inner flex items-center justify-center select-none ${
             isFullscreen ? 'fixed inset-0 z-50 rounded-none border-none aspect-auto h-screen w-screen' : ''
           }`}
-          style={{ cursor: zoomLevel > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
+          style={{ cursor: zoomLevel > 1 ? (isPanning ? 'grabbing' : 'grab') : 'pointer' }}
         >
           {streamUrls[selectedCamSerial] && !streamErrors[selectedCamSerial] && cameraLive ? (
+            <>
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              controls
+              controls={false}
               style={{
                 transform: zoomLevel > 1
                   ? `scale(${zoomLevel}) translate(${panOffset.x / zoomLevel}px, ${panOffset.y / zoomLevel}px)`
@@ -971,6 +936,21 @@ export default function SecurityCenter() {
               }}
               className="h-full w-full object-contain"
             />
+            {needsUserPlay && (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const v = videoRef.current;
+                  if (v) { v.muted = true; v.play().then(() => setNeedsUserPlay(false)).catch(() => {}); }
+                }}
+                className="absolute inset-0 flex items-center justify-center z-20 cursor-pointer bg-black/30"
+              >
+                <div className="bg-white/20 backdrop-blur-md rounded-full p-5 shadow-2xl border border-white/30 transition hover:bg-white/30 active:scale-90">
+                  <Play className="h-12 w-12 text-white drop-shadow-xl" />
+                </div>
+              </div>
+            )}
+            </>
           ) : cameraFeeds[selectedCamSerial] ? (
             <img
               src={cameraFeeds[selectedCamSerial]}
@@ -988,132 +968,79 @@ export default function SecurityCenter() {
               className="h-full w-full object-contain"
             />
           ) : (
-            <div className="text-center text-slate-500">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-500" />
+            <div className="text-center text-slate-400 p-4">
+              <Loader2 className="h-7 w-7 animate-spin mx-auto mb-2 text-blue-500" />
               <p className="text-xs font-semibold">Conectando con {selectedCam.name}...</p>
-              <p className="text-[10px] text-slate-600 mt-1">Negociando RTSP / HLS en la nube...</p>
+              <p className="text-[10px] text-slate-500 mt-1">Transmisión en directo a 25 FPS</p>
             </div>
           )}
 
-          {/* Badge de Estado del Stream en Vivo y Controles Superiores */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
-            {streamUrls[selectedCamSerial] && !streamErrors[selectedCamSerial] && cameraLive ? (
-              <span className="bg-red-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg backdrop-blur-md flex items-center gap-1">
+          {/* Badge Superior Izquierdo: Nombre de Cámara y Estado */}
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 z-20 pointer-events-none">
+            <div className="bg-slate-900/80 backdrop-blur-md text-white px-2.5 py-1 rounded-xl border border-white/15 text-[11px] font-bold flex items-center gap-1.5 shadow">
+              <span className={`h-2 w-2 rounded-full ${cameraLive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
+              <span>{selectedCam.name}</span>
+            </div>
+            {streamUrls[selectedCamSerial] && !streamErrors[selectedCamSerial] && cameraLive && (
+              <span className="bg-red-600/90 text-white text-[10px] font-black px-2 py-1 rounded-xl shadow backdrop-blur-md flex items-center gap-1">
                 <Radio className="h-3 w-3 animate-pulse" />
-                <span>25 FPS HLS EN VIVO</span>
+                <span>VIVO 25 FPS</span>
               </span>
-            ) : (
-              <button
-                onClick={() => { setShowConfigModal(true); fetchCameraConnectionStatus(); }}
-                className="bg-slate-900/85 hover:bg-slate-800 text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg backdrop-blur-md flex items-center gap-1 border border-amber-400/30 transition"
-              >
-                <KeyRound className="h-3 w-3 text-amber-400" />
-                <span>Configurar Stream en Vivo</span>
-              </button>
             )}
+          </div>
 
-            {/* Botón de Pantalla Completa */}
+          {/* Botones Flotantes Superiores Derechos: Controles PTZ y Fullscreen */}
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
             <button
-              onClick={handleToggleFullscreen}
-              className="bg-slate-900/80 hover:bg-slate-800 text-white p-1.5 rounded-full shadow-lg backdrop-blur-md border border-white/20 transition active:scale-95"
+              onClick={(e) => { e.stopPropagation(); setShowControlsModal(true); }}
+              className="bg-slate-900/85 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg backdrop-blur-md flex items-center gap-1.5 border border-white/20 transition active:scale-95"
+              title="Abrir Controles PTZ y Zoom"
+            >
+              <Compass className="h-3.5 w-3.5 text-blue-400" />
+              <span className="hidden sm:inline">Controles</span>
+            </button>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); handleToggleFullscreen(); }}
+              className="bg-slate-900/85 hover:bg-slate-800 text-white p-2 rounded-xl shadow-lg backdrop-blur-md border border-white/20 transition active:scale-95"
               title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
             >
               {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             </button>
           </div>
 
-          {/* Toolbar Flotante de Zoom Digital (1x, 2x, 4x, 8x) */}
-          <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-slate-950/85 backdrop-blur-md px-2 py-1 rounded-xl border border-white/20 text-white z-20 shadow-lg">
-            <span className="text-[10px] font-extrabold text-slate-300 mr-1 flex items-center gap-0.5">
-              <ZoomIn className="h-3 w-3 text-blue-400" /> Zoom:
-            </span>
-            {[1, 2, 4, 8].map(z => (
-              <button
-                key={z}
-                type="button"
-                onClick={(e) => { e.stopPropagation(); handleZoom(z); }}
-                className={`px-2 py-0.5 text-[10px] font-black rounded-md transition ${
-                  zoomLevel === z ? 'bg-blue-600 text-white shadow' : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200'
-                }`}
-              >
-                {z}x
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); handleZoom(zoomLevel + 0.5); }}
-              disabled={zoomLevel >= 8}
-              className="p-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-200 disabled:opacity-40"
-              title="Aumentar zoom (+0.5x)"
-            >
-              <ZoomIn className="h-3 w-3" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); handleZoom(zoomLevel - 0.5); }}
-              disabled={zoomLevel <= 1}
-              className="p-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-200 disabled:opacity-40"
-              title="Reducir zoom (-0.5x)"
-            >
-              <ZoomOut className="h-3 w-3" />
-            </button>
-            {zoomLevel > 1 && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); handleZoom(1); }}
-                className="p-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white shadow"
-                title="Restablecer zoom a 1x"
-              >
-                <RotateCcw className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-
-          {zoomLevel > 1 && (
-            <div className="absolute top-12 left-3 bg-blue-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow backdrop-blur-sm z-20 pointer-events-none flex items-center gap-1">
-              <span>Zoom {zoomLevel}x</span>
-              <span className="opacity-75">• Arrastra para mover</span>
+          {/* Toolbar de Zoom Flotante (SOLO VISIBLE EN PANTALLA COMPLETA) */}
+          {isFullscreen && (
+            <div className="absolute bottom-4 right-4 flex items-center gap-1 bg-slate-950/90 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-white/20 text-white z-30 shadow-2xl">
+              <span className="text-[10px] font-extrabold text-slate-300 mr-1 flex items-center gap-0.5">
+                <ZoomIn className="h-3 w-3 text-blue-400" /> Zoom:
+              </span>
+              {[1, 2, 4, 8].map(z => (
+                <button
+                  key={z}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleZoom(z); }}
+                  className={`px-2 py-0.5 text-[10px] font-black rounded-lg transition ${
+                    zoomLevel === z ? 'bg-blue-600 text-white shadow' : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200'
+                  }`}
+                >
+                  {z}x
+                </button>
+              ))}
+              {zoomLevel > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleZoom(1); }}
+                  className="p-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white shadow"
+                  title="Restablecer zoom"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                </button>
+              )}
             </div>
           )}
 
-          {/* Indicador de Swipe y Cámara Actual (Top Left) */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1 z-20">
-            <div className="bg-slate-900/80 backdrop-blur-md text-white px-2.5 py-1 rounded-lg border border-white/10 text-[11px] font-bold flex items-center gap-1.5 shadow">
-              <Camera className="h-3.5 w-3.5 text-blue-400" />
-              <span>{selectedCam.name}</span>
-            </div>
-            {swipeHint && (
-              <div className="bg-blue-600 text-white px-2.5 py-0.5 rounded-md text-[10px] font-bold animate-bounce shadow">
-                {swipeHint}
-              </div>
-            )}
-          </div>
-
-          {/* Flechas de Navegación Rápida a los lados (Táctil / Click) */}
-          <button
-            onClick={() => {
-              const idx = ADMIN_CAMERAS.findIndex(c => c.serial === selectedCamSerial);
-              const prev = (idx - 1 + ADMIN_CAMERAS.length) % ADMIN_CAMERAS.length;
-              setSelectedCamSerial(ADMIN_CAMERAS[prev].serial);
-            }}
-            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-900/40 hover:bg-slate-900/80 text-white/70 hover:text-white backdrop-blur-sm transition active:scale-95 z-20"
-            title="Cámara Anterior"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => {
-              const idx = ADMIN_CAMERAS.findIndex(c => c.serial === selectedCamSerial);
-              const next = (idx + 1) % ADMIN_CAMERAS.length;
-              setSelectedCamSerial(ADMIN_CAMERAS[next].serial);
-            }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-900/40 hover:bg-slate-900/80 text-white/70 hover:text-white backdrop-blur-sm transition active:scale-95 z-20"
-            title="Siguiente Cámara"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-
-          {/* Notificación flotante de PTZ */}
+          {/* Notificación de feedback PTZ */}
           {ptzFeedback && (
             <div className="absolute bottom-3 left-3 bg-slate-900/90 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl border border-white/10 backdrop-blur-md z-20">
               {ptzFeedback}
@@ -1121,413 +1048,373 @@ export default function SecurityCenter() {
           )}
         </div>
 
-        {/* ─── BARRA DE CONTROL ERGONÓMICA DEBAJO DEL VIDEO (CRUCETA PTZ Y DESCARGA) ─── */}
-        <div className="mt-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
-          {/* Controles PTZ (Cruceta Motorizada Ergonómica fuera de la imagen) */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <Compass className="h-4 w-4 text-blue-600" />
-              <span>Giro PTZ:</span>
-            </span>
-
-            {/* D-Pad Horizontal Compacto y Cómodo */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => handleMovePtz('left')}
-                disabled={Boolean(ptzMoving)}
-                className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 transition disabled:opacity-40"
-                title="Girar Izquierda"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-              <div className="flex flex-col gap-1">
-                <button
-                  onClick={() => handleMovePtz('up')}
-                  disabled={Boolean(ptzMoving)}
-                  className="p-1 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 transition disabled:opacity-40"
-                  title="Girar Arriba"
-                >
-                  <ArrowUp className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => handleMovePtz('down')}
-                  disabled={Boolean(ptzMoving)}
-                  className="p-1 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 transition disabled:opacity-40"
-                  title="Girar Abajo"
-                >
-                  <ArrowDown className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <button
-                onClick={() => handleMovePtz('right')}
-                disabled={Boolean(ptzMoving)}
-                className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:scale-95 transition disabled:opacity-40"
-                title="Girar Derecha"
-              >
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Acciones Rápidas: Descargar Grabación MicroSD & Pantalla Completa */}
+        {/* ─── BARRA DE ACCIÓN INFERIOR DEL REPRODUCTOR (DESPEJADA Y ELEGANTE) ─── */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 pt-1">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                document.getElementById('recordings-section')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm active:scale-95"
-              title="Descargar grabaciones grabadas en la MicroSD"
+              onClick={handleUnlockGate}
+              disabled={doorBusy === 'gate'}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-black shadow-sm transition active:scale-95 disabled:opacity-60"
             >
-              <Download className="h-3.5 w-3.5" />
-              <span>Descargar Grabación MicroSD</span>
+              <LockKeyhole className="h-3.5 w-3.5" />
+              <span>{doorBusy === 'gate' ? 'Abriendo...' : 'Abrir Portón'}</span>
             </button>
 
             <button
-              onClick={handleToggleFullscreen}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-100 transition"
-              title="Ver en pantalla completa"
+              onClick={() => setShowControlsModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 px-3.5 py-2 text-xs font-bold transition active:scale-95"
             >
-              <Maximize2 className="h-3.5 w-3.5 text-slate-500" />
-              <span className="hidden sm:inline">Pantalla Completa</span>
+              <Compass className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              <span>Giro PTZ y Zoom</span>
             </button>
           </div>
-        </div>
 
-        {/* Miniaturas de Selección de las 3 Cámaras */}
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          {ADMIN_CAMERAS.map(cam => {
-            const isSelected = cam.serial === selectedCamSerial;
-            return (
+          <div className="flex items-center gap-2">
+            {/* Límite 5 min vs Continuo */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] font-bold">
               <button
-                key={cam.serial}
-                onClick={() => setSelectedCamSerial(cam.serial)}
-                className={`text-left rounded-2xl border p-2 transition overflow-hidden group ${
-                  isSelected
-                    ? 'border-blue-500 bg-blue-50/40 ring-2 ring-blue-500/20 dark:bg-blue-950/20'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-400'
+                type="button"
+                onClick={() => { setContinuousLive(false); setCameraCountdown(300); setCameraLive(true); }}
+                className={`px-2.5 py-1 rounded-lg transition ${
+                  !continuousLive ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-sm' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-900 mb-2 relative">
-                  {cameraFeeds[cam.serial] ? (
-                    <img
-                      src={cameraFeeds[cam.serial]}
-                      alt={cam.name}
-                      className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-slate-500 text-[10px]">
-                      Cargando…
-                    </div>
-                  )}
-                  {isSelected && (
-                    <span className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow">
-                      ACTIVA
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{cam.name}</p>
-                <p className="text-[10px] text-slate-400 truncate">{cam.location}</p>
+                5 min
               </button>
-            );
-          })}
-        </div>
-
-        {/* ─── CONTROLES AVANZADOS PTZ: PRESETS Y PATRULLAJE 180° ─── */}
-        <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Panel de Presets Rápidos */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Compass className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Posiciones de Guardia Predefinidas
-              </h3>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3">
-              Mueve el motor Pan/Tilt instantáneamente hacia puntos clave sin tener que pulsar la cruceta manualmente.
-            </p>
-            <div className="grid grid-cols-3 gap-2">
               <button
-                onClick={() => handleSetPreset('porton', 'Portón Vehicular')}
-                disabled={Boolean(ptzMoving)}
-                className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-slate-700 transition active:scale-95 text-center disabled:opacity-50"
+                type="button"
+                onClick={() => { setContinuousLive(true); setCameraLive(true); }}
+                className={`px-2.5 py-1 rounded-lg transition ${
+                  continuousLive ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-300 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                }`}
               >
-                <span className="text-base mb-0.5">🚗</span>
-                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Portón</span>
-                <span className="text-[9px] text-slate-400">Vehicular</span>
+                Continuo
               </button>
-
-              <button
-                onClick={() => handleSetPreset('peatonal', 'Acceso Peatonal')}
-                disabled={Boolean(ptzMoving)}
-                className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-slate-700 transition active:scale-95 text-center disabled:opacity-50"
-              >
-                <span className="text-base mb-0.5">🚶</span>
-                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Peatonal</span>
-                <span className="text-[9px] text-slate-400">Entrada</span>
-              </button>
-
-              <button
-                onClick={() => handleSetPreset('calle', 'Calle / Fachada')}
-                disabled={Boolean(ptzMoving)}
-                className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-slate-700 transition active:scale-95 text-center disabled:opacity-50"
-              >
-                <span className="text-base mb-0.5">🛣️</span>
-                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Calle</span>
-                <span className="text-[9px] text-slate-400">Fachada</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Panel de Patrullaje Inteligente 180° Anti-Puntos Ciegos */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-4 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <div className="flex items-center gap-2">
-                  <Eye className={`h-4 w-4 ${patrolActive ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                    Patrulla 180° Anti-Puntos Ciegos
-                  </h3>
-                </div>
-                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                  patrolActive
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300'
-                    : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                }`}>
-                  {patrolActive ? 'ACTIVA (Cada 60s)' : 'DESACTIVADA'}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3">
-                Gira automáticamente 180° cada 60 segundos hacia la calle y regresa al portón para evitar que intrusos burlen la cámara escondiéndose detrás.
-              </p>
             </div>
 
             <button
-              onClick={handleTogglePatrol}
-              disabled={patrolLoading}
-              className={`w-full py-2.5 px-4 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-sm transition active:scale-95 disabled:opacity-60 ${
-                patrolActive
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white'
+              onClick={() => setCameraLive(prev => !prev)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                cameraLive ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
               }`}
             >
-              {patrolLoading ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Configurando patrullaje...</span>
-                </>
-              ) : patrolActive ? (
-                <>
-                  <span>Detener Patrulla (Dejar Fija)</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Activar Patrullaje Continuo 180°</span>
-                </>
-              )}
+              {cameraLive ? (continuousLive ? 'ACTIVO' : `${cameraCountdown}s`) : 'PAUSADO'}
             </button>
           </div>
         </div>
+      </section>
 
-        {/* ─── INDICADOR DE RETENCIÓN DE GRABACIONES (TIEMPO REAL / REFRESCADO CADA HORA) ─── */}
-        <div className="mt-6 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/50 bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-blue-50/30 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-blue-950/20 p-4 sm:p-5 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-600 text-white shadow-sm shrink-0 mt-0.5">
-                <HardDrive className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
-                    Historial y Capacidad de Grabación en MicroSD
-                  </h3>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-300/50 dark:border-emerald-800">
-                    <Clock className="w-2.5 h-2.5" /> Auto-refresco (1 hora)
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">Grabación más antigua disponible:</span>
-                    <strong className="text-emerald-700 dark:text-emerald-300 font-bold bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-900/60">
-                      {retentionInfo?.formattedDate || '3 de Septiembre de 2026, 08:00 AM'}
-                    </strong>
-                  </div>
-                  <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">Retención continua activa:</span>
-                    <strong className="text-blue-700 dark:text-blue-300 font-bold bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-900/60">
-                      {retentionInfo?.retentionDays ? `${retentionInfo.retentionDays} días activos` : '11 días activos'}
-                    </strong>
-                  </div>
-                  <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">Capacidad MicroSD 128GB:</span>
-                    <span className="text-slate-600 dark:text-slate-300 font-semibold bg-white/60 dark:bg-slate-800/60 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800">
-                      ~28 días máx. cíclico
-                    </span>
-                  </div>
-                </div>
-              </div>
+      {/* ─── MÓDULO DE CONTROL VEHICULAR (ALPR - OCR EN VIVO CON FOTOS DE AUDITORÍA) ─── */}
+      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20">
+              <Car className="h-5 w-5" />
             </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                  Control Vehicular (ALPR)
+                </h2>
+                <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  En guardia 24/7
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Lectura óptica de placas con fotografía de auditoría en tiempo real.
+              </p>
+            </div>
+          </div>
 
+          <div className="flex items-center gap-2">
             <button
-              onClick={fetchRetentionStatus}
-              disabled={retentionLoading}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-bold transition shadow-sm shrink-0 self-end sm:self-center disabled:opacity-50"
-              title="Consultar la grabación más antigua disponible ahora"
+              onClick={fetchAlprPlates}
+              disabled={alprLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${retentionLoading ? 'animate-spin text-emerald-600' : ''}`} />
-              <span>{retentionLoading ? 'Consultando...' : 'Actualizar retención'}</span>
+              <RefreshCw className={`h-3.5 w-3.5 ${alprLoading ? 'animate-spin' : ''}`} />
+              <span>Refrescar</span>
+            </button>
+            <button
+              onClick={handleScanPlate}
+              disabled={alprScanning}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition active:scale-95 disabled:opacity-50"
+            >
+              <Car className="h-3.5 w-3.5" />
+              <span>{alprScanning ? 'Escaneando...' : 'Escanear Ahora'}</span>
             </button>
           </div>
         </div>
 
-        {/* ─── EXTRACTOR DE GRABACIONES MICROSD (QHD+ 2880x1620) ─── */}
-        <div id="recordings-section" className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 scroll-mt-6">
-          <div className="rounded-2xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/20 dark:bg-blue-950/20 p-4 sm:p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-600 text-white shadow-sm">
-                  <Film className="h-4 w-4" />
+        {alprFeedback && (
+          <div className={`mb-4 p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 ${
+            alprFeedback.type === 'success'
+              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+              : alprFeedback.type === 'error'
+              ? 'bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300'
+              : 'bg-blue-500/10 border border-blue-500/30 text-blue-700 dark:text-blue-300'
+          }`}>
+            {alprScanning ? <Loader2 className="w-4 h-4 animate-spin shrink-0 text-amber-500" /> : <Info className="w-4 h-4 shrink-0" />}
+            <span>{alprFeedback.text}</span>
+          </div>
+        )}
+
+        {/* Lista de Placas con Desplegable de Fotografía Real de Auditoría */}
+        {alprPlates.length === 0 ? (
+          <div className="text-center py-8 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800">
+            <Car className="h-9 w-9 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Detector ALPR en guardia sobre la Calle (Cámaras Izquierda y Derecha)
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1 max-w-md mx-auto">
+              Cada vehículo que transite frente al edificio registrará su placa y la foto exacta tomada por la cámara.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {alprPlates.map(p => {
+              const isExpanded = Boolean(expandedPlateIds[p.id]);
+              const rawBase = getRawBase();
+              const fullUrl = p.fullUrl
+                ? (p.fullUrl.startsWith('http') ? p.fullUrl : `${rawBase}${p.fullUrl.startsWith('/') ? '' : '/'}${p.fullUrl}`)
+                : `${rawBase}/alpr/image/${p.id}?type=full`;
+              const plateUrl = p.plateUrl
+                ? (p.plateUrl.startsWith('http') ? p.plateUrl : `${rawBase}${p.plateUrl.startsWith('/') ? '' : '/'}${p.plateUrl}`)
+                : `${rawBase}/alpr/image/${p.id}?type=plate`;
+              const cropUrl = p.cropUrl
+                ? (p.cropUrl.startsWith('http') ? p.cropUrl : `${rawBase}${p.cropUrl.startsWith('/') ? '' : '/'}${p.cropUrl}`)
+                : `${rawBase}/alpr/image/${p.id}`;
+
+              return (
+                <div
+                  key={p.id}
+                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition"
+                >
+                  {/* Fila principal del vehículo */}
+                  <div className="p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {/* Placa Colombiana Oficial Amarilla */}
+                      <div className="px-3 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-mono font-black text-sm tracking-widest border-2 border-slate-950 shadow-sm flex items-center justify-center min-w-[90px]">
+                        {p.plate}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
+                          <Car className="h-3.5 w-3.5 text-blue-500" />
+                          <span>{p.type || 'Vehículo'}</span>
+                          <span className="text-[11px] font-normal text-slate-400">• {p.camera || 'Cámara'}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                          <Clock className="h-3 w-3" />
+                          <span>{p.timestamp}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => togglePlateExpand(p.id)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                          isExpanded
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+                        }`}
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        <span>{isExpanded ? 'Ocultar Fotos' : 'Ver Fotos de Auditoría'}</span>
+                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Desplegable de Fotografía de Auditoría (Doble Foto: General + Placa) */}
+                  {isExpanded && (
+                    <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 sm:p-4 animate-fade-in space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* 1. Foto General de la Cámara */}
+                        <div
+                          onClick={() => { setInspectedPlate(p); setInspectedTab('full'); }}
+                          className="relative group cursor-pointer aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-700/80 shadow-sm flex items-center justify-center"
+                        >
+                          <img
+                            src={fullUrl}
+                            alt={`Foto General ${p.plate}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = cropUrl;
+                            }}
+                          />
+                          <div className="absolute top-2 left-2 bg-slate-900/85 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-lg border border-white/10 flex items-center gap-1">
+                            <Camera className="h-3 w-3 text-blue-400" />
+                            <span>Foto General (Cámara)</span>
+                          </div>
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs gap-1.5 backdrop-blur-[1px]">
+                            <Maximize2 className="h-4 w-4" />
+                            <span>Ver Panorámica</span>
+                          </div>
+                        </div>
+
+                        {/* 2. Foto de la Placa Reconstruida / Recorte Nítido */}
+                        <div
+                          onClick={() => { setInspectedPlate(p); setInspectedTab('plate'); }}
+                          className="relative group cursor-pointer aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-700/80 shadow-sm flex items-center justify-center"
+                        >
+                          <img
+                            src={plateUrl}
+                            alt={`Placa ${p.plate}`}
+                            className="max-h-full max-w-full object-contain p-2 group-hover:scale-105 transition duration-300"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = cropUrl;
+                            }}
+                          />
+                          <div className="absolute top-2 left-2 bg-slate-900/85 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-lg border border-white/10 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                            <span>Placa Reconstruida</span>
+                          </div>
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs gap-1.5 backdrop-blur-[1px]">
+                            <Maximize2 className="h-4 w-4" />
+                            <span>Inspeccionar Placa</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                          Auditoría ID: {p.id}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => { setInspectedPlate(p); setInspectedTab('full'); }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition active:scale-95 shadow-sm"
+                          >
+                            <Maximize2 className="h-3.5 w-3.5" />
+                            <span>Pantalla Completa</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">
-                    Descargar Grabación MicroSD por Rango Horario
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Extrae fragmentos de la MicroSD y genera archivos .mp4 concatenados en calidad nativa QHD+ (2880×1620).
-                  </p>
-                </div>
-              </div>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/60 px-2.5 py-1 rounded-full shrink-0">
-                <Clock className="h-3 w-3" />
-                <span>Hora Colombia (UTC-5)</span>
-              </span>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ─── ACCORDEÓN: DESCARGA DE GRABACIONES MICROSD (QHD+ 2880x1620) ─── */}
+      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+        <button
+          onClick={() => setShowRecordingsAccordion(prev => !prev)}
+          className="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-blue-600 text-white shadow-sm">
+              <Film className="h-5 w-5" />
             </div>
+            <div>
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
+                Extractor de Grabaciones MicroSD (QHD+ 2880×1620)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Descarga fragmentos en video nativo MP4 por fecha y hora desde la MicroSD.
+              </p>
+            </div>
+          </div>
+          {showRecordingsAccordion ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+        </button>
 
-            {/* Selector Multi-Cámara (Todas, 1 o 2 cámaras) */}
-            <div className="mt-4 mb-3">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Seleccionar Cámaras para Descargar ({selectedExportCams.length} seleccionada{selectedExportCams.length !== 1 ? 's' : ''}):</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedExportCams(ADMIN_CAMERAS.map(c => c.serial))}
-                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Todas las cámaras
-                  </button>
-                  <span className="text-slate-300 dark:text-slate-700">|</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedExportCams([ADMIN_CAMERAS[0].serial])}
-                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:underline"
-                  >
-                    Solo 1 cámara
-                  </button>
-                  <span className="text-slate-300 dark:text-slate-700">|</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedExportCams([ADMIN_CAMERAS[0].serial, ADMIN_CAMERAS[1].serial])}
-                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:underline"
-                  >
-                    2 cámaras
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        {showRecordingsAccordion && (
+          <div className="border-t border-slate-100 dark:border-slate-800 p-4 sm:p-5 bg-slate-50/40 dark:bg-slate-800/30 space-y-4 animate-fade-in">
+            {/* Selector de Cámaras */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                Selecciona la(s) cámara(s) a exportar:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {ADMIN_CAMERAS.map(cam => {
                   const isChecked = selectedExportCams.includes(cam.serial);
                   return (
-                    <label
+                    <button
                       key={cam.serial}
-                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition select-none ${
+                      type="button"
+                      onClick={() => {
+                        setSelectedExportCams(prev =>
+                          isChecked ? prev.filter(s => s !== cam.serial) : [...prev, cam.serial]
+                        );
+                      }}
+                      className={`p-3 rounded-2xl border text-left text-xs font-bold transition flex items-center gap-2 ${
                         isChecked
-                          ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/50 text-blue-950 dark:text-blue-100 shadow-sm'
-                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                          ? 'border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-950/50 dark:text-blue-200'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                       }`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={e => {
-                          if (e.target.checked) {
-                            setSelectedExportCams(prev => [...prev, cam.serial]);
-                          } else {
-                            setSelectedExportCams(prev => prev.filter(s => s !== cam.serial));
-                          }
-                        }}
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
-                      />
-                      <div className="leading-tight truncate">
-                        <span className="text-xs font-bold block truncate text-slate-900 dark:text-white">{cam.name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono block truncate">{cam.location}</span>
+                      <div className={`h-4 w-4 rounded-md border flex items-center justify-center text-[10px] ${
+                        isChecked ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'
+                      }`}>
+                        {isChecked && '✓'}
                       </div>
-                    </label>
+                      <span>{cam.name}</span>
+                    </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Formulario de Selección de Rango */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+            {/* Rango Horario */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                  <Calendar className="h-3 w-3 text-blue-600" />
-                  <span>Fecha de Grabación</span>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Fecha
                 </label>
                 <input
                   type="date"
                   value={recDate}
                   onChange={e => setRecDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white outline-none focus:border-blue-500 shadow-sm"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-emerald-600" />
-                  <span>Hora Inicio (Ej: 08:10)</span>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Hora Inicio
                 </label>
                 <input
                   type="time"
                   value={recStartTime}
                   onChange={e => setRecStartTime(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white outline-none focus:border-blue-500 shadow-sm"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-rose-600" />
-                  <span>Hora Fin (Ej: 08:44)</span>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Hora Fin
                 </label>
                 <input
                   type="time"
                   value={recEndTime}
                   onChange={e => setRecEndTime(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white outline-none focus:border-blue-500 shadow-sm"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white"
                 />
               </div>
             </div>
 
             {recError && (
-              <div className="mt-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-medium">
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-medium">
                 {recError}
               </div>
             )}
 
-            {/* Estado de Descarga Múltiple o Individual */}
+            {/* Trabajos de Descarga */}
             {multiRecJobs && multiRecJobs.length > 0 && (
-              <div className="mt-4 space-y-2">
+              <div className="space-y-2">
                 {multiRecJobs.map(job => (
                   <div
                     key={job.jobId || job.serial}
-                    className="p-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3"
+                    className="p-3 rounded-2xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-2.5">
                       {job.status === 'completed' ? (
@@ -1539,15 +1426,15 @@ export default function SecurityCenter() {
                       )}
                       <div>
                         <p className="text-xs font-bold text-slate-900 dark:text-white">
-                          <span className="text-blue-600 dark:text-blue-400 mr-1.5">[{job.cameraName || job.serial}]</span>
+                          <span className="text-blue-600 mr-1">[{job.cameraName || job.serial}]</span>
                           {job.status === 'completed'
                             ? `Video listo: ${job.filename || 'grabacion.mp4'} (${job.size_mb || '—'} MB)`
                             : job.status === 'failed'
                             ? `Error: ${job.error || 'No se pudo descargar'}`
-                            : 'Descargando y procesando fragmentos de MicroSD...'}
+                            : 'Extrayendo fragmentos de MicroSD...'}
                         </p>
                         <p className="text-[10px] text-slate-400">
-                          Rango: {recDate} de {recStartTime} a {recEndTime} (Hora Colombia)
+                          {recDate} • {recStartTime} - {recEndTime}
                         </p>
                       </div>
                     </div>
@@ -1566,145 +1453,295 @@ export default function SecurityCenter() {
               </div>
             )}
 
-            {/* Botón de Iniciar Extracción */}
-            <div className="mt-4 flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 onClick={handleExportRecording}
                 disabled={recLoading || selectedExportCams.length === 0}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 text-xs font-extrabold shadow-md shadow-blue-500/20 transition active:scale-95 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-xs font-extrabold shadow-md shadow-blue-500/20 transition active:scale-95 disabled:opacity-60"
               >
                 {recLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Extrayendo grabaciones ({selectedExportCams.length} cámaras)...</span>
+                    <span>Extrayendo ({selectedExportCams.length} cámaras)...</span>
                   </>
                 ) : (
                   <>
                     <Film className="h-4 w-4" />
-                    <span>
-                      Extraer Grabaciones ({selectedExportCams.length} cámara{selectedExportCams.length !== 1 ? 's' : ''})
-                    </span>
+                    <span>Extraer Grabaciones ({selectedExportCams.length})</span>
                   </>
                 )}
               </button>
             </div>
           </div>
-        </div>
+        )}
       </section>
 
-      {/* ─── MÓDULO DE RECONOCIMIENTO AUTOMÁTICO DE PLACAS OCR (ALPR) ─── */}
-      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20">
-              <Car className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                  Control de Acceso Vehicular (ALPR - OCR en Vivo)
-                </h2>
-                <span className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Calle 24/7 Activo
-                </span>
+      {/* ─── MODAL FLOTANTE / BOTTOM SHEET: CONTROLES PTZ & ZOOM ─── */}
+      {showControlsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header del Modal */}
+            <div className="bg-gradient-to-r from-slate-900 to-blue-900 p-4 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-blue-600/30 border border-blue-400/30 text-white">
+                  <Compass className="h-5 w-5 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm leading-tight">Controles PTZ y Zoom</h3>
+                  <p className="text-[11px] text-blue-200">{selectedCam.name} • {selectedCam.location}</p>
+                </div>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Lectura óptica automática de placas vehiculares (formato colombiano AAA-123 y AAA-12B) en las cámaras de la vía pública (Izquierda y Derecha).
-              </p>
+              <button
+                onClick={() => setShowControlsModal(false)}
+                className="rounded-full p-1.5 text-white/80 hover:bg-white/20 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Cuerpo del Modal */}
+            <div className="p-5 overflow-y-auto space-y-5">
+              {/* Cruceta Motorizada PTZ Ergonómica */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                  Giro del Motor (Pan / Tilt)
+                </span>
+                <div className="relative w-44 h-44 rounded-full bg-slate-100 dark:bg-slate-800 border-4 border-slate-200 dark:border-slate-700 shadow-inner flex items-center justify-center">
+                  {/* Botón Arriba */}
+                  <button
+                    onClick={() => handleMovePtz('up')}
+                    disabled={Boolean(ptzMoving)}
+                    className="absolute top-2 left-1/2 -translate-x-1/2 p-3 rounded-full bg-white dark:bg-slate-700 hover:bg-blue-600 hover:text-white text-slate-700 dark:text-slate-200 shadow-md active:scale-95 transition disabled:opacity-40"
+                    title="Girar Arriba"
+                  >
+                    <ArrowUp className="h-5 w-5" />
+                  </button>
+
+                  {/* Botón Izquierda */}
+                  <button
+                    onClick={() => handleMovePtz('left')}
+                    disabled={Boolean(ptzMoving)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white dark:bg-slate-700 hover:bg-blue-600 hover:text-white text-slate-700 dark:text-slate-200 shadow-md active:scale-95 transition disabled:opacity-40"
+                    title="Girar Izquierda"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+
+                  {/* Centro Indicador */}
+                  <div className="w-12 h-12 rounded-full bg-blue-600/15 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                    <Compass className={`h-6 w-6 ${ptzMoving ? 'animate-spin' : ''}`} />
+                  </div>
+
+                  {/* Botón Derecha */}
+                  <button
+                    onClick={() => handleMovePtz('right')}
+                    disabled={Boolean(ptzMoving)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white dark:bg-slate-700 hover:bg-blue-600 hover:text-white text-slate-700 dark:text-slate-200 shadow-md active:scale-95 transition disabled:opacity-40"
+                    title="Girar Derecha"
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                  </button>
+
+                  {/* Botón Abajo */}
+                  <button
+                    onClick={() => handleMovePtz('down')}
+                    disabled={Boolean(ptzMoving)}
+                    className="absolute bottom-2 left-1/2 -translate-x-1/2 p-3 rounded-full bg-white dark:bg-slate-700 hover:bg-blue-600 hover:text-white text-slate-700 dark:text-slate-200 shadow-md active:scale-95 transition disabled:opacity-40"
+                    title="Girar Abajo"
+                  >
+                    <ArrowDown className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Selector de Zoom Digital */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                    <ZoomIn className="h-3.5 w-3.5 text-blue-500" />
+                    Zoom Digital: {zoomLevel}x
+                  </span>
+                  {zoomLevel > 1 && (
+                    <button
+                      onClick={() => handleZoom(1)}
+                      className="text-[11px] font-bold text-rose-500 hover:underline flex items-center gap-1"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      <span>Restablecer</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  {[1, 2, 4, 8].map(z => (
+                    <button
+                      key={z}
+                      type="button"
+                      onClick={() => handleZoom(z)}
+                      className={`py-2 rounded-xl text-xs font-extrabold transition ${
+                        zoomLevel === z
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {z}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Presets de Guardia */}
+              <div>
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Posiciones Predefinidas
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => { handleSetPreset('porton', 'Portón Vehicular'); setShowControlsModal(false); }}
+                    className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:border-blue-500 text-center active:scale-95 transition"
+                  >
+                    <span className="text-lg block mb-0.5">🚗</span>
+                    <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 block">Portón</span>
+                  </button>
+                  <button
+                    onClick={() => { handleSetPreset('peatonal', 'Acceso Peatonal'); setShowControlsModal(false); }}
+                    className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:border-blue-500 text-center active:scale-95 transition"
+                  >
+                    <span className="text-lg block mb-0.5">🚶</span>
+                    <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 block">Peatonal</span>
+                  </button>
+                  <button
+                    onClick={() => { handleSetPreset('calle', 'Calle / Fachada'); setShowControlsModal(false); }}
+                    className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:border-blue-500 text-center active:scale-95 transition"
+                  >
+                    <span className="text-lg block mb-0.5">🛣️</span>
+                    <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 block">Calle</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Patrullaje 180° Anti-Puntos Ciegos */}
+              <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                    <Eye className="h-4 w-4 text-emerald-500" />
+                    <span>Patrullaje Continuo 180°</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Giro automático cada 60s
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleTogglePatrol}
+                  disabled={patrolLoading}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 ${
+                    patrolActive ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
+                  }`}
+                >
+                  {patrolLoading ? '...' : (patrolActive ? 'Detener' : 'Activar')}
+                </button>
+              </div>
+            </div>
+
+            {/* Footer del Modal */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0">
+              <button
+                onClick={() => setShowControlsModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 transition"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchAlprPlates}
-              disabled={alprLoading}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition"
-              title="Refrescar lista"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${alprLoading ? 'animate-spin' : ''}`} />
-              <span>Actualizar</span>
-            </button>
-            <button
-              onClick={handleScanPlate}
-              disabled={alprScanning}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition active:scale-95 disabled:opacity-50"
-            >
-              <Car className="h-4 w-4" />
-              <span>{alprScanning ? 'Escaneando vía...' : 'Escanear Calle Ahora'}</span>
-            </button>
+      {/* ─── MODAL DE INSPECCIÓN DE FOTO DE AUDITORÍA ALPR EN PANTALLA COMPLETA ─── */}
+      {inspectedPlate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-3xl rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Header */}
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-lg bg-amber-400 text-slate-950 font-mono font-black text-base tracking-widest border-2 border-slate-950">
+                  {inspectedPlate.plate}
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm text-white">{inspectedPlate.type || 'Vehículo'}</h4>
+                  <p className="text-[11px] text-slate-400">{inspectedPlate.camera} • {inspectedPlate.timestamp}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setInspectedPlate(null)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Selector de Pestañas: Foto General vs Placa Reconstruida */}
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-900/90 border-b border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => setInspectedTab('full')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  inspectedTab === 'full'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Camera className="h-3.5 w-3.5" />
+                <span>Foto General de la Cámara</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setInspectedTab('plate')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  inspectedTab === 'plate'
+                    ? 'bg-emerald-600 text-white shadow'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>Placa Reconstruida</span>
+              </button>
+            </div>
+
+            {/* Imagen en Alta Resolución */}
+            <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-slate-950">
+              <img
+                src={
+                  inspectedTab === 'plate'
+                    ? `${getRawBase()}/alpr/image/${inspectedPlate.id}?type=plate`
+                    : `${getRawBase()}/alpr/image/${inspectedPlate.id}?type=full`
+                }
+                alt={`Auditoría Fotográfica ${inspectedPlate.plate}`}
+                className="max-h-[62vh] w-auto max-w-full rounded-2xl object-contain border border-slate-800 shadow-2xl"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `${getRawBase()}/alpr/image/${inspectedPlate.id}?type=vehicle`;
+                }}
+              />
+            </div>
+
+            {/* Footer de Auditoría */}
+            <div className="p-3.5 bg-slate-900/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
+              <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>{inspectedTab === 'plate' ? 'Recorte nítido enderezado de la placa' : 'Captura panorámica en resolución nativa'}</span>
+              </span>
+              <button
+                onClick={() => setInspectedPlate(null)}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition active:scale-95"
+              >
+                Listo
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Notificación y Feedback Visual de Escaneo ALPR */}
-        {alprFeedback && (
-          <div className={`mb-4 p-3 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-            alprFeedback.type === 'success'
-              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-              : alprFeedback.type === 'error'
-              ? 'bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300'
-              : 'bg-blue-500/10 border border-blue-500/30 text-blue-700 dark:text-blue-300'
-          }`}>
-            {alprScanning ? <Loader2 className="w-4 h-4 animate-spin shrink-0 text-amber-500" /> : <Info className="w-4 h-4 shrink-0" />}
-            <span>{alprFeedback.text}</span>
-          </div>
-        )}
-
-        {/* Tabla o Lista de Placas Detectadas */}
-        {alprPlates.length === 0 ? (
-          <div className="text-center py-8 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800">
-            <Car className="h-10 w-10 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Detector ALPR en guardia sobre la Calle (Cámaras Izquierda y Derecha)
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1 max-w-md mx-auto">
-              Cada vehículo o motocicleta que transite frente al edificio será escaneado automáticamente y su placa quedará registrada aquí con fecha y hora.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-black uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="px-4 py-3">Placa Vehicular</th>
-                  <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3">Cámara</th>
-                  <th className="px-4 py-3">Fecha y Hora</th>
-                  <th className="px-4 py-3 text-right">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900">
-                {alprPlates.map(p => (
-                  <tr key={p.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
-                    <td className="px-4 py-3 font-mono font-black text-sm">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-yellow-400 text-slate-950 border-2 border-slate-950 font-black shadow-sm tracking-wider">
-                        {p.plate}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1">
-                        <Car className="h-3.5 w-3.5 text-blue-500" />
-                        {p.type || 'Vehículo'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 font-medium">
-                      {p.camera || 'Portón Principal'}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 font-medium">
-                      {p.timestamp}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3" /> Registrado
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      )}
 
       {/* MODAL DE DIAGNÓSTICO WIFI Y TEST DE REPETIDOR */}
       {showTelemetryModal && (

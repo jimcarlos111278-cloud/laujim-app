@@ -15,17 +15,26 @@ import android.telecom.Call;
 import android.telecom.CallAudioState;
 import android.view.View;
 import android.view.WindowManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import org.json.JSONObject;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class InCallActivity extends Activity implements CallManager.CallListener {
     private TextView tvAptBadge;
     private TextView tvAvatar;
+    private ImageView ivAvatar;
     private TextView tvCallerName;
     private TextView tvPhoneNumber;
     private TextView tvCallStatus;
@@ -81,6 +90,7 @@ public class InCallActivity extends Activity implements CallManager.CallListener
 
         tvAptBadge = findViewById(R.id.tvAptBadge);
         tvAvatar = findViewById(R.id.tvAvatar);
+        ivAvatar = findViewById(R.id.ivAvatar);
         tvCallerName = findViewById(R.id.tvCallerName);
         tvPhoneNumber = findViewById(R.id.tvPhoneNumber);
         tvCallStatus = findViewById(R.id.tvCallStatus);
@@ -196,10 +206,74 @@ public class InCallActivity extends Activity implements CallManager.CallListener
             return;
         }
 
+        // Show temporary state while looking up
         tvCallerName.setText(rawNumber);
-        tvAptBadge.setText("📞 Llamada Telefónica");
+        tvAptBadge.setText("🔍 Identificando llamada...");
         tvAptBadge.setVisibility(View.VISIBLE);
         tvAvatar.setText("#");
+
+        // Server-side lookup (Truecaller, spam DB, carrier, WhatsApp avatar)
+        final String lookupNumber = norm;
+        new Thread(() -> {
+            try {
+                String server = CallGuardStore.getServerUrl(InCallActivity.this);
+                URL url = new URL(server + "/api/callguard/lookup?phone=" + lookupNumber);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(4000);
+                conn.setReadTimeout(4000);
+
+                if (conn.getResponseCode() == 200) {
+                    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) sb.append(line);
+                    br.close();
+
+                    JSONObject result = new JSONObject(sb.toString());
+                    final String name = result.optString("name", rawNumber);
+                    final String badge = result.optString("badge", "📞 Llamada");
+                    final boolean isSpam = result.optBoolean("isSpam", false);
+                    final int spamScore = result.optInt("spamScore", 0);
+                    final String avatarUrlStr = result.optString("avatarUrl", null);
+
+                    // Download avatar bitmap if available
+                    final Bitmap avatarBitmap;
+                    if (avatarUrlStr != null && !avatarUrlStr.isEmpty()) {
+                        Bitmap tmp = null;
+                        try {
+                            InputStream imgStream = new URL(avatarUrlStr).openStream();
+                            tmp = BitmapFactory.decodeStream(imgStream);
+                            imgStream.close();
+                        } catch (Exception ignored) {}
+                        avatarBitmap = tmp;
+                    } else {
+                        avatarBitmap = null;
+                    }
+
+                    runOnUiThread(() -> {
+                        tvCallerName.setText(name);
+                        tvAptBadge.setText(badge);
+                        tvAptBadge.setVisibility(View.VISIBLE);
+
+                        if (isSpam) {
+                            tvAptBadge.setBackgroundColor(0x33EF4444);
+                            tvCallerName.setTextColor(0xFFEF4444);
+                        }
+
+                        if (avatarBitmap != null) {
+                            ivAvatar.setImageBitmap(avatarBitmap);
+                            ivAvatar.setVisibility(View.VISIBLE);
+                            tvAvatar.setVisibility(View.GONE);
+                        } else if (!name.isEmpty() && !name.equals(rawNumber)) {
+                            tvAvatar.setText(name.substring(0, 1).toUpperCase());
+                        }
+                    });
+                }
+            } catch (Exception ignored) {
+                // Keep the default display on failure
+            }
+        }).start();
     }
 
     private String getContactName(Context context, String phone) {
