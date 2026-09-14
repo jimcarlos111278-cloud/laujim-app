@@ -3,17 +3,34 @@ let dialNumber = '';
 let tenantsList = [];
 let blockedList = [];
 
-// Init UI & Events
 document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
   setupDialer();
   loadData();
-  
+
   document.getElementById('btnSync').addEventListener('click', handleSync);
   document.getElementById('btnSaveSettings').addEventListener('click', saveSettings);
   document.getElementById('btnClearBlocked').addEventListener('click', clearBlocked);
   document.getElementById('btnRequestRole').addEventListener('click', requestRole);
   document.getElementById('contactSearch').addEventListener('input', filterContacts);
+
+  const btnSetDefault = document.getElementById('btnSetDefaultDialer');
+  if (btnSetDefault) {
+    btnSetDefault.addEventListener('click', () => {
+      if (window.CallGuardNative && window.CallGuardNative.requestDefaultDialer) {
+        window.CallGuardNative.requestDefaultDialer();
+      }
+    });
+  }
+
+  const btnSettingsDialer = document.getElementById('btnSettingsRoleDialer');
+  if (btnSettingsDialer) {
+    btnSettingsDialer.addEventListener('click', () => {
+      if (window.CallGuardNative && window.CallGuardNative.requestDefaultDialer) {
+        window.CallGuardNative.requestDefaultDialer();
+      }
+    });
+  }
 });
 
 function setupNavigation() {
@@ -22,7 +39,7 @@ function setupNavigation() {
     item.addEventListener('click', () => {
       items.forEach(i => i.classList.remove('active'));
       item.classList.add('active');
-      
+
       const tabId = item.getAttribute('data-tab');
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
@@ -43,27 +60,58 @@ function setupDialer() {
 
   keys.forEach(k => {
     k.addEventListener('click', () => {
-      dialNumber += k.getAttribute('data-val');
+      const val = k.getAttribute('data-val');
+      dialNumber += val;
+      vibrate(20);
       updateDialerDisplay();
     });
   });
 
+  // Long press on '0' to type '+'
+  const zeroKey = document.querySelector('.key-btn[data-val="0"]');
+  if (zeroKey) {
+    let zeroTimer = null;
+    zeroKey.addEventListener('touchstart', () => {
+      zeroTimer = setTimeout(() => {
+        if (dialNumber.endsWith('0')) {
+          dialNumber = dialNumber.slice(0, -1) + '+';
+        } else {
+          dialNumber += '+';
+        }
+        vibrate(40);
+        updateDialerDisplay();
+      }, 500);
+    });
+    zeroKey.addEventListener('touchend', () => clearTimeout(zeroTimer));
+  }
+
   backspace.addEventListener('click', () => {
     dialNumber = dialNumber.slice(0, -1);
+    vibrate(15);
     updateDialerDisplay();
   });
 
-  // Long press backspace to clear all
   let bsTimer = null;
   backspace.addEventListener('touchstart', () => {
-    bsTimer = setTimeout(() => { dialNumber = ''; updateDialerDisplay(); }, 600);
+    bsTimer = setTimeout(() => {
+      dialNumber = '';
+      vibrate(50);
+      updateDialerDisplay();
+    }, 600);
   });
   backspace.addEventListener('touchend', () => clearTimeout(bsTimer));
 
   callBtn.addEventListener('click', () => {
     if (!dialNumber) return;
+    vibrate(35);
     makeCall(dialNumber);
   });
+}
+
+function vibrate(ms) {
+  try {
+    if (navigator.vibrate) navigator.vibrate(ms);
+  } catch (e) {}
 }
 
 function updateDialerDisplay() {
@@ -84,7 +132,7 @@ function formatPhone(num) {
   if (!num) return '';
   const clean = num.replace(/\D/g, '');
   if (clean.length === 10) {
-    return `(${clean.slice(0, 3)}) ${clean.slice(3, 6)}-${clean.slice(6)}`;
+    return `${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6)}`;
   }
   return num;
 }
@@ -95,10 +143,12 @@ function searchDialerMatches() {
     container.classList.add('hidden');
     return;
   }
-  const query = dialNumber.toLowerCase();
-  const matches = tenantsList.filter(t => 
-    t.normalizedPhone.includes(query) || (t.name && t.name.toLowerCase().includes(query))
-  ).slice(0, 3);
+  const query = dialNumber.replace(/\D/g, '');
+  const matches = (tenantsList || []).filter(t => {
+    const p = (t.phone || '').replace(/\D/g, '');
+    const n = (t.name || '').toLowerCase();
+    return p.includes(query) || n.includes(dialNumber.toLowerCase());
+  }).slice(0, 2);
 
   if (matches.length === 0) {
     container.classList.add('hidden');
@@ -106,12 +156,20 @@ function searchDialerMatches() {
   }
 
   container.innerHTML = matches.map(m => `
-    <div class="match-item" onclick="selectMatch('${m.phone}')">
-      <div>
-        <span class="match-name">${m.name}</span>
-        <span class="match-apt">${m.apartment}</span>
+    <div class="match-item">
+      <div class="match-left" onclick="selectMatch('${m.phone}')">
+        <div class="match-avatar">${(m.name || 'I').substring(0, 1).toUpperCase()}</div>
+        <div>
+          <div style="display:flex;align-items:center;">
+            <span class="match-name">${m.name}</span>
+            <span class="match-apt">Apto ${m.apartment}</span>
+          </div>
+          <div style="font-size:11px;color:#94A3B8;margin-top:1px;">${m.phone}</div>
+        </div>
       </div>
-      <span style="font-size:11px;color:#94A3B8;">${m.phone}</span>
+      <div class="match-actions">
+        <button class="action-btn-call" style="width:32px;height:32px;" onclick="makeCall('${m.phone}')" title="Llamar">📞</button>
+      </div>
     </div>
   `).join('');
   container.classList.remove('hidden');
@@ -121,6 +179,17 @@ window.selectMatch = function(phone) {
   dialNumber = phone.replace(/\D/g, '');
   updateDialerDisplay();
   makeCall(dialNumber);
+};
+
+window.setDialNumber = function(num) {
+  dialNumber = (num || '').trim();
+  updateDialerDisplay();
+  const keypadTab = document.querySelector('.nav-item[data-tab="tabKeypad"]');
+  if (keypadTab) keypadTab.click();
+};
+
+window.onAppResume = function() {
+  loadData();
 };
 
 function makeCall(number) {
@@ -141,6 +210,194 @@ function openWhatsApp(number) {
   }
 }
 
+function loadData() {
+  if (window.CallGuardNative) {
+    try {
+      const statusRaw = window.CallGuardNative.getStatus();
+      const status = JSON.parse(statusRaw);
+      updateStatusDisplay(status);
+
+      const tenantsRaw = window.CallGuardNative.getTenants ? window.CallGuardNative.getTenants() : '[]';
+      tenantsList = JSON.parse(tenantsRaw || '[]');
+      if (!tenantsList || tenantsList.length === 0) {
+        handleSync();
+      } else {
+        renderContacts();
+      }
+
+      const blockedRaw = window.CallGuardNative.getBlockedCalls();
+      blockedList = JSON.parse(blockedRaw || '[]');
+      updateBlockedBadge();
+    } catch (e) {
+      console.error('Error loading native data', e);
+    }
+  } else {
+    // Simulated in browser for testing
+    tenantsList = [
+      { id: 1, name: 'Jim Carlos Varela', apartment: '101', phone: '3001234567' },
+      { id: 2, name: 'Ana Gomez', apartment: '201', phone: '3109876543' }
+    ];
+    renderContacts();
+    updateStatusDisplay({ isDefaultDialer: false, roleGranted: true, allowedCount: 2 });
+  }
+}
+
+function updateStatusDisplay(status) {
+  const badge = document.getElementById('dbStatusBadge');
+  const text = document.getElementById('dbStatusText');
+  const count = status.allowedCount || tenantsList.length;
+
+  badge.className = 'db-status connected';
+  text.textContent = `Laujim DB (${count})`;
+
+  // Default Dialer Banner
+  const banner = document.getElementById('bannerDefaultDialer');
+  if (banner) {
+    if (status.isDefaultDialer) {
+      banner.classList.add('hidden');
+    } else {
+      banner.classList.remove('hidden');
+    }
+  }
+
+  // Settings View Statuses
+  const dialerDesc = document.getElementById('defaultDialerStatusDesc');
+  if (dialerDesc) {
+    dialerDesc.textContent = status.isDefaultDialer
+      ? '✅ Laujim es la app predeterminada para llamadas.'
+      : '⚠️ Laujim NO está predeterminada. Toca para asignar.';
+  }
+
+  const roleDesc = document.getElementById('roleStatusDesc');
+  if (roleDesc) {
+    roleDesc.textContent = status.roleGranted
+      ? '✅ Filtro Call Screening activo.'
+      : '⚠️ Permiso de screening no otorgado.';
+  }
+}
+
+function handleSync() {
+  const badge = document.getElementById('dbStatusBadge');
+  const text = document.getElementById('dbStatusText');
+  badge.className = 'db-status loading';
+  text.textContent = 'Sincronizando...';
+
+  if (window.CallGuardNative && window.CallGuardNative.syncWithServer) {
+    const resRaw = window.CallGuardNative.syncWithServer();
+    try {
+      const res = JSON.parse(resRaw);
+      if (res.ok) {
+        setTimeout(loadData, 300);
+      } else {
+        badge.className = 'db-status error';
+        text.textContent = 'Error de conexión';
+      }
+    } catch (e) {
+      badge.className = 'db-status error';
+      text.textContent = 'Error';
+    }
+  }
+}
+
+function renderContacts() {
+  const container = document.getElementById('contactsList');
+  const badge = document.getElementById('tenantCountBadge');
+  badge.textContent = tenantsList.length;
+
+  if (tenantsList.length === 0) {
+    container.innerHTML = '<div class="empty-state">No hay inquilinos sincronizados.<br><br><button class="btn-primary-sm" onclick="handleSync()">Sincronizar con Laujim</button></div>';
+    return;
+  }
+
+  container.innerHTML = tenantsList.map(t => {
+    const initial = (t.name || 'I').substring(0, 1).toUpperCase();
+    return `
+      <div class="contact-card">
+        <div class="contact-card-left" onclick="selectMatch('${t.phone}')">
+          <div class="contact-avatar">${initial}</div>
+          <div class="contact-info">
+            <span class="contact-name">${t.name}</span>
+            <div class="contact-meta">
+              <span class="contact-apt">Apto ${t.apartment}</span>
+              <span class="contact-phone">${formatPhone(t.phone)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="contact-actions">
+          <button class="action-btn-call" onclick="makeCall('${t.phone}')" title="Llamar">📞</button>
+          <button class="action-btn-wa" onclick="openWhatsApp('${t.phone}')" title="WhatsApp">💬</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterContacts() {
+  const query = (document.getElementById('contactSearch').value || '').toLowerCase().trim();
+  const cards = document.querySelectorAll('.contact-card');
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    card.style.display = text.includes(query) ? 'flex' : 'none';
+  });
+}
+
+function renderBlocked() {
+  const container = document.getElementById('blockedList');
+  if (blockedList.length === 0) {
+    container.innerHTML = '<div class="empty-state">No hay llamadas bloqueadas registradas.<br>El filtro está vigilando 24/7.</div>';
+    return;
+  }
+
+  container.innerHTML = blockedList.map(b => {
+    const isFraud = (b.category === 'fraud');
+    const tagClass = isFraud ? 'tag-fraud' : 'tag-unknown';
+    const tagText = isFraud ? '⚠️ Sospecha Fraude' : '🔒 Desconocido';
+    const date = new Date(b.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    return `
+      <div class="blocked-card">
+        <div class="blocked-top">
+          <span class="blocked-number">${b.phone}</span>
+          <span class="blocked-tag ${tagClass}">${tagText}</span>
+        </div>
+        <div class="blocked-reason">${b.reason || 'Llamada no autorizada'}</div>
+        <div class="blocked-bottom">
+          <span class="blocked-time">${date}</span>
+          <div class="blocked-actions">
+            <button class="btn-wa-sm" onclick="openWhatsApp('${b.phone}')">Ver WA</button>
+            <button class="btn-auth-sm" onclick="authorizeNumber('${b.phone}')">Autorizar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateBlockedBadge() {
+  const badge = document.getElementById('blockedBadgeCount');
+  if (blockedList.length > 0) {
+    badge.textContent = blockedList.length;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function clearBlocked() {
+  if (window.CallGuardNative && window.CallGuardNative.clearBlockedCalls) {
+    window.CallGuardNative.clearBlockedCalls();
+  }
+  blockedList = [];
+  renderBlocked();
+  updateBlockedBadge();
+}
+
+function requestRole() {
+  if (window.CallGuardNative && window.CallGuardNative.requestRole) {
+    window.CallGuardNative.requestRole();
+  }
+}
+
 function authorizeNumber(number) {
   if (window.CallGuardNative && window.CallGuardNative.authorizeNumber) {
     window.CallGuardNative.authorizeNumber(number);
@@ -149,220 +406,8 @@ function authorizeNumber(number) {
   loadData();
 }
 
-async function loadData() {
-  updateDbStatus('loading', 'Consultando DB...');
-  
-  // 1. Fetch tenants from server or native bridge
-  try {
-    const server = getServerUrl();
-    const res = await fetch(server + '/api/callguard/tenants', { signal: AbortSignal.timeout(6000) });
-    if (res.ok) {
-      const data = await res.json();
-      tenantsList = data.tenants || [];
-      document.getElementById('tenantCountBadge').innerText = tenantsList.length;
-      updateDbStatus('connected', '🟢 Conectado (' + tenantsList.length + ' Inquilinos)');
-      
-      // Sync with native store if bridge available
-      if (window.CallGuardNative && window.CallGuardNative.syncWithServer) {
-        window.CallGuardNative.syncWithServer();
-      }
-    } else {
-      throw new Error('HTTP ' + res.status);
-    }
-  } catch (err) {
-    updateDbStatus('error', '🔴 Error DB (' + (err.message || 'Offline') + ')');
-  }
-
-  // 2. Load blocked calls
-  loadBlockedCalls();
-}
-
-function updateDbStatus(type, text) {
-  const badge = document.getElementById('dbStatusBadge');
-  const txt = document.getElementById('dbStatusText');
-  badge.className = 'db-status ' + type;
-  txt.innerText = text;
-}
-
-function getServerUrl() {
-  const input = document.getElementById('txtServerUrl');
-  return (input && input.value.trim()) || 'https://conjunto-residendial-laujim.duckdns.org';
-}
-
-async function loadBlockedCalls() {
-  if (window.CallGuardNative && window.CallGuardNative.getBlockedCalls) {
-    try {
-      const raw = window.CallGuardNative.getBlockedCalls();
-      blockedList = JSON.parse(raw);
-    } catch {}
-  } else {
-    // Web mock/server fallback
-    try {
-      const res = await fetch(getServerUrl() + '/api/callguard/blocked-calls');
-      if (res.ok) {
-        const data = await res.json();
-        blockedList = data.blockedCalls || [];
-      }
-    } catch {}
-  }
-
-  const badge = document.getElementById('blockedBadgeCount');
-  if (blockedList.length > 0) {
-    badge.innerText = blockedList.length;
-    badge.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden');
-  }
-
-  if (currentTab === 'tabBlocked') renderBlocked();
-}
-
-function renderBlocked() {
-  const container = document.getElementById('blockedList');
-  if (!blockedList || blockedList.length === 0) {
-    container.innerHTML = '<div class="empty-state">No hay llamadas bloqueadas registradas.<br><span style="font-size:11px;opacity:0.7;">Cuando un número no autenticado llame, será rechazado en silencio.</span></div>';
-    return;
-  }
-
-  container.innerHTML = blockedList.map(b => {
-    const timeStr = b.timestamp ? new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    const dateStr = b.timestamp ? new Date(b.timestamp).toLocaleDateString([], { day: 'numeric', month: 'short' }) : '';
-    const isMobile = b.hasWhatsApp || (b.phone && b.phone.startsWith('3') && b.phone.length === 10);
-
-    return `
-      <div class="blocked-card">
-        <div class="blocked-info">
-          <div class="avatar blocked">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-            </svg>
-            ${isMobile ? '<span class="wa-indicator" title="Tiene WhatsApp"></span>' : ''}
-          </div>
-          <div>
-            <div class="name">${b.name || 'Número Desconocido'}</div>
-            <div class="details">${b.phone} • ${dateStr} ${timeStr}</div>
-            <span class="reason-tag">${b.reason || 'Bloqueado por CallGuard'}</span>
-          </div>
-        </div>
-        <div class="card-actions">
-          ${isMobile ? `
-            <button class="btn-action btn-wa" onclick="openWhatsApp('${b.phone}')" title="Ver en WhatsApp">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-5.46-4.45-9.92-9.91-9.92z"/></svg>
-            </button>
-          ` : ''}
-          <button class="btn-action btn-call" onclick="makeCall('${b.phone}')" title="Llamar">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/></svg>
-          </button>
-          <button class="btn-action btn-allow" onclick="authorizeNumber('${b.phone}')" title="Autorizar">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderContacts() {
-  const container = document.getElementById('contactsList');
-  if (!tenantsList || tenantsList.length === 0) {
-    container.innerHTML = '<div class="empty-state">No hay inquilinos sincronizados.</div>';
-    return;
-  }
-
-  container.innerHTML = tenantsList.map(t => `
-    <div class="contact-card">
-      <div class="contact-info">
-        <div class="avatar">${t.name ? t.name.slice(0, 1).toUpperCase() : 'I'}</div>
-        <div>
-          <div class="name">${t.name}</div>
-          <div class="details">${t.apartment} • ${t.phone}</div>
-        </div>
-      </div>
-      <div class="card-actions">
-        <button class="btn-action btn-wa" onclick="openWhatsApp('${t.phone}')" title="WhatsApp">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-5.46-4.45-9.92-9.91-9.92z"/></svg>
-        </button>
-        <button class="btn-action btn-call" onclick="makeCall('${t.phone}')" title="Llamar">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/></svg>
-        </button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function filterContacts(e) {
-  const query = e.target.value.toLowerCase().trim();
-  const filtered = tenantsList.filter(t => 
-    t.name.toLowerCase().includes(query) || t.phone.includes(query) || (t.apartment && t.apartment.toLowerCase().includes(query))
-  );
-  const container = document.getElementById('contactsList');
-  if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty-state">No se encontraron contactos coincidentes.</div>';
-    return;
-  }
-  container.innerHTML = filtered.map(t => `
-    <div class="contact-card">
-      <div class="contact-info">
-        <div class="avatar">${t.name ? t.name.slice(0, 1).toUpperCase() : 'I'}</div>
-        <div>
-          <div class="name">${t.name}</div>
-          <div class="details">${t.apartment} • ${t.phone}</div>
-        </div>
-      </div>
-      <div class="card-actions">
-        <button class="btn-action btn-wa" onclick="openWhatsApp('${t.phone}')" title="WhatsApp">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-5.46-4.45-9.92-9.91-9.92z"/></svg>
-        </button>
-        <button class="btn-action btn-call" onclick="makeCall('${t.phone}')" title="Llamar">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/></svg>
-        </button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function updateSettingsView() {
-  if (window.CallGuardNative && window.CallGuardNative.getStatus) {
-    try {
-      const status = JSON.parse(window.CallGuardNative.getStatus());
-      const desc = document.getElementById('roleStatusDesc');
-      if (status.roleGranted) {
-        desc.innerText = '🟢 Rol activo. Android filtra llamadas entrantes automáticamente.';
-        document.getElementById('btnRequestRole').innerText = 'Permiso Activo';
-        document.getElementById('btnRequestRole').disabled = true;
-      } else {
-        desc.innerText = '⚠️ El rol de Call Screening no ha sido concedido todavía.';
-      }
-    } catch {}
-  }
-}
-
-function requestRole() {
-  if (window.CallGuardNative && window.CallGuardNative.requestRole) {
-    window.CallGuardNative.requestRole();
-  } else {
-    alert('Función disponible en la APK Android.');
-  }
-}
-
-function handleSync() {
-  const btn = document.getElementById('btnSync');
-  btn.style.transform = 'rotate(180deg)';
-  setTimeout(() => { btn.style.transform = ''; }, 600);
-  loadData();
-}
-
-function clearBlocked() {
-  if (!confirm('¿Deseas vaciar el historial de llamadas bloqueadas?')) return;
-  blockedList = [];
-  if (window.CallGuardNative && window.CallGuardNative.clearBlockedCalls) {
-    window.CallGuardNative.clearBlockedCalls();
-  }
-  renderBlocked();
-  document.getElementById('blockedBadgeCount').classList.add('hidden');
-}
-
 function saveSettings() {
-  alert('Ajustes guardados correctamente.');
-  loadData();
+  const url = document.getElementById('txtServerUrl').value.trim();
+  alert('Ajustes guardados. Conectando...');
+  handleSync();
 }

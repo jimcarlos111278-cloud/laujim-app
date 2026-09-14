@@ -7,7 +7,7 @@
 }
 
 body {
-  background: #0A0F1D;
+  background: #0B0F19;
   color: #F8FAFC;
   height: 100vh;
   overflow: hidden;
@@ -18,51 +18,62 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background: #0B0F19;
 }
 
-/* Header */
+/* Header with Safe Area Inset */
 .app-header {
-  height: 60px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 10px 18px;
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
   background: #0F172A;
   border-bottom: 1px solid #1E293B;
   flex-shrink: 0;
+  z-index: 20;
 }
 
-.app-brand {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .brand-icon {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, #23C16B, #1B9E56);
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #10B981, #059669);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 10px rgba(35, 193, 107, 0.3);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  flex-shrink: 0;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
 }
 
 .brand-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   color: #FFFFFF;
   line-height: 1.2;
+  letter-spacing: -0.2px;
 }
 
 .db-status {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 11px;
   font-weight: 600;
+  margin-top: 2px;
 }
 
 .db-status .dot {
@@ -89,82 +100,124 @@ body {
   background: #1E293B;
   border: 1px solid #334155;
   color: #E2E8F0;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .icon-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
+  background: #334155;
 }
 
-/* Main Panes */
+/* Default Dialer Promotion Banner */
+.default-dialer-banner {
+  background: linear-gradient(135deg, #1E3A8A, #065F46);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.default-dialer-banner.hidden {
+  display: none !important;
+}
+
+.banner-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.banner-icon {
+  font-size: 20px;
+}
+
+.banner-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.banner-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.banner-subtitle {
+  font-size: 10.5px;
+  color: #CBD5E1;
+  line-height: 1.2;
+}
+
+.banner-btn {
+  background: #10B981;
+  color: #FFFFFF;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.banner-btn:active {
+  transform: scale(0.94);
+  background: #059669;
+}
+
+/* Main Container */
 .app-main {
   flex: 1;
-  overflow-y: auto;
   position: relative;
+  overflow: hidden;
 }
 
 .tab-pane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: none;
-  height: 100%;
   flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab-pane.active {
   display: flex;
 }
 
-/* Dialpad Display */
+/* TAB 1: KEYPAD / DIALER */
+#tabKeypad {
+  justify-content: space-between;
+  padding-bottom: 16px;
+}
+
 .dialer-display {
-  padding: 16px;
-  text-align: center;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  min-height: 110px;
-}
-
-.matches-container {
-  max-height: 120px;
-  overflow-y: auto;
-  background: #1E293B;
-  border-radius: 12px;
-  margin-bottom: 8px;
-  padding: 6px;
-  border: 1px solid #334155;
-}
-
-.match-item {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.match-item:hover, .match-item:active {
-  background: #334155;
-}
-
-.match-name {
-  font-weight: 700;
-  color: #FFFFFF;
-}
-
-.match-apt {
-  font-size: 11px;
-  color: #38BDF8;
-  margin-left: 6px;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  min-height: 110px;
+  position: relative;
 }
 
 .display-input-wrap {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -172,283 +225,505 @@ body {
 }
 
 .phone-input {
+  width: 100%;
   background: transparent;
   border: none;
   color: #FFFFFF;
   font-size: 32px;
   font-weight: 700;
   text-align: center;
-  width: 100%;
-  letter-spacing: 1px;
   outline: none;
+  letter-spacing: 1px;
+}
+
+.phone-input::placeholder {
+  color: #475569;
+  font-size: 20px;
+  font-weight: 500;
 }
 
 .backspace-btn {
   position: absolute;
-  right: 12px;
+  right: 0;
   background: transparent;
   border: none;
   color: #94A3B8;
   padding: 8px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .backspace-btn:active {
-  color: #FFFFFF;
+  color: #EF4444;
   transform: scale(0.9);
 }
 
-/* Samsung OneUI Keypad Grid */
+/* Tenant Match Preview Cards */
+.matches-container {
+  width: 100%;
+  max-width: 340px;
+  background: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.match-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #334155;
+  cursor: pointer;
+}
+
+.match-item:last-child {
+  border-bottom: none;
+}
+
+.match-item:active {
+  background: #2A384C;
+}
+
+.match-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.match-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #10B981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+}
+
+.match-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.match-apt {
+  font-size: 11px;
+  font-weight: 700;
+  color: #34D399;
+  background: rgba(52, 211, 153, 0.15);
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: 6px;
+}
+
+.match-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.match-btn-call {
+  background: #10B981;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Keypad Grid (Samsung One UI Style) */
 .keypad-grid {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  align-items: center;
   gap: 12px;
-  padding: 0 24px;
+  margin: 0 auto;
 }
 
 .keypad-row {
   display: flex;
-  justify-content: space-around;
+  gap: 24px;
 }
 
 .key-btn {
-  width: 72px;
-  height: 72px;
+  width: 74px;
+  height: 74px;
   border-radius: 50%;
   background: #1E293B;
-  border: none;
+  border: 1px solid #334155;
   color: #FFFFFF;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.1s, background 0.1s;
+  transition: all 0.15s ease-out;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .key-btn:active {
+  transform: scale(0.90);
   background: #334155;
-  transform: scale(0.92);
+  border-color: #10B981;
 }
 
 .key-btn .digit {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 600;
   line-height: 1;
 }
 
 .key-btn .letters {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   color: #94A3B8;
-  letter-spacing: 1px;
-  margin-top: 2px;
+  letter-spacing: 1.5px;
+  margin-top: 3px;
+  height: 12px;
 }
 
 /* Call Button */
 .dialer-action {
-  padding: 12px 0 20px;
   display: flex;
   justify-content: center;
+  margin-top: 8px;
 }
 
 .call-btn {
-  width: 66px;
-  height: 66px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #23C16B, #1B9E56);
+  background: linear-gradient(135deg, #10B981, #059669);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 16px rgba(35, 193, 107, 0.4);
   cursor: pointer;
-  transition: transform 0.1s;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+  transition: all 0.15s;
 }
 
 .call-btn:active {
-  transform: scale(0.92);
+  transform: scale(0.90);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
 }
 
-/* Contacts & Blocked Lists */
+/* TAB 2: INQUILINOS DIRECTORY */
 .section-search {
-  padding: 12px 16px;
+  padding: 14px 18px 8px 18px;
 }
 
-.section-search input {
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  pointer-events: none;
+}
+
+.search-wrap input {
   width: 100%;
   background: #1E293B;
   border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 10px 14px;
-  color: white;
+  color: #FFFFFF;
   font-size: 14px;
+  padding: 12px 14px 12px 42px;
+  border-radius: 14px;
   outline: none;
 }
 
-.section-title {
-  padding: 8px 16px;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #94A3B8;
+.search-wrap input:focus {
+  border-color: #10B981;
+}
+
+.section-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 8px 20px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .badge {
-  background: #334155;
-  color: #38BDF8;
-  padding: 2px 8px;
-  border-radius: 12px;
+  background: #1E293B;
+  color: #34D399;
   font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid #334155;
 }
 
-.contacts-container, .blocked-container {
-  padding: 8px 16px;
+.contacts-container {
+  padding: 0 16px 20px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.contact-card, .blocked-card {
-  background: #1E293B;
+.contact-card {
+  background: #162032;
+  border: 1px solid #233249;
   border-radius: 14px;
   padding: 12px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid #334155;
 }
 
-.contact-info, .blocked-info {
+.contact-card-left {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.avatar {
+.contact-avatar {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #334155;
+  background: linear-gradient(135deg, #1E3A8A, #0284C7);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 16px;
   font-weight: 700;
   color: white;
-  font-size: 16px;
   flex-shrink: 0;
-  position: relative;
 }
 
-.avatar.blocked {
-  background: rgba(239, 68, 68, 0.15);
-  color: #EF4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+.contact-info {
+  display: flex;
+  flex-direction: column;
 }
 
-.wa-indicator {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 14px;
-  height: 14px;
-  background: #25D366;
-  border: 2px solid #1E293B;
-  border-radius: 50%;
-}
-
-.name {
-  font-size: 14px;
+.contact-name {
+  font-size: 14.5px;
   font-weight: 700;
   color: #FFFFFF;
 }
 
-.details {
-  font-size: 12px;
-  color: #94A3B8;
+.contact-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 2px;
 }
 
-.reason-tag {
-  display: inline-block;
-  font-size: 10px;
+.contact-apt {
+  font-size: 10.5px;
   font-weight: 700;
-  padding: 2px 6px;
+  color: #34D399;
+  background: rgba(52, 211, 153, 0.15);
+  padding: 1px 6px;
   border-radius: 6px;
-  background: rgba(239, 68, 68, 0.2);
-  color: #FCA5A5;
-  margin-top: 4px;
 }
 
-.card-actions {
+.contact-phone {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.contact-actions {
   display: flex;
   gap: 8px;
 }
 
-.btn-action {
-  width: 34px;
-  height: 34px;
+.action-btn-call {
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
+  background: #10B981;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: white;
   cursor: pointer;
 }
 
-.btn-call { background: #23C16B; color: white; }
-.btn-wa { background: #25D366; color: white; }
-.btn-allow { background: #3B82F6; color: white; }
-
-.empty-state {
-  text-align: center;
-  color: #64748B;
-  font-size: 13px;
-  padding: 40px 20px;
+.action-btn-call:active {
+  transform: scale(0.9);
+  background: #059669;
 }
 
-/* Blocked Header */
+.action-btn-wa {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #25D366;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+}
+
+.action-btn-wa:active {
+  transform: scale(0.9);
+}
+
+/* TAB 3: BLOCKED CALLS */
 .blocked-header {
-  padding: 16px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #1E293B;
 }
 
-.sub-title { font-size: 15px; font-weight: 700; color: white; }
-.sub-desc { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+.sub-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.sub-desc {
+  font-size: 11.5px;
+  color: #94A3B8;
+  margin-top: 2px;
+}
 
 .btn-clear-blocked {
-  background: #334155;
-  color: #94A3B8;
-  border: none;
+  background: #1E293B;
+  border: 1px solid #334155;
+  color: #EF4444;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.blocked-container {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.blocked-card {
+  background: #162032;
+  border: 1px solid #233249;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blocked-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.blocked-number {
+  font-size: 15px;
+  font-weight: 700;
+  color: #EF4444;
+}
+
+.blocked-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.tag-fraud {
+  background: rgba(239, 68, 68, 0.2);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.tag-unknown {
+  background: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.blocked-reason {
+  font-size: 12px;
+  color: #CBD5E1;
+}
+
+.blocked-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 6px;
+  border-top: 1px solid #1E293B;
+}
+
+.blocked-time {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.blocked-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-auth-sm {
+  background: #1E293B;
+  border: 1px solid #334155;
+  color: #34D399;
   font-size: 11px;
   font-weight: 700;
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: 8px;
   cursor: pointer;
 }
 
-/* Settings Group */
+.btn-wa-sm {
+  background: #25D366;
+  border: none;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* TAB 4: AJUSTES */
 .settings-group {
-  margin: 16px;
-  background: #1E293B;
+  margin: 14px 16px;
+  background: #162032;
+  border: 1px solid #233249;
   border-radius: 16px;
-  border: 1px solid #334155;
-  padding: 14px;
+  padding: 16px;
 }
 
 .settings-header {
   font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 700;
   color: #38BDF8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   margin-bottom: 12px;
 }
 
@@ -456,7 +731,28 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #1E293B;
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.btn-primary-sm {
+  background: #10B981;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn-primary-sm:active {
+  transform: scale(0.94);
+  background: #059669;
 }
 
 .setting-toggle {
@@ -464,56 +760,59 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 10px 0;
-  border-bottom: 1px solid #2D3748;
   font-size: 13px;
   color: #E2E8F0;
+  border-bottom: 1px solid #1E293B;
+  cursor: pointer;
 }
 
-.setting-toggle:last-child { border-bottom: none; }
+.setting-toggle:last-child {
+  border-bottom: none;
+}
 
 .setting-toggle input[type="checkbox"] {
   width: 20px;
   height: 20px;
-  accent-color: #23C16B;
+  accent-color: #10B981;
+}
+
+.setting-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
 .setting-input-wrap label {
   font-size: 12px;
   color: #94A3B8;
-  display: block;
-  margin-bottom: 4px;
+  font-weight: 600;
 }
 
 .setting-input-wrap input {
-  width: 100%;
-  background: #0F172A;
+  background: #0B0F19;
   border: 1px solid #334155;
+  color: white;
+  padding: 10px 14px;
   border-radius: 10px;
-  padding: 10px;
-  color: white;
   font-size: 13px;
-}
-
-.btn-primary-sm {
-  background: #23C16B;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 12px;
 }
 
 .btn-primary-full {
   width: 100%;
-  background: #23C16B;
+  background: #10B981;
   color: white;
   border: none;
   padding: 12px;
-  border-radius: 10px;
+  font-size: 13px;
   font-weight: 700;
-  font-size: 14px;
-  margin-top: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.btn-primary-full:active {
+  transform: scale(0.97);
+  background: #059669;
 }
 
 /* Bottom Navigation Bar */
@@ -525,6 +824,7 @@ body {
   align-items: center;
   justify-content: space-around;
   flex-shrink: 0;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 6px);
 }
 
 .nav-item {
@@ -534,23 +834,29 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 4px;
+  cursor: pointer;
   font-size: 11px;
   font-weight: 600;
-  cursor: pointer;
   flex: 1;
+  padding: 6px 0;
+  transition: all 0.15s;
 }
 
 .nav-item.active {
-  color: #23C16B;
+  color: #10B981;
+}
+
+.nav-item svg {
+  transition: transform 0.15s;
+}
+
+.nav-item.active svg {
+  transform: translateY(-2px);
 }
 
 .icon-wrap {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .nav-badge {
@@ -559,11 +865,31 @@ body {
   right: -8px;
   background: #EF4444;
   color: white;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   padding: 1px 5px;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
-.hidden { display: none !important; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748B;
+  font-size: 13px;
+}
+
+.text-muted {
+  color: #94A3B8;
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}

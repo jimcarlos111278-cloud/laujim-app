@@ -252,15 +252,26 @@ public class BackgroundNotificationService extends Service {
         Intent open = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent openPending = PendingIntent.getActivity(this, notificationId, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, MESSAGE_CHANNEL)
-            .setSmallIcon("intercom".equals(category) ? android.R.drawable.ic_popup_reminder : android.R.drawable.stat_notify_sync_noanim)
+            .setSmallIcon("intercom".equals(category) ? android.R.drawable.ic_popup_reminder : "upgrade".equals(category) ? android.R.drawable.stat_sys_download_done : android.R.drawable.stat_notify_sync_noanim)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setCategory("intercom".equals(category) ? NotificationCompat.CATEGORY_CALL : NotificationCompat.CATEGORY_STATUS)
-            .setPriority("intercom".equals(category) ? NotificationCompat.PRIORITY_MAX : NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority("intercom".equals(category) || "upgrade".equals(category) ? NotificationCompat.PRIORITY_MAX : NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(openPending);
-        if (sound || "intercom".equals(category)) builder.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE | Notification.DEFAULT_LIGHTS);
+
+        if ("upgrade".equals(category)) {
+            try {
+                String apkUrl = item.optString("apkUrl", "");
+                if (apkUrl.isEmpty()) apkUrl = "https://conjunto-residendial-laujim.duckdns.org/app-debug.apk";
+                Intent dlIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(apkUrl));
+                PendingIntent dlPending = PendingIntent.getActivity(this, notificationId + 1, dlIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                builder.addAction(android.R.drawable.stat_sys_download, "Descargar e Instalar", dlPending);
+            } catch (Exception ignored) {}
+        }
+
+        if (sound || "intercom".equals(category) || "upgrade".equals(category)) builder.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE | Notification.DEFAULT_LIGHTS);
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (manager != null) manager.notify(notificationId, builder.build());
     }
@@ -276,7 +287,7 @@ public class BackgroundNotificationService extends Service {
         String stage = item.optString("stage", "").toLowerCase(Locale.ROOT);
         String status = item.optString("status", "").toLowerCase(Locale.ROOT);
         String text = item.optString("text", "").toLowerCase(Locale.ROOT);
-        if ("intercom".equals(category)) {
+        if ("intercom".equals(category) || "upgrade".equals(category)) {
             return true;
         }
         if ("facebook".equals(category)) {

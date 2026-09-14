@@ -2,49 +2,61 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Laujim CallGuard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Laujim CallGuard Dialer</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
-    <!-- Top Header Status Bar -->
+    <!-- Top Header Status Bar (Safe Area Protected) -->
     <header class="app-header">
       <div class="header-left">
-        <div class="app-brand">
-          <div class="brand-icon">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/>
-            </svg>
-          </div>
-          <div>
-            <h1 class="brand-title">CallGuard Dialer</h1>
-            <div id="dbStatusBadge" class="db-status loading">
-              <span class="dot"></span>
-              <span id="dbStatusText">Conectando a DB...</span>
-            </div>
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="white">
+            <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">Laujim CallGuard</h1>
+          <div id="dbStatusBadge" class="db-status loading">
+            <span class="dot"></span>
+            <span id="dbStatusText">Conectando...</span>
           </div>
         </div>
       </div>
       <div class="header-right">
         <button id="btnSync" class="icon-btn" title="Sincronizar Inquilinos">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67"/>
           </svg>
         </button>
       </div>
     </header>
 
-    <!-- Main Content Container -->
+    <!-- Default Dialer Promotion Banner (Shown if not default phone app) -->
+    <div id="bannerDefaultDialer" class="default-dialer-banner">
+      <div class="banner-body">
+        <div class="banner-icon">⭐</div>
+        <div class="banner-info">
+          <span class="banner-title">App de llamadas predeterminada</span>
+          <span class="banner-subtitle">Activa Laujim para llamar directamente sin apps externas</span>
+        </div>
+      </div>
+      <button id="btnSetDefaultDialer" class="banner-btn">Activar</button>
+    </div>
+
+    <!-- Main Content Area -->
     <main class="app-main">
-      <!-- TAB 1: KEYPAD / TECLADO -->
+      <!-- TAB 1: TECLADO / DIALER -->
       <section id="tabKeypad" class="tab-pane active">
-        <!-- Number Display -->
         <div class="dialer-display">
+          <!-- Tenant Match Preview Card -->
           <div id="dialerMatches" class="matches-container hidden"></div>
+
+          <!-- Displayed Phone Input -->
           <div class="display-input-wrap">
             <input type="text" id="phoneInput" class="phone-input" placeholder="Ingresa un número..." readonly>
-            <button id="btnBackspace" class="backspace-btn hidden">
+            <button id="btnBackspace" class="backspace-btn hidden" title="Borrar">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
                 <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H7.07L2.4 12l4.66-7H22v14zm-11.59-2L14 13.41 17.59 17 19 15.59 15.41 12 19 8.41 17.59 7 14 10.59 10.41 7 9 8.41 12.59 12 9 15.59z"/>
               </svg>
@@ -52,10 +64,10 @@
           </div>
         </div>
 
-        <!-- Samsung OneUI Keypad Grid -->
+        <!-- Samsung One UI Tactile Keypad -->
         <div class="keypad-grid">
           <div class="keypad-row">
-            <button class="key-btn" data-val="1"><span class="digit">1</span><span class="letters"></span></button>
+            <button class="key-btn" data-val="1"><span class="digit">1</span><span class="letters">&nbsp;</span></button>
             <button class="key-btn" data-val="2"><span class="digit">2</span><span class="letters">ABC</span></button>
             <button class="key-btn" data-val="3"><span class="digit">3</span><span class="letters">DEF</span></button>
           </div>
@@ -70,33 +82,39 @@
             <button class="key-btn" data-val="9"><span class="digit">9</span><span class="letters">WXYZ</span></button>
           </div>
           <div class="keypad-row">
-            <button class="key-btn" data-val="*"><span class="digit">*</span><span class="letters"></span></button>
+            <button class="key-btn" data-val="*"><span class="digit">*</span><span class="letters">&nbsp;</span></button>
             <button class="key-btn" data-val="0"><span class="digit">0</span><span class="letters">+</span></button>
-            <button class="key-btn" data-val="#"><span class="digit">#</span><span class="letters"></span></button>
+            <button class="key-btn" data-val="#"><span class="digit">#</span><span class="letters">&nbsp;</span></button>
           </div>
         </div>
 
-        <!-- Action Call Bar -->
+        <!-- Call Action Bar -->
         <div class="dialer-action">
           <button id="btnCall" class="call-btn" title="Llamar">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="white">
               <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/>
             </svg>
           </button>
         </div>
       </section>
 
-      <!-- TAB 2: INQUILINOS Y CONTACTOS -->
+      <!-- TAB 2: INQUILINOS LAUJIM -->
       <section id="tabContacts" class="tab-pane">
         <div class="section-search">
-          <input type="text" id="contactSearch" placeholder="Buscar inquilino o teléfono...">
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#94A3B8" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="contactSearch" placeholder="Buscar inquilino, apto o teléfono...">
+          </div>
         </div>
-        <div class="section-title">
-          <span>Inquilinos Autorizados (Laujim DB)</span>
+        <div class="section-bar">
+          <span class="section-title">Directorio Oficial Laujim</span>
           <span id="tenantCountBadge" class="badge">0</span>
         </div>
         <div id="contactsList" class="contacts-container">
-          <div class="empty-state">Cargando inquilinos...</div>
+          <div class="empty-state">Cargando inquilinos autorizados...</div>
         </div>
       </section>
 
@@ -105,7 +123,7 @@
         <div class="blocked-header">
           <div>
             <h2 class="sub-title">Llamadas Bloqueadas Silenciosamente</h2>
-            <p class="sub-desc">Rechazadas automáticamente sin timbrar ni alertar.</p>
+            <p class="sub-desc">Protección activa 24/7 sin timbrar ni vibrar en el teléfono.</p>
           </div>
           <button id="btnClearBlocked" class="btn-clear-blocked">Limpiar</button>
         </div>
@@ -117,24 +135,33 @@
       <!-- TAB 4: AJUSTES -->
       <section id="tabSettings" class="tab-pane">
         <div class="settings-group">
-          <h3 class="settings-header">Estado del Filtro del Sistema</h3>
+          <h3 class="settings-header">Estado del Teléfono en Android</h3>
+          
           <div class="setting-item">
             <div>
-              <strong>Rol de Call Screening en Android</strong>
-              <p id="roleStatusDesc" class="text-muted">Verificando estado del sistema...</p>
+              <strong>App Predeterminada de Llamadas</strong>
+              <p id="defaultDialerStatusDesc" class="text-muted">Verificando rol predeterminado...</p>
             </div>
-            <button id="btnRequestRole" class="btn-primary-sm">Activar Permiso</button>
+            <button id="btnSettingsRoleDialer" class="btn-primary-sm">Configurar</button>
+          </div>
+
+          <div class="setting-item">
+            <div>
+              <strong>Filtro Call Screening</strong>
+              <p id="roleStatusDesc" class="text-muted">Verificando servicio de filtrado...</p>
+            </div>
+            <button id="btnRequestRole" class="btn-primary-sm">Activar</button>
           </div>
         </div>
 
         <div class="settings-group">
           <h3 class="settings-header">Reglas de Protección Anti-Fraude</h3>
           <label class="setting-toggle">
-            <span>Bloquear llamadas de desconocidos</span>
+            <span>Bloquear llamadas de números desconocidos</span>
             <input type="checkbox" id="chkBlockUnknown" checked>
           </label>
           <label class="setting-toggle">
-            <span>Permitir contactos de la agenda del teléfono</span>
+            <span>Permitir contactos de la agenda local</span>
             <input type="checkbox" id="chkAllowContacts" checked>
           </label>
           <label class="setting-toggle">
@@ -150,7 +177,7 @@
         <div class="settings-group">
           <h3 class="settings-header">Conexión con Base de Datos Laujim</h3>
           <div class="setting-input-wrap">
-            <label>URL del Servidor</label>
+            <label>URL del Servidor Central</label>
             <input type="text" id="txtServerUrl" value="https://conjunto-residendial-laujim.duckdns.org">
           </div>
           <button id="btnSaveSettings" class="btn-primary-full">Guardar y Re-sincronizar</button>
@@ -171,7 +198,7 @@
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
-        <span>Contactos</span>
+        <span>Inquilinos</span>
       </button>
 
       <button class="nav-item" data-tab="tabBlocked">

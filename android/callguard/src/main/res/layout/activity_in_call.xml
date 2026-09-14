@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootInCall"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0B0F19"
+    android:gravity="center_horizontal"
+    android:padding="24dp">
+
+    <!-- Top Badge / Header info -->
+    <TextView
+        android:id="@+id/tvAptBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🏢 Edificio Laujim"
+        android:textColor="#34D399"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:background="#132A22"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Avatar Circle -->
+    <TextView
+        android:id="@+id/tvAvatar"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:gravity="center"
+        android:text="?"
+        android:textColor="#FFFFFF"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:background="#1E293B"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Caller Name -->
+    <TextView
+        android:id="@+id/tvCallerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Llamando..."
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Phone Number -->
+    <TextView
+        android:id="@+id/tvPhoneNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#94A3B8"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Call Status / Duration -->
+    <TextView
+        android:id="@+id/tvCallStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Marcando..."
+        android:textColor="#22C55E"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- DTMF Keypad Container (Hidden by default) -->
+    <GridLayout
+        android:id="@+id/gridDtmf"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:visibility="gone"
+        android:layout_marginBottom="20dp">
+        <!-- Will populate dynamically or toggle -->
+    </GridLayout>
+
+    <!-- In-Call Actions Row (Mute, Speaker, Keypad) -->
+    <LinearLayout
+        android:id="@+id/layoutActiveControls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="32dp">
+
+        <!-- Mute Button -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btnMute"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="🔇"
+                android:textSize="20sp"
+                android:textColor="#FFFFFF"
+                android:background="#1E293B" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Silenciar"
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+
+        <!-- Speaker Button -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btnSpeaker"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="🔊"
+                android:textSize="20sp"
+                android:textColor="#FFFFFF"
+                android:background="#1E293B" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Altavoz"
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+
+        <!-- Keypad DTMF Toggle Button -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btnKeypadToggle"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="⌨️"
+                android:textSize="20sp"
+                android:textColor="#FFFFFF"
+                android:background="#1E293B" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Teclado"
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Bottom Actions: Hangup or Answer/Reject -->
+    <LinearLayout
+        android:id="@+id/layoutIncomingActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:visibility="gone"
+        android:layout_marginBottom="24dp">
+
+        <Button
+            android:id="@+id/btnReject"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:text="✕"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:background="#DC2626"
+            android:layout_marginEnd="40dp" />
+
+        <Button
+            android:id="@+id/btnAnswer"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:text="📞"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:background="#16A34A"
+            android:layout_marginStart="40dp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnHangup"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:text="📞"
+        android:textSize="26sp"
+        android:textColor="#FFFFFF"
+        android:background="#DC2626"
+        android:layout_marginBottom="24dp" />
+
+</LinearLayout>

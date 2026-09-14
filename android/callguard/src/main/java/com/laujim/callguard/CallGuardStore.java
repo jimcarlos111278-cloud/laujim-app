@@ -18,6 +18,7 @@ public final class CallGuardStore {
     private static final String KEY_AUTH_TOKEN = "auth_token";
     private static final String KEY_ALLOWED_NUMBERS = "allowed_numbers";
     private static final String KEY_BLOCKED_CALLS = "blocked_calls_json";
+    private static final String KEY_TENANTS_DATA = "tenants_data_json";
     private static final String KEY_ENABLED = "enabled";
     private static final String KEY_ALLOW_CONTACTS = "allow_contacts";
     private static final String KEY_ALLOW_DELIVERY = "allow_delivery";
@@ -171,5 +172,29 @@ public final class CallGuardStore {
 
     public static void clearBlockedCalls(Context context) {
         prefs(context).edit().putString(KEY_BLOCKED_CALLS, "[]").apply();
+    }
+
+    public static void saveTenantsData(Context context, String json) {
+        prefs(context).edit().putString(KEY_TENANTS_DATA, json).apply();
+    }
+
+    public static String getTenantsData(Context context) {
+        return prefs(context).getString(KEY_TENANTS_DATA, "[]");
+    }
+
+    public static JSONObject getTenantByPhone(Context context, String phone) {
+        String norm = normalize(phone);
+        if (norm.isEmpty()) return null;
+        try {
+            JSONArray arr = new JSONArray(getTenantsData(context));
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                String p = normalize(obj.optString("phone", ""));
+                if (norm.equals(p) || norm.endsWith(p) || p.endsWith(norm)) {
+                    return obj;
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 }

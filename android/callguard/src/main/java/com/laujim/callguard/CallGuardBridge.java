@@ -1,11 +1,16 @@
 package com.laujim.callguard;
 
+import android.Manifest;
 import android.app.role.RoleManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
+import android.telecom.TelecomManager;
 import android.webkit.JavascriptInterface;
+import androidx.core.content.ContextCompat;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.BufferedReader;
@@ -41,8 +46,40 @@ public class CallGuardBridge {
                 roleGranted = rm != null && rm.isRoleHeld(RoleManager.ROLE_CALL_SCREENING);
             }
             obj.put("roleGranted", roleGranted);
+            obj.put("isDefaultDialer", isDefaultDialer());
         } catch (Exception ignored) {}
         return obj.toString();
+    }
+
+    @JavascriptInterface
+    public boolean isDefaultDialer() {
+        Context ctx = activity;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            RoleManager rm = (RoleManager) ctx.getSystemService(Context.ROLE_SERVICE);
+            return rm != null && rm.isRoleHeld(RoleManager.ROLE_DIALER);
+        } else {
+            TelecomManager tm = (TelecomManager) ctx.getSystemService(Context.TELECOM_SERVICE);
+            return tm != null && ctx.getPackageName().equals(tm.getDefaultDialerPackage());
+        }
+    }
+
+    @JavascriptInterface
+    public void requestDefaultDialer() {
+        activity.runOnUiThread(() -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                RoleManager rm = (RoleManager) activity.getSystemService(Context.ROLE_SERVICE);
+                if (rm != null && rm.isRoleAvailable(RoleManager.ROLE_DIALER)) {
+                    activity.startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_DIALER), 2001);
+                }
+            } else {
+                TelecomManager tm = (TelecomManager) activity.getSystemService(Context.TELECOM_SERVICE);
+                if (tm != null && !activity.getPackageName().equals(tm.getDefaultDialerPackage())) {
+                    Intent intent = new Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER);
+                    intent.putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, activity.getPackageName());
+                    activity.startActivityForResult(intent, 2001);
+                }
+            }
+        });
     }
 
     @JavascriptInterface
@@ -83,6 +120,7 @@ public class CallGuardBridge {
                         JSONObject t = tenants.getJSONObject(i);
                         nums.add(t.optString("phone"));
                     }
+                    CallGuardStore.saveTenantsData(activity, tenants.toString());
                 }
                 CallGuardStore.saveAllowedNumbers(activity, nums);
                 return "{\"ok\":true,\"count\":" + nums.size() + "}";
@@ -91,6 +129,11 @@ public class CallGuardBridge {
         } catch (Exception e) {
             return "{\"ok\":false,\"error\":\"" + e.getMessage() + "\"}";
         }
+    }
+
+    @JavascriptInterface
+    public String getTenants() {
+        return CallGuardStore.getTenantsData(activity);
     }
 
     @JavascriptInterface
@@ -106,9 +149,29 @@ public class CallGuardBridge {
     @JavascriptInterface
     public void callNumber(String number) {
         activity.runOnUiThread(() -> {
-            Intent intent = new Intent(Intent.ACTION_DIAL);
-            intent.setData(Uri.parse("tel:" + Uri.encode(number)));
-            activity.startActivity(intent);
+            if (number == null || number.trim().isEmpty()) return;
+            String clean = number.trim();
+            Uri uri = Uri.fromParts("tel", clean, null);
+
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                activity.requestPermissions(new String[]{Manifest.permission.CALL_PHONE}, 3001);
+                return;
+            }
+
+            TelecomManager tm = (TelecomManager) activity.getSystemService(Context.TELECOM_SERVICE);
+            if (isDefaultDialer() && tm != null) {
+                try {
+                    Bundle extras = new Bundle();
+                    extras.putBoolean(TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
+                    tm.placeCall(uri, extras);
+                    return;
+                } catch (SecurityException ignored) {}
+            }
+
+            // Fallback: direct CALL intent (stays in call stack, does NOT open external dialer pad)
+            Intent callIntent = new Intent(Intent.ACTION_CALL, uri);
+            callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activity.startActivity(callIntent);
         });
     }
 

@@ -64,7 +64,7 @@ public class MainActivity extends BridgeActivity {
         // El scraper se ejecuta ahora exclusivamente en el servidor backend (Node/Oracle VM).
         // Desactivamos y cancelamos cualquier alarma local del celular para ahorrar batería.
         try {
-            ScraperWorkerSchedule.cancelAll(this);
+            ScraperWorkerSchedule.cancel(this);
             ScraperWorkerStore.setEnabled(this, false);
         } catch (Exception ignored) {}
     }

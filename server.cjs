@@ -74,7 +74,7 @@ app.use(async (req, res, next) => {
       return res.status(401).json({ error: 'No autorizado' });
     }
     req.auth = session;
-    const tenantPath = req.path === '/api/logout' || req.path === '/api/auth/verify' || req.path.startsWith('/api/tenant/') || req.path.startsWith('/api/intercom/');
+    const tenantPath = req.path === '/api/logout' || req.path === '/api/auth/verify' || req.path.startsWith('/api/tenant/') || req.path.startsWith('/api/intercom/') || req.path === '/api/notifications/events';
     if (session.role === 'tenant' && !tenantPath) {
       return res.status(403).json({ error: 'Acceso restringido al apartamento autenticado' });
     }
@@ -10568,8 +10568,77 @@ app.get('/api/notifications/events', (req, res) => {
     items.push(...paymentItems);
   }
 
+  // Upgrade notifications broadcast for all mobile devices (Admin and Tenants)
+  const upgradeBroadcasts = Array.isArray(db.upgradeBroadcasts) ? db.upgradeBroadcasts : [];
+  let latestAppVersion = '';
+  try {
+    const verPath = path.join(__dirname, 'public', 'app-version.json');
+    if (fs.existsSync(verPath)) {
+      const verObj = JSON.parse(fs.readFileSync(verPath, 'utf8'));
+      latestAppVersion = String(verObj?.version || '').trim();
+    }
+  } catch {}
+
+  if (latestAppVersion && !upgradeBroadcasts.some(b => b.version === latestAppVersion)) {
+    const autoBroadcast = {
+      id: Date.now(),
+      version: latestAppVersion,
+      title: `🚀 Nueva versión disponible v${latestAppVersion}`,
+      text: `Toca aquí para descargar e instalar la versión v${latestAppVersion} de Laujim.`,
+      apkUrl: `https://conjunto-residendial-laujim.duckdns.org/app-debug.apk?v=${encodeURIComponent(latestAppVersion)}`,
+      createdAt: new Date().toISOString()
+    };
+    if (!Array.isArray(db.upgradeBroadcasts)) db.upgradeBroadcasts = [];
+    db.upgradeBroadcasts.unshift(autoBroadcast);
+    saveData();
+    upgradeBroadcasts.unshift(autoBroadcast);
+  }
+
+  const upgradeItems = upgradeBroadcasts
+    .filter(b => {
+      const time = new Date(b.createdAt || 0).getTime();
+      return Number.isFinite(time) && (sinceMs === 0 || time > sinceMs);
+    })
+    .slice(0, 10)
+    .map(b => ({
+      id: `upgrade-${b.version || b.id}`,
+      category: 'upgrade',
+      title: b.title || `🚀 Nueva versión disponible v${b.version || latestAppVersion}`,
+      text: b.text || `Toca aquí para descargar e instalar la versión v${b.version || latestAppVersion} de Laujim.`,
+      level: 'warn',
+      apkUrl: b.apkUrl || `https://conjunto-residendial-laujim.duckdns.org/app-debug.apk?v=${encodeURIComponent(b.version || latestAppVersion)}`,
+      createdAt: b.createdAt || new Date().toISOString()
+    }));
+  items.push(...upgradeItems);
+
   items.sort((left, right) => new Date(left.createdAt || 0) - new Date(right.createdAt || 0));
   res.json({ items });
+});
+
+app.post('/api/admin/broadcast-upgrade', (req, res) => {
+  if (req.auth?.role !== 'admin') return res.status(403).json({ error: 'No autorizado' });
+  let version = String(req.body?.version || '').trim();
+  if (!version) {
+    try {
+      const verPath = path.join(__dirname, 'public', 'app-version.json');
+      if (fs.existsSync(verPath)) {
+        version = JSON.parse(fs.readFileSync(verPath, 'utf8'))?.version || '1.0.126';
+      }
+    } catch { version = '1.0.126'; }
+  }
+  if (!Array.isArray(db.upgradeBroadcasts)) db.upgradeBroadcasts = [];
+  const event = {
+    id: Date.now(),
+    version,
+    title: `🚀 Nueva versión disponible v${version}`,
+    text: `Toca aquí para descargar e instalar la versión v${version} de Laujim.`,
+    apkUrl: `https://conjunto-residendial-laujim.duckdns.org/app-debug.apk?v=${encodeURIComponent(version)}`,
+    createdAt: new Date().toISOString()
+  };
+  db.upgradeBroadcasts.unshift(event);
+  if (db.upgradeBroadcasts.length > 20) db.upgradeBroadcasts.length = 20;
+  saveData();
+  res.json({ ok: true, broadcast: event });
 });
 
 // Media is proxied through the authenticated backend so the browser never
