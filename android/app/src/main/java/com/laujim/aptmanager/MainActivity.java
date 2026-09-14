@@ -61,13 +61,12 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
-        // Opening Laujim is also a safe recovery point after Android has
-        // reclaimed the app process. Rebuild the alarm and WorkManager
-        // fallback when the worker was already enabled; this does not start a
-        // duplicate run because the dispatcher owns the duplicate window.
-        if (ScraperWorkerStore.enabled(this)) {
-            ScraperWorkerSchedule.scheduleAll(this, "app-resumed");
-        }
+        // El scraper se ejecuta ahora exclusivamente en el servidor backend (Node/Oracle VM).
+        // Desactivamos y cancelamos cualquier alarma local del celular para ahorrar batería.
+        try {
+            ScraperWorkerSchedule.cancelAll(this);
+            ScraperWorkerStore.setEnabled(this, false);
+        } catch (Exception ignored) {}
     }
 
     private void installMediaWebChromeClient() {

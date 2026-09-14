@@ -3708,6 +3708,24 @@ async function scrapeAirE() {
     }
   }
 
+  if (!results.length && lastScrapeError) {
+    const now = new Date().toISOString();
+    for (const [nic, aptId] of Object.entries(AIR_E_NIC_MAP)) {
+      results.push({
+        provider: 'Air-e',
+        service: 'electricity',
+        apartmentId: aptId,
+        nic,
+        status: 'error',
+        deudaCOP: null,
+        deudaTotalCOP: null,
+        error: lastScrapeError,
+        checkedAt: now,
+        lastAttemptAt: now,
+      });
+    }
+  }
+
   return results;
 }
 

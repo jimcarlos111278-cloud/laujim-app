@@ -303,46 +303,6 @@ const occupiedApts = apartments.filter(apartment =>
           </button>
         </div>
       </div>
-      {/* ACCESO RÁPIDO A CÁMARAS Y DESCARGA DE GRABACIONES */}
-      <div className="rounded-2xl border border-blue-200/80 dark:border-blue-900/50 bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-slate-900 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/20 shrink-0">
-            <Camera className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-sm sm:text-base text-white">
-                Cámaras de Seguridad & Descarga de Grabaciones
-              </h3>
-              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                3 Cámaras 24/7
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Transmisión HLS continua (25 FPS), detección de placas vehiculares y descarga de videos por fecha y hora.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-          <Link
-            to="/security#recordings-section"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold text-xs rounded-xl transition shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5 text-blue-400" />
-            <span>Descargar Video Horario</span>
-          </Link>
-
-          <Link
-            to="/security"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition shadow-md shadow-blue-500/20 active:scale-95"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Ver Cámaras en Vivo</span>
-          </Link>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Apartamentos" value={`${stats.occupied}/${stats.totalApts}`} subtitle={`${stats.vacant} disponibles`} icon={Building2} color="blue" />

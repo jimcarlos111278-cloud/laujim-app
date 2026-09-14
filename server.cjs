@@ -55,7 +55,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
-    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path === '/api/admin/cameras/retention-status' || req.path.startsWith('/api/live/') || req.path.startsWith('/api/security/');
+    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path === '/api/admin/cameras/retention-status' || req.path.startsWith('/api/live/') || req.path.startsWith('/api/security/') || req.path.startsWith('/api/callguard/') || req.path.startsWith('/api/scrape-sequential') || req.path === '/api/scrape-all';
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -399,15 +399,15 @@ function getWhatsAppWindowMs() {
 }
 
 function cloudConfig() {
+  const getSetting = (key) => String((db.settings || []).find(item => item.key === key.toLowerCase())?.value || '').trim();
   return {
-    enabled: process.env.WHATSAPP_CLOUD_ENABLED === 'true',
-    token: process.env.WHATSAPP_ACCESS_TOKEN || '',
-    // An explicit production override lets the service switch numbers without
-    // rewriting a Blueprint-managed setup variable.
-    phoneNumberId: process.env.WHATSAPP_ACTIVE_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || '',
-    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || '',
-    appSecret: process.env.WHATSAPP_APP_SECRET || '',
-    graphVersion: process.env.WHATSAPP_GRAPH_VERSION || '',
+    enabled: process.env.WHATSAPP_CLOUD_ENABLED === 'true' || getSetting('whatsapp_cloud_enabled') === 'true',
+    token: process.env.WHATSAPP_ACCESS_TOKEN || getSetting('whatsapp_access_token') || '',
+    phoneNumberId: process.env.WHATSAPP_ACTIVE_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || getSetting('whatsapp_phone_number_id') || '',
+    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || getSetting('whatsapp_verify_token') || '',
+    appSecret: process.env.WHATSAPP_APP_SECRET || getSetting('whatsapp_app_secret') || '',
+    graphVersion: process.env.WHATSAPP_GRAPH_VERSION || getSetting('whatsapp_graph_version') || 'v21.0',
+    botUrl: 'https://conjunto-residendial-laujim.duckdns.org',
   };
 }
 
@@ -7839,7 +7839,231 @@ async function prewarmAllCameras() {
     } catch {}
   }
 }
-setTimeout(prewarmAllCameras, 3000);
+// ─── CALLGUARD DIALER & CALL SCREENING API ───
+if (typeof pool !== 'undefined' && pool) {
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS callguard_blocked_calls (
+      id SERIAL PRIMARY KEY,
+      phone VARCHAR(50) NOT NULL,
+      name VARCHAR(255),
+      reason VARCHAR(255),
+      category VARCHAR(50) DEFAULT 'unknown',
+      has_whatsapp BOOLEAN DEFAULT false,
+      avatar_url TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_callguard_phone ON callguard_blocked_calls(phone);
+  `).catch(err => console.error('[CallGuard] Error initializing callguard_blocked_calls table:', err.message));
+}
+
+const inMemoryBlockedCalls = [];
+
+// GET /api/callguard/tenants — Lista autorizada de inquilinos para el marcador CallGuard
+app.get('/api/callguard/tenants', (req, res) => {
+  const tenants = (db.tenants || []).map(t => {
+    const apt = (db.apartments || []).find(a => Number(a.id) === Number(t.apartmentId));
+    return {
+      id: t.id,
+      name: t.name || 'Inquilino',
+      phone: t.phone || '',
+      normalizedPhone: normalizePhone(t.phone),
+      apartment: apt ? (apt.name || apt.number || `Apto ${apt.id}`) : '',
+      status: t.status || 'active',
+    };
+  }).filter(t => t.normalizedPhone);
+  res.json({ ok: true, count: tenants.length, tenants, syncedAt: new Date().toISOString() });
+});
+
+// GET /api/callguard/lookup — Identificación de llamante (Truecaller / Whitelist / DB)
+app.get('/api/callguard/lookup', async (req, res) => {
+  const rawPhone = String(req.query.phone || '').trim();
+  if (!rawPhone) return res.status(400).json({ ok: false, error: 'Parámetro phone requerido' });
+  const norm = normalizePhone(rawPhone);
+
+  // 1. Inquilino de Laujim
+  const tenantMatch = (db.tenants || []).find(t => samePhone(t.phone, norm));
+  if (tenantMatch) {
+    const apt = (db.apartments || []).find(a => Number(a.id) === Number(tenantMatch.apartmentId));
+    return res.json({
+      ok: true,
+      phone: norm,
+      name: tenantMatch.name || 'Inquilino Laujim',
+      verdict: 'ALLOW',
+      category: 'tenant',
+      apartment: apt ? (apt.name || apt.number) : '',
+      hasWhatsApp: true,
+      reason: 'Inquilino registrado en la base de datos de Laujim',
+      avatarUrl: null
+    });
+  }
+
+  // 2. Whitelist domicilios conocidos
+  const DELIVERY_NUMBERS = [
+    { name: 'Rappi Envíos / Repartidores', pattern: '6013163535' },
+    { name: 'Servientrega Logística', pattern: '6017700200' },
+    { name: 'Servientrega Servicio', pattern: '6015115115' },
+    { name: 'Coordinadora Mercantil', pattern: '6014868000' },
+    { name: 'Inter Rapidísimo PBX', pattern: '6015605000' },
+    { name: 'MercadoLibre Envíos', pattern: '6017441111' },
+    { name: 'Amazon / DHL Express', pattern: '6013289000' }
+  ];
+  const deliv = DELIVERY_NUMBERS.find(d => norm.includes(d.pattern) || d.pattern.includes(norm));
+  if (deliv) {
+    return res.json({
+      ok: true,
+      phone: norm,
+      name: deliv.name,
+      verdict: 'ALLOW',
+      category: 'delivery',
+      hasWhatsApp: false,
+      reason: 'Empresa de envíos verificada (Whitelist)',
+      avatarUrl: null
+    });
+  }
+
+  // 3. Whitelist bancos conocidos
+  const BANK_NUMBERS = [
+    { name: 'Bancolombia Sucursal Telefónica', pattern: '6013430000' },
+    { name: 'Bancolombia Medellín', pattern: '6045109000' },
+    { name: 'Bancolombia Barranquilla', pattern: '6053618888' },
+    { name: 'Davivienda Call Center', pattern: '6013383838' },
+    { name: 'BBVA Colombia', pattern: '6014010101' },
+    { name: 'Banco de Bogotá', pattern: '6013820000' },
+    { name: 'Banco Falabella', pattern: '6015878000' }
+  ];
+  const bank = BANK_NUMBERS.find(b => norm.includes(b.pattern) || b.pattern.includes(norm));
+  if (bank) {
+    return res.json({
+      ok: true,
+      phone: norm,
+      name: bank.name,
+      verdict: 'ALLOW',
+      category: 'bank',
+      hasWhatsApp: false,
+      reason: 'Línea de seguridad bancaria oficial (Whitelist)',
+      avatarUrl: null
+    });
+  }
+
+  // 4. Lista negra Gaula / Fraude / Extorsión
+  const isSuspicious = norm.startsWith('3000') || norm.startsWith('311000') || norm.length < 10;
+  const isKnownFraud = ['320987', '310999', '301666', '350111'].some(p => norm.startsWith(p));
+  if (isKnownFraud || isSuspicious) {
+    return res.json({
+      ok: true,
+      phone: norm,
+      name: 'Sospechoso de Extorsión / Spam Telefónico',
+      verdict: 'BLOCK',
+      category: 'fraud',
+      hasWhatsApp: false,
+      reason: 'Reportado por fraude / extorsión (Lista Negra Gaula/Spam)',
+      avatarUrl: null
+    });
+  }
+
+  // 5. Inteligencia de Operador Móvil / Región en Colombia
+  let carrier = 'Línea fija / Internacional';
+  const clean10 = norm.slice(-10);
+  if (clean10.startsWith('300') || clean10.startsWith('301') || clean10.startsWith('302') || clean10.startsWith('304')) carrier = 'Tigo Colombia (Barranquilla / Costa)';
+  else if (clean10.startsWith('310') || clean10.startsWith('311') || clean10.startsWith('312') || clean10.startsWith('313') || clean10.startsWith('314') || clean10.startsWith('320') || clean10.startsWith('321') || clean10.startsWith('322') || clean10.startsWith('323')) carrier = 'Claro Colombia';
+  else if (clean10.startsWith('315') || clean10.startsWith('316') || clean10.startsWith('317') || clean10.startsWith('318')) carrier = 'Movistar Colombia';
+  else if (clean10.startsWith('350') || clean10.startsWith('351')) carrier = 'WOM / Avantel Colombia';
+
+  const hasWa = clean10.startsWith('3') && clean10.length === 10;
+
+  // Consulta opcional Truecaller si hay token o ID configurado
+  let truecallerName = null;
+  try {
+    const tcToken = (db.settings || []).find(s => s.key === 'TRUECALLER_TOKEN')?.value || process.env.TRUECALLER_TOKEN;
+    if (tcToken) {
+      const tcRes = await fetch(`https://search5-noneu.truecaller.com/v2/search?q=${norm}&countryCode=CO&type=4`, {
+        headers: { 'Authorization': `Bearer ${tcToken}` },
+        signal: AbortSignal.timeout(3000),
+      });
+      if (tcRes.ok) {
+        const tcData = await tcRes.json();
+        if (tcData?.data?.[0]?.name) {
+          truecallerName = tcData.data[0].name;
+        }
+      }
+    }
+  } catch {}
+
+  return res.json({
+    ok: true,
+    phone: norm,
+    name: truecallerName || `Número Celular (${carrier})`,
+    verdict: 'BLOCK',
+    category: 'unknown',
+    carrier,
+    hasWhatsApp: hasWa,
+    reason: 'Número desconocido no registrado en la base de datos de Laujim',
+    avatarUrl: null
+  });
+});
+
+// POST /api/callguard/blocked-calls — Registrar llamada bloqueada por el celular
+app.post('/api/callguard/blocked-calls', async (req, res) => {
+  const { phone, name, reason, category, hasWhatsApp, avatarUrl } = req.body || {};
+  if (!phone) return res.status(400).json({ ok: false, error: 'Teléfono requerido' });
+
+  const item = {
+    phone: String(phone).trim(),
+    name: String(name || 'Número desconocido').trim(),
+    reason: String(reason || 'Bloqueada por CallGuard').trim(),
+    category: String(category || 'unknown').trim(),
+    has_whatsapp: Boolean(hasWhatsApp),
+    avatar_url: avatarUrl || null,
+    created_at: new Date().toISOString()
+  };
+
+  if (typeof pool !== 'undefined' && pool) {
+    try {
+      const insertRes = await pool.query(
+        `INSERT INTO callguard_blocked_calls (phone, name, reason, category, has_whatsapp, avatar_url, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id, created_at`,
+        [item.phone, item.name, item.reason, item.category, item.has_whatsapp, item.avatar_url]
+      );
+      if (insertRes.rows?.[0]) {
+        item.id = insertRes.rows[0].id;
+        item.created_at = insertRes.rows[0].created_at;
+      }
+    } catch (err) {
+      inMemoryBlockedCalls.unshift(item);
+    }
+  } else {
+    inMemoryBlockedCalls.unshift(item);
+  }
+
+  res.json({ ok: true, saved: item });
+});
+
+// GET /api/callguard/blocked-calls — Obtener historial de llamadas bloqueadas
+app.get('/api/callguard/blocked-calls', async (req, res) => {
+  if (typeof pool !== 'undefined' && pool) {
+    try {
+      const qRes = await pool.query(
+        `SELECT id, phone, name, reason, category, has_whatsapp AS "hasWhatsApp", avatar_url AS "avatarUrl", created_at AS "createdAt"
+         FROM callguard_blocked_calls
+         ORDER BY created_at DESC
+         LIMIT 100`
+      );
+      return res.json({ ok: true, blockedCalls: qRes.rows || [] });
+    } catch (err) {
+      // Fallback in-memory
+    }
+  }
+  res.json({ ok: true, blockedCalls: inMemoryBlockedCalls.slice(0, 100) });
+});
+
+// GET /callguard-dialer.apk — Descarga directa del APK del marcador CallGuard
+app.get(['/callguard-dialer.apk', '/api/callguard/download-apk'], (req, res) => {
+  const apkPath = path.join(__dirname, 'public', 'callguard-dialer.apk');
+  if (fs.existsSync(apkPath)) {
+    return res.download(apkPath, 'Laujim-CallGuard-Dialer.apk');
+  }
+  res.status(404).json({ ok: false, error: 'El archivo APK de CallGuard Dialer aún no ha sido compilado.' });
+});
 
 // GET /api/intercom/public/template-status — consultar estado de aprobación de la plantilla en Meta WhatsApp
 app.get('/api/intercom/public/template-status', async (req, res) => {
@@ -9380,9 +9604,32 @@ app.post('/api/scrape-sequential', (req, res) => {
   runSequentialScrapeAll('manual_admin').then(result => res.json(result));
 });
 
+// Alias for 1-click global scrape from UI
+app.post('/api/scrape-all', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  runSequentialScrapeAll('manual_ui_1click').then(result => res.json(result));
+});
+
 app.get('/api/scrape-sequential/status', (req, res) => {
   res.json({ ok: true, state: lastSequentialScrapeState, inProgress: isSequentialScraping });
 });
+
+let sequentialScrapeTimer = null;
+function startSequentialScraperSchedule() {
+  if (sequentialScrapeTimer) clearInterval(sequentialScrapeTimer);
+  const cfg = workerScheduleConfig();
+  const hours = Math.max(1, cfg.intervalHours || 6);
+  console.log(`[SCRAPER] Programador secuencial automático activado (cada ${hours}h)...`);
+  // Delay inicial de 45s tras el arranque para que DB esté 100% lista
+  setTimeout(() => {
+    runSequentialScrapeAll('boot_auto').catch(e => console.error('[SCRAPER BOOT] Error:', e.message));
+  }, 45000);
+  sequentialScrapeTimer = setInterval(() => {
+    runSequentialScrapeAll('interval_auto').catch(e => console.error('[SCRAPER INTERVAL] Error:', e.message));
+  }, hours * 3600 * 1000);
+}
+startSequentialScraperSchedule();
+
 
 // Public URL for services admin (for residents' individual link)
 app.get('/api/public/utility-status/:apartmentId', (req, res) => {

@@ -345,6 +345,56 @@ export default function Utilities() {
     }
   }
 
+  const [allSyncingNow, setAllSyncingNow] = useState(false);
+  const [allSyncNote, setAllSyncNote] = useState('');
+
+  async function handleAllSync() {
+    if (allSyncingNow || syncingNow || waterSyncingNow || gasSyncingNow) return;
+    setAllSyncingNow(true);
+    setAllSyncNote('Iniciando actualización completa (Air-e, Agua y Gas)...');
+    try {
+      const res = await fetch(getBase() + '/scrape-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': AUTH_TOKEN },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) {
+        setAllSyncNote('No se pudo iniciar el raspado general.');
+        setAllSyncingNow(false);
+        return;
+      }
+      setAllSyncNote('Actualización secuencial en progreso (Air-e → Triple A → Gases)...');
+      let checks = 0;
+      const pollTimer = setInterval(async () => {
+        checks++;
+        try {
+          const statusRes = await fetch(getBase() + '/scrape-sequential/status');
+          const statusData = await statusRes.json();
+          if (!statusData.inProgress || checks > 18) {
+            clearInterval(pollTimer);
+            await loadDebts();
+            setAllSyncingNow(false);
+            setAllSyncNote('¡Actualización completa finalizada!');
+            setTimeout(() => setAllSyncNote(''), 5000);
+          } else {
+            const currentP = statusData.state?.provider || 'procesando';
+            setAllSyncNote(`Actualizando ${currentP}...`);
+          }
+        } catch {
+          if (checks > 15) {
+            clearInterval(pollTimer);
+            await loadDebts();
+            setAllSyncingNow(false);
+            setAllSyncNote('');
+          }
+        }
+      }, 5000);
+    } catch {
+      setAllSyncNote('Error al conectar con el servidor.');
+      setAllSyncingNow(false);
+    }
+  }
+
   function qrPaymentField(_service) {
     return 'waterPaymentUrl';
   }
@@ -849,18 +899,22 @@ export default function Utilities() {
             </button>
           );
         })}
-        <button onClick={handleSync} disabled={syncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg hover:from-purple-600 hover:to-violet-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
-          <RefreshCw className={`w-3.5 h-3.5 ${syncingNow ? 'animate-spin' : ''}`} /> {syncingNow ? 'Sincronizando…' : 'Sync ahora'}
+        <button onClick={handleSync} disabled={syncingNow || allSyncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg hover:from-purple-600 hover:to-violet-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
+          <Zap className={`w-3.5 h-3.5 ${syncingNow ? 'animate-bounce' : ''}`} /> {syncingNow ? 'Consultando Air-e…' : 'Actualizar energía (Air-e)'}
         </button>
-        <button onClick={handleWaterSync} disabled={waterSyncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
+        <button onClick={handleWaterSync} disabled={waterSyncingNow || allSyncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
           <Droplets className={`w-3.5 h-3.5 ${waterSyncingNow ? 'animate-pulse' : ''}`} /> {waterSyncingNow ? 'Consultando agua…' : 'Actualizar agua'}
         </button>
-        <button onClick={handleGasSync} disabled={gasSyncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg hover:from-amber-600 hover:to-orange-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
+        <button onClick={handleGasSync} disabled={gasSyncingNow || allSyncingNow} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg hover:from-amber-600 hover:to-orange-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm">
           <Flame className={`w-3.5 h-3.5 ${gasSyncingNow ? 'animate-pulse' : ''}`} /> {gasSyncingNow ? 'Consultando gas…' : 'Actualizar gas'}
         </button>
-        {syncNote && <span className="text-xs text-gray-500 dark:text-gray-400">{syncNote}</span>}
-        {waterSyncNote && <span className="text-xs text-gray-500 dark:text-gray-400">{waterSyncNote}</span>}
-        {gasSyncNote && <span className="text-xs text-gray-500 dark:text-gray-400">{gasSyncNote}</span>}
+        <button onClick={handleAllSync} disabled={allSyncingNow || syncingNow || waterSyncingNow || gasSyncingNow} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-md">
+          <RefreshCw className={`w-3.5 h-3.5 ${allSyncingNow ? 'animate-spin' : ''}`} /> {allSyncingNow ? 'Actualizando todo…' : 'Actualizar todos (1 clic)'}
+        </button>
+        {syncNote && <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">{syncNote}</span>}
+        {waterSyncNote && <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">{waterSyncNote}</span>}
+        {gasSyncNote && <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">{gasSyncNote}</span>}
+        {allSyncNote && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">{allSyncNote}</span>}
       </div>
       {syncingNow && (
         <p className="text-[11px] text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg px-3 py-2">

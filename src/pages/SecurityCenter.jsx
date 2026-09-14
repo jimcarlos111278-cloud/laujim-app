@@ -4,7 +4,7 @@ import {
   Camera, Wifi, RefreshCw, AlertTriangle, CheckCircle2, ShieldCheck, LockKeyhole,
   Activity, Radio, HardDrive, Info, Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   Maximize2, Minimize2, ChevronLeft, ChevronRight, Eye, ShieldAlert, Sparkles, Check, Download, Film, Compass, Play, Clock, Calendar,
-  Settings, KeyRound, Video, Globe, Car
+  Settings, KeyRound, Video, Globe, Car, ZoomIn, ZoomOut, RotateCcw
 } from 'lucide-react';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { getAuth } from '../utils/auth';
@@ -19,7 +19,13 @@ export default function SecurityCenter() {
   const [selectedCamSerial, setSelectedCamSerial] = useState('BG6994814');
   const [cameraFeeds, setCameraFeeds] = useState({});
   const [cameraLive, setCameraLive] = useState(true);
-  const [cameraCountdown, setCameraCountdown] = useState(60);
+  const [cameraCountdown, setCameraCountdown] = useState(300); // 5 minutos (300 segundos)
+  const [continuousLive, setContinuousLive] = useState(false); // Ver continuo sin corte
+  const [zoomLevel, setZoomLevel] = useState(1); // 1x, 2x, 4x, 8x
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ x: 0, y: 0 });
+  const panOriginRef = useRef({ x: 0, y: 0 });
   const [ptzMoving, setPtzMoving] = useState('');
   const [ptzFeedback, setPtzFeedback] = useState('');
 
@@ -196,6 +202,73 @@ export default function SecurityCenter() {
     setTouchStartY(null);
   };
 
+  function handleZoom(nextZoom) {
+    const clamped = Math.max(1, Math.min(8, Math.round(nextZoom * 10) / 10));
+    setZoomLevel(clamped);
+    if (clamped === 1) {
+      setPanOffset({ x: 0, y: 0 });
+    }
+  }
+
+  function handlePanMouseDown(e) {
+    if (zoomLevel <= 1) return;
+    setIsPanning(true);
+    panStartRef.current = { x: e.clientX, y: e.clientY };
+    panOriginRef.current = { ...panOffset };
+  }
+
+  function handlePanMouseMove(e) {
+    if (!isPanning || zoomLevel <= 1) return;
+    const dx = e.clientX - panStartRef.current.x;
+    const dy = e.clientY - panStartRef.current.y;
+    const maxPan = 450 * (zoomLevel - 1);
+    setPanOffset({
+      x: Math.max(-maxPan, Math.min(maxPan, panOriginRef.current.x + dx)),
+      y: Math.max(-maxPan, Math.min(maxPan, panOriginRef.current.y + dy)),
+    });
+  }
+
+  function handlePanMouseUp() {
+    setIsPanning(false);
+  }
+
+  const handleTouchStartWrapper = (e) => {
+    if (zoomLevel > 1 && e.touches && e.touches[0]) {
+      setIsPanning(true);
+      panStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      panOriginRef.current = { ...panOffset };
+    } else {
+      handleTouchStart(e);
+    }
+  };
+
+  const handleTouchMoveWrapper = (e) => {
+    if (zoomLevel > 1 && isPanning && e.touches && e.touches[0]) {
+      const dx = e.touches[0].clientX - panStartRef.current.x;
+      const dy = e.touches[0].clientY - panStartRef.current.y;
+      const maxPan = 450 * (zoomLevel - 1);
+      setPanOffset({
+        x: Math.max(-maxPan, Math.min(maxPan, panOriginRef.current.x + dx)),
+        y: Math.max(-maxPan, Math.min(maxPan, panOriginRef.current.y + dy)),
+      });
+    }
+  };
+
+  const handleTouchEndWrapper = (e) => {
+    if (zoomLevel > 1) {
+      setIsPanning(false);
+    } else {
+      handleTouchEnd(e);
+    }
+  };
+
+  // Restablecer zoom al cambiar de cámara
+  useEffect(() => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+    setIsPanning(false);
+  }, [selectedCamSerial]);
+
   // Solicitar o renovar stream HLS para una cámara
   async function requestCameraStream(serial) {
     if (!serial) return;
@@ -253,17 +326,25 @@ export default function SecurityCenter() {
       hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        manifestLoadingTimeOut: 12000,
+        initialLiveManifestSize: 1, // Inicia con el primer segmento de 1s (<0.8s inicio)
+        startFragPrefetch: true,
+        liveSyncDuration: 1.0,
+        liveMaxLatencyDuration: 2.5,
+        maxBufferLength: 4,
+        maxMaxBufferLength: 8,
+        backBufferLength: 2,
+        manifestLoadingTimeOut: 8000,
         manifestLoadingMaxRetry: 10,
-        manifestLoadingRetryDelay: 1000,
-        levelLoadingTimeOut: 10000,
+        manifestLoadingRetryDelay: 500,
+        levelLoadingTimeOut: 8000,
         levelLoadingMaxRetry: 8,
-        fragLoadingTimeOut: 10000,
+        fragLoadingTimeOut: 8000,
         fragLoadingMaxRetry: 8,
       });
       hls.loadSource(fullStreamUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.muted = true;
         video.play().catch(() => {});
       });
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -590,6 +671,7 @@ export default function SecurityCenter() {
 
     const countdownInterval = setInterval(() => {
       setCameraCountdown(prev => {
+        if (continuousLive) return 300;
         if (prev <= 1) {
           setCameraLive(false);
           return 0;
@@ -638,7 +720,7 @@ export default function SecurityCenter() {
       clearInterval(secondaryInterval);
       if (heroTimer) clearTimeout(heroTimer);
     };
-  }, [cameraLive, selectedCamSerial]);
+  }, [cameraLive, continuousLive, selectedCamSerial]);
 
   // Controles PTZ (Motor Pan/Tilt)
   async function handleMovePtz(direction) {
@@ -799,20 +881,51 @@ export default function SecurityCenter() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Modo de Duración: 5 Minutos vs Continuo */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => {
+                  setContinuousLive(false);
+                  setCameraCountdown(300);
+                  setCameraLive(true);
+                }}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition ${
+                  !continuousLive ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Límite automático de 5 minutos para ahorrar datos"
+              >
+                ⏱️ 5 min
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setContinuousLive(true);
+                  setCameraLive(true);
+                }}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition ${
+                  continuousLive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Transmisión continua hasta salir de la página"
+              >
+                ♾️ Continuo
+              </button>
+            </div>
+
             <button
               onClick={() => {
                 setCameraLive(prev => {
                   const next = !prev;
-                  if (next) setCameraCountdown(60);
+                  if (next) setCameraCountdown(300);
                   return next;
                 });
               }}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                cameraLive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                cameraLive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
               }`}
             >
               <span className={`h-2 w-2 rounded-full ${cameraLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {cameraLive ? `EN VIVO (${cameraCountdown}s)` : 'PAUSADO'}
+              {cameraLive ? (continuousLive ? 'EN VIVO' : `EN VIVO (${cameraCountdown}s)`) : 'PAUSADO'}
             </button>
 
             <button
@@ -829,12 +942,18 @@ export default function SecurityCenter() {
         {/* Marco de Video Hero (Transmisión HLS en Vivo 25 FPS con Fallback a Fotogramas) */}
         <div
           ref={videoContainerRef}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          onTouchStart={handleTouchStartWrapper}
+          onTouchMove={handleTouchMoveWrapper}
+          onTouchEnd={handleTouchEndWrapper}
+          onMouseDown={handlePanMouseDown}
+          onMouseMove={handlePanMouseMove}
+          onMouseUp={handlePanMouseUp}
+          onMouseLeave={handlePanMouseUp}
           onDoubleClick={handleToggleFullscreen}
           className={`relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner flex items-center justify-center select-none ${
             isFullscreen ? 'fixed inset-0 z-50 rounded-none border-none aspect-auto h-screen w-screen' : ''
           }`}
+          style={{ cursor: zoomLevel > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
         >
           {streamUrls[selectedCamSerial] && !streamErrors[selectedCamSerial] && cameraLive ? (
             <video
@@ -843,13 +962,30 @@ export default function SecurityCenter() {
               playsInline
               muted
               controls
-              className="h-full w-full object-contain cursor-pointer"
+              style={{
+                transform: zoomLevel > 1
+                  ? `scale(${zoomLevel}) translate(${panOffset.x / zoomLevel}px, ${panOffset.y / zoomLevel}px)`
+                  : 'none',
+                transformOrigin: 'center center',
+                transition: isPanning ? 'none' : 'transform 0.15s ease-out',
+              }}
+              className="h-full w-full object-contain"
             />
           ) : cameraFeeds[selectedCamSerial] ? (
             <img
               src={cameraFeeds[selectedCamSerial]}
               alt={selectedCam.name}
-              className="h-full w-full object-contain cursor-pointer"
+              draggable={false}
+              style={{
+                transform: zoomLevel > 1
+                  ? `scale(${zoomLevel}) translate(${panOffset.x / zoomLevel}px, ${panOffset.y / zoomLevel}px)`
+                  : 'none',
+                transformOrigin: 'center center',
+                transition: isPanning ? 'none' : 'transform 0.15s ease-out',
+                userSelect: 'none',
+                pointerEvents: 'none',
+              }}
+              className="h-full w-full object-contain"
             />
           ) : (
             <div className="text-center text-slate-500">
@@ -885,6 +1021,60 @@ export default function SecurityCenter() {
               {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             </button>
           </div>
+
+          {/* Toolbar Flotante de Zoom Digital (1x, 2x, 4x, 8x) */}
+          <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-slate-950/85 backdrop-blur-md px-2 py-1 rounded-xl border border-white/20 text-white z-20 shadow-lg">
+            <span className="text-[10px] font-extrabold text-slate-300 mr-1 flex items-center gap-0.5">
+              <ZoomIn className="h-3 w-3 text-blue-400" /> Zoom:
+            </span>
+            {[1, 2, 4, 8].map(z => (
+              <button
+                key={z}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleZoom(z); }}
+                className={`px-2 py-0.5 text-[10px] font-black rounded-md transition ${
+                  zoomLevel === z ? 'bg-blue-600 text-white shadow' : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200'
+                }`}
+              >
+                {z}x
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleZoom(zoomLevel + 0.5); }}
+              disabled={zoomLevel >= 8}
+              className="p-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-200 disabled:opacity-40"
+              title="Aumentar zoom (+0.5x)"
+            >
+              <ZoomIn className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleZoom(zoomLevel - 0.5); }}
+              disabled={zoomLevel <= 1}
+              className="p-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-200 disabled:opacity-40"
+              title="Reducir zoom (-0.5x)"
+            >
+              <ZoomOut className="h-3 w-3" />
+            </button>
+            {zoomLevel > 1 && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleZoom(1); }}
+                className="p-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white shadow"
+                title="Restablecer zoom a 1x"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+
+          {zoomLevel > 1 && (
+            <div className="absolute top-12 left-3 bg-blue-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow backdrop-blur-sm z-20 pointer-events-none flex items-center gap-1">
+              <span>Zoom {zoomLevel}x</span>
+              <span className="opacity-75">• Arrastra para mover</span>
+            </div>
+          )}
 
           {/* Indicador de Swipe y Cámara Actual (Top Left) */}
           <div className="absolute top-3 left-3 flex flex-col gap-1 z-20">

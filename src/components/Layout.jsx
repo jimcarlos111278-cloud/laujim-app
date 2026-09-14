@@ -21,7 +21,6 @@ const navItems = [
   { to: '/whatsapp', label: 'WhatsApp Cloud', icon: MessageCircle },
   { to: '/whatsapp-contactos', label: 'Contactos WhatsApp', icon: Users },
   { to: '/utilities', label: 'Servicios Públicos', icon: Zap },
-  { to: '/scraper-worker', label: 'Worker scraper', icon: Smartphone },
   { to: '/security', label: 'Cámaras y Detección ALPR', icon: Camera },
   { to: '/share', label: 'Compartir', icon: Share2 },
   { to: '/reports', label: 'Reportes', icon: BarChart3 },
@@ -124,7 +123,7 @@ const [installPrompt, setInstallPrompt] = useState(null);
             <X className="w-5 h-5" />
           </button>
         </div>
-        <nav className="p-3 space-y-1 flex-1 overflow-auto">
+        <nav className="p-3 space-y-1 flex-1 overflow-y-auto overflow-x-hidden">
           {navItems.map(item => (
             <NavLink
               key={item.to}
@@ -135,8 +134,8 @@ const [installPrompt, setInstallPrompt] = useState(null);
                 } ${isActive ? 'nav-active' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'}`
               }
             >
-              <item.icon className={`${item.sub ? 'w-4 h-4' : 'w-5 h-5'}`} />
-              <span className="min-w-0 whitespace-nowrap">{item.label}</span>
+              <item.icon className={`${item.sub ? 'w-4 h-4' : 'w-5 h-5'} shrink-0`} />
+              <span className="min-w-0 max-w-[170px] truncate" title={item.label}>{item.label}</span>
             </NavLink>
           ))}
         </nav>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud, Plus, CalendarCheck, KeyRound, HardDrive, Loader2, Check, CheckCircle2, Info } from 'lucide-react';
+import { Globe, FileText, Download, Smartphone, Bell, RefreshCw, Database, LogOut, Upload, AlertTriangle, Palette, ClipboardList, Zap, MessageCircle, Save, Server, Cpu, Cloud, Plus, CalendarCheck, KeyRound, HardDrive, Loader2, Check, CheckCircle2, Info, Phone } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
 import { AUTH_TOKEN, getBase, getPublicBaseUrl, isCapacitor, getServerConfig, saveServerConfig } from '../utils/config';
@@ -1021,6 +1021,36 @@ export default function Settings() {
                 {callScreening.enabled ? 'Protección Activa' : 'Filtro Pausado'}
               </span>
             )}
+          </div>
+
+          {/* Banner de Descarga de la APK Secundaria: Laujim CallGuard Dialer */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-slate-900 border border-emerald-400/40 dark:border-emerald-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 shrink-0">
+                <Phone className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm sm:text-base font-extrabold text-gray-900 dark:text-white">
+                    Laujim CallGuard Dialer (APK Secundaria)
+                  </h4>
+                  <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700">
+                    Samsung OneUI
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 max-w-xl">
+                  Marcador telefónico dedicado con teclado T9, sincronización directa con los inquilinos de la base de datos de Laujim, bloqueo silencioso sin alertas de desconocidos y registro con foto WhatsApp de quien llama.
+                </p>
+              </div>
+            </div>
+            <a
+              href={`${getBase().replace('/api', '')}/callguard-dialer.apk`}
+              download="Laujim-CallGuard-Dialer.apk"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 active:scale-95 transition shrink-0"
+            >
+              <Download className="w-4 h-4" />
+              <span>Descargar Dialer APK</span>
+            </a>
           </div>
 
           {!callScreening?.native ? (
