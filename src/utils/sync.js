@@ -1,17 +1,37 @@
-﻿import { getBase, AUTH_TOKEN } from './config';
+import { getBase, getRawBase } from './config';
 
 export async function isServerAvailable() {
   try {
     const base = getBase();
-    const res = await fetch(base + '/apartments/count', {
-      signal: AbortSignal.timeout(10000),
-      headers: { 'x-auth-token': AUTH_TOKEN },
+    // Use the public /api/ready endpoint which validates both server and database
+    // without requiring an admin token or expiring session.
+    const res = await fetch(base + '/ready', {
+      signal: AbortSignal.timeout(6000),
     });
-    const ct = res.headers.get('content-type') || '';
-    if (!res.ok) return { ok: false, reason: `Server responded with ${res.status}: ${await res.text()}` };
-    if (!ct.includes('application/json')) return { ok: false, reason: `Invalid content type: ${ct}` };
-    return { ok: true };
+    if (res.ok) {
+      const data = await res.json().catch(() => null);
+      if (data && data.ok !== false) {
+        return { ok: true, state: data.state || 'ready' };
+      }
+    }
+    // Fast fallback to /health if /api/ready had an issue
+    const raw = getRawBase();
+    const fallbackRes = await fetch(raw + '/health', {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (fallbackRes.ok) {
+      return { ok: true, state: 'healthy' };
+    }
+    return { ok: false, reason: `Server responded with ${res.status}` };
   } catch (e) {
+    // Retry once after a brief 500ms pause to guard against transient mobile socket resets / wakeups
+    try {
+      await new Promise(r => setTimeout(r, 500));
+      const raw = getRawBase();
+      const retryRes = await fetch(raw + '/health', { signal: AbortSignal.timeout(4000) });
+      if (retryRes.ok) return { ok: true, state: 'healthy' };
+    } catch (_) {}
     return { ok: false, reason: `Network error: ${e.message}` };
   }
 }
+

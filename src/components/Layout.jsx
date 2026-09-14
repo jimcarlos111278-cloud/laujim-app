@@ -71,14 +71,27 @@ const [installPrompt, setInstallPrompt] = useState(null);
   }, []);
 
   useEffect(() => {
+    let failureCount = 0;
     const check = async () => {
       const s = await isServerAvailable();
-      setConnected(s.ok);
+      if (s.ok) {
+        failureCount = 0;
+        setConnected(true);
+      } else {
+        failureCount += 1;
+        // Require 2 consecutive failed checks before displaying "Sin conexión"
+        // This avoids false alarms during momentary Android app switches or cell handoffs.
+        if (failureCount >= 2) {
+          setConnected(false);
+        }
+      }
     };
     check();
     const iv = setInterval(check, 15000);
-    window.addEventListener('focus', check);
-    return () => { clearInterval(iv); window.removeEventListener('focus', check); };
+    // On mobile wakeup/focus, wait 800ms for radio/network stack to stabilize
+    const onFocus = () => { setTimeout(check, 800); };
+    window.addEventListener('focus', onFocus);
+    return () => { clearInterval(iv); window.removeEventListener('focus', onFocus); };
   }, []);
 
   function changeFontSize(delta) {
