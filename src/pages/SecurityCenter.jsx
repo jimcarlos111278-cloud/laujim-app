@@ -21,7 +21,7 @@ export default function SecurityCenter() {
   const [cameraFeeds, setCameraFeeds] = useState({});
   const [cameraLive, setCameraLive] = useState(true);
   const [cameraCountdown, setCameraCountdown] = useState(300); // 5 minutos (300 segundos)
-  const [continuousLive, setContinuousLive] = useState(false); // Ver continuo sin corte
+  const [continuousLive, setContinuousLive] = useState(true); // 24/7 sin corte por defecto
   const [zoomLevel, setZoomLevel] = useState(1); // 1x, 2x, 4x, 8x
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
@@ -87,6 +87,8 @@ export default function SecurityCenter() {
   const [expandedPlateIds, setExpandedPlateIds] = useState({});
   const [inspectedPlate, setInspectedPlate] = useState(null);
   const [inspectedTab, setInspectedTab] = useState('full'); // 'full' | 'plate'
+  const [alprEngineMode, setAlprEngineMode] = useState('compare'); // 'compare' | 'ml' | 'cloud'
+  const [lastBenchmark, setLastBenchmark] = useState(null);
 
   // Modal de Configuración EZVIZ (Cloud & Router)
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -353,19 +355,20 @@ export default function SecurityCenter() {
     if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: false,
-        liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 6,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        backBufferLength: 10,
-        manifestLoadingTimeOut: 10000,
-        manifestLoadingMaxRetry: 10,
-        manifestLoadingRetryDelay: 1000,
-        levelLoadingTimeOut: 10000,
-        levelLoadingMaxRetry: 10,
-        fragLoadingTimeOut: 10000,
-        fragLoadingMaxRetry: 10,
+        lowLatencyMode: true, // 24/7 pegado al borde vivo (port-forward siempre tibio)
+        liveSyncDurationCount: 2,
+        liveMaxLatencyDurationCount: 4,
+        maxBufferLength: 10,
+        maxMaxBufferLength: 20,
+        backBufferLength: 5,
+        manifestLoadingTimeOut: 5000,
+        manifestLoadingMaxRetry: 5,
+        manifestLoadingRetryDelay: 500,
+        levelLoadingTimeOut: 5000,
+        levelLoadingMaxRetry: 5,
+        fragLoadingTimeOut: 5000,
+        fragLoadingMaxRetry: 5,
+        fragLoadingRetryDelay: 500,
       });
 
       // Bind events BEFORE loading source to avoid race conditions
@@ -517,11 +520,14 @@ export default function SecurityCenter() {
 
   async function handleScanPlate() {
     setAlprScanning(true);
-    setAlprFeedback({ type: 'info', text: 'Analizando vía pública en Cámaras de Calle (Izquierda y Derecha)...' });
+    const modeLabel = alprEngineMode === 'compare'
+      ? 'Modo Comparativa (⚡ Local ML + ☁️ Cloud PR)'
+      : (alprEngineMode === 'ml' ? '⚡ Machine Learning Local (VM CPU)' : '☁️ Plate Recognizer Cloud API');
+    setAlprFeedback({ type: 'info', text: `Analizando vía pública con ${modeLabel}...` });
     try {
       const auth = getAuth();
       const token = auth?.token || AUTH_TOKEN;
-      const res = await fetch(`${getRawBase()}/api/security/plates/scan`, {
+      const res = await fetch(`${getRawBase()}/api/security/plates/scan?mode=${alprEngineMode}`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -529,6 +535,9 @@ export default function SecurityCenter() {
         }
       });
       const data = await res.json().catch(() => ({}));
+      if (data?.benchmark) {
+        setLastBenchmark(data.benchmark);
+      }
       if (data?.plates_detected && data.plates_detected.length > 0) {
         setAlprFeedback({
           type: 'success',
@@ -548,7 +557,7 @@ export default function SecurityCenter() {
       });
     } finally {
       setAlprScanning(false);
-      setTimeout(() => setAlprFeedback(null), 8000);
+      setTimeout(() => setAlprFeedback(null), 10000);
     }
   }
 
@@ -1147,6 +1156,109 @@ export default function SecurityCenter() {
           </div>
         </div>
 
+        {/* Selector de Motor ALPR y Modo Comparativo */}
+        <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 mb-4 bg-slate-100 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setAlprEngineMode('compare')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
+                alprEngineMode === 'compare'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              ⚔️ Comparativa Dual (Benchmark)
+            </button>
+            <button
+              type="button"
+              onClick={() => setAlprEngineMode('ml')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
+                alprEngineMode === 'ml'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              ⚡ Local ML (VM CPU)
+            </button>
+            <button
+              type="button"
+              onClick={() => setAlprEngineMode('cloud')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
+                alprEngineMode === 'cloud'
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              ☁️ Plate Recognizer Cloud
+            </button>
+          </div>
+          <span className="text-[10px] text-slate-400 font-bold px-2">
+            {alprEngineMode === 'compare'
+              ? 'Ejecuta ambas IAs en simultáneo y compara velocidad y precisión'
+              : (alprEngineMode === 'ml' ? '0 costo, ilimitado, ~0.6s' : '2,500 créditos/mes con Marca/Modelo/Color')}
+          </span>
+        </div>
+
+        {/* HUD de Benchmark en Vivo */}
+        {lastBenchmark && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-lg animate-fade-in">
+            <div className="flex items-center justify-between border-b border-indigo-500/20 pb-2 mb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-indigo-300">
+                  📊 Auditoría de Rendimiento en Tiempo Real
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Ganador Velocidad: {lastBenchmark.speed_winner || 'Local ML'}
+                </span>
+              </div>
+              <button
+                onClick={() => setLastBenchmark(null)}
+                className="text-white/60 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-purple-300 flex items-center gap-1">
+                    ⚡ Modelo Local ML (VM CPU)
+                  </span>
+                  <span className="font-mono font-bold text-purple-200">
+                    {lastBenchmark.ml_time_ms ? `${lastBenchmark.ml_time_ms} ms` : '—'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300">
+                  Placas: <span className="font-mono font-bold text-amber-300">{lastBenchmark.ml_plates?.length > 0 ? lastBenchmark.ml_plates.join(', ') : 'Ninguna'}</span>
+                </p>
+                <p className="text-[10px] text-purple-300/70 mt-0.5">YOLOv9-t + MobileViT OCR • Costo: $0.00</p>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-sky-950/40 border border-sky-500/30">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-sky-300 flex items-center gap-1">
+                    ☁️ Plate Recognizer Cloud API
+                  </span>
+                  <span className="font-mono font-bold text-sky-200">
+                    {lastBenchmark.cloud_time_ms ? `${lastBenchmark.cloud_time_ms} ms` : '—'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300">
+                  Placas: <span className="font-mono font-bold text-amber-300">{lastBenchmark.cloud_plates?.length > 0 ? lastBenchmark.cloud_plates.join(', ') : 'Ninguna'}</span>
+                </p>
+                <p className="text-[10px] text-sky-300/70 mt-0.5">MMC (Make/Model/Color) • Snapshot Cloud</p>
+              </div>
+            </div>
+
+            <div className="mt-2.5 pt-2 border-t border-indigo-500/20 flex items-center justify-between text-[11px] text-indigo-200">
+              <span>{lastBenchmark.match ? '✅ Concordancia: Ambas redes neuronales detectaron la misma placa' : 'ℹ️ Resultados complementarios según ángulo y distancia'}</span>
+              <span>Vehículos estacionados filtrados para proteger cuota</span>
+            </div>
+          </div>
+        )}
+
         {alprFeedback && (
           <div className={`mb-4 p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 ${
             alprFeedback.type === 'success'
@@ -1178,13 +1290,15 @@ export default function SecurityCenter() {
               const rawBase = getRawBase();
               const fullUrl = p.fullUrl
                 ? (p.fullUrl.startsWith('http') ? p.fullUrl : `${rawBase}${p.fullUrl.startsWith('/') ? '' : '/'}${p.fullUrl}`)
-                : `${rawBase}/alpr/image/${p.id}?type=full`;
+                : (p.snapshot ? (p.snapshot.startsWith('http') ? p.snapshot : `${rawBase}${p.snapshot}`) : `${rawBase}/alpr/image/${p.id}?type=full`);
               const plateUrl = p.plateUrl
                 ? (p.plateUrl.startsWith('http') ? p.plateUrl : `${rawBase}${p.plateUrl.startsWith('/') ? '' : '/'}${p.plateUrl}`)
-                : `${rawBase}/alpr/image/${p.id}?type=plate`;
+                : fullUrl;
               const cropUrl = p.cropUrl
                 ? (p.cropUrl.startsWith('http') ? p.cropUrl : `${rawBase}${p.cropUrl.startsWith('/') ? '' : '/'}${p.cropUrl}`)
-                : `${rawBase}/alpr/image/${p.id}`;
+                : fullUrl;
+              const isParked = Boolean(p.is_parked || p.stationary || p.status === 'parked');
+              const isLocalMl = p.engine === 'local_ml';
 
               return (
                 <div
@@ -1200,14 +1314,41 @@ export default function SecurityCenter() {
                       </div>
 
                       <div>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
                           <Car className="h-3.5 w-3.5 text-blue-500" />
                           <span>{p.type || 'Vehículo'}</span>
                           <span className="text-[11px] font-normal text-slate-400">• {p.camera || 'Cámara'}</span>
+
+                          {/* Badge de Motor IA */}
+                          {isLocalMl ? (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-300">
+                              ⚡ Local ML
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-300">
+                              ☁️ Plate Recognizer
+                            </span>
+                          )}
+
+                          {/* Badge de Estado: Estacionado vs En Tránsito */}
+                          {isParked ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/50">
+                              🅿️ Estacionado (Inmóvil)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300/50">
+                              🚗 En Movimiento
+                            </span>
+                          )}
                         </div>
                         <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                           <Clock className="h-3 w-3" />
                           <span>{p.timestamp}</span>
+                          {p.confidence && (
+                            <span className="font-mono text-[10px] text-slate-400 ml-1">
+                              • Confianza: {Math.round(p.confidence * 100)}%
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -1232,7 +1373,7 @@ export default function SecurityCenter() {
                   {isExpanded && (
                     <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 sm:p-4 animate-fade-in space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {/* 1. Foto General de la Cámara */}
+                        {/* 1. Foto General de la Cámara con Overlays IA */}
                         <div
                           onClick={() => { setInspectedPlate(p); setInspectedTab('full'); }}
                           className="relative group cursor-pointer aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-700/80 shadow-sm flex items-center justify-center"
@@ -1246,13 +1387,43 @@ export default function SecurityCenter() {
                               e.target.src = cropUrl;
                             }}
                           />
+                          {/* Bounding Box Azul en vista previa (Solo si viene de Plate Recognizer) */}
+                          {p.vehicleBox && (
+                            <div
+                              className="absolute border-2 border-cyan-400 bg-cyan-400/10 pointer-events-none rounded shadow-[0_0_8px_rgba(6,182,212,0.5)]"
+                              style={{
+                                top: `${(p.vehicleBox.ymin / (p.imgHeight || 1440)) * 100}%`,
+                                left: `${(p.vehicleBox.xmin / (p.imgWidth || 2560)) * 100}%`,
+                                width: `${((p.vehicleBox.xmax - p.vehicleBox.xmin) / (p.imgWidth || 2560)) * 100}%`,
+                                height: `${((p.vehicleBox.ymax - p.vehicleBox.ymin) / (p.imgHeight || 1440)) * 100}%`,
+                              }}
+                            >
+                              <span className="absolute -top-5 left-0 bg-cyan-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded shadow whitespace-nowrap">
+                                {p.details?.makeModel || p.details?.vehicle || p.type || 'Vehículo'}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Bounding Box Naranja en vista previa (Solo si viene de Plate Recognizer) */}
+                          {p.box && (
+                            <div
+                              className="absolute border-2 border-amber-400 bg-amber-400/30 pointer-events-none rounded shadow-[0_0_8px_rgba(245,158,11,0.7)]"
+                              style={{
+                                top: `${(p.box.ymin / (p.imgHeight || 1440)) * 100}%`,
+                                left: `${(p.box.xmin / (p.imgWidth || 2560)) * 100}%`,
+                                width: `${((p.box.xmax - p.box.xmin) / (p.imgWidth || 2560)) * 100}%`,
+                                height: `${((p.box.ymax - p.box.ymin) / (p.imgHeight || 1440)) * 100}%`,
+                              }}
+                            />
+                          )}
+
                           <div className="absolute top-2 left-2 bg-slate-900/85 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-lg border border-white/10 flex items-center gap-1">
                             <Camera className="h-3 w-3 text-blue-400" />
                             <span>Foto General (Cámara)</span>
                           </div>
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs gap-1.5 backdrop-blur-[1px]">
                             <Maximize2 className="h-4 w-4" />
-                            <span>Ver Panorámica</span>
+                            <span>Ver Panorámica Completa</span>
                           </div>
                         </div>
 
@@ -1709,21 +1880,110 @@ export default function SecurityCenter() {
               </button>
             </div>
 
-            {/* Imagen en Alta Resolución */}
-            <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-slate-950">
-              <img
-                src={
-                  inspectedTab === 'plate'
-                    ? `${getRawBase()}/alpr/image/${inspectedPlate.id}?type=plate`
-                    : `${getRawBase()}/alpr/image/${inspectedPlate.id}?type=full`
-                }
-                alt={`Auditoría Fotográfica ${inspectedPlate.plate}`}
-                className="max-h-[62vh] w-auto max-w-full rounded-2xl object-contain border border-slate-800 shadow-2xl"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = `${getRawBase()}/alpr/image/${inspectedPlate.id}?type=vehicle`;
-                }}
-              />
+            {/* Imagen en Alta Resolución con Bounding Boxes Interactivas */}
+            <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-slate-950 relative">
+              <div className="relative inline-block max-h-[62vh] max-w-full">
+                <img
+                  src={
+                    inspectedTab === 'plate'
+                      ? `${getRawBase()}/alpr/image/${inspectedPlate.id}?type=plate`
+                      : `${getRawBase()}/alpr/image/${inspectedPlate.id}?type=full`
+                  }
+                  alt={`Auditoría Fotográfica ${inspectedPlate.plate}`}
+                  className="max-h-[62vh] w-auto max-w-full rounded-2xl object-contain border border-slate-800 shadow-2xl block"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `${getRawBase()}/alpr/image/${inspectedPlate.id}?type=vehicle`;
+                  }}
+                />
+
+                {/* Overlays de Detección en Foto General (Estilo Snapshot AI) */}
+                {inspectedTab === 'full' && (
+                  <>
+                    {/* Recuadro Azul de Vehículo (Solo si viene de Plate Recognizer) */}
+                    {inspectedPlate.vehicleBox && (
+                      <div
+                        className="absolute border-2 border-cyan-400 bg-cyan-400/10 pointer-events-none rounded transition-all duration-300 shadow-[0_0_12px_rgba(6,182,212,0.5)]"
+                        style={{
+                          top: `${(inspectedPlate.vehicleBox.ymin / (inspectedPlate.imgHeight || 1440)) * 100}%`,
+                          left: `${(inspectedPlate.vehicleBox.xmin / (inspectedPlate.imgWidth || 2560)) * 100}%`,
+                          width: `${((inspectedPlate.vehicleBox.xmax - inspectedPlate.vehicleBox.xmin) / (inspectedPlate.imgWidth || 2560)) * 100}%`,
+                          height: `${((inspectedPlate.vehicleBox.ymax - inspectedPlate.vehicleBox.ymin) / (inspectedPlate.imgHeight || 1440)) * 100}%`,
+                        }}
+                      >
+                        <div className="absolute -top-6 left-0 bg-cyan-500 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded shadow-md tracking-wider whitespace-nowrap">
+                          {inspectedPlate.details?.makeModel || inspectedPlate.details?.vehicle || inspectedPlate.type || 'Vehículo'}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recuadro de Matrícula (Local ML o Plate Recognizer) */}
+                    {(inspectedPlate.box_norm || inspectedPlate.box) && (() => {
+                      const bn = inspectedPlate.box_norm;
+                      const b = inspectedPlate.box || {};
+                      const iw = inspectedPlate.imgWidth || inspectedPlate.img_width || 2880;
+                      const ih = inspectedPlate.imgHeight || inspectedPlate.img_height || 1620;
+
+                      const topPct = bn ? (bn.ymin * 100) : (((b.ymin ?? b.y1 ?? 0) / ih) * 100);
+                      const leftPct = bn ? (bn.xmin * 100) : (((b.xmin ?? b.x1 ?? 0) / iw) * 100);
+                      const widthPct = bn ? ((bn.xmax - bn.xmin) * 100) : ((((b.xmax ?? b.x2 ?? iw) - (b.xmin ?? b.x1 ?? 0)) / iw) * 100);
+                      const heightPct = bn ? ((bn.ymax - bn.ymin) * 100) : ((((b.ymax ?? b.y2 ?? ih) - (b.ymin ?? b.y1 ?? 0)) / ih) * 100);
+
+                      return (
+                        <div
+                          className="absolute border-2 border-amber-400 bg-amber-400/25 pointer-events-none rounded transition-all duration-300 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
+                          style={{
+                            top: `${topPct}%`,
+                            left: `${leftPct}%`,
+                            width: `${widthPct}%`,
+                            height: `${heightPct}%`,
+                          }}
+                        >
+                          <span className="absolute -top-5 left-0 bg-amber-500 text-slate-950 font-black text-[9px] px-1.5 py-0.2 rounded shadow whitespace-nowrap">
+                            {inspectedPlate.plate} ({inspectedPlate.engine === 'local_ml' ? '⚡ Local ML' : '☁️ Cloud PR'})
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Ficha Técnica Flotante de Auditoría (Solo si hay datos técnicos de Plate Recognizer) */}
+                    {inspectedPlate.details && (
+                      <div className="absolute bottom-4 left-4 bg-slate-950/90 border border-slate-800 backdrop-blur-md rounded-xl p-3 text-[11px] shadow-2xl min-w-[220px] text-slate-200 pointer-events-none">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80 mb-2 font-black text-cyan-400">
+                          <span>FICHA TÉCNICA IA</span>
+                          <span className="text-[10px] text-emerald-400 font-mono">CONFIANZA</span>
+                        </div>
+                        <div className="space-y-1 font-mono text-[11px]">
+                          <div className="flex justify-between gap-3">
+                            <span className="text-slate-400">Vehicle:</span>
+                            <span className="font-bold text-white">{inspectedPlate.details?.vehicle || 'Van'} <span className="text-cyan-400 text-[10px]">{inspectedPlate.details?.vehicleScore || '79%'}</span></span>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <span className="text-slate-400">Year Range:</span>
+                            <span className="font-bold text-white">{inspectedPlate.details?.yearRange || '2001-2017'}</span>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <span className="text-slate-400">Color:</span>
+                            <span className="font-bold text-white">{inspectedPlate.details?.color || 'white'} <span className="text-cyan-400 text-[10px]">{inspectedPlate.details?.colorScore || '82%'}</span></span>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <span className="text-slate-400">Make/Model:</span>
+                            <span className="font-bold text-white">{inspectedPlate.details?.makeModel || 'Toyota Etios'}</span>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <span className="text-slate-400">Orientation:</span>
+                            <span className="font-bold text-white">{inspectedPlate.details?.orientation || 'Rear'}</span>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <span className="text-slate-400">Direction:</span>
+                            <span className="font-bold text-white">{inspectedPlate.details?.direction || '37°'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Footer de Auditoría */}

@@ -1223,6 +1223,14 @@ var dropdowns = [
 
 ## Historial de Cambios
 
+### 2026-09-15 — Video en vivo 24/7 en tiempo real sin espera de sincronización
+- **Fix**: `deploy-oracle-vm/ezviz_stream_server.py` — `start_stream` retorna instantáneo (sin sondeo de hasta 4s del `m3u8`); FFmpeg abre el RTSP del port-forward en ~0.5s (`stimeout 5s`, `probesize/analyzeduration 500k`, `low_delay`); ventana HLS de 6s pegada al borde vivo; supervisor arranca de inmediato; playlist servida con `Cache-Control: no-cache`.
+- **Fix**: `server.cjs` — `GET /api/cameras/:serial/stream` devuelve URL determinista `/hls/{id}/index.m3u8` sin handshake POST al motor; eliminado el proxy `fetch`+`arrayBuffer` de `/api/live/ezviz/*` (bufferizaba cada segmento y agregaba ~1 segmento de retardo) — todo el HLS fluye por el proxy inverso por pipe.
+- **Update**: `src/pages/SecurityCenter.jsx` — `hls.js` en modo baja latencia (buffer 10s, sync 2 segmentos) y `continuousLive` por defecto (24/7 sin corte de 5 min).
+- **Update**: `src/pages/MiApto.jsx` — `hls.js` en baja latencia y eliminado el auto-corte de 60s (badge `EN VIVO 24/7`, pausa manual).
+- **Deploy pendiente**: `npm run release-apk` + en la VM `docker compose up -d --build video-engine`.
+- **Risk**: el RTSP depende del port-forward del router (`edificiolaujim.ddns.net:5541-5543`); si el DDNS o los puertos caen, el supervisor reintenta cada 3s pero no hay video hasta que vuelvan.
+
 ### 2026-09-05 — Persistencia duradera de token del Scraper Worker y optimización de consulta de servicios
 - **New**: Endpoint `GET /api/worker-token` para que administradores autenticados recuperen de forma segura el token configurado en el servidor (`SCRAPER_WORKER_TOKEN`).
 - **New**: Respaldo secundario del token (`laujim_worker_token_backup`) en `src/utils/portableWorker.js` y auto-recuperación (`autoRecoverWorkerToken`) ante reinicios o cierres de la APK.

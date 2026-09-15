@@ -112,7 +112,7 @@ export default function MiApto() {
   const [actionMessage, setActionMessage] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [cameraLive, setCameraLive] = useState(true);
-  const [cameraCountdown, setCameraCountdown] = useState(60); // 60s auto-pause de seguridad
+  // 24/7 sin auto-corte: el motor Always-On mantiene el vivo tibio; la pausa es manual.
   const [selectedCamSerial, setSelectedCamSerial] = useState('BG6994814');
   const [camViewMode, setCamViewMode] = useState('mosaic'); // 'mosaic' (1 hero + 2 secundarios) | 'grid' (3 iguales)
   const [useMjpeg, setUseMjpeg] = useState(true);
@@ -230,14 +230,20 @@ export default function MiApto() {
     if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: true,
-        manifestLoadingTimeOut: 12000,
-        manifestLoadingMaxRetry: 10,
-        manifestLoadingRetryDelay: 1000,
-        levelLoadingTimeOut: 10000,
-        levelLoadingMaxRetry: 8,
-        fragLoadingTimeOut: 10000,
-        fragLoadingMaxRetry: 8,
+        lowLatencyMode: true, // 24/7 pegado al borde vivo (port-forward siempre tibio)
+        liveSyncDurationCount: 2,
+        liveMaxLatencyDurationCount: 4,
+        maxBufferLength: 10,
+        maxMaxBufferLength: 20,
+        backBufferLength: 5,
+        manifestLoadingTimeOut: 5000,
+        manifestLoadingMaxRetry: 5,
+        manifestLoadingRetryDelay: 500,
+        levelLoadingTimeOut: 5000,
+        levelLoadingMaxRetry: 5,
+        fragLoadingTimeOut: 5000,
+        fragLoadingMaxRetry: 5,
+        fragLoadingRetryDelay: 500,
       });
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
@@ -275,17 +281,6 @@ export default function MiApto() {
   // - Las 2 cámaras secundarias se actualizan espaciadamente (cada 3.5s) para maximizar el ancho de banda hacia la cámara activa
   useEffect(() => {
     if (!cameraLive) return;
-
-    // Temporizador de seguridad (60s)
-    const countdownInterval = setInterval(() => {
-      setCameraCountdown(prev => {
-        if (prev <= 1) {
-          setCameraLive(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
 
     let heroTimer = null;
     let isCancelled = false;
@@ -331,18 +326,13 @@ export default function MiApto() {
 
     return () => {
       isCancelled = true;
-      clearInterval(countdownInterval);
       clearInterval(secondaryInterval);
       if (heroTimer) clearTimeout(heroTimer);
     };
   }, [cameraLive, selectedCamSerial, useMjpeg]);
 
   function toggleCameraLive() {
-    setCameraLive(prev => {
-      const next = !prev;
-      if (next) setCameraCountdown(60);
-      return next;
-    });
+    setCameraLive(prev => !prev);
   }
 
   async function handleMovePtz(direction) {
@@ -587,7 +577,7 @@ export default function MiApto() {
                 }`}
               >
                 <span className={`h-2 w-2 rounded-full ${cameraLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                {cameraLive ? `EN VIVO (${cameraCountdown}s)` : 'PAUSADO'}
+                {cameraLive ? 'EN VIVO 24/7' : 'PAUSADO'}
               </button>
             </div>
           </div>

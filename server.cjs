@@ -18,6 +18,39 @@ const { analysePaymentProofMedia, ocrSummary } = require('./payment-receipt-ocr.
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
 const { PDFDocument, PDFTextField, PDFCheckBox, PDFDropdown, PDFRadioGroup, PDFOptionList } = require('pdf-lib');
+let normalizePhoneE164 = null;
+let TruecallerProvider = null;
+let initCallerIdDatabase = null;
+let enqueueCallerLookup = null;
+let getCallerCache = null;
+let getLatestJob = null;
+let startCallerIdWorker = null;
+
+let callerIdDb = null;
+let callerIdWorker = null;
+
+try {
+  const norm = require('./lib/caller-id/phone-normalizer.cjs');
+  normalizePhoneE164 = norm.normalizePhone;
+  const tc = require('./lib/caller-id/truecaller-provider.cjs');
+  TruecallerProvider = tc.TruecallerProvider;
+  const repo = require('./lib/caller-id/caller-id-repository.cjs');
+  initCallerIdDatabase = repo.initDatabase;
+  enqueueCallerLookup = repo.enqueueLookup;
+  getCallerCache = repo.getCallerCache;
+  getLatestJob = repo.getLatestJob;
+  const wkr = require('./lib/caller-id/caller-id-worker.cjs');
+  startCallerIdWorker = wkr.startCallerIdWorker;
+
+  if (initCallerIdDatabase) {
+    callerIdDb = initCallerIdDatabase();
+    const truecallerProvider = new TruecallerProvider();
+    callerIdWorker = startCallerIdWorker({ db: callerIdDb, provider: truecallerProvider });
+  }
+} catch (err) {
+  console.warn('[CALLER ID] Subsystem optional, not loaded:', err.message);
+}
+
 
 const app = express();
 const PORT = process.env.PORT || 1011;
@@ -5857,6 +5890,113 @@ app.post('/api/security/doors/:id/unlock', async (req, res) => {
   }
 });
 
+// ─── CALLGUARD / TRUECALLER CALLER ID ───
+
+app.post('/api/security/caller-id/jobs', (req, res) => {
+  const phone = normalizePhoneE164(req.body?.phone);
+  const eventId = typeof req.body?.eventId === 'string' ? req.body.eventId : null;
+  if (!phone) {
+    return res.status(400).json({ error: 'INVALID_PHONE' });
+  }
+  if (!callerIdDb) {
+    return res.status(503).json({ error: 'CALLER_ID_DB_UNAVAILABLE' });
+  }
+  const result = enqueueCallerLookup(callerIdDb, eventId, phone);
+  return res.status(result.cached ? 200 : 202).json({
+    jobId: result.id || null,
+    phone,
+    status: result.status,
+    cached: Boolean(result.cached)
+  });
+});
+
+app.get('/api/security/caller-id/lookup', (req, res) => {
+  const phone = normalizePhoneE164(String(req.query.phone || ''));
+  if (!phone) return res.status(400).json({ error: 'INVALID_PHONE' });
+  if (!callerIdDb) return res.status(503).json({ error: 'CALLER_ID_DB_UNAVAILABLE' });
+
+  const cache = getCallerCache(callerIdDb, phone);
+  const job = getLatestJob(callerIdDb, phone);
+  if (cache) {
+    return res.json({
+      phone,
+      status: cache.lookup_status,
+      cached: true,
+      provider: cache.provider,
+      possibleName: cache.possible_name,
+      alternateName: cache.alternate_name,
+      category: cache.category,
+      spamScore: cache.spam_score,
+      reportCount: cache.report_count,
+      location: cache.location,
+      lineType: cache.line_type,
+      avatarUrl: cache.avatar_url,
+      email: cache.email,
+      fetchedAt: cache.fetched_at,
+      expiresAt: cache.expires_at
+    });
+  }
+
+  return res.status(job ? 202 : 404).json({
+    phone,
+    status: job?.status || 'not_found',
+    errorCode: job?.last_error_code || null,
+    updatedAt: job?.updated_at || null
+  });
+});
+
+app.get('/api/security/caller-id/health', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  if (!callerIdDb) {
+    return res.status(503).json({ enabled: false, error: 'Database unavailable' });
+  }
+  const runtime = callerIdWorker ? callerIdWorker.getState() : { enabled: false };
+  const counts = Object.fromEntries(
+    callerIdDb.prepare(`
+      SELECT status, COUNT(*) AS total
+      FROM caller_lookup_jobs
+      GROUP BY status
+    `).all().map(row => [row.status, row.total])
+  );
+
+  res.json({
+    enabled: process.env.TRUECALLER_ENABLED === 'true',
+    configured: Boolean(process.env.TRUECALLER_INSTALLATION_ID),
+    pausedForAuth: Boolean(runtime.pausedForAuth),
+    queued: counts.queued || 0,
+    running: counts.running || 0,
+    rateLimited: counts.rate_limited || 0,
+    found: counts.found || 0,
+    notFound: counts.not_found || 0,
+    lastSuccessAt: runtime.lastSuccessAt || null,
+    lastErrorCode: runtime.lastErrorCode || null
+  });
+});
+
+app.get('/api/auth/caddy-check', (req, res) => {
+  const token = req.headers['x-auth-token'] || req.query.token;
+  const session = getAuthSession(token);
+  if (!session) {
+    return res.status(401).end();
+  }
+  res.status(204).end();
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  const token = req.headers['x-auth-token'] || req.query.token;
+  if (token) {
+    removeAuthSession(token);
+  }
+  res.clearCookie('laujim.sid', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  });
+  res.status(204).end();
+});
+
 // ─── INTERCOM / VIDEOPORTERO QR ───
 
 const INTERCOM_SECRET = String(process.env.INTERCOM_SECRET || '').trim();
@@ -7135,26 +7275,9 @@ app.get('/api/live/hls/:file', async (req, res) => {
   }
 });
 
-// Proxy transparente de streams HLS desde el motor FastAPI/FFmpeg (puerto 8080)
-app.get(/^\/api\/live\/ezviz\/(.*)/, async (req, res) => {
-  const subPath = req.params[0] || '';
-  const streamTarget = `http://127.0.0.1:8080/hls/${subPath}`;
-
-  try {
-    const upstream = await fetch(streamTarget, { signal: AbortSignal.timeout(8000) });
-    if (!upstream.ok) {
-      return res.status(upstream.status).send('Segmento no listo');
-    }
-    const ct = upstream.headers.get('content-type') || (subPath.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T');
-    res.setHeader('Content-Type', ct);
-    res.setHeader('Cache-Control', 'no-cache, no-store');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    const buf = Buffer.from(await upstream.arrayBuffer());
-    res.send(buf);
-  } catch (err) {
-    res.status(502).json({ error: 'Motor de video reconectando o no disponible' });
-  }
-});
+// NOTA 24/7: /api/live/ezviz/* lo sirve el proxy inverso por pipe al final del
+// archivo (sección PROXY INVERSO PARA HLS). No usar fetch+arrayBuffer aquí:
+// bufferizar cada segmento .ts agrega ~1 segmento de retardo al vivo.
 
 // GET /api/cameras — listar las 3 cámaras del edificio y su feed actual
 app.get('/api/cameras', async (req, res) => {
@@ -7494,29 +7617,19 @@ app.get('/api/cameras/:serial/stream', async (req, res) => {
   const serial = String(req.params.serial || '').trim();
   if (!serial) return res.status(400).json({ error: 'Serial de cámara requerido.' });
 
-  // 1. Prioridad: Motor Python bajo demanda (FastAPI + FFmpeg)
+  // 1. Prioridad: Motor Python Always-On 24/7 (FastAPI + FFmpeg)
+  // El supervisor mantiene el playlist tibio en todo momento: URL determinista,
+  // sin handshake ni espera de sincronización. El proxy /hls lo sirve por pipe.
   const engineCamId = EZVIZ_STREAM_ENGINE_MAP[serial];
   const isEngineLive = await checkEzvizStreamEngineOnline();
   if (engineCamId && isEngineLive) {
-    try {
-      const startRes = await fetch(`http://127.0.0.1:8080/stream/start/${engineCamId}`, {
-        method: 'POST',
-        signal: AbortSignal.timeout(20000),
-      });
-      if (startRes.ok) {
-        const startData = await startRes.json();
-        const cleanPath = String(startData.playlist || '').replace(/^\/hls\//, '');
-        return res.json({
-          ok: true,
-          streamUrl: `/hls/${cleanPath}`,
-          protocol: 'hls',
-          serial,
-          engine: 'ezviz-hls',
-        });
-      }
-    } catch (err) {
-      console.warn(`[EZVIZ ENGINE] Error al iniciar stream para ${serial}:`, err.message);
-    }
+    return res.json({
+      ok: true,
+      streamUrl: `/hls/${engineCamId}/index.m3u8`,
+      protocol: 'hls',
+      serial,
+      engine: 'ezviz-hls',
+    });
   }
 
   // 2. Puente local go2rtc a 25 FPS
@@ -7561,24 +7674,63 @@ app.post('/api/cameras/:serial/ping', async (req, res) => {
   }
 });
 
-// ─── ENDPOINTS DE ALPR (CONTROL VEHICULAR OCR - PORTÓN) ───
+// ─── ENDPOINTS DE ALPR (CONTROL VEHICULAR OCR - PLATE RECOGNIZER & AUDITORÍA) ───
+const PLATE_RECOGNIZER_TOKEN = process.env.PLATE_RECOGNIZER_TOKEN || 'e4edfc08a7ae867f2087bd803cc85fd198cac290';
+
+// Memoria en caché de eventos ALPR
+let cachedAlprPlates = [];
+
 app.get('/api/security/plates', async (req, res) => {
   try {
-    const upstream = await fetch('http://127.0.0.1:8080/alpr/plates', { signal: AbortSignal.timeout(3000) });
-    const data = await upstream.json();
-    return res.json(data);
+    const upstream = await fetch('http://127.0.0.1:8080/alpr/plates', { signal: AbortSignal.timeout(3500) });
+    if (upstream.ok) {
+      const data = await upstream.json();
+      if (data?.plates && Array.isArray(data.plates)) {
+        cachedAlprPlates = data.plates;
+        return res.json({
+          ok: true,
+          active: true,
+          plates: data.plates,
+          total: data.total || data.plates.length,
+          benchmark_summary: data.benchmark_summary || null,
+        });
+      }
+    }
   } catch (err) {
-    return res.json({ ok: false, plates: [], error: err.message });
+    // Fallback a caché en memoria
   }
+  return res.json({ ok: true, active: true, plates: cachedAlprPlates, total: cachedAlprPlates.length });
 });
 
 app.post('/api/security/plates/scan', async (req, res) => {
   try {
-    const upstream = await fetch('http://127.0.0.1:8080/alpr/scan', { method: 'POST', signal: AbortSignal.timeout(25000) });
-    const data = await upstream.json();
-    return res.json(data);
+    const mode = req.query.mode || req.body?.mode || 'compare'; // 'compare' | 'ml' | 'cloud'
+    const cam = req.query.cam || req.body?.cam || 'all';       // 'all' | 'l' | 'r'
+
+    const upstreamUrl = `http://127.0.0.1:8080/alpr/scan?mode=${encodeURIComponent(mode)}&cam=${encodeURIComponent(cam)}`;
+    const upstream = await fetch(upstreamUrl, {
+      method: 'POST',
+      signal: AbortSignal.timeout(25000)
+    });
+
+    if (upstream.ok) {
+      const data = await upstream.json();
+      if (data?.plates_detected) {
+        // Actualizar caché de placas recientes
+        const listRes = await fetch('http://127.0.0.1:8080/alpr/plates', { signal: AbortSignal.timeout(3000) }).catch(() => null);
+        if (listRes && listRes.ok) {
+          const listData = await listRes.json().catch(() => null);
+          if (listData?.plates) cachedAlprPlates = listData.plates;
+        }
+      }
+      return res.json(data);
+    }
+
+    const errText = await upstream.text().catch(() => 'Error en motor de video');
+    return res.status(502).json({ ok: false, error: errText });
   } catch (err) {
-    return res.status(502).json({ ok: false, error: err.message });
+    console.error('[ALPR SCAN ERROR]', err.message);
+    return res.status(500).json({ ok: false, error: err.message });
   }
 });
 
