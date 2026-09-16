@@ -1231,7 +1231,11 @@ var dropdowns = [
 - **Deploy pendiente**: `npm run release-apk` + en la VM `docker compose up -d --build video-engine`.
 - **Risk**: el RTSP depende del port-forward del router (`edificiolaujim.ddns.net:5541-5543`); si el DDNS o los puertos caen, el supervisor reintenta cada 3s pero no hay video hasta que vuelvan.
 
-### 2026-09-15 — Fix deploy motor de video (Dockerfile + flag FFmpeg) + verificación de playback
+### 2026-09-15 — Causa raíz pantalla negra: timestamps PTS rotos de la cámara (SOLUCIONADO con imagen)
+- **Causa**: las EZVIZ envían PTS de ~27h por RTSP; con `-c copy` pasaban intactos al HLS (segmento de 6.6s reportaba `Duration: 24:02:55`). El navegador descargaba todo y `play()` resolvía, pero ningún frame caía en la posición de reproducción → negro eterno en web, APK y VM. Los snapshots sí salían (1 frame no usa timeline).
+- **Fix**: `deploy-oracle-vm/ezviz_stream_server.py` — `-use_wallclock_as_timestamps 1` en la apertura RTSP. Verificado: `ffprobe duration=6.64s`, `/cameras` 3/3 activas.
+- **Verify (Playwright, prod)**: `<video>` con `readyState:4`, `currentTime` avanzando (44.5s), 0 errores; screenshot con imagen real (portón + carro + moto en IR nocturno, badge `VIVO 25 FPS`).
+- **Nota**: el stream real es 15 fps (el badge dice 25, cosmético) y el audio AAC 16kHz mono se copia al HLS sin problema.
 - **Fix**: `deploy-oracle-vm/Dockerfile.video` — agregadas `opencv-python-headless numpy requests` (el motor las importa al arrancar; sin ellas el contenedor quedaba en `Restarting (1)`).
 - **Fix**: `deploy-oracle-vm/ezviz_stream_server.py` — removido `-stimeout` (ese build de FFmpeg 5.1 no lo reconoce y mataba el proceso al instante; verificado en `ffmpeg.log`).
 - **Verify (Playwright CDP, prod)**: login admin OK; `/security` con 0 errores de consola; `/api/cameras/.../stream` 200 instantáneo; playlist + segmentos `seg_002→seg_019` todos 200 en avance continuo; `<video>` reproduciendo (`paused:false`, blob MSE, frames decodificados a 2880×1620, badge `VIVO 25 FPS` + `ACTIVO` en modo Continuo).

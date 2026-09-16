@@ -133,6 +133,7 @@ def _start_single_stream(camera_id: str):
         "-hide_banner",
         "-loglevel", "warning",
         "-rtsp_transport", "tcp",
+        "-use_wallclock_as_timestamps", "1",  # Las cámaras envían PTS rotos (~27h); rebasea a reloj real o el navegador muestra negro
         "-fflags", "nobuffer+flush_packets",
         "-flags", "low_delay",
         "-probesize", "500000",      # Apertura rápida (~0.5s en vez de 1.5s)
