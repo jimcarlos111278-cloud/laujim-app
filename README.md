@@ -1223,6 +1223,11 @@ var dropdowns = [
 
 ## Historial de Cambios
 
+### 2026-09-15 — Video HLS en inquilinos + se elimina interruptor MJPEG/Ráfaga (v1.0.129)
+- **Causa**: el hero de `/mi-apto` quedaba negro porque React no aplicaba el prop `muted` y el `play()` era bloqueado en silencio (sin overlay de toque como el admin).
+- **Fix**: `src/pages/MiApto.jsx` — `video.muted=true` imperativo + reintento en `canplay` + overlay de toque; hero siempre HLS (foto fija solo como fallback); eliminado botón/estado `useMjpeg`, ráfaga turbo y fallback MJPEG→ráfaga. Miniaturas secundarias intactas (snapshot 3.5s).
+- **Deploy**: `dist` 1.0.129 en VM, `/api/version` verificado. APK 1.0.129 con notificación.
+
 ### 2026-09-15 — Video en vivo 24/7 en tiempo real sin espera de sincronización
 - **Fix**: `deploy-oracle-vm/ezviz_stream_server.py` — `start_stream` retorna instantáneo (sin sondeo de hasta 4s del `m3u8`); FFmpeg abre el RTSP del port-forward en ~0.5s (`stimeout 5s`, `probesize/analyzeduration 500k`, `low_delay`); ventana HLS de 6s pegada al borde vivo; supervisor arranca de inmediato; playlist servida con `Cache-Control: no-cache`.
 - **Fix**: `server.cjs` — `GET /api/cameras/:serial/stream` devuelve URL determinista `/hls/{id}/index.m3u8` sin handshake POST al motor; eliminado el proxy `fetch`+`arrayBuffer` de `/api/live/ezviz/*` (bufferizaba cada segmento y agregaba ~1 segmento de retardo) — todo el HLS fluye por el proxy inverso por pipe.
