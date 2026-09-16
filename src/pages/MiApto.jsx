@@ -4,7 +4,7 @@ import Hls from 'hls.js';
 import {
   Activity, AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Building2, Calendar, Camera, Check, CheckCircle, ChevronDown, ChevronUp,
   Compass, Copy, Download, Droplets, ExternalLink, Eye, FileText, Flame, HardDrive, Info, Key, LayoutGrid, Loader2,
-  LockKeyhole, LogOut, MapPin, Maximize2, Move, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, Wifi, X, Zap,
+  LockKeyhole, LogOut, MapPin, Maximize2, Move, Play, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, Wifi, X, Zap,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { clearAuth, isTenant, isAdmin, getAuth } from '../utils/auth';
@@ -115,7 +115,6 @@ export default function MiApto() {
   // 24/7 sin auto-corte: el motor Always-On mantiene el vivo tibio; la pausa es manual.
   const [selectedCamSerial, setSelectedCamSerial] = useState('BG6994814');
   const [camViewMode, setCamViewMode] = useState('mosaic'); // 'mosaic' (1 hero + 2 secundarios) | 'grid' (3 iguales)
-  const [useMjpeg, setUseMjpeg] = useState(true);
   const [cameraFeeds, setCameraFeeds] = useState({
     BG6994814: `${getRawBase()}/api/intercom/public/feed?serial=BG6994814&t=${Date.now()}`,
     BG6994872: `${getRawBase()}/api/intercom/public/feed?serial=BG6994872&t=${Date.now()}`,
@@ -125,8 +124,8 @@ export default function MiApto() {
   const [streamUrls, setStreamUrls] = useState({});
   const [streamErrors, setStreamErrors] = useState({});
   const [streamingActive, setStreamingActive] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef(null);
+  const [needsUserPlay, setNeedsUserPlay] = useState(false); // overlay si el navegador bloquea autoplay
   const [ptzMoving, setPtzMoving] = useState(''); // 'up' | 'down' | 'left' | 'right' | ''
   const [ptzFeedback, setPtzFeedback] = useState('');
   const [showEzvizGuide, setShowEzvizGuide] = useState(false);
@@ -225,6 +224,7 @@ export default function MiApto() {
     const isFailed = streamErrors[selectedCamSerial];
     const video = videoRef.current;
     if (!video || !streamUrl || isFailed || !cameraLive) return;
+    setNeedsUserPlay(false);
 
     let hls = null;
     let onCanPlay = null;
@@ -248,11 +248,14 @@ export default function MiApto() {
       });
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(() => {});
-      });
+      video.muted = true; // imperativo: React no siempre aplica el prop muted y sin esto el autoplay falla en negro
+      const attemptHeroPlay = () => {
+        video.muted = true;
+        video.play().then(() => setNeedsUserPlay(false)).catch(() => setNeedsUserPlay(true));
+      };
+      hls.on(Hls.Events.MANIFEST_PARSED, attemptHeroPlay);
       // Reintento al tener datos listos (algunos navegadores rechazan el primer play)
-      onCanPlay = () => { video.play().catch(() => {}); };
+      onCanPlay = attemptHeroPlay;
       video.addEventListener('canplay', onCanPlay);
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
@@ -281,36 +284,12 @@ export default function MiApto() {
 
 
 
-  // Motor de transmisión de alta velocidad:
-  // - En modo ráfaga, la cámara activa (Hero) se actualiza de inmediato al completar cada fotograma (~250-350ms)
-  // - Las 2 cámaras secundarias se actualizan espaciadamente (cada 3.5s) para maximizar el ancho de banda hacia la cámara activa
+  // Motor de miniaturas: las 2 cámaras secundarias se actualizan cada 3.5s.
+  // El Hero siempre usa video HLS en vivo (sin modos MJPEG/ráfaga).
   useEffect(() => {
     if (!cameraLive) return;
 
-    let heroTimer = null;
     let isCancelled = false;
-
-    // Ráfaga turbo para la cámara Hero cuando useMjpeg sea falso
-    function pollHeroCam() {
-      if (isCancelled || !cameraLive) return;
-      const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&stream=1&t=${Date.now()}`;
-      const img = new Image();
-      img.onload = () => {
-        if (isCancelled) return;
-        setCameraFeeds(prev => ({ ...prev, [selectedCamSerial]: nextUrl }));
-        setCameraErrors(prev => ({ ...prev, [selectedCamSerial]: false }));
-        heroTimer = setTimeout(pollHeroCam, 200);
-      };
-      img.onerror = () => {
-        if (isCancelled) return;
-        heroTimer = setTimeout(pollHeroCam, 1200);
-      };
-      img.src = nextUrl;
-    }
-
-    if (!useMjpeg) {
-      pollHeroCam();
-    }
 
     // Actualización pausada y escalonada de las cámaras secundarias (cada 3.5s)
     const secondaryInterval = setInterval(() => {
@@ -332,9 +311,8 @@ export default function MiApto() {
     return () => {
       isCancelled = true;
       clearInterval(secondaryInterval);
-      if (heroTimer) clearTimeout(heroTimer);
     };
-  }, [cameraLive, selectedCamSerial, useMjpeg]);
+  }, [cameraLive, selectedCamSerial]);
 
   function toggleCameraLive() {
     setCameraLive(prev => !prev);
@@ -647,14 +625,6 @@ export default function MiApto() {
 
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => setUseMjpeg(!useMjpeg)}
-                          className="flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 transition"
-                          title="Alternar motor de video"
-                        >
-                          <span>{useMjpeg ? '⚡ Stream MJPEG' : '🚀 Ráfaga Directa'}</span>
-                        </button>
-
-                        <button
                           onClick={() => {
                             fetch(`${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1`).catch(() => {});
                             const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&t=${Date.now()}`;
@@ -673,13 +643,29 @@ export default function MiApto() {
                     {/* Contenedor del video principal 100% limpio sin leds ni badges encima */}
                     <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-lg border border-slate-800">
                       {hasStream ? (
+                        <>
                         <video
                           ref={videoRef}
                           autoPlay
                           playsInline
-                          muted={isMuted}
+                          muted
                           className="h-full w-full object-cover"
                         />
+                        {needsUserPlay && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const v = videoRef.current;
+                              if (v) { v.muted = true; v.play().then(() => setNeedsUserPlay(false)).catch(() => {}); }
+                            }}
+                            className="absolute inset-0 flex items-center justify-center z-20 cursor-pointer bg-black/30"
+                          >
+                            <div className="bg-white/20 backdrop-blur-md rounded-full p-4 shadow-2xl border border-white/30 active:scale-90">
+                              <Play className="h-10 w-10 text-white" />
+                            </div>
+                          </div>
+                        )}
+                        </>
                       ) : hasHeroError ? (
                         <div className="flex h-full w-full flex-col items-center justify-center bg-slate-950 p-4 text-center">
                           <div className="relative mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20">
@@ -699,16 +685,11 @@ export default function MiApto() {
                         </div>
                       ) : (
                         <img
-                          key={heroCam.serial + (useMjpeg ? '-mjpeg' : '-burst')}
-                          src={useMjpeg ? `${getRawBase()}/api/intercom/public/mjpeg?serial=${heroCam.serial}` : heroFeed}
+                          key={heroCam.serial}
+                          src={heroFeed}
                           alt={heroCam.name}
                           onError={() => {
-                            if (useMjpeg) {
-                              console.warn('[CAM] Fallback de MJPEG a ráfaga activa continua');
-                              setUseMjpeg(false);
-                            } else {
-                              setCameraErrors(prev => ({ ...prev, [heroCam.serial]: true }));
-                            }
+                            setCameraErrors(prev => ({ ...prev, [heroCam.serial]: true }));
                           }}
                           onLoad={() => {
                             setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));

@@ -437,7 +437,8 @@ ALPR_AUTO = {
     "cams": ["l", "r"],
 }
 _ALPR_CAM_LABEL = {"l": "Fachada Izquierda", "r": "Fachada Derecha"}
-_alpr_auto_state = {"day": "", "used": 0, "last_cloud": {}, "last_motion": {}, "prev": {}, "triggers": 0}
+_alpr_auto_state = {"day": "", "used": 0, "last_cloud": {}, "last_motion": {}, "prev": {}, "triggers": 0,
+                     "quiet_until": {}, "streak": {}, "empty_streak": {}}
 
 
 def _alpr_today():
@@ -512,6 +513,13 @@ def _alpr_worker():
                 now = time.time()
                 if ratio >= ALPR_AUTO["motion_ratio"]:
                     _alpr_auto_state["last_motion"][cam_id] = now
+                    _alpr_auto_state["streak"][cam_id] = _alpr_auto_state["streak"].get(cam_id, 0) + 1
+                    # 1) Doble confirmación: el movimiento debe persistir 2 chequeos (filtra ruido IR/insectos)
+                    if _alpr_auto_state["streak"][cam_id] < 2:
+                        continue
+                    # 2) Silencio tras puros estacionados/vacíos (no quemar cupo con el mismo carro)
+                    if now < _alpr_auto_state["quiet_until"].get(cam_id, 0):
+                        continue
                     last_c = _alpr_auto_state["last_cloud"].get(cam_id, 0)
                     if now - last_c >= ALPR_AUTO["cooldown"] and _alpr_auto_state["used"] < ALPR_AUTO["daily_cap"]:
                         _alpr_auto_state["last_cloud"][cam_id] = now
@@ -521,7 +529,19 @@ def _alpr_worker():
                         found = scan_plates_cloud(snap, cam_id)
                         el = round((time.time() - t0) * 1000, 1)
                         _alpr_register_auto(cam_id, found, el)
-                        print(f"[ALPR AUTO] {cam_id}: movimiento {ratio:.4f} -> {[p['plate'] for p in found]} ({el}ms, uso {_alpr_auto_state['used']}/{ALPR_AUTO['daily_cap']})")
+                        plates = [p["plate"] for p in found]
+                        if plates and all(tracker.tracked.get(p, {}).get("status") == "parked" for p in plates):
+                            _alpr_auto_state["quiet_until"][cam_id] = now + 900.0
+                            _alpr_auto_state["empty_streak"][cam_id] = 0
+                        elif not plates:
+                            _alpr_auto_state["empty_streak"][cam_id] = _alpr_auto_state["empty_streak"].get(cam_id, 0) + 1
+                            if _alpr_auto_state["empty_streak"][cam_id] >= 2:
+                                _alpr_auto_state["quiet_until"][cam_id] = now + 600.0
+                        else:
+                            _alpr_auto_state["empty_streak"][cam_id] = 0
+                        print(f"[ALPR AUTO] {cam_id}: movimiento {ratio:.4f} -> {plates} ({el}ms, uso {_alpr_auto_state['used']}/{ALPR_AUTO['daily_cap']})")
+                else:
+                    _alpr_auto_state["streak"][cam_id] = 0
         except Exception as e:
             print(f"[ALPR AUTO] Error: {e}")
         time.sleep(ALPR_AUTO["check_every"])
@@ -539,6 +559,7 @@ def alpr_auto_status():
         "triggers_total": _alpr_auto_state["triggers"],
         "last_cloud": _alpr_auto_state["last_cloud"],
         "last_motion": _alpr_auto_state["last_motion"],
+        "quiet_until": _alpr_auto_state["quiet_until"],
         "cooldown_s": ALPR_AUTO["cooldown"],
     }
 
@@ -871,6 +892,157 @@ def download_recording(job_id: str):
         media_type="video/mp4",
         filename=job.get("filename", "grabacion.mp4"),
     )
+
+
+class ExportMultiRequest(BaseModel):
+    camera_id: str
+    ranges: list
+
+
+_oldest_cache = {"ts": 0.0, "data": {}}
+_OLDEST_TTL = 6 * 3600.0
+
+
+def _playback_url(camera_id: str, start_ts: str, end_ts: str) -> str:
+    cam = CAMERAS[camera_id]
+    pwd = cam.get("password")
+    if ROUTER_WAN_HOST:
+        host = ROUTER_WAN_HOST
+        port = ROUTER_PORTS.get(camera_id, cam.get("port", 554))
+    else:
+        host = cam["ip"]
+        port = 554
+    return f"rtsp://{cam['user']}:{pwd}@{host}:{port}/Streaming/tracks/101?starttime={start_ts}&endtime={end_ts}"
+
+
+def _probe_range_has_data(camera_id: str, start_ts: str) -> bool:
+    """¿Hay grabación en ese momento? Lee 4s del playback; True = hay datos."""
+    try:
+        end_dt = datetime.datetime.strptime(start_ts, "%Y%m%dt%H%M%Sz").replace(tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=90)
+        end_ts = end_dt.strftime("%Y%m%dt%H%M%Sz")
+        cmd = ["ffmpeg", "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
+               "-rtsp_transport", "tcp", "-i", _playback_url(camera_id, start_ts, end_ts),
+               "-t", "4", "-f", "null", "-"]
+        proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+        return proc.returncode == 0
+    except Exception:
+        return False
+
+
+def _oldest_for_cam(camera_id: str) -> dict:
+    now = datetime.datetime.now(datetime.timezone.utc)
+    for days in [27, 20, 14, 10, 7, 5, 3, 2, 1]:
+        dt = now - datetime.timedelta(days=days)
+        ts = dt.strftime("%Y%m%dt%H%M%Sz")
+        if _probe_range_has_data(camera_id, ts):
+            return {"camera_id": camera_id, "oldest": dt.strftime("%Y-%m-%d %H:%M"),
+                    "oldest_ts": ts, "probed_days_back": days}
+    return {"camera_id": camera_id, "oldest": None, "oldest_ts": None, "probed_days_back": 0}
+
+
+@app.get("/recordings/oldest")
+def get_oldest_recordings():
+    """Fecha más vieja con grabación por cámara (sondeo MicroSD, cache 6h)."""
+    now_t = time.time()
+    if now_t - _oldest_cache["ts"] < _OLDEST_TTL and _oldest_cache["data"]:
+        return {"ok": True, "cached": True, **_oldest_cache["data"]}
+    results = {}
+    threads = []
+    def _w(cid):
+        results[cid] = _oldest_for_cam(cid)
+    for cid in CAMERAS:
+        t = threading.Thread(target=_w, args=(cid,), daemon=True)
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join(timeout=240)
+    payload = {"cameras": results,
+               "checked_at": datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).strftime("%Y-%m-%d %H:%M:%S")}
+    _oldest_cache.update({"ts": now_t, "data": payload})
+    return {"ok": True, "cached": False, **payload}
+
+
+def _fetch_range_to_file(camera_id: str, start_ts: str, end_ts: str, out_path: str, timeout_s: int = 600) -> tuple[bool, str]:
+    cmd = ["ffmpeg", "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
+           "-rtsp_transport", "tcp", "-buffer_size", "1024000",
+           "-i", _playback_url(camera_id, start_ts, end_ts),
+           "-c", "copy", "-movflags", "+faststart", out_path]
+    try:
+        proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout_s)
+        if proc.returncode == 0 and os.path.exists(out_path) and os.path.getsize(out_path) > 1000:
+            return True, ""
+        return False, "sin datos en ese rango"
+    except subprocess.TimeoutExpired:
+        return False, "timeout"
+    except Exception as e:
+        return False, str(e)
+
+
+def _run_export_multi_job(job_id: str, camera_id: str, ranges: list):
+    """Descarga N rangos y los UNE en un solo MP4 (concat sin recodificar)."""
+    with lock:
+        paused_for_export.add(camera_id)
+        _stop_single_stream(camera_id)
+    time.sleep(2.5)
+    try:
+        parts = []
+        for i, rg in enumerate(ranges):
+            part = os.path.join(RECORDINGS_DIR, f"{job_id}_p{i}.mp4").replace("\\", "/")
+            ok, err = _fetch_range_to_file(camera_id, rg["start_ts"], rg["end_ts"], part)
+            if not ok:
+                export_jobs[job_id]["status"] = "failed"
+                export_jobs[job_id]["error"] = f"Rango {i + 1}/{len(ranges)} falló: {err}"
+                return
+            parts.append(part)
+            export_jobs[job_id]["progress"] = f"{i + 1}/{len(ranges)}"
+        out_filename = f"rec_{camera_id}_unido_{job_id[:6]}.mp4"
+        out_path = os.path.join(RECORDINGS_DIR, out_filename).replace("\\", "/")
+        list_path = os.path.join(RECORDINGS_DIR, f"{job_id}.txt").replace("\\", "/")
+        with open(list_path, "w", encoding="utf-8") as lf:
+            for p in parts:
+                lf.write(f"file '{p}'\n")
+        cc = subprocess.run(["ffmpeg", "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
+                             "-f", "concat", "-safe", "0", "-i", list_path,
+                             "-c", "copy", "-movflags", "+faststart", out_path],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=300)
+        for p in parts + [list_path]:
+            try:
+                os.remove(p)
+            except Exception:
+                pass
+        if cc.returncode == 0 and os.path.exists(out_path) and os.path.getsize(out_path) > 1000:
+            export_jobs[job_id]["status"] = "completed"
+            export_jobs[job_id]["size_mb"] = round(os.path.getsize(out_path) / (1024 * 1024), 2)
+            export_jobs[job_id]["filename"] = out_filename
+            export_jobs[job_id]["out_path"] = out_path
+            export_jobs[job_id]["download_url"] = f"/recordings/download/{job_id}"
+        else:
+            export_jobs[job_id]["status"] = "failed"
+            export_jobs[job_id]["error"] = "No se pudo unir los fragmentos."
+    finally:
+        with lock:
+            paused_for_export.discard(camera_id)
+
+
+@app.post("/recordings/export-multi")
+def export_recording_multi(req: ExportMultiRequest):
+    if req.camera_id not in CAMERAS:
+        raise HTTPException(404, "Cámara no encontrada")
+    parsed = []
+    try:
+        for rg in (req.ranges or [])[:8]:
+            parsed.append({"start_ts": parse_to_rtsp_ts(rg.get("start_time", "")),
+                           "end_ts": parse_to_rtsp_ts(rg.get("end_time", ""))})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if not parsed:
+        raise HTTPException(400, "Sin rangos válidos (máx 8).")
+    job_id = str(uuid.uuid4())
+    export_jobs[job_id] = {"id": job_id, "camera_id": req.camera_id,
+                           "camera_name": CAMERAS[req.camera_id]["name"],
+                           "ranges": len(parsed), "status": "queued", "created_at": time.time()}
+    threading.Thread(target=_run_export_multi_job, args=(job_id, req.camera_id, parsed), daemon=True).start()
+    return {"job_id": job_id, "status": "queued", "ranges": len(parsed), "message": "Descarga múltiple iniciada; se unirá en un solo MP4."}
 
 
 INSTALLATION_DATE = datetime.datetime(2026, 9, 3, 8, 0, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=-5)))
