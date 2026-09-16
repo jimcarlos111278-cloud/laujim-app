@@ -426,14 +426,121 @@ def capture_snapshot(cam_id: str) -> str | None:
     return None
 
 
+ALPR_AUTO = {
+    "enabled": True,
+    "check_every": 2.5,     # revisar snapshot cada N segundos
+    "diff_thresh": 25,       # cambio mínimo por píxel (0-255)
+    "motion_ratio": 0.004,   # 0.4% del ROI con cambio = movimiento (capta motos)
+    "roi_top": 0.35,         # franja calle: del 35% al 100% vertical
+    "cooldown": 90.0,        # mínimo 90s entre llamadas cloud por cámara
+    "daily_cap": 80,         # tope diario (~2.400/mes < 2.500 del plan gratis)
+    "cams": ["l", "r"],
+}
+_ALPR_CAM_LABEL = {"l": "Fachada Izquierda", "r": "Fachada Derecha"}
+_alpr_auto_state = {"day": "", "used": 0, "last_cloud": {}, "last_motion": {}, "prev": {}, "triggers": 0}
+
+
+def _alpr_today():
+    return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).strftime("%Y-%m-%d")
+
+
+def _alpr_register_auto(cam_id, found, elapsed_ms):
+    now = time.time()
+    now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).strftime("%Y-%m-%d %I:%M:%S %p")
+    for r in found:
+        with lock:
+            alpr_detections.insert(0, {
+                "id": f"auto_{str(uuid.uuid4())[:8]}",
+                "plate": r["plate"],
+                "raw_plate": r["raw_plate"],
+                "type": r["type"],
+                "confidence": r["confidence"],
+                "timestamp": now_str,
+                "epoch": now,
+                "camera": _ALPR_CAM_LABEL.get(cam_id, cam_id),
+                "cam_id": cam_id,
+                "engine": "cloud_pr",
+                "status": r["status"],
+                "is_parked": r["is_parked"],
+                "box": r["box"],
+                "box_norm": r["box_norm"],
+                "details": r.get("details", {}),
+                "snapshot": f"/alpr/snapshot?cam={cam_id}&t={int(now)}",
+                "inference_time_ms": elapsed_ms,
+            })
+            if len(alpr_detections) > 100:
+                alpr_detections.pop()
+
+
 def _alpr_worker():
     """
-    Patrullero ALPR retirado (2026-09-16).
-    El ML local exigía torch/fast_alpr y rendía menos que la nube; un patrullaje
-    periódico en Cloud quemaría el cupo (2.500/mes). La detección corre solo
-    bajo demanda en POST /alpr/scan.
+    Patrullero AUTOMÁTICO por movimiento (OpenCV, sin ML).
+    Compara snapshots cada 2.5s; solo cuando hay movimiento (carro o moto)
+    dispara UN scan Cloud, con cooldown 90s/cámara y tope 80/día.
     """
-    return
+    time.sleep(15.0)
+    print("[ALPR AUTO] Patrullero por movimiento iniciado (cámaras l/r).")
+    while True:
+        try:
+            if not ALPR_AUTO["enabled"]:
+                time.sleep(5.0)
+                continue
+            today = _alpr_today()
+            if _alpr_auto_state["day"] != today:
+                _alpr_auto_state.update({"day": today, "used": 0})
+            for cam_id in ALPR_AUTO["cams"]:
+                if cam_id in paused_for_export:
+                    continue
+                snap = capture_snapshot(cam_id)
+                if not snap:
+                    continue
+                img = cv2.imread(snap, cv2.IMREAD_GRAYSCALE)
+                if img is None:
+                    continue
+                h, w = img.shape[:2]
+                y0 = int(h * ALPR_AUTO["roi_top"])
+                roi = img[y0:h, 0:w]
+                sw = 320
+                sh = max(1, int(sw * (h - y0) / w))
+                small = cv2.resize(roi, (sw, sh))
+                prev = _alpr_auto_state["prev"].get(cam_id)
+                _alpr_auto_state["prev"][cam_id] = small
+                if prev is None or prev.shape != small.shape:
+                    continue
+                _, th = cv2.threshold(cv2.absdiff(prev, small), ALPR_AUTO["diff_thresh"], 255, cv2.THRESH_BINARY)
+                ratio = float(cv2.countNonZero(th)) / float(th.size)
+                now = time.time()
+                if ratio >= ALPR_AUTO["motion_ratio"]:
+                    _alpr_auto_state["last_motion"][cam_id] = now
+                    last_c = _alpr_auto_state["last_cloud"].get(cam_id, 0)
+                    if now - last_c >= ALPR_AUTO["cooldown"] and _alpr_auto_state["used"] < ALPR_AUTO["daily_cap"]:
+                        _alpr_auto_state["last_cloud"][cam_id] = now
+                        _alpr_auto_state["used"] += 1
+                        _alpr_auto_state["triggers"] += 1
+                        t0 = time.time()
+                        found = scan_plates_cloud(snap, cam_id)
+                        el = round((time.time() - t0) * 1000, 1)
+                        _alpr_register_auto(cam_id, found, el)
+                        print(f"[ALPR AUTO] {cam_id}: movimiento {ratio:.4f} -> {[p['plate'] for p in found]} ({el}ms, uso {_alpr_auto_state['used']}/{ALPR_AUTO['daily_cap']})")
+        except Exception as e:
+            print(f"[ALPR AUTO] Error: {e}")
+        time.sleep(ALPR_AUTO["check_every"])
+
+
+@app.get("/alpr/auto")
+def alpr_auto_status():
+    """Estado del patrullero automático (movimiento, cupo diario, último disparo)."""
+    return {
+        "ok": True,
+        "enabled": ALPR_AUTO["enabled"],
+        "daily_used": _alpr_auto_state["used"],
+        "daily_cap": ALPR_AUTO["daily_cap"],
+        "day": _alpr_auto_state["day"],
+        "triggers_total": _alpr_auto_state["triggers"],
+        "last_cloud": _alpr_auto_state["last_cloud"],
+        "last_motion": _alpr_auto_state["last_motion"],
+        "cooldown_s": ALPR_AUTO["cooldown"],
+    }
 
 
 # ─── ENDPOINTS DE STREAMING EN VIVO ───

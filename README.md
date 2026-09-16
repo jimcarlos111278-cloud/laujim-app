@@ -1231,6 +1231,12 @@ var dropdowns = [
 - **Deploy pendiente**: `npm run release-apk` + en la VM `docker compose up -d --build video-engine`.
 - **Risk**: el RTSP depende del port-forward del router (`edificiolaujim.ddns.net:5541-5543`); si el DDNS o los puertos caen, el supervisor reintenta cada 3s pero no hay video hasta que vuelvan.
 
+### 2026-09-15 — ALPR AUTOMÁTICO por movimiento (OpenCV + Cloud con cupo)
+- **Por qué no se detectaba el carro blanco**: 1) la detección era solo manual (botón Escanear); un carro ya parqueado nunca se escanea solo. 2) de noche, las placas blancas retrorreflectivas se queman con el IR (rectángulo blanco sin caracteres) — verificar en `/alpr/snapshot?cam=l`.
+- **Fix**: `deploy-oracle-vm/ezviz_stream_server.py` — patrullero `_alpr_worker` con `absdiff` OpenCV sobre snapshots cada 2.5s (ROI calle, umbral 0.4% sensible a motos); al haber movimiento dispara UN scan Cloud con cooldown 90s/cámara y tope 80/día (~2.400/mes < 2.500 gratis). Carros parqueados no gastan (sin movimiento no hay disparo; el tracker además suprime repetidos 15 min).
+- **Endpoints**: `GET /alpr/auto` (estado, cupo usado, últimos disparos). `POST /alpr/scan` sigue manual.
+- **Verify**: worker iniciado en VM (`[ALPR AUTO] Patrullero por movimiento iniciado`), `/alpr/auto` en vivo; scan manual detecta KJH-784.
+
 ### 2026-09-15 — ALPR solo-Cloud: ML local eliminado, placa KJH-784 detectada
 - **Causa**: el ML local (`fast_alpr`/torch) nunca estuvo instalado en la imagen → `scan_plates_ml` retornaba `[]` siempre; la nube sí funciona (token válido, 44-197ms).
 - **Fix**: `deploy-oracle-vm/ezviz_stream_server.py` — eliminado `scan_plates_ml` + init `fast_alpr` + patrullero de fondo (quemaría el cupo 2.500/mes); modos `ml`/`compare` caen a Cloud; solo `POST /alpr/scan` bajo demanda.
