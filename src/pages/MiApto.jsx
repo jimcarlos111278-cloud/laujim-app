@@ -227,6 +227,7 @@ export default function MiApto() {
     if (!video || !streamUrl || isFailed || !cameraLive) return;
 
     let hls = null;
+    let onCanPlay = null;
     if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
@@ -250,6 +251,9 @@ export default function MiApto() {
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch(() => {});
       });
+      // Reintento al tener datos listos (algunos navegadores rechazan el primer play)
+      onCanPlay = () => { video.play().catch(() => {}); };
+      video.addEventListener('canplay', onCanPlay);
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           console.warn('[HLS] Error fatal en stream HLS:', data.type);
@@ -270,6 +274,7 @@ export default function MiApto() {
     }
 
     return () => {
+      if (onCanPlay) video.removeEventListener('canplay', onCanPlay);
       if (hls) hls.destroy();
     };
   }, [selectedCamSerial, streamUrls[selectedCamSerial], streamErrors[selectedCamSerial], cameraLive]);

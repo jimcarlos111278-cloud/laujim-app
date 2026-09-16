@@ -341,6 +341,7 @@ export default function SecurityCenter() {
       : `${rawBase}${streamUrl.startsWith('/') ? '' : '/'}${streamUrl}`;
 
     let hls = null;
+    let onCanPlay = null;
     setNeedsUserPlay(false);
 
     const attemptPlay = () => {
@@ -390,6 +391,13 @@ export default function SecurityCenter() {
 
       hls.loadSource(fullStreamUrl);
       hls.attachMedia(video);
+      // Reintento al tener datos listos: algunos navegadores rechazan el primer
+      // play() aunque el video venga muteado (pantalla negra con botón play).
+      onCanPlay = () => {
+        video.muted = true;
+        video.play().then(() => setNeedsUserPlay(false)).catch(() => {});
+      };
+      video.addEventListener('canplay', onCanPlay);
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari native HLS: wait for loadedmetadata before playing
       video.src = fullStreamUrl;
@@ -397,6 +405,7 @@ export default function SecurityCenter() {
     }
 
     return () => {
+      if (onCanPlay) video.removeEventListener('canplay', onCanPlay);
       if (hls) hls.destroy();
     };
   }, [selectedCamSerial, streamUrls[selectedCamSerial], streamErrors[selectedCamSerial], cameraLive]);

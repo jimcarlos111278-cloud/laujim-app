@@ -92,6 +92,7 @@ function main() {
     'public/icon.png',
     'capacitor.config.json',
     'android/app/src/main/res',
+    'android/app/src/main/java/com/laujim/aptmanager/MainActivity.java',
     'README.md',
     'server.cjs',
     'scripts/build-apk.cjs',

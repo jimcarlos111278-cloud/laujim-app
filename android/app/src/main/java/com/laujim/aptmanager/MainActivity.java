@@ -75,6 +75,11 @@ public class MainActivity extends BridgeActivity {
             deepLinkHandler.postDelayed(this::installMediaWebChromeClient, 300L);
             return;
         }
+        // Las cámaras 24/7 deben arrancar solas: sin esto el WebView exige un toque
+        // para cada <video> aunque venga muteado (botón play gigante en negro).
+        try {
+            webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
+        } catch (Exception ignored) {}
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(PermissionRequest request) {

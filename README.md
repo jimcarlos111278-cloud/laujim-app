@@ -1237,6 +1237,12 @@ var dropdowns = [
 - **Verify (Playwright CDP, prod)**: login admin OK; `/security` con 0 errores de consola; `/api/cameras/.../stream` 200 instantáneo; playlist + segmentos `seg_002→seg_019` todos 200 en avance continuo; `<video>` reproduciendo (`paused:false`, blob MSE, frames decodificados a 2880×1620, badge `VIVO 25 FPS` + `ACTIVO` en modo Continuo).
 - **Nota**: segmentos de ~6.6s por GOP de la cámara con `-c copy`; latencia realista ~7-13s. Bajar a 1-2s exigiría re-encode con keyframes forzados (más CPU) — pendiente de decisión.
 
+### 2026-09-15 — Autoplay sin toque en APK (pantalla negra con botón play)
+- **Causa**: el WebView de Android exige gesto del usuario para cada `<video>` aunque venga muteado; el stream llegaba (badge `VIVO 25 FPS`) pero quedaba en negro con el botón play gigante.
+- **Fix**: `android/.../MainActivity.java` — `setMediaPlaybackRequiresUserGesture(false)` al instalar el WebChromeClient.
+- **Fix**: `SecurityCenter.jsx` + `MiApto.jsx` — reintento de `play()` en evento `canplay` (cubre navegadores que rechazan el primer intento).
+- **Fix**: `scripts/release-apk.cjs` — agregado `MainActivity.java` a la lista de archivos del release (no se commiteaba).
+
 ### 2026-09-05 — Persistencia duradera de token del Scraper Worker y optimización de consulta de servicios
 - **New**: Endpoint `GET /api/worker-token` para que administradores autenticados recuperen de forma segura el token configurado en el servidor (`SCRAPER_WORKER_TOKEN`).
 - **New**: Respaldo secundario del token (`laujim_worker_token_backup`) en `src/utils/portableWorker.js` y auto-recuperación (`autoRecoverWorkerToken`) ante reinicios o cierres de la APK.
