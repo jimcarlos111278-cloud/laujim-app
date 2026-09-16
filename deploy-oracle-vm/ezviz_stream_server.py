@@ -133,7 +133,6 @@ def _start_single_stream(camera_id: str):
         "-hide_banner",
         "-loglevel", "warning",
         "-rtsp_transport", "tcp",
-        "-stimeout", "5000000",      # RTSP se rinde en 5s si el port-forward no responde (reintento rápido 24/7)
         "-fflags", "nobuffer+flush_packets",
         "-flags", "low_delay",
         "-probesize", "500000",      # Apertura rápida (~0.5s en vez de 1.5s)

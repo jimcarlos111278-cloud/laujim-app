@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Instalar dependencias de Python
-RUN pip install --no-cache-dir fastapi uvicorn pydantic
+# Instalar dependencias de Python (incluye OpenCV/numpy/requests: el motor los importa al arrancar)
+RUN pip install --no-cache-dir fastapi uvicorn pydantic opencv-python-headless numpy requests
 
 # Copiar el servidor de streaming y ALPR
 COPY ezviz_stream_server.py /app/

@@ -1231,6 +1231,12 @@ var dropdowns = [
 - **Deploy pendiente**: `npm run release-apk` + en la VM `docker compose up -d --build video-engine`.
 - **Risk**: el RTSP depende del port-forward del router (`edificiolaujim.ddns.net:5541-5543`); si el DDNS o los puertos caen, el supervisor reintenta cada 3s pero no hay video hasta que vuelvan.
 
+### 2026-09-15 — Fix deploy motor de video (Dockerfile + flag FFmpeg) + verificación de playback
+- **Fix**: `deploy-oracle-vm/Dockerfile.video` — agregadas `opencv-python-headless numpy requests` (el motor las importa al arrancar; sin ellas el contenedor quedaba en `Restarting (1)`).
+- **Fix**: `deploy-oracle-vm/ezviz_stream_server.py` — removido `-stimeout` (ese build de FFmpeg 5.1 no lo reconoce y mataba el proceso al instante; verificado en `ffmpeg.log`).
+- **Verify (Playwright CDP, prod)**: login admin OK; `/security` con 0 errores de consola; `/api/cameras/.../stream` 200 instantáneo; playlist + segmentos `seg_002→seg_019` todos 200 en avance continuo; `<video>` reproduciendo (`paused:false`, blob MSE, frames decodificados a 2880×1620, badge `VIVO 25 FPS` + `ACTIVO` en modo Continuo).
+- **Nota**: segmentos de ~6.6s por GOP de la cámara con `-c copy`; latencia realista ~7-13s. Bajar a 1-2s exigiría re-encode con keyframes forzados (más CPU) — pendiente de decisión.
+
 ### 2026-09-05 — Persistencia duradera de token del Scraper Worker y optimización de consulta de servicios
 - **New**: Endpoint `GET /api/worker-token` para que administradores autenticados recuperen de forma segura el token configurado en el servidor (`SCRAPER_WORKER_TOKEN`).
 - **New**: Respaldo secundario del token (`laujim_worker_token_backup`) en `src/utils/portableWorker.js` y auto-recuperación (`autoRecoverWorkerToken`) ante reinicios o cierres de la APK.
