@@ -88,17 +88,10 @@ benchmark_stats = {
 }
 lock = threading.RLock()
 
-# ─── INICIALIZACIÓN DEL MOTOR DE MACHINE LEARNING LOCAL (YOLOv9 + ViT OCR) ───
+# ─── MOTOR LOCAL RETIRADO (2026-09-16) ───
+# Solo se usa Plate Recognizer Cloud: el ML local exigía torch/fast_alpr
+# (no instalados) y rinde menos que la nube en placas CO nocturnas.
 ml_alpr = None
-try:
-    from fast_alpr import ALPR
-    ml_alpr = ALPR(
-        detector_model="yolo-v9-t-384-license-plate-end2end",
-        detector_conf_thresh=0.20
-    )
-    print("[ALPR ML] Motor YOLOv9 + MobileViT OCR cargado exitosamente en CPU ARM64.")
-except Exception as e:
-    print(f"[ALPR ML] Advertencia: fast_alpr no disponible o error al inicializar: {e}")
 
 app = FastAPI(title="Laujim Video Engine 24/7 + Dual ALPR")
 app.add_middleware(
@@ -309,91 +302,8 @@ class VehicleStationaryTracker:
 tracker = VehicleStationaryTracker()
 
 
-def scan_plates_ml(img: np.ndarray, cam_id: str = "l") -> list[dict]:
-    """
-    Escanea la imagen con Machine Learning Local (YOLOv9 + ViT OCR).
-    Aplica escaneo en ventana de calzada (ROI) y mosaicos izquierdo/derecho
-    para alta resolución (2880x1620) sin perder nitidez de placas lejanas.
-    """
-    if ml_alpr is None or img is None:
-        return []
-
-    h, w = img.shape[:2]
-    roi_y1 = int(h * 0.35)
-    mid_x = w // 2
-    overlap = int(w * 0.12)
-
-    crops = [
-        (img[roi_y1:h, 0:w], 0, roi_y1, "Road ROI"),
-        (img[roi_y1:h, 0:mid_x + overlap], 0, roi_y1, "Left Tile"),
-        (img[roi_y1:h, max(0, mid_x - overlap):w], max(0, mid_x - overlap), roi_y1, "Right Tile"),
-    ]
-
-    found = []
-    seen_boxes = []
-
-    for crop_img, off_x, off_y, label in crops:
-        try:
-            res = ml_alpr.predict(crop_img)
-        except Exception as e:
-            continue
-
-        for r in res:
-            raw_text = r.ocr.text if getattr(r, "ocr", None) else ""
-            if not raw_text or len(raw_text) < 3:
-                continue
-
-            char_confs = r.ocr.confidence if (r.ocr and getattr(r.ocr, "confidence", None)) else [0.6]
-            avg_conf = round(float(sum(char_confs) / len(char_confs)), 3)
-            det_conf = round(float(r.detection.confidence), 3)
-
-            bb = r.detection.bounding_box
-            gx1 = bb.x1 + off_x
-            gy1 = bb.y1 + off_y
-            gx2 = bb.x2 + off_x
-            gy2 = bb.y2 + off_y
-
-            cx = (gx1 + gx2) / 2.0
-            cy = (gy1 + gy2) / 2.0
-
-            # Deduplicación espacial
-            is_dup = False
-            for scx, scy, splate in seen_boxes:
-                if abs(cx - scx) < 60 and abs(cy - scy) < 60:
-                    is_dup = True
-                    break
-            if is_dup:
-                continue
-
-            formatted = disambiguate_colombian_plate(raw_text)
-            plate_str = formatted[0] if formatted else raw_text.strip().upper()
-            vtype = formatted[1] if formatted else "Vehículo"
-
-            status, is_active = tracker.update(plate_str, cam_id, cx, cy)
-            seen_boxes.append((cx, cy, plate_str))
-
-            found.append({
-                "plate": plate_str,
-                "raw_plate": raw_text,
-                "type": vtype,
-                "confidence": avg_conf,
-                "detector_confidence": det_conf,
-                "engine": "local_ml",
-                "engine_label": "Local Machine Learning (YOLOv9 + ViT)",
-                "status": status,
-                "is_parked": (status == "parked"),
-                "box": {"x1": int(gx1), "y1": int(gy1), "x2": int(gx2), "y2": int(gy2)},
-                "box_norm": {
-                    "xmin": round(gx1 / w, 4),
-                    "ymin": round(gy1 / h, 4),
-                    "xmax": round(gx2 / w, 4),
-                    "ymax": round(gy2 / h, 4)
-                },
-                "img_width": w,
-                "img_height": h,
-            })
-
-    return found
+# scan_plates_ml ELIMINADO (2026-09-16): motor local retirado, solo Cloud.
+# (ver scan_plates_cloud; historial en git)
 
 
 def scan_plates_cloud(img_path: str, cam_id: str = "l") -> list[dict]:
@@ -518,62 +428,12 @@ def capture_snapshot(cam_id: str) -> str | None:
 
 def _alpr_worker():
     """
-    Patrullero ALPR 24/7 en segundo plano.
-    Ejecuta Machine Learning Local (costo $0) periódicamente.
-    Detecta vehículos nuevos y mantiene actualizado el estado de vehículos estacionados.
+    Patrullero ALPR retirado (2026-09-16).
+    El ML local exigía torch/fast_alpr y rendía menos que la nube; un patrullaje
+    periódico en Cloud quemaría el cupo (2.500/mes). La detección corre solo
+    bajo demanda en POST /alpr/scan.
     """
-    time.sleep(10.0)
-    street_cams = [("l", "Fachada Izquierda"), ("r", "Fachada Derecha")]
-
-    while True:
-        try:
-            for cam_id, cam_label in street_cams:
-                if cam_id in paused_for_export:
-                    continue
-                snap_path = capture_snapshot(cam_id)
-                if not snap_path:
-                    continue
-
-                img = cv2.imread(snap_path)
-                if img is None:
-                    continue
-
-                plates = scan_plates_ml(img, cam_id)
-                now = time.time()
-                now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).strftime("%Y-%m-%d %I:%M:%S %p")
-
-                for p in plates:
-                    plate = p["plate"]
-                    last_seen = last_detected_time.get(plate, 0)
-                    # Si es un carro nuevo o pasaron más de 60s
-                    if now - last_seen > 60:
-                        last_detected_time[plate] = now
-                        event = {
-                            "id": f"ml_{str(uuid.uuid4())[:8]}",
-                            "plate": plate,
-                            "raw_plate": p["raw_plate"],
-                            "type": p["type"],
-                            "confidence": p["confidence"],
-                            "timestamp": now_str,
-                            "epoch": now,
-                            "camera": cam_label,
-                            "cam_id": cam_id,
-                            "engine": "local_ml",
-                            "status": p["status"],
-                            "is_parked": p["is_parked"],
-                            "box": p["box"],
-                            "box_norm": p["box_norm"],
-                            "snapshot": f"/alpr/snapshot?cam={cam_id}&t={int(now)}",
-                        }
-                        with lock:
-                            alpr_detections.insert(0, event)
-                            if len(alpr_detections) > 100:
-                                alpr_detections.pop()
-                        print(f"[ALPR ML DETECTADA] Placa: {plate} ({p['type']}) [{p['status']}] en {cam_label}")
-
-        except Exception as e:
-            pass
-        time.sleep(60.0)
+    return
 
 
 # ─── ENDPOINTS DE STREAMING EN VIVO ───
@@ -651,10 +511,10 @@ def get_alpr_snapshot(cam: str = "l"):
 @app.post("/alpr/scan")
 def trigger_alpr_scan(mode: str = "compare", cam: str = "all"):
     """
-    Escaneo manual con comparativa side-by-side:
-      mode = 'compare' (ejecuta Machine Learning Local y Plate Recognizer Cloud)
-      mode = 'ml'      (solo Machine Learning Local en VM CPU)
-      mode = 'cloud'   (solo Plate Recognizer Cloud API)
+    Escaneo manual con Plate Recognizer Cloud:
+      mode = 'compare' (nube; comparativa retirada, equivale a cloud)
+      mode = 'ml'      (retirado; cae a nube para no romper la UI)
+      mode = 'cloud'   (Plate Recognizer Cloud API: placa + marca/modelo/color)
     """
     targets = [("l", "Fachada Izquierda"), ("r", "Fachada Derecha")] if cam == "all" else (
         [("l", "Fachada Izquierda")] if cam == "l" else [("r", "Fachada Derecha")]
@@ -674,52 +534,9 @@ def trigger_alpr_scan(mode: str = "compare", cam: str = "all"):
         if not snap_path:
             continue
 
-        img = cv2.imread(snap_path)
-        if img is None:
-            continue
-
-        # 1. Ejecutar Machine Learning Local si aplica
-        if mode in ["compare", "ml"]:
-            t0 = time.time()
-            ml_found = scan_plates_ml(img, cam_id)
-            elapsed_ml = round((time.time() - t0) * 1000, 1)
-            total_ml_time += elapsed_ml
-
-            for r in ml_found:
-                r["camera"] = cam_label
-                r["cam_id"] = cam_id
-                r["inference_time_ms"] = elapsed_ml
-                r["snapshot"] = f"/alpr/snapshot?cam={cam_id}&t={int(now)}"
-                all_ml_results.append(r)
-                if r["plate"] not in detected_plates:
-                    detected_plates.append(r["plate"])
-
-                # Guardar evento en memoria
-                event = {
-                    "id": f"ml_{str(uuid.uuid4())[:8]}",
-                    "plate": r["plate"],
-                    "raw_plate": r["raw_plate"],
-                    "type": r["type"],
-                    "confidence": r["confidence"],
-                    "timestamp": now_str,
-                    "epoch": now,
-                    "camera": cam_label,
-                    "cam_id": cam_id,
-                    "engine": "local_ml",
-                    "status": r["status"],
-                    "is_parked": r["is_parked"],
-                    "box": r["box"],
-                    "box_norm": r["box_norm"],
-                    "snapshot": f"/alpr/snapshot?cam={cam_id}&t={int(now)}",
-                    "inference_time_ms": elapsed_ml,
-                }
-                with lock:
-                    alpr_detections.insert(0, event)
-                    if len(alpr_detections) > 100:
-                        alpr_detections.pop()
-
-        # 2. Ejecutar Plate Recognizer Cloud API si aplica
-        if mode in ["compare", "cloud"]:
+        # 1. Motor local retirado (2026-09-16): todos los modos usan Cloud.
+        # 2. Ejecutar Plate Recognizer Cloud API
+        if mode in ["compare", "cloud", "ml"]:
             t0 = time.time()
             cloud_found = scan_plates_cloud(snap_path, cam_id)
             elapsed_cloud = round((time.time() - t0) * 1000, 1)

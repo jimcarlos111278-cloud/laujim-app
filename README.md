@@ -1231,6 +1231,12 @@ var dropdowns = [
 - **Deploy pendiente**: `npm run release-apk` + en la VM `docker compose up -d --build video-engine`.
 - **Risk**: el RTSP depende del port-forward del router (`edificiolaujim.ddns.net:5541-5543`); si el DDNS o los puertos caen, el supervisor reintenta cada 3s pero no hay video hasta que vuelvan.
 
+### 2026-09-15 — ALPR solo-Cloud: ML local eliminado, placa KJH-784 detectada
+- **Causa**: el ML local (`fast_alpr`/torch) nunca estuvo instalado en la imagen → `scan_plates_ml` retornaba `[]` siempre; la nube sí funciona (token válido, 44-197ms).
+- **Fix**: `deploy-oracle-vm/ezviz_stream_server.py` — eliminado `scan_plates_ml` + init `fast_alpr` + patrullero de fondo (quemaría el cupo 2.500/mes); modos `ml`/`compare` caen a Cloud; solo `POST /alpr/scan` bajo demanda.
+- **Verify**: `mode=ml` y `mode=cloud` detectan **KJH-784** (Van, conf 0.909-0.996, trasera, `l`); API directa leyó texto del portón (`servc0espec`, 0.816). Color `Desconocido` de noche (IR sin color).
+- **Nota**: `disambiguate_colombian_plate` cubre particular `ABC-123` y moto `ABC-12D`; amarillas/blancas las distingue el formato, no el color (la API no devuelve color de fondo).
+
 ### 2026-09-15 — Causa raíz pantalla negra: timestamps PTS rotos de la cámara (SOLUCIONADO con imagen)
 - **Causa**: las EZVIZ envían PTS de ~27h por RTSP; con `-c copy` pasaban intactos al HLS (segmento de 6.6s reportaba `Duration: 24:02:55`). El navegador descargaba todo y `play()` resolvía, pero ningún frame caía en la posición de reproducción → negro eterno en web, APK y VM. Los snapshots sí salían (1 frame no usa timeline).
 - **Fix**: `deploy-oracle-vm/ezviz_stream_server.py` — `-use_wallclock_as_timestamps 1` en la apertura RTSP. Verificado: `ffprobe duration=6.64s`, `/cameras` 3/3 activas.
