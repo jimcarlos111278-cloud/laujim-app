@@ -4019,7 +4019,27 @@ async function sendCloudServicesReportImageOnly(phone, report, mediaPackage = nu
 }
 
 async function sendCloudGlobalServices(phone) {
-  const report = buildCloudServicesImageData();
+  let report = null;
+  try {
+    report = buildCloudServicesImageData();
+  } catch (reportErr) {
+    console.warn('[WHATSAPP CLOUD] services report data error:', reportErr.message);
+  }
+
+  if (!report) {
+    try {
+      await sendCloudTextChunks(phone, buildCloudDetailedGlobalServicesReport());
+    } catch (textErr) {
+      console.warn('[WHATSAPP CLOUD] services text fallback error:', textErr.message);
+    }
+    try {
+      await sendCloudServicesMenu(phone);
+    } catch (menuErr) {
+      console.warn('[WHATSAPP CLOUD] services menu error after text fallback:', menuErr.message);
+    }
+    return;
+  }
+
   const grandTotal = report.allComplete ? cloudImageMoney(report.total) : '—';
   const summaryText = [
     `📊 *REPORTE DE SERVICIOS PÚBLICOS*`,
@@ -4050,8 +4070,20 @@ async function sendCloudGlobalServices(phone) {
     await sendCloudUtilitiesDetailButton(phone);
   } catch (error) {
     console.warn('[WHATSAPP CLOUD] services report image send error (text and link already sent):', error.message);
+    try {
+      await sendCloudTextChunks(phone, buildCloudDetailedGlobalServicesReport());
+    } catch (fallbackErr) {
+      console.warn('[WHATSAPP CLOUD] services detail text fallback error:', fallbackErr.message);
+    }
   }
-  await sendCloudServicesMenu(phone);
+  try {
+    await sendCloudServicesMenu(phone);
+  } catch (menuErr) {
+    console.warn('[WHATSAPP CLOUD] services menu error after global report:', menuErr.message);
+    try {
+      await sendCloudText(phone, '💧 Servicios — escribe "todos" para el reporte global, "por apartamento" para consulta manual o "SALIR" para volver.');
+    } catch {}
+  }
 }
 
 // ── Automatic utility-payment change alerts ───────────────────────────────
@@ -7253,6 +7285,27 @@ async function checkEzvizStreamEngineOnline() {
   }
 }
 
+// Mapa engineCamId -> { active, live, age_s } con caché de 5s. `live` exige video
+// FRESCO (no basta el proceso vivo): evita servir HLS congelado como "en vivo".
+let engineCamerasCache = { ts: 0, data: {} };
+async function getEngineCameras() {
+  const now = Date.now();
+  if (now - engineCamerasCache.ts < 5000 && Object.keys(engineCamerasCache.data).length) {
+    return engineCamerasCache.data;
+  }
+  try {
+    const res = await fetch('http://127.0.0.1:8080/cameras', { signal: AbortSignal.timeout(1500) });
+    if (res.ok) {
+      const list = await res.json().catch(() => []);
+      const map = {};
+      for (const c of (Array.isArray(list) ? list : [])) map[c.id] = c;
+      engineCamerasCache = { ts: now, data: map };
+      return map;
+    }
+  } catch {}
+  return engineCamerasCache.data;
+}
+
 // Proxy transparente de streams HLS desde go2rtc (puerto 1984) hacia clientes de la app
 app.get('/api/live/hls/:file', async (req, res) => {
   const file = String(req.params.file || '').trim();
@@ -7620,15 +7673,36 @@ app.get('/api/cameras/:serial/stream', async (req, res) => {
   // 1. Prioridad: Motor Python Always-On 24/7 (FastAPI + FFmpeg)
   // El supervisor mantiene el playlist tibio en todo momento: URL determinista,
   // sin handshake ni espera de sincronización. El proxy /hls lo sirve por pipe.
+  // HONESTIDAD: solo se anuncia HLS si el motor reporta video FRESCO (live).
+  // Con señal caída/congelada se devuelve stale:true para que el frontend
+  // caiga al snapshot en vez de mostrar un "VIVO" congelado.
   const engineCamId = EZVIZ_STREAM_ENGINE_MAP[serial];
   const isEngineLive = await checkEzvizStreamEngineOnline();
   if (engineCamId && isEngineLive) {
+    const engineMap = await getEngineCameras();
+    const engineCam = engineMap[engineCamId];
+    const ageS = engineCam && typeof engineCam.age_s === 'number' ? engineCam.age_s : null;
+    const live = engineCam ? engineCam.live !== false : true;
+    if (engineCam && !live) {
+      return res.json({
+        ok: false,
+        stale: true,
+        live: false,
+        ageS,
+        serial,
+        engine: 'ezviz-hls',
+        message: 'Señal de cámara caída o congelada; reintentando.',
+        feedUrl: `/api/intercom/public/feed?serial=${serial}`,
+      });
+    }
     return res.json({
       ok: true,
       streamUrl: `/hls/${engineCamId}/index.m3u8`,
       protocol: 'hls',
       serial,
       engine: 'ezviz-hls',
+      live: true,
+      ageS,
     });
   }
 

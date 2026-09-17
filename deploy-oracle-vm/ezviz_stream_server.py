@@ -75,7 +75,9 @@ PLATE_RECOGNIZER_TOKEN = os.environ.get("PLATE_RECOGNIZER_TOKEN", "e4edfc08a7ae8
 
 # Estado global
 live_processes: dict[str, dict] = {}
-paused_for_export: set[str] = set()
+# Pausas de exportación con marca temporal. Se auto-liberan tras EXPORT_PAUSE_MAX_S
+# para que un job fallido/colgado nunca congele una cámara para siempre.
+paused_for_export: dict[str, float] = {}
 export_jobs: dict[str, dict] = {}
 alpr_detections: list[dict] = []
 last_detected_time: dict[str, float] = {}
@@ -87,6 +89,56 @@ benchmark_stats = {
     "cloud_detections_count": 0,
 }
 lock = threading.RLock()
+
+# Ninguna exportación debe pausar el vivo más que esto (30 min).
+EXPORT_PAUSE_MAX_S = 1800.0
+# Watchdog de frescura HLS: un FFmpeg puede seguir vivo pero colgado (stall TCP)
+# sin producir segmentos. Si el playlist envejece más que esto, se reinicia.
+HLS_FRESHNESS_MAX_S = 25.0
+_restart_backoff_until: dict[str, float] = {}
+
+
+def _pause_for_export(camera_id: str):
+    with lock:
+        paused_for_export[camera_id] = time.time()
+
+
+def _unpause_export(camera_id: str):
+    with lock:
+        paused_for_export.pop(camera_id, None)
+
+
+def _expire_stale_pauses():
+    now = time.time()
+    with lock:
+        for cid, ts in list(paused_for_export.items()):
+            if now - ts > EXPORT_PAUSE_MAX_S:
+                paused_for_export.pop(cid, None)
+                print(f"[{cid}] Pausa de exportación expirada ({int(now - ts)}s): se libera el stream.")
+
+
+def _playlist_age_s(camera_id: str) -> float | None:
+    """Edad en segundos del contenido HLS más reciente (playlist o segmento con datos).
+    None si la cámara aún no ha generado nada."""
+    cam_dir = os.path.join(HLS_DIR, camera_id).replace("\\", "/")
+    try:
+        cands = []
+        m3u8 = os.path.join(cam_dir, "index.m3u8")
+        if os.path.exists(m3u8):
+            cands.append(os.path.getmtime(m3u8))
+        for f in os.listdir(cam_dir):
+            if f.startswith("seg_") and f.endswith(".ts"):
+                p = os.path.join(cam_dir, f)
+                try:
+                    if os.path.getsize(p) > 0:
+                        cands.append(os.path.getmtime(p))
+                except OSError:
+                    pass
+        if not cands:
+            return None
+        return time.time() - max(cands)
+    except OSError:
+        return None
 
 # ─── MOTOR LOCAL RETIRADO (2026-09-16) ───
 # Solo se usa Plate Recognizer Cloud: el ML local exigía torch/fast_alpr
@@ -178,27 +230,56 @@ def _stop_single_stream(camera_id: str):
 
 
 def _stream_supervisor():
-    """Supervisor continuo: Mantiene las 3 cámaras activas 24/7 y reconecta ante microcortes."""
+    """Supervisor continuo: mantiene las 3 cámaras activas 24/7.
+
+    Dos gatillos de reinicio:
+      1) El proceso FFmpeg murió (poll() != None).
+      2) Watchdog de frescura: el proceso sigue vivo pero no produce video
+         nuevo (stall TCP) durante más de HLS_FRESHNESS_MAX_S.
+    """
     # Arranque inmediato: el playlist siempre está tibio, sin espera de sincronización al abrir la página.
     time.sleep(0.5)
+    # Arranque limpio: ninguna pausa de exportación sobrevive a un reinicio del motor.
+    with lock:
+        paused_for_export.clear()
     while True:
         try:
+            _expire_stale_pauses()
             for cid in list(CAMERAS.keys()):
                 should_restart = False
                 had_entry = False
+                paused = False
                 with lock:
                     if cid in paused_for_export:
-                        continue
-                    entry = live_processes.get(cid)
-                    is_running = bool(entry and entry["process"].poll() is None)
-                    if not is_running:
-                        should_restart = True
-                        had_entry = bool(entry)
-
+                        paused = True
+                    else:
+                        entry = live_processes.get(cid)
+                        is_running = bool(entry and entry["process"].poll() is None)
+                        if not is_running:
+                            should_restart = True
+                            had_entry = bool(entry)
+                if paused:
+                    continue
                 if should_restart:
                     if had_entry:
                         _stop_single_stream(cid)
                     _start_single_stream(cid)
+                    _restart_backoff_until.pop(cid, None)
+                    continue
+                # Proceso vivo: verificar que realmente esté produciendo video.
+                age = _playlist_age_s(cid)
+                if age is None:
+                    continue  # Aún arrancando (sin playlist): el chequeo de proceso lo cubre.
+                if age <= HLS_FRESHNESS_MAX_S:
+                    _restart_backoff_until.pop(cid, None)
+                    continue
+                now = time.time()
+                if now >= _restart_backoff_until.get(cid, 0):
+                    print(f"[{cid}] Watchdog: sin video nuevo hace {int(age)}s (proceso colgado). Reiniciando FFmpeg.")
+                    _stop_single_stream(cid)
+                    _start_single_stream(cid)
+                    # Backoff: el FFmpeg nuevo tarda ~7s en producir; no reintentar en caliente.
+                    _restart_backoff_until[cid] = now + 60.0
         except Exception as e:
             print(f"[SUPERVISOR] Error en bucle: {e}")
         time.sleep(3.0)
@@ -407,19 +488,27 @@ def capture_snapshot(cam_id: str) -> str | None:
         ts_files = sorted([f for f in os.listdir(cam_dir) if f.endswith(".ts") and f.startswith("seg_")])
         if ts_files:
             latest_ts = os.path.join(cam_dir, ts_files[-1]).replace("\\", "/")
+            # Escritura atómica (tmp + replace): evita el Traceback ASGI cuando
+            # StaticFiles sirve snapshot.jpg justo mientras FFmpeg lo reescribe.
+            tmp_path = snapshot_path + ".tmp"
             snap_cmd = [
                 "ffmpeg", "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
                 "-i", latest_ts,
                 "-vframes", "1",
                 "-q:v", "2",
-                snapshot_path,
+                tmp_path,
             ]
             try:
                 subprocess.run(snap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2.5)
-                if os.path.exists(snapshot_path) and os.path.getsize(snapshot_path) > 1000:
+                if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 1000:
+                    os.replace(tmp_path, snapshot_path)
                     return snapshot_path
             except Exception:
-                pass
+                try:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except OSError:
+                    pass
 
     if os.path.exists(snapshot_path) and os.path.getsize(snapshot_path) > 1000:
         return snapshot_path
@@ -572,10 +661,15 @@ def list_cameras():
     for cid, cam in CAMERAS.items():
         entry = live_processes.get(cid)
         is_active = bool(entry and entry["process"].poll() is None)
+        age = _playlist_age_s(cid)
+        # live = proceso corriendo Y produciendo video fresco (no basta estar vivo).
+        live = bool(is_active and age is not None and age <= HLS_FRESHNESS_MAX_S)
         res.append({
             "id": cid,
             "name": cam["name"],
             "active": is_active,
+            "live": live,
+            "age_s": round(age, 1) if age is not None else None,
             "playlist": f"/hls/{cid}/index.m3u8" if is_active else None,
             "mode": "24/7 Always-On",
             "viewers": 1,
@@ -771,7 +865,7 @@ def _run_export_job(job_id: str, camera_id: str, start_ts: str, end_ts: str) -> 
     out_path = os.path.join(RECORDINGS_DIR, out_filename).replace("\\", "/")
 
     with lock:
-        paused_for_export.add(camera_id)
+        _pause_for_export(camera_id)
         _stop_single_stream(camera_id)
     time.sleep(2.5)
 
@@ -832,7 +926,7 @@ def _run_export_job(job_id: str, camera_id: str, start_ts: str, end_ts: str) -> 
             time.sleep(3.0)
 
     with lock:
-        paused_for_export.discard(camera_id)
+        _unpause_export(camera_id)
 
     if not success and export_jobs[job_id]["status"] != "failed":
         export_jobs[job_id]["status"] = "failed"
@@ -981,7 +1075,7 @@ def _fetch_range_to_file(camera_id: str, start_ts: str, end_ts: str, out_path: s
 def _run_export_multi_job(job_id: str, camera_id: str, ranges: list):
     """Descarga N rangos y los UNE en un solo MP4 (concat sin recodificar)."""
     with lock:
-        paused_for_export.add(camera_id)
+        _pause_for_export(camera_id)
         _stop_single_stream(camera_id)
     time.sleep(2.5)
     try:
@@ -1021,7 +1115,7 @@ def _run_export_multi_job(job_id: str, camera_id: str, ranges: list):
             export_jobs[job_id]["error"] = "No se pudo unir los fragmentos."
     finally:
         with lock:
-            paused_for_export.discard(camera_id)
+            _unpause_export(camera_id)
 
 
 @app.post("/recordings/export-multi")
@@ -1046,6 +1140,52 @@ def export_recording_multi(req: ExportMultiRequest):
 
 
 INSTALLATION_DATE = datetime.datetime(2026, 9, 3, 8, 0, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=-5)))
+
+# ─── PODA AUTOMÁTICA DE GRABACIONES (anti disco-lleno) ───
+RECORDINGS_MAX_DAYS = 7
+RECORDINGS_MAX_BYTES = 3 * 1024 ** 3  # 3 GB
+
+
+def _prune_recordings():
+    """Elimina exports viejos (.mp4/.log) más allá de 7 días o 3 GB (más viejos primero).
+    Nunca toca jobs en curso."""
+    try:
+        active = {j.get("out_path") for j in export_jobs.values()
+                  if j.get("status") in ("queued", "downloading") and j.get("out_path")}
+        files = []
+        total = 0
+        for f in os.listdir(RECORDINGS_DIR):
+            p = os.path.join(RECORDINGS_DIR, f)
+            if not os.path.isfile(p) or p in active:
+                continue
+            try:
+                st = os.stat(p)
+                total += st.st_size
+                files.append((st.st_mtime, st.st_size, p))
+            except OSError:
+                pass
+        now = time.time()
+        files.sort()
+        removed = 0
+        for mtime, size, p in files:
+            if (now - mtime) > RECORDINGS_MAX_DAYS * 86400 or total > RECORDINGS_MAX_BYTES:
+                try:
+                    os.remove(p)
+                    total -= size
+                    removed += 1
+                except OSError:
+                    pass
+        if removed:
+            print(f"[PRUNE] recordings: {removed} archivos viejos eliminados.")
+    except Exception as e:
+        print(f"[PRUNE] Error: {e}")
+
+
+def _prune_loop():
+    time.sleep(60.0)
+    while True:
+        _prune_recordings()
+        time.sleep(6 * 3600.0)
 
 @app.get("/recordings/retention")
 @app.get("/api/retention")
@@ -1084,6 +1224,7 @@ if __name__ == "__main__":
     # Iniciar Supervisor 24/7 y Patrullero ALPR ML solo en el proceso principal
     threading.Thread(target=_stream_supervisor, daemon=True).start()
     threading.Thread(target=_alpr_worker, daemon=True).start()
+    threading.Thread(target=_prune_loop, daemon=True).start()
 
     print("Iniciando Laujim Video Engine 24/7 + Dual ALPR en http://0.0.0.0:8080 ...")
     uvicorn.run(app, host="0.0.0.0", port=8080)

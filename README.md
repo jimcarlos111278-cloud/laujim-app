@@ -310,7 +310,7 @@ export default defineConfig({
 |----------|---------|-------------|
 | `PORT` | `1011` | Puerto del servidor |
 | `DATABASE_URL` | — | Conexión PostgreSQL opcional (`postgres://user:pass@host:5432/db`) |
-| `PERSISTENT_DIR` | `__dirname` | Directorio para datos persistentes (útil en Render) |
+| `PERSISTENT_DIR` | `__dirname` | Directorio para datos persistentes (útil en Oracle VM) |
 
 **Auth API:** Header `x-auth-token: laujim laujim` en todas las rutas `/api/*` excepto:
 - `POST /api/login`
@@ -335,7 +335,7 @@ export default defineConfig({
 
 ```js
 export const AUTH_TOKEN = 'laujim laujim';
-const DEFAULT_SERVER = 'https://laujim-app.onrender.com';
+const DEFAULT_SERVER = 'https://conjunto-residendial-laujim.duckdns.org';
 ```
 
 **Reglas de resolución de base URL (`getBase()`):**
@@ -464,7 +464,7 @@ Cuando `window.innerWidth < 900` o se detecta Capacitor, el layout se fuerza a m
 
 ## API REST Completa
 
-Endpoint base: `https://laujim-app.onrender.com/api` (o `http://host:1011/api` local)
+Endpoint base: `https://conjunto-residendial-laujim.duckdns.org/api` (o `http://host:1011/api` local)
 Auth header: `x-auth-token: laujim laujim`
 
 ### Endpoints Generales

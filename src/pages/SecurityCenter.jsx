@@ -70,6 +70,8 @@ export default function SecurityCenter() {
   const videoContainerRef = useRef(null);
   const [streamUrls, setStreamUrls] = useState({});
   const [streamErrors, setStreamErrors] = useState({});
+  // live real por cámara según el motor (frescura HLS). false = caída/congelada.
+  const [streamLive, setStreamLive] = useState({});
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [touchStartX, setTouchStartX] = useState(null);
   const [touchStartY, setTouchStartY] = useState(null);
@@ -301,6 +303,16 @@ export default function SecurityCenter() {
           : `${rawBase}${data.streamUrl.startsWith('/') ? '' : '/'}${data.streamUrl}`;
         setStreamUrls(prev => ({ ...prev, [serial]: fullUrl }));
         setStreamErrors(prev => ({ ...prev, [serial]: false }));
+        setStreamLive(prev => ({ ...prev, [serial]: data.live !== false }));
+      } else if (data && data.stale) {
+        // Señal caída/congelada: soltar el HLS viejo para caer al snapshot,
+        // en vez de mostrar un "VIVO" congelado.
+        setStreamUrls(prev => {
+          const next = { ...prev };
+          delete next[serial];
+          return next;
+        });
+        setStreamLive(prev => ({ ...prev, [serial]: false }));
       }
     } catch {}
   }
@@ -317,6 +329,13 @@ export default function SecurityCenter() {
     const interval = setInterval(ping, 7000);
     return () => clearInterval(interval);
   }, [cameraLive, selectedCamSerial]);
+
+  // Si la señal está caída, re-solicitar el stream cada 15s hasta que vuelva.
+  useEffect(() => {
+    if (!cameraLive || streamLive[selectedCamSerial] !== false) return;
+    const retry = setInterval(() => requestCameraStream(selectedCamSerial), 15000);
+    return () => clearInterval(retry);
+  }, [cameraLive, selectedCamSerial, streamLive[selectedCamSerial]]);
 
   // Pre-solicitar streams para todas las cámaras al inicio
   useEffect(() => {
@@ -999,10 +1018,16 @@ export default function SecurityCenter() {
               <span className={`h-2 w-2 rounded-full ${cameraLive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
               <span>{selectedCam.name}</span>
             </div>
-            {streamUrls[selectedCamSerial] && !streamErrors[selectedCamSerial] && cameraLive && (
+            {streamUrls[selectedCamSerial] && !streamErrors[selectedCamSerial] && cameraLive && streamLive[selectedCamSerial] !== false && (
               <span className="bg-red-600/90 text-white text-[10px] font-black px-2 py-1 rounded-xl shadow backdrop-blur-md flex items-center gap-1">
                 <Radio className="h-3 w-3 animate-pulse" />
                 <span>VIVO 25 FPS</span>
+              </span>
+            )}
+            {cameraLive && streamLive[selectedCamSerial] === false && (
+              <span className="bg-amber-500/90 text-slate-950 text-[10px] font-black px-2 py-1 rounded-xl shadow backdrop-blur-md flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3 animate-pulse" />
+                <span>SEÑAL CAÍDA · REINTENTANDO</span>
               </span>
             )}
           </div>
