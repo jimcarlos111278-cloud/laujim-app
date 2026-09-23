@@ -132,6 +132,14 @@ function PrivateApp() {
       if (!cloudSyncOk && (syncStatus.status === 401)) {
         console.warn('Startup sync returned 401, pero se preserva la sesión local del usuario');
       }
+      // Sesión muerta (401/403): deslogueo limpio y al login. Mostrar la
+      // pantalla "No se cargaron los apartamentos" con un token inválido es
+      // lo que deja a los usuarios atorados pidiendo borrar cookies.
+      if (!cloudSyncOk && (syncStatus.status === 401 || syncStatus.status === 403)) {
+        clearAuth({}, 'startup_session_invalid');
+        window.location.replace('/login');
+        return;
+      }
       if (!cloudSyncOk) {
         let localApartments = 0;
         try { localApartments = await api.apartments.count(); } catch {}
