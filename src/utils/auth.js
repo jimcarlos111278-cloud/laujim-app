@@ -5,6 +5,24 @@ import { autoRecoverWorkerToken } from './portableWorker';
 
 const STORAGE_KEY = 'apt_auth';
 const BACKUP_STORAGE_KEY = 'apt_auth_backup';
+// Marca de logout explícito: evita que el auto-restore (Capacitor) resucite
+// la sesión recién cerrada y obligue al usuario a presionar salir dos veces.
+const EXPLICIT_LOGOUT_KEY = 'laujim_explicit_logout';
+
+export function isExplicitLogout() {
+  try {
+    const ts = Number(localStorage.getItem(EXPLICIT_LOGOUT_KEY) || 0);
+    return Number.isFinite(ts) && ts > 0;
+  } catch { return false; }
+}
+
+function markExplicitLogout() {
+  try { localStorage.setItem(EXPLICIT_LOGOUT_KEY, String(Date.now())); } catch {}
+}
+
+function clearExplicitLogout() {
+  try { localStorage.removeItem(EXPLICIT_LOGOUT_KEY); } catch {}
+}
 
 export function getAuth() {
   try {
@@ -36,6 +54,8 @@ export function getAuth() {
 export async function restoreNativeAuth() {
   const current = getAuth();
   if (current) return current;
+  // No resucitar una sesión que el usuario acaba de cerrar a propósito.
+  if (isExplicitLogout()) return null;
   if (typeof window === 'undefined' || !window.Capacitor) return null;
   try {
     const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
@@ -88,6 +108,7 @@ export async function sendAuditLog(event, reason = '', details = {}) {
 export function setAuth(data) {
   const auth = { role: data.role, name: data.name, apartmentId: data.apartmentId || null, token: data.token, expiresAt: data.expiresAt || null };
   try {
+    clearExplicitLogout();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
     localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(auth));
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
@@ -109,6 +130,7 @@ export function setAuth(data) {
 
 export function clearAuth(options = {}, reason = 'unspecified') {
   const token = AUTH_TOKEN;
+  markExplicitLogout();
   sendAuditLog('LOGOUT_TRIGGERED', reason, { permanent: options.permanent, options });
   stopBackgroundNotifications().catch(() => {});
   try {
@@ -116,20 +138,64 @@ export function clearAuth(options = {}, reason = 'unspecified') {
     localStorage.removeItem(BACKUP_STORAGE_KEY);
     sessionStorage.removeItem(STORAGE_KEY);
     sessionStorage.removeItem(BACKUP_STORAGE_KEY);
-    if (typeof window !== 'undefined' && window.Capacitor) {
-      import('@capacitor/filesystem').then(({ Filesystem, Directory }) => {
-        Filesystem.deleteFile({ path: 'laujim_auth.json', directory: Directory.Data }).catch(() => {});
-      }).catch(() => {});
-    }
   } catch {}
   setApiToken('');
   stopCloudPolling();
   stopDataVersionPolling();
   if (token) fetch(getBase() + '/logout', { method: 'POST', headers: { 'x-auth-token': token } }).catch(() => {});
+  // Esperar el borrado nativo: si Login monta antes de que termine, el
+  // auto-restore ya no resucita la sesión gracias al flag explícito, pero
+  // esperar deja el dispositivo limpio desde el primer clic.
+  if (typeof window !== 'undefined' && window.Capacitor) {
+    return import('@capacitor/filesystem').then(({ Filesystem, Directory }) => {
+      return Filesystem.deleteFile({ path: 'laujim_auth.json', directory: Directory.Data }).catch(() => {});
+    }).catch(() => {});
+  }
+  return Promise.resolve();
 }
 
 export function isAdmin() { return getAuth()?.role === 'admin'; }
 export function isTenant() { return getAuth()?.role === 'tenant'; }
+
+// Propagación de logout entre pestañas: el evento 'storage' solo llega a las
+// OTRAS pestañas, que es justo lo que se necesita. Sin esto, cerrar sesión en
+// una pestaña deja a las demás con un portal obsoleto cuyo sessionStorage
+// propio resucita el token en localStorage (doble logout / sesión fantasma).
+export function watchAuthRevoked(onRevoked) {
+  if (typeof window === 'undefined') return () => {};
+  const handler = (event) => {
+    try {
+      if ((event.key === STORAGE_KEY || event.key === BACKUP_STORAGE_KEY) && !event.newValue) {
+        onRevoked && onRevoked('storage_clear');
+      } else if (event.key === EXPLICIT_LOGOUT_KEY && event.newValue) {
+        onRevoked && onRevoked('explicit_logout');
+      }
+    } catch {}
+  };
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
+}
+
+// Revalida la sesión contra el servidor (detecta inquilino eliminado o
+// credenciales revocadas mientras la pestaña estaba abierta/inactiva).
+export async function revalidateSession() {
+  const auth = getAuth();
+  if (!auth?.token) return { ok: false, reason: 'no_token' };
+  try {
+    const res = await fetch(getBase() + '/auth/verify', {
+      headers: { 'x-auth-token': auth.token },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) return { ok: true };
+    if (res.status === 401 || res.status === 403) {
+      await clearAuth({}, 'revalidate_invalid');
+      return { ok: false, reason: 'invalid' };
+    }
+    return { ok: true, stale: true };
+  } catch {
+    return { ok: true, stale: true };
+  }
+}
 export function getTenantApartmentId() { return isTenant() ? getAuth().apartmentId : null; }
 export function requireAuth() { return getAuth() ? null : { redirect: '/login' }; }
 

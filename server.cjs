@@ -107,6 +107,12 @@ app.use(async (req, res, next) => {
     if (!session) {
       return res.status(401).json({ error: 'No autorizado' });
     }
+    // Si el inquilino fue eliminado o desvinculado, su sesión muere aquí:
+    // el token queda inservible sin esperar a que expire.
+    if (session.role === 'tenant' && !isTenantSessionValid(session)) {
+      removeAuthSession(token);
+      return res.status(401).json({ error: 'Sesion de inquilino invalida' });
+    }
     req.auth = session;
     const tenantPath = req.path === '/api/logout' || req.path === '/api/auth/verify' || req.path.startsWith('/api/tenant/') || req.path.startsWith('/api/intercom/') || req.path === '/api/notifications/events';
     if (session.role === 'tenant' && !tenantPath) {
@@ -410,6 +416,31 @@ function removeAuthSession(token) {
   const before = db.authSessions.length;
   db.authSessions = db.authSessions.filter(item => !constantTimeEqual(item.tokenHash, hash));
   if (before !== db.authSessions.length) saveData();
+}
+
+// Revoca todas las sesiones de un inquilino (ej. al eliminarlo o cambiarle
+// las credenciales). Sus tokens quedan inservibles de inmediato.
+function revokeTenantSessions(tenantId) {
+  if (tenantId === null || tenantId === undefined) return 0;
+  ensureAuthSessions();
+  const before = db.authSessions.length;
+  db.authSessions = (db.authSessions || []).filter(
+    item => !(item.role === 'tenant' && Number(item.tenantId) === Number(tenantId))
+  );
+  const revoked = before - db.authSessions.length;
+  if (revoked > 0) saveData();
+  return revoked;
+}
+
+// Defensa en profundidad: una sesión tenant solo es válida si el inquilino
+// todavía existe y sigue vinculado al apartamento de la sesión.
+function isTenantSessionValid(session) {
+  if (!session || session.role !== 'tenant') return true;
+  const tenant = (db.tenants || []).find(item => Number(item.id) === Number(session.tenantId));
+  if (!tenant) return false;
+  const apartment = (db.apartments || []).find(item => Number(item.id) === Number(session.apartmentId));
+  if (!apartment) return false;
+  return tenantBelongsToApartment(tenant, session.apartmentId);
 }
 
 // ─── WhatsApp Business Platform (Cloud API) ─────────────────────────────────
@@ -2459,7 +2490,29 @@ function latestUtilityRecord(provider, apartment) {
     record,
   ])).values()];
 
-  return candidates.sort((a, b) => utilityRecordTimestamp(b) - utilityRecordTimestamp(a))[0] || null;
+  const sorted = candidates.sort((a, b) => utilityRecordTimestamp(b) - utilityRecordTimestamp(a));
+  const latest = sorted[0] || null;
+  if (latest && !utilityFinancingEvidence(latest)) {
+    const priorWithFin = sorted.find(r => utilityFinancingEvidence(r));
+    if (priorWithFin) {
+      return normalizeUtilityRecord({
+        ...latest,
+        financiacion: priorWithFin.financiacion,
+        deudaConveniosCOP: priorWithFin.deudaConveniosCOP,
+        financiadaCOP: priorWithFin.financiadaCOP,
+        cuotaFinanciadaCOP: priorWithFin.cuotaFinanciadaCOP,
+        cuotaActual: priorWithFin.cuotaActual,
+        cuotasTotales: priorWithFin.cuotasTotales,
+        proximoPagoCOP: priorWithFin.proximoPagoCOP,
+        saldoPorFacturarGasCOP: priorWithFin.saldoPorFacturarGasCOP,
+        saldoPorFacturarFinancieroCOP: priorWithFin.saldoPorFacturarFinancieroCOP,
+        financingConfirmed: true,
+        financeValidation: 'confirmed',
+        financingSource: priorWithFin.financingSource,
+      });
+    }
+  }
+  return latest;
 }
 
 function utilityDebtAmount(record) {
@@ -2522,17 +2575,19 @@ function utilityCanonicalFinancingAmount(record) {
 }
 
 function utilityFinancingEvidence(record) {
-  const provider = utilityProviderKey(record?.provider);
+  if (!record) return false;
+  if (Array.isArray(record.financiacion) && record.financiacion.length > 0) return true;
+  const amount = utilityCanonicalFinancingAmount(record);
+  if (amount !== null && amount > 0) return true;
+  const provider = utilityProviderKey(record.provider);
   if (provider === 'air-e') return false;
-  const validation = String(record?.financeValidation || '').trim().toLowerCase();
-  if (validation === 'confirmed' || record?.financingConfirmed === true) return true;
+  const validation = String(record.financeValidation || '').trim().toLowerCase();
+  if (validation === 'confirmed' || record.financingConfirmed === true) return true;
   if (validation === 'absent' || validation === 'not_applicable') return false;
-  if (Array.isArray(record?.financiacion) && record.financiacion.length > 0) return true;
   const gasBalance = utilityAmountFromFields(record, ['saldoPorFacturarGasCOP', 'pendingGasBalanceCOP', 'pendingGasBalance']);
   const financialBalance = utilityAmountFromFields(record, ['saldoPorFacturarFinancieroCOP', 'pendingFinancialBalanceCOP', 'pendingFinancialBalance']);
   if ([gasBalance, financialBalance].some(value => value !== null && value > 0)) return true;
-  const amount = utilityCanonicalFinancingAmount(record);
-  return amount !== null && amount > 0 && Boolean(String(record?.financingSource || '').trim());
+  return false;
 }
 
 function clearUtilityFinancing(record, validation = 'absent') {
@@ -2815,6 +2870,28 @@ function mergeUtilityRecord(existing, incoming) {
     merged.paymentChangeCandidate = decision.candidate;
     merged.paymentChangeDetectorVersion = UTILITY_CHANGE_DETECTOR_VERSION;
   }
+  if (existingRecord && utilityFinancingEvidence(existingRecord) && !utilityFinancingEvidence(incomingRecord)) {
+    merged.financiacion = existingRecord.financiacion;
+    merged.deudaConveniosCOP = existingRecord.deudaConveniosCOP;
+    merged.financiadaCOP = existingRecord.financiadaCOP;
+    merged.cuotaFinanciadaCOP = existingRecord.cuotaFinanciadaCOP;
+    merged.cuotaActual = existingRecord.cuotaActual;
+    merged.cuotasTotales = existingRecord.cuotasTotales;
+    merged.proximoPagoCOP = existingRecord.proximoPagoCOP;
+    merged.saldoPorFacturarGasCOP = existingRecord.saldoPorFacturarGasCOP;
+    merged.saldoPorFacturarFinancieroCOP = existingRecord.saldoPorFacturarFinancieroCOP;
+    merged.financingConfirmed = true;
+    merged.financeValidation = 'confirmed';
+    merged.financingSource = existingRecord.financingSource;
+  }
+  if (existingRecord && Array.isArray(existingRecord.facturas) && existingRecord.facturas.length > 1 && (!Array.isArray(incomingRecord.facturas) || incomingRecord.facturas.length <= 1)) {
+    if (incomingRecord.status !== 'paid') {
+      merged.facturas = existingRecord.facturas;
+      merged.numFacturas = existingRecord.numFacturas;
+      merged.facturasTotales = existingRecord.facturasTotales;
+      merged.facturasPendientes = existingRecord.facturasPendientes;
+    }
+  }
   if (!existingRecord || !existingConfirmed || incomingConfirmed) {
     if (incomingConfirmed) {
       merged.valueCheckedAt = incomingRecord.checkedAt || incomingRecord.scrapedAt || new Date().toISOString();
@@ -2848,12 +2925,19 @@ function utilityPaymentView(record) {
   const canonical = normalizeUtilityRecord(record);
   const checkedAt = utilityRecordValueTimestamp(canonical);
   if ((gasRecordHasNoVisibleInvoice(canonical) || canonical.portalNoInvoice === true) && (Number(canonical.deudaTotalCOP || 0) === 0) && canonical.status !== 'pending') {
+    const financingConfirmed = utilityFinancingEvidence(canonical);
+    const finAmount = financingConfirmed ? (utilityCanonicalFinancingAmount(canonical) ?? 0) : 0;
     return {
       status: 'paid',
-      deudaCOP: 0,
+      deudaCOP: finAmount,
       deudaMesCOP: 0,
-      deudaConveniosCOP: 0,
-      deudaTotalCOP: 0,
+      deudaConveniosCOP: finAmount,
+      deudaTotalCOP: finAmount,
+      financiadaCOP: finAmount,
+      financiacion: financingConfirmed && Array.isArray(canonical.financiacion) ? canonical.financiacion : [],
+      cuotaFinanciadaCOP: financingConfirmed ? utilityQuotaAmount(canonical) : null,
+      cuotaActual: financingConfirmed ? utilityIntegerFromFields(canonical, ['cuotaActual', 'currentQuota', 'currentInstallment', 'installmentNumber']) : null,
+      cuotasTotales: financingConfirmed ? utilityIntegerFromFields(canonical, ['cuotasTotales', 'totalQuotas', 'totalInstallments', 'installmentCount']) : null,
       numFacturas: 0,
       factura: null,
       periodo: null,
@@ -2861,6 +2945,8 @@ function utilityPaymentView(record) {
       checkedAt,
       error: null,
       portalNoInvoice: true,
+      financingConfirmed,
+      financeValidation: canonical.financeValidation || (financingConfirmed ? 'confirmed' : 'absent'),
       paymentChange: canonical.paymentChange || null,
     };
   }
@@ -2869,11 +2955,11 @@ function utilityPaymentView(record) {
   return {
     status: canonical.status || (isPaid ? 'paid' : 'unknown'),
     deudaMesCOP: isPaid ? 0 : utilityMonthDebtAmount(canonical),
-    deudaConveniosCOP: financingConfirmed ? utilityCanonicalFinancingAmount(canonical) ?? 0 : 0,
-    deudaTotalCOP: isPaid ? 0 : utilityDebtAmount(canonical),
-    deudaCOP: isPaid ? 0 : utilityDebtAmount(canonical),
+    deudaConveniosCOP: financingConfirmed ? (utilityCanonicalFinancingAmount(canonical) ?? 0) : 0,
+    deudaTotalCOP: isPaid ? (financingConfirmed ? (utilityCanonicalFinancingAmount(canonical) ?? 0) : 0) : utilityDebtAmount(canonical),
+    deudaCOP: isPaid ? (financingConfirmed ? (utilityCanonicalFinancingAmount(canonical) ?? 0) : 0) : utilityDebtAmount(canonical),
     facturaValorCOP: isPaid ? 0 : utilityAmountFromFields(canonical, ['facturaValorCOP', 'invoiceValueCOP', 'valorFacturaCOP']),
-    financiadaCOP: financingConfirmed ? utilityCanonicalFinancingAmount(canonical) ?? 0 : 0,
+    financiadaCOP: financingConfirmed ? (utilityCanonicalFinancingAmount(canonical) ?? 0) : 0,
     cuotaFinanciadaCOP: financingConfirmed ? utilityQuotaAmount(canonical) : null,
     cuotaActual: financingConfirmed ? utilityIntegerFromFields(canonical, ['cuotaActual', 'currentQuota', 'currentInstallment', 'installmentNumber']) : null,
     cuotasTotales: financingConfirmed ? utilityIntegerFromFields(canonical, ['cuotasTotales', 'totalQuotas', 'totalInstallments', 'installmentCount']) : null,
@@ -4018,6 +4104,434 @@ async function sendCloudServicesReportImageOnly(phone, report, mediaPackage = nu
   return { ...packageData, messageId: result.messages?.[0]?.id || null };
 }
 
+function buildCloudFinancingImageData() {
+  const summaries = configuredCloudApartments().map(cloudApartmentServices);
+  const rows = [];
+  let totalCarteraEdificio = 0;
+  let totalGasConvenios = 0;
+  let totalWaterConvenios = 0;
+  let totalAireMora = 0;
+
+  for (const summary of summaries) {
+    const apt = summary.apartment;
+    const airE = summary.records.electricity;
+    const water = summary.records.water;
+    const gas = summary.records.gas;
+
+    const aptItems = [];
+    let aptSubtotal = 0;
+
+    // Air-e check: multi-invoice or internal financing
+    if (airE) {
+      const facturas = Array.isArray(airE.facturas) ? airE.facturas : [];
+      const numFacturas = Number(airE.numFacturas || airE.facturasTotales || facturas.length || 0);
+      const isMultiBill = numFacturas > 1 || facturas.length > 1;
+      const hasFinancing = Number(airE.financiadaCOP || airE.deudaConveniosCOP || 0) > 0;
+
+      if (isMultiBill || hasFinancing) {
+        let moraAmount = 0;
+        const billsDetail = facturas.map((f, i) => {
+          const val = Number(f.valorCOP || 0);
+          const isOverdue = f.estado === 'NO_PAGABLE' || i > 0;
+          if (isOverdue) moraAmount += val;
+          return {
+            period: f.periodo ? `${f.periodo.slice(0, 4)}-${f.periodo.slice(4)}` : 'Periodo anterior',
+            amount: val,
+            status: f.estado === 'POR_PAGAR' ? 'Al cobro' : 'En mora acumulada',
+            isOverdue
+          };
+        });
+
+        const totalDebt = Number(airE.deudaTotalCOP || airE.deudaCOP || 0);
+        const airEImpact = moraAmount > 0 ? moraAmount : totalDebt;
+        totalAireMora += airEImpact;
+        totalCarteraEdificio += airEImpact;
+        aptSubtotal += airEImpact;
+
+        aptItems.push({
+          provider: 'Air-e',
+          icon: '⚡',
+          type: 'aire_mora',
+          title: `${numFacturas} facturas pendientes`,
+          totalDebt,
+          moraAmount,
+          bills: billsDetail,
+          hasFinancing,
+          financedAmount: Number(airE.financiadaCOP || 0)
+        });
+      }
+    }
+
+    // Triple A check: convenios or agreements
+    if (water) {
+      const finList = Array.isArray(water.financiacion) && water.financiacion.length > 0
+        ? water.financiacion
+        : (Number(water.deudaConveniosCOP || water.financiadaCOP || 0) > 0
+          ? [{ concepto: 'Acuerdo de pago', saldoCOP: Number(water.deudaConveniosCOP || water.financiadaCOP) }]
+          : []);
+
+      if (finList.length > 0) {
+        const convenios = finList.map(item => {
+          const saldo = Number(item.saldoCOP || item.saldoInicialCOP || water.deudaConveniosCOP || 0);
+          totalWaterConvenios += saldo;
+          totalCarteraEdificio += saldo;
+          aptSubtotal += saldo;
+          return {
+            concepto: item.concepto || 'Acuerdo de Financiación',
+            numero: item.numero || null,
+            saldo,
+            cuota: Number(item.cuotaCOP || 0),
+            cuotaActual: item.cuotaActual || null,
+            cuotasTotales: item.cuotasTotales || null,
+            cuotasPendientes: item.cuotasPendientes || null
+          };
+        });
+
+        aptItems.push({
+          provider: 'Triple A',
+          icon: '💧',
+          type: 'convenio',
+          title: 'Acuerdo de pago activo',
+          convenios
+        });
+      }
+    }
+
+    // Gases del Caribe check: revision periodica or financings
+    if (gas) {
+      const finList = Array.isArray(gas.financiacion) && gas.financiacion.length > 0
+        ? gas.financiacion
+        : (Number(gas.deudaConveniosCOP || gas.financiadaCOP || 0) > 0
+          ? [{ concepto: 'Convenio de Gas', saldoCOP: Number(gas.deudaConveniosCOP || gas.financiadaCOP) }]
+          : []);
+
+      if (finList.length > 0) {
+        const convenios = finList.map(item => {
+          const saldo = Number(item.saldoCOP || item.saldoInicialCOP || gas.deudaConveniosCOP || 0);
+          totalGasConvenios += saldo;
+          totalCarteraEdificio += saldo;
+          aptSubtotal += saldo;
+          return {
+            concepto: item.concepto || 'Revisión Periódica / Financiación',
+            numero: item.numero || null,
+            saldo,
+            cuota: Number(item.cuotaCOP || 0),
+            cuotaActual: item.cuotaActual || null,
+            cuotasTotales: item.cuotasTotales || null,
+            cuotasPendientes: item.cuotasPendientes || null
+          };
+        });
+
+        aptItems.push({
+          provider: 'Gases del Caribe',
+          icon: '🔥',
+          type: 'convenio',
+          title: 'Convenio activo',
+          convenios
+        });
+      }
+    }
+
+    if (aptItems.length > 0) {
+      rows.push({
+        apartment: String(apt.name || apt.id),
+        subtotal: aptSubtotal,
+        items: aptItems
+      });
+    }
+  }
+
+  return {
+    dateLabel: cloudReportDateLabel(),
+    rows,
+    totalCarteraEdificio,
+    totalGasConvenios,
+    totalWaterConvenios,
+    totalAireMora,
+    totalAptsConCartera: rows.length
+  };
+}
+
+function cloudFinancingReportHtml(report) {
+  const cardsHtml = report.rows.length ? report.rows.map(row => {
+    const itemsHtml = row.items.map(item => {
+      let contentHtml = '';
+      if (item.type === 'aire_mora') {
+        const billsHtml = item.bills.map(b => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:${b.isOverdue ? '#fff1f2' : '#f8fafc'}; border-radius:8px; margin-top:4px; font-size:12px; border:1px solid ${b.isOverdue ? '#fecdd3' : '#e2e8f0'};">
+            <div>
+              <span style="font-weight:700; color:${b.isOverdue ? '#be123c' : '#334155'};">Periodo ${escapeCloudImageHtml(b.period)}</span>
+              <span style="display:inline-block; margin-left:6px; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700; background:${b.isOverdue ? '#ffe4e6' : '#e0f2fe'}; color:${b.isOverdue ? '#9f1239' : '#0369a1'};">${escapeCloudImageHtml(b.status)}</span>
+            </div>
+            <div style="font-weight:800; font-size:13px; color:${b.isOverdue ? '#e11d48' : '#0f172a'};">${cloudImageMoney(b.amount)}</div>
+          </div>
+        `).join('');
+
+        contentHtml = `
+          <div style="margin-top:6px;">
+            <div style="font-size:11px; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Desglose de facturas</div>
+            ${billsHtml}
+            ${item.moraAmount > 0 ? `<div style="text-align:right; font-size:11px; font-weight:700; color:#e11d48; margin-top:4px;">Mora acumulada: ${cloudImageMoney(item.moraAmount)}</div>` : ''}
+          </div>
+        `;
+      } else if (item.type === 'convenio') {
+        const conveniosHtml = item.convenios.map(c => {
+          const quotaText = c.cuota > 0 ? `Cuota: <b>${cloudImageMoney(c.cuota)}/mes</b>` : '';
+          const progressText = (c.cuotaActual && c.cuotasTotales) ? `Avance: <b>${c.cuotaActual} de ${c.cuotasTotales}</b>` : (c.cuotasPendientes ? `Pendientes: <b>${c.cuotasPendientes} cuotas</b>` : '');
+          const extraInfo = [quotaText, progressText].filter(Boolean).join(' · ');
+
+          return `
+            <div style="padding:8px 10px; background:#f8fafc; border-radius:8px; margin-top:4px; border:1px solid #e2e8f0;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                  <div style="font-weight:700; font-size:13px; color:#1e293b;">${escapeCloudImageHtml(c.concepto)}</div>
+                  ${c.numero ? `<div style="font-size:11px; color:#64748b;">Acuerdo N° ${escapeCloudImageHtml(c.numero)}</div>` : ''}
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase;">Saldo restante</div>
+                  <div style="font-weight:800; font-size:14px; color:#0f4c81;">${cloudImageMoney(c.saldo)}</div>
+                </div>
+              </div>
+              ${extraInfo ? `<div style="font-size:11px; color:#475569; margin-top:4px; padding-top:4px; border-top:1px dashed #cbd5e1;">${extraInfo}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+
+        contentHtml = conveniosHtml;
+      }
+
+      const serviceHeaderColor = item.provider === 'Air-e' ? '#c2410c' : (item.provider === 'Triple A' ? '#0369a1' : '#b91c1c');
+      const serviceBgColor = item.provider === 'Air-e' ? '#fff7ed' : (item.provider === 'Triple A' ? '#f0f9ff' : '#fef2f2');
+      const serviceBorderColor = item.provider === 'Air-e' ? '#fed7aa' : (item.provider === 'Triple A' ? '#bae6fd' : '#fecaca');
+
+      return `
+        <div style="margin-bottom:12px; background:${serviceBgColor}; border:1px solid ${serviceBorderColor}; border-radius:12px; padding:10px 12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="font-weight:800; font-size:13px; color:${serviceHeaderColor}; display:flex; align-items:center; gap:6px;">
+              <span>${item.icon}</span> <span>${item.provider}</span>
+            </div>
+            <div style="font-size:11px; font-weight:700; color:${serviceHeaderColor};">${escapeCloudImageHtml(item.title)}</div>
+          </div>
+          ${contentHtml}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <article style="background:#ffffff; border-radius:16px; border:1px solid #e2e8f0; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,0.04); display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:20px;">🏠</span>
+              <span style="font-size:17px; font-weight:800; color:#0f172a;">Apto ${escapeCloudImageHtml(row.apartment)}</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase;">Cartera Total</div>
+              <div style="font-size:16px; font-weight:900; color:#be123c;">${cloudImageMoney(row.subtotal)}</div>
+            </div>
+          </div>
+          <div>${itemsHtml}</div>
+        </div>
+      </article>
+    `;
+  }).join('\n') : '<div style="text-align:center; padding:40px; color:#64748b; grid-column:span 2;">No se registran convenios ni cartera pendiente.</div>';
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Cartera y Convenios · Edificio Laujim</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --primary: #38bdf8;
+      --danger: #f43f5e;
+      --warning: #fbbf24;
+      --success: #34d399;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: #f1f5f9;
+      color: #0f172a;
+      line-height: 1.4;
+      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .header-banner {
+      background: linear-gradient(135deg, #091e3a 0%, #1e3a5f 100%);
+      color: #ffffff;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(9, 30, 58, 0.2);
+      margin-bottom: 20px;
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+    .brand-title { display: flex; align-items: center; gap: 14px; }
+    .brand-icon {
+      width: 48px; height: 48px; background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+    }
+    .brand-text h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+    .brand-text p { font-size: 13px; color: #94a3b8; font-weight: 500; margin-top: 2px; }
+    .report-date-badge {
+      background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #cbd5e1;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .admin-badge {
+      background: #dc2626; color: white; padding: 3px 8px; border-radius: 6px;
+      font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+    .kpi-card {
+      background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(8px);
+    }
+    .kpi-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 20px; font-weight: 900; color: #ffffff; margin-top: 4px; }
+    .kpi-sub { font-size: 11px; color: #cbd5e1; margin-top: 2px; }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .report-footer {
+      margin-top: 24px; padding: 16px; text-align: center; font-size: 12px; color: #64748b;
+      background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header-banner">
+      <div class="header-top">
+        <div class="brand-title">
+          <div class="brand-icon">🛡️</div>
+          <div class="brand-text">
+            <h1>EDIFICIO LAUJIM · CONTROL DE CARTERA Y CONVENIOS</h1>
+            <p>Reporte patrimonial administrativo · Acuerdos de pago, mora multifactura y saldos financiados</p>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="admin-badge">Uso Exclusivo Admin</span>
+          <div class="report-date-badge">📅 ${escapeCloudImageHtml(report.dateLabel)}</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card" style="border-left: 4px solid #f43f5e;">
+          <div class="kpi-label">Cartera Total Edificio</div>
+          <div class="kpi-value" style="color:#fecdd3;">${cloudImageMoney(report.totalCarteraEdificio)}</div>
+          <div class="kpi-sub">${report.totalAptsConCartera} apartamento(s) con acuerdos o mora</div>
+        </div>
+        <div class="kpi-card" style="border-left: 4px solid #fb923c;">
+          <div class="kpi-label">Mora Air-e (Multifactura)</div>
+          <div class="kpi-value" style="color:#fed7aa;">${cloudImageMoney(report.totalAireMora)}</div>
+          <div class="kpi-sub">Facturas anteriores en mora</div>
+        </div>
+        <div class="kpi-card" style="border-left: 4px solid #38bdf8;">
+          <div class="kpi-label">Convenios Triple A</div>
+          <div class="kpi-value" style="color:#bae6fd;">${cloudImageMoney(report.totalWaterConvenios)}</div>
+          <div class="kpi-sub">Acueducto y aseo financiado</div>
+        </div>
+        <div class="kpi-card" style="border-left: 4px solid #f87171;">
+          <div class="kpi-label">Convenios Gases</div>
+          <div class="kpi-value" style="color:#fecaca;">${cloudImageMoney(report.totalGasConvenios)}</div>
+          <div class="kpi-sub">Revisiones periódicas y red</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="cards-grid">
+      ${cardsHtml}
+    </div>
+
+    <footer class="report-footer">
+      <div><strong>Edificio Laujim APP</strong> · Control patrimonial de cartera y acuerdos de pago.</div>
+      <div>⚠️ Estos saldos corresponden a compromisos financiados o mora acumulada. No afectan el cobro de consumo corriente a los inquilinos.</div>
+    </footer>
+  </div>
+</body>
+</html>`;
+}
+
+async function renderCloudFinancingReportImage(report = buildCloudFinancingImageData()) {
+  if (typeof servicesScraper.launchLocalBrowser !== 'function') {
+    throw new Error('El renderizador local de imágenes no está disponible');
+  }
+  const browser = await servicesScraper.launchLocalBrowser('whatsapp-report');
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1160, height: 900, deviceScaleFactor: 1 });
+    await page.setContent(cloudFinancingReportHtml(report), { waitUntil: 'load' });
+    const height = await page.evaluate(() => Math.max(
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight,
+    ));
+    await page.setViewport({ width: 1160, height: Math.max(900, Math.ceil(height)), deviceScaleFactor: 1 });
+    return Buffer.from(await page.screenshot({ type: 'png', fullPage: true }));
+  } finally {
+    await browser.close().catch(() => {});
+  }
+}
+
+async function createCloudFinancingReportMedia(report = buildCloudFinancingImageData()) {
+  const buffer = await renderCloudFinancingReportImage(report);
+  const file = {
+    originalname: `reporte-cartera-convenios-${colombiaDate()}.png`,
+    mimetype: 'image/png',
+    buffer,
+    size: buffer.length,
+  };
+  const uploaded = await uploadCloudMedia(file);
+  const media = {
+    kind: 'image',
+    mimeType: file.mimetype,
+    fileName: file.originalname,
+    size: file.size,
+    id: uploaded.id,
+  };
+  if (r2Ready()) {
+    try {
+      Object.assign(media, await putR2Buffer({
+        section: 'whatsapp/outbound', fileName: file.originalname,
+        buffer, mimeType: file.mimetype,
+      }));
+      media.archiveStatus = 'stored';
+    } catch (archiveError) {
+      media.archiveStatus = 'not_archived';
+      media.archiveError = archiveError.message;
+      console.warn('[R2] generated financing report archive skipped:', archiveError.message);
+    }
+  } else {
+    media.archiveStatus = 'not_configured';
+  }
+  const caption = `🛡️ *Reporte de Cartera, Convenios y Mora · Edificio Laujim*\n📅 ${report.dateLabel}\n💰 Cartera Financiada Total: ${cloudImageMoney(report.totalCarteraEdificio)}\n🏢 ${report.totalAptsConCartera} apartamento(s) con acuerdos o mora.\n\n🔗 Ver reporte detallado:\n${PUBLIC_APP_URL}/reportes/cartera`;
+  return { report, buffer, media, caption };
+}
+
+async function sendCloudFinancingReportImageOnly(phone, report, mediaPackage = null) {
+  const packageData = mediaPackage || await createCloudFinancingReportMedia(report);
+  const result = await sendCloudMedia(phone, packageData.media, packageData.caption);
+  const conversation = getCloudConversation({ phone });
+  addCloudMessage(conversation, 'out', {
+    type: 'image', text: packageData.caption, mediaId: packageData.media.id, media: packageData.media,
+    whatsappMessageId: result.messages?.[0]?.id || null,
+  });
+  saveData();
+  console.log(`[WHATSAPP CLOUD] Global financing report image sent (${packageData.report.rows.length} apartment(s), ${packageData.buffer.length} bytes).`);
+  return { ...packageData, messageId: result.messages?.[0]?.id || null };
+}
+
 async function sendCloudGlobalServices(phone) {
   let report = null;
   try {
@@ -4045,15 +4559,14 @@ async function sendCloudGlobalServices(phone) {
     `📊 *REPORTE DE SERVICIOS PÚBLICOS*`,
     `🏢 *Edificio Laujim* · ${report.dateLabel}`,
     ``,
-    `💰 *Deuda Total General:* ${grandTotal}`,
+    `💰 *Deuda Total del Mes:* ${grandTotal}`,
     `⚡ *Air-e:* ${report.serviceTotals[0] !== null ? cloudImageMoney(report.serviceTotals[0]) : '—'} (${report.serviceInvoiceTotals[0] ?? 0} facturas sin pagar)`,
     `💧 *Triple A:* ${report.serviceTotals[1] !== null ? cloudImageMoney(report.serviceTotals[1]) : '—'}`,
     `🔥 *Gases del Caribe:* ${report.serviceTotals[2] !== null ? cloudImageMoney(report.serviceTotals[2]) : '—'}`,
     ``,
-    `🕒 *Última sincronización:*`,
-    `⚡ Air-e: ${report.serviceSync?.electricity || '—'}`,
-    `💧 Triple A: ${report.serviceSync?.water || '—'}`,
-    `🔥 Gases: ${report.serviceSync?.gas || '—'}`,
+    `📸 *Te enviamos 2 reportes en formato foto:*`,
+    `1️⃣ *Foto 1:* Facturas y Consumo del Mes.`,
+    `2️⃣ *Foto 2:* Cartera y Convenios Financiados.`,
     ``,
     `🔗 *Ver reporte completo e interactivo:*`,
     `${PUBLIC_APP_URL}/reportes/servicios`,
@@ -4066,7 +4579,19 @@ async function sendCloudGlobalServices(phone) {
   }
 
   try {
+    // Foto 1: Servicios del mes
     await sendCloudServicesReportImageOnly(phone, report);
+
+    // Foto 2: Convenios y cartera financiada
+    try {
+      const financingReport = buildCloudFinancingImageData();
+      if (financingReport.rows.length > 0) {
+        await sendCloudFinancingReportImageOnly(phone, financingReport);
+      }
+    } catch (finError) {
+      console.warn('[WHATSAPP CLOUD] financing report image send error:', finError.message);
+    }
+
     await sendCloudUtilitiesDetailButton(phone);
   } catch (error) {
     console.warn('[WHATSAPP CLOUD] services report image send error (text and link already sent):', error.message);
@@ -8612,6 +9137,19 @@ app.get(['/reportes/servicios', '/reporte-servicios'], (req, res) => {
   }
 });
 
+app.get(['/reportes/cartera', '/reporte-cartera'], (req, res) => {
+  try {
+    const report = buildCloudFinancingImageData();
+    const html = cloudFinancingReportHtml(report);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(html);
+  } catch (error) {
+    console.error('[REPORTE CARTERA] error generando HTML:', error.message);
+    res.status(500).send('Error generando el reporte de cartera: ' + error.message);
+  }
+});
+
 app.get('/api/public/vacants', (req, res) => {
   const vacants = (db.apartments || []).filter(a => a.status === 'vacant').map(a => ({
     id: a.id, name: a.name, description: a.description || '', monthlyRent: a.monthlyRent,
@@ -9688,7 +10226,8 @@ app.post('/api/scrape-air-e', async (req, res) => {
   if (requireRenderScraperMode(res)) return;
   try {
     res.json({ ok: true, message: 'Scrape iniciado. Los resultados se guardarán en utilityRecords.' });
-    const results = await servicesScraper.scrapeAirE();
+    // Guarded runner: reutiliza la corrida en curso si el scheduler la tiene activa.
+    const results = await servicesScraper.runScrapeOnce('manual');
     // Persist results per apartment. A shared NIC is expected to generate a
     // separate visible record for every apartment that uses that service.
     if (!db.utilityRecords) db.utilityRecords = [];
@@ -9759,7 +10298,10 @@ async function runSequentialScrapeAll(reason = 'manual') {
       lastSequentialScrapeState.provider = 'Air-e';
       console.log('[SCRAPER SEQUENTIAL] 1/3 Ejecutando Air-e...');
       try {
-        const results = await servicesScraper.scrapeAirE();
+        // Guarded runner: si el scheduler SERVICES ya está raspando Air-e,
+        // se reutiliza esa corrida en vez de abrir otro Chrome con el mismo
+        // perfil (evita "browser is already running").
+        const results = await servicesScraper.runScrapeOnce('sequential');
         if (!db.utilityRecords) db.utilityRecords = [];
         for (const r of (results || [])) {
           const existing = db.utilityRecords.findIndex(u => {
@@ -11362,6 +11904,9 @@ app.delete('/api/tenants/:id', async (req, res) => {
     conversation.customerServiceWindowUntil = null;
   }
   db.tenants.splice(index, 1);
+  // Las credenciales del inquilino eliminado quedan inservibles de inmediato:
+  // se revocan todas sus sesiones activas para que sus tokens no reingresen.
+  try { revokeTenantSessions(id); } catch {}
   const linkedContracts = (db.contracts || []).filter(c => c.tenantId === id);
   for (const contract of linkedContracts) {
     const pwdIdx = (db.passwords || []).findIndex(p => p.apartmentId === contract.apartmentId);
@@ -11440,7 +11985,17 @@ app.put('/api/:collection/:id', async (req, res) => {
   if (!db[collection]) return res.status(404).json({ error: 'Collection not found' });
   const index = db[collection].findIndex(i => i.id === Number(id));
   if (index === -1) return res.status(404).json({ error: 'Not found' });
+  const previousTenant = collection === 'tenants' ? { ...db[collection][index] } : null;
   db[collection][index] = { ...db[collection][index], ...req.body };
+  if (collection === 'tenants' && previousTenant) {
+    const nextTenant = db[collection][index];
+    const credentialsChanged =
+      String(previousTenant.documentId || '') !== String(nextTenant.documentId || '') ||
+      Number(previousTenant.apartmentId) !== Number(nextTenant.apartmentId);
+    if (credentialsChanged) {
+      try { revokeTenantSessions(nextTenant.id); } catch {}
+    }
+  }
   if (collection === 'apartments') {
     normalizeApartmentServiceLinks(db[collection][index]);
     db[collection][index].gasAccountId = defaultGasAccountId(db[collection][index], db.apartments);
@@ -11958,7 +12513,14 @@ module.exports = {
   cloudServiceAmounts,
   cloudServicesReportImageHtml,
   cloudServicesReportHtml,
+  buildCloudFinancingImageData,
+  cloudFinancingReportHtml,
+  renderCloudFinancingReportImage,
+  createCloudFinancingReportMedia,
+  sendCloudFinancingReportImageOnly,
   utilityChangeTemplateData,
   utilityPaymentDecision,
   mergeUtilityRecord,
+  loadData,
+  saveData,
 };

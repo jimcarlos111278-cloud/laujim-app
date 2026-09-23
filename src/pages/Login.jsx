@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginAdmin, loginTenant, getAuth, clearAuth, restoreNativeAuth } from '../utils/auth';
+import { loginAdmin, loginTenant, getAuth, clearAuth, restoreNativeAuth, isExplicitLogout } from '../utils/auth';
 import { getBase } from '../utils/config';
 import { refreshAllFromServer, startCloudPolling, startDataVersionPolling } from '../api';
 import { KeyRound, User, ShieldCheck, Home, Eye, EyeOff, Lock, ArrowRight } from 'lucide-react';
@@ -28,6 +28,12 @@ export default function Login() {
     let attempts = 0;
     const maxAttempts = 2;
     async function verifySession() {
+      // Tras un logout explícito nunca se auto-entra: se muestra el
+      // formulario desde el primer clic, sin resucitar sesiones.
+      if (isExplicitLogout()) {
+        if (!cancelled) setCheckingStoredSession(false);
+        return;
+      }
       let existing = getAuth();
       if (!existing?.token) {
         existing = await restoreNativeAuth();

@@ -7,7 +7,7 @@ import {
   LockKeyhole, LogOut, MapPin, Maximize2, Move, Play, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, Wifi, X, Zap,
 } from 'lucide-react';
 import QRCode from 'qrcode';
-import { clearAuth, isTenant, isAdmin, getAuth } from '../utils/auth';
+import { clearAuth, isTenant, isAdmin, getAuth, watchAuthRevoked, revalidateSession } from '../utils/auth';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp } from '../utils/helpers';
 import IntercomCallModal from '../components/IntercomCallModal';
@@ -124,6 +124,9 @@ export default function MiApto() {
   const [streamUrls, setStreamUrls] = useState({});
   const [streamErrors, setStreamErrors] = useState({});
   const [streamingActive, setStreamingActive] = useState(true);
+  const [heroPlaying, setHeroPlaying] = useState(false); // true solo con frames reales en el <video>
+  const [streamEpoch, setStreamEpoch] = useState(0); // bump para forzar recarga del HLS al volver
+  const heroWatchRef = useRef({ serial: '', setAt: 0, lastTime: 0 });
   const videoRef = useRef(null);
   const [needsUserPlay, setNeedsUserPlay] = useState(false); // overlay si el navegador bloquea autoplay
   const [ptzMoving, setPtzMoving] = useState(''); // 'up' | 'down' | 'left' | 'right' | ''
@@ -277,10 +280,70 @@ export default function MiApto() {
     }
 
     return () => {
+      setHeroPlaying(false);
       if (onCanPlay) video.removeEventListener('canplay', onCanPlay);
       if (hls) hls.destroy();
     };
-  }, [selectedCamSerial, streamUrls[selectedCamSerial], streamErrors[selectedCamSerial], cameraLive]);
+  }, [selectedCamSerial, streamUrls[selectedCamSerial], streamErrors[selectedCamSerial], cameraLive, streamEpoch]);
+
+  // Vigilante de video congelado: si el HLS no avanza frames en ~12s, el héroe
+  // caería en pantalla negra con badge "EN VIVO". Se marca error para caer al
+  // snapshot (que sí funciona) en vez de mentir.
+  useEffect(() => {
+    const serial = selectedCamSerial;
+    if (!cameraLive || !streamUrls[serial] || streamErrors[serial]) return;
+    heroWatchRef.current = { serial, setAt: Date.now(), lastTime: 0 };
+    const timer = setInterval(() => {
+      const v = videoRef.current;
+      const w = heroWatchRef.current;
+      if (!v || w.serial !== serial) return;
+      const t = v.currentTime || 0;
+      const progressing = t > (w.lastTime || 0);
+      w.lastTime = t;
+      // Reloj deslizante: cada frame real reinicia la ventana. Solo se
+      // declara congelado tras 12s seguidos sin ningún progreso (incluye el
+      // arranque inicial lento: el fallback a snapshot es la UX correcta).
+      if (progressing) w.setAt = Date.now();
+      if (Date.now() - w.setAt > 12000 && !progressing) {
+        setStreamErrors(prev => (prev[serial] ? prev : { ...prev, [serial]: true }));
+      }
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [cameraLive, selectedCamSerial, streamUrls[selectedCamSerial], streamErrors[selectedCamSerial], streamEpoch]);
+
+  // Al volver a la pestaña (incl. bfcache): video y fotos frescas, nunca el
+  // frame congelado del momento en que se ocultó.
+  useEffect(() => {
+    const resume = () => {
+      // Al volver, revalidar primero: detecta inquilino eliminado o sesión
+      // revocada mientras la pestaña estaba oculta (sale limpio a login).
+      revalidateSession().then(result => {
+        if (!result.ok) navigate('/login', { replace: true });
+      }).catch(() => {});
+      if (!cameraLive) return;
+      APTO_CAMERAS.forEach(cam => {
+        const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
+        const img = new Image();
+        img.onload = () => {
+          setCameraFeeds(prev => ({ ...prev, [cam.serial]: nextUrl }));
+          setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
+        };
+        img.src = nextUrl;
+      });
+      if (selectedCamSerial) {
+        requestCameraStream(selectedCamSerial);
+        fetch(`${getRawBase()}/api/cameras/${selectedCamSerial}/ping`, { method: 'POST' }).catch(() => {});
+      }
+      setStreamEpoch(epoch => epoch + 1);
+    };
+    const onVisibility = () => { if (document.visibilityState === 'visible') resume(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pageshow', resume);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', resume);
+    };
+  }, [cameraLive, selectedCamSerial]);
 
 
 
@@ -369,6 +432,12 @@ export default function MiApto() {
   useEffect(() => {
     if (!isTenant() && !isAdmin()) { navigate('/login', { replace: true }); return; }
     if (isTenant()) loadData();
+    // Si otra pestaña cierra sesión, limpiar TODO (incluido el
+    // sessionStorage propio, que si no resucita el token) y salir.
+    return watchAuthRevoked(async () => {
+      await clearAuth({}, 'cross_tab_logout');
+      navigate('/login', { replace: true });
+    });
   }, []);
 
   // Poll for active intercom calls every 3 seconds for instant response
@@ -440,8 +509,8 @@ export default function MiApto() {
     }
   }
 
-  function handleLogout() {
-    clearAuth({ permanent: true }, 'tenant_user_logout');
+  async function handleLogout() {
+    await clearAuth({ permanent: true }, 'tenant_user_logout');
     navigate('/login', { replace: true });
   }
 
@@ -545,9 +614,9 @@ export default function MiApto() {
               </button>
 
               {streamingActive && (
-                <span className="flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-1 text-[11px] font-bold border border-emerald-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping" />
-                  <span>25 FPS ACTIVO</span>
+                <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold border ${heroPlaying ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${heroPlaying ? 'bg-emerald-600 animate-ping' : 'bg-amber-500 animate-pulse'}`} />
+                  <span>{heroPlaying ? '25 FPS ACTIVO' : 'SINCRONIZANDO…'}</span>
                 </span>
               )}
 
@@ -615,8 +684,8 @@ export default function MiApto() {
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="text-sm font-bold text-slate-900 leading-none">{heroCam.name}</h3>
-                            <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
-                              En vivo
+                            <span className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${heroPlaying ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                              {heroPlaying ? 'En vivo' : 'Sincronizando…'}
                             </span>
                           </div>
                           <p className="text-[11px] text-slate-500 mt-0.5">{heroCam.location}</p>
@@ -650,6 +719,18 @@ export default function MiApto() {
                           playsInline
                           muted
                           className="h-full w-full object-cover"
+                          onPlaying={() => setHeroPlaying(true)}
+                          onCanPlay={() => { heroWatchRef.current.setAt = Date.now(); }}
+                          onPause={() => setHeroPlaying(false)}
+                          onWaiting={() => setHeroPlaying(false)}
+                          onTimeUpdate={event => {
+                            heroWatchRef.current.lastTime = event.currentTarget.currentTime || 0;
+                            if ((event.currentTarget.currentTime || 0) > 0) setHeroPlaying(true);
+                          }}
+                          onError={() => {
+                            setHeroPlaying(false);
+                            setStreamErrors(prev => ({ ...prev, [selectedCamSerial]: true }));
+                          }}
                         />
                         {needsUserPlay && (
                           <div
@@ -676,6 +757,9 @@ export default function MiApto() {
                           <button
                             onClick={() => {
                               setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));
+                              setStreamErrors(prev => ({ ...prev, [heroCam.serial]: false }));
+                              setStreamEpoch(epoch => epoch + 1);
+                              requestCameraStream(heroCam.serial);
                               setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1&t=${Date.now()}` }));
                             }}
                             className="mt-3 flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-700 active:scale-95 transition"

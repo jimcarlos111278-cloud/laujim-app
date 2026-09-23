@@ -31,7 +31,7 @@ import Onboarding from './pages/Onboarding';
 import { requestNotificationPermission } from './utils/notifications';
 import { api, getCloudSyncStatus, refreshAllFromServer, startCloudPolling, startDataVersionPolling } from './api';
 import { initTheme, loadThemeFromServer } from './utils/theme';
-import { clearAuth, getAuth } from './utils/auth';
+import { clearAuth, getAuth, watchAuthRevoked } from './utils/auth';
 import { syncAuthorizedCallerNumbers } from './utils/callScreening';
 import { clearAppData } from './utils/resetApp';
 import { configureBackgroundNotifications, stopBackgroundNotifications } from './utils/backgroundNotifications';
@@ -71,12 +71,35 @@ function PrivateApp() {
     return () => window.removeEventListener('laujim:open-whatsapp', openWhatsAppConversation);
   }, [navigate]);
 
+  // Cierre de sesión propagado entre pestañas: si otra pestaña hace logout
+  // (o el servidor revoca la sesión), esta abandona la pantalla protegida
+  // sin dejar portales fantasma con datos obsoletos.
+  useEffect(() => {
+    return watchAuthRevoked(async () => {
+      // Limpiar también el sessionStorage PROPIO (es por pestaña): sin esto,
+      // getAuth() lo restaura a localStorage y la sesión fantasma reaparece.
+      await clearAuth({}, 'cross_tab_logout');
+      if (window.location.pathname !== '/login') window.location.replace('/login');
+    });
+  }, []);
+
   useEffect(() => {
     try { initDB(); } catch (e) { console.error('DB init error:', e); }
     const auth = getAuth();
     if (!auth) {
       setLoading(false);
       try { initTheme(); } catch (e) { console.error('Theme init error:', e); }
+      return;
+    }
+    // Los inquilinos no sincronizan colecciones de admin: su pantalla
+    // (/mi-apto) carga /tenant/overview por sí sola. Forzar el sync de admin
+    // con un token tenant devuelve 403 y termina en la pantalla fatal
+    // "No se cargaron los apartamentos". Se omite por completo.
+    if (auth.role === 'tenant') {
+      setLoading(false);
+      try { initTheme(); } catch (e) { console.error('Theme init error:', e); }
+      document.documentElement.classList.remove('force-desktop');
+      document.documentElement.classList.toggle('app-android', isCapacitor());
       return;
     }
     // Request notification permissions for ALL roles (admin and tenant)
@@ -158,6 +181,14 @@ function PrivateApp() {
   }
 
   if (cloudError) {
+    // Un inquilino nunca debe ver la pantalla de "apartamentos": si llegó
+    // aquí con un token inválido/expirado, se desloguea limpio y vuelve al
+    // login sin pedirle borrar cookies ni datos.
+    if (getAuth()?.role === 'tenant') {
+      clearAuth({}, 'tenant_startup_invalid_session');
+      window.location.replace('/login');
+      return null;
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
         <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-6 text-center shadow-lg dark:border-amber-800 dark:bg-gray-800">

@@ -208,6 +208,7 @@ export default function Utilities() {
   const [tenants, setTenants] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [search, setSearch] = useState('');
+  const [expandAll, setExpandAll] = useState(true);
   const [period, setPeriod] = useState(getCurrentPeriod());
   const [debts, setDebts] = useState({});
   const [syncingNow, setSyncingNow] = useState(false);
@@ -853,7 +854,7 @@ export default function Utilities() {
         </dl>
         {changeLabel && <p className={`mt-2 text-xs font-semibold ${changeStatus === 'full_payment' ? 'text-emerald-600' : 'text-amber-600'}`}>{changeLabel}</p>}
         {(financing.length > 0 || invoices.length > 0) && (
-          <details className="mt-3 border-t border-gray-100 pt-2 dark:border-gray-700">
+          <details open className="mt-3 border-t border-gray-100 pt-2 dark:border-gray-700">
             <summary className="cursor-pointer text-xs font-semibold text-blue-600 dark:text-blue-300">Ver {svc === 'electricity' ? 'facturas' : 'financiaciones'} ({svc === 'electricity' ? (invoiceTotal ?? invoices.length) : financing.length})</summary>
             <div className="mt-2 space-y-2">
               {svc === 'electricity' && invoices.map((invoice, index) => <div key={`${invoice.numero || index}`} className="rounded-lg bg-gray-50 p-2 text-[11px] dark:bg-gray-900/50"><p className="font-semibold text-gray-900 dark:text-white">Factura {invoice.numero || index + 1}</p><p className="text-gray-500 dark:text-gray-400">Periodo {invoice.periodo || '—'} · vence {utilityDate(invoice.vencimiento)}</p><p className="font-medium text-gray-800 dark:text-gray-200">{billMoney(parseBillAmount(invoice.valorCOP))} · {invoice.estado || 'estado sin confirmar'}</p></div>)}
@@ -973,13 +974,21 @@ export default function Utilities() {
         </section>
       )}
 
-      {/* Search */}
-      <div className="relative max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input type="text" placeholder="Buscar apto o código..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+      {/* Search and Expand Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="relative max-w-xs flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input type="text" placeholder="Buscar apto o código..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+        <button
+          onClick={() => setExpandAll(!expandAll)}
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+        >
+          {expandAll ? 'Colapsar todos los apartamentos' : 'Expandir todos los apartamentos (ver todas las tarjetas)'}
+        </button>
       </div>
 
-      {/* Apartment cards */}
+      {/* Apartment cards table summary */}
       <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div className="overflow-x-auto">
           <table className="min-w-[760px] w-full text-xs">
@@ -998,8 +1007,8 @@ export default function Utilities() {
 
       <div className="grid gap-3">
         {filtered.map(apt => (
-          <details key={`detail-${apt.id}`} className="group rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3"><span className="font-bold text-gray-900 dark:text-white">Apartamento {apt.name}</span><span className="text-xs font-medium text-blue-600 dark:text-blue-300">Ver detalle financiero</span></summary>
+          <details key={`detail-${apt.id}-${expandAll ? 'open' : 'closed'}`} open={expandAll} className="group rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3"><span className="font-bold text-gray-900 dark:text-white">Apartamento {apt.name}</span><span className="text-xs font-medium text-blue-600 dark:text-blue-300">Detalle financiero (3 servicios)</span></summary>
             <div className="grid gap-3 border-t border-gray-100 p-3 dark:border-gray-700 lg:grid-cols-3">
               {renderServiceDetail(apt, 'electricity')}
               {renderServiceDetail(apt, 'water')}
