@@ -42,3 +42,15 @@ medios/APKs/snapshots en R2 (`laujim-backups`). Nada vive solo en la VM.
 - Sesiones persistentes entre PCs con `tmux` (`new -s trabajo` / `attach -t trabajo`).
 - Si se reinstala la VM: `tailscale up --ssh --hostname=laujim-vm`
   + aprobar URL + desactivar expiración de nuevo.
+
+## Dónde trabaja la IA en la VM (dos carpetas, no mezclar)
+- `~/laujim-repo` — clon git de trabajo (IAs: `codex`, `agy`).
+  Aquí se hace `pull`, se edita, se verifica (`npm run build`,
+  `node scripts/handoff.cjs`) y se hace `push`. Árbol siempre limpio
+  al cambiar de PC.
+- `/home/ubuntu/laujim-app` — copia de deploy (NO es git).
+  Recibe archivos vía `py scratch/sftp-sync-vm.py` desde el PC dev
+  o `git`-less sync; el contenedor la monta (`server.cjs`, `dist`,
+  `public`, `uploads`, `graphify-out`).
+- Herramientas en la VM: node 22, `codex` y `agy` en `~/.local/bin`,
+  `graphify` NO instalable (regenerar grafo en PC dev + sincronizar).
