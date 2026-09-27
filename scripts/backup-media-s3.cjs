@@ -23,6 +23,7 @@ const SOURCES = [
   { dir: 'Backup', prefix: 'backups-local/' },
   { dir: 'backups', prefix: 'backups-local/' },
   { dir: path.join('graphify-out', 'archive'), prefix: 'graph-archive/' },
+  { dir: path.join('public', 'releases'), prefix: 'apk-releases/' },
 ];
 
 function r2Config() {
