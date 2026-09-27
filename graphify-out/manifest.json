@@ -913,5 +913,10 @@
     "mtime": 1790477031.347884,
     "ast_hash": "a77df35b54a122268ab0337207a47a06",
     "semantic_hash": ""
+  },
+  "scripts/handoff.cjs": {
+    "mtime": 1790483207.535273,
+    "ast_hash": "a7b12dc543f44a56498082cd28c21254",
+    "semantic_hash": ""
   }
 }

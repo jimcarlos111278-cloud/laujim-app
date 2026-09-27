@@ -71,3 +71,16 @@ graphify-out/graph.html
 # Memoria de sesion de OpenCode (generada dinamicamente - no versionar)
 .opencode/session-memory.md
 
+
+# Basura local: screenshots de pruebas, respaldos .bak, tarballs y caches
+screen_*.png
+s23_*.png
+propuesta_*.png
+*.bak
+*.tar.gz
+__pycache__/
+android/.gradle-user-home/
+android/android/
+.laujim-test/
+.tmp-report/
+window_dump.xml
