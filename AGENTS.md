@@ -49,14 +49,18 @@ This is a hard standard, not optional.
 
 - Run `npm run release-apk` (wraps `scripts/release-apk.cjs`) to:
   1. Bump the patch version in `android/app/build.gradle` (`versionName`).
-  2. Regenerate `public/app-version.json` (the installed app compares this to
-     its own version to decide whether to show the update notification).
-  3. Rebuild the APK (`vite` + Capacitor + Gradle) and copy it to
-     `public/app-debug.apk`.
-  4. Archive a historical snapshot of the knowledge graph
-     (`scripts/archive-graph.cjs` → `graphify-out/archive/`).
-  5. Run the `sync:aiven:pre-push` gate.
-  6. Commit and push to `origin/main`.
+  2. Rebuild the APK (`vite` + Capacitor + Gradle) into `public/app-debug.apk`.
+  3. Copy it to `public/releases/laujim-v<version>.apk`, keeping only the
+     last 10 (oldest deleted). APKs NEVER go to git (see `.gitignore`); they
+     reach the VM via deploy/scp or R2 (`npm run backup:media` syncs them).
+  4. Regenerate `public/app-version.json` pointing at the versioned APK
+     (the installed app compares this to its own version to decide whether
+     to show the update notification).
+  5. Archive a historical snapshot of the knowledge graph
+     (`scripts/archive-graph.cjs` → `graphify-out/archive/`) and stage the
+     base graph files (`graph.json`, `GRAPH_REPORT.md`, `manifest.json`).
+  6. Run the `sync:aiven:pre-push` gate.
+  7. Commit (no APKs) and push to `origin/main`.
 - Options: `--message "..."` for a custom commit message, `--no-push` to build
   and commit without pushing, `--minor`/`--major` for a non-patch bump.
 - After the push, verify Oracle serves the new build by checking

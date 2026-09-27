@@ -1,0 +1,916 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Timbre Digital • Edificio Laujim</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070c18;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-border-glow: rgba(56, 189, 248, 0.25);
+      --primary: #2563eb;
+      --primary-glow: #3b82f6;
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.35);
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #070c18 60%, #030712 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 16px 14px 24px;
+      overflow-x: hidden;
+    }
+
+    /* Ambient lighting effects */
+    .glow-orb {
+      position: fixed;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.25;
+    }
+    .glow-1 { top: -60px; left: 50%; transform: translateX(-50%); background: #3b82f6; }
+    .glow-2 { bottom: -100px; right: 10%; background: #10b981; }
+
+    /* App Container */
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 10px 0 6px;
+    }
+
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #38bdf8;
+      margin-bottom: 8px;
+    }
+
+    .brand-pill .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Main Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 20px 18px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 
+                  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Floor filter Tabs */
+    .floor-tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 4px;
+      border-radius: 14px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 58px;
+      padding: 8px 4px;
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .tab-btn.active {
+      background: rgba(37, 99, 235, 0.25);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    }
+
+    /* Grid of Apartments */
+    .apt-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .apt-btn {
+      position: relative;
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.55) 0%, rgba(15, 23, 42, 0.7) 100%);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px 8px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .apt-btn:active {
+      transform: scale(0.96);
+    }
+
+    .apt-btn .apt-badge {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #94a3b8;
+    }
+
+    .apt-btn .apt-num {
+      font-size: 22px;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+    }
+
+    .apt-btn .apt-status {
+      font-size: 9px;
+      font-weight: 600;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .apt-btn .status-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #38bdf8;
+    }
+
+    /* Selected state */
+    .apt-btn.selected {
+      background: linear-gradient(180deg, rgba(37, 99, 235, 0.35) 0%, rgba(30, 58, 138, 0.5) 100%);
+      border-color: #60a5fa;
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .apt-btn.selected .apt-num {
+      color: #ffffff;
+    }
+
+    .apt-btn.selected .apt-badge {
+      color: #93c5fd;
+    }
+
+    /* Action Trigger Button */
+    .call-btn {
+      width: 100%;
+      height: 56px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.5);
+      transition: all 0.25s;
+    }
+
+    .call-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
+      background: #334155;
+      color: #94a3b8;
+    }
+
+    .call-btn:not(:disabled):active {
+      transform: scale(0.98);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Active Call / Ringing Screen */
+    .call-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 10px 0;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Radar Rings Animation */
+    .radar-container {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 16px 0 24px;
+    }
+
+    .radar-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 1.5px solid rgba(59, 130, 246, 0.4);
+      animation: radar-pulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    .radar-ring:nth-child(2) { animation-delay: 0.6s; }
+    .radar-ring:nth-child(3) { animation-delay: 1.2s; }
+
+    @keyframes radar-pulse {
+      0% { transform: scale(0.4); opacity: 1; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    .radar-center {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%);
+      border: 2px solid #60a5fa;
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      z-index: 2;
+    }
+
+    .call-target-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .call-status-label {
+      font-size: 13px;
+      color: #38bdf8;
+      font-weight: 500;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* Audio wave simulation */
+    .audio-wave {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 32px;
+      margin-bottom: 20px;
+    }
+
+    .audio-bar {
+      width: 4px;
+      background: #38bdf8;
+      border-radius: 4px;
+      animation: wave-bounce 1s ease-in-out infinite;
+    }
+
+    .audio-bar:nth-child(1) { height: 10px; animation-delay: 0.1s; }
+    .audio-bar:nth-child(2) { height: 22px; animation-delay: 0.2s; }
+    .audio-bar:nth-child(3) { height: 32px; animation-delay: 0.3s; }
+    .audio-bar:nth-child(4) { height: 18px; animation-delay: 0.4s; }
+    .audio-bar:nth-child(5) { height: 28px; animation-delay: 0.5s; }
+    .audio-bar:nth-child(6) { height: 14px; animation-delay: 0.6s; }
+
+    @keyframes wave-bounce {
+      0%, 100% { transform: scaleY(0.4); }
+      50% { transform: scaleY(1); }
+    }
+
+    /* In-Call Controls */
+    .call-controls {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .control-btn {
+      flex: 1;
+      height: 52px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-hangup {
+      background: rgba(244, 63, 94, 0.15);
+      border-color: rgba(244, 63, 94, 0.3);
+      color: #fb7185;
+    }
+    .btn-hangup:active { background: rgba(244, 63, 94, 0.3); }
+
+    .btn-mic {
+      background: rgba(30, 41, 59, 0.8);
+      color: #e2e8f0;
+    }
+    .btn-mic.muted {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    /* Door Unlock Banner / State */
+    .door-unlocked-card {
+      display: none;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 78, 59, 0.35) 100%);
+      border: 1.5px solid #10b981;
+      border-radius: 20px;
+      padding: 24px 16px;
+      text-align: center;
+      box-shadow: 0 0 40px var(--emerald-glow);
+      animation: unlockGlow 1.5s infinite alternate;
+    }
+
+    @keyframes unlockGlow {
+      from { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+      to { box-shadow: 0 0 45px rgba(16, 185, 129, 0.6); }
+    }
+
+    .unlock-icon-circle {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: #10b981;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 14px;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.5);
+      animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes bounce-in {
+      0% { transform: scale(0.3); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Demo toolbar at the bottom */
+    .demo-bar {
+      margin-top: 14px;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .demo-bar-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .demo-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .demo-btn {
+      flex: 1;
+      padding: 8px 6px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .demo-btn:active { background: rgba(59, 130, 246, 0.4); }
+
+    /* Security notice */
+    .security-notice {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    .security-notice svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient background glow -->
+  <div class="glow-orb glow-1"></div>
+  <div class="glow-orb glow-2"></div>
+
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand-pill">
+        <span class="dot"></span>
+        Portería Digital • Edificio Laujim
+      </div>
+      <h1 class="title">Timbre Inteligente</h1>
+      <p class="subtitle">Selecciona el apartamento al que deseas timbrar</p>
+    </header>
+
+    <!-- Main Selection Card -->
+    <div id="selectorView" class="card">
+      <!-- Floor filter tabs -->
+      <div class="floor-tabs">
+        <button class="tab-btn active" onclick="filterFloor('all', this)">Todos</button>
+        <button class="tab-btn" onclick="filterFloor('1', this)">Piso 1</button>
+        <button class="tab-btn" onclick="filterFloor('2', this)">Piso 2</button>
+        <button class="tab-btn" onclick="filterFloor('3', this)">Piso 3</button>
+        <button class="tab-btn" onclick="filterFloor('4', this)">Piso 4</button>
+        <button class="tab-btn" onclick="filterFloor('5', this)">Piso 5</button>
+      </div>
+
+      <!-- Apartments Grid (12 apartments) -->
+      <div class="apt-grid" id="aptGrid">
+        <!-- Piso 1 -->
+        <button class="apt-btn" data-floor="1" data-apt="101" onclick="selectApt('101', this)">
+          <span class="apt-badge">Piso 1</span>
+          <span class="apt-num">101</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+        <button class="apt-btn" data-floor="1" data-apt="102" onclick="selectApt('102', this)">
+          <span class="apt-badge">Piso 1</span>
+          <span class="apt-num">102</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+
+        <!-- Piso 2 -->
+        <button class="apt-btn" data-floor="2" data-apt="201" onclick="selectApt('201', this)">
+          <span class="apt-badge">Piso 2</span>
+          <span class="apt-num">201</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+        <button class="apt-btn" data-floor="2" data-apt="202" onclick="selectApt('202', this)">
+          <span class="apt-badge">Piso 2</span>
+          <span class="apt-num">202</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+        <button class="apt-btn" data-floor="2" data-apt="203" onclick="selectApt('203', this)">
+          <span class="apt-badge">Piso 2</span>
+          <span class="apt-num">203</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+
+        <!-- Piso 3 -->
+        <button class="apt-btn" data-floor="3" data-apt="301" onclick="selectApt('301', this)">
+          <span class="apt-badge">Piso 3</span>
+          <span class="apt-num">301</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+        <button class="apt-btn" data-floor="3" data-apt="302" onclick="selectApt('302', this)">
+          <span class="apt-badge">Piso 3</span>
+          <span class="apt-num">302</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+        <button class="apt-btn" data-floor="3" data-apt="303" onclick="selectApt('303', this)">
+          <span class="apt-badge">Piso 3</span>
+          <span class="apt-num">303</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+
+        <!-- Piso 4 -->
+        <button class="apt-btn" data-floor="4" data-apt="401" onclick="selectApt('401', this)">
+          <span class="apt-badge">Piso 4</span>
+          <span class="apt-num">401</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+        <button class="apt-btn" data-floor="4" data-apt="402" onclick="selectApt('402', this)">
+          <span class="apt-badge">Piso 4</span>
+          <span class="apt-num">402</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+        <button class="apt-btn" data-floor="4" data-apt="403" onclick="selectApt('403', this)">
+          <span class="apt-badge">Piso 4</span>
+          <span class="apt-num">403</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+
+        <!-- Piso 5 -->
+        <button class="apt-btn" data-floor="5" data-apt="501" onclick="selectApt('501', this)">
+          <span class="apt-badge">Piso 5</span>
+          <span class="apt-num">501</span>
+          <span class="apt-status"><span class="status-dot"></span>Disponible</span>
+        </button>
+      </div>
+
+      <!-- Trigger Call Button -->
+      <button id="callTriggerBtn" class="call-btn" disabled onclick="startCall()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+        </svg>
+        <span id="callBtnText">Selecciona un apartamento</span>
+      </button>
+    </div>
+
+    <!-- Active Call Screen (Ringing & In-Call State) -->
+    <div id="callScreenView" class="card call-screen">
+      <div class="brand-pill" id="callTypeBadge">
+        <span class="dot"></span>
+        Llamada en Curso
+      </div>
+
+      <div class="radar-container">
+        <div class="radar-ring"></div>
+        <div class="radar-ring"></div>
+        <div class="radar-ring"></div>
+        <div class="radar-center">🔔</div>
+      </div>
+
+      <h2 class="call-target-title" id="callTargetName">Apartamento 201</h2>
+      <p class="call-status-label" id="callStatusText">
+        <span>Timbrando a los residentes...</span>
+        <span id="callTimer">00:15</span>
+      </p>
+
+      <!-- Audio wave animation for call -->
+      <div class="audio-wave">
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="call-controls">
+        <button id="micToggleBtn" class="control-btn btn-mic" onclick="toggleMic()">
+          <span id="micIcon">🎙️</span>
+          <span id="micLabel">Micrófono</span>
+        </button>
+        <button class="control-btn btn-hangup" onclick="endCall('cancelada')">
+          <span>❌</span>
+          <span>Colgar</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Door Unlocked Success Screen -->
+    <div id="doorUnlockedView" class="door-unlocked-card">
+      <div class="unlock-icon-circle">🔓</div>
+      <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 6px;">¡Puerta Abierta!</h2>
+      <p style="font-size: 14px; color: #a7f3d0; margin-bottom: 14px;">El residente autorizó tu ingreso. Empuja la puerta principal.</p>
+      <div style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 999px; background: rgba(0,0,0,0.3); font-size: 13px; font-weight: 700; color: #34d399;">
+        Destrabada por <span id="unlockCountdown">5</span>s
+      </div>
+    </div>
+
+    <!-- Interactive Simulation Toolbar (Testing) -->
+    <div class="demo-bar">
+      <span class="demo-bar-title">⚡ Pruebas Interactivas del Sistema</span>
+      <div class="demo-buttons">
+        <button class="demo-btn" onclick="simTenantAnswer()">📞 Residente Contesta</button>
+        <button class="demo-btn" onclick="simTenantOpenDoor()">🔓 Residente Abre Puerta</button>
+        <button class="demo-btn" onclick="simNoAnswer()">⏳ Sin Respuesta</button>
+      </div>
+    </div>
+
+    <!-- Footer security notice -->
+    <div class="security-notice">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+      <span>Circuito cerrado de video y registro de accesos 24/7</span>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let selectedApt = null;
+    let callState = 'idle'; // 'idle', 'ringing', 'connected', 'unlocked'
+    let callSeconds = 0;
+    let callInterval = null;
+    let isMuted = false;
+    let audioCtx = null;
+
+    // Web Audio API Sound generator (Zero external files needed)
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Play ringing tone
+    function playRingTone() {
+      if (!audioCtx) return;
+      try {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+        osc2.frequency.setValueAtTime(480, audioCtx.currentTime); // B4
+
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start();
+        osc2.start();
+        osc1.stop(audioCtx.currentTime + 1.2);
+        osc2.stop(audioCtx.currentTime + 1.2);
+      } catch (e) {}
+    }
+
+    // Play door chime
+    function playDoorChime() {
+      if (!audioCtx) return;
+      try {
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 arpeggio
+        notes.forEach((freq, index) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const startTime = audioCtx.currentTime + (index * 0.12);
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0.12, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.8);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(startTime);
+          osc.stop(startTime + 0.8);
+        });
+      } catch (e) {}
+    }
+
+    // Select apartment
+    function selectApt(aptNumber, element) {
+      initAudio();
+      document.querySelectorAll('.apt-btn').forEach(btn => btn.classList.remove('selected'));
+      element.classList.add('selected');
+      selectedApt = aptNumber;
+
+      const triggerBtn = document.getElementById('callTriggerBtn');
+      const btnText = document.getElementById('callBtnText');
+      triggerBtn.disabled = false;
+      btnText.textContent = 'Timbrar al Apto ' + aptNumber;
+    }
+
+    // Filter by floor
+    function filterFloor(floor, tabElement) {
+      document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+      tabElement.classList.add('active');
+
+      const buttons = document.querySelectorAll('.apt-btn');
+      buttons.forEach(btn => {
+        if (floor === 'all' || btn.getAttribute('data-floor') === floor) {
+          btn.style.display = 'flex';
+        } else {
+          btn.style.display = 'none';
+        }
+      });
+    }
+
+    // Start Call
+    function startCall() {
+      if (!selectedApt) return;
+      initAudio();
+      callState = 'ringing';
+      callSeconds = 0;
+
+      // Update UI
+      document.getElementById('selectorView').style.display = 'none';
+      document.getElementById('callScreenView').style.display = 'flex';
+      document.getElementById('doorUnlockedView').style.display = 'none';
+      document.getElementById('callTargetName').textContent = 'Apartamento ' + selectedApt;
+      document.getElementById('callStatusText').innerHTML = '<span>Timbrando a los residentes...</span> <span id="callTimer">00:00</span>';
+      document.getElementById('callTypeBadge').innerHTML = '<span class="dot"></span> Timbrando...';
+
+      // Play initial tone
+      playRingTone();
+
+      // Ringing loop
+      callInterval = setInterval(() => {
+        callSeconds++;
+        const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+        const secs = String(callSeconds % 60).padStart(2, '0');
+        const timerEl = document.getElementById('callTimer');
+        if (timerEl) timerEl.textContent = mins + ':' + secs;
+
+        // Ring tone every 3 seconds
+        if (callSeconds % 3 === 0 && callState === 'ringing') {
+          playRingTone();
+        }
+
+        // Auto timeout after 45 seconds
+        if (callSeconds >= 45 && callState === 'ringing') {
+          simNoAnswer();
+        }
+      }, 1000);
+    }
+
+    // Tenant answers the call
+    function simTenantAnswer() {
+      if (callState === 'idle') {
+        selectApt('201', document.querySelector('[data-apt="201"]'));
+        startCall();
+      }
+      callState = 'connected';
+      document.getElementById('callTypeBadge').innerHTML = '<span class="dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8;"></span> En Comunicación';
+      document.getElementById('callStatusText').innerHTML = '<span>Residente conectado • Audio activo</span> <span id="callTimer">00:' + String(callSeconds).padStart(2,'0') + '</span>';
+      
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
+      }
+    }
+
+    // Tenant unlocks door
+    function simTenantOpenDoor() {
+      if (callState === 'idle') {
+        selectedApt = '201';
+      }
+      endCall('apertura');
+      playDoorChime();
+
+      document.getElementById('selectorView').style.display = 'none';
+      document.getElementById('callScreenView').style.display = 'none';
+      const unlockCard = document.getElementById('doorUnlockedView');
+      unlockCard.style.display = 'block';
+
+      let count = 5;
+      const countEl = document.getElementById('unlockCountdown');
+      countEl.textContent = count;
+
+      const countdownInterval = setInterval(() => {
+        count--;
+        if (countEl) countEl.textContent = count;
+        if (count <= 0) {
+          clearInterval(countdownInterval);
+          unlockCard.style.display = 'none';
+          document.getElementById('selectorView').style.display = 'block';
+          callState = 'idle';
+        }
+      }, 1000);
+    }
+
+    // Sim no answer
+    function simNoAnswer() {
+      endCall('sin_respuesta');
+      alert('El Apartamento ' + (selectedApt || 'marcado') + ' no contestó en este momento. Se ha enviado una notificación a su WhatsApp.');
+      document.getElementById('selectorView').style.display = 'block';
+      document.getElementById('callScreenView').style.display = 'none';
+      callState = 'idle';
+    }
+
+    // End call
+    function endCall(reason) {
+      clearInterval(callInterval);
+      callInterval = null;
+      callState = 'idle';
+      document.getElementById('selectorView').style.display = 'block';
+      document.getElementById('callScreenView').style.display = 'none';
+    }
+
+    // Toggle Mic
+    function toggleMic() {
+      isMuted = !isMuted;
+      const btn = document.getElementById('micToggleBtn');
+      const icon = document.getElementById('micIcon');
+      const label = document.getElementById('micLabel');
+
+      if (isMuted) {
+        btn.classList.add('muted');
+        icon.textContent = '🔇';
+        label.textContent = 'Silenciado';
+      } else {
+        btn.classList.remove('muted');
+        icon.textContent = '🎙️';
+        label.textContent = 'Micrófono';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{
+  "android/app/src/main/assets/portal-scraper.js": {
+    "mtime": 1788211220.8706744,
+    "ast_hash": "b0abf8d8a8ae71aebe96c788e37ced50",
+    "semantic_hash": "b0abf8d8a8ae71aebe96c788e37ced50"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/PortalBrowserActivity.java": {
+    "mtime": 1787947740.9919193,
+    "ast_hash": "11b6a94f6d394e444424d8e092ef2d65",
+    "semantic_hash": "11b6a94f6d394e444424d8e092ef2d65"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/PortalSessionVault.java": {
+    "mtime": 1787947740.9909184,
+    "ast_hash": "61a36c8e90873bf3941be114d8a1fbe2",
+    "semantic_hash": "61a36c8e90873bf3941be114d8a1fbe2"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerAlarmReceiver.java": {
+    "mtime": 1787951304.6482139,
+    "ast_hash": "0f380e432361de904ff2a51decf3e95d",
+    "semantic_hash": "0f380e432361de904ff2a51decf3e95d"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerBootReceiver.java": {
+    "mtime": 1786575691.3610764,
+    "ast_hash": "da866153bc39d23416f298b4edd12bca",
+    "semantic_hash": "da866153bc39d23416f298b4edd12bca"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerDispatcher.java": {
+    "mtime": 1787947666.1417928,
+    "ast_hash": "3fd1d230e6b1e5cee48d20ac314477d4",
+    "semantic_hash": "3fd1d230e6b1e5cee48d20ac314477d4"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerKickWorker.java": {
+    "mtime": 1787947666.140795,
+    "ast_hash": "f5073c09b06d62fb4c209f03aaebd7fe",
+    "semantic_hash": "f5073c09b06d62fb4c209f03aaebd7fe"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerPlugin.java": {
+    "mtime": 1787713061.0090535,
+    "ast_hash": "fe10fe58606cf2c028d7f1abeba08a12",
+    "semantic_hash": "fe10fe58606cf2c028d7f1abeba08a12"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerSchedule.java": {
+    "mtime": 1787951304.645211,
+    "ast_hash": "41d91d12aa53b0747fc25e749a738cec",
+    "semantic_hash": "41d91d12aa53b0747fc25e749a738cec"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerService.java": {
+    "mtime": 1787948321.3039844,
+    "ast_hash": "41be75139e28dc76b81e396b76da6653",
+    "semantic_hash": "41be75139e28dc76b81e396b76da6653"
+  },
+  "android/app/src/main/java/com/laujim/aptmanager/ScraperWorkerStore.java": {
+    "mtime": 1787713042.133255,
+    "ast_hash": "5f2bf7ff28b23eb3b920a70c75c004d3",
+    "semantic_hash": "5f2bf7ff28b23eb3b920a70c75c004d3"
+  },
+  "src/services-scraper.cjs": {
+    "mtime": 1788139438.1971216,
+    "ast_hash": "adb47bcf6c776bd2f212177a3301f083",
+    "semantic_hash": "adb47bcf6c776bd2f212177a3301f083"
+  },
+  "src/worker-protocol.cjs": {
+    "mtime": 1788138556.6908197,
+    "ast_hash": "6ce65bbe54479133833095f3c65a664e",
+    "semantic_hash": "6ce65bbe54479133833095f3c65a664e"
+  }
+}

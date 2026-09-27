@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edificio Laujim APP — Experiencia Interactiva & WhatsApp Móvil</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.02); }
+    }
+    @keyframes slide-in-right {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slide-in-bottom {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes typing-dot {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+    @keyframes ripple {
+      0% { transform: scale(0.8); opacity: 1; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .animate-slide-right { animation: slide-in-right 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .animate-slide-bottom { animation: slide-in-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .animate-fade { animation: fade-in 0.25s ease-out forwards; }
+    .typing-dot:nth-child(1) { animation: typing-dot 1.2s infinite ease-in-out; }
+    .typing-dot:nth-child(2) { animation: typing-dot 1.2s infinite ease-in-out 0.2s; }
+    .typing-dot:nth-child(3) { animation: typing-dot 1.2s infinite ease-in-out 0.4s; }
+
+    /* WhatsApp Wallpaper pattern */
+    .whatsapp-bg {
+      background-color: #0b141a;
+      background-image: radial-gradient(#1f2c34 1.5px, transparent 1.5px), radial-gradient(#1f2c34 1.5px, #0b141a 1.5px);
+      background-size: 30px 30px;
+      background-position: 0 0, 15px 15px;
+    }
+    .whatsapp-bg-light {
+      background-color: #efeae2;
+      background-image: radial-gradient(#d6cdc4 1.5px, transparent 1.5px), radial-gradient(#d6cdc4 1.5px, #efeae2 1.5px);
+      background-size: 30px 30px;
+      background-position: 0 0, 15px 15px;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.25); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(150, 150, 150, 0.45); }
+
+    /* Phone Mockup Shadows */
+    .phone-shadow {
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.55), 0 0 0 12px #1e293b, 0 0 0 14px #334155;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased select-none overflow-x-hidden">
+
+  <!-- Top Controller Bar -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-md">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 flex items-center justify-center font-black text-slate-950 text-lg shadow-lg shadow-emerald-500/20">
+        L
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-sm font-bold tracking-tight text-white">Edificio Laujim APP</h1>
+          <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            v1.0.110 Live
+          </span>
+        </div>
+        <p class="text-xs text-slate-400">Demostración Interactiva • Experiencia WhatsApp Móvil</p>
+      </div>
+    </div>
+
+    <!-- View Mode Switcher + Theme Actions -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- Device View Toggle -->
+      <div class="bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/80 flex items-center text-xs">
+        <button id="btn-mode-phone" onclick="setViewMode('phone')" class="px-3 py-1.5 rounded-md font-medium transition flex items-center gap-1.5 bg-emerald-600 text-white shadow">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          Vista Celular (APK)
+        </button>
+        <button id="btn-mode-desktop" onclick="setViewMode('desktop')" class="px-3 py-1.5 rounded-md font-medium transition flex items-center gap-1.5 text-slate-300 hover:text-white">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          Vista Escritorio (Web)
+        </button>
+      </div>
+
+      <!-- Quick Section Jump -->
+      <select id="quick-nav" onchange="navigateTo(this.value)" class="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+        <option value="whatsapp">💬 WhatsApp Chat Bot</option>
+        <option value="dashboard">📊 Resumen Dashboard</option>
+        <option value="apartments">🏢 Apartamentos (12)</option>
+        <option value="utilities">💧 Servicios Públicos</option>
+        <option value="scraper">🤖 Scraper Worker</option>
+        <option value="cameras">📹 CCTV Cámaras</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 flex items-center justify-center p-2 sm:p-6 relative">
+
+    <!-- ============================================================== -->
+    <!-- 1. PHONE SIMULATOR CONTAINER (DEFAULT MOBILE / APK MODE)       -->
+    <!-- ============================================================== -->
+    <div id="phone-container" class="w-full max-w-[420px] h-[840px] max-h-[92vh] bg-slate-900 rounded-[44px] phone-shadow flex flex-col relative overflow-hidden transition-all duration-300">
+
+      <!-- Phone Status Bar -->
+      <div class="h-8 bg-slate-950/80 px-6 flex items-center justify-between text-[11px] font-semibold text-slate-300 select-none z-30">
+        <span id="phone-clock">11:15</span>
+        <div class="w-24 h-4 bg-black rounded-full mx-auto -mt-1 flex items-center justify-center">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-700"></span>
+        </div>
+        <div class="flex items-center gap-1.5 text-slate-300">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 20.3a.75.75 0 001.06 1.06l2.69-.62A8.96 8.96 0 0012 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4c-4.42 0-8 3.58-8 8 0 1.95.7 3.74 1.87 5.13L4.5 20.5l3.37-1.37A7.95 7.95 0 0012 20c4.42 0 8-3.58 8-8s-3.58-8-8-8z"/></svg>
+          <span class="text-[10px] font-bold">100%</span>
+        </div>
+      </div>
+
+      <!-- App Content Inside Phone -->
+      <div class="flex-1 flex flex-col overflow-hidden relative">
+
+        <!-- ==================== SCREEN: WHATSAPP (PRIMARY DEMO) ==================== -->
+        <div id="screen-whatsapp" class="screen-view flex-1 flex flex-col overflow-hidden animate-fade">
+          
+          <!-- WHATSAPP VIEW: CHAT LIST -->
+          <div id="wa-chat-list" class="flex-1 flex flex-col bg-[#111b21] text-slate-100 overflow-hidden">
+            <!-- WA Header -->
+            <div class="bg-[#202c33] px-4 py-3 flex items-center justify-between border-b border-[#222e35]">
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-400 font-bold text-lg tracking-wide">WhatsApp Bot</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold">Oficial API</span>
+              </div>
+              <div class="flex items-center gap-3 text-slate-300">
+                <button onclick="simulateNewIncomingMessage()" title="Simular nuevo mensaje de inquilino" class="p-1.5 hover:bg-[#2a3942] rounded-full transition text-emerald-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </button>
+                <button onclick="toggleBroadcastModal(true)" title="Difusión masiva a inquilinos" class="p-1.5 hover:bg-[#2a3942] rounded-full transition">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- WA Search Bar & Filters -->
+            <div class="p-2.5 bg-[#111b21] space-y-2">
+              <div class="bg-[#202c33] rounded-lg px-3 py-1.5 flex items-center gap-2 text-slate-400 text-xs">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="wa-search-input" onkeyup="filterConversations(this.value)" placeholder="Buscar o iniciar nuevo chat" class="bg-transparent text-slate-200 placeholder-slate-400 text-xs w-full focus:outline-none">
+              </div>
+
+              <!-- Filter Pills -->
+              <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px]">
+                <button onclick="setFilter('all')" class="filter-pill px-2.5 py-1 rounded-full bg-[#202c33] text-emerald-400 font-medium">Todos</button>
+                <button onclick="setFilter('unread')" class="filter-pill px-2.5 py-1 rounded-full bg-[#111b21] text-slate-400 hover:bg-[#202c33]">No leídos (2)</button>
+                <button onclick="setFilter('debt')" class="filter-pill px-2.5 py-1 rounded-full bg-[#111b21] text-slate-400 hover:bg-[#202c33]">Con saldo pendiente</button>
+              </div>
+            </div>
+
+            <!-- Conversations List -->
+            <div id="wa-threads" class="flex-1 overflow-y-auto divide-y divide-[#222e35]">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- WHATSAPP VIEW: CHAT DETAIL / THREAD (Active when conversation selected) -->
+          <div id="wa-chat-detail" class="hidden flex-1 flex flex-col whatsapp-bg text-slate-100 overflow-hidden animate-slide-right">
+            
+            <!-- Chat Header -->
+            <div class="bg-[#202c33] px-3 py-2 flex items-center justify-between border-b border-[#222e35] z-10 shadow-sm">
+              <div class="flex items-center gap-2">
+                <button onclick="closeChatDetail()" class="p-1 -ml-1 text-slate-300 hover:bg-[#2a3942] rounded-full transition">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <div id="wa-active-avatar" class="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-xs text-white uppercase shadow">
+                  101
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <h3 id="wa-active-name" class="text-xs font-semibold text-white leading-tight">Carlos Mendoza</h3>
+                    <span id="wa-active-apt" class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Apto 201</span>
+                  </div>
+                  <p id="wa-active-status" class="text-[10px] text-emerald-400 font-medium">en línea</p>
+                </div>
+              </div>
+
+              <!-- Header Actions -->
+              <div class="flex items-center gap-2.5 text-slate-300">
+                <button onclick="sendTenantReceiptAlert()" title="Enviar recordatorio automático" class="p-1.5 hover:bg-[#2a3942] rounded-full text-emerald-400 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </button>
+                <button onclick="openApartmentModal(currentAptNumber)" title="Ver ficha del apartamento" class="p-1.5 hover:bg-[#2a3942] rounded-full transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Messages Thread View -->
+            <div id="wa-messages-container" class="flex-1 p-3 overflow-y-auto space-y-2.5">
+              <!-- Date Divider -->
+              <div class="flex justify-center my-1">
+                <span class="bg-[#182229] text-[10px] text-slate-400 px-2.5 py-0.5 rounded-md uppercase tracking-wider font-semibold border border-[#222e35]">Hoy</span>
+              </div>
+              
+              <!-- Injected Messages List -->
+              <div id="wa-messages-list" class="space-y-2"></div>
+
+              <!-- Typing Indicator -->
+              <div id="wa-typing-indicator" class="hidden flex items-center gap-1.5 bg-[#202c33] text-slate-300 text-xs px-3 py-1.5 rounded-2xl rounded-tl-none w-fit shadow-md border border-[#26353d] animate-fade">
+                <span class="text-[11px] text-emerald-400 font-medium">Escribiendo</span>
+                <span class="inline-flex gap-1 items-center ml-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 typing-dot"></span>
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 typing-dot"></span>
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 typing-dot"></span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Quick Template Chips Bar -->
+            <div class="px-2.5 py-1.5 bg-[#111b21] border-t border-[#222e35] flex items-center gap-1.5 overflow-x-auto text-[11px]">
+              <span class="text-slate-500 text-[10px] font-bold uppercase tracking-wider pl-1">Plantillas:</span>
+              <button onclick="insertTemplate('canon')" class="px-2.5 py-1 rounded-full bg-[#202c33] hover:bg-[#2a3942] text-slate-200 whitespace-nowrap transition">📅 Cobro Canon</button>
+              <button onclick="insertTemplate('services')" class="px-2.5 py-1 rounded-full bg-[#202c33] hover:bg-[#2a3942] text-slate-200 whitespace-nowrap transition">💧 Servicios Triple A / Gas</button>
+              <button onclick="insertTemplate('paid')" class="px-2.5 py-1 rounded-full bg-[#202c33] hover:bg-[#2a3942] text-slate-200 whitespace-nowrap transition">✅ Confirmación Pago</button>
+            </div>
+
+            <!-- WhatsApp Message Input Bar -->
+            <div class="bg-[#202c33] px-2 py-2 flex items-center gap-1.5 border-t border-[#222e35] z-10">
+              <button class="p-1.5 text-slate-400 hover:text-slate-200 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </button>
+              <button onclick="simulateAttachPhoto()" class="p-1.5 text-slate-400 hover:text-slate-200 transition" title="Adjuntar comprobante de pago">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              </button>
+              
+              <!-- Text Area Input -->
+              <input type="text" id="wa-input" onkeydown="handleInputKey(event)" placeholder="Mensaje..." class="flex-1 bg-[#2a3942] text-slate-100 placeholder-slate-400 text-xs px-3.5 py-2 rounded-2xl focus:outline-none">
+
+              <!-- Send / Audio Button -->
+              <button id="wa-send-btn" onclick="sendUserMessage()" class="w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center text-white transition shadow shadow-emerald-500/30">
+                <svg class="w-4 h-4 translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== SCREEN: DASHBOARD ==================== -->
+        <div id="screen-dashboard" class="screen-view hidden flex-1 flex flex-col bg-slate-900 text-slate-100 overflow-y-auto p-4 space-y-4 animate-fade">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-bold text-white">Resumen General</h2>
+              <p class="text-xs text-slate-400">Edificio Laujim • Barranquilla</p>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              11/12 Ocupados (92%)
+            </span>
+          </div>
+
+          <!-- Metric Cards -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Recaudo del Mes</span>
+              <p class="text-lg font-black text-emerald-400 mt-0.5">$14.250.000</p>
+              <div class="w-full bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
+                <div class="bg-emerald-500 h-full rounded-full" style="width: 88%"></div>
+              </div>
+              <span class="text-[10px] text-slate-400 mt-1 block">88% del canon recaudado</span>
+            </div>
+
+            <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Servicios Pendientes</span>
+              <p class="text-lg font-black text-amber-400 mt-0.5">$385.400</p>
+              <div class="flex items-center gap-1 mt-2 text-[10px] text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span> 2 aptos con saldo
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Service Meter Summary -->
+          <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold text-slate-200">Estado Portales de Servicios</h3>
+              <span class="text-[10px] text-emerald-400 font-medium">Scraper Activo</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+              <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-700/60">
+                <span class="text-[10px] font-bold text-sky-400 block">Triple A</span>
+                <span class="text-xs font-semibold text-emerald-400">Al día</span>
+              </div>
+              <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-700/60">
+                <span class="text-[10px] font-bold text-amber-400 block">Gases Caribe</span>
+                <span class="text-xs font-semibold text-emerald-400">Al día</span>
+              </div>
+              <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-700/60">
+                <span class="text-[10px] font-bold text-orange-400 block">Air-e</span>
+                <span class="text-xs font-semibold text-amber-400">2 Pendientes</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity Log -->
+          <div class="space-y-2">
+            <h3 class="text-xs font-bold text-slate-200">Actividad Reciente</h3>
+            <div class="space-y-1.5 text-xs">
+              <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">✓</div>
+                  <div>
+                    <p class="font-medium text-slate-200">Pago Canon Apto 201</p>
+                    <p class="text-[10px] text-slate-400">Bancolombia • Transferencia</p>
+                  </div>
+                </div>
+                <span class="text-xs font-bold text-emerald-400">+$1.350.000</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs">💧</div>
+                  <div>
+                    <p class="font-medium text-slate-200">Consulta Triple A completada</p>
+                    <p class="text-[10px] text-slate-400">12 apartamentos analizados</p>
+                  </div>
+                </div>
+                <span class="text-[10px] text-slate-400">10:45 PM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== SCREEN: APARTMENTS ==================== -->
+        <div id="screen-apartments" class="screen-view hidden flex-1 flex flex-col bg-slate-900 text-slate-100 overflow-hidden animate-fade">
+          <div class="p-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white">Apartamentos (12)</h2>
+            <div class="flex gap-1 text-[11px]">
+              <button onclick="filterFloor('all')" class="floor-pill px-2 py-0.5 rounded bg-emerald-600 text-white font-medium">Todos</button>
+              <button onclick="filterFloor('1')" class="floor-pill px-2 py-0.5 rounded bg-slate-800 text-slate-300">P1</button>
+              <button onclick="filterFloor('2')" class="floor-pill px-2 py-0.5 rounded bg-slate-800 text-slate-300">P2</button>
+              <button onclick="filterFloor('3')" class="floor-pill px-2 py-0.5 rounded bg-slate-800 text-slate-300">P3</button>
+              <button onclick="filterFloor('4')" class="floor-pill px-2 py-0.5 rounded bg-slate-800 text-slate-300">P4</button>
+            </div>
+          </div>
+
+          <!-- Apartment Cards Grid -->
+          <div id="apartments-list" class="flex-1 overflow-y-auto p-3 grid grid-cols-2 gap-2.5">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- ==================== SCREEN: UTILITIES ==================== -->
+        <div id="screen-utilities" class="screen-view hidden flex-1 flex flex-col bg-slate-900 text-slate-100 overflow-y-auto p-3 space-y-3 animate-fade">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-bold text-white">Servicios Públicos</h2>
+              <p class="text-[10px] text-slate-400">Barranquilla • Triple A, Gases, Air-e</p>
+            </div>
+            <button onclick="triggerSyncDemo()" id="btn-sync-services" class="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition">
+              <svg id="sync-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Actualizar Todo
+            </button>
+          </div>
+
+          <!-- Provider Cards -->
+          <div class="space-y-2">
+            <div class="p-3 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-black text-sm">💧</div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Triple A (Acueducto)</h4>
+                  <p class="text-[10px] text-slate-400">12 contratos verificados</p>
+                </div>
+              </div>
+              <span class="text-xs font-bold text-emerald-400">Al día ($0)</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-sm">🔥</div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Gases del Caribe</h4>
+                  <p class="text-[10px] text-slate-400">Autologin y verificación QR</p>
+                </div>
+              </div>
+              <span class="text-xs font-bold text-emerald-400">Al día ($0)</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center font-black text-sm">⚡</div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Air-e (Energía Eléctrica)</h4>
+                  <p class="text-[10px] text-slate-400">Nic 201 y 302 con factura</p>
+                </div>
+              </div>
+              <span class="text-xs font-bold text-amber-400">$385.400</span>
+            </div>
+          </div>
+
+          <!-- Utility Table per Apt -->
+          <div class="bg-slate-800/80 rounded-xl border border-slate-700 overflow-hidden">
+            <div class="px-3 py-2 bg-slate-800 border-b border-slate-700 text-xs font-bold text-slate-200">
+              Desglose por Apartamento
+            </div>
+            <div class="divide-y divide-slate-700/60 text-xs" id="utilities-rows">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== SCREEN: SCRAPER WORKER ==================== -->
+        <div id="screen-scraper" class="screen-view hidden flex-1 flex flex-col bg-slate-900 text-slate-100 overflow-y-auto p-3 space-y-3 animate-fade">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-bold text-white">Scraper Portátil (APK)</h2>
+              <p class="text-[10px] text-slate-400">Worker Android en segundo plano</p>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              En Línea
+            </span>
+          </div>
+
+          <!-- Token Status Alert Card -->
+          <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex items-start gap-2.5">
+            <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <div class="text-xs">
+              <p class="font-bold text-emerald-300">Token Fijo Persistente Activo</p>
+              <p class="text-[11px] text-emerald-400/80 mt-0.5">El token se auto-recupera del servidor si la APK se cierra o Android limpia el caché.</p>
+              <div class="mt-2 font-mono text-[10px] bg-slate-900/80 px-2 py-1 rounded border border-emerald-900 text-emerald-300">
+                TOKEN: lauj••••••••94fa [Respaldo OK]
+              </div>
+            </div>
+          </div>
+
+          <!-- Scraper Controls -->
+          <div class="p-3 bg-slate-800 rounded-xl border border-slate-700 space-y-2">
+            <span class="text-xs font-bold text-slate-200 block">Acciones del Worker</span>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="runScraperDemo()" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Ejecutar Ahora
+              </button>
+              <button onclick="showScraperLogs()" class="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Ver Registros
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Log Console -->
+          <div class="p-2.5 bg-black/80 rounded-xl border border-slate-800 font-mono text-[10px] space-y-1 text-slate-400 h-44 overflow-y-auto" id="scraper-log-box">
+            <p class="text-emerald-400">[23:13:02] [SYSTEM] Worker inicializado con token duradero.</p>
+            <p class="text-slate-300">[23:13:05] [HEARTBEAT] Conectado a Render laujim-app.onrender.com (v1.0.110)</p>
+            <p class="text-sky-400">[23:13:10] [PORTAL] Sesión Gases del Caribe activa.</p>
+            <p class="text-slate-400">[23:13:15] [IDLE] Próxima ejecución programada: 00:00 COT.</p>
+          </div>
+        </div>
+
+        <!-- ==================== SCREEN: CAMERAS ==================== -->
+        <div id="screen-cameras" class="screen-view hidden flex-1 flex flex-col bg-slate-900 text-slate-100 overflow-y-auto p-3 space-y-3 animate-fade">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white">CCTV • Seguridad NVR</h2>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+              REC EN VIVO
+            </span>
+          </div>
+
+          <!-- Grid of Camera Feeds -->
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-black rounded-xl overflow-hidden relative border border-slate-700 aspect-video flex items-center justify-center group">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-10 p-1.5 flex flex-col justify-between">
+                <div class="flex justify-between items-center text-[9px]">
+                  <span class="font-bold text-white bg-black/60 px-1 rounded">CAM 01 • Portería</span>
+                  <span class="text-emerald-400 font-mono">1080p</span>
+                </div>
+                <span class="text-[8px] text-slate-400 font-mono">2026-09-05 23:14:22</span>
+              </div>
+              <!-- Camera simulation animation -->
+              <div class="w-full h-full bg-slate-800 flex items-center justify-center text-slate-600">
+                <svg class="w-8 h-8 opacity-40 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </div>
+            </div>
+
+            <div class="bg-black rounded-xl overflow-hidden relative border border-slate-700 aspect-video flex items-center justify-center group">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-10 p-1.5 flex flex-col justify-between">
+                <div class="flex justify-between items-center text-[9px]">
+                  <span class="font-bold text-white bg-black/60 px-1 rounded">CAM 02 • Reja Entrada</span>
+                  <span class="text-emerald-400 font-mono">1080p</span>
+                </div>
+                <span class="text-[8px] text-slate-400 font-mono">2026-09-05 23:14:22</span>
+              </div>
+              <div class="w-full h-full bg-slate-800 flex items-center justify-center text-slate-600">
+                <svg class="w-8 h-8 opacity-40 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </div>
+            </div>
+
+            <div class="bg-black rounded-xl overflow-hidden relative border border-slate-700 aspect-video flex items-center justify-center group">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-10 p-1.5 flex flex-col justify-between">
+                <div class="flex justify-between items-center text-[9px]">
+                  <span class="font-bold text-white bg-black/60 px-1 rounded">CAM 03 • Parqueadero</span>
+                  <span class="text-emerald-400 font-mono">1080p</span>
+                </div>
+                <span class="text-[8px] text-slate-400 font-mono">2026-09-05 23:14:22</span>
+              </div>
+              <div class="w-full h-full bg-slate-800 flex items-center justify-center text-slate-600">
+                <svg class="w-8 h-8 opacity-40 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </div>
+            </div>
+
+            <div class="bg-black rounded-xl overflow-hidden relative border border-slate-700 aspect-video flex items-center justify-center group">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-10 p-1.5 flex flex-col justify-between">
+                <div class="flex justify-between items-center text-[9px]">
+                  <span class="font-bold text-white bg-black/60 px-1 rounded">CAM 04 • Pasillo P2</span>
+                  <span class="text-emerald-400 font-mono">1080p</span>
+                </div>
+                <span class="text-[8px] text-slate-400 font-mono">2026-09-05 23:14:22</span>
+              </div>
+              <div class="w-full h-full bg-slate-800 flex items-center justify-center text-slate-600">
+                <svg class="w-8 h-8 opacity-40 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Remote Gate Opener -->
+          <div class="p-3 bg-slate-800 rounded-xl border border-slate-700 space-y-2">
+            <span class="text-xs font-bold text-slate-200 block">Control de Acceso</span>
+            <button onclick="triggerGateOpen()" id="btn-gate" class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white transition flex items-center justify-center gap-2 shadow">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+              Abrir Reja Peatonal
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Phone Bottom Navigation Bar -->
+      <nav class="h-14 bg-slate-950 border-t border-slate-800 flex items-center justify-around px-2 z-30">
+        <button onclick="navigateTo('whatsapp')" id="nav-whatsapp" class="nav-item flex flex-col items-center gap-0.5 text-emerald-400 transition relative">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          <span class="text-[10px] font-semibold">WhatsApp</span>
+          <span class="absolute -top-1 right-2 w-2 h-2 rounded-full bg-emerald-400"></span>
+        </button>
+
+        <button onclick="navigateTo('dashboard')" id="nav-dashboard" class="nav-item flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          <span class="text-[10px] font-medium">Inicio</span>
+        </button>
+
+        <button onclick="navigateTo('apartments')" id="nav-apartments" class="nav-item flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          <span class="text-[10px] font-medium">Aptos</span>
+        </button>
+
+        <button onclick="navigateTo('utilities')" id="nav-utilities" class="nav-item flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+          <span class="text-[10px] font-medium">Servicios</span>
+        </button>
+
+        <button onclick="navigateTo('scraper')" id="nav-scraper" class="nav-item flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <span class="text-[10px] font-medium">Worker</span>
+        </button>
+      </nav>
+
+      <!-- Android Bottom Home Indicator Bar -->
+      <div class="h-4 bg-slate-950 flex items-center justify-center z-30">
+        <div class="w-32 h-1 bg-slate-600 rounded-full"></div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- APARTMENT DETAILS MODAL                                         -->
+    <!-- ============================================================== -->
+    <div id="modal-apt" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-4 space-y-3 shadow-2xl animate-fade">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span id="modal-apt-number" class="text-base font-black text-emerald-400">Apto 201</span>
+            <span id="modal-apt-status" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Ocupado</span>
+          </div>
+          <button onclick="closeApartmentModal()" class="text-slate-400 hover:text-white p-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div class="flex justify-between py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Inquilino actual:</span>
+            <span id="modal-tenant-name" class="font-bold text-white">Carlos Mendoza</span>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Canon mensual:</span>
+            <span id="modal-rent" class="font-bold text-emerald-400">$1.350.000 COP</span>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Día de pago:</span>
+            <span class="font-medium text-slate-200">5 de cada mes</span>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Teléfono WhatsApp:</span>
+            <span id="modal-phone" class="font-mono text-emerald-400">+57 300 456 7890</span>
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button onclick="chatWithApartment(currentAptNumber)" class="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white transition flex items-center justify-center gap-1.5 shadow">
+            💬 Abrir en WhatsApp
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- BROADCAST / DIFUSIÓN MODAL                                      -->
+    <!-- ============================================================== -->
+    <div id="modal-broadcast" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-4 space-y-3 shadow-2xl animate-fade">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+            📢 Difusión Masiva por WhatsApp
+          </h3>
+          <button onclick="toggleBroadcastModal(false)" class="text-slate-400 hover:text-white p-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <label class="block text-slate-300 font-medium">Seleccionar Destinatarios:</label>
+          <select class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200 text-xs focus:outline-none">
+            <option>Todos los Inquilinos (11 apartamentos)</option>
+            <option>Solo inquilinos con canon pendiente (2)</option>
+            <option>Solo con recibos de servicios vencidos (1)</option>
+          </select>
+
+          <label class="block text-slate-300 font-medium pt-1">Plantilla Oficial Meta:</label>
+          <select id="broadcast-template" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200 text-xs focus:outline-none">
+            <option>cobro_canon_servicios (12 variables)</option>
+            <option>recordatorio_admin_cobros</option>
+            <option>saludo_inquilino</option>
+          </select>
+
+          <p class="text-[11px] text-slate-400 italic pt-1">
+            Se enviará a través de WhatsApp Cloud API utilizando los números registrados de cada inquilino (+57).
+          </p>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button onclick="sendBroadcastDemo()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white transition flex items-center justify-center gap-1.5 shadow">
+            🚀 Iniciar Envío Masivo
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-emerald-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-emerald-400/40">
+      <span id="toast-icon">✅</span>
+      <span id="toast-text">Acción completada con éxito</span>
+    </div>
+  </div>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    // Data Model: Real Apartments in Laujim
+    const apartmentsData = [
+      { num: '101', floor: 1, tenant: 'Laura Jiménez', rent: 1200000, status: 'occupied', debt: 0, phone: '+57 300 111 2233', unread: 0, lastMsg: 'Muchas gracias por la confirmación, don Jim.', lastTime: '10:14 AM' },
+      { num: '102', floor: 1, tenant: 'Andrés Castro', rent: 1250000, status: 'occupied', debt: 0, phone: '+57 301 222 3344', unread: 0, lastMsg: 'Ya transferí el canon de este mes.', lastTime: 'Ayer' },
+      { num: '103', floor: 1, tenant: 'Vacante', rent: 1100000, status: 'vacant', debt: 0, phone: '', unread: 0, lastMsg: 'Disponible para alquiler', lastTime: '—' },
+      { num: '201', floor: 2, tenant: 'Carlos Mendoza', rent: 1350000, status: 'occupied', debt: 185400, phone: '+57 300 456 7890', unread: 1, lastMsg: '¿Cuánto llegó el recibo de la luz este mes?', lastTime: '11:05 AM' },
+      { num: '202', floor: 2, tenant: 'María Fernanda Ruiz', rent: 1300000, status: 'occupied', debt: 0, phone: '+57 302 333 4455', unread: 0, lastMsg: 'Le adjunté el comprobante bancario.', lastTime: '08:42 AM' },
+      { num: '203', floor: 2, tenant: 'Gabriel Gómez', rent: 1280000, status: 'occupied', debt: 0, phone: '+57 310 444 5566', unread: 0, lastMsg: 'Perfecto, quedo atento a la visita.', lastTime: 'Ayer' },
+      { num: '301', floor: 3, tenant: 'Valentina Ospina', rent: 1400000, status: 'occupied', debt: 0, phone: '+57 304 555 6677', unread: 0, lastMsg: 'Recibido el paz y salvo.', lastTime: 'Jueves' },
+      { num: '302', floor: 3, tenant: 'Jorge Vergara', rent: 1380000, status: 'occupied', debt: 200000, phone: '+57 315 666 7788', unread: 1, lastMsg: 'Mañana paso a pagar la diferencia de energía.', lastTime: '10:50 AM' },
+      { num: '303', floor: 3, tenant: 'Diana Morales', rent: 1350000, status: 'occupied', debt: 0, phone: '+57 318 777 8899', unread: 0, lastMsg: 'Todo en orden con el gas, gracias.', lastTime: 'Miércoles' },
+      { num: '401', floor: 4, tenant: 'Felipe Herrera', rent: 1450000, status: 'occupied', debt: 0, phone: '+57 305 888 9900', unread: 0, lastMsg: 'Buenas noches don Jim, todo bien.', lastTime: 'Mar' },
+      { num: '402', floor: 4, tenant: 'Camila Santos', rent: 1420000, status: 'occupied', debt: 0, phone: '+57 312 999 0011', unread: 0, lastMsg: 'Comprobante enviado por Nequi.', lastTime: 'Lun' },
+      { num: '403', floor: 4, tenant: 'Santiago Rojas', rent: 1400000, status: 'occupied', debt: 0, phone: '+57 316 000 1122', unread: 0, lastMsg: 'Muchas gracias por la atención.', lastTime: '1 Sep' },
+    ];
+
+    // Messages storage per conversation
+    const messagesData = {
+      '201': [
+        { id: 1, from: 'tenant', text: 'Buenos días don Jim, ¿cómo está?', time: '10:58 AM' },
+        { id: 2, from: 'admin', text: '¡Hola Carlos! Muy bien, gracias a Dios. ¿En qué le puedo colaborar?', time: '11:00 AM' },
+        { id: 3, from: 'tenant', text: '¿Cuánto llegó el recibo de la luz este mes?', time: '11:05 AM' }
+      ],
+      '101': [
+        { id: 1, from: 'admin', text: 'Buenas tardes Laura, hemos recibido su transferencia del canon de septiembre con éxito.', time: '10:10 AM' },
+        { id: 2, from: 'tenant', text: 'Muchas gracias por la confirmación, don Jim.', time: '10:14 AM' }
+      ],
+      '302': [
+        { id: 1, from: 'tenant', text: 'Don Jim, le escribo para avisar que mañana paso a pagar la diferencia de energía de Air-e.', time: '10:50 AM' }
+      ]
+    };
+
+    let currentAptNumber = '201';
+    let currentFilter = 'all';
+
+    // Init Application
+    window.addEventListener('DOMContentLoaded', () => {
+      renderConversations();
+      renderApartments();
+      renderUtilities();
+      updateClock();
+      setInterval(updateClock, 30000);
+    });
+
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const clock = document.getElementById('phone-clock');
+      if (clock) clock.textContent = timeStr;
+    }
+
+    // View Navigation
+    function navigateTo(screenId) {
+      document.querySelectorAll('.screen-view').forEach(s => s.classList.add('hidden'));
+      const active = document.getElementById(`screen-${screenId}`);
+      if (active) active.classList.remove('hidden');
+
+      // Update Nav Buttons
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.remove('text-emerald-400');
+        btn.classList.add('text-slate-400');
+      });
+      const activeNav = document.getElementById(`nav-${screenId}`);
+      if (activeNav) {
+        activeNav.classList.remove('text-slate-400');
+        activeNav.classList.add('text-emerald-400');
+      }
+
+      const quickNav = document.getElementById('quick-nav');
+      if (quickNav) quickNav.value = screenId;
+    }
+
+    function setViewMode(mode) {
+      const phoneContainer = document.getElementById('phone-container');
+      const btnPhone = document.getElementById('btn-mode-phone');
+      const btnDesktop = document.getElementById('btn-mode-desktop');
+
+      if (mode === 'desktop') {
+        phoneContainer.classList.remove('max-w-[420px]', 'h-[840px]', 'rounded-[44px]', 'phone-shadow');
+        phoneContainer.classList.add('max-w-5xl', 'h-[860px]', 'rounded-2xl', 'shadow-2xl');
+        btnDesktop.classList.add('bg-emerald-600', 'text-white', 'shadow');
+        btnDesktop.classList.remove('text-slate-300');
+        btnPhone.classList.remove('bg-emerald-600', 'text-white', 'shadow');
+        btnPhone.classList.add('text-slate-300');
+      } else {
+        phoneContainer.classList.add('max-w-[420px]', 'h-[840px]', 'rounded-[44px]', 'phone-shadow');
+        phoneContainer.classList.remove('max-w-5xl', 'h-[860px]', 'rounded-2xl', 'shadow-2xl');
+        btnPhone.classList.add('bg-emerald-600', 'text-white', 'shadow');
+        btnPhone.classList.remove('text-slate-300');
+        btnDesktop.classList.remove('bg-emerald-600', 'text-white', 'shadow');
+        btnDesktop.classList.add('text-slate-300');
+      }
+    }
+
+    // WhatsApp Rendering Logic
+    function renderConversations(query = '') {
+      const container = document.getElementById('wa-threads');
+      container.innerHTML = '';
+
+      const filtered = apartmentsData.filter(a => {
+        if (a.status === 'vacant') return false;
+        if (currentFilter === 'unread' && a.unread === 0) return false;
+        if (currentFilter === 'debt' && a.debt === 0) return false;
+        if (query) {
+          const matchNum = a.num.includes(query);
+          const matchName = a.tenant.toLowerCase().includes(query.toLowerCase());
+          return matchNum || matchName;
+        }
+        return true;
+      });
+
+      filtered.forEach(apt => {
+        const item = document.createElement('div');
+        item.className = 'px-3.5 py-3 hover:bg-[#202c33] cursor-pointer flex items-center gap-3 transition';
+        item.onclick = () => openChatDetail(apt.num);
+
+        item.innerHTML = `
+          <div class="relative">
+            <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center font-bold text-xs text-white shadow">
+              ${apt.num}
+            </div>
+            ${apt.unread > 0 ? '<span class="absolute 0 top-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#111b21]"></span>' : ''}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-semibold text-white truncate">${apt.tenant}</h4>
+              <span class="text-[10px] text-slate-400 font-mono">${apt.lastTime}</span>
+            </div>
+            <div class="flex items-center justify-between mt-0.5">
+              <p class="text-[11px] text-slate-400 truncate pr-2">${apt.lastMsg}</p>
+              ${apt.debt > 0 ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 whitespace-nowrap">Saldo</span>' : ''}
+            </div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function openChatDetail(aptNum) {
+      currentAptNumber = aptNum;
+      const apt = apartmentsData.find(a => a.num === aptNum);
+      if (!apt) return;
+
+      // Mark unread as read
+      apt.unread = 0;
+      renderConversations();
+
+      document.getElementById('wa-active-avatar').textContent = apt.num;
+      document.getElementById('wa-active-name').textContent = apt.tenant;
+      document.getElementById('wa-active-apt').textContent = `Apto ${apt.num}`;
+
+      document.getElementById('wa-chat-list').classList.add('hidden');
+      const detail = document.getElementById('wa-chat-detail');
+      detail.classList.remove('hidden');
+
+      renderMessages(aptNum);
+    }
+
+    function closeChatDetail() {
+      document.getElementById('wa-chat-detail').classList.add('hidden');
+      document.getElementById('wa-chat-list').classList.remove('hidden');
+    }
+
+    function renderMessages(aptNum) {
+      const container = document.getElementById('wa-messages-list');
+      container.innerHTML = '';
+      const list = messagesData[aptNum] || [];
+
+      list.forEach(msg => {
+        const bubble = document.createElement('div');
+        const isAdmin = msg.from === 'admin';
+
+        bubble.className = `flex ${isAdmin ? 'justify-end' : 'justify-start'} animate-slide-bottom`;
+        bubble.innerHTML = `
+          <div class="max-w-[78%] px-3 py-1.5 rounded-2xl ${isAdmin ? 'bg-[#005c4b] text-white rounded-tr-none' : 'bg-[#202c33] text-slate-100 rounded-tl-none'} shadow-md border border-white/5 space-y-1">
+            ${msg.isReceipt ? `
+              <div class="rounded-lg bg-black/30 p-2 border border-white/10 flex items-center gap-2 mb-1">
+                <span class="text-xl">🧾</span>
+                <div class="text-[10px]">
+                  <p class="font-bold text-emerald-300">Comprobante_Pago.pdf</p>
+                  <p class="text-slate-400">Verificado por OCR Laujim</p>
+                </div>
+              </div>
+            ` : ''}
+            <p class="text-xs leading-relaxed break-words">${msg.text}</p>
+            <div class="flex items-center justify-end gap-1 text-[9px] text-slate-300/80 -mb-0.5">
+              <span>${msg.time}</span>
+              ${isAdmin ? '<span class="text-sky-300 font-bold">✓✓</span>' : ''}
+            </div>
+          </div>
+        `;
+        container.appendChild(bubble);
+      });
+
+      scrollMessagesToBottom();
+    }
+
+    function scrollMessagesToBottom() {
+      const el = document.getElementById('wa-messages-container');
+      if (el) setTimeout(() => { el.scrollTop = el.scrollHeight; }, 50);
+    }
+
+    function handleInputKey(e) {
+      if (e.key === 'Enter') sendUserMessage();
+    }
+
+    function sendUserMessage() {
+      const input = document.getElementById('wa-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+      if (!messagesData[currentAptNumber]) messagesData[currentAptNumber] = [];
+      messagesData[currentAptNumber].push({
+        id: Date.now(),
+        from: 'admin',
+        text: text,
+        time: timeStr
+      });
+
+      input.value = '';
+      renderMessages(currentAptNumber);
+
+      // Simulate tenant typing and response
+      simulateTenantReply();
+    }
+
+    function simulateTenantReply() {
+      const typing = document.getElementById('wa-typing-indicator');
+      setTimeout(() => {
+        if (typing) typing.classList.remove('hidden');
+        scrollMessagesToBottom();
+
+        setTimeout(() => {
+          if (typing) typing.classList.add('hidden');
+          const responses = [
+            'Entendido don Jim, muchas gracias por la información.',
+            'Listo, ya mismo reviso la aplicación para verificar.',
+            'Perfecto, ya le aviso a mi esposa para el pago.',
+            'Excelente don Jim, que tenga feliz noche.'
+          ];
+          const randomResp = responses[Math.floor(Math.random() * responses.length)];
+
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+          messagesData[currentAptNumber].push({
+            id: Date.now(),
+            from: 'tenant',
+            text: randomResp,
+            time: timeStr
+          });
+          renderMessages(currentAptNumber);
+        }, 2200);
+      }, 700);
+    }
+
+    function simulateNewIncomingMessage() {
+      const incomingApts = ['102', '202', '301', '402'];
+      const apt = incomingApts[Math.floor(Math.random() * incomingApts.length)];
+      const target = apartmentsData.find(a => a.num === apt);
+      if (!target) return;
+
+      target.unread += 1;
+      target.lastMsg = 'Hola don Jim, tengo una consulta sobre el recibo.';
+      target.lastTime = 'Ahora';
+
+      if (!messagesData[apt]) messagesData[apt] = [];
+      messagesData[apt].push({
+        id: Date.now(),
+        from: 'tenant',
+        text: 'Hola don Jim, tengo una consulta sobre el recibo de este mes.',
+        time: 'Ahora'
+      });
+
+      renderConversations();
+      showToast('🔔 Nuevo mensaje de WhatsApp de ' + target.tenant + ' (Apto ' + apt + ')', '💬');
+    }
+
+    function insertTemplate(type) {
+      const input = document.getElementById('wa-input');
+      const apt = apartmentsData.find(a => a.num === currentAptNumber);
+      if (type === 'canon') {
+        input.value = `Hola ${apt.tenant}, le recordamos que el valor del canon de arrendamiento para el Apto ${apt.num} corresponde a $${apt.rent.toLocaleString('es-CO')}. Gracias.`;
+      } else if (type === 'services') {
+        input.value = `Estimado(a) ${apt.tenant}, los recibos de Triple A y Gases del Caribe ya fueron consultados. Saldo actual a la fecha: $${apt.debt.toLocaleString('es-CO')}.`;
+      } else if (type === 'paid') {
+        input.value = `Confirmamos el pago recibido para el Apto ${apt.num}. Su estado de cuenta se encuentra al día. ¡Muchas gracias!`;
+      }
+      input.focus();
+    }
+
+    function simulateAttachPhoto() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+      if (!messagesData[currentAptNumber]) messagesData[currentAptNumber] = [];
+      messagesData[currentAptNumber].push({
+        id: Date.now(),
+        from: 'admin',
+        text: 'Adjunto recibo de servicios públicos conciliado:',
+        isReceipt: true,
+        time: timeStr
+      });
+      renderMessages(currentAptNumber);
+      showToast('Comprobante adjuntado con éxito', '📎');
+    }
+
+    function sendTenantReceiptAlert() {
+      const apt = apartmentsData.find(a => a.num === currentAptNumber);
+      insertTemplate('services');
+      sendUserMessage();
+      showToast(`Recordatorio enviado a ${apt.tenant}`, '🚀');
+    }
+
+    function filterConversations(val) {
+      renderConversations(val);
+    }
+
+    function setFilter(filterType) {
+      currentFilter = filterType;
+      document.querySelectorAll('.filter-pill').forEach(btn => {
+        btn.classList.remove('bg-[#202c33]', 'text-emerald-400', 'font-medium');
+        btn.classList.add('bg-[#111b21]', 'text-slate-400');
+      });
+      event.target.classList.remove('bg-[#111b21]', 'text-slate-400');
+      event.target.classList.add('bg-[#202c33]', 'text-emerald-400', 'font-medium');
+      renderConversations();
+    }
+
+    // Apartment Grid Rendering
+    function renderApartments(floor = 'all') {
+      const list = document.getElementById('apartments-list');
+      list.innerHTML = '';
+
+      const filtered = apartmentsData.filter(a => floor === 'all' || a.floor.toString() === floor);
+      filtered.forEach(apt => {
+        const card = document.createElement('div');
+        const isOccupied = apt.status === 'occupied';
+
+        card.className = 'bg-slate-800/90 rounded-xl p-3 border border-slate-700 hover:border-emerald-500/60 cursor-pointer transition shadow-md flex flex-col justify-between';
+        card.onclick = () => openApartmentModal(apt.num);
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-base font-black text-white">${apt.num}</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isOccupied ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'}">
+                ${isOccupied ? 'Ocupado' : 'Vacante'}
+              </span>
+            </div>
+            <p class="text-xs font-semibold text-slate-200 mt-1 truncate">${apt.tenant}</p>
+            <p class="text-[10px] text-slate-400 font-mono mt-0.5">$${apt.rent.toLocaleString('es-CO')}</p>
+          </div>
+          <div class="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[10px]">
+            <span class="${apt.debt > 0 ? 'text-amber-400 font-bold' : 'text-slate-400'}">${apt.debt > 0 ? 'Deuda: $' + apt.debt.toLocaleString('es-CO') : 'Al día'}</span>
+            <span class="text-emerald-400">Ver →</span>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function filterFloor(f) {
+      document.querySelectorAll('.floor-pill').forEach(btn => {
+        btn.classList.remove('bg-emerald-600', 'text-white', 'font-medium');
+        btn.classList.add('bg-slate-800', 'text-slate-300');
+      });
+      event.target.classList.remove('bg-slate-800', 'text-slate-300');
+      event.target.classList.add('bg-emerald-600', 'text-white', 'font-medium');
+      renderApartments(f);
+    }
+
+    function openApartmentModal(aptNum) {
+      const apt = apartmentsData.find(a => a.num === aptNum);
+      if (!apt) return;
+      currentAptNumber = aptNum;
+
+      document.getElementById('modal-apt-number').textContent = `Apto ${apt.num}`;
+      document.getElementById('modal-apt-status').textContent = apt.status === 'occupied' ? 'Ocupado' : 'Vacante';
+      document.getElementById('modal-tenant-name').textContent = apt.tenant;
+      document.getElementById('modal-rent').textContent = `$${apt.rent.toLocaleString('es-CO')} COP`;
+      document.getElementById('modal-phone').textContent = apt.phone || 'Sin teléfono';
+
+      document.getElementById('modal-apt').classList.remove('hidden');
+    }
+
+    function closeApartmentModal() {
+      document.getElementById('modal-apt').classList.add('hidden');
+    }
+
+    function chatWithApartment(aptNum) {
+      closeApartmentModal();
+      navigateTo('whatsapp');
+      openChatDetail(aptNum);
+    }
+
+    // Utilities Rendering
+    function renderUtilities() {
+      const rows = document.getElementById('utilities-rows');
+      rows.innerHTML = '';
+
+      apartmentsData.slice(0, 6).forEach(apt => {
+        if (apt.status === 'vacant') return;
+        const div = document.createElement('div');
+        div.className = 'p-2.5 flex items-center justify-between hover:bg-slate-700/40 transition';
+        div.innerHTML = `
+          <div>
+            <span class="font-bold text-white">Apto ${apt.num}</span>
+            <span class="text-slate-400 text-[11px] block">${apt.tenant}</span>
+          </div>
+          <div class="text-right">
+            <span class="font-mono text-[11px] font-bold ${apt.debt > 0 ? 'text-amber-400' : 'text-emerald-400'}">
+              ${apt.debt > 0 ? '$' + apt.debt.toLocaleString('es-CO') : 'Al día ($0)'}
+            </span>
+            <span class="text-[10px] text-slate-400 block font-mono">Consumo OK</span>
+          </div>
+        `;
+        rows.appendChild(div);
+      });
+    }
+
+    function triggerSyncDemo() {
+      const icon = document.getElementById('sync-icon');
+      const btn = document.getElementById('btn-sync-services');
+      icon.classList.add('animate-spin');
+      btn.disabled = true;
+
+      showToast('Consultando portales Triple A, Gases y Air-e...', '⏳');
+
+      setTimeout(() => {
+        icon.classList.remove('animate-spin');
+        btn.disabled = false;
+        showToast('Sincronización de servicios completada (12 aptos)', '✅');
+      }, 2000);
+    }
+
+    function runScraperDemo() {
+      const logBox = document.getElementById('scraper-log-box');
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('es-CO');
+
+      logBox.innerHTML += `<p class="text-amber-300">[${timeStr}] [TRIGGER] Ejecución manual solicitada por Administrador...</p>`;
+      logBox.scrollTop = logBox.scrollHeight;
+
+      setTimeout(() => {
+        logBox.innerHTML += `<p class="text-sky-300">[${timeStr}] [WORKER] Autologin exitoso en Gases del Caribe y Triple A.</p>`;
+        logBox.scrollTop = logBox.scrollHeight;
+      }, 1200);
+
+      setTimeout(() => {
+        logBox.innerHTML += `<p class="text-emerald-400">[${timeStr}] [DONE] 12 registros enviados a Render exitosamente.</p>`;
+        logBox.scrollTop = logBox.scrollHeight;
+        showToast('Worker finalizó escaneo de servicios', '🤖');
+      }, 2500);
+    }
+
+    function showScraperLogs() {
+      showToast('Registros actualizados de la APK v1.0.110', '📋');
+    }
+
+    function triggerGateOpen() {
+      const btn = document.getElementById('btn-gate');
+      btn.disabled = true;
+      btn.textContent = 'Enviando pulso a reja...';
+
+      setTimeout(() => {
+        showToast('¡Reja Peatonal Abierta! (Pulso de 3s)', '🚪');
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg> Abrir Reja Peatonal`;
+      }, 1500);
+    }
+
+    function toggleBroadcastModal(show) {
+      const m = document.getElementById('modal-broadcast');
+      if (show) m.classList.remove('hidden');
+      else m.classList.add('hidden');
+    }
+
+    function sendBroadcastDemo() {
+      toggleBroadcastModal(false);
+      showToast('Difusión iniciada a 11 inquilinos vía Meta Cloud API', '📢');
+    }
+
+    function showToast(text, icon = '✅') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-text').textContent = text;
+      document.getElementById('toast-icon').textContent = icon;
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+  </script>
+</body>
+</html>

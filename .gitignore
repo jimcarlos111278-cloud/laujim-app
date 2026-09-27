@@ -84,3 +84,4 @@ android/android/
 .laujim-test/
 .tmp-report/
 window_dump.xml
+.opencode/project-memory.md
