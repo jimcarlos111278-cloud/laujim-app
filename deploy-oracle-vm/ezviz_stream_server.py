@@ -646,15 +646,20 @@ def capture_snapshot(cam_id: str, max_age_s: float = 10.0, out_name: str = "snap
                     "-fflags", "+genpts",  # los .ts traen PTS rotos (~27h); regenerarlos o no sale frame
                     "-i", latest_ts,
                     "-vframes", "1",
+                    "-an",  # sin audio: solo 1 frame de video (más rápido en CPU cargada)
                     "-q:v", "2",
                     tmp_path,
                 ]
                 try:
-                    subprocess.run(snap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8.0)
+                    # Timeout generoso: 2880x1620 en CPU compartida puede tardar;
+                    # con 8s moría por TimeoutExpired y el escaneo quedaba en "Ninguna".
+                    subprocess.run(snap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30.0)
                     if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 1000:
                         os.replace(tmp_path, snapshot_path)
                         return snapshot_path
-                except Exception:
+                    print(f"[ALPR SNAP] frame vacío de {latest_ts}", flush=True)
+                except Exception as e:
+                    print(f"[ALPR SNAP] fallo extrayendo de {latest_ts}: {type(e).__name__}", flush=True)
                     try:
                         if os.path.exists(tmp_path):
                             os.remove(tmp_path)
