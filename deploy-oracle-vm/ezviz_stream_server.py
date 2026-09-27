@@ -621,9 +621,13 @@ def capture_snapshot(cam_id: str, max_age_s: float = 10.0, out_name: str = "snap
     # 2. Extraer del último segmento .ts generado (evita bloquearse en la playlist m3u8).
     # Negro antes que foto falsa: si el .ts supera 10s el FFmpeg está colgado
     # (el watchdog lo reinicia); no extraer ni reescribir nada viejo.
-    # Se prueban los 3 más nuevos: el último puede estar a medio escribir.
+    # Se prueban los 3 más nuevos POR MTIME (no por nombre: el contador de
+    # segmentos se reinicia y el orden alfabético miente).
     if os.path.exists(cam_dir):
-        ts_files = sorted([f for f in os.listdir(cam_dir) if f.endswith(".ts") and f.startswith("seg_")])
+        ts_files = sorted(
+            [f for f in os.listdir(cam_dir) if f.endswith(".ts") and f.startswith("seg_")],
+            key=lambda f: os.path.getmtime(os.path.join(cam_dir, f)),
+        )
         for _cand in reversed(ts_files[-3:]):
             latest_ts = os.path.join(cam_dir, _cand).replace("\\", "/")
             try:
@@ -917,7 +921,10 @@ def trigger_alpr_scan(mode: str = "compare", cam: str = "all"):
         snap_path = capture_snapshot(cam_id, max_age_s=300.0, out_name="alpr_frame.jpg")
         try:
             _diag_dir = os.path.join(HLS_DIR, cam_id).replace("\\", "/")
-            _segs = sorted([f for f in os.listdir(_diag_dir) if f.endswith(".ts") and f.startswith("seg_")])
+            _segs = sorted(
+                [f for f in os.listdir(_diag_dir) if f.endswith(".ts") and f.startswith("seg_")],
+                key=lambda f: os.path.getmtime(os.path.join(_diag_dir, f)),
+            )
             _newest = os.path.join(_diag_dir, _segs[-1]) if _segs else None
             diag_info[cam_id] = {
                 "snap": bool(snap_path),
