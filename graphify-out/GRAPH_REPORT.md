@@ -1,43 +1,43 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-09-27)
 
 ## Corpus Check
-- 175 files · ~232,367 words
+- 182 files · ~234,388 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1739 nodes · 3733 edges · 178 communities (129 shown, 49 thin omitted)
+- 1760 nodes · 3739 edges · 174 communities (132 shown, 42 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 92 edges (avg confidence: 0.51)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `61890080`
+- Built from commit: `1a19d205`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - server.cjs
-- ErrorBoundary
+- handleCloudInbound
 - ScraperWorker.jsx
 - saveData
 - services-scraper.cjs
 - truecaller-smoke.cjs
-- handleCloudInbound
+- cloudApiRequest
 - ApartmentDetail.jsx
 - startServer
 - scripts
-- config.js
-- cloudPaymentTemplateData
-- cloudReady
+- App.jsx
+- cloudServiceAmounts
+- createCloudServicesReportMedia
 - extension/manifest.json
 - api.js
-- chat.js
+- getAuth
 - worker-protocol.cjs
 - post
 - truecaller-request-otp.cjs
 - payment-receipt-ocr.cjs
 - sleep
 - content-facebook.js
-- WhatsAppInbox.jsx
+- getBase
 - restore-media-s3.cjs
 - backup-media-s3.cjs
 - dependencies
@@ -54,7 +54,7 @@
 - sftp-sync-vm.py
 - test-marketplace-api.cjs
 - check-secrets.cjs
-- @capacitor/android
+- isCapacitor
 - backup.js
 - setup-graphify-hooks.cjs
 - sync-aiven-before-push.cjs
@@ -62,10 +62,10 @@
 - .oxlintrc.json
 - add-passwords.js
 - archive-graph.cjs
-- @capacitor/core
-- matchPortalApartmentForService
+- MiApto.jsx
+- sync-graph-aiven.cjs
 - 2. Paso a Paso de la Migración
-- @capacitor/local-notifications
+- matchPortalApartmentForService
 - content-portals.js
 - popup.js
 - copy-apk.js
@@ -83,13 +83,13 @@
 - Gestión de Apartamentos — Laujim APP
 - colombiaDate
 - set-camera-codes.cjs
-- @capacitor-mlkit/barcode-scanning
-- notifyPaymentAssociationRequired
-- @capacitor/share
-- App.jsx
+- cloudPaymentTemplateData
+- waitForRenderedPortal
+- note-vm-change.cjs
+- config.js
 - deploy_temp.sh
 - install-vm.sh
-- docxtemplater
+- send-files-vm.py
 - pre-commit
 - pre-push
 - sync-db-aiven.sh
@@ -97,11 +97,10 @@
 - _stream_supervisor
 - truecaller-verify-otp.cjs
 - caller-id-repository.cjs
-- hls.js
+- pdf-parse
 - react-dom
 - scan_plates_cloud
 - puppeteer-core
-- libphonenumber-js
 - dexie
 - ezviz_stream_server.py
 - sw.js
@@ -112,7 +111,6 @@
 - jsqr
 - 2. Modos de ejecución
 - lucide-react
-- node-cron
 - Configuración Específica por Archivo
 - Sistema de Temas (6 Temas Visuales)
 - Construir APK para Android
@@ -133,8 +131,6 @@
 - capture-proposal.cjs
 - multer
 - generate-proposal.cjs
-- pizzip
-- tailwindcss
 - react
 - pg-set-admin.cjs
 - @tailwindcss/vite
@@ -145,28 +141,25 @@
 - b64u
 - xvfb-smoke.cjs
 - Persistencia PostgreSQL
-- waitForRenderedPortal
-- IntercomDoorbell.jsx
-- callScreening.js
-- isCapacitor
+- Settings.jsx
 - @capacitor/filesystem
 - set-admin-pass.cjs
 - verify-admin.cjs
 - Restauración ante desastre (VM perdida o disco muerto)
 - setup-vm-cron.sh
-- Utilities.jsx
 - Layout.jsx
 - pg-del-hash.cjs
 - pg-where.cjs
 - probe-stdin.cjs
-- Settings.jsx
-- calendar.js
-- better-sqlite3
-- scrapeAirE
+- ffmpeg-static
 - handoff.cjs
+- pdf-lib
+- pg
+- qrcode
+- recharts
 
 ## God Nodes (most connected - your core abstractions)
-1. `startServer()` - 100 edges
+1. `startServer()` - 94 edges
 2. `getBase()` - 49 edges
 3. `handleCloudInbound()` - 42 edges
 4. `saveData()` - 40 edges
@@ -180,79 +173,83 @@
 ## Surprising Connections (you probably didn't know these)
 - `startServer()` --indirect_call--> `log()`  [INFERRED]
   server.cjs → extension/content-facebook.js
-- `startServer()` --calls--> `getCallerCache()`  [EXTRACTED]
-  server.cjs → lib/caller-id/caller-id-repository.cjs
-- `startServer()` --calls--> `getLatestJob()`  [EXTRACTED]
-  server.cjs → lib/caller-id/caller-id-repository.cjs
-- `generateApartmentPDF()` --references--> `jspdf`  [EXTRACTED]
-  src/utils/pdf.js → package.json
+- `installFailoverFetch()` --indirect_call--> `init()`  [INFERRED]
+  src/utils/failoverFetch.js → services-scraper.cjs
 - `archiveCloudInboundMedia()` --calls--> `analysePaymentProofMedia()`  [EXTRACTED]
   server.cjs → payment-receipt-ocr.cjs
+- `handleCloudInbound()` --calls--> `ocrSummary()`  [EXTRACTED]
+  server.cjs → payment-receipt-ocr.cjs
+- `startServer()` --calls--> `getCallerCache()`  [EXTRACTED]
+  server.cjs → lib/caller-id/caller-id-repository.cjs
 
 ## Import Cycles
 - None detected.
 
-## Communities (178 total, 49 thin omitted)
+## Communities (174 total, 42 thin omitted)
 
 ### Community 0 - "server.cjs"
-Cohesion: 0.03
-Nodes (74): INITIAL_DATA, accessRateLimits, adminPasswordMatches(), { analysePaymentProofMedia, ocrSummary }, app, automaticPaymentPeriod(), automaticPaymentTenantName(), BACKUP_DIR (+66 more)
+Cohesion: 0.04
+Nodes (74): INITIAL_DATA, accessRateLimits, adminPasswordMatches(), { analysePaymentProofMedia, ocrSummary }, app, associateAutomaticPaymentEvent(), automaticPaymentCandidates(), automaticPaymentPeriod() (+66 more)
+
+### Community 1 - "handleCloudInbound"
+Cohesion: 0.09
+Nodes (43): ocrSummary(), acknowledgePaymentProof(), addCloudMessage(), apartmentIdFromReference(), authorizedCloudContact(), blockCloudUser(), cloudAdminPhones(), cloudInboundMedia() (+35 more)
 
 ### Community 2 - "ScraperWorker.jsx"
-Cohesion: 0.08
-Nodes (63): init(), readInstalledAndroidVersion(), triggerNativeUpdateNotification(), VersionBanner(), versionIsNewer(), DEFAULT_SCHEDULE, formatLogTime(), formatSchedule() (+55 more)
+Cohesion: 0.10
+Nodes (50): readInstalledAndroidVersion(), triggerNativeUpdateNotification(), VersionBanner(), versionIsNewer(), DEFAULT_SCHEDULE, formatLogTime(), formatSchedule(), gasAccountGroups() (+42 more)
 
 ### Community 3 - "saveData"
-Cohesion: 0.15
-Nodes (41): activeTenantForApartment(), clearCloudAuthState(), cloudAdminGreeting(), cloudApartmentFloor(), cloudApartmentsForFloor(), cloudFindApartment(), cloudFormatFullDate(), cloudListSections() (+33 more)
+Cohesion: 0.16
+Nodes (39): activeTenantForApartment(), clearCloudAuthState(), cloudAdminGreeting(), cloudApartmentsForFloor(), cloudFindApartment(), cloudFormatFullDate(), cloudListSections(), cloudPaymentResultLine() (+31 more)
 
 ### Community 4 - "services-scraper.cjs"
-Cohesion: 0.07
-Nodes (31): AIR_E_NIC_MAP, AIR_E_URLS, BROWSERLESS_REGION, BROWSERLESS_SOLVE_CAPTCHAS, BROWSERLESS_STEALTH, BROWSERLESS_TIMEOUT_MS, BROWSERLESS_TOKENS, BROWSERLESS_WS_ENDPOINT (+23 more)
+Cohesion: 0.05
+Nodes (45): AIR_E_NIC_MAP, AIR_E_URLS, attachBrowserlessCaptchaSolver(), BROWSERLESS_PROFILES, BROWSERLESS_REGION, BROWSERLESS_SOLVE_CAPTCHAS, BROWSERLESS_STEALTH, BROWSERLESS_TIMEOUT_MS (+37 more)
 
 ### Community 5 - "truecaller-smoke.cjs"
 Cohesion: 0.14
 Nodes (12): normalizePhone(), CallerIdProviderError, firstFiniteNumber(), https, normalizeNullableText(), parseTruecallerHtml(), TruecallerProvider, fs (+4 more)
 
-### Community 6 - "handleCloudInbound"
-Cohesion: 0.09
-Nodes (48): ocrSummary(), acknowledgePaymentProof(), addCloudMessage(), apartmentIdFromReference(), authorizedCloudContact(), blockCloudUser(), cloudApiRequest(), cloudInboundMedia() (+40 more)
+### Community 6 - "cloudApiRequest"
+Cohesion: 0.18
+Nodes (19): automaticPaymentTenantName(), cloudAdminPaymentConfirmedTemplateData(), cloudAdminPaymentConfirmedTemplateName(), cloudAdminUtilityChangeTemplateName(), cloudApiRequest(), firstName(), formatColombiaDateTime(), notifyPaymentAssociationRequired() (+11 more)
 
 ### Community 7 - "ApartmentDetail.jsx"
-Cohesion: 0.09
-Nodes (33): Modal(), COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail() (+25 more)
+Cohesion: 0.05
+Nodes (65): Modal(), COLORS, CustomTooltip(), getChartData(), getPaymentStatus(), PaymentHistoryChart(), StatsCard(), ApartmentDetail() (+57 more)
 
 ### Community 8 - "startServer"
-Cohesion: 0.08
-Nodes (39): accessRateAllowed(), appendAccessEvent(), automaticPaymentIsRentOnly(), cameraDefinitions(), cloudMediaKind(), constantTimeEqual(), createAuthSession(), decryptSecret() (+31 more)
+Cohesion: 0.07
+Nodes (43): accessRateAllowed(), appendAccessEvent(), archiveCloudInboundMedia(), automaticPaymentIsRentOnly(), cameraDefinitions(), cloudConfig(), cloudGraphRequest(), cloudMediaKind() (+35 more)
 
 ### Community 9 - "scripts"
 Cohesion: 0.05
 Nodes (36): oxlint, devDependencies, oxlint, playwright, @types/react, @types/react-dom, vite, @vitejs/plugin-react (+28 more)
 
-### Community 10 - "config.js"
-Cohesion: 0.13
-Nodes (24): react, BUILDING_CAMERAS, IntercomCallModal(), intercomRequest(), Apartments(), Onboarding(), templateRequest(), PublicApartment() (+16 more)
+### Community 10 - "App.jsx"
+Cohesion: 0.08
+Nodes (27): react, api, AdminRoute(), App(), ProtectedRoute(), ErrorBoundary, Admin(), dayKey() (+19 more)
 
-### Community 11 - "cloudPaymentTemplateData"
-Cohesion: 0.09
-Nodes (47): buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildCloudDetailedGlobalServicesReport(), buildCloudFinancingImageData(), buildCloudGlobalServicesReport(), buildCloudServicesImageData(), buildDebtReply(), clearUtilityFinancing() (+39 more)
+### Community 11 - "cloudServiceAmounts"
+Cohesion: 0.17
+Nodes (28): buildCloudServicesImageData(), buildDebtReply(), clearUtilityFinancing(), cloudServiceAmounts(), cloudServiceState(), gasRecordHasNoVisibleInvoice(), latestUtilityRecord(), mergeUtilityRecord() (+20 more)
 
-### Community 12 - "cloudReady"
-Cohesion: 0.14
-Nodes (27): archiveCloudInboundMedia(), cloudConfig(), cloudFinancingReportHtml(), cloudGraphRequest(), cloudImageMoney(), cloudReady(), cloudServicesReportHtml(), createCloudFinancingReportMedia() (+19 more)
+### Community 12 - "createCloudServicesReportMedia"
+Cohesion: 0.18
+Nodes (20): cloudFinancingReportHtml(), cloudImageMoney(), cloudServicesReportHtml(), createCloudFinancingReportMedia(), createCloudServicesReportMedia(), deleteR2Object(), ensureR2Usage(), escapeCloudImageHtml() (+12 more)
 
 ### Community 13 - "extension/manifest.json"
 Cohesion: 0.07
 Nodes (29): action, default_icon, default_popup, default_title, background, service_worker, content_scripts, 128 (+21 more)
 
 ### Community 14 - "api.js"
-Cohesion: 0.12
-Nodes (28): CLOUD_COLLECTIONS, createItem(), currentAuthToken(), deleteItem(), getCloudSyncStatus(), getDataVersion(), getServerVersion(), lastCloudSyncStatus (+20 more)
+Cohesion: 0.13
+Nodes (20): createItem(), currentAuthToken(), deleteItem(), getCloudSyncStatus(), getDataVersion(), lastCloudSyncStatus, markLocalMutation(), serverReq() (+12 more)
 
-### Community 15 - "chat.js"
-Cohesion: 0.32
-Nodes (15): Chat(), fetchPresence(), getAllRooms(), getRoomMessages(), getStatusLabel(), lastCheck, pollNewMessages(), sendHeartbeat() (+7 more)
+### Community 15 - "getAuth"
+Cohesion: 0.33
+Nodes (16): Chat(), getAuth(), fetchPresence(), getAllRooms(), getRoomMessages(), getStatusLabel(), lastCheck, pollNewMessages() (+8 more)
 
 ### Community 16 - "worker-protocol.cjs"
 Cohesion: 0.18
@@ -267,20 +264,20 @@ Cohesion: 0.40
 Nodes (3): fs, path, truecaller
 
 ### Community 19 - "payment-receipt-ocr.cjs"
-Cohesion: 0.18
-Nodes (24): pdf-parse, amountCandidates(), analysePaymentProofMedia(), analyseText(), detectProvider(), extractDate(), extractPdfScreenshots(), extractPdfText() (+16 more)
+Cohesion: 0.22
+Nodes (19): amountCandidates(), analysePaymentProofMedia(), analyseText(), detectProvider(), extractDate(), extractReference(), fold(), getTesseractWorker() (+11 more)
 
 ### Community 20 - "sleep"
-Cohesion: 0.16
-Nodes (26): clickVisibleButton(), clickVisiblePortalButtonByText(), executePortalTurnstile(), getPortalCredentials(), gotoPortalPage(), inspectWaterPage(), loginGasWithPortalApi(), loginPortalPage() (+18 more)
+Cohesion: 0.15
+Nodes (27): clickVisibleButton(), clickVisiblePortalButtonByText(), executePortalTurnstile(), getPortalCredentials(), gotoPortalPage(), inspectWaterPage(), launchBrowser(), loginGasWithPortalApi() (+19 more)
 
 ### Community 21 - "content-facebook.js"
 Cohesion: 0.25
 Nodes (22): activate(), autoFill(), checkAndRun(), chooseDropdown(), fillAndConfirmAddress(), fillAndConfirmAddressReliable(), findAndSet(), findDropdown() (+14 more)
 
-### Community 22 - "WhatsAppInbox.jsx"
-Cohesion: 0.27
-Nodes (7): apartmentBadge(), attachmentKind(), cloudRequest(), formatTimeOnly(), getActiveToken(), MediaMessage(), WhatsAppInbox()
+### Community 22 - "getBase"
+Cohesion: 0.14
+Nodes (15): getServerVersion(), Login(), Onboarding(), templateRequest(), WhatsAppContacts(), apartmentBadge(), attachmentKind(), cloudRequest() (+7 more)
 
 ### Community 23 - "restore-media-s3.cjs"
 Cohesion: 0.28
@@ -291,8 +288,8 @@ Cohesion: 0.28
 Nodes (8): fs, main(), path, r2Config(), root, { S3Client, ListObjectsV2Command, PutObjectCommand }, SOURCES, walk()
 
 ### Community 25 - "dependencies"
-Cohesion: 0.11
-Nodes (19): @aws-sdk/client-s3, @capacitor/cli, cors, ffmpeg-static, dependencies, @aws-sdk/client-s3, @capacitor/cli, cors (+11 more)
+Cohesion: 0.06
+Nodes (33): @aws-sdk/client-s3, better-sqlite3, @capacitor/android, @capacitor/cli, @capacitor/core, @capacitor/local-notifications, @capacitor-mlkit/barcode-scanning, @capacitor/share (+25 more)
 
 ### Community 26 - "portable-worker.cjs"
 Cohesion: 0.16
@@ -327,8 +324,8 @@ Cohesion: 0.15
 Nodes (11): androidGradle, apkVersion, appVersion, __dirname, dist, now, publicDir, publicVersionFile (+3 more)
 
 ### Community 34 - "auth.js"
-Cohesion: 0.11
-Nodes (38): stopCloudPolling(), stopDataVersionPolling(), BUILDING_CAMERAS, colombiaTime(), IntercomCallPage(), publicRequest(), APTO_CAMERAS, colombiaDate() (+30 more)
+Cohesion: 0.16
+Nodes (27): CLOUD_COLLECTIONS, refreshAllFromServer(), startCloudPolling(), startDataVersionPolling(), stopCloudPolling(), stopDataVersionPolling(), PrivateApp(), ERROR_TEXT (+19 more)
 
 ### Community 35 - "release-apk.cjs"
 Cohesion: 0.23
@@ -345,6 +342,10 @@ Nodes (10): child, fs, os, path, project, request(), run(), { spawn } (+2 more)
 ### Community 38 - "check-secrets.cjs"
 Cohesion: 0.40
 Nodes (3): missingRequired, OPTIONAL, REQUIRED
+
+### Community 39 - "isCapacitor"
+Cohesion: 0.35
+Nodes (11): Payments(), BackgroundNotifications, configureBackgroundNotifications(), getBackgroundNotificationStatus(), stopBackgroundNotifications(), isCapacitor(), configurePaymentWatcher(), getPaymentWatcherStatus() (+3 more)
 
 ### Community 40 - "backup.js"
 Cohesion: 0.20
@@ -374,13 +375,21 @@ Nodes (6): db, dbCjsPath, dbPath, __dirname, root, seedCopy
 Cohesion: 0.25
 Nodes (6): archiveDir, fs, graphFile, path, root, zlib
 
-### Community 48 - "matchPortalApartmentForService"
+### Community 47 - "MiApto.jsx"
+Cohesion: 0.10
+Nodes (28): BUILDING_CAMERAS, IntercomCallModal(), intercomRequest(), BUILDING_CAMERAS, colombiaTime(), IntercomCallPage(), publicRequest(), APTO_CAMERAS (+20 more)
+
+### Community 48 - "sync-graph-aiven.cjs"
 Cohesion: 0.33
-Nodes (7): logUnmatchedPortalItems(), matchPortalApartment(), matchPortalApartmentForService(), normalizeDigits(), portalCodeValues(), portalDiagnosticReferences(), portalIdentifierValues()
+Nodes (6): dbUrl(), fs, main(), path, root, strict
 
 ### Community 49 - "2. Paso a Paso de la Migración"
 Cohesion: 0.18
 Nodes (10): 1. Datos de tu Servidor Oracle VM, 2. Paso a Paso de la Migración, 3. Resumen de Ventajas Obtenidas, GUÍA COMPLETA DE MIGRACIÓN: RENDER -> ORACLE VM ALWAYS FREE (149.130.160.116), PASO 1: Conectarse a la VM, PASO 2: Sincronizar los archivos del proyecto a la VM, PASO 3: Ejecutar el Instalador Automático, PASO 4: Configuración en Cloudflare (Dominio y SSL) (+2 more)
+
+### Community 50 - "matchPortalApartmentForService"
+Cohesion: 0.33
+Nodes (7): logUnmatchedPortalItems(), matchPortalApartment(), matchPortalApartmentForService(), normalizeDigits(), portalCodeValues(), portalDiagnosticReferences(), portalIdentifierValues()
 
 ### Community 51 - "content-portals.js"
 Cohesion: 0.53
@@ -432,19 +441,27 @@ Nodes (16): Arquitectura del Sistema, Estructura del Proyecto, Flujo de Datos, F
 
 ### Community 67 - "colombiaDate"
 Cohesion: 0.14
-Nodes (25): activeContractForApartment(), activeContractForTenant(), buildAdminDebtReport(), cloudAdminPhones(), cloudCalendarDate(), cloudCapitalise(), cloudDateKey(), cloudFormatDayMonth() (+17 more)
+Nodes (26): activeContractForApartment(), activeContractForTenant(), buildAdminDebtReport(), cloudCalendarDate(), cloudCapitalise(), cloudDateKey(), cloudFormatDayMonth(), cloudPaymentDate() (+18 more)
 
 ### Community 68 - "set-camera-codes.cjs"
 Cohesion: 0.40
 Nodes (3): configPath, fs, path
 
-### Community 70 - "notifyPaymentAssociationRequired"
-Cohesion: 0.26
-Nodes (13): associateAutomaticPaymentEvent(), automaticPaymentCandidates(), ensurePaymentAutomationCollections(), evaluateAutomaticPayment(), formatColombiaDateTime(), makeAutomaticPaymentRecord(), normalisePaymentIdentifier(), notifyPaymentAssociationRequired() (+5 more)
+### Community 69 - "cloudPaymentTemplateData"
+Cohesion: 0.14
+Nodes (21): buildCloudApartmentServicesInfo(), buildCloudDetailedApartmentServicesInfo(), buildCloudDetailedGlobalServicesReport(), buildCloudFinancingImageData(), buildCloudGlobalServicesReport(), cloudAdminPaymentReminderTemplateData(), cloudAdminPaymentReminderTemplateName(), cloudAdminPaymentReminderText() (+13 more)
 
-### Community 72 - "App.jsx"
-Cohesion: 0.12
-Nodes (18): api, AdminRoute(), ProtectedRoute(), Admin(), dayKey(), fmtBytes(), fmtDate(), ContractGenerator() (+10 more)
+### Community 70 - "waitForRenderedPortal"
+Cohesion: 0.50
+Nodes (5): portalUiStatus(), queryRenderedGasContract(), queryRenderedTripleAPolicy(), selectRenderedGasContract(), waitForRenderedPortal()
+
+### Community 71 - "note-vm-change.cjs"
+Cohesion: 0.47
+Nodes (5): { execFileSync }, fs, git(), main(), readToken()
+
+### Community 72 - "config.js"
+Cohesion: 0.20
+Nodes (18): init(), CLOUD_SERVER, FALLBACK_SERVER, getPublicBaseUrl(), getServerCandidates(), getServerConfig(), normalizeServer(), photoPageOrigin() (+10 more)
 
 ### Community 80 - "_stream_supervisor"
 Cohesion: 0.16
@@ -458,12 +475,16 @@ Nodes (3): fs, path, truecaller
 Cohesion: 0.26
 Nodes (13): createClaimNextJob(), Database, enqueueLookup(), fs, getCallerCache(), getLatestJob(), initDatabase(), markJob() (+5 more)
 
+### Community 83 - "pdf-parse"
+Cohesion: 0.50
+Nodes (5): pdf-parse, extractPdfScreenshots(), extractPdfText(), runWithTimeout(), pdf-parse
+
 ### Community 85 - "scan_plates_cloud"
-Cohesion: 0.16
-Nodes (13): _alpr_register_auto(), _alpr_today(), _alpr_worker(), capture_snapshot(), get_oldest_recordings(), Fecha más vieja con grabación por cámara (sondeo MicroSD, cache 6h)., Retorna (status, is_new_or_moved). status: 'moving' | 'parked' is_new_or_moved:…, Escanea la imagen con Plate Recognizer Cloud API. Aprovecha el token oficial,… (+5 more)
+Cohesion: 0.18
+Nodes (12): _alpr_register_auto(), _alpr_today(), _alpr_worker(), capture_snapshot(), disambiguate_colombian_plate(), Aplica sintaxis del Ministerio de Transporte de Colombia para corregir OCR., Escanea la imagen con Plate Recognizer Cloud API. Aprovecha el token oficial,…, Extrae un fotograma JPEG nítido instantáneamente desde el último segmento TS en… (+4 more)
 
 ### Community 89 - "ezviz_stream_server.py"
-Cohesion: 0.23
+Cohesion: 0.21
 Nodes (8): _fetch_range_to_file(), _oldest_for_cam(), _playback_url(), _probe_range_has_data(), _prune_loop(), _prune_recordings(), ¿Hay grabación en ese momento? Lee 4s del playback; True = hay datos., Elimina exports viejos (.mp4/.log) más allá de 7 días o 3 GB (más viejos…
 
 ### Community 99 - "Historial de Cambios"
@@ -475,8 +496,8 @@ Cohesion: 0.12
 Nodes (16): Arquitectura, Backup de referencia, Configuración actual de dropdowns (v1.4.5), Extensión de Chrome — Llenar Laujim, Flujo de `chooseDropdown` (v1.4.5), Gestión de anuncios, Instalación, La app no carga en el navegador (+8 more)
 
 ### Community 101 - "get"
-Cohesion: 0.17
-Nodes (12): alpr_auto_status(), disambiguate_colombian_plate(), download_recording(), get_alpr_snapshot(), get_detected_plates(), get_export_status(), get_live_playlist(), get_retention() (+4 more)
+Cohesion: 0.20
+Nodes (10): alpr_auto_status(), download_recording(), get_alpr_snapshot(), get_detected_plates(), get_export_status(), get_live_playlist(), get_retention(), Playlist siempre fresca: sin caché para que el vivo arranque en el borde, no en… (+2 more)
 
 ### Community 102 - "set-local-pass.cjs"
 Cohesion: 0.18
@@ -539,8 +560,8 @@ Cohesion: 0.38
 Nodes (7): _pause_for_export(), Descarga N rangos y los UNE en un solo MP4 (concat sin recodificar)., Detiene ordenadamente el subproceso FFmpeg de una cámara., _run_export_job(), _run_export_multi_job(), _stop_single_stream(), _unpause_export()
 
 ### Community 122 - "VehicleStationaryTracker"
-Cohesion: 0.33
-Nodes (3): Rastreador espacial de vehículos. Determina si un vehículo está en movimiento o…, Determina si debemos llamar a la API Cloud o si está estacionado., VehicleStationaryTracker
+Cohesion: 0.20
+Nodes (6): get_oldest_recordings(), Fecha más vieja con grabación por cámara (sondeo MicroSD, cache 6h)., Rastreador espacial de vehículos. Determina si un vehículo está en movimiento o…, Retorna (status, is_new_or_moved). status: 'moving' | 'parked' is_new_or_moved:…, Determina si debemos llamar a la API Cloud o si está estacionado., VehicleStationaryTracker
 
 ### Community 126 - "generate-proposal.cjs"
 Cohesion: 0.50
@@ -550,69 +571,41 @@ Nodes (3): fs, path, targetPath
 Cohesion: 0.50
 Nodes (4): Configuración SSL, Esquema, Flujo, Persistencia PostgreSQL
 
-### Community 153 - "waitForRenderedPortal"
-Cohesion: 0.50
-Nodes (5): portalUiStatus(), queryRenderedGasContract(), queryRenderedTripleAPolicy(), selectRenderedGasContract(), waitForRenderedPortal()
-
-### Community 154 - "IntercomDoorbell.jsx"
-Cohesion: 0.29
-Nodes (8): IntercomDoorbell(), playDoorChime(), publicRequest(), enhanceAudioStream(), getPeerSignal(), postSignal(), startIntercomCall(), STUN_SERVERS
-
-### Community 155 - "callScreening.js"
-Cohesion: 0.29
-Nodes (16): analyzeIncomingNumber(), BANK_WHITELIST, CALL_GUARD_STORAGE_KEY, callerScreeningPlugin(), DEFAULT_CALL_GUARD_CONFIG, DELIVERY_WHITELIST, getAuthorizedSmsMessages(), getCallScreeningStatus() (+8 more)
-
-### Community 156 - "isCapacitor"
-Cohesion: 0.35
-Nodes (11): Payments(), BackgroundNotifications, configureBackgroundNotifications(), getBackgroundNotificationStatus(), stopBackgroundNotifications(), isCapacitor(), configurePaymentWatcher(), getPaymentWatcherStatus() (+3 more)
+### Community 155 - "Settings.jsx"
+Cohesion: 0.18
+Nodes (26): Settings(), analyzeIncomingNumber(), BANK_WHITELIST, CALL_GUARD_STORAGE_KEY, callerScreeningPlugin(), DEFAULT_CALL_GUARD_CONFIG, DELIVERY_WHITELIST, getAuthorizedSmsMessages() (+18 more)
 
 ### Community 160 - "Restauración ante desastre (VM perdida o disco muerto)"
 Cohesion: 0.29
 Nodes (6): Acceso multi-PC (Tailscale, indefinido), Dónde trabaja la IA en la VM (dos carpetas, no mezclar), Notas, Reconstrucción (VM Ubuntu nueva), Requisitos previos (guardados FUERA de la VM, gestor de claves), Restauración ante desastre (VM perdida o disco muerto)
 
-### Community 162 - "Utilities.jsx"
-Cohesion: 0.20
-Nodes (19): billConvenioDebt(), billInteger(), billMeta(), billMoney(), billMonthDebt(), billPaymentChangeLabel(), billStatusText(), billTotalDebt() (+11 more)
-
 ### Community 163 - "Layout.jsx"
 Cohesion: 0.19
 Nodes (15): Layout(), navItems, iconMap, ThemeSelector(), clearAppData(), isServerAvailable(), applyTheme(), getTheme() (+7 more)
-
-### Community 173 - "Settings.jsx"
-Cohesion: 0.30
-Nodes (11): Settings(), getCallGuardConfig(), getPublicBaseUrl(), cancelAllNotifications(), DEFAULT_CONFIG, getNotifConfig(), saveNotifConfig(), schedulePaymentReminders() (+3 more)
-
-### Community 174 - "calendar.js"
-Cohesion: 0.38
-Nodes (10): addCalendarReminder(), downloadICS(), fmtDate(), generateAllPaymentReminders(), generateICS(), getStoredUIDs(), nextDueDate(), saveStoredUIDs() (+2 more)
-
-### Community 178 - "scrapeAirE"
-Cohesion: 0.15
-Nodes (14): attachBrowserlessCaptchaSolver(), BROWSERLESS_PROFILES, browserlessEndpointCandidates(), browserlessEndpointFor(), configuredAirETargets(), contractFromAirEResources(), firstExistingPath(), getAirECredentials() (+6 more)
 
 ### Community 180 - "handoff.cjs"
 Cohesion: 0.20
 Nodes (7): { execFileSync }, fs, graphCommit, graphFile, path, porcelain, root
 
 ## Knowledge Gaps
-- **530 isolated node(s):** `$schema`, `oxc`, `react/rules-of-hooks`, `warn`, `diag-video.sh script` (+525 more)
+- **537 isolated node(s):** `fs`, `{ execFileSync }`, `express`, `cors`, `fs` (+532 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **49 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **42 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `installFailoverFetch()` connect `ScraperWorker.jsx` to `App.jsx`?**
-  _High betweenness centrality (0.175) - this node is a cross-community bridge._
-- **Why does `init()` connect `ScraperWorker.jsx` to `startServer`, `services-scraper.cjs`?**
-  _High betweenness centrality (0.175) - this node is a cross-community bridge._
-- **Why does `startServer()` connect `startServer` to `server.cjs`, `ScraperWorker.jsx`, `colombiaDate`, `saveData`, `handleCloudInbound`, `notifyPaymentAssociationRequired`, `cloudPaymentTemplateData`, `cloudReady`, `worker-protocol.cjs`, `caller-id-repository.cjs`, `payment-receipt-ocr.cjs`, `content-facebook.js`, `runGasScrapeOnce`?**
-  _High betweenness centrality (0.112) - this node is a cross-community bridge._
+- **Why does `installFailoverFetch()` connect `config.js` to `App.jsx`?**
+  _High betweenness centrality (0.174) - this node is a cross-community bridge._
+- **Why does `init()` connect `config.js` to `services-scraper.cjs`?**
+  _High betweenness centrality (0.173) - this node is a cross-community bridge._
+- **Why does `dependencies` connect `dependencies` to `react`, `@tailwindcss/vite`, `truecallerjs`, `@sparticuz/chromium`, `scripts`, `contractGenerator.js`, `@capacitor/filesystem`, `ffmpeg-static`, `pdf-lib`, `pg`, `qrcode`, `recharts`, `express`, `pdf-parse`, `react-dom`, `puppeteer-core`, `dexie`, `jsqr`, `lucide-react`, `react-router-dom`, `multer`?**
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `startServer()` (e.g. with `log()` and `publicEdgeView()`) actually correct?**
   _`startServer()` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `$schema`, `oxc`, `react/rules-of-hooks` to the rest of the system?**
-  _530 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `fs`, `{ execFileSync }`, `express` to the rest of the system?**
+  _537 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `server.cjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.034518113465481885 - nodes in this community are weakly interconnected._
-- **Should `ScraperWorker.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.0792838874680307 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.03725222146274778 - nodes in this community are weakly interconnected._
+- **Should `handleCloudInbound` be split into smaller, more focused modules?**
+  _Cohesion score 0.08970099667774087 - nodes in this community are weakly interconnected._

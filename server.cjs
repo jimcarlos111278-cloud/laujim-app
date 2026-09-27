@@ -93,7 +93,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path === '/api/auth/github/status' || req.path === '/api/auth/github' || req.path === '/api/auth/github/callback' ||
-    req.path === '/api/graph/query' ||
+    req.path === '/api/graph/query' || req.path === '/api/graph/note' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
     req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path === '/api/admin/cameras/retention-status' || req.path.startsWith('/api/live/') || req.path.startsWith('/api/security/') || req.path.startsWith('/api/callguard/') || req.path.startsWith('/api/scrape-sequential') || req.path === '/api/scrape-all';
   if (req.path.startsWith('/api/') && !isPublicApi) {

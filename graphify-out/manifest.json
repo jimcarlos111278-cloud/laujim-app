@@ -150,8 +150,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1790487069.3454108,
-    "ast_hash": "8e2be2368de98b0c6199efff26faf5dc",
+    "mtime": 1790497139.043991,
+    "ast_hash": "d550f04663d278f7e5daf9c1d2e15ef6",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -530,8 +530,8 @@
     "semantic_hash": "0c6e1eaf160dd39b9b1b82dd8fc7932b"
   },
   "src/pages/SecurityCenter.jsx": {
-    "mtime": 1790203993.5977821,
-    "ast_hash": "9e2ba7e90be185be15ffd362d237173b",
+    "mtime": 1790550122.4150958,
+    "ast_hash": "df74191b169e8803c7687e3de3866196",
     "semantic_hash": ""
   },
   "src/pages/Onboarding.jsx": {
@@ -575,8 +575,8 @@
     "semantic_hash": "f6d86c1442856aa531cfcf19737422fc"
   },
   "scripts/release-apk.cjs": {
-    "mtime": 1790476482.7362778,
-    "ast_hash": "5a8b1c2762d517bbd5e1ecba5190f071",
+    "mtime": 1790496555.1933606,
+    "ast_hash": "5d7932a1d52d7d471f6aa50ed6dc8361",
     "semantic_hash": ""
   },
   "laujim-showcase.html": {
@@ -635,8 +635,8 @@
     "semantic_hash": ""
   },
   "deploy-oracle-vm/ezviz_stream_server.py": {
-    "mtime": 1790234717.063661,
-    "ast_hash": "aa68cd1a907cf8141cffc50e2073e1df",
+    "mtime": 1790552571.0816514,
+    "ast_hash": "532a77ac96a77b2f5a16c60002686f83",
     "semantic_hash": ""
   },
   "deploy-oracle-vm/install-vm.sh": {
@@ -922,6 +922,41 @@
   "deploy-oracle-vm/RESTORE.md": {
     "mtime": 1790492545.5558884,
     "ast_hash": "4b4431559b9edd4f9ace46f43ef7da35",
+    "semantic_hash": ""
+  },
+  "scripts/open-vm-opencode.ps1": {
+    "mtime": 1790493918.201051,
+    "ast_hash": "835d9c207ebb182b724ad35dc3dd0bc2",
+    "semantic_hash": ""
+  },
+  "scripts/setup-new-pc.ps1": {
+    "mtime": 1790494574.6699493,
+    "ast_hash": "5196b12776722528b281fe1c422329ea",
+    "semantic_hash": ""
+  },
+  "scratch/send-files-vm.py": {
+    "mtime": 1790495792.6131792,
+    "ast_hash": "1da350681ef16cf48044d3bad74ab2a4",
+    "semantic_hash": ""
+  },
+  "scripts/send-image-vm.ps1": {
+    "mtime": 1790495840.0817375,
+    "ast_hash": "ab6100ce3daeb0d5f918dfe3e16cbb44",
+    "semantic_hash": ""
+  },
+  "scripts/sync-graph-aiven.cjs": {
+    "mtime": 1790496574.9382584,
+    "ast_hash": "892bb295385c73034ca4197f3102751d",
+    "semantic_hash": ""
+  },
+  "scripts/note-vm-change.cjs": {
+    "mtime": 1790497006.7130363,
+    "ast_hash": "98907cbc7d1abb4f4848dd051ec335bb",
+    "semantic_hash": ""
+  },
+  "scratch/dbg-alpr.py": {
+    "mtime": 1790552496.027517,
+    "ast_hash": "bf4d08c1b5e9130b7cfaf1e5fc4c022c",
     "semantic_hash": ""
   }
 }
