@@ -6633,6 +6633,98 @@ app.post('/api/admin/secrets/backup', async (req, res) => {
   }
 });
 
+// ─── Grafo vía Aiven para IAs remotas (sin clonar el repo) ──────────────────
+// Cualquier opencode/agent en cualquier PC consulta el grafo actualizado con
+// HTTP + token de solo lectura (GRAPH_READER_TOKEN), sin credenciales de DB.
+// Refresco: scripts/sync-graph-aiven.cjs (automático en cada release-apk).
+let graphCache = { mtimeMs: 0, aivenAt: 0, parsed: null };
+
+async function loadGraphForQuery() {
+  const now = Date.now();
+  if (pgPool && now - graphCache.aivenAt > 60 * 1000) {
+    try {
+      const result = await pgPool.query('SELECT value FROM store WHERE key = $1', ['graph']);
+      if (result.rows[0]?.value && typeof result.rows[0].value === 'object') {
+        graphCache.parsed = result.rows[0].value;
+        graphCache.aivenAt = now;
+        return graphCache.parsed;
+      }
+    } catch {}
+  }
+  if (graphCache.parsed && now - graphCache.aivenAt <= 60 * 1000) return graphCache.parsed;
+  try {
+    const full = path.join(GRAPH_DIR, 'graph.json');
+    const stat = fs.statSync(full);
+    if (!graphCache.parsed || stat.mtimeMs !== graphCache.mtimeMs) {
+      graphCache.parsed = JSON.parse(fs.readFileSync(full, 'utf8'));
+      graphCache.mtimeMs = stat.mtimeMs;
+    }
+    return graphCache.parsed;
+  } catch {
+    return graphCache.parsed;
+  }
+}
+
+function checkGraphReader(req, res) {
+  const expected = String(process.env.GRAPH_READER_TOKEN || '').trim();
+  if (!expected) return res.status(503).json({ error: 'Consulta remota del grafo no configurada (GRAPH_READER_TOKEN).' }), false;
+  const given = String(req.headers['x-graph-token'] || req.query.token || '').trim();
+  if (!given || given !== expected) return res.status(401).json({ error: 'Token de lectura inválido.' }), false;
+  return true;
+}
+
+app.post('/api/graph/query', async (req, res) => {
+  if (!checkGraphReader(req, res)) return;
+  const body = req.body || {};
+  const action = String(body.action || 'stats');
+  const graph = await loadGraphForQuery();
+  if (!graph || !Array.isArray(graph.nodes)) {
+    return res.status(404).json({ error: 'Grafo no disponible (ni Aiven ni disco).' });
+  }
+  const nodes = graph.nodes;
+  const links = Array.isArray(graph.links) ? graph.links : [];
+  if (action === 'stats') {
+    return res.json({
+      ok: true,
+      nodes: nodes.length,
+      links: links.length,
+      builtAtCommit: graph.built_at_commit || null,
+      source: graphCache.aivenAt ? 'aiven' : 'disco',
+    });
+  }
+  if (action === 'search') {
+    const q = String(body.q || '').toLowerCase().trim();
+    if (!q) return res.status(400).json({ error: 'Falta q.' });
+    const out = [];
+    for (const n of nodes) {
+      const id = String(n.id || '');
+      const label = String(n.label || n.norm_label || '');
+      if (id.toLowerCase().includes(q) || label.toLowerCase().includes(q)) {
+        out.push({ id, label });
+        if (out.length >= 50) break;
+      }
+    }
+    return res.json({ ok: true, count: out.length, nodes: out });
+  }
+  if (action === 'neighbors' || action === 'get') {
+    const id = String(body.id || '').trim();
+    if (!id) return res.status(400).json({ error: 'Falta id.' });
+    const node = nodes.find(n => String(n.id) === id);
+    if (!node) return res.status(404).json({ error: 'Nodo no existe.' });
+    if (action === 'get') return res.json({ ok: true, node });
+    const linked = new Set();
+    for (const l of links) {
+      const s = String(l.source ?? l.from ?? '');
+      const t = String(l.target ?? l.to ?? '');
+      if (s === id && t) linked.add(t);
+      if (t === id && s) linked.add(s);
+      if (linked.size >= 100) break;
+    }
+    return res.json({ ok: true, node: { id: node.id, label: node.label || node.norm_label || null }, neighbors: [...linked] });
+  }
+  return res.status(400).json({ error: 'action: stats, search, get, neighbors.' });
+});
+
 app.get('/api/worker-token', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   const token = String(process.env.SCRAPER_WORKER_TOKEN || '').trim();

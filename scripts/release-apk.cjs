@@ -97,6 +97,13 @@ function main() {
   // 5. Archivar snapshot histórico del grafo (para rollback/consulta de versiones pasadas)
   run(process.execPath, ['scripts/archive-graph.cjs', '--label', `v${next}`], root);
 
+  // 5b. Subir grafo a Aiven para consulta remota (no fatal: PCs sin Aiven continúan)
+  try {
+    run(process.execPath, ['scripts/sync-graph-aiven.cjs'], root);
+  } catch (error) {
+    console.log(`[release] Aviso: no se sincronizó el grafo a Aiven: ${error.message}`);
+  }
+
   // 6. Gate de pre-push (verifica Aiven y sube data/database.json si hay cambio intencional)
   run('npm.cmd', ['run', 'sync:aiven:pre-push'], root);
 
