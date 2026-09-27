@@ -90,8 +90,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1790477241.1173997,
-    "ast_hash": "44979a6e57440cfbfedd5db029358c4b",
+    "mtime": 1790484810.2191448,
+    "ast_hash": "b011ebb06874aabee37c6945ebe51a5a",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -150,8 +150,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1790477024.8598194,
-    "ast_hash": "2bf1d0d094ce027767cae51d92daa7b5",
+    "mtime": 1790487069.3454108,
+    "ast_hash": "8e2be2368de98b0c6199efff26faf5dc",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "scripts/backup-media-s3.cjs": {
-    "mtime": 1790478524.1819534,
-    "ast_hash": "be229e563247809529c3b9a6f4fb9eee",
+    "mtime": 1790489175.6425996,
+    "ast_hash": "e147cb62a099c927e1131f1d0f282043",
     "semantic_hash": ""
   },
   "src/pages/GitHubAuth.jsx": {
@@ -902,6 +902,26 @@
   "scripts/handoff.cjs": {
     "mtime": 1790483207.535273,
     "ast_hash": "a7b12dc543f44a56498082cd28c21254",
+    "semantic_hash": ""
+  },
+  "scratch/sftp-sync-vm.py": {
+    "mtime": 1790489639.0589826,
+    "ast_hash": "fddff15e8640a731fb33ad04b2460e49",
+    "semantic_hash": ""
+  },
+  "scripts/restore-media-s3.cjs": {
+    "mtime": 1790491155.7075636,
+    "ast_hash": "d04bf9c2cd6cb53123c24b64c185893c",
+    "semantic_hash": ""
+  },
+  "scripts/setup-vm-cron.sh": {
+    "mtime": 1790491155.7075636,
+    "ast_hash": "82697fa4518fad9184c215910290925d",
+    "semantic_hash": ""
+  },
+  "deploy-oracle-vm/RESTORE.md": {
+    "mtime": 1790492545.5558884,
+    "ast_hash": "4b4431559b9edd4f9ace46f43ef7da35",
     "semantic_hash": ""
   }
 }
