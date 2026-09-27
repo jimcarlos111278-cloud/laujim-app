@@ -10,6 +10,14 @@ FILES = [
     'public/releases/laujim-v1.0.133.apk',
 ]
 
+GRAPH_FILES = [
+    'graph.json',
+    'GRAPH_REPORT.md',
+    'manifest.json',
+    '.graphify_labels.json',
+    '.graphify_labels.json.sig',
+]
+
 HOST = '149.130.160.116'
 USER = 'ubuntu'
 KEY = r'C:\Users\jimca\.ssh\id_ed25519_laujim'
@@ -55,6 +63,13 @@ def main():
             print('FALTA local: ' + rel, flush=True)
             continue
         put_file(sftp, local, REMOTE_BASE + '/' + rel)
+        count[0] += 1
+    for rel in GRAPH_FILES:
+        local = os.path.join(ROOT, 'graphify-out', rel)
+        if not os.path.exists(local):
+            print('FALTA local: graphify-out/' + rel, flush=True)
+            continue
+        put_file(sftp, local, REMOTE_BASE + '/graphify-out/' + rel)
         count[0] += 1
     put_dir(sftp, os.path.join(ROOT, 'dist'), REMOTE_BASE + '/dist', count)
     print('TOTAL %d archivos' % count[0], flush=True)
