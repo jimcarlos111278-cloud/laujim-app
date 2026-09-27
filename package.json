@@ -21,6 +21,7 @@
     "preview": "vite preview",
     "network": "vite --host",
     "backup": "node scripts/backup.js",
+    "backup:media": "node scripts/backup-media-s3.cjs",
     "sync-seed": "node scripts/sync-seed.js"
   },
   "dependencies": {
@@ -34,6 +35,7 @@
     "@capacitor/share": "^8.0.1",
     "@sparticuz/chromium": "^149.0.0",
     "@tailwindcss/vite": "^4.3.3",
+    "better-sqlite3": "^13.0.3",
     "cors": "^2.8.6",
     "dexie": "^4.4.4",
     "docxtemplater": "^3.67.6",
@@ -42,6 +44,7 @@
     "hls.js": "^1.7.2",
     "jspdf": "^4.2.1",
     "jsqr": "^1.4.0",
+    "libphonenumber-js": "^1.13.13",
     "lucide-react": "^1.25.0",
     "multer": "^2.2.0",
     "node-cron": "^3.0.3",
@@ -56,7 +59,8 @@
     "react-router-dom": "^7.18.1",
     "recharts": "^3.9.2",
     "tailwindcss": "^4.3.3",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "truecallerjs": "^2.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

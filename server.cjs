@@ -92,6 +92,7 @@ app.use(async (req, res, next) => {
   if (req.path.startsWith('/api/')) requestCount++;
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
+    req.path === '/api/auth/github/status' || req.path === '/api/auth/github' || req.path === '/api/auth/github/callback' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
     req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path === '/api/admin/cameras/retention-status' || req.path.startsWith('/api/live/') || req.path.startsWith('/api/security/') || req.path.startsWith('/api/callguard/') || req.path.startsWith('/api/scrape-sequential') || req.path === '/api/scrape-all';
   if (req.path.startsWith('/api/') && !isPublicApi) {
@@ -6480,6 +6481,156 @@ app.post('/api/login', async (req, res) => {
     }
   }
   res.status(401).json({ error: 'Credenciales inválidas' });
+});
+
+// ─── Login con GitHub (OAuth) + secretos respaldados en Aiven ───────────────
+// Permite entrar como admin desde cualquier PC solo con la cuenta de GitHub
+// autorizada. Crear la OAuth App en GitHub (Settings > Developer settings >
+// OAuth Apps) con Authorization callback URL:
+//   https://<tu-dominio>/api/auth/github/callback
+// Variables: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_ADMIN_USERS
+// (logins separados por comas, ej: "jimcarlos111278-cloud").
+// Sin estas variables el login con GitHub responde 503 y todo lo demás sigue igual.
+const githubOAuthStates = new Map();
+
+function githubOAuthConfig() {
+  const clientId = String(process.env.GITHUB_CLIENT_ID || '').trim();
+  const clientSecret = String(process.env.GITHUB_CLIENT_SECRET || '').trim();
+  const admins = String(process.env.GITHUB_ADMIN_USERS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  return { clientId, clientSecret, admins, enabled: Boolean(clientId && clientSecret && admins.length > 0) };
+}
+
+function githubBaseUrl(req, explicit) {
+  if (explicit) return String(explicit).trim().replace(/\/+$/, '');
+  const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim() || 'https';
+  const host = String(req.headers['x-forwarded-host'] || req.get('host') || '').split(',')[0].trim();
+  return `${proto}://${host}`;
+}
+
+app.get('/api/auth/github/status', (req, res) => {
+  res.json({ ok: true, enabled: githubOAuthConfig().enabled });
+});
+
+app.get('/api/auth/github', (req, res) => {
+  const cfg = githubOAuthConfig();
+  if (!cfg.enabled) {
+    return res.status(503).json({ error: 'Login con GitHub no configurado en este servidor (falta GITHUB_CLIENT_ID/SECRET/ADMIN_USERS).' });
+  }
+  const state = crypto.randomBytes(16).toString('hex');
+  githubOAuthStates.set(state, Date.now() + 10 * 60 * 1000);
+  if (githubOAuthStates.size > 500) {
+    const now = Date.now();
+    for (const [key, exp] of githubOAuthStates) {
+      if (exp < now) githubOAuthStates.delete(key);
+    }
+  }
+  const params = new URLSearchParams({
+    client_id: cfg.clientId,
+    redirect_uri: `${githubBaseUrl(req, process.env.GITHUB_OAUTH_CALLBACK)}/api/auth/github/callback`,
+    scope: 'read:user',
+    state,
+  });
+  res.redirect(`https://github.com/login/oauth/authorize?${params}`);
+});
+
+app.get('/api/auth/github/callback', async (req, res) => {
+  const base = githubBaseUrl(req, process.env.GITHUB_OAUTH_CALLBACK);
+  const fail = msg => res.redirect(`${base}/github-auth?error=${encodeURIComponent(msg)}`);
+  const cfg = githubOAuthConfig();
+  const code = String(req.query?.code || '');
+  const state = String(req.query?.state || '');
+  const exp = githubOAuthStates.get(state);
+  githubOAuthStates.delete(state);
+  if (!cfg.enabled) return fail('github_no_configurado');
+  if (!code || !exp || exp < Date.now()) return fail('sesion_oauth_expirada');
+  if (!databaseReady) return fail('base_de_datos_iniciando');
+  try {
+    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        client_id: cfg.clientId,
+        client_secret: cfg.clientSecret,
+        code,
+        redirect_uri: `${githubBaseUrl(req, process.env.GITHUB_OAUTH_CALLBACK)}/api/auth/github/callback`,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const tokenData = await tokenRes.json().catch(() => ({}));
+    if (!tokenRes.ok || !tokenData.access_token) return fail('token_github_invalido');
+    const userRes = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'laujim-app' },
+      signal: AbortSignal.timeout(15000),
+    });
+    const ghUser = await userRes.json().catch(() => ({}));
+    const login = String(ghUser.login || '').toLowerCase();
+    if (!userRes.ok || !login || !cfg.admins.includes(login)) {
+      try { pushAuditEvent('LOGIN_GITHUB_DENIED', req, { role: null, name: login || 'desconocido' }); } catch {}
+      return fail('cuenta_no_autorizada');
+    }
+    const session = createAuthSession({ role: 'admin', name: `GitHub:${ghUser.login}` });
+    try { pushAuditEvent('LOGIN', req, { role: 'admin', name: `GitHub:${ghUser.login}` }); } catch {}
+    try { await saveData(); } catch {}
+    const params = new URLSearchParams({ token: session.token, role: 'admin', name: `GitHub:${ghUser.login}` });
+    if (session.expiresAt) params.set('expiresAt', session.expiresAt);
+    res.redirect(`${base}/github-auth?${params}`);
+  } catch {
+    return fail('error_conexion_github');
+  }
+});
+
+// ─── Secretos respaldados en Aiven (segunda copia además de la VM) ──────────
+// Los valores NUNCA se devuelven por API: status solo reporta presencia por nombre.
+const BACKUP_SECRET_NAMES = [
+  'ADMIN_USERNAME', 'ADMIN_PASSWORD', 'ADMIN_RECOVERY_CODE',
+  'AIVEN_DATABASE_URL', 'DATABASE_URL', 'DB_PASSWORD',
+  'SCRAPER_WORKER_TOKEN', 'EDGE_GATEWAY_URL', 'EDGE_GATEWAY_TOKEN',
+  'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_VERIFY_TOKEN', 'WHATSAPP_APP_SECRET',
+  'TRUECALLER_COOKIE', 'TRUECALLER_INSTALLATION_ID',
+  'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GITHUB_ADMIN_USERS',
+  'R2_ACCOUNT_ID', 'R2_BUCKET', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY',
+  'PUBLIC_APK_BASE_URL',
+];
+
+app.get('/api/admin/secrets/status', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const env = {};
+  for (const name of BACKUP_SECRET_NAMES) {
+    env[name] = String(process.env[name] || '').trim().length > 0;
+  }
+  const aiven = { configured: Boolean(pgPool), exists: false, updatedAt: null, names: [] };
+  if (pgPool) {
+    try {
+      const result = await pgPool.query('SELECT value FROM store WHERE key = $1', ['app_secrets']);
+      const stored = result.rows[0]?.value;
+      if (stored && typeof stored === 'object') {
+        aiven.exists = true;
+        aiven.updatedAt = stored.updatedAt || null;
+        aiven.names = Array.isArray(stored.names) ? stored.names : Object.keys(stored.values || {});
+      }
+    } catch {}
+  }
+  res.json({ ok: true, env, aiven });
+});
+
+app.post('/api/admin/secrets/backup', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  if (!pgPool) return res.status(503).json({ error: 'Aiven no configurado en este servidor.' });
+  const values = {};
+  for (const name of BACKUP_SECRET_NAMES) {
+    const value = String(process.env[name] || '').trim();
+    if (value) values[name] = value;
+  }
+  if (Object.keys(values).length === 0) {
+    return res.status(400).json({ error: 'No hay secretos en el entorno de esta VM.' });
+  }
+  const payload = { updatedAt: new Date().toISOString(), source: 'admin-panel', names: Object.keys(values), values };
+  try {
+    await pgPool.query('INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', ['app_secrets', JSON.stringify(payload)]);
+    res.json({ ok: true, message: `Respaldo guardado en Aiven (${payload.names.length} secretos).`, updatedAt: payload.updatedAt, names: payload.names });
+  } catch {
+    res.status(500).json({ error: 'No se pudo guardar el respaldo en Aiven.' });
+  }
 });
 
 app.get('/api/worker-token', (req, res) => {

@@ -23,7 +23,9 @@ import WhatsAppContacts from './pages/WhatsAppContacts';
 import PublicApartments from './pages/PublicApartments';
 import PublicApartment from './pages/PublicApartment';
 import Login from './pages/Login';
+import GitHubAuth from './pages/GitHubAuth';
 import MiApto from './pages/MiApto';
+import Admin from './pages/Admin';
 import SecurityCenter from './pages/SecurityCenter';
 import IntercomDoorbell from './pages/IntercomDoorbell';
 import IntercomCallPage from './pages/IntercomCallPage';
@@ -255,6 +257,14 @@ function AppContent() {
   const location = useLocation();
   if (location.pathname === '/p' || location.pathname === '/portero') {
     return <Routes><Route path="*" element={<IntercomDoorbell />} /></Routes>;
+  }
+  // Panel admin con clave propia: fuera del layout/app privada.
+  if (location.pathname === '/admin') {
+    return <Routes><Route path="/admin" element={<Admin />} /></Routes>;
+  }
+  // Retorno del login con GitHub (OAuth): página pública mínima.
+  if (location.pathname === '/github-auth') {
+    return <Routes><Route path="/github-auth" element={<GitHubAuth />} /></Routes>;
   }
   if (location.pathname.startsWith('/intercom/call/')) {
     return <Routes><Route path="/intercom/call/:id" element={<IntercomCallPage />} /></Routes>;
