@@ -89,7 +89,7 @@ export default function SecurityCenter() {
   const [expandedPlateIds, setExpandedPlateIds] = useState({});
   const [inspectedPlate, setInspectedPlate] = useState(null);
   const [inspectedTab, setInspectedTab] = useState('full'); // 'full' | 'plate'
-  const [alprEngineMode, setAlprEngineMode] = useState('compare'); // 'compare' | 'ml' | 'cloud'
+  const [alprEngineMode] = useState('cloud'); // solo 'cloud' (ML local retirado)
   const [lastBenchmark, setLastBenchmark] = useState(null);
 
   // Modal de Configuración EZVIZ (Cloud & Router)
@@ -548,9 +548,7 @@ export default function SecurityCenter() {
 
   async function handleScanPlate() {
     setAlprScanning(true);
-    const modeLabel = alprEngineMode === 'compare'
-      ? 'Modo Comparativa (⚡ Local ML + ☁️ Cloud PR)'
-      : (alprEngineMode === 'ml' ? '⚡ Machine Learning Local (VM CPU)' : '☁️ Plate Recognizer Cloud API');
+    const modeLabel = '☁️ Plate Recognizer Cloud API';
     setAlprFeedback({ type: 'info', text: `Analizando vía pública con ${modeLabel}...` });
     try {
       const auth = getAuth();
@@ -1193,44 +1191,12 @@ export default function SecurityCenter() {
         {/* Selector de Motor ALPR y Modo Comparativo */}
         <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 mb-4 bg-slate-100 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60">
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setAlprEngineMode('compare')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
-                alprEngineMode === 'compare'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              ⚔️ Comparativa Dual (Benchmark)
-            </button>
-            <button
-              type="button"
-              onClick={() => setAlprEngineMode('ml')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
-                alprEngineMode === 'ml'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              ⚡ Local ML (VM CPU)
-            </button>
-            <button
-              type="button"
-              onClick={() => setAlprEngineMode('cloud')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
-                alprEngineMode === 'cloud'
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
+            <span className="px-3 py-1.5 rounded-xl text-xs font-black bg-sky-600 text-white shadow-sm">
               ☁️ Plate Recognizer Cloud
-            </button>
+            </span>
           </div>
           <span className="text-[10px] text-slate-400 font-bold px-2">
-            {alprEngineMode === 'compare'
-              ? 'Ejecuta ambas IAs en simultáneo y compara velocidad y precisión'
-              : (alprEngineMode === 'ml' ? '0 costo, ilimitado, ~0.6s' : '2,500 créditos/mes con Marca/Modelo/Color')}
+            2,500 créditos/mes con Marca/Modelo/Color
           </span>
         </div>
 
@@ -1243,7 +1209,7 @@ export default function SecurityCenter() {
                   📊 Auditoría de Rendimiento en Tiempo Real
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Ganador Velocidad: {lastBenchmark.speed_winner || 'Local ML'}
+                  Ganador Velocidad: {lastBenchmark.speed_winner || 'Cloud PR'}
                 </span>
               </div>
               <button
@@ -1255,6 +1221,7 @@ export default function SecurityCenter() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {lastBenchmark.ml_time_ms > 0 && (
               <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-bold text-purple-300 flex items-center gap-1">
@@ -1269,6 +1236,7 @@ export default function SecurityCenter() {
                 </p>
                 <p className="text-[10px] text-purple-300/70 mt-0.5">YOLOv9-t + MobileViT OCR • Costo: $0.00</p>
               </div>
+              )}
 
               <div className="p-2.5 rounded-xl bg-sky-950/40 border border-sky-500/30">
                 <div className="flex items-center justify-between mb-1">
@@ -1287,7 +1255,7 @@ export default function SecurityCenter() {
             </div>
 
             <div className="mt-2.5 pt-2 border-t border-indigo-500/20 flex items-center justify-between text-[11px] text-indigo-200">
-              <span>{lastBenchmark.match ? '✅ Concordancia: Ambas redes neuronales detectaron la misma placa' : 'ℹ️ Resultados complementarios según ángulo y distancia'}</span>
+              <span>{lastBenchmark.match && lastBenchmark.ml_time_ms > 0 ? '✅ Concordancia: Ambas redes neuronales detectaron la misma placa' : 'ℹ️ Detección Cloud en tiempo real según ángulo y distancia'}</span>
               <span>Vehículos estacionados filtrados para proteger cuota</span>
             </div>
           </div>
