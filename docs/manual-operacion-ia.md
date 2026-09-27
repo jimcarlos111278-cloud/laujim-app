@@ -23,6 +23,16 @@ Al soltar: `commit + push` + `Ctrl-b d`.
 
 ## Mapa del proyecto (leer siempre primero)
 `GRAPH_REPORT.md` + `graphify-out/graph.json` + `AGENTS.md`.
+Sin clonar (IA externa, solo HTTP + `GRAPH_READER_TOKEN`):
+`POST https://conjunto-residendial-laujim.duckdns.org/api/graph/query`
+header `x-graph-token`, body `{"action":"stats"}`,
+`{"action":"search","q":"login"}` o `{"action":"neighbors","id":"..."}`.
+
+## Reporte automático de cambios (modo externo, sin IA en VM)
+El hook post-commit de `~/laujim-repo` anota cada commit en Aiven
+(`scripts/note-vm-change.cjs` → `POST /api/graph/note`); la regeneración
+de nodos pasa en el próximo `release-apk`. En la VM no corre ninguna IA
+persistente (ahorro RAM): al terminar, salir de la TUI y `tmux kill-session`.
 
 ## Plantillas de prompt
 - Continuar: *Lee GRAPH_REPORT.md y graphify-out/graph.json. Continúa con:

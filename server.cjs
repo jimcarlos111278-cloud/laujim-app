@@ -93,6 +93,7 @@ app.use(async (req, res, next) => {
   const isPublicApi = req.path === '/api/login' || req.path === '/api/version' ||
     req.path === '/api/ready' || req.path === '/api/admin/recovery-status' || req.path === '/api/admin/recover-password' ||
     req.path === '/api/auth/github/status' || req.path === '/api/auth/github' || req.path === '/api/auth/github/callback' ||
+    req.path === '/api/graph/query' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
     req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path === '/api/admin/cameras/retention-status' || req.path.startsWith('/api/live/') || req.path.startsWith('/api/security/') || req.path.startsWith('/api/callguard/') || req.path.startsWith('/api/scrape-sequential') || req.path === '/api/scrape-all';
   if (req.path.startsWith('/api/') && !isPublicApi) {
@@ -6723,6 +6724,27 @@ app.post('/api/graph/query', async (req, res) => {
     return res.json({ ok: true, node: { id: node.id, label: node.label || node.norm_label || null }, neighbors: [...linked] });
   }
   return res.status(400).json({ error: 'action: stats, search, get, neighbors.' });
+});
+
+// Reporta un cambio al grafo (metadatos en Aiven) sin regenerarlo.
+// Lo usa el hook post-commit del clon de la VM: commit/push -> nota inmediata,
+// regeneración completa de nodos en el próximo release-apk.
+app.post('/api/graph/note', async (req, res) => {
+  if (!checkGraphReader(req, res)) return;
+  if (!pgPool) return res.status(503).json({ error: 'Aiven no configurado.' });
+  const body = req.body || {};
+  const commit = String(body.commit || '').trim().slice(0, 40);
+  const message = String(body.message || '').trim().slice(0, 300);
+  if (!commit) return res.status(400).json({ error: 'Falta commit.' });
+  try {
+    const current = await pgPool.query('SELECT value FROM store WHERE key = $1', ['graph_meta']);
+    const meta = (current.rows[0]?.value && typeof current.rows[0].value === 'object') ? current.rows[0].value : {};
+    meta.lastChange = { commit, message, at: new Date().toISOString(), source: 'vm-hook' };
+    await pgPool.query('INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', ['graph_meta', JSON.stringify(meta)]);
+    res.json({ ok: true, lastChange: meta.lastChange });
+  } catch {
+    res.status(500).json({ error: 'No se pudo anotar el cambio.' });
+  }
 });
 
 app.get('/api/worker-token', (req, res) => {
