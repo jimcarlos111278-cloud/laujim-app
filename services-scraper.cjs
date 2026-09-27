@@ -78,9 +78,24 @@ function firstExistingPath(candidates) {
   return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || null;
 }
 
+// No basta con que DISPLAY exista: tras reinicios bruscos queda un lock
+// huérfano (/tmp/.X99-lock) sin servidor X real. Solo usar headful si el
+// socket del display está presente; si no, headless 'new' directo.
+function hasLiveXDisplay() {
+  const display = process.env.DISPLAY;
+  if (!display) return false;
+  const m = /:(\d+)/.exec(display);
+  if (!m) return false;
+  try {
+    return fs.existsSync(`/tmp/.X11-unix/X${m[1]}`);
+  } catch {
+    return false;
+  }
+}
+
 async function resolveChromium(profileName = 'services', useFullChrome = FULL_CHROME_ENABLED) {
   if (useFullChrome) {
-    const hasDisplay = IS_WINDOWS || Boolean(process.env.DISPLAY);
+    const hasDisplay = IS_WINDOWS || hasLiveXDisplay();
     const executablePath = firstExistingPath(IS_WINDOWS ? CHROME_CANDIDATES : LINUX_CHROME_CANDIDATES);
     if (!executablePath) {
       throw new Error('Full Chrome is enabled but no Chromium/Chrome executable was found in the runtime image.');

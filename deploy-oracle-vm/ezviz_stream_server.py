@@ -151,7 +151,7 @@ app.add_middleware(
 )
 
 
-def rtsp_url(camera_id: str) -> str:
+def rtsp_url(camera_id: str, channel: int = 101) -> str:
     cam = CAMERAS[camera_id]
     pwd = cam["password"]
     if ROUTER_WAN_HOST:
@@ -160,7 +160,35 @@ def rtsp_url(camera_id: str) -> str:
     else:
         host = cam["ip"]
         port = 554
-    return f"rtsp://{cam['user']}:{pwd}@{host}:{port}/Streaming/Channels/101"
+    return f"rtsp://{cam['user']}:{pwd}@{host}:{port}/Streaming/Channels/{channel}"
+
+
+SUB_CHANNEL = 102  # Sub-stream liviano (~512 kbps) para arranque instantáneo en tiles
+SUB_FRESHNESS_MAX_S = 40.0
+
+
+def _sub_key(camera_id: str) -> str:
+    return f"{camera_id}_sub"
+
+
+def _wipe_segments(key: str, max_age_s: float = 30.0):
+    """Borra segmentos .ts viejos (>max_age_s) y vacíos (0 B): limpia pilas
+    rancias SIN dejar el directorio pelado — los recientes sirven de puente
+    para snapshots/ALPR mientras el FFmpeg nuevo arranca."""
+    cam_dir = os.path.join(HLS_DIR, key).replace("\\", "/")
+    now = time.time()
+    try:
+        for f in os.listdir(cam_dir):
+            if not (f.startswith("seg_") and f.endswith(".ts")):
+                continue
+            p = os.path.join(cam_dir, f)
+            try:
+                if os.path.getsize(p) == 0 or now - os.path.getmtime(p) > max_age_s:
+                    os.remove(p)
+            except OSError:
+                pass
+    except OSError:
+        pass
 
 
 def _start_single_stream(camera_id: str):
@@ -229,6 +257,74 @@ def _stop_single_stream(camera_id: str):
         print(f"[{camera_id}] FFmpeg Always-On detenido.")
 
 
+def _start_sub_stream(camera_id: str):
+    """Sub-stream liviano para tiles: misma receta -c copy, canal 102."""
+    key = _sub_key(camera_id)
+    cam_dir = os.path.join(HLS_DIR, key).replace("\\", "/")
+    os.makedirs(cam_dir, exist_ok=True)
+    m3u8_path = f"{cam_dir}/index.m3u8"
+    seg_pattern = f"{cam_dir}/seg_%03d.ts"
+    log_path = f"{cam_dir}/ffmpeg-sub.log"
+
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel", "warning",
+        "-rtsp_transport", "tcp",
+        "-use_wallclock_as_timestamps", "1",
+        "-fflags", "nobuffer+flush_packets",
+        "-flags", "low_delay",
+        "-probesize", "500000",
+        "-analyzeduration", "500000",
+        "-i", rtsp_url(camera_id, SUB_CHANNEL),
+        "-c", "copy",
+        "-f", "hls",
+        "-hls_time", "1",
+        "-hls_list_size", "6",
+        "-hls_flags", "delete_segments+omit_endlist+independent_segments",
+        "-hls_segment_filename", seg_pattern,
+        m3u8_path,
+    ]
+
+    try:
+        log_f = open(log_path, "w", encoding="utf-8", errors="replace")
+        proc = subprocess.Popen(cmd, stdout=log_f, stderr=subprocess.STDOUT)
+        with lock:
+            live_processes[key] = {
+                "process": proc,
+                "started_at": time.time(),
+                "log_file": log_f,
+            }
+        print(f"[{key}] FFmpeg sub-stream iniciado.")
+    except Exception as e:
+        print(f"[{key}] Error al arrancar sub-stream: {e}")
+
+
+def _stop_sub_stream(camera_id: str):
+    """Detiene el sub-stream de una cámara."""
+    key = _sub_key(camera_id)
+    with lock:
+        entry = live_processes.pop(key, None)
+    if entry and entry.get("process"):
+        proc = entry["process"]
+        try:
+            proc.terminate()
+            proc.wait(timeout=2.0)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+        if entry.get("log_file"):
+            try:
+                entry["log_file"].close()
+            except Exception:
+                pass
+        print(f"[{key}] FFmpeg sub-stream detenido.")
+
+
 def _stream_supervisor():
     """Supervisor continuo: mantiene las 3 cámaras activas 24/7.
 
@@ -263,23 +359,60 @@ def _stream_supervisor():
                 if should_restart:
                     if had_entry:
                         _stop_single_stream(cid)
+                    _wipe_segments(cid)
                     _start_single_stream(cid)
                     _restart_backoff_until.pop(cid, None)
+                    # El sub se reasegura abajo en este mismo ciclo.
                     continue
                 # Proceso vivo: verificar que realmente esté produciendo video.
                 age = _playlist_age_s(cid)
                 if age is None:
-                    continue  # Aún arrancando (sin playlist): el chequeo de proceso lo cubre.
-                if age <= HLS_FRESHNESS_MAX_S:
+                    pass  # Aún arrancando (sin playlist): el chequeo de proceso lo cubre.
+                elif age <= HLS_FRESHNESS_MAX_S:
                     _restart_backoff_until.pop(cid, None)
-                    continue
+                else:
+                    now = time.time()
+                    with lock:
+                        _e = live_processes.get(cid)
+                        _proc_age = now - _e["started_at"] if _e else 999.0
+                    if _proc_age < 30.0:
+                        pass  # Gracia de arranque: handshake RTSP lento no es stall.
+                    elif now >= _restart_backoff_until.get(cid, 0):
+                        print(f"[{cid}] Watchdog: sin video nuevo hace {int(age)}s (proceso colgado). Reiniciando FFmpeg.")
+                        _stop_single_stream(cid)
+                        _wipe_segments(cid)
+                        _start_single_stream(cid)
+                        # Backoff: el FFmpeg nuevo tarda ~7s en producir; no reintentar en caliente.
+                        # 60s para las 3 (un backoff corto convierte micro-cortes en apagones visibles).
+                        _restart_backoff_until[cid] = now + 60.0
+                # Sub-stream liviano: se revisa SIEMPRE (sin continues que lo salten).
                 now = time.time()
-                if now >= _restart_backoff_until.get(cid, 0):
-                    print(f"[{cid}] Watchdog: sin video nuevo hace {int(age)}s (proceso colgado). Reiniciando FFmpeg.")
-                    _stop_single_stream(cid)
-                    _start_single_stream(cid)
-                    # Backoff: el FFmpeg nuevo tarda ~7s en producir; no reintentar en caliente.
-                    _restart_backoff_until[cid] = now + 60.0
+                # Sub-stream liviano: mismo cuidado, umbral propio (40s).
+                sub_key = _sub_key(cid)
+                sub_backoff_key = f"{sub_key}_until"
+                with lock:
+                    sub_entry = live_processes.get(sub_key)
+                    sub_running = bool(sub_entry and sub_entry["process"].poll() is None)
+                if not sub_running:
+                    if sub_entry:
+                        _stop_sub_stream(cid)
+                    _wipe_segments(sub_key)
+                    _start_sub_stream(cid)
+                    _restart_backoff_until.pop(sub_backoff_key, None)
+                else:
+                    sub_age = _playlist_age_s(sub_key)
+                    if sub_age is not None and sub_age > SUB_FRESHNESS_MAX_S:
+                        with lock:
+                            _se = live_processes.get(sub_key)
+                            _sub_proc_age = now - _se["started_at"] if _se else 999.0
+                        if _sub_proc_age < 30.0:
+                            pass  # Gracia de arranque también para el sub.
+                        elif now >= _restart_backoff_until.get(sub_backoff_key, 0):
+                            print(f"[{sub_key}] Watchdog: sub sin video hace {int(sub_age)}s. Reiniciando.")
+                            _stop_sub_stream(cid)
+                            _wipe_segments(sub_key)
+                            _start_sub_stream(cid)
+                            _restart_backoff_until[sub_backoff_key] = now + 60.0
         except Exception as e:
             print(f"[SUPERVISOR] Error en bucle: {e}")
         time.sleep(3.0)
@@ -472,10 +605,12 @@ def scan_plates_cloud(img_path: str, cam_id: str = "l") -> list[dict]:
     return results
 
 
-def capture_snapshot(cam_id: str) -> str | None:
-    """Extrae un fotograma JPEG nítido instantáneamente desde el último segmento TS en disco."""
+def capture_snapshot(cam_id: str, max_age_s: float = 10.0, out_name: str = "snapshot.jpg") -> str | None:
+    """Extrae un fotograma JPEG nítido instantáneamente desde el último segmento TS en disco.
+    max_age_s: edad máxima aceptada (10s vista en vivo; 300s ALPR: una placa no vence en 1 min).
+    out_name: archivo destino (ALPR usa alpr_frame.jpg para no contaminar snapshot.jpg del vivo)."""
     cam_dir = os.path.join(HLS_DIR, cam_id).replace("\\", "/")
-    snapshot_path = os.path.join(cam_dir, "snapshot.jpg").replace("\\", "/")
+    snapshot_path = os.path.join(cam_dir, out_name).replace("\\", "/")
 
     # 1. Si existe snapshot reciente (< 4s), reutilizarlo inmediatamente (0ms)
     if os.path.exists(snapshot_path):
@@ -483,35 +618,53 @@ def capture_snapshot(cam_id: str) -> str | None:
         if time.time() - mtime < 4.0:
             return snapshot_path
 
-    # 2. Extraer del último segmento .ts generado (evita bloquearse en la playlist m3u8)
+    # 2. Extraer del último segmento .ts generado (evita bloquearse en la playlist m3u8).
+    # Negro antes que foto falsa: si el .ts supera 10s el FFmpeg está colgado
+    # (el watchdog lo reinicia); no extraer ni reescribir nada viejo.
+    # Se prueban los 3 más nuevos: el último puede estar a medio escribir.
     if os.path.exists(cam_dir):
         ts_files = sorted([f for f in os.listdir(cam_dir) if f.endswith(".ts") and f.startswith("seg_")])
-        if ts_files:
-            latest_ts = os.path.join(cam_dir, ts_files[-1]).replace("\\", "/")
-            # Escritura atómica (tmp + replace): evita el Traceback ASGI cuando
-            # StaticFiles sirve snapshot.jpg justo mientras FFmpeg lo reescribe.
-            tmp_path = snapshot_path + ".tmp"
-            snap_cmd = [
-                "ffmpeg", "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
-                "-i", latest_ts,
-                "-vframes", "1",
-                "-q:v", "2",
-                tmp_path,
-            ]
+        for _cand in reversed(ts_files[-3:]):
+            latest_ts = os.path.join(cam_dir, _cand).replace("\\", "/")
             try:
-                subprocess.run(snap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2.5)
-                if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 1000:
-                    os.replace(tmp_path, snapshot_path)
-                    return snapshot_path
-            except Exception:
+                if time.time() - os.path.getmtime(latest_ts) > max_age_s:
+                    continue
+                if os.path.getsize(latest_ts) < 50000:
+                    continue
+            except OSError:
+                continue
+            if latest_ts:
+                # Escritura atómica (tmp + replace): evita el Traceback ASGI cuando
+                # StaticFiles sirve snapshot.jpg justo mientras FFmpeg lo reescribe.
+                tmp_path = snapshot_path + ".tmp"
+                snap_cmd = [
+                    "ffmpeg", "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
+                    "-fflags", "+genpts",  # los .ts traen PTS rotos (~27h); regenerarlos o no sale frame
+                    "-i", latest_ts,
+                    "-vframes", "1",
+                    "-q:v", "2",
+                    tmp_path,
+                ]
                 try:
-                    if os.path.exists(tmp_path):
-                        os.remove(tmp_path)
-                except OSError:
-                    pass
+                    subprocess.run(snap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8.0)
+                    if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 1000:
+                        os.replace(tmp_path, snapshot_path)
+                        return snapshot_path
+                except Exception:
+                    try:
+                        if os.path.exists(tmp_path):
+                            os.remove(tmp_path)
+                    except OSError:
+                        pass
+                    continue  # probar con el .ts anterior
 
+    # Fallback: solo snapshot dentro de max_age_s (vivo: negro honesto; ALPR: placa útil).
     if os.path.exists(snapshot_path) and os.path.getsize(snapshot_path) > 1000:
-        return snapshot_path
+        try:
+            if time.time() - os.path.getmtime(snapshot_path) < max_age_s:
+                return snapshot_path
+        except OSError:
+            pass
     return None
 
 
@@ -581,7 +734,7 @@ def _alpr_worker():
             for cam_id in ALPR_AUTO["cams"]:
                 if cam_id in paused_for_export:
                     continue
-                snap = capture_snapshot(cam_id)
+                snap = capture_snapshot(cam_id, max_age_s=300.0, out_name="alpr_frame.jpg")
                 if not snap:
                     continue
                 img = cv2.imread(snap, cv2.IMREAD_GRAYSCALE)
@@ -664,6 +817,11 @@ def list_cameras():
         age = _playlist_age_s(cid)
         # live = proceso corriendo Y produciendo video fresco (no basta estar vivo).
         live = bool(is_active and age is not None and age <= HLS_FRESHNESS_MAX_S)
+        sub_key = _sub_key(cid)
+        sub_entry = live_processes.get(sub_key)
+        sub_active = bool(sub_entry and sub_entry["process"].poll() is None)
+        sub_age = _playlist_age_s(sub_key)
+        sub_live = bool(sub_active and sub_age is not None and sub_age <= SUB_FRESHNESS_MAX_S)
         res.append({
             "id": cid,
             "name": cam["name"],
@@ -671,6 +829,9 @@ def list_cameras():
             "live": live,
             "age_s": round(age, 1) if age is not None else None,
             "playlist": f"/hls/{cid}/index.m3u8" if is_active else None,
+            "sub_live": sub_live,
+            "sub_age_s": round(sub_age, 1) if sub_age is not None else None,
+            "sub_playlist": f"/hls/{sub_key}/index.m3u8" if sub_active else None,
             "mode": "24/7 Always-On",
             "viewers": 1,
         })
@@ -745,6 +906,7 @@ def trigger_alpr_scan(mode: str = "compare", cam: str = "all"):
     all_ml_results = []
     all_cloud_results = []
     detected_plates = []
+    diag_info = {}
 
     total_ml_time = 0.0
     total_cloud_time = 0.0
@@ -752,7 +914,18 @@ def trigger_alpr_scan(mode: str = "compare", cam: str = "all"):
     now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).strftime("%Y-%m-%d %I:%M:%S %p")
 
     for cam_id, cam_label in targets:
-        snap_path = capture_snapshot(cam_id)
+        snap_path = capture_snapshot(cam_id, max_age_s=300.0, out_name="alpr_frame.jpg")
+        try:
+            _diag_dir = os.path.join(HLS_DIR, cam_id).replace("\\", "/")
+            _segs = sorted([f for f in os.listdir(_diag_dir) if f.endswith(".ts") and f.startswith("seg_")])
+            _newest = os.path.join(_diag_dir, _segs[-1]) if _segs else None
+            diag_info[cam_id] = {
+                "snap": bool(snap_path),
+                "seg_count": len(_segs),
+                "newest_age_s": round(time.time() - os.path.getmtime(_newest), 1) if _newest else None,
+            }
+        except Exception:
+            pass
         if not snap_path:
             continue
 
@@ -814,6 +987,7 @@ def trigger_alpr_scan(mode: str = "compare", cam: str = "all"):
         "ok": True,
         "mode": mode,
         "plates_detected": detected_plates,
+        "diag": diag_info,
         "benchmark": {
             "ml_time_ms": round(total_ml_time, 1),
             "cloud_time_ms": round(total_cloud_time, 1),
