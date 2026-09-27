@@ -1,11 +1,8 @@
-#Requires -Version 5.1
-<#
-  Deja un PC nuevo listo y abre la IA en la VM, todo de una vez.
-  Uso (una sola línea, sin clonar nada antes):
-  powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/jimcarlos111278-cloud/laujim-app/main/scripts/setup-new-pc.ps1 | iex"
-  Variables opcionales antes: $env:LAUJIM_DIR (destino), $env:LAUJIM_IA (opencode|codex|agy).
-  Lo único manual: el login de Tailscale (tu identidad, 30 s).
-#>
+# setup-new-pc.ps1: deja un PC nuevo listo y abre la IA en la VM, todo de una vez.
+# Uso (una sola línea, sin clonar nada antes):
+# powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/jimcarlos111278-cloud/laujim-app/main/scripts/setup-new-pc.ps1 | iex"
+# Variables opcionales antes: $env:LAUJIM_DIR (destino), $env:LAUJIM_IA (opencode|codex|agy).
+# Lo único manual: el login de Tailscale (tu identidad, 30 s).
 $ErrorActionPreference = 'Stop'
 $Dest = if ($env:LAUJIM_DIR) { $env:LAUJIM_DIR } else { Join-Path $HOME 'laujim-app' }
 $Ia = if ($env:LAUJIM_IA) { $env:LAUJIM_IA } else { 'opencode' }
