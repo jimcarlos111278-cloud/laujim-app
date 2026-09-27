@@ -28,7 +28,10 @@ const SOURCES = [
 
 function r2Config() {
   const accountId = String(process.env.R2_ACCOUNT_ID || '').trim();
-  const bucket = String(process.env.R2_BUCKET || '').trim();
+  // El backup va a R2_BACKUP_BUCKET (laujim-backups); la app usa R2_BUCKET
+  // (laujim-media) para su operación. Mismo par de llaves si el token cubre
+  // ambos buckets.
+  const bucket = String(process.env.R2_BACKUP_BUCKET || process.env.R2_BUCKET || '').trim();
   const accessKeyId = String(process.env.R2_ACCESS_KEY_ID || '').trim();
   const secretAccessKey = String(process.env.R2_SECRET_ACCESS_KEY || '').trim();
   const endpoint = String(process.env.R2_ENDPOINT || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : '')).trim();
