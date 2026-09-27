@@ -4,18 +4,18 @@
 
 El scraper no queda amarrado a un equipo. Un Android puede abrir los portales
 localmente con el WebView nativo; un PC o VPS puede hacerlo con Chromium/Chrome
-local. Render solo entrega configuracion, recibe resultados sanitizados y
+local. El servidor (Oracle) solo entrega configuracion, recibe resultados sanitizados y
 alimenta PostgreSQL y el bot.
 
 ```text
 Android APK -- WebView local -- HTTPS: resultados --\
-PC/VPS ----- Chromium local ---------------------> Render -- PostgreSQL -- Bot
+PC/VPS ----- Chromium local ---------------------> Oracle -- PostgreSQL -- Bot
                                                    \-- portales autenticados
 ```
 
 El worker nunca recibe `DATABASE_URL`, contrasenas de Aiven ni el token de
 WhatsApp. En Android la sesion queda en el WebView de Laujim; en PC/VPS queda
-en el perfil local de Chromium. Las credenciales no se envian a Render.
+en el perfil local de Chromium. Las credenciales no se envian al servidor.
 
 ## Contrato HTTP
 
@@ -84,7 +84,7 @@ El servidor normaliza `Deuda Total`, elimina campos no permitidos y actualiza
 recomendado `portable` responde `409`, porque el dispositivo debe abrir el
 portal localmente y enviar `/worker/v1/results`.
 
-## Configuracion de Render
+## Configuracion del servidor (Oracle)
 
 ```text
 SCRAPER_WORKER_ENABLED=true
@@ -96,7 +96,7 @@ PORTABLE_WORKER_TIMEZONE=America/Bogota
 PORTABLE_WORKER_PROVIDERS=air-e,water,gas
 ```
 
-`portable` es el modo sin Browserless. Render no inicia el scheduler de
+`portable` es el modo sin Browserless. El servidor no inicia el scheduler de
 portales y no consume una integracion remota. El modo `render` queda disponible
 solo si el administrador lo selecciona expresamente y cuenta con un navegador
 local/full-browser en ese entorno.
@@ -136,7 +136,7 @@ correspondiente. La app no intenta saltarse el control de seguridad.
 
 En Windows/Linux esta disponible el runner local. Copia
 `portable-worker.config.example.json` como `portable-worker.config.json`,
-completa el token de Render y las credenciales locales, y ejecuta:
+completa el token del servidor y las credenciales locales, y ejecuta:
 
 ```text
 npm run portable-worker -- --once
@@ -150,7 +150,7 @@ accidental.
 ## Cambiar de dispositivo
 
 1. Instalar la misma APK o copiar el runner al nuevo equipo.
-2. Configurar URL de Render, token y un `deviceId` diferente.
+2. Configurar URL del servidor, token y un `deviceId` diferente.
 3. Registrar el nuevo dispositivo con `replaceExisting: true`.
 4. Iniciar el worker local.
 5. Verificar el ultimo heartbeat, el estado y `scrapedAt` en Laujim.

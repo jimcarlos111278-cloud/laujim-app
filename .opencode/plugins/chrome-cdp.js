@@ -9,7 +9,7 @@ import net from 'net';
 
 const CDP_HOST = '127.0.0.1';
 const CDP_PORT = 9222;
-const LAUJIM_URL = 'https://laujim-app.onrender.com/dashboard';
+const LAUJIM_URL = 'https://conjunto-residendial-laujim.duckdns.org/dashboard';
 const BROWSER_TOOL_PREFIXES = ['chrome-devtools_', 'puppeteer_'];
 
 let browserStartPromise = null;

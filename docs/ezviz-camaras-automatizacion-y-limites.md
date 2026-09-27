@@ -9,7 +9,7 @@ Este documento recopila la investigación arquitectónica, endpoints descubierto
 ### 1.1 Telemetría WiFi en Tiempo Real
 - **Endpoint Servidor:** `GET /api/cameras/telemetry` (también alias `/api/api/cameras/telemetry` y `/api/admin/cameras/telemetry`).
 - **Mecanismo:** Consulta directa a la API de Ezviz con filtro dedicado `WIFI` y `CLOUD`, obteniendo la intensidad de señal física (`signalPercent`), decibelios milivatio (`signalDbm`), IP local en la LAN del router (`192.168.1.X`), SSID (`Laujim`), estado de tarjeta SD y latencia RTT de la nube.
-- **Caché en Memoria (Render):** 6 segundos de ventana para evitar rate limiting en consultas frecuentes desde el frontend.
+- **Caché en Memoria (Oracle VM):** 6 segundos de ventana para evitar rate limiting en consultas frecuentes desde el frontend.
 - **Vistas Integradas:**
   1. `Dashboard.jsx`: Widget activo con sincronización en vivo cada 12 segundos, barras de color (Verde/Ámbar/Rojo) y recomendación de repetidor.
   2. `SecurityCenter.jsx`: Centro unificado de seguridad con control PTZ, transmisión en vivo de las 3 cámaras y modal de diagnóstico detallado.
@@ -64,7 +64,7 @@ Este documento recopila la investigación arquitectónica, endpoints descubierto
   {
     "deviceSerial": "BG6994814",
     "voiceName": "aviso_porton",
-    "voiceUrl": "https://laujim-app.onrender.com/audio/aviso-porton.wav"
+    "voiceUrl": "https://conjunto-residendial-laujim.duckdns.org/audio/aviso-porton.wav"
   }
   ```
 - **Ejemplos de Mensajes Prácticos para el Edificio:**

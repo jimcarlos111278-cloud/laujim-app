@@ -16,6 +16,7 @@ has an intentional local working-tree change (or Aiven is empty), so a stale
 tracked snapshot cannot replace newer production data. Stage only intended code
 and documentation files; never use `git add -A` for a data snapshot.
 
-After a successful push, verify that Render has deployed the new build. Do not
+After a successful push, verify that the Oracle VM has deployed the new build
+(`https://conjunto-residendial-laujim.duckdns.org/api/version`). Do not
 claim the production data is current until the Aiven write and deployment are
 both confirmed.

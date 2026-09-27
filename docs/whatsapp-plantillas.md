@@ -1,6 +1,6 @@
 # Plantillas de WhatsApp Cloud de Laujim
 
-El servidor usa estos nombres exactamente en Render. Todas las plantillas enumeradas en este documento están aprobadas y habilitadas en producción desde el 28 de agosto de 2026.
+El servidor usa estos nombres exactamente en el servidor Oracle. Todas las plantillas enumeradas en este documento están aprobadas y habilitadas en producción desde el 28 de agosto de 2026.
 
 ## 1. `saludo_inquilino`
 
@@ -66,7 +66,7 @@ Botones configurados en Meta:
 
 El webhook acepta tanto los identificadores de botón que envíe Meta como los títulos visibles. Al confirmar el pago, solicita adjuntar el comprobante; si el inquilino indica que aún no ha pagado, responde con las instrucciones correspondientes.
 
-## Variables de Render
+## Variables del servidor (Oracle)
 
 ```text
 WHATSAPP_GREETING_TEMPLATE=saludo_inquilino
