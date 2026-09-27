@@ -612,6 +612,16 @@ def capture_snapshot(cam_id: str, max_age_s: float = 10.0, out_name: str = "snap
     cam_dir = os.path.join(HLS_DIR, cam_id).replace("\\", "/")
     snapshot_path = os.path.join(cam_dir, out_name).replace("\\", "/")
 
+    # Limpieza de tmps huérfanos de intentos concurrentes (ver tmp único abajo).
+    try:
+        for _old in os.listdir(cam_dir):
+            if _old.startswith(out_name + ".") and _old.endswith(".tmp"):
+                _full = os.path.join(cam_dir, _old)
+                if time.time() - os.path.getmtime(_full) > 120:
+                    os.remove(_full)
+    except OSError:
+        pass
+
     # 1. Si existe snapshot reciente (< 4s), reutilizarlo inmediatamente (0ms)
     if os.path.exists(snapshot_path):
         mtime = os.path.getmtime(snapshot_path)
@@ -640,7 +650,9 @@ def capture_snapshot(cam_id: str, max_age_s: float = 10.0, out_name: str = "snap
             if latest_ts:
                 # Escritura atómica (tmp + replace): evita el Traceback ASGI cuando
                 # StaticFiles sirve snapshot.jpg justo mientras FFmpeg lo reescribe.
-                tmp_path = snapshot_path + ".tmp"
+                # Tmp ÚNICO por intento (pid + ms): la patrulla auto y los escaneos
+                # manuales corren en simultáneo y se pisaban el mismo .tmp.
+                tmp_path = "%s.%d.%d.tmp" % (snapshot_path, os.getpid(), int(time.time() * 1000))
                 snap_cmd = [
                     "ffmpeg", "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
                     "-fflags", "+genpts",  # los .ts traen PTS rotos (~27h); regenerarlos o no sale frame
