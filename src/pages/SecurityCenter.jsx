@@ -330,10 +330,10 @@ export default function SecurityCenter() {
     return () => clearInterval(interval);
   }, [cameraLive, selectedCamSerial]);
 
-  // Si la señal está caída, re-solicitar el stream cada 15s hasta que vuelva.
+  // Si la señal está caída, re-solicitar el stream cada 8s hasta que vuelva.
   useEffect(() => {
     if (!cameraLive || streamLive[selectedCamSerial] !== false) return;
-    const retry = setInterval(() => requestCameraStream(selectedCamSerial), 15000);
+    const retry = setInterval(() => requestCameraStream(selectedCamSerial), 8000);
     return () => clearInterval(retry);
   }, [cameraLive, selectedCamSerial, streamLive[selectedCamSerial]]);
 

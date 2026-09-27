@@ -42,8 +42,8 @@ const [installPrompt, setInstallPrompt] = useState(null);
   const navigate = useNavigate();
   const immersiveWhatsApp = location.pathname === '/whatsapp';
 
-  function handleLogout() {
-    clearAuth({ permanent: true }, 'user_sidebar_logout');
+  async function handleLogout() {
+    await clearAuth({ permanent: true }, 'user_sidebar_logout');
     navigate('/login', { replace: true });
   }
 

@@ -11,8 +11,7 @@
     "clipboardWrite"
   ],
   "host_permissions": [
-    "*://*.laujim-app.onrender.com/*",
-    "*://laujim-app.onrender.com/*",
+    "*://conjunto-residendial-laujim.duckdns.org/*",
     "https://laujim-app-2f53.onbelmo.uk/*",
     "http://localhost/*",
     "http://127.0.0.1/*",
@@ -24,8 +23,7 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.laujim-app.onrender.com/*",
-        "*://laujim-app.onrender.com/*",
+        "*://conjunto-residendial-laujim.duckdns.org/*",
         "https://laujim-app-2f53.onbelmo.uk/*",
         "http://localhost/*",
         "http://127.0.0.1/*"

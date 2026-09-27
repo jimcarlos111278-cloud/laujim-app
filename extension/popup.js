@@ -110,7 +110,7 @@
   });
 
   btnOpenLaujim.addEventListener('click', function () {
-    chrome.tabs.create({ url: 'https://laujim-app.onrender.com' });
+    chrome.tabs.create({ url: 'https://conjunto-residendial-laujim.duckdns.org' });
   });
 
   loadData();

@@ -5,6 +5,7 @@ import {
   Activity, AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Building2, Calendar, Camera, Check, CheckCircle, ChevronDown, ChevronUp,
   Compass, Copy, Download, Droplets, ExternalLink, Eye, FileText, Flame, HardDrive, Info, Key, LayoutGrid, Loader2,
   LockKeyhole, LogOut, MapPin, Maximize2, Move, Play, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, Wifi, X, Zap,
+  ChevronLeft, ChevronRight, ZoomIn,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { clearAuth, isTenant, isAdmin, getAuth, watchAuthRevoked, revalidateSession } from '../utils/auth';
@@ -99,6 +100,214 @@ const APTO_CAMERAS = [
   { id: 'der', name: 'Cámara Derecha', serial: 'BG6994741', location: 'Fachada Derecha', isGate: false },
 ];
 
+// ─── Video HLS autónomo: un Hls + watchdog propios por cada cámara ──────────
+// Negro honesto: sin frames en 8s reporta error (el tile muestra negro +
+// "Sincronizando"), nunca foto vieja.
+function LiveVideo({ streamUrl, active, onState, className }) {
+  const ref = useRef(null);
+  const watchRef = useRef({ setAt: Date.now() });
+  const repRef = useRef(''); // deja pasar solo transiciones (sin re-render 4x/s)
+  const [blocked, setBlocked] = useState(false);
+  const stateRef = useRef(onState);
+  stateRef.current = onState;
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video || !streamUrl || !active) {
+      if (stateRef.current) stateRef.current({ playing: false, error: !streamUrl });
+      return;
+    }
+    setBlocked(false);
+    watchRef.current = { setAt: Date.now() };
+    let hls = null;
+    let cancelled = false;
+    const report = (s) => {
+      const k = (s.playing ? 'p' : 's') + (s.error ? 'e' : '');
+      if (cancelled || repRef.current === k) return;
+      repRef.current = k;
+      if (stateRef.current) stateRef.current(s);
+    };
+    const attemptPlay = () => {
+      try { video.muted = true; } catch {}
+      video.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+    };
+    let onMeta = null;
+    if (Hls.isSupported()) {
+      hls = new Hls({
+        enableWorker: true, lowLatencyMode: true,
+        liveSyncDurationCount: 2, liveMaxLatencyDurationCount: 4,
+        maxBufferLength: 10, maxMaxBufferLength: 20, backBufferLength: 5,
+        manifestLoadingTimeOut: 5000, manifestLoadingMaxRetry: 5, manifestLoadingRetryDelay: 500,
+        levelLoadingTimeOut: 5000, levelLoadingMaxRetry: 5,
+        fragLoadingTimeOut: 5000, fragLoadingMaxRetry: 5, fragLoadingRetryDelay: 500,
+      });
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, attemptPlay);
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) { try { hls.startLoad(); } catch {} return; }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) { try { hls.recoverMediaError(); } catch {} return; }
+        report({ playing: false, error: true });
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
+      onMeta = attemptPlay;
+      video.addEventListener('loadedmetadata', onMeta);
+    }
+    const onPlaying = () => { watchRef.current.setAt = Date.now(); report({ playing: true, error: false }); };
+    const onStall = () => report({ playing: false, error: false });
+    const onTick = () => {
+      if ((video.currentTime || 0) > 0) { watchRef.current.setAt = Date.now(); report({ playing: true, error: false }); }
+    };
+    const onVideoError = () => report({ playing: false, error: true });
+    video.addEventListener('playing', onPlaying);
+    video.addEventListener('waiting', onStall);
+    video.addEventListener('pause', onStall);
+    video.addEventListener('timeupdate', onTick);
+    video.addEventListener('error', onVideoError);
+    const timer = setInterval(() => {
+      if (Date.now() - watchRef.current.setAt > 8000) report({ playing: false, error: true });
+    }, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      video.removeEventListener('playing', onPlaying);
+      video.removeEventListener('waiting', onStall);
+      video.removeEventListener('pause', onStall);
+      video.removeEventListener('timeupdate', onTick);
+      video.removeEventListener('error', onVideoError);
+      if (onMeta) video.removeEventListener('loadedmetadata', onMeta);
+      if (hls) { try { hls.destroy(); } catch {} }
+    };
+  }, [streamUrl, active]);
+
+  return (
+    <div className="relative h-full w-full bg-slate-950">
+      <video ref={ref} autoPlay playsInline muted className={className || 'h-full w-full object-cover'} />
+      {blocked && (
+        <button
+          onClick={(e) => { e.stopPropagation(); const v = ref.current; if (v) { v.muted = true; v.play().then(() => setBlocked(false)).catch(() => {}); } }}
+          className="absolute inset-0 z-20 flex items-center justify-center bg-black/40"
+        >
+          <span className="rounded-full border border-white/30 bg-white/20 p-4"><Play className="h-8 w-8 text-white" /></span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+const ZOOM_LEVELS = [1, 2, 4, 6, 8];
+
+// ─── Modal horizontal: zoom digital por botones + pan con dedos ─────────────
+// Los streams ya están activos (la lista los mantiene vivos): atrás/adelante
+// no recarga nada. X arriba-derecha para salir.
+function CameraZoomModal({ cams, index, streamUrls, fallbackUrls, tileState, onClose, onIndex, showPtz, onPtz, ptzMoving }) {
+  const cam = cams[index];
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const boxRef = useRef(null);
+  const dragRef = useRef(null);
+  useEffect(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, [index]);
+  const playing = tileState[cam.serial]?.playing;
+
+  const startDrag = (e) => {
+    if (zoom <= 1) return;
+    const el = boxRef.current;
+    const r = el ? el.getBoundingClientRect() : { width: 320, height: 200 };
+    dragRef.current = {
+      sx: e.clientX, sy: e.clientY, px: pan.x, py: pan.y,
+      mx: ((zoom - 1) * r.width) / 2, my: ((zoom - 1) * r.height) / 2,
+    };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+  };
+  const moveDrag = (e) => {
+    const d = dragRef.current;
+    if (!d) return;
+    setPan({
+      x: Math.max(-d.mx, Math.min(d.mx, d.px + (e.clientX - d.sx))),
+      y: Math.max(-d.my, Math.min(d.my, d.py + (e.clientY - d.sy))),
+    });
+  };
+  const endDrag = () => { dragRef.current = null; };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black" onClick={onClose}>
+      <div className="flex items-center justify-between px-4 py-3" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${playing ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
+          <p className="text-sm font-bold text-white">{cam.name}</p>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${playing ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>
+            {playing ? 'En vivo' : 'Sincronizando…'}
+          </span>
+        </div>
+        <button onClick={onClose} title="Salir" className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div
+        ref={boxRef}
+        className="relative flex-1 overflow-hidden"
+        style={{ touchAction: zoom > 1 ? 'none' : 'auto' }}
+        onClick={e => e.stopPropagation()}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <div className="absolute inset-0" style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
+          <div className="h-full w-full" style={{ transform: `scale(${zoom})`, transformOrigin: 'center' }}>
+            <LiveVideo streamUrl={streamUrls[cam.serial] || (fallbackUrls || {})[cam.serial]} active className="h-full w-full object-contain" />
+          </div>
+        </div>
+        <button
+          onClick={e => { e.stopPropagation(); onIndex((index + cams.length - 1) % cams.length); }}
+          title="Cámara anterior"
+          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-3 text-white hover:bg-black/70"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+        <button
+          onClick={e => { e.stopPropagation(); onIndex((index + 1) % cams.length); }}
+          title="Siguiente cámara"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-3 text-white hover:bg-black/70"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      </div>
+
+      <div className="flex items-center justify-center gap-2 px-4 py-3" onClick={e => e.stopPropagation()}>
+        <ZoomIn className="h-4 w-4 text-slate-400" />
+        {ZOOM_LEVELS.map(z => (
+          <button
+            key={z}
+            onClick={() => { setZoom(z); setPan({ x: 0, y: 0 }); }}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${zoom === z ? 'bg-blue-600 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
+          >
+            x{z}
+          </button>
+        ))}
+      </div>
+
+      {showPtz && (
+        <div className="flex items-center justify-center gap-2 px-4 pb-4" onClick={e => e.stopPropagation()}>
+          {['left', 'up', 'down', 'right'].map(dir => (
+            <button
+              key={dir}
+              onClick={() => onPtz(dir, cam.serial)}
+              disabled={Boolean(ptzMoving)}
+              className="rounded-lg bg-white/10 px-4 py-1.5 text-xs font-bold text-white hover:bg-white/20 disabled:opacity-50"
+            >
+              {dir === 'left' ? '◀' : dir === 'right' ? '▶' : dir === 'up' ? '▲' : '▼'}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MiApto() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -113,22 +322,13 @@ export default function MiApto() {
   const [activeCall, setActiveCall] = useState(null);
   const [cameraLive, setCameraLive] = useState(true);
   // 24/7 sin auto-corte: el motor Always-On mantiene el vivo tibio; la pausa es manual.
-  const [selectedCamSerial, setSelectedCamSerial] = useState('BG6994814');
-  const [camViewMode, setCamViewMode] = useState('mosaic'); // 'mosaic' (1 hero + 2 secundarios) | 'grid' (3 iguales)
-  const [cameraFeeds, setCameraFeeds] = useState({
-    BG6994814: `${getRawBase()}/api/intercom/public/feed?serial=BG6994814&t=${Date.now()}`,
-    BG6994872: `${getRawBase()}/api/intercom/public/feed?serial=BG6994872&t=${Date.now()}`,
-    BG6994741: `${getRawBase()}/api/intercom/public/feed?serial=BG6994741&t=${Date.now()}`,
-  });
-  const [cameraErrors, setCameraErrors] = useState({});
+  // Lista vertical: las 3 cámaras reproducen video HLS a la vez, mismo tamaño.
+  const [tileState, setTileState] = useState({}); // serial -> { playing, error }
+  const [zoomIdx, setZoomIdx] = useState(null); // índice APTO_CAMERAS en modal, null = cerrado
   const [streamUrls, setStreamUrls] = useState({});
+  const [modalUrls, setModalUrls] = useState({}); // main para zoom (se pide al abrir el modal)
   const [streamErrors, setStreamErrors] = useState({});
   const [streamingActive, setStreamingActive] = useState(true);
-  const [heroPlaying, setHeroPlaying] = useState(false); // true solo con frames reales en el <video>
-  const [streamEpoch, setStreamEpoch] = useState(0); // bump para forzar recarga del HLS al volver
-  const heroWatchRef = useRef({ serial: '', setAt: 0, lastTime: 0 });
-  const videoRef = useRef(null);
-  const [needsUserPlay, setNeedsUserPlay] = useState(false); // overlay si el navegador bloquea autoplay
   const [ptzMoving, setPtzMoving] = useState(''); // 'up' | 'down' | 'left' | 'right' | ''
   const [ptzFeedback, setPtzFeedback] = useState('');
   const [showEzvizGuide, setShowEzvizGuide] = useState(false);
@@ -155,9 +355,11 @@ export default function MiApto() {
       }
     } catch {}
 
-    for (const cam of APTO_CAMERAS) {
+    // En paralelo: el loop secuencial hacía que l/r arrancaran segundos
+    // después del portón (cada /stream puede tardar hasta ~2.5s).
+    await Promise.allSettled(APTO_CAMERAS.map(async (cam) => {
       try {
-        const res = await fetch(`${getRawBase()}/api/cameras/${cam.serial}/stream`);
+        const res = await fetch(`${getRawBase()}/api/cameras/${cam.serial}/stream?quality=sub`);
         const data = await res.json().catch(() => ({}));
         if (data.ok && data.streamUrl) {
           const rawBase = getRawBase();
@@ -168,151 +370,65 @@ export default function MiApto() {
           setStreamErrors(prev => ({ ...prev, [cam.serial]: false }));
         }
       } catch {}
-    }
+    }));
   }
 
   useEffect(() => {
     loadStreams();
   }, []);
 
-  // Precarga escalonada inicial para garantizar que las 3 cámaras respondan de inmediato
-  useEffect(() => {
-    APTO_CAMERAS.forEach((cam, idx) => {
-      setTimeout(() => {
-        const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
-        const img = new Image();
-        img.onload = () => {
-          setCameraFeeds(prev => ({ ...prev, [cam.serial]: nextUrl }));
-          setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
-        };
-        img.src = nextUrl;
-      }, idx * 400);
-    });
-  }, []);
+  // loadStreams() ya precalienta las 3 al montar: no duplicar requests aquí.
 
-  // Cargar o reactivar stream para una cámara específica
-  async function requestCameraStream(serial) {
+  // Cargar o reactivar stream para una cámara específica.
+  // quality 'sub' (tiles, liviano) o 'main' (modal con zoom).
+  async function requestCameraStream(serial, quality = 'main') {
     if (!serial) return;
     try {
-      const res = await fetch(`${getRawBase()}/api/cameras/${serial}/stream`);
+      const q = quality === 'sub' ? '?quality=sub' : '';
+      const res = await fetch(`${getRawBase()}/api/cameras/${serial}/stream${q}`);
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.streamUrl) {
         const rawBase = getRawBase();
         const fullUrl = data.streamUrl.startsWith('http')
           ? data.streamUrl
           : `${rawBase}${data.streamUrl.startsWith('/') ? '' : '/'}${data.streamUrl}`;
-        setStreamUrls(prev => ({ ...prev, [serial]: fullUrl }));
-        setStreamErrors(prev => ({ ...prev, [serial]: false }));
+        if (quality === 'sub') {
+          setStreamUrls(prev => ({ ...prev, [serial]: fullUrl }));
+          setStreamErrors(prev => ({ ...prev, [serial]: false }));
+        } else {
+          setModalUrls(prev => ({ ...prev, [serial]: fullUrl }));
+        }
       }
     } catch {}
   }
 
-  // Latido de permanencia (Heartbeat cada 7s) para mantener vivo el stream en la nube
+  // Al abrir el modal se pide el main (calidad para zoom); al cerrar se conserva en caché.
   useEffect(() => {
-    if (!cameraLive || !selectedCamSerial) return;
-    // Solicitar el stream si no está listo o falló previamente
-    requestCameraStream(selectedCamSerial);
+    if (zoomIdx == null) return;
+    requestCameraStream(APTO_CAMERAS[zoomIdx].serial, 'main');
+  }, [zoomIdx]);
+
+  // Latido de permanencia (cada 7s) para las 3 cámaras activas.
+  useEffect(() => {
+    if (!cameraLive) return;
+    APTO_CAMERAS.forEach(cam => requestCameraStream(cam.serial, 'sub'));
 
     const ping = () => {
-      fetch(`${getRawBase()}/api/cameras/${selectedCamSerial}/ping`, { method: 'POST' }).catch(() => {});
+      // Sin latido en pestaña oculta: evita mantener el motor caliente en vano.
+      if (document.visibilityState === 'hidden') return;
+      APTO_CAMERAS.forEach(cam => {
+        fetch(`${getRawBase()}/api/cameras/${cam.serial}/ping`, { method: 'POST' }).catch(() => {});
+      });
     };
     ping();
     const interval = setInterval(ping, 7000);
     return () => clearInterval(interval);
-  }, [cameraLive, selectedCamSerial]);
+  }, [cameraLive]);
 
-  // Reproductor HLS para la cámara Hero seleccionada
-  useEffect(() => {
-    const streamUrl = streamUrls[selectedCamSerial];
-    const isFailed = streamErrors[selectedCamSerial];
-    const video = videoRef.current;
-    if (!video || !streamUrl || isFailed || !cameraLive) return;
-    setNeedsUserPlay(false);
+  // El video lo maneja <LiveVideo> por cámara (Hls + watchdog propios).
 
-    let hls = null;
-    let onCanPlay = null;
-    if (Hls.isSupported()) {
-      hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true, // 24/7 pegado al borde vivo (port-forward siempre tibio)
-        liveSyncDurationCount: 2,
-        liveMaxLatencyDurationCount: 4,
-        maxBufferLength: 10,
-        maxMaxBufferLength: 20,
-        backBufferLength: 5,
-        manifestLoadingTimeOut: 5000,
-        manifestLoadingMaxRetry: 5,
-        manifestLoadingRetryDelay: 500,
-        levelLoadingTimeOut: 5000,
-        levelLoadingMaxRetry: 5,
-        fragLoadingTimeOut: 5000,
-        fragLoadingMaxRetry: 5,
-        fragLoadingRetryDelay: 500,
-      });
-      hls.loadSource(streamUrl);
-      hls.attachMedia(video);
-      video.muted = true; // imperativo: React no siempre aplica el prop muted y sin esto el autoplay falla en negro
-      const attemptHeroPlay = () => {
-        video.muted = true;
-        video.play().then(() => setNeedsUserPlay(false)).catch(() => setNeedsUserPlay(true));
-      };
-      hls.on(Hls.Events.MANIFEST_PARSED, attemptHeroPlay);
-      // Reintento al tener datos listos (algunos navegadores rechazan el primer play)
-      onCanPlay = attemptHeroPlay;
-      video.addEventListener('canplay', onCanPlay);
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          console.warn('[HLS] Error fatal en stream HLS:', data.type);
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            hls.startLoad();
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            hls.recoverMediaError();
-          } else {
-            setStreamErrors(prev => ({ ...prev, [selectedCamSerial]: true }));
-          }
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = streamUrl;
-      video.addEventListener('loadedmetadata', () => {
-        video.play().catch(() => {});
-      });
-    }
-
-    return () => {
-      setHeroPlaying(false);
-      if (onCanPlay) video.removeEventListener('canplay', onCanPlay);
-      if (hls) hls.destroy();
-    };
-  }, [selectedCamSerial, streamUrls[selectedCamSerial], streamErrors[selectedCamSerial], cameraLive, streamEpoch]);
-
-  // Vigilante de video congelado: si el HLS no avanza frames en ~12s, el héroe
-  // caería en pantalla negra con badge "EN VIVO". Se marca error para caer al
-  // snapshot (que sí funciona) en vez de mentir.
-  useEffect(() => {
-    const serial = selectedCamSerial;
-    if (!cameraLive || !streamUrls[serial] || streamErrors[serial]) return;
-    heroWatchRef.current = { serial, setAt: Date.now(), lastTime: 0 };
-    const timer = setInterval(() => {
-      const v = videoRef.current;
-      const w = heroWatchRef.current;
-      if (!v || w.serial !== serial) return;
-      const t = v.currentTime || 0;
-      const progressing = t > (w.lastTime || 0);
-      w.lastTime = t;
-      // Reloj deslizante: cada frame real reinicia la ventana. Solo se
-      // declara congelado tras 12s seguidos sin ningún progreso (incluye el
-      // arranque inicial lento: el fallback a snapshot es la UX correcta).
-      if (progressing) w.setAt = Date.now();
-      if (Date.now() - w.setAt > 12000 && !progressing) {
-        setStreamErrors(prev => (prev[serial] ? prev : { ...prev, [serial]: true }));
-      }
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [cameraLive, selectedCamSerial, streamUrls[selectedCamSerial], streamErrors[selectedCamSerial], streamEpoch]);
-
-  // Al volver a la pestaña (incl. bfcache): video y fotos frescas, nunca el
-  // frame congelado del momento en que se ocultó.
+  // Al volver a la pestaña (incl. bfcache): revalidar sesión y reactivar
+  // los 3 streams (los <LiveVideo> se re-suscriben solos al cambiar la URL).
   useEffect(() => {
     const resume = () => {
       // Al volver, revalidar primero: detecta inquilino eliminado o sesión
@@ -322,19 +438,9 @@ export default function MiApto() {
       }).catch(() => {});
       if (!cameraLive) return;
       APTO_CAMERAS.forEach(cam => {
-        const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
-        const img = new Image();
-        img.onload = () => {
-          setCameraFeeds(prev => ({ ...prev, [cam.serial]: nextUrl }));
-          setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
-        };
-        img.src = nextUrl;
+        requestCameraStream(cam.serial, 'sub');
+        fetch(`${getRawBase()}/api/cameras/${cam.serial}/ping`, { method: 'POST' }).catch(() => {});
       });
-      if (selectedCamSerial) {
-        requestCameraStream(selectedCamSerial);
-        fetch(`${getRawBase()}/api/cameras/${selectedCamSerial}/ping`, { method: 'POST' }).catch(() => {});
-      }
-      setStreamEpoch(epoch => epoch + 1);
     };
     const onVisibility = () => { if (document.visibilityState === 'visible') resume(); };
     document.addEventListener('visibilitychange', onVisibility);
@@ -343,51 +449,24 @@ export default function MiApto() {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pageshow', resume);
     };
-  }, [cameraLive, selectedCamSerial]);
+  }, [cameraLive]);
 
 
 
-  // Motor de miniaturas: las 2 cámaras secundarias se actualizan cada 3.5s.
-  // El Hero siempre usa video HLS en vivo (sin modos MJPEG/ráfaga).
-  useEffect(() => {
-    if (!cameraLive) return;
-
-    let isCancelled = false;
-
-    // Actualización pausada y escalonada de las cámaras secundarias (cada 3.5s)
-    const secondaryInterval = setInterval(() => {
-      APTO_CAMERAS.filter(c => c.serial !== selectedCamSerial).forEach((cam, i) => {
-        setTimeout(() => {
-          if (isCancelled) return;
-          const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
-          const img = new Image();
-          img.onload = () => {
-            if (isCancelled) return;
-            setCameraFeeds(prev => ({ ...prev, [cam.serial]: nextUrl }));
-            setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
-          };
-          img.src = nextUrl;
-        }, i * 1200);
-      });
-    }, 3500);
-
-    return () => {
-      isCancelled = true;
-      clearInterval(secondaryInterval);
-    };
-  }, [cameraLive, selectedCamSerial]);
+  // Sin miniaturas JPEG: las 3 cámaras son video HLS permanente.
 
   function toggleCameraLive() {
     setCameraLive(prev => !prev);
   }
 
-  async function handleMovePtz(direction) {
+  async function handleMovePtz(direction, serial) {
     if (ptzMoving) return;
+    const target = serial || (zoomIdx != null ? APTO_CAMERAS[zoomIdx].serial : APTO_CAMERAS[0].serial);
     setPtzMoving(direction);
     const dirNames = { up: 'ARRIBA', down: 'ABAJO', left: 'IZQUIERDA', right: 'DERECHA' };
     setPtzFeedback(`Moviendo ${dirNames[direction] || direction}...`);
     try {
-      const res = await fetch(`${getRawBase()}/api/cameras/${selectedCamSerial}/ptz`, {
+      const res = await fetch(`${getRawBase()}/api/cameras/${target}/ptz`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -398,15 +477,6 @@ export default function MiApto() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Error al mover');
       setPtzFeedback(`Giro hacia ${dirNames[direction] || direction} ejecutado`);
-      // Refresco inmediato de la cámara activa
-      setTimeout(() => {
-        const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${selectedCamSerial}&refresh=1&t=${Date.now()}`;
-        const img = new Image();
-        img.onload = () => {
-          setCameraFeeds(prev => ({ ...prev, [selectedCamSerial]: nextUrl }));
-        };
-        img.src = nextUrl;
-      }, 350);
     } catch (err) {
       setPtzFeedback(`Error: ${err.message}`);
     } finally {
@@ -418,14 +488,10 @@ export default function MiApto() {
   }
 
   function refreshAllCameras() {
+    // Re-solicita los 3 streams (sub) y limpia errores (los <LiveVideo> reanexan solos).
     APTO_CAMERAS.forEach(cam => {
-      fetch(`${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1`).catch(() => {});
-      const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&t=${Date.now()}`;
-      const img = new Image();
-      img.onload = () => {
-        setCameraFeeds(prev => ({ ...prev, [cam.serial]: nextUrl }));
-      };
-      img.src = nextUrl;
+      setStreamErrors(prev => ({ ...prev, [cam.serial]: false }));
+      requestCameraStream(cam.serial, 'sub');
     });
   }
 
@@ -613,12 +679,16 @@ export default function MiApto() {
                 <RefreshCw className="h-4 w-4" />
               </button>
 
-              {streamingActive && (
-                <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold border ${heroPlaying ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${heroPlaying ? 'bg-emerald-600 animate-ping' : 'bg-amber-500 animate-pulse'}`} />
-                  <span>{heroPlaying ? '25 FPS ACTIVO' : 'SINCRONIZANDO…'}</span>
-                </span>
-              )}
+              {streamingActive && (() => {
+                const liveCount = APTO_CAMERAS.filter(c => tileState[c.serial]?.playing).length;
+                const allLive = liveCount === APTO_CAMERAS.length;
+                return (
+                  <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold border ${allLive ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${allLive ? 'bg-emerald-600 animate-ping' : 'bg-amber-500 animate-pulse'}`} />
+                    <span>{allLive ? '3/3 EN VIVO' : `${liveCount}/3 SINCRONIZANDO…`}</span>
+                  </span>
+                );
+              })()}
 
 
 
@@ -634,348 +704,85 @@ export default function MiApto() {
             </div>
           </div>
 
-          {/* Barra de modos de visualización (Mosaico 3-en-1 vs Cuadrícula) */}
-          <div className="mt-3.5 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
-              <button
-                onClick={() => setCamViewMode('mosaic')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                  camViewMode === 'mosaic' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                <span>Mosaico 3-en-1</span>
-              </button>
-              <button
-                onClick={() => setCamViewMode('grid')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                  camViewMode === 'grid' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Move className="h-3.5 w-3.5" />
-                <span>Cuadrícula</span>
-              </button>
-            </div>
-
-            <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
-              Toca cualquier cámara para enfocarla y moverla
+          {/* Lista vertical: toca una cámara para verla en grande con zoom */}
+          <div className="mt-3.5 border-b border-slate-100 pb-3">
+            <span className="text-[11px] text-slate-400 font-medium">
+              Las 3 cámaras transmiten en vivo — tócalas para zoom y moverlas
             </span>
           </div>
 
-          {/* VISTA 1: MODO MOSAICO (1 Hero Grande con PTZ + 2 Sub-monitores en vivo abajo) */}
-          {camViewMode === 'mosaic' && (
-            <div className="mt-3.5 space-y-3">
-              {/* Monitor Principal (Hero) */}
-              {(() => {
-                const heroCam = APTO_CAMERAS.find(c => c.serial === selectedCamSerial) || APTO_CAMERAS[0];
-                const heroFeed = cameraFeeds[heroCam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}`;
-                const hasStream = streamUrls[heroCam.serial] && !streamErrors[heroCam.serial];
-                const hasHeroError = cameraErrors[heroCam.serial];
-
-                return (
-                  <div className="space-y-2">
-                    {/* Barra Informativa y Estado de la Cámara FUERA de la Imagen */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-                      <div className="flex items-center gap-2.5">
-                        <span className="relative flex h-2.5 w-2.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                        </span>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-bold text-slate-900 leading-none">{heroCam.name}</h3>
-                            <span className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${heroPlaying ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                              {heroPlaying ? 'En vivo' : 'Sincronizando…'}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 mt-0.5">{heroCam.location}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => {
-                            fetch(`${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1`).catch(() => {});
-                            const nextUrl = `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&t=${Date.now()}`;
-                            const img = new Image();
-                            img.onload = () => setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: nextUrl }));
-                            img.src = nextUrl;
-                          }}
-                          title="Refrescar fotograma"
-                          className="rounded-xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition"
-                        >
-                          <RefreshCw className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Contenedor del video principal 100% limpio sin leds ni badges encima */}
-                    <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-lg border border-slate-800">
-                      {hasStream ? (
-                        <>
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          muted
-                          className="h-full w-full object-cover"
-                          onPlaying={() => setHeroPlaying(true)}
-                          onCanPlay={() => { heroWatchRef.current.setAt = Date.now(); }}
-                          onPause={() => setHeroPlaying(false)}
-                          onWaiting={() => setHeroPlaying(false)}
-                          onTimeUpdate={event => {
-                            heroWatchRef.current.lastTime = event.currentTarget.currentTime || 0;
-                            if ((event.currentTarget.currentTime || 0) > 0) setHeroPlaying(true);
-                          }}
-                          onError={() => {
-                            setHeroPlaying(false);
-                            setStreamErrors(prev => ({ ...prev, [selectedCamSerial]: true }));
-                          }}
-                        />
-                        {needsUserPlay && (
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const v = videoRef.current;
-                              if (v) { v.muted = true; v.play().then(() => setNeedsUserPlay(false)).catch(() => {}); }
-                            }}
-                            className="absolute inset-0 flex items-center justify-center z-20 cursor-pointer bg-black/30"
-                          >
-                            <div className="bg-white/20 backdrop-blur-md rounded-full p-4 shadow-2xl border border-white/30 active:scale-90">
-                              <Play className="h-10 w-10 text-white" />
-                            </div>
-                          </div>
-                        )}
-                        </>
-                      ) : hasHeroError ? (
-                        <div className="flex h-full w-full flex-col items-center justify-center bg-slate-950 p-4 text-center">
-                          <div className="relative mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20">
-                            <Camera className="h-6 w-6 text-blue-400 animate-pulse" />
-                          </div>
-                          <p className="text-xs font-bold text-white">{heroCam.name}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Sincronizando señal en vivo...</p>
-                          <button
-                            onClick={() => {
-                              setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));
-                              setStreamErrors(prev => ({ ...prev, [heroCam.serial]: false }));
-                              setStreamEpoch(epoch => epoch + 1);
-                              requestCameraStream(heroCam.serial);
-                              setCameraFeeds(prev => ({ ...prev, [heroCam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${heroCam.serial}&refresh=1&t=${Date.now()}` }));
-                            }}
-                            className="mt-3 flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-700 active:scale-95 transition"
-                          >
-                            <RefreshCw className="h-3.5 w-3.5" /> Reintentar ahora
-                          </button>
-                        </div>
-                      ) : (
-                        <img
-                          key={heroCam.serial}
-                          src={heroFeed}
-                          alt={heroCam.name}
-                          onError={() => {
-                            setCameraErrors(prev => ({ ...prev, [heroCam.serial]: true }));
-                          }}
-                          onLoad={() => {
-                            setCameraErrors(prev => ({ ...prev, [heroCam.serial]: false }));
-                          }}
-                          className="h-full w-full object-cover transition-opacity duration-150"
-                        />
-                      )}
-
-                      {/* Cruceta Táctil Flotante PTZ (Exclusivo Administrador) */}
-                      {isAdmin() && (
-                        <div className="absolute bottom-3 right-3 flex flex-col items-center bg-slate-950/80 backdrop-blur-md p-2 rounded-2xl border border-white/15 shadow-2xl z-10 select-none">
-                          <div className="flex items-center justify-between w-full mb-1 px-1">
-                            <span className="text-[9px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                              <Compass className="h-3 w-3 animate-spin-slow" /> Mover
-                            </span>
-                            {ptzMoving && (
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
-                            )}
-                          </div>
-
-                          {/* D-Pad Cruceta */}
-                          <div className="grid grid-cols-3 gap-1 w-24 h-24 place-items-center">
-                            <div />
-                            <button
-                              onClick={() => handleMovePtz('up')}
-                              disabled={Boolean(ptzMoving)}
-                              title="Girar hacia Arriba"
-                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
-                            >
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </button>
-                            <div />
-
-                            <button
-                              onClick={() => handleMovePtz('left')}
-                              disabled={Boolean(ptzMoving)}
-                              title="Girar hacia Izquierda"
-                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
-                            >
-                              <ArrowLeft className="h-3.5 w-3.5" />
-                            </button>
-                            <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-[8px] font-bold text-amber-400 border border-white/10">
-                              {ptzMoving ? <Loader2 className="h-3 w-3 animate-spin text-amber-400" /> : 'PTZ'}
-                            </div>
-                            <button
-                              onClick={() => handleMovePtz('right')}
-                              disabled={Boolean(ptzMoving)}
-                              title="Girar hacia Derecha"
-                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
-                            >
-                              <ArrowRight className="h-3.5 w-3.5" />
-                            </button>
-
-                            <div />
-                            <button
-                              onClick={() => handleMovePtz('down')}
-                              disabled={Boolean(ptzMoving)}
-                              title="Girar hacia Abajo"
-                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-blue-600 active:scale-90 text-white flex items-center justify-center transition border border-white/20 disabled:opacity-50"
-                            >
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </button>
-                            <div />
-                          </div>
-
-                          {ptzFeedback && (
-                            <p className="mt-1 text-[8px] text-amber-300 text-center font-medium max-w-[100px] truncate animate-pulse">
-                              {ptzFeedback}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Sub-Monitores Simultáneos en Vivo (Las otras 2 cámaras) */}
-              <div className="pt-1">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                  <Eye className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Cámaras Secundarias (Toca una para cambiar pantalla)</span>
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  {APTO_CAMERAS.filter(c => c.serial !== selectedCamSerial).map(cam => {
-                    const subFeed = cameraFeeds[cam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}`;
-                    const hasSubError = cameraErrors[cam.serial];
-                    return (
-                      <button
-                        key={cam.serial}
-                        onClick={() => setSelectedCamSerial(cam.serial)}
-                        className="group flex flex-col text-left focus:outline-none"
-                      >
-                        <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-slate-950 shadow border-2 border-transparent group-hover:border-blue-500 transition">
-                          {hasSubError ? (
-                            <div className="flex h-full w-full flex-col items-center justify-center bg-slate-900 p-2 text-center">
-                              <Camera className="h-5 w-5 text-blue-400 animate-pulse mb-1" />
-                              <span className="text-[10px] font-bold text-white truncate max-w-[90%]">{cam.name}</span>
-                              <span className="text-[9px] text-slate-400">Sincronizando...</span>
-                            </div>
-                          ) : (
-                            <img
-                              src={subFeed}
-                              alt={cam.name}
-                              onError={() => {
-                                setCameraErrors(prev => ({ ...prev, [cam.serial]: true }));
-                                setTimeout(() => {
-                                  setCameraFeeds(prev => ({ ...prev, [cam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1&t=${Date.now()}` }));
-                                }, 2000);
-                              }}
-                              onLoad={() => {
-                                setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
-                              }}
-                              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                            />
-                          )}
-                        </div>
-                        <div className="mt-1 px-1 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition">{cam.name}</span>
-                          <span className="text-[10px] text-slate-400">{cam.location}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VISTA 2: MODO CUADRÍCULA (3 Cámaras Iguales Simultáneas) */}
-          {camViewMode === 'grid' && (
-            <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {APTO_CAMERAS.map(cam => {
-                const isSelected = selectedCamSerial === cam.serial;
-                const camFeed = cameraFeeds[cam.serial] || `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}`;
-                const hasGridError = cameraErrors[cam.serial];
-                return (
-                  <div
-                    key={cam.serial}
-                    onClick={() => setSelectedCamSerial(cam.serial)}
-                    className={`relative overflow-hidden rounded-2xl bg-slate-950 shadow border-2 transition cursor-pointer ${
-                      isSelected ? 'border-blue-500 shadow-blue-500/20' : 'border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="relative aspect-video w-full">
-                      {hasGridError ? (
-                        <div className="flex h-full w-full flex-col items-center justify-center bg-slate-900 p-3 text-center">
-                          <Camera className="h-6 w-6 text-blue-400 animate-pulse mb-1" />
-                          <span className="text-xs font-bold text-white">{cam.name}</span>
-                          <span className="text-[10px] text-slate-400">Sincronizando señal...</span>
-                        </div>
-                      ) : (
-                        <img
-                          src={camFeed}
-                          alt={cam.name}
-                          onError={() => {
-                            setCameraErrors(prev => ({ ...prev, [cam.serial]: true }));
-                            setTimeout(() => {
-                              setCameraFeeds(prev => ({ ...prev, [cam.serial]: `${getRawBase()}/api/intercom/public/feed?serial=${cam.serial}&refresh=1&t=${Date.now()}` }));
-                            }, 2000);
-                          }}
-                          onLoad={() => {
-                            setCameraErrors(prev => ({ ...prev, [cam.serial]: false }));
-                          }}
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                    </div>
-
-                    <div className="p-2.5 bg-slate-900 flex items-center justify-between">
+          {/* Lista vertical: las 3 cámaras en video, mismo tamaño, siempre activas */}
+          <div className="mt-3.5 space-y-4">
+            {APTO_CAMERAS.map((cam, idx) => {
+              const st = tileState[cam.serial] || {};
+              const url = streamUrls[cam.serial] || '';
+              return (
+                <div key={cam.serial} className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                    <div className="flex items-center gap-2.5">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${st.playing ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                        <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${st.playing ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                      </span>
                       <div>
-                        <div className="flex items-center gap-1.5">
-                          {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-                          <p className="text-xs font-bold text-white">{cam.name}</p>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-slate-900 leading-none">{cam.name}</h3>
+                          <span className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${st.playing ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {st.playing ? 'En vivo' : 'Sincronizando…'}
+                          </span>
                         </div>
-                        <p className="text-[10px] text-slate-400">{cam.location}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{cam.location}</p>
                       </div>
-
-                      {/* Botones PTZ rápidos solo para Administrador */}
-                      {isAdmin() && (
-                        <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => { setSelectedCamSerial(cam.serial); handleMovePtz('left'); }}
-                            title="Girar izquierda"
-                            className="p-1 rounded bg-white/10 hover:bg-blue-600 text-white transition text-xs"
-                          >
-                            <ArrowLeft className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={() => { setSelectedCamSerial(cam.serial); handleMovePtz('right'); }}
-                            title="Girar derecha"
-                            className="p-1 rounded bg-white/10 hover:bg-blue-600 text-white transition text-xs"
-                          >
-                            <ArrowRight className="h-3 w-3" />
-                          </button>
-                        </div>
-                      )}
                     </div>
+                    <button
+                      onClick={() => {
+                        setTileState(prev => ({ ...prev, [cam.serial]: { playing: false, error: false } }));
+                        setStreamUrls(prev => { const n = { ...prev }; delete n[cam.serial]; return n; });
+                        requestCameraStream(cam.serial, 'sub');
+                      }}
+                      title="Reconectar cámara"
+                      className="rounded-xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                );
-              })}
-            </div>
+                  <div
+                    onClick={() => setZoomIdx(idx)}
+                    className="group relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-950 shadow-lg border border-slate-800 cursor-pointer"
+                  >
+                    {url && cameraLive ? (
+                      <LiveVideo
+                        streamUrl={url}
+                        active={cameraLive}
+                        onState={(s) => setTileState(prev => ({ ...prev, [cam.serial]: s }))}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center p-4 text-center">
+                        <Camera className="h-6 w-6 text-blue-400 animate-pulse mb-1" />
+                        <p className="text-[11px] text-slate-400">Sincronizando señal en vivo...</p>
+                      </div>
+                    )}
+                    <span className="absolute bottom-2 right-2 rounded-full bg-black/50 p-1.5 text-white opacity-80 group-hover:opacity-100">
+                      <Maximize2 className="h-4 w-4" />
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {zoomIdx != null && (
+            <CameraZoomModal
+              cams={APTO_CAMERAS}
+              index={zoomIdx}
+              streamUrls={modalUrls}
+              fallbackUrls={streamUrls}
+              tileState={tileState}
+              onClose={() => setZoomIdx(null)}
+              onIndex={setZoomIdx}
+              showPtz={isAdmin()}
+              onPtz={handleMovePtz}
+              ptzMoving={ptzMoving}
+            />
           )}
 
           {/* Barra de Acciones y Acceso a la App Ezviz */}
@@ -985,7 +792,7 @@ export default function MiApto() {
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
             >
               <RefreshCw className="h-3.5 w-3.5 text-slate-500" />
-              Actualizar las 3 fotos
+              Reconectar cámaras
             </button>
 
             <button

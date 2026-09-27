@@ -16,6 +16,78 @@ export function isExplicitLogout() {
   } catch { return false; }
 }
 
+// ─── Tab única de inquilino (single live tab) ─────────────────────────────
+// Un solo usuario = una sola pestaña viva: al loguearse aquí se expulsa la
+// anterior de forma obligatoria (push instantáneo por BroadcastChannel +
+// revocación de sesión en servidor) y se sigue en ESTA pestaña.
+const LIVE_TAB_KEY = 'laujim_live_tenant_tab';
+const TAB_CHANNEL = 'laujim-tab';
+const LIVE_TTL_MS = 15000;
+let myTabId = null;
+let liveTimer = null;
+let tabChannel = null;
+
+function getMyTabId() {
+  if (!myTabId) {
+    try {
+      myTabId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    } catch { myTabId = String(Date.now()); }
+  }
+  return myTabId;
+}
+
+function getTabChannel() {
+  if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return null;
+  if (!tabChannel) {
+    try { tabChannel = new BroadcastChannel(TAB_CHANNEL); } catch { return null; }
+  }
+  return tabChannel;
+}
+
+function readLiveTab() {
+  try {
+    const raw = localStorage.getItem(LIVE_TAB_KEY);
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    if (!entry?.token || !entry?.ts) return null;
+    if (Date.now() - Number(entry.ts) > LIVE_TTL_MS) return null;
+    return entry;
+  } catch { return null; }
+}
+
+// Reclama esta pestaña como la viva (solo inquilinos) con latido cada 5s.
+// Solo late con pestaña visible para no mantener el motor caliente en vano.
+export function claimLiveTenantTab() {
+  try {
+    if (typeof window === 'undefined' || getAuth()?.role !== 'tenant') return;
+    const id = getMyTabId();
+    const write = () => {
+      try {
+        if (document.visibilityState !== 'visible') return;
+        const auth = getAuth();
+        if (auth?.role !== 'tenant' || !auth?.token) return;
+        localStorage.setItem(LIVE_TAB_KEY, JSON.stringify({ id, token: auth.token, ts: Date.now() }));
+      } catch {}
+    };
+    write();
+    if (!liveTimer) liveTimer = setInterval(write, 5000);
+  } catch {}
+}
+
+export function releaseLiveTenantTab() {
+  try {
+    if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+    const live = readLiveTab();
+    if (live && live.id === getMyTabId()) localStorage.removeItem(LIVE_TAB_KEY);
+  } catch {}
+  if (tabChannel) { try { tabChannel.close(); } catch {} tabChannel = null; }
+}
+
+// Aviso instantáneo a otras pestañas: "esta sesión murió, salgan ya".
+function broadcastTakeover(token) {
+  try { getTabChannel()?.postMessage({ type: 'takeover', token, tab: getMyTabId() }); } catch {}
+}
+
 function markExplicitLogout() {
   try { localStorage.setItem(EXPLICIT_LOGOUT_KEY, String(Date.now())); } catch {}
 }
@@ -70,7 +142,13 @@ export async function restoreNativeAuth() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
         localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(auth));
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
-        setApiToken(auth.token);
+  setApiToken(auth.token);
+  // Sesión única obligatoria: esta pestaña pasa a ser LA viva; las demás
+  // reciben el takeover por BroadcastChannel y salen a login sin pelear video.
+  if (auth.role === 'tenant') {
+    broadcastTakeover(auth.token);
+    claimLiveTenantTab();
+  }
         console.log('[AUTH] Successfully restored session from Android native storage');
         return auth;
       }
@@ -131,6 +209,7 @@ export function setAuth(data) {
 export function clearAuth(options = {}, reason = 'unspecified') {
   const token = AUTH_TOKEN;
   markExplicitLogout();
+  releaseLiveTenantTab();
   sendAuditLog('LOGOUT_TRIGGERED', reason, { permanent: options.permanent, options });
   stopBackgroundNotifications().catch(() => {});
   try {
@@ -154,6 +233,19 @@ export function clearAuth(options = {}, reason = 'unspecified') {
   return Promise.resolve();
 }
 
+// Verifica un token puntual contra el servidor (true = sigue vigente).
+async function verifyToken(token) {
+  if (!token) return false;
+  try {
+    const res = await fetch(getBase() + '/auth/verify', {
+      headers: { 'x-auth-token': token },
+      signal: AbortSignal.timeout(8000),
+    });
+    return res.ok;
+  } catch {
+    return true; // Sin red no se expulsa a nadie: se reintentará después.
+  }
+}
 export function isAdmin() { return getAuth()?.role === 'admin'; }
 export function isTenant() { return getAuth()?.role === 'tenant'; }
 
@@ -165,15 +257,48 @@ export function watchAuthRevoked(onRevoked) {
   if (typeof window === 'undefined') return () => {};
   const handler = (event) => {
     try {
-      if ((event.key === STORAGE_KEY || event.key === BACKUP_STORAGE_KEY) && !event.newValue) {
-        onRevoked && onRevoked('storage_clear');
+      if (event.key === STORAGE_KEY || event.key === BACKUP_STORAGE_KEY) {
+        if (!event.newValue) {
+          onRevoked && onRevoked('storage_clear');
+        } else {
+          // Otra pestaña escribió una sesión distinta (nuevo login del mismo
+          // u otro usuario). Comparo contra MI token en memoria (AUTH_TOKEN):
+          // el localStorage ya muestra el token nuevo, así que getAuth() no
+          // sirve aquí. Si mi token murió en el servidor (fui reemplazado),
+          // salgo; si sigue válido —equipo compartido— no interrumpo el video.
+          let incoming = null;
+          try { incoming = JSON.parse(event.newValue); } catch {}
+          if (incoming?.token && AUTH_TOKEN && incoming.token !== AUTH_TOKEN) {
+            verifyToken(AUTH_TOKEN).then(valid => {
+              if (!valid) { try { onRevoked && onRevoked('superseded'); } catch {} }
+            }).catch(() => {});
+          }
+        }
       } else if (event.key === EXPLICIT_LOGOUT_KEY && event.newValue) {
         onRevoked && onRevoked('explicit_logout');
       }
     } catch {}
   };
   window.addEventListener('storage', handler);
-  return () => window.removeEventListener('storage', handler);
+  // Takeover instantáneo: otra pestaña se logueó con el mismo usuario y tomó
+  // la sesión. Salir de inmediato (más rápido que esperar el próximo verify).
+  let bcCleanup = () => {};
+  try {
+    const ch = getTabChannel();
+    if (ch) {
+      const onMsg = (event) => {
+        try {
+          const msg = event?.data;
+          if (msg?.type === 'takeover' && msg.token && AUTH_TOKEN && msg.token !== AUTH_TOKEN) {
+            onRevoked && onRevoked('takeover');
+          }
+        } catch {}
+      };
+      ch.addEventListener('message', onMsg);
+      bcCleanup = () => { try { ch.removeEventListener('message', onMsg); } catch {} };
+    }
+  } catch {}
+  return () => { window.removeEventListener('storage', handler); bcCleanup(); };
 }
 
 // Revalida la sesión contra el servidor (detecta inquilino eliminado o
@@ -186,7 +311,11 @@ export async function revalidateSession() {
       headers: { 'x-auth-token': auth.token },
       signal: AbortSignal.timeout(8000),
     });
-    if (res.ok) return { ok: true };
+    if (res.ok) {
+      // Sesión restaurada (reapertura): reclamar como pestaña viva.
+      try { if (auth?.role === 'tenant') claimLiveTenantTab(); } catch {}
+      return { ok: true };
+    }
     if (res.status === 401 || res.status === 403) {
       await clearAuth({}, 'revalidate_invalid');
       return { ok: false, reason: 'invalid' };
