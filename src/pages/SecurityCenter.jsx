@@ -91,6 +91,7 @@ export default function SecurityCenter() {
   const [inspectedTab, setInspectedTab] = useState('full'); // 'full' | 'plate'
   const [alprEngineMode] = useState('cloud'); // solo 'cloud' (ML local retirado)
   const [lastBenchmark, setLastBenchmark] = useState(null);
+  const [alprUsage, setAlprUsage] = useState(null);
 
   // Modal de Configuración EZVIZ (Cloud & Router)
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -543,6 +544,7 @@ export default function SecurityCenter() {
       if (data?.ok && Array.isArray(data.plates)) {
         setAlprPlates(data.plates);
       }
+      if (data?.usage) setAlprUsage(data.usage);
     } catch {}
   }
 
@@ -564,7 +566,12 @@ export default function SecurityCenter() {
       if (data?.benchmark) {
         setLastBenchmark(data.benchmark);
       }
-      if (data?.plates_detected && data.plates_detected.length > 0) {
+      if (data && data.ok === false && data.error) {
+        setAlprFeedback({
+          type: 'error',
+          text: data.error
+        });
+      } else if (data?.plates_detected && data.plates_detected.length > 0) {
         setAlprFeedback({
           type: 'success',
           text: `¡Placa detectada con éxito! [${data.plates_detected.join(', ')}]`
@@ -1196,7 +1203,7 @@ export default function SecurityCenter() {
             </span>
           </div>
           <span className="text-[10px] text-slate-400 font-bold px-2">
-            2,500 créditos/mes con Marca/Modelo/Color
+            {alprUsage ? `${alprUsage.used} / ${alprUsage.limit.toLocaleString('es-CO')} usados en ${alprUsage.month} • Marca/Modelo/Color` : '2,500 créditos/mes con Marca/Modelo/Color'}
           </span>
         </div>
 

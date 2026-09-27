@@ -16,6 +16,7 @@ Características:
 """
 
 import datetime
+import json
 import os
 import re
 import shutil
@@ -540,6 +541,7 @@ def scan_plates_cloud(img_path: str, cam_id: str = "l") -> list[dict]:
                 data={"regions": "co", "mmc": "true"},
                 timeout=12.0
             )
+            _alpr_bump_usage()  # cuenta el consumo aunque la API falle
 
         if resp.status_code in [200, 201]:
             data = resp.json()
@@ -709,6 +711,41 @@ _alpr_auto_state = {"day": "", "used": 0, "last_cloud": {}, "last_motion": {}, "
 
 def _alpr_today():
     return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).strftime("%Y-%m-%d")
+
+
+ALPR_MONTHLY_LIMIT = 2500  # plan gratis Plate Recognizer
+
+
+def _alpr_usage_file():
+    return os.path.join(RECORDINGS_DIR, "alpr_usage.json")
+
+
+def _alpr_bump_usage():
+    """Cuenta cada llamada a Plate Recognizer (persistente por mes en volumen)."""
+    try:
+        month = _alpr_today()[:7]
+        data = {}
+        try:
+            with open(_alpr_usage_file(), "r", encoding="utf-8") as fp:
+                data = json.load(fp) or {}
+        except (OSError, ValueError):
+            data = {}
+        data[month] = int(data.get(month, 0)) + 1
+        with open(_alpr_usage_file(), "w", encoding="utf-8") as fp:
+            json.dump(data, fp)
+    except OSError:
+        pass
+
+
+def _alpr_usage():
+    month = _alpr_today()[:7]
+    used = 0
+    try:
+        with open(_alpr_usage_file(), "r", encoding="utf-8") as fp:
+            used = int((json.load(fp) or {}).get(month, 0))
+    except (OSError, ValueError):
+        used = 0
+    return {"month": month, "used": used, "limit": ALPR_MONTHLY_LIMIT}
 
 
 def _alpr_register_auto(cam_id, found, elapsed_ms):
@@ -899,6 +936,7 @@ def get_detected_plates():
             "total": len(alpr_detections),
             "plates": list(alpr_detections),
             "benchmark_summary": dict(benchmark_stats),
+            "usage": _alpr_usage(),
         }
 
 
@@ -926,6 +964,11 @@ def trigger_alpr_scan(mode: str = "compare", cam: str = "all"):
     targets = [("l", "Fachada Izquierda"), ("r", "Fachada Derecha")] if cam == "all" else (
         [("l", "Fachada Izquierda")] if cam == "l" else [("r", "Fachada Derecha")]
     )
+
+    # Tope mensual también para escaneos manuales (un dedo inquieto no quema el mes).
+    _usage = _alpr_usage()
+    if _usage["used"] >= _usage["limit"]:
+        raise HTTPException(status_code=429, detail=f"Cupo mensual agotado ({_usage['used']}/{_usage['limit']}). Se renueva el día 1.")
 
     all_ml_results = []
     all_cloud_results = []

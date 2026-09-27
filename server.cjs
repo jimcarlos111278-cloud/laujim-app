@@ -8878,6 +8878,7 @@ app.get('/api/security/plates', async (req, res) => {
           plates: data.plates,
           total: data.total || data.plates.length,
           benchmark_summary: data.benchmark_summary || null,
+          usage: data.usage || null,
         });
       }
     }
@@ -8912,7 +8913,12 @@ app.post('/api/security/plates/scan', async (req, res) => {
     }
 
     const errText = await upstream.text().catch(() => 'Error en motor de video');
-    return res.status(502).json({ ok: false, error: errText });
+    let msg = errText;
+    try {
+      const parsed = JSON.parse(errText);
+      if (parsed && parsed.detail) msg = parsed.detail;
+    } catch {}
+    return res.status(502).json({ ok: false, error: msg });
   } catch (err) {
     console.error('[ALPR SCAN ERROR]', err.message);
     return res.status(500).json({ ok: false, error: err.message });
