@@ -41,8 +41,9 @@ writeFileSync(verFile, JSON.stringify(version, null, 2));
 const appVersion = {
   version: apkVersion,
   // Keep this absolute so an older APK with a stale localhost server setting
-  // can still download the release. The backup Render node is the current
-  apkUrl: `${String(process.env.PUBLIC_APK_BASE_URL || 'https://conjunto-residendial-laujim.duckdns.org').replace(/\/+$/, '')}/app-debug.apk?v=${encodeURIComponent(apkVersion)}`,
+  // can still download the release. LAUJIM_APK_FILE lo fija release-apk.cjs
+  // a public/releases/laujim-v<version>.apk (rotación: últimas 10).
+  apkUrl: `${String(process.env.PUBLIC_APK_BASE_URL || 'https://conjunto-residendial-laujim.duckdns.org').replace(/\/+$/, '')}/${String(process.env.LAUJIM_APK_FILE || 'app-debug.apk').replace(/^\/+/, '')}?v=${encodeURIComponent(apkVersion)}`,
 };
 const appVersionJson = `${JSON.stringify(appVersion, null, 2)}\n`;
 writeFileSync(join(publicDir, 'app-version.json'), appVersionJson);

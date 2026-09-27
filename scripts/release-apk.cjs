@@ -71,26 +71,46 @@ function main() {
   // 1. Bump de versión
   setVersion(next);
 
-  // 2. Regenerar app-version.json
-  run(process.execPath, ['scripts/generate-version.js'], root);
-
-  // 3. Reconstruir la APK
+  // 2. Reconstruir la APK
   run(process.execPath, ['scripts/build-apk.cjs'], root);
 
-  // 4. Archivar snapshot histórico del grafo (para rollback/consulta de versiones pasadas)
+  // 3. Archivar APK versionada en public/releases (máx. 10: se elimina la más vieja).
+  //    Las APK no se commitean a git (ver .gitignore); a la VM llegan con el deploy.
+  const releasesDir = path.join(root, 'public', 'releases');
+  fs.mkdirSync(releasesDir, { recursive: true });
+  const builtApk = path.join(root, 'public', 'app-debug.apk');
+  if (!fs.existsSync(builtApk)) throw new Error('No se generó public/app-debug.apk');
+  fs.copyFileSync(builtApk, path.join(releasesDir, `laujim-v${next}.apk`));
+  console.log(`[release] APK archivada en public/releases/laujim-v${next}.apk`);
+  const kept = fs.readdirSync(releasesDir)
+    .filter(f => /^laujim-v.*\.apk$/i.test(f))
+    .map(f => ({ f, mtime: fs.statSync(path.join(releasesDir, f)).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime);
+  for (const old of kept.slice(10)) {
+    fs.unlinkSync(path.join(releasesDir, old.f));
+    console.log(`[release] APK antigua eliminada: ${old.f}`);
+  }
+
+  // 4. Regenerar app-version.json apuntando a la APK versionada
+  run(process.execPath, ['scripts/generate-version.js'], root, { ...process.env, LAUJIM_APK_FILE: `releases/laujim-v${next}.apk` });
+
+  // 5. Archivar snapshot histórico del grafo (para rollback/consulta de versiones pasadas)
   run(process.execPath, ['scripts/archive-graph.cjs', '--label', `v${next}`], root);
 
-  // 5. Gate de pre-push (verifica Aiven y sube data/database.json si hay cambio intencional)
+  // 6. Gate de pre-push (verifica Aiven y sube data/database.json si hay cambio intencional)
   run('npm.cmd', ['run', 'sync:aiven:pre-push'], root);
 
-  // 6. Commit y push
+  // 7. Commit y push (sin APKs: solo código + versión + grafo base)
   const commitMessage = message || `build: publish APK ${next}`;
   const files = [
     'android/app/build.gradle',
     'public/app-version.json',
-    'public/app-debug.apk',
     'public/icon.png',
     'capacitor.config.json',
+    'graphify-out/graph.json',
+    'graphify-out/GRAPH_REPORT.md',
+    'graphify-out/manifest.json',
+    'graphify-out/.graphify_labels.json',
     'android/app/src/main/res',
     'android/app/src/main/java/com/laujim/aptmanager/MainActivity.java',
     'README.md',

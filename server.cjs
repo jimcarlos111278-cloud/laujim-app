@@ -55,6 +55,10 @@ try {
 const app = express();
 const PORT = process.env.PORT || 1011;
 const SESSION_TTL_MS = Math.max(720 * 60 * 60 * 1000, Number(process.env.SESSION_TTL_HOURS || 720) * 60 * 60 * 1000);
+// Inquilinos: sesión corta (72h) para que la expulsión por login duplicado
+// sea efectiva; admin conserva 720h para operación.
+const TENANT_SESSION_TTL_MS = 72 * 60 * 60 * 1000;
+function sessionTtlFor(role) { return role === 'tenant' ? TENANT_SESSION_TTL_MS : SESSION_TTL_MS; }
 let requestCount = 0;
 let responseCount = 0;
 let responseBytes = 0;
@@ -341,11 +345,11 @@ function pruneAuthSessions() {
   return before !== db.authSessions.length;
 }
 
-function createAuthSession({ role, name, apartmentId = null, tenantId = null }) {
+function createAuthSession({ role, name, apartmentId = null, tenantId = null, sessionEpoch = null }) {
   pruneAuthSessions();
   const token = crypto.randomBytes(32).toString('base64url');
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + SESSION_TTL_MS).toISOString();
+  const expiresAt = new Date(now.getTime() + sessionTtlFor(role)).toISOString();
   const session = {
     id: crypto.randomUUID(),
     tokenHash: crypto.createHash('sha256').update(token).digest('hex'),
@@ -353,6 +357,7 @@ function createAuthSession({ role, name, apartmentId = null, tenantId = null }) 
     name,
     apartmentId,
     tenantId,
+    epoch: sessionEpoch,
     createdAt: now.toISOString(),
     expiresAt,
   };
@@ -368,8 +373,8 @@ function getAuthSession(token) {
   const hash = crypto.createHash('sha256').update(token).digest('hex');
   const session = (db.authSessions || []).find(item => constantTimeEqual(item.tokenHash, hash));
   if (!session || new Date(session.expiresAt).getTime() <= Date.now()) return null;
-  // Sliding expiration: renew the session on every authenticated request
-  const newExpiry = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+  // Sliding expiration: renovar con el TTL del rol (tenant 72h, admin 720h).
+  const newExpiry = new Date(Date.now() + sessionTtlFor(session.role)).toISOString();
   if (session.expiresAt !== newExpiry) {
     session.expiresAt = newExpiry;
     // saveData() is debounced internally; avoid hammering disk on every request
@@ -416,6 +421,15 @@ function removeAuthSession(token) {
   const before = db.authSessions.length;
   db.authSessions = db.authSessions.filter(item => !constantTimeEqual(item.tokenHash, hash));
   if (before !== db.authSessions.length) saveData();
+}
+
+// Época de sesión por inquilino: cada login la incrementa; la pestaña vieja
+// detecta que su época quedó atrás y sale de inmediato al verificar.
+const tenantSessionEpoch = {};
+function nextTenantEpoch(tenantId) {
+  const key = String(tenantId);
+  tenantSessionEpoch[key] = (tenantSessionEpoch[key] || 0) + 1;
+  return tenantSessionEpoch[key];
 }
 
 // Revoca todas las sesiones de un inquilino (ej. al eliminarlo o cambiarle
@@ -5977,12 +5991,50 @@ function recalcNextId() {
 
 let dataVersion = Date.now();
 
-function saveData() {
-  dataVersion = Date.now();
+// Persistencia con debounce real (leading + trailing): el DB completo pesa
+// MBs y reescribirlo a disco + Postgres en cada llamada (p. ej. ráfagas de
+// /api/audit/log o snapshots) saturaba el WAL y colgaba las respuestas.
+// Primera llamada tras un periodo quieto persiste de inmediato; las llamadas
+// en ráfaga se coalescen en una sola escritura al final de la ventana.
+let saveTimer = null;
+let lastSaveFlush = 0;
+const SAVE_DEBOUNCE_MS = 3000;
+
+function persistNow() {
   const json = JSON.stringify(db, null, 2);
   fs.writeFileSync(DATA_FILE, json, 'utf-8');
   fs.writeFileSync(BACKUP_FILE, json, 'utf-8');
   return pgPool ? queuePostgresSave() : Promise.resolve();
+}
+
+function saveData() {
+  dataVersion = Date.now();
+  const now = Date.now();
+  if (!saveTimer && now - lastSaveFlush > SAVE_DEBOUNCE_MS) {
+    lastSaveFlush = now;
+    return persistNow();
+  }
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    lastSaveFlush = Date.now();
+    persistNow();
+  }, SAVE_DEBOUNCE_MS);
+  if (saveTimer.unref) saveTimer.unref();
+  return pgPool ? pgSaveChain : Promise.resolve();
+}
+
+// En apagado limpio (docker stop), vaciar lo pendiente para no perder cambios.
+for (const signal of ['SIGTERM', 'SIGINT']) {
+  try {
+    process.once(signal, () => {
+      try {
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        lastSaveFlush = Date.now();
+        persistNow();
+      } catch {}
+    });
+  } catch {}
 }
 
 let r2UsageCache = { checkedAt: 0, bytes: 0, objects: 0, source: 'tracked', error: null };
@@ -6089,6 +6141,8 @@ app.get('/api/auth/verify', (req, res) => {
     name: req.auth.name,
     apartmentId: req.auth.apartmentId || null,
     tenantId: req.auth.tenantId || null,
+    epoch: req.auth.epoch ?? null,
+    createdAt: req.auth.createdAt || null,
   });
 });
 
@@ -6183,6 +6237,182 @@ app.get('/api/version', (req, res) => {
   }
 });
 
+// ─── Grafo de conocimiento: VM (disco) + GitHub (git) + Aiven (respaldo) ───
+// El grafo base se versiona en git bajo demanda (release/manual), nunca en
+// cada build. La VM lo sirve desde disco, /admin muestra la copia y Aiven
+// guarda un respaldo consultable sin depender de git.
+const GRAPH_DIR = path.join(__dirname, 'graphify-out');
+const GRAPH_UPDATE_COOLDOWN_MS = 10 * 60 * 1000;
+const graphUpdateState = { running: false, startedAt: null, finishedAt: null, exitCode: null, tail: '' };
+
+function graphFileInfo(name) {
+  try {
+    const stat = fs.statSync(path.join(GRAPH_DIR, name));
+    if (!stat.isFile()) return { exists: false, size: 0, mtime: null };
+    return { exists: true, size: stat.size, mtime: stat.mtime.toISOString() };
+  } catch { return { exists: false, size: 0, mtime: null }; }
+}
+
+function graphDiskSummary() {
+  const summary = {
+    graph: graphFileInfo('graph.json'),
+    manifest: graphFileInfo('manifest.json'),
+    report: graphFileInfo('GRAPH_REPORT.md'),
+    nodes: null,
+    links: null,
+    builtAtCommit: null,
+  };
+  if (summary.graph.exists && summary.graph.size < 25 * 1024 * 1024) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(path.join(GRAPH_DIR, 'graph.json'), 'utf8'));
+      if (Array.isArray(parsed.nodes)) summary.nodes = parsed.nodes.length;
+      if (Array.isArray(parsed.links)) summary.links = parsed.links.length;
+      if (parsed.built_at_commit) summary.builtAtCommit = String(parsed.built_at_commit);
+    } catch {}
+  }
+  return summary;
+}
+
+async function graphAivenStatus() {
+  const status = { configured: Boolean(pgPool), exists: false, updatedAt: null, source: null, nodeCount: null, size: null };
+  if (!pgPool) return status;
+  try {
+    const result = await pgPool.query('SELECT key, value FROM store WHERE key IN ($1, $2)', ['graph', 'graph_meta']);
+    const rows = result.rows || [];
+    status.exists = rows.some(row => row.key === 'graph');
+    const meta = rows.find(row => row.key === 'graph_meta')?.value;
+    if (meta && typeof meta === 'object') {
+      status.updatedAt = meta.updatedAt || null;
+      status.source = meta.source || null;
+      status.nodeCount = meta.nodeCount ?? null;
+      status.size = meta.size ?? null;
+    }
+  } catch {}
+  return status;
+}
+
+function graphGithubStatus() {
+  const status = { tracked: false, lastCommit: null };
+  try {
+    const { execFileSync } = require('child_process');
+    const out = execFileSync('git', ['log', '-1', '--format=%ci', '--', 'graphify-out/graph.json'], {
+      cwd: __dirname,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (out) {
+      status.tracked = true;
+      status.lastCommit = out;
+    }
+  } catch {}
+  return status;
+}
+
+app.get('/api/admin/graph/status', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  res.json({
+    ok: true,
+    disk: graphDiskSummary(),
+    aiven: await graphAivenStatus(),
+    github: graphGithubStatus(),
+    update: { ...graphUpdateState },
+  });
+});
+
+const GRAPH_SERVE_FILES = { graph: 'graph.json', manifest: 'manifest.json', report: 'GRAPH_REPORT.md' };
+app.get('/api/admin/graph/file', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const file = GRAPH_SERVE_FILES[String(req.query.name || '')];
+  if (!file) return res.status(400).json({ error: 'Archivo no válido (graph, manifest, report).' });
+  const full = path.join(GRAPH_DIR, file);
+  try {
+    const stat = fs.statSync(full);
+    if (!stat.isFile() || stat.size > 25 * 1024 * 1024) {
+      return res.status(404).json({ error: 'Copia no disponible en esta VM.' });
+    }
+  } catch {
+    return res.status(404).json({ error: 'Copia no disponible en esta VM.' });
+  }
+  if (file.endsWith('.json')) res.type('application/json');
+  else res.type('text/markdown; charset=utf-8');
+  res.sendFile(full);
+});
+
+app.get('/api/admin/graph/aiven', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  if (!pgPool) return res.status(503).json({ error: 'Aiven no configurado en este servidor.' });
+  try {
+    const result = await pgPool.query('SELECT value FROM store WHERE key = $1', ['graph']);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Aún no hay copia del grafo en Aiven.' });
+    res.json({ ok: true, graph: result.rows[0].value });
+  } catch {
+    res.status(500).json({ error: 'No se pudo leer la copia de Aiven.' });
+  }
+});
+
+app.post('/api/admin/graph/sync-to-aiven', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  if (!pgPool) return res.status(503).json({ error: 'Aiven no configurado en este servidor.' });
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(path.join(GRAPH_DIR, 'graph.json'), 'utf8'));
+  } catch {
+    return res.status(404).json({ error: 'No hay graph.json en el disco de esta VM.' });
+  }
+  if (!Array.isArray(parsed.nodes)) return res.status(500).json({ error: 'El graph.json local no es válido.' });
+  const meta = {
+    updatedAt: new Date().toISOString(),
+    source: 'admin-panel',
+    nodeCount: parsed.nodes.length,
+    linkCount: Array.isArray(parsed.links) ? parsed.links.length : null,
+    size: Buffer.byteLength(JSON.stringify(parsed)),
+    builtAtCommit: parsed.built_at_commit || null,
+  };
+  try {
+    await pgPool.query('INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', ['graph', JSON.stringify(parsed)]);
+    await pgPool.query('INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', ['graph_meta', JSON.stringify(meta)]);
+    res.json({ ok: true, message: `Copia guardada en Aiven (${parsed.nodes.length} nodos).`, meta });
+  } catch {
+    res.status(500).json({ error: 'No se pudo guardar la copia en Aiven.' });
+  }
+});
+
+app.post('/api/admin/graph/update', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const now = Date.now();
+  if (graphUpdateState.running) {
+    return res.status(409).json({ error: 'Ya hay una actualización en curso.', update: { ...graphUpdateState } });
+  }
+  if (graphUpdateState.finishedAt && now - new Date(graphUpdateState.finishedAt).getTime() < GRAPH_UPDATE_COOLDOWN_MS) {
+    return res.status(429).json({ error: 'Espera 10 minutos entre actualizaciones.', update: { ...graphUpdateState } });
+  }
+  graphUpdateState.running = true;
+  graphUpdateState.startedAt = new Date(now).toISOString();
+  graphUpdateState.finishedAt = null;
+  graphUpdateState.exitCode = null;
+  graphUpdateState.tail = '';
+  try {
+    const child = spawn(process.execPath, ['scripts/graphify-update.cjs'], { cwd: __dirname, stdio: ['ignore', 'pipe', 'pipe'] });
+    child.stdout.on('data', chunk => { graphUpdateState.tail = String(graphUpdateState.tail + chunk).slice(-4000); });
+    child.stderr.on('data', chunk => { graphUpdateState.tail = String(graphUpdateState.tail + chunk).slice(-4000); });
+    child.on('error', () => {
+      graphUpdateState.running = false;
+      graphUpdateState.finishedAt = new Date().toISOString();
+      graphUpdateState.exitCode = 2;
+    });
+    child.on('close', code => {
+      graphUpdateState.running = false;
+      graphUpdateState.finishedAt = new Date().toISOString();
+      graphUpdateState.exitCode = code;
+    });
+    child.unref();
+  } catch {
+    graphUpdateState.running = false;
+    return res.status(500).json({ error: 'No se pudo iniciar la actualización.' });
+  }
+  res.json({ ok: true, message: 'Actualización del grafo iniciada en la VM.', update: { ...graphUpdateState } });
+});
+
 // Readiness is intentionally public so the login screen and deployment checks
 // can distinguish a real database outage from an expired admin session.
 app.get('/api/ready', (req, res) => {
@@ -6213,6 +6443,7 @@ app.post('/api/login', async (req, res) => {
   const adminUsername = process.env.ADMIN_USERNAME || '';
   if (adminUsername && constantTimeEqual(username, adminUsername) && adminPasswordMatches(password)) {
     const session = createAuthSession({ role: 'admin', name: 'Administrador' });
+    try { pushAuditEvent('LOGIN', req, { role: 'admin', name: 'Administrador' }); } catch {}
     try { await saveData(); } catch {}
     return res.json({ authenticated: true, role: 'admin', name: 'Administrador', ...session });
   }
@@ -6236,7 +6467,14 @@ app.post('/api/login', async (req, res) => {
       );
     });
     if (tenant) {
-      const session = createAuthSession({ role: 'tenant', apartmentId: apt.id, tenantId: tenant.id, name: tenant.name });
+      // Un solo usuario = una sola sesión activa: al entrar aquí muere
+      // cualquier sesión anterior de este inquilino (otra pestaña/dispositivo).
+      // La pestaña que ya estaba viendo video y sigue con el token nuevo no
+      // se interrumpe; las que quedaron con el token viejo reciben 401 y
+      // salen limpias al login en su próxima verificación.
+      try { revokeTenantSessions(tenant.id); } catch {}
+      const session = createAuthSession({ role: 'tenant', apartmentId: apt.id, tenantId: tenant.id, name: tenant.name, sessionEpoch: nextTenantEpoch(tenant.id) });
+      try { pushAuditEvent('LOGIN', req, { role: 'tenant', name: tenant.name, apartmentId: apt.id, tenantId: tenant.id }); } catch {}
       try { await saveData(); } catch {}
       return res.json({ authenticated: true, role: 'tenant', apartmentId: apt.id, name: tenant.name, ...session });
     }
@@ -6252,11 +6490,52 @@ app.get('/api/worker-token', (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
+  try {
+    const s = getAuthSession(req.headers['x-auth-token']);
+    if (s) pushAuditEvent('LOGOUT', req, { role: s.role, name: s.name, apartmentId: s.apartmentId, tenantId: s.tenantId });
+  } catch {}
   removeAuthSession(req.headers['x-auth-token']);
   res.json({ ok: true });
 });
 
+// Evento de auditoría del servidor (LOGIN/LOGOUT): mismo formato que
+// /api/audit/log. LOGIN/LOGOUT son infrecuentes, así que persisten con el
+// debounce interno de saveData sin riesgo de saturar el WAL.
+function pushAuditEvent(event, req, who = {}) {
+  ensureCloudCollections();
+  const ip = req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || '';
+  db.auditLogs.push({
+    id: nextId.auditLogs++,
+    timestamp: new Date().toISOString(),
+    clientTimestamp: null,
+    event: String(event || 'UNKNOWN').slice(0, 60),
+    reason: String(who.reason || '').slice(0, 250),
+    details: who.details && typeof who.details === 'object' ? who.details : null,
+    user: who.name || 'anon',
+    role: who.role || null,
+    platform: 'server',
+    url: String(req?.originalUrl || req?.path || '').slice(0, 200),
+    ip: String(ip).slice(0, 50),
+    userAgent: String(req?.headers?.['user-agent'] || '').slice(0, 250),
+  });
+  if (db.auditLogs.length > 5000) db.auditLogs = db.auditLogs.slice(-5000);
+}
+
+// Rate-limit de telemetría: clientes viejos o pestañas múltiples pueden
+// postear /api/audit/log en ráfaga; sin límite cada hit reescribía el DB.
+const auditRate = new Map();
 app.post('/api/audit/log', (req, res) => {
+  try {
+    const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+    const now = Date.now();
+    let bucket = auditRate.get(ip);
+    if (!bucket || now > bucket.resetAt) {
+      bucket = { count: 0, resetAt: now + 60000 };
+      auditRate.set(ip, bucket);
+      if (auditRate.size > 5000) auditRate.clear();
+    }
+    if (++bucket.count > 30) return res.status(429).json({ ok: false, error: 'rate_limited' });
+  } catch {}
   ensureCloudCollections();
   const body = req.body || {};
   const token = req.headers['x-auth-token'];
@@ -6280,7 +6559,8 @@ app.post('/api/audit/log', (req, res) => {
   if (db.auditLogs.length > 1000) {
     db.auditLogs = db.auditLogs.slice(-1000);
   }
-  saveData();
+  // Sin saveData() por request: la telemetría no justifica reescribir el DB
+  // completo; persiste con el debounce de la próxima escritura real.
   res.json({ ok: true });
 });
 
@@ -6290,6 +6570,22 @@ app.get('/api/audit/logs', (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 100, 500);
   const logs = (db.auditLogs || []).slice(-limit).reverse();
   res.json(logs);
+});
+
+// Sesiones activas para el panel /admin (sin exponer tokenHash ni tokens).
+app.get('/api/admin/sessions', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  pruneAuthSessions();
+  const sessions = (db.authSessions || []).map(s => ({
+    name: s.name || null,
+    role: s.role || null,
+    apartmentId: s.apartmentId ?? null,
+    tenantId: s.tenantId ?? null,
+    epoch: s.epoch ?? null,
+    createdAt: s.createdAt || null,
+    expiresAt: s.expiresAt || null,
+  }));
+  res.json({ ok: true, count: sessions.length, sessions });
 });
 
 app.get('/api/tenant/overview', (req, res) => {
@@ -7768,9 +8064,19 @@ app.get(['/api/intercom/public/feed', '/api/intercom/feed'], async (req, res) =>
     } catch {}
   }
 
-  // Prioridad 2: Si ya hay un snapshot en memoria reciente (<10s)
-  const currentSnap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
+  // Prioridad 2: snapshot en memoria SOLO si es fresco (<10s). Negro antes
+  // que foto falsa: lo rancio se descarta y se cae a refresh/SVG.
+  let currentSnap = cameraSnapshots[serial] || (serial === 'BG6994814' ? latestGateSnapshot : null);
+  if (currentSnap?.data && currentSnap.ts) {
+    const ageMs = Date.now() - new Date(currentSnap.ts).getTime();
+    if (Number.isFinite(ageMs) && ageMs > 10000) {
+      try { delete cameraSnapshots[serial]; } catch {}
+      if (serial === 'BG6994814') latestGateSnapshot = { data: null, ts: null, contentType: 'image/jpeg' };
+      currentSnap = null;
+    }
+  }
   if (currentSnap && currentSnap.data) {
+    res.setHeader('Content-Type', currentSnap.contentType || 'image/jpeg');
     res.setHeader('Content-Type', currentSnap.contentType || 'image/jpeg');
     return res.send(currentSnap.data);
   }
@@ -8208,6 +8514,21 @@ app.get('/api/cameras/:serial/stream', async (req, res) => {
     const engineCam = engineMap[engineCamId];
     const ageS = engineCam && typeof engineCam.age_s === 'number' ? engineCam.age_s : null;
     const live = engineCam ? engineCam.live !== false : true;
+    // Sub-stream liviano para tiles (?quality=sub): arranque instantáneo.
+    // Si el sub no está vivo, se cae al main (el frontend no distingue).
+    if (String(req.query.quality || '').toLowerCase() === 'sub' && engineCam) {
+      if (engineCam.sub_live && engineCam.sub_playlist) {
+        return res.json({
+          ok: true,
+          streamUrl: String(engineCam.sub_playlist).startsWith('/') ? String(engineCam.sub_playlist) : `/${engineCam.sub_playlist}`,
+          protocol: 'hls',
+          serial,
+          engine: 'ezviz-hls-sub',
+          live: true,
+          ageS: typeof engineCam.sub_age_s === 'number' ? engineCam.sub_age_s : null,
+        });
+      }
+    }
     if (engineCam && !live) {
       return res.json({
         ok: false,

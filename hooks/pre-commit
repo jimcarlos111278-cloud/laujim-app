@@ -1,14 +1,17 @@
 #!/bin/sh
-# El grafo de graphify es un artefacto LOCAL y NO se commitea: es demasiado
-# grande para GitHub y su regeneracion escanea caches enormes (Gradle, node_modules)
-# que cuelgan el commit. La regeneracion se hace manualmente con:
-#   npm run graphify   (o)   graphify update .
-# Este hook solo garantiza que graphify-out/ nunca quede staged en un commit.
+# El grafo BASE de graphify SI se versiona (graph.json + reporte + manifiesto),
+# actualizado bajo demanda (release/manual), nunca en cada build.
+# Este hook solo evita que se cuelen artefactos regenerables/pesados:
+# cache, archivo historico, snapshots fechados y HTML regenerable.
 # Hook instalado en .git/hooks/pre-commit mediante scripts/setup-graphify-hooks.cjs
 
-# Si por error alguien hizo `git add graphify-out/`, lo saca del index.
-if git rev-parse --git-dir >/dev/null 2>&1 && [ -d "graphify-out" ]; then
-  git rm -r --cached --quiet graphify-out/ 2>/dev/null || true
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  git rm -r --cached --quiet graphify-out/cache graphify-out/archive graphify-out/graph.html 2>/dev/null || true
+  for d in graphify-out/20*; do
+    if [ -d "$d" ]; then
+      git rm -r --cached --quiet "$d" 2>/dev/null || true
+    fi
+  done
 fi
 
 exit 0
