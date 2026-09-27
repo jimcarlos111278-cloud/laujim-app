@@ -85,3 +85,8 @@ android/android/
 .tmp-report/
 window_dump.xml
 .opencode/project-memory.md
+**/graphify-out/cache/
+**/graphify-out/archive/
+**/graphify-out/20*/
+**/graphify-out/graph.html
+scratch/*.png
