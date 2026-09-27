@@ -12833,6 +12833,25 @@ app.get('/app-debug.apk', (req, res) => {
   res.redirect(302, 'https://github.com/jimcarlos111278-cloud/laujim-app/releases/latest/download/app-debug.apk');
 });
 
+// APKs versionadas en public/releases/ (rotación: últimas 10, fuera de git).
+// Se sincronizan por deploy/SFTP; dist/ no las contiene.
+app.get('/releases/:file', (req, res) => {
+  const file = String(req.params.file || '');
+  if (!/^laujim-v[\d.]+\.apk$/i.test(file)) return res.status(400).json({ error: 'APK no válida.' });
+  const candidates = [
+    path.join(__dirname, 'public', 'releases', file),
+    path.join(__dirname, 'dist', 'releases', file),
+  ];
+  for (const apk of candidates) {
+    if (fs.existsSync(apk)) {
+      return res.download(apk, file, {
+        headers: { 'Content-Type': 'application/vnd.android.package-archive' },
+      });
+    }
+  }
+  return res.status(404).json({ error: 'APK no encontrada en este servidor.' });
+});
+
 app.use(express.static(path.resolve(__dirname, 'dist'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
