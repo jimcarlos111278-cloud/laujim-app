@@ -47,6 +47,10 @@ services:
       - WHATSAPP_CLOUD_ENABLED=true
       - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
       - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - WHATSAPP_VERIFY_TOKEN=${WHATSAPP_VERIFY_TOKEN}
+      - WHATSAPP_APP_SECRET=${WHATSAPP_APP_SECRET}
+      - WHATSAPP_GRAPH_VERSION=${WHATSAPP_GRAPH_VERSION:-v21.0}
+      - PUBLIC_APP_URL=${PUBLIC_APP_URL}
     network_mode: host
 
   # ─── 4. PROXY INVERSO CADDY (HTTPS / SSL Cloudflare Automático) ───
@@ -62,6 +66,25 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     network_mode: host
+
+  # ─── 5. EDITOR REMOTO (VS Code en el navegador, mismo host, puerto 8443) ───
+  # Editar código desde cualquier PC sin instalar nada: navegador →
+  # https://<tu-dominio>:8443, clave = CODE_SERVER_PASSWORD.
+  # El repo se monta en /config/workspace (PROJECT_DIR en la VM).
+  code:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: laujim-code
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - PASSWORD=${CODE_SERVER_PASSWORD:?CODE_SERVER_PASSWORD requerido}
+      - SUDO_PASSWORD=${CODE_SERVER_PASSWORD:?CODE_SERVER_PASSWORD requerido}
+    volumes:
+      - ${PROJECT_DIR:-/home/ubuntu/laujim-app}:/config/workspace
+      - code_config:/config
+    ports:
+      - "127.0.0.1:8081:8443"
 
 volumes:
   postgres_data:
