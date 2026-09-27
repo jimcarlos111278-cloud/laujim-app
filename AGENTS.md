@@ -59,9 +59,24 @@ This is a hard standard, not optional.
   6. Commit and push to `origin/main`.
 - Options: `--message "..."` for a custom commit message, `--no-push` to build
   and commit without pushing, `--minor`/`--major` for a non-patch bump.
-- After the push, verify Render deployed the new build by checking
-  `https://laujim-app.onrender.com/api/version` shows the new version before
+- After the push, verify Oracle serves the new build by checking
+  `https://conjunto-residendial-laujim.duckdns.org/api/version` shows the new version before
   claiming the APK notification is live.
 - Never ship a code change to the app without bumping the version and
   rebuilding the APK. If a change is only server-side (no APK impact), a
   version bump is not required.
+
+## Multi-PC / multi-IA continuity (leer al arrancar en otra máquina)
+
+El proyecto vive en VM + GitHub + Aiven y varias IAs (este u otro PC) operan
+sobre él. La sincronización la hacen git y las fuentes durables, no la
+herramienta. Reglas:
+
+- Al llegar: `git pull`, luego `git log --oneline -5` + `node scripts/handoff.cjs`.
+  El mapa del proyecto es `GRAPH_REPORT.md` + `graphify-out/graph.json`.
+- Una sola IA por tarea a la vez. Conflictos = la otra sesión no hizo push.
+- Al soltar: verificar (`npm run build` u `oxlint`), `git add` solo de lo
+  intencional (nunca `-A`), commit, `npm run sync:aiven:pre-push`, push.
+- El grafo se refresca por release (`release-apk` lo archiva) o manual con
+  `npm run graphify` + commit de `graphify-out/` (solo archivos base).
+- Secretos y datos viven en VM/Aiven, nunca en commits ni en el chat.

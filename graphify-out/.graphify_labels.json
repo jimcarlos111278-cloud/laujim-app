@@ -84,7 +84,7 @@
   "82": "caller-id-repository.cjs",
   "83": "test_chrome.cjs",
   "84": "react-dom",
-  "85": "get",
+  "85": "scan_plates_cloud",
   "86": "puppeteer-core",
   "87": "test_chrome.js",
   "88": "dexie",
@@ -100,7 +100,7 @@
   "98": "vite.config.js",
   "99": "Historial de Cambios",
   "100": "Extensión de Chrome — Llenar Laujim",
-  "101": "alpr_auto_status",
+  "101": "get",
   "102": "set-local-pass.cjs",
   "103": "jsqr",
   "104": "2. Modos de ejecución",
@@ -177,6 +177,5 @@
   "175": "node-cron",
   "176": "react-router-dom",
   "177": "tailwindcss",
-  "178": "Admin.jsx",
-  "179": "trigger_alpr_scan"
+  "178": "Admin.jsx"
 }

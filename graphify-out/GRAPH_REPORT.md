@@ -1,16 +1,16 @@
 # Graph Report - Proyecto Laujim APP fix  (2026-09-26)
 
 ## Corpus Check
-- 173 files · ~243,037 words
+- 173 files · ~243,112 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1816 nodes · 3983 edges · 180 communities (129 shown, 51 thin omitted)
+- 1816 nodes · 3983 edges · 179 communities (129 shown, 50 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 92 edges (avg confidence: 0.51)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8cb98e7c`
+- Built from commit: `5580f8fe`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -99,7 +99,7 @@
 - caller-id-repository.cjs
 - test_chrome.cjs
 - react-dom
-- get
+- scan_plates_cloud
 - puppeteer-core
 - test_chrome.js
 - dexie
@@ -107,7 +107,7 @@
 - sw.js
 - Historial de Cambios
 - Extensión de Chrome — Llenar Laujim
-- alpr_auto_status
+- get
 - set-local-pass.cjs
 - jsqr
 - 2. Modos de ejecución
@@ -165,7 +165,6 @@
 - react-router-dom
 - tailwindcss
 - Admin.jsx
-- trigger_alpr_scan
 
 ## God Nodes (most connected - your core abstractions)
 1. `startServer()` - 100 edges
@@ -194,7 +193,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (180 total, 51 thin omitted)
+## Communities (179 total, 50 thin omitted)
 
 ### Community 0 - "server.cjs"
 Cohesion: 0.03
@@ -488,13 +487,13 @@ Nodes (3): fs, path, truecaller
 Cohesion: 0.26
 Nodes (13): createClaimNextJob(), Database, enqueueLookup(), fs, getCallerCache(), getLatestJob(), initDatabase(), markJob() (+5 more)
 
-### Community 85 - "get"
-Cohesion: 0.15
-Nodes (17): _alpr_register_auto(), _alpr_today(), _alpr_worker(), disambiguate_colombian_plate(), download_recording(), get_alpr_snapshot(), get_detected_plates(), get_export_status() (+9 more)
+### Community 85 - "scan_plates_cloud"
+Cohesion: 0.16
+Nodes (13): _alpr_register_auto(), _alpr_today(), _alpr_worker(), capture_snapshot(), get_oldest_recordings(), Fecha más vieja con grabación por cámara (sondeo MicroSD, cache 6h)., Retorna (status, is_new_or_moved). status: 'moving' | 'parked' is_new_or_moved:…, Escanea la imagen con Plate Recognizer Cloud API. Aprovecha el token oficial,… (+5 more)
 
 ### Community 89 - "ezviz_stream_server.py"
-Cohesion: 0.19
-Nodes (10): _fetch_range_to_file(), get_live_playlist(), _oldest_for_cam(), _playback_url(), _probe_range_has_data(), _prune_loop(), _prune_recordings(), ¿Hay grabación en ese momento? Lee 4s del playback; True = hay datos. (+2 more)
+Cohesion: 0.23
+Nodes (8): _fetch_range_to_file(), _oldest_for_cam(), _playback_url(), _probe_range_has_data(), _prune_loop(), _prune_recordings(), ¿Hay grabación en ese momento? Lee 4s del playback; True = hay datos., Elimina exports viejos (.mp4/.log) más allá de 7 días o 3 GB (más viejos…
 
 ### Community 99 - "Historial de Cambios"
 Cohesion: 0.08
@@ -503,6 +502,10 @@ Nodes (24): 2026-07-20 — v2.1.0 — Chat, dark mode, cloud-first, editor embeb
 ### Community 100 - "Extensión de Chrome — Llenar Laujim"
 Cohesion: 0.12
 Nodes (16): Arquitectura, Backup de referencia, Configuración actual de dropdowns (v1.4.5), Extensión de Chrome — Llenar Laujim, Flujo de `chooseDropdown` (v1.4.5), Gestión de anuncios, Instalación, La app no carga en el navegador (+8 more)
+
+### Community 101 - "get"
+Cohesion: 0.17
+Nodes (12): alpr_auto_status(), disambiguate_colombian_plate(), download_recording(), get_alpr_snapshot(), get_detected_plates(), get_export_status(), get_live_playlist(), get_retention() (+4 more)
 
 ### Community 102 - "set-local-pass.cjs"
 Cohesion: 0.18
@@ -592,27 +595,23 @@ Nodes (13): react, api, Modal(), Contracts(), getPredialUrl(), lookupRef(), Pred
 Cohesion: 0.70
 Nodes (4): Admin(), dayKey(), fmtBytes(), fmtDate()
 
-### Community 179 - "trigger_alpr_scan"
-Cohesion: 0.50
-Nodes (4): capture_snapshot(), Extrae un fotograma JPEG nítido instantáneamente desde el último segmento TS en…, Escaneo manual con Plate Recognizer Cloud: mode = 'compare' (nube; comparativa…, trigger_alpr_scan()
-
 ## Knowledge Gaps
-- **542 isolated node(s):** `$schema`, `oxc`, `react/rules-of-hooks`, `warn`, `express` (+537 more)
+- **542 isolated node(s):** `fs`, `path`, `{ S3Client, ListObjectsV2Command, PutObjectCommand }`, `root`, `SOURCES` (+537 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **51 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **50 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `init()` connect `ScraperWorker.jsx` to `services-scraper.cjs`, `startServer`, `startServer`?**
-  _High betweenness centrality (0.178) - this node is a cross-community bridge._
+  _High betweenness centrality (0.182) - this node is a cross-community bridge._
 - **Why does `installFailoverFetch()` connect `ScraperWorker.jsx` to `App.jsx`?**
-  _High betweenness centrality (0.177) - this node is a cross-community bridge._
+  _High betweenness centrality (0.181) - this node is a cross-community bridge._
 - **Why does `startServer()` connect `startServer` to `server.cjs`, `ScraperWorker.jsx`, `colombiaDate`, `saveData`, `activeContractForApartment`, `handleCloudInbound`, `cloudServiceAmounts`, `createCloudServicesReportMedia`, `worker-protocol.cjs`, `caller-id-repository.cjs`, `payment-receipt-ocr.cjs`, `content-facebook.js`, `runGasScrapeOnce`?**
-  _High betweenness centrality (0.095) - this node is a cross-community bridge._
+  _High betweenness centrality (0.097) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `startServer()` (e.g. with `log()` and `publicEdgeView()`) actually correct?**
   _`startServer()` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `$schema`, `oxc`, `react/rules-of-hooks` to the rest of the system?**
+- **What connects `fs`, `path`, `{ S3Client, ListObjectsV2Command, PutObjectCommand }` to the rest of the system?**
   _542 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `server.cjs` be split into smaller, more focused modules?**
   _Cohesion score 0.034518113465481885 - nodes in this community are weakly interconnected._
