@@ -91,6 +91,22 @@ public final class CallGuardStore {
         return set == null ? Collections.emptySet() : new HashSet<>(set);
     }
 
+    public static void addAllowedNumber(Context context, String phone) {
+        String norm = normalize(phone);
+        if (norm.isEmpty()) return;
+        Set<String> set = getAllowedNumbers(context);
+        set.add(norm);
+        saveAllowedNumbers(context, set);
+    }
+
+    public static void removeAllowedNumber(Context context, String phone) {
+        String norm = normalize(phone);
+        if (norm.isEmpty()) return;
+        Set<String> set = getAllowedNumbers(context);
+        set.remove(norm);
+        saveAllowedNumbers(context, set);
+    }
+
     public static long getLastSyncTime(Context context) {
         return prefs(context).getLong(KEY_LAST_SYNC, 0L);
     }

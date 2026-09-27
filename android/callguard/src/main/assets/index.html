@@ -3,174 +3,478 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Laujim CallGuard Dialer</title>
+  <title>CallGuard Laujim</title>
   <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
-  <div id="app">
-    <!-- Top Search & Safe-Area Header (Google Phone style) -->
-    <header class="app-header">
-      <div class="search-pill">
-        <button id="btnMenuToggle" class="search-icon-btn" title="Menú">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
+  <div id="callguard-app" aria-label="Aplicación CallGuard Laujim">
+    
+    <!-- Cabecera limpia One UI (sin barra de estado simulada) -->
+    <header class="cg-header" data-app-header>
+      <div>
+        <p class="cg-kicker">CallGuard Laujim</p>
+        <h2 data-screen-title>Recientes</h2>
+      </div>
+      <div class="cg-toolbar-actions">
+        <button class="cg-icon-button" type="button" aria-label="Sincronizar" id="btnHeaderSync" title="Sincronizar residentes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 16h5v5"/>
           </svg>
         </button>
-        <input type="text" id="contactSearch" placeholder="Buscar contactos o números..." autocomplete="off">
-        <div class="search-actions">
-          <div id="dbStatusDot" class="status-indicator connected" title="Laujim DB Conectada"></div>
-          <button id="btnSync" class="search-icon-btn" title="Sincronizar">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Quick Category Chips -->
-      <div class="filter-chips">
-        <button class="chip active" data-filter="all">Todas</button>
-        <button class="chip" data-filter="missed">Perdidas</button>
-        <button class="chip" data-filter="tenants">Inquilinos <span id="tenantChipBadge" class="chip-counter">15</span></button>
-        <button class="chip" data-filter="blocked">Spam <span id="blockedChipBadge" class="chip-counter hidden">0</span></button>
       </div>
     </header>
 
-    <!-- Default Dialer Promotion Pill (Discrete) -->
-    <div id="bannerDefaultDialer" class="default-dialer-pill hidden">
-      <span>⭐ Establecer como app de llamadas</span>
-      <button id="btnSetDefaultDialer" class="pill-action-btn">Activar</button>
-    </div>
+    <!-- Contenido Principal -->
+    <main class="cg-main">
 
-    <!-- Main Screens Viewport -->
-    <main class="app-main">
-      <!-- TAB 1: HISTORIAL / CONTACTOS (Default) -->
-      <section id="tabHistory" class="tab-pane active">
-        <div id="historyList" class="calls-container">
-          <div class="empty-state">Cargando registros...</div>
+      <!-- 1. FAVORITOS -->
+      <section data-screen="favorites" hidden>
+        <p class="cg-date-label">Contactos Favoritos</p>
+        <div class="cg-list" id="favoritesList">
+          <div class="cg-empty-msg" id="favoritesEmptyState">
+            <svg style="width: 40px; height: 40px; margin-bottom: 8px; opacity: 0.4;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <div style="font-weight: 600;">No tienes contactos favoritos</div>
+            <div style="font-size: 12px; margin-top: 4px;">Tus contactos marcados como favoritos aparecerán aquí.</div>
+          </div>
         </div>
       </section>
 
-      <!-- TAB 2: TECLADO (Keypad con Preview) -->
-      <section id="tabKeypad" class="tab-pane">
-        <div class="dialer-top">
-          <!-- 10-Digit Truecaller Preview Card -->
-          <div id="lookupPreview" class="lookup-preview hidden"></div>
+      <!-- 2. RECIENTES -->
+      <section data-screen="recents">
+        <div class="cg-segments" role="tablist">
+          <button class="cg-segment" type="button" role="tab" aria-selected="true" data-call-filter="all">Todas</button>
+          <button class="cg-segment" type="button" role="tab" aria-selected="false" data-call-filter="missed">Perdidas</button>
+          <button class="cg-segment" type="button" role="tab" aria-selected="false" data-call-filter="blocked">Bloqueadas</button>
+        </div>
 
-          <!-- Matching Contacts Bar -->
-          <div id="dialerMatches" class="matches-container hidden"></div>
+        <div data-call-panel="all">
+          <p class="cg-date-label">Historial de llamadas</p>
+          <div class="cg-list" id="recentAllList">
+            <div class="cg-empty-msg">Cargando historial de llamadas...</div>
+          </div>
+        </div>
 
-          <!-- Phone Number Display -->
-          <div class="dialer-input-wrap">
-            <input type="text" id="phoneInput" class="phone-input" placeholder="" readonly>
-            <button id="btnBackspace" class="backspace-btn hidden" title="Borrar">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-                <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H7.07L2.4 12l4.66-7H22v14zm-11.59-2L14 13.41 17.59 17 19 15.59 15.41 12 19 8.41 17.59 7 14 10.59 10.41 7 9 8.41 12.59 12 9 15.59z"/>
+        <div data-call-panel="missed" hidden>
+          <p class="cg-date-label">Llamadas no contestadas</p>
+          <div class="cg-list" id="recentMissedList">
+            <div class="cg-empty-msg">No hay llamadas perdidas.</div>
+          </div>
+        </div>
+
+        <div data-call-panel="blocked" hidden>
+          <p class="cg-date-label">Llamadas rechazadas en silencio</p>
+          <div class="cg-list" id="recentBlockedList">
+            <div class="cg-empty-msg">No hay llamadas bloqueadas registradas.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. CONTACTOS -->
+      <section data-screen="contacts" hidden>
+        <div class="cg-search-field">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" x2="16.65" y1="21" y2="16.65"/>
+          </svg>
+          <input type="text" id="contactSearchInput" placeholder="Buscar por nombre, apto o teléfono..." autocomplete="off">
+        </div>
+
+        <div class="cg-contact-section" id="sectionTenants">
+          <div class="cg-section-header">
+            <span class="cg-section-title">🏢 Residentes Laujim</span>
+            <span class="cg-counter-badge" id="tenantCounter">0</span>
+          </div>
+          <div class="cg-list" id="tenantsList">
+            <div class="cg-empty-msg">Cargando residentes de Laujim...</div>
+          </div>
+        </div>
+
+        <div class="cg-contact-section" id="sectionDeviceContacts">
+          <div class="cg-section-header">
+            <span class="cg-section-title">📱 Contactos del Teléfono</span>
+            <span class="cg-counter-badge" id="deviceCounter">0</span>
+          </div>
+          <div class="cg-list" id="deviceContactsList">
+            <div class="cg-empty-msg">Cargando libreta de contactos...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. TECLADO CON IDENTIFICACIÓN TRUECALLER FLOTANTE -->
+      <section data-screen="keypad" hidden>
+        <div class="cg-keypad-hero">
+          <div class="cg-keypad-topline">
+            <span class="cg-security-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="m9 12 2 2 4-4"/>
+              </svg>
+              Marcación protegida
+            </span>
+            <span class="cg-country-chip">🇨🇴 +57</span>
+          </div>
+
+          <div class="cg-keypad-number" aria-live="polite">
+            <span data-keypad-number></span><span class="cg-type-caret"></span>
+          </div>
+
+          <!-- Tarjeta de Identificación Flotante (Foto + Nombre al completar 10 dígitos) -->
+          <div class="cg-identity-card" id="tcIdentityPreview" hidden>
+            <img class="cg-identity-avatar" id="tcPreviewAvatar" src="" alt="Avatar" />
+            <div class="cg-identity-avatar-fallback" id="tcPreviewFallback">TC</div>
+            <div class="cg-identity-info">
+              <div class="cg-identity-name" id="tcPreviewName">Identificando...</div>
+              <div class="cg-identity-meta">
+                <span class="cg-identity-badge" id="tcPreviewBadge">Truecaller</span>
+                <span class="cg-identity-sub" id="tcPreviewSub">Línea celular</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cg-keypad-lookup" id="keypadHelperText">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+            </svg>
+            <span data-keypad-lookup>Identificación disponible al completar el número</span>
+          </div>
+        </div>
+
+        <div class="cg-keypad">
+          <button class="cg-key" type="button" data-digit="1"><span class="cg-key-digit">1</span><small>&nbsp;</small></button>
+          <button class="cg-key" type="button" data-digit="2"><span class="cg-key-digit">2</span><small>ABC</small></button>
+          <button class="cg-key" type="button" data-digit="3"><span class="cg-key-digit">3</span><small>DEF</small></button>
+          <button class="cg-key" type="button" data-digit="4"><span class="cg-key-digit">4</span><small>GHI</small></button>
+          <button class="cg-key" type="button" data-digit="5"><span class="cg-key-digit">5</span><small>JKL</small></button>
+          <button class="cg-key" type="button" data-digit="6"><span class="cg-key-digit">6</span><small>MNO</small></button>
+          <button class="cg-key" type="button" data-digit="7"><span class="cg-key-digit">7</span><small>PQRS</small></button>
+          <button class="cg-key" type="button" data-digit="8"><span class="cg-key-digit">8</span><small>TUV</small></button>
+          <button class="cg-key" type="button" data-digit="9"><span class="cg-key-digit">9</span><small>WXYZ</small></button>
+          <button class="cg-key" type="button" data-digit="*"><span class="cg-key-digit">∗</span><small>&nbsp;</small></button>
+          <button class="cg-key" type="button" data-digit="0"><span class="cg-key-digit">0</span><small>+</small></button>
+          <button class="cg-key" type="button" data-digit="#"><span class="cg-key-digit">#</span><small>&nbsp;</small></button>
+        </div>
+
+        <div class="cg-keypad-actions">
+          <button class="cg-keypad-side" type="button" data-keypad-add disabled title="Añadir a permitidos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>
+            </svg>
+          </button>
+          <span class="cg-dial-shell">
+            <button class="cg-dial" type="button" data-keypad-call title="Llamar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
               </svg>
             </button>
-          </div>
-        </div>
-
-        <!-- Google Phone Style Minimalist Round Keypad -->
-        <div class="keypad-grid">
-          <div class="keypad-row">
-            <button class="key-btn" data-val="1"><span class="digit">1</span><span class="letters">&nbsp;</span></button>
-            <button class="key-btn" data-val="2"><span class="digit">2</span><span class="letters">ABC</span></button>
-            <button class="key-btn" data-val="3"><span class="digit">3</span><span class="letters">DEF</span></button>
-          </div>
-          <div class="keypad-row">
-            <button class="key-btn" data-val="4"><span class="digit">4</span><span class="letters">GHI</span></button>
-            <button class="key-btn" data-val="5"><span class="digit">5</span><span class="letters">JKL</span></button>
-            <button class="key-btn" data-val="6"><span class="digit">6</span><span class="letters">MNO</span></button>
-          </div>
-          <div class="keypad-row">
-            <button class="key-btn" data-val="7"><span class="digit">7</span><span class="letters">PQRS</span></button>
-            <button class="key-btn" data-val="8"><span class="digit">8</span><span class="letters">TUV</span></button>
-            <button class="key-btn" data-val="9"><span class="digit">9</span><span class="letters">WXYZ</span></button>
-          </div>
-          <div class="keypad-row">
-            <button class="key-btn" data-val="*"><span class="digit">*</span><span class="letters">&nbsp;</span></button>
-            <button class="key-btn" data-val="0"><span class="digit">0</span><span class="letters">+</span></button>
-            <button class="key-btn" data-val="#"><span class="digit">#</span><span class="letters">&nbsp;</span></button>
-          </div>
-        </div>
-
-        <!-- Call Action Floating Button -->
-        <div class="dialer-call-bar">
-          <button id="btnCall" class="call-fab" title="Llamar">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
-              <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.72 11.72 0 003.68.59 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.68 1 1 0 01-.24 1.02l-2.23 2.09z"/>
+          </span>
+          <button class="cg-keypad-side" type="button" data-keypad-delete disabled title="Borrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" x2="12" y1="9" y2="15"/><line x1="12" x2="18" y1="9" y2="15"/>
             </svg>
           </button>
         </div>
       </section>
 
-      <!-- TAB 3: AJUSTES (Minimalista) -->
-      <section id="tabSettings" class="tab-pane">
-        <div class="settings-list">
-          <div class="settings-card">
-            <div class="settings-item">
-              <div class="settings-meta">
-                <span class="settings-title">App predeterminada</span>
-                <span id="defaultDialerStatusDesc" class="settings-sub">Predeterminada para llamadas</span>
+      <!-- 5. FILTROS (CON SWITCHES) -->
+      <section data-screen="filters" hidden>
+        <div class="cg-filter-stack">
+          <div>
+            <p class="cg-section-label">Protección activa</p>
+            <div class="cg-filter-card">
+              <div class="cg-filter-toggle-row">
+                <span class="cg-filter-icon cg-protected">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                </span>
+                <div class="cg-filter-copy">
+                  <strong>Bloquear desconocidos</strong>
+                  <span>Rechazo antes de sonar</span>
+                </div>
+                <label class="cg-switch">
+                  <input type="checkbox" id="toggleBlockUnknown" checked>
+                  <span class="cg-slider"></span>
+                </label>
               </div>
-              <button id="btnSettingsRoleDialer" class="btn-pill-action">Configurar</button>
-            </div>
-            <div class="settings-item">
-              <div class="settings-meta">
-                <span class="settings-title">Filtro de llamadas spam</span>
-                <span id="roleStatusDesc" class="settings-sub">Protección activa 24/7</span>
+
+              <div class="cg-filter-toggle-row">
+                <span class="cg-filter-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2v2"/><path d="M7 2v2"/><rect width="18" height="18" x="3" y="4" rx="2"/><circle cx="12" cy="10" r="2"/><path d="M8 18h8"/></svg>
+                </span>
+                <div class="cg-filter-copy">
+                  <strong>Contactos del dispositivo</strong>
+                  <span>Permitir llamadas de tu agenda</span>
+                </div>
+                <label class="cg-switch">
+                  <input type="checkbox" id="toggleAllowContacts" checked>
+                  <span class="cg-slider"></span>
+                </label>
               </div>
-              <button id="btnRequestRole" class="btn-pill-action">Activar</button>
+
+              <div class="cg-filter-toggle-row">
+                <span class="cg-filter-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/></svg>
+                </span>
+                <div class="cg-filter-copy">
+                  <strong>Residentes Laujim</strong>
+                  <span>Permitir vecinos y administración</span>
+                </div>
+                <label class="cg-switch">
+                  <input type="checkbox" id="toggleAllowTenants" checked>
+                  <span class="cg-slider"></span>
+                </label>
+              </div>
             </div>
           </div>
 
-          <div class="settings-card">
-            <div class="settings-item">
-              <div class="settings-meta">
-                <span class="settings-title">Servidor central</span>
-                <span class="settings-sub">conjunto-residendial-laujim.duckdns.org</span>
+          <div>
+            <p class="cg-section-label">Integración Cloud Truecaller</p>
+            <div class="cg-filter-card">
+              <div class="cg-filter-toggle-row">
+                <span class="cg-filter-icon cg-protected">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                </span>
+                <div class="cg-filter-copy">
+                  <strong>Servicio Truecaller en VM</strong>
+                  <span id="txtWorkerStatus">Sesión Activa • Permanente</span>
+                </div>
+                <button class="cg-icon-button" type="button" id="btnTestTruecaller" title="Probar conexión">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </button>
               </div>
             </div>
-            <input type="text" id="txtServerUrl" value="https://conjunto-residendial-laujim.duckdns.org" class="settings-input">
-            <button id="btnSaveSettings" class="btn-full-save">Guardar servidor</button>
+          </div>
+
+          <div>
+            <p class="cg-section-label">Roles del Sistema Android</p>
+            <div class="cg-filter-card">
+              <button class="cg-filter-row" type="button" id="btnRoleDialerRow">
+                <span class="cg-filter-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </span>
+                <div class="cg-filter-copy">
+                  <strong>Marcador Predeterminado</strong>
+                  <span id="txtDialerRoleDesc">ROLE_DIALER</span>
+                </div>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+
+              <button class="cg-filter-row" type="button" id="btnRoleScreeningRow">
+                <span class="cg-filter-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </span>
+                <div class="cg-filter-copy">
+                  <strong>Filtro de Llamadas 24/7</strong>
+                  <span id="txtScreeningRoleDesc">ROLE_CALL_SCREENING</span>
+                </div>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       </section>
+
+      <!-- 6. LLAMADA ACTIVA (3x2) -->
+      <section class="cg-call-screen" data-screen="active-call" hidden>
+        <div class="cg-call-identity">
+          <div class="cg-call-avatar" data-call-initials>PL</div>
+          <h2 data-call-name>Portería Laujim</h2>
+          <p><span data-call-subtitle>Llamada en curso</span> • <span class="tabular-nums" data-call-timer>00:00</span></p>
+        </div>
+
+        <div class="cg-call-grid">
+          <button class="cg-call-control" type="button" aria-pressed="false" id="btnCallMute">
+            <span class="cg-control-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" x2="23" y1="1" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/></svg>
+            </span>
+            <span>Silenciar</span>
+          </button>
+          <button class="cg-call-control" type="button" aria-pressed="false" id="btnCallDtmf">
+            <span class="cg-control-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+            </span>
+            <span>Teclado</span>
+          </button>
+          <button class="cg-call-control" type="button" aria-pressed="false" id="btnCallSpeaker">
+            <span class="cg-control-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            </span>
+            <span>Altavoz</span>
+          </button>
+          <button class="cg-call-control" type="button" aria-pressed="false" id="btnCallAdd">
+            <span class="cg-control-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+            </span>
+            <span>Añadir llamada</span>
+          </button>
+          <button class="cg-call-control cg-gate" type="button" aria-pressed="false" id="btnCallOpenGate">
+            <span class="cg-control-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h20"/><path d="M20 20v-4"/><path d="M14 12v.01"/><path d="M6 20V4a2 2 0 0 1 2-2h6v18"/></svg>
+            </span>
+            <span>Abrir portón</span>
+          </button>
+          <button class="cg-call-control" type="button" aria-pressed="false" id="btnCallContacts">
+            <span class="cg-control-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span>Contactos</span>
+          </button>
+        </div>
+
+        <div class="cg-end-wrap">
+          <button class="cg-end-call" type="button" aria-label="Finalizar llamada" id="btnCallHangup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="22" x2="2" y1="2" y2="22"/></svg>
+          </button>
+        </div>
+      </section>
+
     </main>
 
-    <!-- Bottom Navigation Bar (Google Phone Style with Pill) -->
-    <nav class="app-nav">
-      <button class="nav-item active" data-tab="tabHistory">
-        <div class="nav-pill">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-          </svg>
-        </div>
-        <span>Principal</span>
+    <!-- Barra de Navegación Inferior -->
+    <nav class="cg-nav" aria-label="Navegación principal" data-app-nav>
+      <button class="cg-nav-button" type="button" aria-selected="false" data-target-screen="favorites" data-title="Favoritos">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>Favoritos</span>
       </button>
-
-      <button class="nav-item" data-tab="tabKeypad">
-        <div class="nav-pill">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            <path d="M12 19c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM6 1c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12-8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6-4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6-2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6-4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-          </svg>
-        </div>
+      <button class="cg-nav-button" type="button" aria-selected="true" data-target-screen="recents" data-title="Recientes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Recientes</span>
+      </button>
+      <button class="cg-nav-button" type="button" aria-selected="false" data-target-screen="contacts" data-title="Contactos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Contactos</span>
+      </button>
+      <button class="cg-nav-button" type="button" aria-selected="false" data-target-screen="keypad" data-title="Teclado">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
         <span>Teclado</span>
       </button>
-
-      <button class="nav-item" data-tab="tabSettings">
-        <div class="nav-pill">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-          </svg>
-        </div>
-        <span>Ajustes</span>
+      <button class="cg-nav-button" type="button" aria-selected="false" data-target-screen="filters" data-title="Filtros">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        <span>Filtros</span>
       </button>
     </nav>
+
+    <!-- MODAL: INFORMACIÓN DETALLADA DE NÚMERO BLOQUEADO (CON TOGGLE PERMITIR / BLOQUEAR) -->
+    <div class="cg-overlay" id="blockedDetailOverlay" hidden>
+      <section class="cg-sheet" role="dialog">
+        <div class="cg-sheet-head">
+          <span class="cg-sheet-title">Información de Bloqueo</span>
+          <button class="cg-icon-button" type="button" id="btnCloseBlockedDetail" title="Cerrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="cg-profile-header">
+          <div class="cg-profile-avatar-wrap">
+            <img class="cg-profile-avatar-img" id="detailAvatarImg" src="" alt="Foto" style="display: none;" />
+            <div class="cg-profile-avatar-fallback" id="detailAvatarFallback">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
+            </div>
+            <div class="cg-profile-avatar-badge" title="Identificado por Truecaller">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </div>
+          </div>
+          <h3 class="cg-profile-name" id="detailName">Jim Carlos Varela Gomez</h3>
+          <button class="cg-profile-phone-btn" type="button" id="btnDetailCopyPhone" title="Toca o mantén presionado para copiar">
+            <span id="detailPhone">+57 310 720 3822</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          </button>
+        </div>
+
+        <div class="cg-safety-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          <div>
+            <strong id="detailBlockedStateTitle">Llamada rechazada automáticamente</strong>
+            <div id="detailSafetyDesc">Marcación deshabilitada para evitar generar llamadas por error.</div>
+          </div>
+        </div>
+
+        <div class="cg-info-list">
+          <div class="cg-info-item" id="rowDetailEmail">
+            <div class="cg-info-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <span>Correo registrado</span>
+            </div>
+            <span class="cg-info-val" id="detailEmail">jimcarlos111278@gmail.com</span>
+          </div>
+
+          <div class="cg-info-item">
+            <div class="cg-info-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>Ubicación</span>
+            </div>
+            <span class="cg-info-val" id="detailLocation">Colombia</span>
+          </div>
+
+          <div class="cg-info-item">
+            <div class="cg-info-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
+              <span>Línea telefónica</span>
+            </div>
+            <span class="cg-info-val" id="detailLineType">Móvil / Celular</span>
+          </div>
+
+          <div class="cg-info-item">
+            <div class="cg-info-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Reputación de Spam</span>
+            </div>
+            <span class="cg-info-val" id="detailSpamScore" style="color: var(--cg-success);">0% (Sin reportes)</span>
+          </div>
+
+          <div class="cg-info-item">
+            <div class="cg-info-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+              <span>Hora del bloqueo</span>
+            </div>
+            <span class="cg-info-val" id="detailTimestamp">Hoy, 19:49:45</span>
+          </div>
+        </div>
+
+        <div class="cg-sheet-actions">
+          <button class="cg-action" type="button" id="btnActionCopy">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Copiar número
+          </button>
+          <button class="cg-action cg-allow" type="button" id="btnActionAuthorize">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Permitir número
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Confirmación abrir portón -->
+    <div class="cg-overlay" data-gate-overlay hidden>
+      <section class="cg-sheet" role="dialog">
+        <div class="cg-sheet-head">
+          <span class="cg-sheet-title">Control de Acceso</span>
+          <button class="cg-icon-button" type="button" data-close-gate>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+          </button>
+        </div>
+        <div style="text-align: center; padding: 12px 0 16px;">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--cg-accent-soft); color: var(--cg-accent); margin: 0 auto 12px; display: grid; place-items: center;">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h20"/><path d="M20 20v-4"/><path d="M14 12v.01"/><path d="M6 20V4a2 2 0 0 1 2-2h6v18"/></svg>
+          </div>
+          <h3 style="margin: 0 0 6px; font-size: 19px;">¿Abrir el portón vehicular?</h3>
+          <p style="margin: 0; font-size: 13px; color: var(--cg-muted);">Se enviará la orden de apertura a la cerradura inteligente de Laujim.</p>
+        </div>
+        <div class="cg-sheet-actions">
+          <button class="cg-action" type="button" data-close-gate>Cancelar</button>
+          <button class="cg-action cg-primary" type="button" id="btnConfirmGate">Abrir Portón</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="cg-toast" data-toast hidden>Mensaje</div>
+
   </div>
-  <script src="app.js"></script>
 </body>
 </html>

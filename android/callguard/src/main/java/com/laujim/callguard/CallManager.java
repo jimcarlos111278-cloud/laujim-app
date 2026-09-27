@@ -1,11 +1,14 @@
 package com.laujim.callguard;
 
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.telecom.Call;
 import android.telecom.CallAudioState;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CallManager {
+    private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
     private static Call currentCall;
     private static final CopyOnWriteArrayList<CallListener> listeners = new CopyOnWriteArrayList<>();
 
@@ -79,32 +82,43 @@ public class CallManager {
         }
     }
 
-    public static void disconnect() {
+    public static boolean disconnect() {
         if (currentCall != null) {
             currentCall.disconnect();
+            return true;
         }
+        return false;
     }
 
-    public static void setMuted(boolean muted) {
+    public static boolean setMuted(boolean muted) {
         if (LaujimInCallService.getInstance() != null) {
             LaujimInCallService.getInstance().setMuted(muted);
+            return true;
         }
+        return false;
     }
 
     public static void toggleSpeaker(boolean enable) {
-        if (LaujimInCallService.getInstance() != null) {
+        LaujimInCallService service = LaujimInCallService.getInstance();
+        if (service != null) {
             int route = enable ? CallAudioState.ROUTE_SPEAKER : CallAudioState.ROUTE_EARPIECE;
-            LaujimInCallService.getInstance().setAudioRoute(route);
+            service.setAudioRoute(route);
         }
     }
 
-    public static void playDtmf(char digit) {
+    public static boolean playDtmf(char digit) {
+        if ("0123456789*#".indexOf(digit) < 0) return false;
         if (currentCall != null) {
             currentCall.playDtmfTone(digit);
-            try {
-                Thread.sleep(120);
-            } catch (InterruptedException ignored) {}
-            currentCall.stopDtmfTone();
+            MAIN_HANDLER.postDelayed(() -> {
+                if (currentCall != null) {
+                    try {
+                        currentCall.stopDtmfTone();
+                    } catch (Exception ignored) {}
+                }
+            }, 160);
+            return true;
         }
+        return false;
     }
 }

@@ -3,66 +3,150 @@ package com.laujim.callguard;
 import android.os.Build;
 import android.telecom.Call;
 import android.telecom.CallScreeningService;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import androidx.work.BackoffPolicy;
+import androidx.work.Constraints;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
+import com.laujim.callguard.data.BlockedCallEntity;
+import com.laujim.callguard.data.CallGuardDatabase;
+import com.laujim.callguard.data.ColombiaPhoneNormalizer;
+import com.laujim.callguard.sync.CallerLookupWorker;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class CallGuardScreeningService extends CallScreeningService {
+public final class CallGuardScreeningService extends CallScreeningService {
+    private final ExecutorService databaseExecutor = Executors.newSingleThreadExecutor();
+    private final ScheduledExecutorService deadlineExecutor = Executors.newSingleThreadScheduledExecutor();
+
     @Override
-    public void onScreenCall(Call.Details callDetails) {
+    public void onScreenCall(Call.Details details) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-            && callDetails.getCallDirection() != Call.Details.DIRECTION_INCOMING) {
+                && details.getCallDirection() != Call.Details.DIRECTION_INCOMING) {
             return;
         }
 
-        String phone = callDetails.getHandle() == null ? "" : callDetails.getHandle().getSchemeSpecificPart();
-        boolean allowed = CallGuardStore.isAllowed(this, phone);
-        CallResponse.Builder response = new CallResponse.Builder();
+        String raw = details.getHandle() == null ? null : details.getHandle().getSchemeSpecificPart();
+        String phoneE164 = ColombiaPhoneNormalizer.toE164(raw);
 
-        if (!allowed) {
-            // Rechazo silencioso sin timbrar ni notificar al usuario
-            response.setDisallowCall(true);
-            response.setRejectCall(true);
-            response.setSkipNotification(true);
-            response.setSkipCallLog(false);
+        AtomicBoolean responded = new AtomicBoolean(false);
 
-            String reason = "Número desconocido no registrado en Laujim";
-            String category = "unknown";
-            String norm = CallGuardStore.normalize(phone);
+        // Fail-closed deadline a los 3500ms (Telecom exige < 5000ms)
+        Runnable rejectOnDeadline = () -> {
+            if (responded.compareAndSet(false, true)) {
+                respondToCall(details, rejectedResponse());
+                recordBlockedAndEnqueueLookup(phoneE164, phoneE164 == null ? "BLOCKED_PRIVATE" : "BLOCKED_UNKNOWN");
+            }
+        };
 
-            if (norm.startsWith("320987") || norm.startsWith("310999") || norm.startsWith("301666") || norm.length() < 10) {
-                reason = "Sospecha de Fraude / Extorsión (Lista Negra)";
-                category = "fraud";
+        ScheduledFuture<?> deadline = deadlineExecutor.schedule(rejectOnDeadline, 3500, TimeUnit.MILLISECONDS);
+
+        databaseExecutor.execute(() -> {
+            boolean allowed = false;
+            if (phoneE164 != null) {
+                try {
+                    // Consulta Room rápida en tabla indexada
+                    allowed = CallGuardDatabase.getInstance(getApplicationContext())
+                            .allowedNumberDao()
+                            .isAllowedBlocking(phoneE164);
+                    // Respaldo en Store SharedPreferences si aún no se ha migrado
+                    if (!allowed) {
+                        allowed = CallGuardStore.isAllowed(getApplicationContext(), phoneE164);
+                    }
+                } catch (Exception e) {
+                    allowed = false;
+                }
             }
 
-            CallGuardStore.recordBlockedCall(this, phone, "Número no registrado", reason, category);
-            reportBlockedCallAsync(norm, reason, category);
-        }
+            if (!responded.compareAndSet(false, true)) {
+                return;
+            }
 
-        respondToCall(callDetails, response.build());
+            deadline.cancel(false);
+
+            if (allowed) {
+                respondToCall(details, new CallResponse.Builder().build());
+            } else {
+                respondToCall(details, rejectedResponse());
+                recordBlockedAndEnqueueLookup(phoneE164, phoneE164 == null ? "BLOCKED_PRIVATE" : "BLOCKED_UNKNOWN");
+            }
+        });
     }
 
-    private void reportBlockedCallAsync(String phone, String reason, String category) {
-        new Thread(() -> {
-            try {
-                String serverUrl = CallGuardStore.getServerUrl(this);
-                URL url = new URL(serverUrl + "/api/callguard/blocked-calls");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setRequestProperty("x-auth-token", CallGuardStore.getAuthToken(this));
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
-                conn.setDoOutput(true);
+    private static CallResponse rejectedResponse() {
+        return new CallResponse.Builder()
+                .setDisallowCall(true)
+                .setRejectCall(true)
+                .setSkipCallLog(true)
+                .setSkipNotification(true)
+                .build();
+    }
 
-                String payload = "{\"phone\":\"" + phone + "\",\"reason\":\"" + reason + "\",\"category\":\"" + category + "\",\"hasWhatsApp\":true}";
-                try (OutputStream os = conn.getOutputStream()) {
-                    os.write(payload.getBytes(StandardCharsets.UTF_8));
-                }
-                conn.getResponseCode();
-                conn.disconnect();
+    private void recordBlockedAndEnqueueLookup(String phoneE164, String reason) {
+        String eventId = UUID.randomUUID().toString();
+        long now = System.currentTimeMillis();
+
+        // Guardar localmente en Room
+        databaseExecutor.execute(() -> {
+            try {
+                BlockedCallEntity entity = new BlockedCallEntity(
+                        eventId,
+                        phoneE164,
+                        reason,
+                        now,
+                        "QUEUED"
+                    );
+                CallGuardDatabase.getInstance(getApplicationContext()).blockedCallDao().insert(entity);
             } catch (Exception ignored) {}
-        }).start();
+        });
+
+        // Encolar trabajo de enriquecimiento con Truecaller mediante WorkManager
+        if (phoneE164 != null) {
+            enqueueCallerLookup(eventId, phoneE164);
+        }
+    }
+
+    private void enqueueCallerLookup(String eventId, String phoneE164) {
+        try {
+            Data input = new Data.Builder()
+                    .putString("event_id", eventId)
+                    .putString("phone_e164", phoneE164)
+                    .build();
+
+            Constraints constraints = new Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build();
+
+            OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(CallerLookupWorker.class)
+                    .setInputData(input)
+                    .setConstraints(constraints)
+                    .setBackoffCriteria(
+                            BackoffPolicy.EXPONENTIAL,
+                            WorkRequest.MIN_BACKOFF_MILLIS,
+                            TimeUnit.MILLISECONDS)
+                    .build();
+
+            String uniqueName = "caller-lookup-" + phoneE164.replace("+", "");
+            WorkManager.getInstance(getApplicationContext()).enqueueUniqueWork(
+                    uniqueName,
+                    ExistingWorkPolicy.KEEP,
+                    request
+            );
+        } catch (Exception ignored) {}
+    }
+
+    @Override
+    public void onDestroy() {
+        databaseExecutor.shutdownNow();
+        deadlineExecutor.shutdownNow();
+        super.onDestroy();
     }
 }
