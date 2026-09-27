@@ -31,3 +31,14 @@ medios/APKs/snapshots en R2 (`laujim-backups`). Nada vive solo en la VM.
   (ver `docker-compose.override.yml`); sincronizar con
   `py scratch/sftp-sync-vm.py` tras regenerar el grafo.
 - Probar este procedimiento 1 vez al año en una VM temporal.
+
+## Acceso multi-PC (Tailscale, indefinido)
+- VM dentro de la tailnet como `laujim-vm` (IP `100.96.247.74`), con
+  SSH de Tailscale activo (`tailscale up --ssh`) y expiración de llave
+  desactivada en consola (Machines → `···` → Disable key expiry).
+- Desde cualquier PC con la app Tailscale (misma cuenta):
+  `tailscale ssh ubuntu@laujim-vm` (sin llaves) o
+  `ssh -i <llave> ubuntu@100.96.247.74`.
+- Sesiones persistentes entre PCs con `tmux` (`new -s trabajo` / `attach -t trabajo`).
+- Si se reinstala la VM: `tailscale up --ssh --hostname=laujim-vm`
+  + aprobar URL + desactivar expiración de nuevo.
