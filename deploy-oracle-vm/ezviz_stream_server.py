@@ -648,11 +648,10 @@ def capture_snapshot(cam_id: str, max_age_s: float = 10.0, out_name: str = "snap
             except OSError:
                 continue
             if latest_ts:
-                # Escritura atómica (tmp + replace): evita el Traceback ASGI cuando
-                # StaticFiles sirve snapshot.jpg justo mientras FFmpeg lo reescribe.
-                # Tmp ÚNICO por intento (pid + ms): la patrulla auto y los escaneos
-                # manuales corren en simultáneo y se pisaban el mismo .tmp.
-                tmp_path = "%s.%d.%d.tmp" % (snapshot_path, os.getpid(), int(time.time() * 1000))
+                # Tmp en /tmp (no en el bind mount) con nombre único: DEVNULL como
+                # stderr + escritura al bind bajo carga daba RC=1 sin archivo.
+                # shutil.move cubre el caso multi-filesystem.
+                tmp_path = "/tmp/alpr_%s_%d_%d.jpg" % (cam_id, os.getpid(), int(time.time() * 1000))
                 snap_cmd = [
                     "ffmpeg", "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
                     "-fflags", "+genpts",  # los .ts traen PTS rotos (~27h); regenerarlos o no sale frame
@@ -665,9 +664,13 @@ def capture_snapshot(cam_id: str, max_age_s: float = 10.0, out_name: str = "snap
                 try:
                     # Timeout generoso: 2880x1620 en CPU compartida puede tardar;
                     # con 8s moría por TimeoutExpired y el escaneo quedaba en "Ninguna".
-                    subprocess.run(snap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30.0)
+                    # stderr a PIPE (no DEVNULL) y salida en /tmp: combinación probada.
+                    subprocess.run(snap_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30.0)
                     if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 1000:
-                        os.replace(tmp_path, snapshot_path)
+                        try:
+                            os.replace(tmp_path, snapshot_path)
+                        except OSError:
+                            shutil.move(tmp_path, snapshot_path)
                         return snapshot_path
                     print(f"[ALPR SNAP] frame vacío de {latest_ts}", flush=True)
                 except Exception as e:
