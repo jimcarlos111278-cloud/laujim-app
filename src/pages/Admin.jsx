@@ -35,6 +35,9 @@ export default function Admin() {
   const [graph, setGraph] = useState(null);
   const [graphMsg, setGraphMsg] = useState('');
   const [graphBusy, setGraphBusy] = useState(false);
+  const [secrets, setSecrets] = useState(null);
+  const [secretsMsg, setSecretsMsg] = useState('');
+  const [secretsBusy, setSecretsBusy] = useState(false);
 
   async function authed(path) {
     const res = await fetch(getBase() + path, { headers: { 'x-auth-token': token }, signal: AbortSignal.timeout(10000) });
@@ -71,6 +74,10 @@ export default function Admin() {
       const gRes = await fetch(getBase() + '/admin/graph/status', { headers, signal: AbortSignal.timeout(15000) });
       if (gRes.ok) setGraph(await gRes.json().catch(() => null));
     } catch { /* el panel del grafo es opcional */ }
+    try {
+      const sRes = await fetch(getBase() + '/admin/secrets/status', { headers, signal: AbortSignal.timeout(15000) });
+      if (sRes.ok) setSecrets(await sRes.json().catch(() => null));
+    } catch { /* el panel de secretos es opcional */ }
   }
 
   async function handleLogin(e) {
@@ -172,6 +179,26 @@ export default function Admin() {
     }
   }
 
+  async function backupSecrets() {
+    setSecretsBusy(true);
+    setSecretsMsg('');
+    try {
+      const res = await fetch(getBase() + '/admin/secrets/backup', {
+        method: 'POST',
+        headers: { 'x-auth-token': token },
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Error del servidor');
+      setSecretsMsg(data.message || 'Listo.');
+      await loadData(token);
+    } catch (err) {
+      setSecretsMsg(err.message);
+    } finally {
+      setSecretsBusy(false);
+    }
+  }
+
   if (!token) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
@@ -239,6 +266,22 @@ export default function Admin() {
                 <button disabled={graphBusy || graph.update?.running} onClick={() => graphAction('update')} className="rounded-xl bg-indigo-600 px-3 py-2 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">Actualizar en VM</button>
                 <button disabled={graphBusy} onClick={() => graphAction('sync-to-aiven')} className="flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"><Database className="h-3.5 w-3.5" /> Guardar copia en Aiven</button>
                 <button disabled={graphBusy} onClick={downloadGraph} className="flex items-center gap-1 rounded-xl bg-slate-200 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-300 disabled:opacity-50"><Download className="h-3.5 w-3.5" /> Descargar copia</button>
+              </div>
+            </div>
+          )}
+        </section>
+        <section className="rounded-2xl bg-white p-4 shadow-sm">
+          <h2 className="flex items-center gap-2 font-bold text-slate-900"><Database className="h-4 w-4" /> Respaldos: secretos y medios</h2>
+          {!secrets ? (
+            <p className="mt-2 text-xs text-slate-400">Cargando estado de respaldos…</p>
+          ) : (
+            <div className="mt-2 space-y-2 text-xs text-slate-600">
+              <p>🔑 <b>Secretos en esta VM:</b> {Object.values(secrets.env || {}).filter(Boolean).length}/{Object.keys(secrets.env || {}).length} presentes</p>
+              <p>🗄️ <b>Copia en Aiven:</b> {!secrets.aiven?.configured ? 'no configurado' : secrets.aiven?.exists ? `${secrets.aiven?.names?.length ?? '—'} secretos · act. ${fmtDate(secrets.aiven?.updatedAt)}` : 'sin copia (usa “Respaldar ahora”)'}</p>
+              <p>🖼️ <b>Medios (fotos/backups):</b> se respaldan a R2 desde la VM con <code>npm run backup:media</code></p>
+              {secretsMsg && <p className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">{secretsMsg}</p>}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button disabled={secretsBusy} onClick={backupSecrets} className="rounded-xl bg-emerald-600 px-3 py-2 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">Respaldar secretos en Aiven</button>
               </div>
             </div>
           )}

@@ -85,12 +85,12 @@
     "semantic_hash": "df8481c2a365eb0e981dcc791222efd1"
   },
   "package.json": {
-    "mtime": 1789425145.3896008,
-    "ast_hash": "32a679390c7bbc0fde70ffc7ef5d8005",
+    "mtime": 1790477065.2115157,
+    "ast_hash": "b6ec270e69e1941e5fe0556cd869c745",
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1790222356.9357128,
+    "mtime": 1790404650.6133053,
     "ast_hash": "44979a6e57440cfbfedd5db029358c4b",
     "semantic_hash": ""
   },
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "scripts/generate-version.js": {
-    "mtime": 1789357542.834128,
-    "ast_hash": "1fb937e405e701e0ab08f5585177a19b",
+    "mtime": 1790476467.7693896,
+    "ast_hash": "71b0fbb27ca07f7fd1fc0db38c14c63d",
     "semantic_hash": ""
   },
   "scripts/migrate-to-aiven.cjs": {
@@ -150,8 +150,8 @@
     "semantic_hash": "cc581821805c0d3965503cb373131345"
   },
   "server.cjs": {
-    "mtime": 1790222169.8811529,
-    "ast_hash": "4769f06d8924d7c76ec3df9f4a81da10",
+    "mtime": 1790477024.8598194,
+    "ast_hash": "2bf1d0d094ce027767cae51d92daa7b5",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -170,8 +170,8 @@
     "semantic_hash": "29cdee1095d1f60e9d9f4d8d4cec3bde"
   },
   "src/App.jsx": {
-    "mtime": 1790204230.1479046,
-    "ast_hash": "17e02bd9db99677825631d4a69dd0678",
+    "mtime": 1790477038.650736,
+    "ast_hash": "a3150d9fbc62cb5c881ce5a123b93e5c",
     "semantic_hash": ""
   },
   "src/api.js": {
@@ -255,8 +255,8 @@
     "semantic_hash": ""
   },
   "src/pages/Login.jsx": {
-    "mtime": 1790140168.0983946,
-    "ast_hash": "0faef50b04911ce46e1296f5ee8b579c",
+    "mtime": 1790477049.017237,
+    "ast_hash": "281c65a5b0dfaa7d99f6baf01f6281b1",
     "semantic_hash": ""
   },
   "src/pages/MiApto.jsx": {
@@ -455,9 +455,9 @@
     "semantic_hash": ""
   },
   "hooks/pre-commit": {
-    "mtime": 1788281892.3904693,
-    "ast_hash": "e23a7ab8367c1cbe50d07ec0d23b87ea",
-    "semantic_hash": "e23a7ab8367c1cbe50d07ec0d23b87ea"
+    "mtime": 1790475482.889489,
+    "ast_hash": "d4f775adb4553b0a6711800b81769fa6",
+    "semantic_hash": ""
   },
   "scripts/setup-graphify-hooks.cjs": {
     "mtime": 1786309780.1552012,
@@ -580,8 +580,8 @@
     "semantic_hash": "f6d86c1442856aa531cfcf19737422fc"
   },
   "scripts/release-apk.cjs": {
-    "mtime": 1789518458.402529,
-    "ast_hash": "e43c20ce1f7d3324e6e1beea8ff47504",
+    "mtime": 1790476482.7362778,
+    "ast_hash": "5a8b1c2762d517bbd5e1ecba5190f071",
     "semantic_hash": ""
   },
   "laujim-showcase.html": {
@@ -895,8 +895,23 @@
     "semantic_hash": ""
   },
   "src/pages/Admin.jsx": {
-    "mtime": 1790404304.0062993,
-    "ast_hash": "e68b3788cc178bc8c2e105a05c1f8b9f",
+    "mtime": 1790477189.8073044,
+    "ast_hash": "a0e1926ff658c3b59a3758f48e1008d6",
+    "semantic_hash": ""
+  },
+  "scripts/check-secrets.cjs": {
+    "mtime": 1790476496.3680985,
+    "ast_hash": "4eff1291744e39f6040abd31362f1cab",
+    "semantic_hash": ""
+  },
+  "scripts/backup-media-s3.cjs": {
+    "mtime": 1790477075.9067173,
+    "ast_hash": "34a530d566bbf2da96c57acaad2c0206",
+    "semantic_hash": ""
+  },
+  "src/pages/GitHubAuth.jsx": {
+    "mtime": 1790477031.347884,
+    "ast_hash": "a77df35b54a122268ab0337207a47a06",
     "semantic_hash": ""
   }
 }
