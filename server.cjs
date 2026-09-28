@@ -6747,6 +6747,101 @@ app.post('/api/graph/note', async (req, res) => {
   }
 });
 
+// ─── Predial automático (Orion Barranquilla, consulta 24h) ─────────────────
+// Scrapea Datos Básicos + Vigencias por apartamento, guarda en Aiven
+// (claves predial/predial_meta) y expone totales. Ver scripts/scrape-predial.cjs.
+const PREDIAL_REF_MAP = {
+  '101': '0105000004210006901010001', '102': '0105000004210006901010002',
+  '201': '0105000004210006901020001', '202': '0105000004210006901020002',
+  '203': '0105000004210006901020003', '301': '0105000004210006901030001',
+  '302': '0105000004210006901030002', '303': '0105000004210006901030003',
+  '401': '0105000004210006901040001', '402': '0105000004210006901040002',
+  '403': '0105000004210006901040003', '501': '0105000004210006901050001',
+};
+let predialCache = { data: [], meta: null };
+let predialRunning = false;
+
+function predialSum(vigencias) {
+  const t = { capital: 0, intereses: 0, descuento: 0, total: 0 };
+  for (const v of vigencias || []) {
+    t.capital += Number(v.capital) || 0;
+    t.intereses += Number(v.intereses) || 0;
+    t.descuento += Number(v.descuento) || 0;
+    t.total += Number(v.total) || 0;
+  }
+  return t;
+}
+
+async function refreshPredialData(reason) {
+  if (predialRunning) return { ok: false, error: 'Ya hay una consulta en curso.' };
+  predialRunning = true;
+  try {
+    const { scrapePredial } = require('./scripts/scrape-predial.cjs');
+    const apts = (db.apartments || [])
+      .map(a => ({
+        id: a.id,
+        name: a.name,
+        ref: String(a.refCatastral || '').replace(/\s/g, '') || PREDIAL_REF_MAP[String(a.name || '').replace(/\D/g, '')] || '',
+      }))
+      .filter(a => a.ref);
+    const data = [];
+    for (const a of apts) {
+      try {
+        const r = await scrapePredial(a.ref);
+        data.push({ apt: a.name, id: a.id, ref: a.ref, datos: r.datos, vigencias: r.vigencias, pazYSalvo: !!r.pazYSalvo, totales: predialSum(r.vigencias), consultadoEn: r.consultadoEn, error: null });
+      } catch (error) {
+        data.push({ apt: a.name, id: a.id, ref: a.ref, datos: null, vigencias: [], totales: predialSum([]), consultadoEn: null, error: String(error.message || error) });
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    const granTotal = predialSum(data.flatMap(d => d.vigencias));
+    granTotal.deudas = data.filter(d => d.totales.total > 0).length;
+    granTotal.apartamentos = data.length;
+    const meta = { updatedAt: new Date().toISOString(), source: reason || 'manual', consultados: data.length };
+    if (pgPool) {
+      try {
+        await pgPool.query('INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', ['predial', JSON.stringify(data)]);
+        await pgPool.query('INSERT INTO store (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', ['predial_meta', JSON.stringify(meta)]);
+      } catch {}
+    }
+    predialCache = { data, meta };
+    console.log(`[PREDIAL] Consulta ${meta.source}: ${data.length} aptos, gran total $${granTotal.total.toLocaleString('es-CO')}.`);
+    return { ok: true, meta, granTotal };
+  } finally {
+    predialRunning = false;
+  }
+}
+
+async function readPredialStore() {
+  if (pgPool) {
+    try {
+      const result = await pgPool.query('SELECT key, value FROM store WHERE key IN ($1, $2)', ['predial', 'predial_meta']);
+      const rows = result.rows || [];
+      const data = rows.find(r => r.key === 'predial')?.value;
+      const meta = rows.find(r => r.key === 'predial_meta')?.value;
+      if (Array.isArray(data)) return { data, meta: meta || null };
+    } catch {}
+  }
+  return predialCache.data.length ? predialCache : { data: [], meta: null };
+}
+
+app.get('/api/predial/status', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const stored = await readPredialStore();
+  const granTotal = predialSum(stored.data.flatMap(d => d.vigencias || []));
+  granTotal.deudas = stored.data.filter(d => d.totales && d.totales.total > 0).length;
+  granTotal.apartamentos = stored.data.length;
+  res.json({ ok: true, updatedAt: stored.meta?.updatedAt || null, source: stored.meta?.source || null, apartamentos: stored.data, granTotal });
+});
+
+app.post('/api/predial/refresh', async (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  if (!databaseReady) return res.status(503).json({ error: 'Base de datos iniciando.' });
+  const result = await refreshPredialData('manual');
+  if (!result.ok) return res.status(409).json(result);
+  res.json(result);
+});
+
 app.get('/api/worker-token', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   const token = String(process.env.SCRAPER_WORKER_TOKEN || '').trim();
@@ -13095,6 +13190,19 @@ app.use((req, res) => {
     setInterval(() => {
       runPaymentReminders().catch(error => console.error('[WHATSAPP CLOUD] reminder run error:', error.message));
     }, 60 * 60 * 1000).unref();
+    // Predial 24h: consulta Orion cada día a las 03:30 Bogotá + si lleva >20h sin correr.
+    const predialShouldRun = () => {
+      const bogota = new Date(Date.now() - 5 * 3600 * 1000);
+      const today = bogota.toISOString().slice(0, 10);
+      const last = predialCache.meta?.updatedAt ? new Date(predialCache.meta.updatedAt) : null;
+      if (!last || Date.now() - last.getTime() > 20 * 3600 * 1000) return true;
+      const lastDay = new Date(last.getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10);
+      return lastDay !== today && (bogota.getUTCHours() > 3 || (bogota.getUTCHours() === 3 && bogota.getUTCMinutes() >= 30));
+    };
+    setInterval(() => {
+      if (!databaseReady || predialRunning) return;
+      if (predialShouldRun()) refreshPredialData('auto-24h').catch(error => console.error('[PREDIAL] auto error:', error.message));
+    }, 30 * 60 * 1000).unref();
     scheduleAdministrativeDueReminders();
 
     // Init services scraper with DB reference. In portable mode the phone or
