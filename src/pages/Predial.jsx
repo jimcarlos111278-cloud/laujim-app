@@ -70,7 +70,7 @@ export default function Predial() {
     const a = await api.apartments.toArray().catch(() => []);
     setApartments(a);
     try {
-      const res = await fetch(getBase() + '/api/predial/status', { headers: authHeaders(), signal: AbortSignal.timeout(15000) });
+      const res = await fetch(getBase() + '/predial/status', { headers: authHeaders(), signal: AbortSignal.timeout(15000) });
       if (res.ok) {
         const data = await res.json().catch(() => null);
         if (data?.ok) {
@@ -87,7 +87,7 @@ export default function Predial() {
     setRefreshing(true);
     setMsg('');
     try {
-      const res = await fetch(getBase() + '/api/predial/refresh', {
+      const res = await fetch(getBase() + '/predial/refresh', {
         method: 'POST', headers: authHeaders(), signal: AbortSignal.timeout(120000),
       });
       const data = await res.json().catch(() => ({}));
