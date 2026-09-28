@@ -694,6 +694,67 @@ def capture_snapshot(cam_id: str, max_age_s: float = 10.0, out_name: str = "snap
     return None
 
 
+def _frame_sharpness(img_path: str) -> float:
+    """Nitidez por varianza del Laplaciano (mayor = más nítido)."""
+    try:
+        img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            return -1.0
+        return float(cv2.Laplacian(img, cv2.CV_64F).var())
+    except Exception:
+        return -1.0
+
+
+def capture_best_frame(cam_id: str, frames: int = 5) -> str | None:
+    """Ráfaga para placas en movimiento (motos): extrae N frames del segmento
+    más nuevo (~1 fps cubre ~5-6s de video real) y devuelve el más nítido.
+    Misma 1 llamada Cloud, pero con el mejor frame. Fallback: snapshot normal."""
+    try:
+        cam_dir = os.path.join(HLS_DIR, cam_id).replace("\\", "/")
+        segs = sorted(
+            [f for f in os.listdir(cam_dir) if f.endswith(".ts") and f.startswith("seg_")],
+            key=lambda f: os.path.getmtime(os.path.join(cam_dir, f)),
+        )
+        if not segs:
+            raise RuntimeError("sin segmentos")
+        newest = os.path.join(cam_dir, segs[-1])
+        if time.time() - os.path.getmtime(newest) > 300.0:
+            raise RuntimeError("segmento viejo")
+        if os.path.getsize(newest) < 50000:
+            raise RuntimeError("segmento pequeño")
+        tag = "%d_%d" % (os.getpid(), int(time.time() * 1000))
+        pattern = "/tmp/burst_%s_%%d.jpg" % tag
+        burst_cmd = [
+            "ffmpeg", "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
+            "-fflags", "+genpts", "-i", newest, "-vf", "fps=1",
+            "-vframes", str(frames), "-an", "-q:v", "2", pattern,
+        ]
+        subprocess.run(burst_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60.0)
+        best, best_score = None, -1.0
+        for i in range(1, frames + 1):
+            cand = "/tmp/burst_%s_%d.jpg" % (tag, i)
+            if os.path.exists(cand):
+                score = _frame_sharpness(cand)
+                if score > best_score:
+                    best_score, best = score, cand
+        for i in range(1, frames + 1):
+            cand = "/tmp/burst_%s_%d.jpg" % (tag, i)
+            if cand != best:
+                try:
+                    os.remove(cand)
+                except OSError:
+                    pass
+        if best:
+            return best
+        raise RuntimeError("ráfaga vacía")
+    except Exception as e:
+        print(f"[ALPR BURST] fallo ráfaga {cam_id}: {type(e).__name__}", flush=True)
+    try:
+        return capture_snapshot(cam_id, max_age_s=300.0, out_name="alpr_frame.jpg")
+    except Exception:
+        return None
+
+
 ALPR_AUTO = {
     "enabled": True,
     "check_every": 2.5,     # revisar snapshot cada N segundos
@@ -835,7 +896,8 @@ def _alpr_worker():
                         _alpr_auto_state["used"] += 1
                         _alpr_auto_state["triggers"] += 1
                         t0 = time.time()
-                        found = scan_plates_cloud(snap, cam_id)
+                        best = capture_best_frame(cam_id) or snap
+                        found = scan_plates_cloud(best, cam_id)
                         el = round((time.time() - t0) * 1000, 1)
                         _alpr_register_auto(cam_id, found, el)
                         plates = [p["plate"] for p in found]
@@ -989,7 +1051,9 @@ def trigger_alpr_scan(mode: str = "compare", cam: str = "all"):
     now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).strftime("%Y-%m-%d %I:%M:%S %p")
 
     for cam_id, cam_label in targets:
-        snap_path = capture_snapshot(cam_id, max_age_s=300.0, out_name="alpr_frame.jpg")
+        snap_path = capture_best_frame(cam_id)
+        if not snap_path:
+            snap_path = capture_snapshot(cam_id, max_age_s=300.0, out_name="alpr_frame.jpg")
         try:
             _diag_dir = os.path.join(HLS_DIR, cam_id).replace("\\", "/")
             _segs = sorted(
