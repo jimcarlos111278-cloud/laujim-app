@@ -6827,6 +6827,7 @@ async function readPredialStore() {
 
 app.get('/api/predial/status', async (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
+  console.log('[PREDIAL HIT] GET status');
   const stored = await readPredialStore();
   const granTotal = predialSum(stored.data.flatMap(d => d.vigencias || []));
   granTotal.deudas = stored.data.filter(d => d.totales && d.totales.total > 0).length;
@@ -6836,6 +6837,7 @@ app.get('/api/predial/status', async (req, res) => {
 
 app.post('/api/predial/refresh', async (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
+  console.log('[PREDIAL HIT] POST refresh');
   if (!databaseReady) return res.status(503).json({ error: 'Base de datos iniciando.' });
   const result = await refreshPredialData('manual');
   if (!result.ok) return res.status(409).json(result);
