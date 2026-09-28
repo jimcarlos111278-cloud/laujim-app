@@ -706,7 +706,7 @@ ALPR_AUTO = {
 }
 _ALPR_CAM_LABEL = {"l": "Fachada Izquierda", "r": "Fachada Derecha"}
 _alpr_auto_state = {"day": "", "used": 0, "last_cloud": {}, "last_motion": {}, "prev": {}, "triggers": 0,
-                     "quiet_until": {}, "streak": {}, "empty_streak": {}}
+                     "quiet_until": {}, "streak": {}, "empty_streak": {}, "last_ratio": {}}
 
 
 def _alpr_today():
@@ -816,7 +816,13 @@ def _alpr_worker():
                 now = time.time()
                 if ratio >= ALPR_AUTO["motion_ratio"]:
                     _alpr_auto_state["last_motion"][cam_id] = now
+                    _alpr_auto_state["last_ratio"][cam_id] = round(ratio, 5)
                     _alpr_auto_state["streak"][cam_id] = _alpr_auto_state["streak"].get(cam_id, 0) + 1
+                    # Movimiento GRANDE (>=3x umbral = vehículo seguro): dispara sin
+                    # esperar 2.ª confirmación. El cooldown (90s) y el tope diario
+                    # ya acotan el gasto; rachas intermitentes no bloquean más.
+                    if ratio >= ALPR_AUTO["motion_ratio"] * 3:
+                        _alpr_auto_state["streak"][cam_id] = max(_alpr_auto_state["streak"][cam_id], 2)
                     # 1) Doble confirmación: el movimiento debe persistir 2 chequeos (filtra ruido IR/insectos)
                     if _alpr_auto_state["streak"][cam_id] < 2:
                         continue
@@ -863,6 +869,8 @@ def alpr_auto_status():
         "last_cloud": _alpr_auto_state["last_cloud"],
         "last_motion": _alpr_auto_state["last_motion"],
         "quiet_until": _alpr_auto_state["quiet_until"],
+        "streak": dict(_alpr_auto_state["streak"]),
+        "last_ratio": dict(_alpr_auto_state["last_ratio"]),
         "cooldown_s": ALPR_AUTO["cooldown"],
     }
 
