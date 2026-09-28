@@ -12,7 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Instalar dependencias de Python (incluye OpenCV/numpy/requests: el motor los importa al arrancar)
-RUN pip install --no-cache-dir fastapi uvicorn pydantic opencv-python-headless numpy requests
+# ultralytics: detección de vehículos/motos para recortar antes del OCR (Fase 2 ALPR)
+RUN pip install --no-cache-dir fastapi uvicorn pydantic opencv-python-headless numpy requests ultralytics
+
+# Pre-descargar YOLOv8n (~6 MB) en /app para no depender de red en cada arranque
+RUN python3 -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
 
 # Copiar el servidor de streaming y ALPR
 COPY ezviz_stream_server.py /app/

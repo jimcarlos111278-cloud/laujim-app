@@ -529,11 +529,20 @@ def scan_plates_cloud(img_path: str, cam_id: str = "l") -> list[dict]:
     if not PLATE_RECOGNIZER_TOKEN or not os.path.exists(img_path):
         return []
 
+    # Fase 2: recortar el vehículo/moto antes del OCR (misma 1 llamada).
+    up_path, remap = img_path, None
+    try:
+        _crop_path, _info = crop_best_vehicle(img_path)
+        if _crop_path:
+            up_path, remap = _crop_path, _info
+    except Exception:
+        pass
+
     url = "https://api.platerecognizer.com/v1/plate-reader/"
     results = []
 
     try:
-        with open(img_path, "rb") as fp:
+        with open(up_path, "rb") as fp:
             resp = requests.post(
                 url,
                 headers={"Authorization": f"Token {PLATE_RECOGNIZER_TOKEN}"},
@@ -564,6 +573,11 @@ def scan_plates_cloud(img_path: str, cam_id: str = "l") -> list[dict]:
                 ymin = box.get("ymin", 0)
                 xmax = box.get("xmax", 0)
                 ymax = box.get("ymax", 0)
+                if remap:
+                    # La API midió sobre el recorte: devolver a coords del frame.
+                    _ox, _oy, _fw, _fh = remap
+                    xmin, ymin, xmax, ymax = (_ox + xmin, _oy + ymin, _ox + xmax, _oy + ymax)
+                    img_w, img_h = _fw, _fh
                 cx = (xmin + xmax) / 2.0
                 cy = (ymin + ymax) / 2.0
 
@@ -604,6 +618,11 @@ def scan_plates_cloud(img_path: str, cam_id: str = "l") -> list[dict]:
     except Exception as e:
         print(f"[ALPR CLOUD] Error consultando Plate Recognizer: {e}")
 
+    if remap:
+        try:
+            os.remove(up_path)
+        except OSError:
+            pass
     return results
 
 
@@ -753,6 +772,73 @@ def capture_best_frame(cam_id: str, frames: int = 5) -> str | None:
         return capture_snapshot(cam_id, max_age_s=300.0, out_name="alpr_frame.jpg")
     except Exception:
         return None
+
+
+_YOLO_MODEL = {"loaded": False, "model": None}
+YOLO_VEHICLE_CLASSES = {2, 3, 5, 7}  # car, motorcycle, bus, truck (COCO)
+YOLO_MODEL_PATHS = ("/app/yolov8n.pt", "yolov8n.pt")
+
+
+def _yolo_model():
+    """YOLOv8n lazy (None si no instalado: se usa el frame completo)."""
+    if _YOLO_MODEL["loaded"]:
+        return _YOLO_MODEL["model"]
+    _YOLO_MODEL["loaded"] = True
+    try:
+        from ultralytics import YOLO
+        for _path in YOLO_MODEL_PATHS:
+            if os.path.exists(_path):
+                _YOLO_MODEL["model"] = YOLO(_path)
+                print(f"[ALPR YOLO] modelo {_path} listo.", flush=True)
+                break
+        if _YOLO_MODEL["model"] is None:
+            print("[ALPR YOLO] sin pesos: frame completo.", flush=True)
+    except Exception as e:
+        print(f"[ALPR YOLO] no disponible: {type(e).__name__}", flush=True)
+    return _YOLO_MODEL["model"]
+
+
+def crop_best_vehicle(img_path: str):
+    """Recorta el vehículo/moto más grande (margen 10%).
+    Retorna (crop_path, (ox, oy, full_w, full_h)) o (None, None)."""
+    try:
+        model = _yolo_model()
+        if model is None:
+            return None, None
+        img = cv2.imread(img_path)
+        if img is None:
+            return None, None
+        full_h, full_w = img.shape[:2]
+        res = model.predict(img_path, imgsz=640, conf=0.35, verbose=False)
+        best = None
+        for r in res:
+            for box in (r.boxes or []):
+                cls = int(box.cls[0])
+                if cls not in YOLO_VEHICLE_CLASSES:
+                    continue
+                x1, y1, x2, y2 = (float(v) for v in box.xyxy[0])
+                area = max(0.0, x2 - x1) * max(0.0, y2 - y1)
+                if best is None or area > best[0]:
+                    best = (area, (x1, y1, x2, y2), float(box.conf[0]))
+        if best is None:
+            return None, None
+        _, (x1, y1, x2, y2), conf = best
+        mx = (x2 - x1) * 0.10
+        my = (y2 - y1) * 0.10
+        ox = max(0, int(x1 - mx))
+        oy = max(0, int(y1 - my))
+        ex = min(full_w, int(x2 + mx))
+        ey = min(full_h, int(y2 + my))
+        if ex - ox < 40 or ey - oy < 40:
+            return None, None
+        tag = "%d_%d" % (os.getpid(), int(time.time() * 1000))
+        crop_path = "/tmp/crop_%s.jpg" % tag
+        cv2.imwrite(crop_path, img[oy:ey, ox:ex])
+        print(f"[ALPR YOLO] recorte ok conf={conf:.2f} {ex-ox}x{ey-oy}.", flush=True)
+        return crop_path, (ox, oy, full_w, full_h)
+    except Exception as e:
+        print(f"[ALPR YOLO] fallo recorte: {type(e).__name__}", flush=True)
+        return None, None
 
 
 ALPR_AUTO = {
