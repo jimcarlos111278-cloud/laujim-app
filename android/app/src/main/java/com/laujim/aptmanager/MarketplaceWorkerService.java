@@ -46,7 +46,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Pulls one queued Marketplace job from Render and executes it in Android's
+ * Pulls one queued Marketplace job from the server and executes it in Android's
  * own WebView/session. No Facebook credentials or cookies leave the phone.
  */
 public class MarketplaceWorkerService extends Service {
@@ -127,7 +127,7 @@ public class MarketplaceWorkerService extends Service {
             if (automationScript.isEmpty()) throw new IllegalStateException("El motor local de Marketplace no está disponible.");
             ScraperWorkerStore.setMarketplaceRunState(this, "checking", "", "");
             HttpResult next = request(server + "/worker/v1/marketplace/jobs/next", "GET", token, deviceId, null);
-            if (next.status < 200 || next.status >= 300) throw new IllegalStateException("Render respondió HTTP " + next.status + " al consultar Marketplace.");
+            if (next.status < 200 || next.status >= 300) throw new IllegalStateException("El servidor respondió HTTP " + next.status + " al consultar Marketplace.");
             JSONObject envelope = new JSONObject(next.body == null || next.body.isEmpty() ? "{}" : next.body);
             currentJob = envelope.optJSONObject("job");
             if (currentJob == null) {
@@ -211,7 +211,7 @@ public class MarketplaceWorkerService extends Service {
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt();
         } catch (RuntimeException ignored) {
-            // The caller will report a useful needs_login state to Render.
+            // The caller will report a useful needs_login state to the server.
         }
         return MarketplaceBrowserActivity.hasActiveBrowser();
     }
@@ -282,7 +282,7 @@ public class MarketplaceWorkerService extends Service {
             .put("error", error == null ? JSONObject.NULL : error)
             .put("listingUrl", listingUrl == null ? JSONObject.NULL : listingUrl);
         HttpResult response = request(server + "/worker/v1/marketplace/jobs/" + jobId + "/status", "POST", token, deviceId, body.toString());
-        if (response.status < 200 || response.status >= 300) throw new IOException("Render rechazó el estado de Marketplace (HTTP " + response.status + ").");
+        if (response.status < 200 || response.status >= 300) throw new IOException("El servidor rechazó el estado de Marketplace (HTTP " + response.status + ").");
     }
 
     private void postEvents(String server, String token, String deviceId, String jobId, JSONArray events) throws Exception {
@@ -290,7 +290,7 @@ public class MarketplaceWorkerService extends Service {
             .put("deviceId", deviceId)
             .put("events", events == null ? new JSONArray() : events);
         HttpResult response = request(server + "/worker/v1/marketplace/jobs/" + jobId + "/events", "POST", token, deviceId, body.toString());
-        if (response.status < 200 || response.status >= 300) throw new IOException("Render rechazó los logs de Marketplace (HTTP " + response.status + ").");
+        if (response.status < 200 || response.status >= 300) throw new IOException("El servidor rechazó los logs de Marketplace (HTTP " + response.status + ").");
     }
 
     private void openVisibleFacebook() {

@@ -460,7 +460,7 @@
           <!-- Live Log Console -->
           <div class="p-2.5 bg-black/80 rounded-xl border border-slate-800 font-mono text-[10px] space-y-1 text-slate-400 h-44 overflow-y-auto" id="scraper-log-box">
             <p class="text-emerald-400">[23:13:02] [SYSTEM] Worker inicializado con token duradero.</p>
-            <p class="text-slate-300">[23:13:05] [HEARTBEAT] Conectado a Render laujim-app.onrender.com (v1.0.110)</p>
+            <p class="text-slate-300">[23:13:05] [HEARTBEAT] Conectado al servidor https://conjunto-residendial-laujim.duckdns.org (v1.0.110)</p>
             <p class="text-sky-400">[23:13:10] [PORTAL] Sesión Gases del Caribe activa.</p>
             <p class="text-slate-400">[23:13:15] [IDLE] Próxima ejecución programada: 00:00 COT.</p>
           </div>
@@ -1129,7 +1129,7 @@
       }, 1200);
 
       setTimeout(() => {
-        logBox.innerHTML += `<p class="text-emerald-400">[${timeStr}] [DONE] 12 registros enviados a Render exitosamente.</p>`;
+        logBox.innerHTML += `<p class="text-emerald-400">[${timeStr}] [DONE] 12 registros enviados al servidor exitosamente.</p>`;
         logBox.scrollTop = logBox.scrollHeight;
         showToast('Worker finalizó escaneo de servicios', '🤖');
       }, 2500);

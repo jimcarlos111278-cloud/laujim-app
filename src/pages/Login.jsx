@@ -29,7 +29,7 @@ export default function Login() {
       .catch(() => {});
   }, []);
 
-  // A Render deploy or server cold start can briefly delay session validation.
+  // Un arranque en frío del servidor puede retrasar brevemente la validación de sesión.
   // Never destroy local session tokens on transient network issues; verify with graceful fallback.
   useEffect(() => {
     let cancelled = false;

@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 // OneDrive can leave generated asset files as reparse points. A local build
 // may provide a hydrated copy outside OneDrive without changing the APK
-// contents or the normal Render/CI build path.
+// contents or the normal CI build path.
 def externalAssetRoot = System.getenv('LAUJIM_ANDROID_ASSETS_ROOT')
 
 android {

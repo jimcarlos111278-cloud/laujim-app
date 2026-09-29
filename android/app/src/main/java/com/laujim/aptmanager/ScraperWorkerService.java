@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Local Android portal worker. The WebView belongs to Laujim and uses the
- * phone's own network, cookies and Chromium engine. Render only receives the
+     * phone's own network, cookies and Chromium engine. The server only receives the
  * sanitized results through the worker API; no Browserless connection is
  * opened here.
  */
@@ -238,10 +238,10 @@ public class ScraperWorkerService extends Service {
             updateNotification("Conectando con Laujim…", null);
             long configStartedAt = System.currentTimeMillis();
             HttpResult configResult = request(server + "/worker/v1/config", "GET", token, deviceId, null);
-            addAppEvent(diagnosticEvents, null, "config_fetch", configResult.status >= 200 && configResult.status < 300 ? "success" : "error", "Respuesta de configuración de Render.", configResult.status, configStartedAt, 0, null);
+            addAppEvent(diagnosticEvents, null, "config_fetch", configResult.status >= 200 && configResult.status < 300 ? "success" : "error", "Respuesta de configuración del servidor.", configResult.status, configStartedAt, 0, null);
             flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
             if (configResult.status < 200 || configResult.status >= 300) {
-                throw new IllegalStateException("Render respondió HTTP " + configResult.status + ".");
+                throw new IllegalStateException("El servidor respondió HTTP " + configResult.status + ".");
             }
             JSONObject config = parseObject(configResult.body);
             HttpResult credentialResult = request(server + "/worker/v1/portal-credentials", "GET", token, deviceId, null);
@@ -357,12 +357,12 @@ public class ScraperWorkerService extends Service {
                     .put("runId", runId)
                     .put("capturedAt", new java.util.Date().toInstant().toString())
                     .put("results", new JSONArray(results));
-                addAppEvent(diagnosticEvents, null, "results_prepare", "info", "La app prepara los resultados locales para Render.", -1, 0, results.size(), null);
+                addAppEvent(diagnosticEvents, null, "results_prepare", "info", "La app prepara los resultados locales para el servidor.", -1, 0, results.size(), null);
                 flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
                 long resultsStartedAt = System.currentTimeMillis();
                 HttpResult pushed = request(server + "/worker/v1/results", "POST", token, deviceId, body.toString());
                 JSONObject receiptDetails = parseReceiptDetails(pushed.body);
-                addAppEvent(diagnosticEvents, null, "results_upload", pushed.status >= 200 && pushed.status < 300 ? "success" : "error", pushed.status >= 200 && pushed.status < 300 ? serverReceiptMessage(pushed, results) : "Render rechazó la entrega de resultados.", pushed.status, resultsStartedAt, results.size(), receiptDetails);
+                addAppEvent(diagnosticEvents, null, "results_upload", pushed.status >= 200 && pushed.status < 300 ? "success" : "error", pushed.status >= 200 && pushed.status < 300 ? serverReceiptMessage(pushed, results) : "El servidor rechazó la entrega de resultados.", pushed.status, resultsStartedAt, results.size(), receiptDetails);
                 flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
                 if (pushed.status < 200 || pushed.status >= 300) throw new IllegalStateException("No se pudieron enviar los resultados (HTTP " + pushed.status + ").");
                 ScraperWorkerStore.setRunState(this, firstIssue == null ? "completed" : "completed-with-warning", firstIssue == null ? "" : firstIssue);
@@ -370,7 +370,7 @@ public class ScraperWorkerService extends Service {
             } else {
                 HttpResult heartbeat = request(server + "/worker/v1/heartbeat", "POST", token, deviceId,
                     new JSONObject().put("deviceId", deviceId).put("platform", "android").put("runtime", "laujim-local-webview").toString());
-                addAppEvent(diagnosticEvents, null, "results_upload", heartbeat.status >= 200 && heartbeat.status < 300 ? "warn" : "error", "No hubo resultados para enviar; se envió heartbeat a Render.", heartbeat.status, 0, 0, null);
+                addAppEvent(diagnosticEvents, null, "results_upload", heartbeat.status >= 200 && heartbeat.status < 300 ? "warn" : "error", "No hubo resultados para enviar; se envió heartbeat al servidor.", heartbeat.status, 0, 0, null);
                 flushAppEvents(server, token, deviceId, runId, diagnosticEvents);
                 String issue = firstIssue == null ? "No hubo resultados confirmados en esta ejecución." : firstIssue;
                 ScraperWorkerStore.setRunState(this, "needs-attention", issue);
@@ -1137,10 +1137,8 @@ public class ScraperWorkerService extends Service {
     }
 
     /**
-     * The APK is intentionally independent from whichever Render node is up.
-     * The configured node is tried first, then the remembered healthy node and
-     * finally both canonical Render URLs.  This also covers a stale APK that
-     * still points at the old primary URL.
+     * The APK tries the configured node first, then the remembered healthy
+     * node and finally the bundled defaults (all point at the Oracle server).
      */
     private List<String> serverCandidates(String requestedUrl) throws Exception {
         LinkedHashSet<String> candidates = new LinkedHashSet<>();

@@ -1,7 +1,7 @@
 'use strict';
 
 // Portable PC worker. It reuses the portal-only scrapers, opens a persistent
-// local Chrome profile, and sends only sanitized results to Render. Credentials
+// local Chrome profile, and sends only sanitized results to the server. Credentials
 // stay in portable-worker.config.json on this machine.
 
 const fs = require('fs');
@@ -30,7 +30,7 @@ function readConfig() {
   const workerToken = String(parsed.workerToken || '').trim();
   const deviceId = String(parsed.deviceId || 'pc-laujim-01').trim();
   if (!/^https?:\/\//i.test(serverUrl)) throw new Error('serverUrl debe comenzar por http:// o https://.');
-  if (!workerToken) throw new Error('workerToken está vacío. Usa el mismo SCRAPER_WORKER_TOKEN de Render.');
+  if (!workerToken) throw new Error('workerToken está vacío. Usa el mismo SCRAPER_WORKER_TOKEN de las variables del servidor.');
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(deviceId)) throw new Error('deviceId inválido.');
   return { ...parsed, serverUrl, workerToken, deviceId };
 }
@@ -44,9 +44,9 @@ const tripleALoginMethod = String(
 
 // These must be set before loading services-scraper.cjs because it reads the
 // browser mode and profile settings during module initialization.
-process.env.RENDER_FULL_CHROME = headless ? '' : 'true';
+process.env.LAUJIM_FULL_CHROME = headless ? '' : 'true';
 process.env.BROWSER_MODE = headless ? 'headless' : 'full';
-process.env.RENDER_CHROME_PROFILE_DIR = chromeProfileDir;
+process.env.LAUJIM_CHROME_PROFILE_DIR = chromeProfileDir;
 process.env.TRIPLE_A_LOGIN_METHOD = tripleALoginMethod;
 if (config.chromeExecutablePath) process.env.CHROME_EXECUTABLE_PATH = path.resolve(String(config.chromeExecutablePath));
 // This runner is local-only. Never spend Browserless quota when a PC/VPS is
@@ -150,7 +150,7 @@ async function runOnce(reason = 'schedule') {
   }
 
   if (!results.length) {
-    console.warn('[PORTABLE WORKER] No hubo resultados para enviar; se conserva el último valor confirmado en Render.');
+    console.warn('[PORTABLE WORKER] No hubo resultados para enviar; se conserva el último valor confirmado en el servidor.');
     await requestJson('/worker/v1/heartbeat', {
       method: 'POST',
       body: JSON.stringify({ deviceId: config.deviceId, platform: 'windows', runtime: 'portable-worker-node', appVersion: '1.0.0' }),
@@ -167,7 +167,7 @@ async function runOnce(reason = 'schedule') {
       results,
     }),
   });
-  console.log(`[PORTABLE WORKER] Render persistió ${response.persisted || 0} resultado(s).`);
+  console.log(`[PORTABLE WORKER] El servidor persistió ${response.persisted || 0} resultado(s).`);
   return { results: response.persisted || 0, capturedAt: startedAt };
 }
 

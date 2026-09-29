@@ -21,7 +21,7 @@ import javax.crypto.spec.GCMParameterSpec;
 /**
  * Keeps the short-lived SPA state on the Android device. Cookies are owned by
  * Android WebView; sessionStorage and captured bearer headers are encrypted
- * with an Android Keystore key because they must never be sent to Render.
+ * with an Android Keystore key because they must never be sent to the server.
  */
 final class PortalSessionVault {
     private static final String PREFS = "laujim_portal_session_v2";

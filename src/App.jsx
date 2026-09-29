@@ -147,7 +147,7 @@ function PrivateApp() {
         try { localApartments = await api.apartments.count(); } catch {}
         if (localApartments === 0) {
           setCloudError(syncStatus.status === 503
-            ? 'Render está activo, pero la base de datos todavía no está lista o no responde.'
+            ? 'El servidor está activo, pero la base de datos todavía no está lista o no responde.'
             : 'No se pudieron sincronizar los datos de la base de datos.');
         } else {
           console.warn('Startup cloud sync had warnings, serving local cached apartments while continuing background retry.');

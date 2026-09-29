@@ -1,6 +1,6 @@
-# GUÍA COMPLETA DE MIGRACIÓN: RENDER -> ORACLE VM ALWAYS FREE (149.130.160.116)
+# GUÍA COMPLETA: ORACLE VM ALWAYS FREE (149.130.160.116)
 
-Esta guía describe cómo pasar toda la infraestructura de Laujim App a la nueva máquina virtual de Oracle Cloud, eliminando Render de forma definitiva, con base de datos PostgreSQL local de 0ms (con respaldo sincronizado a Aiven), streaming de video on-demand y soporte de dominio propio con Cloudflare.
+Esta guía describe la infraestructura de Laujim App en la máquina virtual de Oracle Cloud (migración completada, proveedor anterior dado de baja), con base de datos PostgreSQL local de 0ms (con respaldo sincronizado a Aiven), streaming de video on-demand y soporte de dominio propio con Cloudflare.
 
 ---
 
@@ -99,18 +99,16 @@ chmod +x install-vm.sh sync-db-aiven.sh
 
 ---
 
-### PASO 6: Apagar Render
-Una vez verificado que todo funciona correctamente en la VM:
-1. Ingresa a tu dashboard en **Render.com**.
-2. Selecciona tu servicio web `laujim-app`.
-3. Haz clic en **Settings > Suspend Service** (Suspender Servicio).
-4. Manténlo suspendido durante 48 horas mientras validas que ningún inquilino reporte incidencias.
-5. Luego de 48 horas, elimina el servicio en Render.
+### PASO 6: Baja del proveedor anterior (completado)
+La migración ya fue verificada en la VM:
+1. Se suspendió el servicio web `laujim-app` en el dashboard del proveedor anterior.
+2. Se mantuvo suspendido 48 horas validando que ningún inquilino reportara incidencias.
+3. Luego se eliminó el servicio. No queda nada activo fuera de Oracle.
 
 ---
 
 ## 3. Resumen de Ventajas Obtenidas
-| Característica | Render (Anterior) | Oracle VM (Nueva) |
+| Característica | Proveedor anterior (dado de baja) | Oracle VM (actual) |
 | :--- | :--- | :--- |
 | **Costo Mensual** | $0 (con riesgo de suspensión) | **$0.00 USD (Always Free)** |
 | **Memoria RAM** | 512 MB (colapsaba con Chromium) | **12 GB RAM dedicados** |

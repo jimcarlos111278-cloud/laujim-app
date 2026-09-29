@@ -27,6 +27,31 @@ function shouldRetryStatus(status) {
   return status === 408 || status === 429 || status >= 500;
 }
 
+// Cada intento contra un servidor alterno tiene su propio techo: un nodo
+// muerto (DNS colgado, TCP sin respuesta) no debe comerse el timeout global
+// de quien llama. Si el llamante aborta, el intento en curso también muere.
+const ATTEMPT_TIMEOUT_MS = 6000;
+
+function attemptSignal(init) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(new DOMException('Servidor sin respuesta', 'TimeoutError'));
+  }, ATTEMPT_TIMEOUT_MS);
+  const outer = init && init.signal;
+  if (outer) {
+    if (outer.aborted) {
+      clearTimeout(timer);
+      controller.abort(outer.reason);
+    } else {
+      outer.addEventListener('abort', () => {
+        clearTimeout(timer);
+        controller.abort(outer.reason);
+      }, { once: true });
+    }
+  }
+  return { signal: controller.signal, done: () => clearTimeout(timer) };
+}
+
 export function installFailoverFetch() {
   if (typeof window === 'undefined' || window[INSTALL_KEY]) return;
   const nativeFetch = window.fetch.bind(window);
@@ -52,14 +77,17 @@ export function installFailoverFetch() {
     let lastError;
     for (const server of candidates) {
       const requestUrl = candidateUrl(raw, server);
+      const attempt = attemptSignal(init);
       try {
-        const response = await nativeFetch(requestUrl, init);
+        const response = await nativeFetch(requestUrl, { ...init, signal: attempt.signal });
+        attempt.done();
         if (response.ok || !safe || !shouldRetryStatus(response.status)) {
           if (response.ok) setActiveServer(server);
           return response;
         }
         lastError = new Error(`HTTP ${response.status}`);
       } catch (error) {
+        attempt.done();
         lastError = error;
         if (!safe) throw error;
       }

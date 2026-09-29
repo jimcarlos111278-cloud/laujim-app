@@ -47,8 +47,6 @@ backups/
 AGENTS.md
 .session*
 
-Proyecto Laujim APP - Render/
-
 # Puppeteer / Chrome session data
 sessions/
 portable-worker.config.json

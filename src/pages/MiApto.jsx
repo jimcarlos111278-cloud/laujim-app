@@ -923,7 +923,7 @@ export default function MiApto() {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h2 className="flex items-center gap-2 font-bold text-slate-900"><MapPin className="h-4 w-4" /> Tu apartamento</h2><div className="mt-3 grid grid-cols-2 gap-3 text-sm">{apt.area > 0 && <div><p className="text-xs text-slate-500">Área</p><strong>{apt.area} m²</strong></div>}{apt.floor > 0 && <div><p className="text-xs text-slate-500">Piso</p><strong>{apt.floor}</strong></div>}{apt.rooms > 0 && <div><p className="text-xs text-slate-500">Habitaciones</p><strong>{apt.rooms}</strong></div>}{apt.bathrooms > 0 && <div><p className="text-xs text-slate-500">Baños</p><strong>{apt.bathrooms}</strong></div>}</div></section>
 
-        <div className="flex items-start gap-2 rounded-2xl bg-blue-50 p-4 text-xs text-blue-800"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p>La cámara y la cerradura se autorizan desde Render, pero el video y la orden física pasan por la pasarela local. Tus credenciales del NVR nunca se muestran aquí.</p></div>
+        <div className="flex items-start gap-2 rounded-2xl bg-blue-50 p-4 text-xs text-blue-800"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p>La cámara y la cerradura se autorizan desde el servidor, pero el video y la orden física pasan por la pasarela local. Tus credenciales del NVR nunca se muestran aquí.</p></div>
       </main>
       {activeCall?.active && activeCall.call && (
         <IntercomCallModal

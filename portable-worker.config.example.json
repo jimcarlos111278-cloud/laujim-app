@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://laujim-app.onrender.com",
+  "serverUrl": "https://conjunto-residendial-laujim.duckdns.org",
   "workerToken": "PEGA_AQUI_EL_SCRAPER_WORKER_TOKEN_DE_RENDER",
   "deviceId": "pc-laujim-01",
   "replaceExisting": true,

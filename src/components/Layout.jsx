@@ -49,7 +49,7 @@ const [installPrompt, setInstallPrompt] = useState(null);
 
   async function handleClearAppData() {
     if (clearingAppData) return;
-    const confirmed = window.confirm('Se borrarán las cookies y los datos locales de esta app en este dispositivo. No se borrará la base de datos de Render. ¿Continuar?');
+    const confirmed = window.confirm('Se borrarán las cookies y los datos locales de esta app en este dispositivo. No se borrará la base de datos del servidor. ¿Continuar?');
     if (!confirmed) return;
     setClearingAppData(true);
     clearAuth({ permanent: true }, 'user_clear_app_data');

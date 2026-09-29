@@ -28,7 +28,7 @@ const SERVER_CONFIG_KEY = 'laujim_server_pair';
 function normalizeServer(value) {
   const normalized = String(value || '').trim().replace(/\/+$/, '').replace(/\/api$/i, '');
   if (/^https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?$/i.test(normalized)) return '';
-  // Descartar automáticamente URLs obsoletas de Render
+  // Descartar automáticamente URLs obsoletas del proveedor anterior
   if (/onrender\.com$/i.test(normalized)) return '';
   return normalized;
 }
@@ -107,7 +107,7 @@ function photoPageOrigin() {
 }
 
 // A photo URL can be relative (/api/public/photos/123), an old absolute URL,
-// or an inline data/blob URL. Return both Render nodes for internal photos so
+// or an inline data/blob URL. Return all known server nodes for internal photos so
 // an <img> can fail over too; window.fetch interception cannot catch <img>.
 export function photoUrlCandidates(photo) {
   if (!photo) return [];

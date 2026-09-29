@@ -15,6 +15,12 @@ const workerProtocol = require('./worker-protocol.cjs');
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const ffmpegPath = require('ffmpeg-static');
 const { analysePaymentProofMedia, ocrSummary } = require('./payment-receipt-ocr.cjs');
+let opencodeBridge = null;
+try {
+  opencodeBridge = require('./opencode-bridge.cjs');
+} catch (err) {
+  console.warn('[OPENCODE] Puente admin no cargado:', err.message);
+}
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
 const { PDFDocument, PDFTextField, PDFCheckBox, PDFDropdown, PDFRadioGroup, PDFOptionList } = require('pdf-lib');
@@ -83,6 +89,18 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 
+// Traza mínima de intentos de acceso (sin secretos): permite distinguir un
+// login que nunca llega al servidor (red/navegador) de uno que falla adentro.
+app.use((req, res, next) => {
+  if (req.path === '/api/login' || req.path === '/api/auth/github/status' || req.path === '/api/auth/github/callback') {
+    const started = Date.now();
+    res.once('finish', () => {
+      console.log(`[AUTH-TRACE] ${req.method} ${req.path} -> ${res.statusCode} ${Date.now() - started}ms ua=${String(req.headers['user-agent'] || '').slice(0, 60)}`);
+    });
+  }
+  next();
+});
+
 app.use(async (req, res, next) => {
   res.once('finish', () => {
     responseCount += 1;
@@ -142,13 +160,13 @@ try { [DATA_DIR, BACKUP_DIR, PHOTOS_DIR, CONTRACTS_DIR].forEach(d => { if (!fs.e
 let upload;
 try {
   // Apartment documents are immediately copied to R2; keeping them in
-  // memory avoids treating Render's ephemeral filesystem as an archive.
+  // memory avoids treating the server's ephemeral filesystem as an archive.
   upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 } catch (e) { console.error('MULTER SETUP FAILED:', e.message); upload = null; }
 
 // Attachments sent from the Cloud inbox are relayed directly to Meta. They are
 // kept in memory only for the duration of the request; this prevents the
-// Render filesystem from becoming an accidental, non-durable media archive.
+// local filesystem from becoming an accidental, non-durable media archive.
 let cloudUpload;
 try {
   cloudUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 16 * 1024 * 1024 } });
@@ -165,9 +183,9 @@ const R2_DEFAULT_LIMIT_BYTES = 9 * 1024 * 1024 * 1024;
 let r2Client = null;
 
 function r2Config() {
-  // Render's environment export can preserve a pair of outer quotes. That is
+  // The hosting platform's environment export can preserve a pair of outer quotes. That is
   // harmless for plain text values but makes the AWS SDK reject the endpoint
-  // as an invalid URL. Normalize only the R2 settings so both Render nodes
+  // as an invalid URL. Normalize only the R2 settings so every server instance
   // can read the same permanent apartment photos.
   const clean = value => {
     const raw = String(value ?? '').trim();
@@ -1005,7 +1023,7 @@ function sendCloudInteractiveList(to, body, buttonTitle, sections) {
   });
 }
 
-const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.APP_PUBLIC_URL || 'https://laujim-app.onrender.com').trim().replace(/\/+$/, '');
+const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.APP_PUBLIC_URL || 'https://conjunto-residendial-laujim.duckdns.org').trim().replace(/\/+$/, '');
 const CLOUD_ADMIN_WHATSAPP_URL = `${PUBLIC_APP_URL}/whatsapp`;
 
 function sendCloudAdminAccessButton(to, body) {
@@ -1397,7 +1415,7 @@ function colombiaDate(date = new Date()) {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-// Render runs in UTC, while the administrator and the tenants use Colombia's
+// The server runs in UTC, while the administrator and the tenants use Colombia's
 // fixed UTC-5 clock. Keep the WhatsApp timestamp independent of the server's
 // local timezone. The UI label uses the user's requested "CDT" wording.
 function formatColombiaDateTime(value) {
@@ -3138,11 +3156,12 @@ async function sendCloudAdminMenu(phone) {
         { id: 'menu_confirmar', title: '✅ Confirmar pagos', description: 'Registrar el canon con fecha de hoy' },
         { id: 'menu_servicios', title: '💧 Servicios', description: 'Consultar deudas por apartamento' },
         { id: 'menu_imprevistos', title: '⚠️ Imprevistos', description: 'Registrar un gasto del apartamento' },
+        { id: 'menu_agente', title: '🤖 Agente IA', description: 'IA: lectura, escritura o pregunta' },
       ],
     }]);
   } catch (error) {
     console.error('[WHATSAPP CLOUD] admin menu error:', error.message);
-    await sendCloudText(phone, '🤖 Comandos admin:\n• "cobros" / "deuda" / "morosos" → reporte de pagos\n• "enviar cobros" → plantilla con canon y servicios\n• "confirmar pagos" → registrar el canon de hoy\n• "servicios" → consulta de servicios\n• "registrar imprevistos" → registrar un gasto\n• "APROBAR <apto>" / "RECHAZAR <apto>" → revisar un comprobante\n• "SALIR" → cerrar');
+    await sendCloudText(phone, '🤖 Comandos admin:\n• "cobros" / "deuda" / "morosos" → reporte de pagos\n• "enviar cobros" → plantilla con canon y servicios\n• "confirmar pagos" → registrar el canon de hoy\n• "servicios" → consulta de servicios\n• "registrar imprevistos" → registrar un gasto\n• "APROBAR <apto>" / "RECHAZAR <apto>" → revisar un comprobante\n• "IA" → agente (lectura, escritura o pregunta)\n• "/ <petición>" → consulta solo lectura · "// <petición>" → con escritura\n• "SALIR" → cerrar');
   }
 }
 
@@ -5140,6 +5159,144 @@ async function sendCloudIncidentAmountPrompt(phone, apartment) {
   await sendCloudText(phone, `🧾 *Apartamento ${apartment.name}*\n\nIndique el valor del imprevisto/gasto usando este formato, ejemplo:\n\n155.000\n\nEscribe SALIR para cancelar.`);
 }
 
+// ── Agente IA por WhatsApp (solo números admin) ─────────────────────────────
+// Esquema: `IA` abre el menú de modos (lectura/escritura/pregunta general y
+// luego se habla directo, sin prefijos, hasta SALIR). `/` = una consulta en
+// solo lectura, `//` = una con escritura. /ssh wf|wt, code: y pregunta:
+// siguen funcionando igual. El flag del mensaje manda sobre la VM.
+const adminAgentModes = new Map();
+const ADMIN_AGENT_TTL_MS = 30 * 60 * 1000;
+const ADMIN_AGENT_ESCAPE_RE = /^(cobros|deuda|canon|morosos|reporte|enviar\s+cobros|confirmar|validar|servicios|registrar\s+imprevistos|imprevistos|aprobar\s|rechazar\s)/i;
+function getAdminAgentMode(phone) {
+  const key = normalizePhone(phone);
+  const entry = adminAgentModes.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.updatedAt > ADMIN_AGENT_TTL_MS) { adminAgentModes.delete(key); return null; }
+  entry.updatedAt = Date.now();
+  return entry.mode;
+}
+function setAdminAgentMode(phone, mode) {
+  adminAgentModes.set(normalizePhone(phone), { mode, updatedAt: Date.now() });
+}
+function clearAdminAgentMode(phone) {
+  adminAgentModes.delete(normalizePhone(phone));
+}
+
+async function sendCloudAgentModeMenu(phone) {
+  clearCloudAuthState(phone);
+  saveData();
+  try {
+    await sendCloudInteractiveList(phone, '🤖 IA — elige cómo hablamos. Después escríbeme directo, sin prefijos. SALIR para salir:', 'Elegir modo', [{
+      title: 'Modos',
+      rows: [
+        { id: 'agent_mode_read', title: '🔍 Solo lectura', description: 'Consultas sin tocar nada (como /)' },
+        { id: 'agent_mode_write', title: '✏️ Con escritura', description: 'Puede modificar archivos (como //)' },
+        { id: 'agent_mode_ask', title: '💬 Pregunta general', description: 'Cualquier tema, del proyecto o no' },
+      ],
+    }]);
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] agent mode menu error:', error.message);
+    await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+  }
+}
+
+async function handleCloudAgentCommand(phone, text, buttonId, forcedMode) {
+  if (buttonId === 'agent_mode_read' || buttonId === 'agent_mode_write' || buttonId === 'agent_mode_ask') {
+    const mode = buttonId === 'agent_mode_read' ? 'read' : buttonId === 'agent_mode_write' ? 'write' : 'ask';
+    setAdminAgentMode(phone, mode);
+    clearCloudAuthState(phone);
+    saveData();
+    await sendCloudText(phone, mode === 'read'
+      ? '🔍 Modo lectura ✅. Escríbeme tu consulta directo, sin prefijos. SALIR para salir.'
+      : mode === 'write'
+        ? '✏️ Modo escritura ✅. Pídeme cambios directo, sin prefijos. SALIR para salir.'
+        : '💬 Modo pregunta ✅. Pregúntame lo que sea, del proyecto o no. SALIR para salir.');
+    return;
+  }
+  let cmd = opencodeBridge.parseAgentCommand(text);
+  if (!cmd && forcedMode && String(text || '').trim()) {
+    cmd = {
+      mode: forcedMode === 'ask' ? 'ask' : 'code',
+      prompt: String(text).trim(),
+      write: forcedMode === 'write' ? true : forcedMode === 'read' ? false : null,
+    };
+  }
+  if (!cmd) {
+    await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+    return;
+  }
+  if (cmd.mode === 'menu') {
+    await sendCloudAgentModeMenu(phone);
+    return;
+  }
+  if (cmd.mode === 'models') {
+    await sendCloudText(phone, '⏳ Listando modelos…');
+    const listed = await opencodeBridge.listAgentModels();
+    await sendCloudTextChunks(phone, listed.ok
+      ? `🤖 Modelos disponibles:\n${listed.output}\n\nFija uno con \`IA modelo proveedor/modelo\`.`
+      : opencodeBridge.mapAgentError(listed.error));
+    return;
+  }
+  if (cmd.mode === 'model') {
+    if (!cmd.prompt) {
+      const current = opencodeBridge.getAgentModel();
+      await sendCloudText(phone, current
+        ? `🤖 Modelo actual: ${current}\nCámbialo con \`IA modelo proveedor/modelo\` o vuelve al default con \`IA modelo auto\`.`
+        : '🤖 Usando el modelo por defecto de opencode.\nFíjalo con `IA modelo proveedor/modelo` (ej: `IA modelo opencode/big-pickle`).');
+      return;
+    }
+    if (/^(auto|default|defecto|por defecto)$/i.test(cmd.prompt)) {
+      const fallback = opencodeBridge.clearAgentModel();
+      await sendCloudText(phone, `🤖 Modelo restablecido. Ahora: ${fallback}.`);
+      return;
+    }
+    const saved = opencodeBridge.setAgentModel(cmd.prompt);
+    await sendCloudText(phone, saved.ok
+      ? `🤖 Modelo fijado: ${saved.model}. Desde ya respondo con ese.`
+      : `⚠️ ${saved.error}`);
+    return;
+  }
+  if (cmd.mode === 'help' || !cmd.prompt) {
+    await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+    return;
+  }
+  const cfg = opencodeBridge.agentConfig();
+  if (!cfg.enabled) {
+    await sendCloudText(phone, '🤖 El agente IA está apagado. Actívalo en la VM con OPENCODE_AGENT_ENABLED=true y reintenta.');
+    return;
+  }
+  const allowWrite = typeof cmd.write === 'boolean' ? cmd.write : cfg.allowWrite;
+  if (cmd.mode === 'code' && opencodeBridge.isWriteIntent(cmd.prompt) && !allowWrite) {
+    await sendCloudText(phone, '🔒 Eso implica modificar archivos y estoy en solo lectura. Reenvíalo con `//` si quieres permitir escritura.');
+    return;
+  }
+  await sendCloudText(phone, cmd.mode === 'ask' ? '⏳ Preguntando…' : allowWrite ? '⏳ Ejecutando (con escritura)…' : '⏳ Consultando (solo lectura)…');
+  try {
+    const result = await opencodeBridge.runAgentTask(cmd.prompt, cmd.mode, { allowWrite });
+    if (!result.ok) {
+      await sendCloudText(phone, opencodeBridge.mapAgentError(result.error));
+      return;
+    }
+    if (result.files && result.files.length) {
+      for (const file of result.files) {
+        try {
+          const buffer = fs.readFileSync(file.full);
+          const uploaded = await uploadCloudMedia({ originalname: file.name, mimetype: file.mime, buffer });
+          await sendCloudMedia(phone, { kind: file.kind, id: uploaded.id, fileName: file.name }, `🤖 ${file.name}`);
+        } catch (fileError) {
+          console.error('[OPENCODE] agent file error:', fileError.message);
+          await sendCloudText(phone, `⚠️ Generé ${file.name} pero no pude enviártelo por aquí.`);
+        }
+      }
+    }
+    const extraNote = result.extraFiles ? `\n\n📎 +${result.extraFiles} archivo(s) más en agent-out.` : '';
+    await sendCloudTextChunks(phone, `🤖 ${result.output}${extraNote}`);
+  } catch (error) {
+    console.error('[OPENCODE] agent task error:', error.message);
+    await sendCloudText(phone, '⚠️ Falló la ejecución del agente. Revisa los logs de la VM.');
+  }
+}
+
 async function handleCloudAdminMessage(phone, message) {
   const conversation = getCloudConversation({ phone });
   const nowIso = new Date().toISOString();
@@ -5173,10 +5330,34 @@ async function handleCloudAdminMessage(phone, message) {
   const state = getCloudAuthState(phone);
   if (isCloudExitCommand(text) || buttonId === 'services_exit') {
     clearCloudAuthState(phone);
+    if (typeof clearAdminAgentMode === 'function') clearAdminAgentMode(phone);
     saveData();
     await sendCloudText(phone, '👋 Saliste de la sección actual.');
     await sendCloudAdminMenu(phone);
     return;
+  }
+
+  // ── Agente IA (solo admin, ver opencode-bridge.cjs) ─────────────────────
+  // `IA` abre el menú de modos (conversación hasta SALIR); `/`, `//`,
+  // /ssh wf|wt, code:, pregunta: son de un solo mensaje.
+  // Los inquilinos nunca llegan aquí (handleCloudInbound los filtra antes).
+  if (opencodeBridge) {
+    const agentCmd = opencodeBridge.parseAgentCommand(text);
+    const agentButton = buttonId === 'menu_agente' || buttonId === 'agent_mode_read' ||
+      buttonId === 'agent_mode_write' || buttonId === 'agent_mode_ask';
+    if (agentButton || agentCmd) {
+      await handleCloudAgentCommand(phone, text, buttonId);
+      return;
+    }
+    const storedMode = getAdminAgentMode(phone);
+    if (storedMode) {
+      if (buttonId || ADMIN_AGENT_ESCAPE_RE.test(text || '')) {
+        clearAdminAgentMode(phone); // sale del modo y sigue el flujo normal
+      } else {
+        await handleCloudAgentCommand(phone, text, buttonId, storedMode);
+        return;
+      }
+    }
   }
 
   // A notification without a unique association is resolved conversationally
@@ -5868,8 +6049,8 @@ let pgPool = null;
 let pgSaveChain = Promise.resolve();
 
 async function initPostgres() {
-  // Blueprint-managed DATABASE_URL can still point at a deleted Render
-  // datastore. An explicitly configured Aiven URL always takes precedence.
+  // Una DATABASE_URL heredada puede apuntar a un datastore eliminado.
+  // Una URL de Aiven configurada explícitamente siempre tiene precedencia.
   const databaseUrl = process.env.AIVEN_DATABASE_URL || process.env.DATABASE_URL;
   if (!databaseUrl) return false;
   const pgUrl = databaseUrl.replace(/sslmode=[^&]+&?/, '');
@@ -6052,7 +6233,7 @@ function readMemoryLimit(fileName) {
 
 function runtimeMemory() {
   const rss = process.memoryUsage().rss;
-  // Render runs inside a Linux container. cgroup is the actual limit assigned
+  // The server runs inside a Linux container. cgroup is the actual limit assigned
   // to this service, unlike os.totalmem() which can describe the host.
   const limit = readMemoryLimit('/sys/fs/cgroup/memory.max') ||
     readMemoryLimit('/sys/fs/cgroup/memory/memory.limit_in_bytes') || os.totalmem();
@@ -8705,7 +8886,7 @@ app.get(['/api/cameras/telemetry', '/api/api/cameras/telemetry', '/api/admin/cam
     bandwidthAnalysis: {
       currentFrameSizeKb: 98,
       estimatedHourlyUsageMb: 350,
-      renderBandwidthSavingTip: 'El auto-pause a 60s y la deduplicación de fotogramas protegen la cuota de Render y Cloudflare.',
+      bandwidthSavingTip: 'El auto-pause a 60s y la deduplicación de fotogramas protegen el ancho de banda y Cloudflare.',
     },
   };
   telemetryCache = payload;
@@ -9567,7 +9748,7 @@ app.get('/api/intercom/public/debug', async (req, res) => {
     return res.json({
       ok: false,
       step: 'env_missing',
-      message: 'Faltan variables en Render: EZVIZ_ACCOUNT_USERNAME o EZVIZ_ACCOUNT_PASSWORD',
+      message: 'Faltan variables en el servidor: EZVIZ_ACCOUNT_USERNAME o EZVIZ_ACCOUNT_PASSWORD',
       env: envCheck,
     });
   }
@@ -9701,7 +9882,7 @@ app.get(['/api/intercom/public/live-stream/:id', '/api/intercom/live-stream'], a
     if (!stream || !stream.url) {
       return res.status(503).json({
         ok: false,
-        error: 'Transmisión no disponible. Verifica que EZVIZ_APP_KEY, EZVIZ_APP_SECRET y EZVIZ_DEVICE_SERIAL estén configurados en Render.',
+        error: 'Transmisión no disponible. Verifica que EZVIZ_APP_KEY, EZVIZ_APP_SECRET y EZVIZ_DEVICE_SERIAL estén configurados en las variables del servidor.',
       });
     }
     res.json({ ok: true, url: stream.url, expireTime: stream.expireTime });
@@ -9729,7 +9910,7 @@ app.get('/api/ezviz/test', async (req, res) => {
     if (!session) {
       return res.status(401).json({
         ok: false,
-        error: 'No se pudo iniciar sesión en Ezviz. Verifica EZVIZ_ACCOUNT_USERNAME y EZVIZ_ACCOUNT_PASSWORD en las variables de entorno de Render.',
+        error: 'No se pudo iniciar sesión en Ezviz. Verifica EZVIZ_ACCOUNT_USERNAME y EZVIZ_ACCOUNT_PASSWORD en las variables de entorno del servidor.',
       });
     }
 
@@ -9953,7 +10134,7 @@ function ensurePortableWorkerCollection() {
 }
 
 // A worker run has two different failure surfaces: the local WebView can
-// reach a portal but fail inside its authenticated fetch, and Render can
+// reach a portal but fail inside its authenticated fetch, and the server can
 // receive fewer records than the phone produced. Keep both views in one
 // durable, redacted stream so the administrator can tell those cases apart.
 const SCRAPER_LOG_LIMIT = 600;
@@ -10026,9 +10207,9 @@ function scraperLogSummary() {
   const logs = ensureScraperLogCollection();
   return {
     total: logs.length,
-    render: logs.filter(log => log.source === 'render').length,
+    server: logs.filter(log => log.source === 'server').length,
     app: logs.filter(log => log.source === 'app').length,
-    latestRenderAt: logs.find(log => log.source === 'render')?.createdAt || null,
+    latestServerAt: logs.find(log => log.source === 'server')?.createdAt || null,
     latestAppAt: logs.find(log => log.source === 'app')?.createdAt || null,
   };
 }
@@ -10062,8 +10243,8 @@ function workerScheduleConfig() {
   const requestedMode = String(
     saved?.executionMode || process.env.SERVICES_EXECUTION_MODE || process.env.PORTABLE_WORKER_EXECUTION_MODE || defaultMode,
   ).trim().toLowerCase();
-  const executionMode = ['server', 'oracle', 'render', 'portable'].includes(requestedMode)
-    ? (requestedMode === 'oracle' || requestedMode === 'render' ? 'server' : requestedMode)
+  const executionMode = ['server', 'oracle', 'portable'].includes(requestedMode)
+    ? (requestedMode === 'oracle' ? 'server' : requestedMode)
     : defaultMode;
   return { intervalHours, startAt, timezone, providers: [...new Set(providers)], executionMode, source: saved ? 'app' : 'env' };
 }
@@ -10071,7 +10252,7 @@ function workerScheduleConfig() {
 // Oracle VM runs Linux with Chromium and Xvfb locally inside Docker.
 function applyServiceExecutionMode() {
   const mode = workerScheduleConfig().executionMode;
-  if (mode === 'server' || mode === 'oracle' || mode === 'render' || process.platform === 'linux') {
+  if (mode === 'server' || mode === 'oracle' || process.platform === 'linux') {
     servicesScraper.startScheduler();
     console.log('[SERVICES] Execution mode: Servidor Autónomo Linux (Chromium local). Scheduler iniciado.');
   } else {
@@ -10081,9 +10262,9 @@ function applyServiceExecutionMode() {
   return mode;
 }
 
-function requireRenderScraperMode(res) {
+function requireServerScraperMode(res) {
   const mode = workerScheduleConfig().executionMode;
-  if (mode === 'server' || mode === 'oracle' || mode === 'render' || process.platform === 'linux') return false;
+  if (mode === 'server' || mode === 'oracle' || process.platform === 'linux') return false;
   res.status(409).json({
     error: 'El scraper del servidor está desactivado. Activa el modo servidor en la configuración.',
     executionMode: mode,
@@ -10358,9 +10539,9 @@ app.post('/worker/v1/register', requirePortableWorker, (req, res) => {
   const registerStartedAt = Date.now();
   const record = upsertPortableWorker(req.body || {});
   appendScraperLog({
-    source: 'render', deviceId: record?.deviceId || req.body?.deviceId, stage: 'register',
+    source: 'server', deviceId: record?.deviceId || req.body?.deviceId, stage: 'register',
     level: record ? 'success' : 'error',
-    message: record ? `Worker ${record.deviceId} registrado en Render.` : 'Render rechazó el registro del worker.',
+    message: record ? `Worker ${record.deviceId} registrado en el servidor.` : 'El servidor rechazó el registro del worker.',
     durationMs: Date.now() - registerStartedAt,
     details: record ? { platform: record.platform, runtime: record.runtime, appVersion: record.appVersion, providers: record.providers } : null,
   });
@@ -10372,8 +10553,8 @@ app.post('/worker/v1/heartbeat', requirePortableWorker, (req, res) => {
   const body = { ...(req.body || {}), active: true };
   const record = upsertPortableWorker(body);
   appendScraperLog({
-    source: 'render', deviceId: record?.deviceId || body.deviceId, stage: 'heartbeat', level: 'info',
-    message: record ? `Heartbeat recibido de ${record.deviceId}.` : 'Render rechazó el heartbeat del worker.',
+    source: 'server', deviceId: record?.deviceId || body.deviceId, stage: 'heartbeat', level: 'info',
+    message: record ? `Heartbeat recibido de ${record.deviceId}.` : 'El servidor rechazó el heartbeat del worker.',
   });
   if (!record) return res.status(400).json({ error: 'deviceId inválido' });
   res.json({ ok: true, deviceId: record.deviceId, serverTime: new Date().toISOString() });
@@ -10383,7 +10564,7 @@ app.get('/worker/v1/config', requirePortableWorker, (req, res) => {
   const deviceId = workerProtocol.normalizeWorkerId(req.headers['x-worker-id'] || req.query.deviceId);
   const schedule = workerScheduleConfig();
   appendScraperLog({
-    source: 'render', deviceId, stage: 'config', level: 'success',
+    source: 'server', deviceId, stage: 'config', level: 'success',
     message: `Configuración entregada a ${deviceId || 'worker sin identificar'}.`,
     details: { apartments: portableWorkerApartments().length, providers: schedule.providers, executionMode: schedule.executionMode },
   });
@@ -10410,7 +10591,7 @@ app.get('/worker/v1/portal-credentials', requirePortableWorker, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   res.setHeader('Pragma', 'no-cache');
   appendScraperLog({
-    source: 'render', deviceId, stage: 'credentials', level: 'success',
+    source: 'server', deviceId, stage: 'credentials', level: 'success',
     message: `Credenciales de portales entregadas de forma privada a ${deviceId || 'worker sin identificar'}.`,
     details: { configuredProviders: Object.keys(credentials) },
   });
@@ -10450,8 +10631,8 @@ app.post('/worker/v1/events', requirePortableWorker, (req, res) => {
     persisted += 1;
   });
   appendScraperLog({
-    source: 'render', deviceId, runId: body.runId, stage: 'events_received', level: 'info',
-    message: `Render recibió ${persisted} evento(s) de diagnóstico desde la app.`,
+    source: 'server', deviceId, runId: body.runId, stage: 'events_received', level: 'info',
+    message: `El servidor recibió ${persisted} evento(s) de diagnóstico desde la app.`,
     details: { eventCount: persisted },
   }, { persist: false });
   saveData();
@@ -10459,7 +10640,7 @@ app.post('/worker/v1/events', requirePortableWorker, (req, res) => {
 });
 
 // Android foreground workers use this endpoint as a lightweight trigger. The
-// actual portal browser stays on Render, where the existing Browserless
+// actual portal browser stays on the server, where the existing Browserless
 // session, credentials and portal-specific scrapers are already configured.
 // The worker never receives portal passwords and a second trigger cannot open
 // overlapping browser sessions.
@@ -10547,7 +10728,7 @@ app.get('/worker/v1/run-status', requirePortableWorker, (req, res) => {
 });
 
 // Marketplace does not expose a general consumer-listing API through the
-// existing WhatsApp Cloud integration. Render therefore stores only a safe
+// existing WhatsApp Cloud integration. The server therefore stores only a safe
 // publication queue; the authenticated Android WebView performs the action.
 app.get('/api/marketplace/jobs', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
@@ -10609,7 +10790,7 @@ app.post('/api/marketplace/jobs', (req, res) => {
   };
   ensureMarketplaceJobs().push(job);
   appendScraperLog({
-    source: 'render', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    source: 'server', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
     stage: 'queued', level: 'info', message: `Apartamento ${job.apartmentName}: publicación agregada a la cola local.`,
     details: { jobId: job.id, apartmentId: job.apartmentId, photos: listing.photoCount, publish: job.publish },
   }, { persist: false });
@@ -10637,7 +10818,7 @@ app.post('/api/marketplace/jobs/:id/retry', (req, res) => {
   job.error = null;
   job.message = 'Reintento en espera del worker Android.';
   appendScraperLog({
-    source: 'render', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    source: 'server', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
     stage: 'retry_queued', level: 'info', message: `Reintento ${Number(job.attempts || 0) + 1} agregado a la cola.`,
     details: { jobId: job.id, apartmentId: job.apartmentId },
   }, { persist: false });
@@ -10689,7 +10870,7 @@ app.get('/worker/v1/marketplace/jobs/next', requirePortableWorker, (req, res) =>
   job.updatedAt = now;
   job.attempts = (Number(job.attempts) || 0) + 1;
   appendScraperLog({
-    source: 'render', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    source: 'server', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
     deviceId, stage: 'claimed', level: 'info', message: `Trabajo entregado al navegador local; intento ${job.attempts}.`,
     details: { jobId: job.id, apartmentId: job.apartmentId, attempt: job.attempts },
   }, { persist: false });
@@ -10758,7 +10939,7 @@ app.post('/worker/v1/marketplace/jobs/:id/status', requirePortableWorker, (req, 
     if (apartment && job.listingUrl) apartment.marketplaceUrl = job.listingUrl;
   }
   appendScraperLog({
-    source: 'render', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    source: 'server', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
     deviceId, stage: `status_${status}`,
     level: status === 'published' ? 'success' : status === 'processing' ? 'info' : status === 'failed' ? 'error' : 'warn',
     message: job.message || `Marketplace cambió a ${status}.`,
@@ -10781,8 +10962,8 @@ app.put('/api/scraper/schedule', (req, res) => {
   const startAt = String(body.startAt || '07:00').trim();
   const timezone = String(body.timezone || 'America/Bogota').trim().slice(0, 80);
   const requestedExecMode = String(body.executionMode || '').trim().toLowerCase();
-  const executionMode = ['server', 'oracle', 'render', 'portable'].includes(requestedExecMode)
-    ? (requestedExecMode === 'oracle' || requestedExecMode === 'render' ? 'server' : requestedExecMode)
+    const executionMode = ['server', 'oracle', 'portable'].includes(requestedExecMode)
+      ? (requestedExecMode === 'oracle' ? 'server' : requestedExecMode)
     : workerScheduleConfig().executionMode;
   const providers = [...new Set((Array.isArray(body.providers) ? body.providers : [])
     .map(value => String(value).trim().toLowerCase())
@@ -10811,8 +10992,8 @@ app.post('/worker/v1/results', requirePortableWorker, (req, res) => {
   const records = inspection.records;
   if (!records.length) {
     appendScraperLog({
-      source: 'render', deviceId, runId: body.runId, stage: 'results_inspection', level: 'error',
-      message: 'Render no aceptó ningún resultado enviado por el worker.',
+      source: 'server', deviceId, runId: body.runId, stage: 'results_inspection', level: 'error',
+      message: 'El servidor no aceptó ningún resultado enviado por el worker.',
       received: inspection.received, accepted: 0, rejected: inspection.rejected.length,
       details: { confirmed: 0, issueCount: 0, acceptedByProvider: inspection.acceptedByProvider, rejectedByProvider: inspection.rejectedByProvider, truncated: inspection.truncated },
     });
@@ -10849,9 +11030,9 @@ app.post('/worker/v1/results', requirePortableWorker, (req, res) => {
     `acceptedByProvider=${JSON.stringify(inspection.acceptedByProvider)}`,
   );
   appendScraperLog({
-    source: 'render', deviceId, runId: body.runId, stage: 'results_receipt',
+    source: 'server', deviceId, runId: body.runId, stage: 'results_receipt',
     level: inspection.rejected.length || inspection.issueCount ? 'warn' : 'success',
-    message: `Render procesó ${inspection.received} resultado(s): ${inspection.confirmed} confirmados, ${inspection.issueCount} con incidencia y ${persisted} persistidos.`,
+    message: `El servidor procesó ${inspection.received} resultado(s): ${inspection.confirmed} confirmados, ${inspection.issueCount} con incidencia y ${persisted} persistidos.`,
     received: inspection.received, accepted: inspection.accepted, persisted, rejected: inspection.rejected.length,
     details: {
       confirmed: inspection.confirmed,
@@ -10895,7 +11076,7 @@ app.get('/api/scraper/logs', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   const requestedLimit = Number(req.query.limit || 160);
   const limit = Number.isFinite(requestedLimit) ? Math.min(300, Math.max(1, Math.floor(requestedLimit))) : 160;
-  const source = ['render', 'app'].includes(String(req.query.source || '').toLowerCase())
+  const source = ['server', 'app'].includes(String(req.query.source || '').toLowerCase())
     ? String(req.query.source).toLowerCase()
     : null;
   const deviceId = workerProtocol.normalizeWorkerId(req.query.deviceId);
@@ -10912,7 +11093,7 @@ app.get('/api/scraper/logs', (req, res) => {
 
 // Trigger Air-e scrape manually (admin only, via auth)
 app.post('/api/scrape-air-e', async (req, res) => {
-  if (requireRenderScraperMode(res)) return;
+  if (requireServerScraperMode(res)) return;
   try {
     res.json({ ok: true, message: 'Scrape iniciado. Los resultados se guardarán en utilityRecords.' });
     // Guarded runner: reutiliza la corrida en curso si el scheduler la tiene activa.
@@ -10951,13 +11132,13 @@ app.post('/api/scrape-air-e', async (req, res) => {
 // immediately; the hourly scheduler and this manual endpoint share the same
 // overlap guard inside services-scraper.cjs.
 app.post('/api/scrape-water', (req, res) => {
-  if (requireRenderScraperMode(res)) return;
+  if (requireServerScraperMode(res)) return;
   res.json({ ok: true, message: 'Consulta de agua iniciada. Los resultados se guardarán en utilityRecords.' });
   servicesScraper.runWaterScrapeOnce('manual').catch(error => console.error('[TRIPLE A MANUAL] Scrape error:', error.message));
 });
 
 app.post('/api/scrape-gas', (req, res) => {
-  if (requireRenderScraperMode(res)) return;
+  if (requireServerScraperMode(res)) return;
   res.json({ ok: true, message: 'Consulta de gas iniciada. Los resultados se guardarán en utilityRecords.' });
   servicesScraper.runGasScrapeOnce('manual').catch(error => console.error('[GAS MANUAL] Scrape error:', error.message));
 });
@@ -12460,7 +12641,7 @@ app.post('/api/admin/recover-password', (req, res) => {
 
   const expected = adminRecoverySecret();
   const { recoveryCode, newPassword } = req.body || {};
-  if (!expected) return res.status(503).json({ error: 'Configura ADMIN_RECOVERY_CODE en Render para habilitar la recuperación.' });
+  if (!expected) return res.status(503).json({ error: 'Configura ADMIN_RECOVERY_CODE en las variables del servidor para habilitar la recuperación.' });
   if (!constantTimeEqual(String(recoveryCode || '').trim(), expected)) return res.status(401).json({ error: 'Código de recuperación inválido' });
   if (!newPassword || String(newPassword).length < 10) return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 10 caracteres' });
 
@@ -13109,7 +13290,7 @@ app.use((req, res) => {
         const pgData = await loadFromPostgres();
         if (pgData?.data) {
           // Aiven is the durable source of truth. File mtimes are not reliable
-          // after a Render checkout: a stale tracked JSON gets a fresh mtime
+          // after a git checkout: a stale tracked JSON gets a fresh mtime
           // and would otherwise overwrite newer production data on every deploy.
           db = pgData.data;
           if (pgData.version) dataVersion = pgData.version;
@@ -13208,7 +13389,7 @@ app.use((req, res) => {
     scheduleAdministrativeDueReminders();
 
     // Init services scraper with DB reference. In portable mode the phone or
-    // PC/VPS owns the browser, so Render must not consume Browserless quota.
+    // PC/VPS owns the browser, so the server must not consume Browserless quota.
     servicesScraper.init(db, saveData, { mergeUtilityRecord });
     applyServiceExecutionMode();
 

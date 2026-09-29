@@ -55,7 +55,7 @@ async function readRelease(base) {
 }
 
 /**
- * Reads the release manifest from both Render nodes. This is intentionally
+ * Reads the release manifest from the configured servers. This is intentionally
  * independent of the API failover wrapper because the APK is a static asset.
  * An old APK can therefore still discover and download the newest APK when
  * its preferred node is unavailable.

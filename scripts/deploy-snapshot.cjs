@@ -5,7 +5,7 @@
  * Usage: node scripts/deploy-snapshot.cjs
  *
  * This copies the runtime database from data/database.json into
- * backups/auto-latest.json and commits it so Render's fresh clone
+ * backups/auto-latest.json and commits it so a fresh clone
  * has the latest data snapshot.
  */
 const fs = require('fs');

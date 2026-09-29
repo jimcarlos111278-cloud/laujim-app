@@ -189,7 +189,7 @@ async function recogniseImage(buffer) {
     const result = await worker.recognize(buffer);
     return String(result?.data?.text || '');
   };
-  // Tesseract's worker is intentionally serialized: one Render instance may
+  // Tesseract's worker is intentionally serialized: one server instance may
   // receive several WhatsApp messages at once, but the worker is not safe to
   // run concurrently and parallel OCR would spike memory.
   const next = ocrQueue.catch(() => {}).then(() => runWithTimeout(run(), OCR_TIMEOUT_MS, 'OCR'));
@@ -214,7 +214,7 @@ async function extractPdfScreenshots(buffer) {
   try {
     const result = await runWithTimeout(parser.getScreenshot({
       first: 1, last: MAX_PDF_PAGES, scale: 1.35, imageBuffer: true, imageDataUrl: false,
-    }), OCR_TIMEOUT_MS, 'Render de PDF');
+    }), OCR_TIMEOUT_MS, 'Generación de PDF');
     return (result?.pages || []).map(page => Buffer.from(page.data || [])).filter(item => item.length > 0);
   } finally {
     await parser.destroy().catch(() => {});
@@ -237,7 +237,7 @@ async function analysePaymentProofMedia({ buffer, mimeType, fileName } = {}) {
       if (textResult.status !== 'unreadable' && textResult.status !== 'not_payment_proof') {
         return { ...textResult, elapsedMs: Date.now() - startedAt };
       }
-      // Many bank PDFs are scans with no selectable text. Render a small
+      // Many bank PDFs are scans with no selectable text. Capture a small
       // number of pages and send those images through the same OCR engine.
       const screenshots = await extractPdfScreenshots(buffer);
       const pageTexts = [];

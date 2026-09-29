@@ -342,8 +342,11 @@ async function login(username, password) {
     // Auto-recover scraper worker token for admin users so the APK always has it
     if (data.role === 'admin') autoRecoverWorkerToken(data.token).catch(() => {});
     return { ok: true, role: data.role, apartmentId: data.apartmentId };
-  } catch {
-    return { ok: false, error: 'No se pudo conectar con el servidor' };
+  } catch (err) {
+    if (err && err.name === 'TimeoutError') {
+      return { ok: false, error: 'El servidor tardó más de 8 segundos en responder. Revisa tu conexión e inténtalo de nuevo.' };
+    }
+    return { ok: false, error: 'No se pudo conectar con el servidor (red bloqueada o sin salida). Prueba incógnito o revisa tu antivirus/firewall.' };
   }
 }
 

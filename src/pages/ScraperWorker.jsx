@@ -53,7 +53,7 @@ function formatSchedule(schedule) {
   const providers = Array.isArray(schedule.providers) && schedule.providers.length
     ? schedule.providers.join(', ')
     : 'sin servicios';
-  const mode = schedule.executionMode === 'render' ? 'Render' : 'local';
+  const mode = schedule.executionMode === 'server' ? 'Servidor' : 'local';
   return `Cada ${schedule.intervalHours} h desde las ${schedule.startAt} (${schedule.timezone}) · ${providers} · ejecución ${mode}`;
 }
 
@@ -152,7 +152,7 @@ export default function ScraperWorker() {
   const [scheduleMessage, setScheduleMessage] = useState(null);
   const [nativeStatus, setNativeStatus] = useState(null);
   const [nativeBusy, setNativeBusy] = useState(false);
-  const [diagnostics, setDiagnostics] = useState({ logs: [], summary: { render: 0, app: 0 } });
+  const [diagnostics, setDiagnostics] = useState({ logs: [], summary: { server: 0, app: 0 } });
   const [diagnosticsBusy, setDiagnosticsBusy] = useState(false);
   const gasAccounts = useMemo(() => gasAccountGroups(config), [config]);
 
@@ -306,7 +306,7 @@ export default function ScraperWorker() {
       setConfig(result);
       if (showMessage) setMessage({ type: 'success', text: 'Conexión correcta. El servidor respondió con la configuración.' });
     } catch (error) {
-      if (showMessage) setMessage({ type: 'error', text: error.message || 'No se pudo conectar con Render.' });
+      if (showMessage) setMessage({ type: 'error', text: error.message || 'No se pudo conectar con el servidor.' });
     } finally {
       setBusy(false);
     }
@@ -538,7 +538,7 @@ export default function ScraperWorker() {
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <ShieldCheck className="mb-2 h-5 w-5 text-green-600" />
           <p className="font-semibold text-gray-900 dark:text-white">Datos protegidos</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Las contraseñas y sesiones de los portales no se envían a Render.</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Las contraseñas y sesiones de los portales no se envían al servidor.</p>
         </div>
       </div>
 
@@ -561,7 +561,7 @@ export default function ScraperWorker() {
           </label>
           <label className="text-sm text-gray-700 dark:text-gray-300 md:col-span-2">
             Token privado del worker
-            <input type="password" value={settings.token} onChange={e => updateField('token', e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white" placeholder="Se configura como SCRAPER_WORKER_TOKEN en Render" autoComplete="off" />
+            <input type="password" value={settings.token} onChange={e => updateField('token', e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white" placeholder="Se configura como SCRAPER_WORKER_TOKEN en las variables del servidor" autoComplete="off" />
           </label>
         </div>
         <div className="mt-4 flex flex-col gap-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between">
@@ -595,7 +595,7 @@ export default function ScraperWorker() {
             <div className="rounded-lg bg-green-100 p-2 text-green-700 dark:bg-green-900/40 dark:text-green-300"><Smartphone className="h-5 w-5" /></div>
             <div>
               <h2 className="font-semibold text-gray-900 dark:text-white">Ejecución automática en Android</h2>
-              <p className="text-xs text-gray-600 dark:text-gray-300">La APK consulta los tres portales desde el WebView nativo del teléfono y envía a Render únicamente los valores sanitizados. No usa Browserless ni otra integración de pago.</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300">La APK consulta los tres portales desde el WebView nativo del teléfono y envía al servidor únicamente los valores sanitizados. No usa Browserless ni otra integración de pago.</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -636,7 +636,7 @@ export default function ScraperWorker() {
               <p className="mt-1 break-all font-mono text-xs text-gray-800 dark:text-gray-100">
                 Activo: {nativeStatus?.activeServerUrl || 'se detectará en la primera consulta'}
               </p>
-              <p className="mt-1 break-all text-gray-500">Backup: {nativeStatus?.backupServerUrl || 'Render backup integrado'}</p>
+              <p className="mt-1 break-all text-gray-500">Backup: {nativeStatus?.backupServerUrl || 'Servidor (respaldo integrado)'}</p>
             </div>
           </div>
           {nativeStatus?.lastSchedulerEvent && (
@@ -698,7 +698,7 @@ export default function ScraperWorker() {
           <div className="rounded-lg bg-violet-100 p-2 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"><Clock3 className="h-5 w-5" /></div>
           <div>
             <h2 className="font-semibold text-gray-900 dark:text-white">Frecuencia de actualización</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Se guarda en la base de Laujim; no tendrás que cambiar Render cada vez.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Se guarda en la base de Laujim; no tendrás que cambiar la variable del servidor cada vez.</p>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
@@ -743,7 +743,7 @@ export default function ScraperWorker() {
             <div className="rounded-lg bg-indigo-100 p-2 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"><Activity className="h-5 w-5" /></div>
             <div>
               <h2 className="font-semibold text-gray-900 dark:text-white">Diagnóstico de ejecuciones</h2>
-              <p className="text-xs text-gray-600 dark:text-gray-300">Render registra lo que recibió; la app registra lo que ocurrió dentro del WebView. Se actualiza cada 10 segundos. Cada evento muestra fecha y hora de Colombia (UTC−5); nunca muestra tokens, cookies ni facturas completas.</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300">El servidor registra lo que recibió; la app registra lo que ocurrió dentro del WebView. Se actualiza cada 10 segundos. Cada evento muestra fecha y hora de Colombia (UTC−5); nunca muestra tokens, cookies ni facturas completas.</p>
             </div>
           </div>
           <button onClick={() => loadDiagnostics(true)} disabled={diagnosticsBusy} className="inline-flex items-center gap-2 self-start rounded-lg border border-indigo-300 px-3 py-2 text-xs font-medium text-indigo-800 hover:bg-indigo-100 disabled:opacity-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-900/40">
@@ -753,10 +753,10 @@ export default function ScraperWorker() {
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-indigo-200 bg-white/80 p-3 dark:border-indigo-800/60 dark:bg-gray-900/40">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <div><p className="font-semibold text-gray-800 dark:text-gray-100">Perspectiva Render</p><p className="text-[11px] text-gray-500 dark:text-gray-400">Conexión, configuración y recepción</p></div>
-              <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">{diagnostics.summary?.render || 0}</span>
+              <div><p className="font-semibold text-gray-800 dark:text-gray-100">Perspectiva Servidor</p><p className="text-[11px] text-gray-500 dark:text-gray-400">Conexión, configuración y recepción</p></div>
+              <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">{diagnostics.summary?.server || 0}</span>
             </div>
-            <LogList logs={(diagnostics.logs || []).filter(log => log.source === 'render')} emptyText="Render aún no ha registrado eventos." />
+            <LogList logs={(diagnostics.logs || []).filter(log => log.source === 'server')} emptyText="El servidor aún no ha registrado eventos." />
           </div>
           <div className="rounded-lg border border-indigo-200 bg-white/80 p-3 dark:border-indigo-800/60 dark:bg-gray-900/40">
             <div className="mb-3 flex items-center justify-between gap-2">
@@ -772,7 +772,7 @@ export default function ScraperWorker() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold text-gray-900 dark:text-white">Configuración recibida</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Render envía el horario y los apartamentos; nunca las contraseñas.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">El servidor envía el horario y los apartamentos; nunca las contraseñas.</p>
           </div>
           <button onClick={() => handleCheck(true)} disabled={busy || !settings.token} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700" title="Actualizar configuración"><RefreshCw className="h-4 w-4" /></button>
         </div>

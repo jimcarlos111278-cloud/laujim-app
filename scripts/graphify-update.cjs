@@ -67,7 +67,7 @@ const ROOT = findBinary();
 const res = spawnSync(ROOT, args, { cwd: PROJECT_ROOT, stdio: 'inherit', shell: false });
 
 if (res.error) {
-  // En CI/Render la CLI global de graphify no esta instalada; no debe romper el build.
+  // En CI la CLI global de graphify no esta instalada; no debe romper el build.
   // UNKNOWN = bloqueado por politica de Windows (AppLocker/WDAC/Smart App Control).
   if (res.error.code === 'ENOENT' || res.error.code === 'UNKNOWN') {
     console.warn(`[graphify] CLI no disponible en este entorno (${res.error.code}); se omite la actualizacion del grafo.`);

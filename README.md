@@ -209,7 +209,7 @@ Proyecto Laujim APP/
 │   └── contracts/                # Contratos PDF subidos
 │
 ├── extension/                     # Chrome Extension: auto-fill Facebook Marketplace
-│   ├── manifest.json              # MV3, permissions: storage+tabs, host: Render+FB
+│   ├── manifest.json              # MV3, permissions: storage+tabs, host: servidor+FB
 │   ├── content-laujim.js          # Captura datos de Marketplace desde Laujim
 │   ├── content-facebook.js        # Detecta FB Marketplace y rellena campos + fotos
 │   ├── background.js              # Service worker: almacena datos, URLs guardadas
@@ -1122,7 +1122,7 @@ script al recargar la extensión aunque Marketplace ya estuviera abierto.
 | **400ms** tras seleccionar opción (esperar que React cierre el menú) | v1.4.2 | Los **3 dropdowns internos** (parking, AC, heating) empezaron a funcionar consistentemente. Lavadero seguía fallando por matching, no timing |
 | Excluir `[aria-autocomplete="list"]` en `findDropdown` (evitar que keyword `'lavadero'` matchee el address field) | v1.4.3 | Eliminó interferencia address ↔ dropdown, pero lavadero aún no matchea su propio combobox |
 | Address por `form input[role="combobox"][aria-autocomplete="list"]` | v1.4.3 | Añadió selector para address sin depender de `textNear` |
-| Scoped a `form` + reorder opciones lavadero en Render | v1.4.4 | Address scoped a `<form>` (sigue fallando si FB no usa `<form>`) |
+| Scoped a `form` + reorder opciones lavadero en el servidor | v1.4.4 | Address scoped a `<form>` (sigue fallando si FB no usa `<form>`) |
 | Invertir orden: `findDropdown` antes que `findDropdownByExactLabel` | v1.4.5 | `findDropdownByExactLabel` elegía "Tipo de estacionamiento" porque su contenedor capturaba ambos labels. `findDropdown` usa `textNear` que encuentra "lavadero" por `aria-labelledby` |
 | Address sin `form` + `type="text"` | v1.4.5 | El selector anterior `form input...` fallaba si FB no envuelve en `<form>`. Ahora busca `input[type="text"]` para excluir el buscador global (`type="search"`) |
 
@@ -1201,7 +1201,7 @@ var dropdowns = [
 
 ### Pantalla en blanco
 1. **`usesCleartextTraffic`**: Android 9+ bloquea HTTP. Ya agregado en `AndroidManifest.xml`.
-2. **URL del servidor**: APK usa `DEFAULT_SERVER` (Render.com). Para servidor local, deben estar en misma red.
+2. **URL del servidor**: APK usa `DEFAULT_SERVER` (el dominio duckdns). Para servidor local, deben estar en misma red.
 3. **Service Worker**: Deshabilitado automáticamente cuando se detecta Capacitor.
 4. **`androidScheme: "http"`**: Configurado en `capacitor.config.json`.
 5. **`allowNavigation`**: Capacitor 8 requiere whitelist de hosts.
@@ -1269,7 +1269,7 @@ var dropdowns = [
 - **New**: Respaldo secundario del token (`laujim_worker_token_backup`) en `src/utils/portableWorker.js` y auto-recuperación (`autoRecoverWorkerToken`) ante reinicios o cierres de la APK.
 - **Update**: `src/utils/auth.js` ejecuta `autoRecoverWorkerToken()` tras inicio de sesión exitoso de administrador.
 - **Update**: `src/pages/ScraperWorker.jsx` verifica y restaura el token automáticamente desde el servidor si no existe en almacenamiento local, alertando en la interfaz.
-- **Fix**: `src/pages/Utilities.jsx` aumenta el timeout de carga de deudas a 15s para tolerar cold-starts en Render, y reduce a 60s la espera para re-consultar tras sincronizaciones manuales.
+- **Fix**: `src/pages/Utilities.jsx` aumenta el timeout de carga de deudas a 15s para tolerar respuestas lentas de red, y reduce a 60s la espera para re-consultar tras sincronizaciones manuales.
 
 ### 2026-08-09 — Consulta horaria de facturas de agua Triple A
 - **New**: `services-scraper.cjs` consulta cada hora los enlaces QR de agua (`waterPaymentUrl`) en modo solo lectura, con parser tolerante a cambios de HTML, estados de pago, deuda, factura, período, CAPTCHA y timeout.
@@ -1374,7 +1374,7 @@ var dropdowns = [
 
 - **New**: webhook oficial firmado, autenticación temporal sin persistencia para números desconocidos y almacenamiento exclusivo de conversaciones autorizadas.
 - **New**: endpoints Cloud API para estado, conversaciones, mensajes y envío dentro de la ventana de servicio de 24 horas.
-- **New**: `.env.example`, variables de Render y guía `docs/whatsapp-cloud-api.md` para configurar Meta sin subir secretos.
+- **New**: `.env.example`, variables de entorno y guía `docs/whatsapp-cloud-api.md` para configurar Meta sin subir secretos.
 - **Migration**: las secciones legacy de Chat/Bot quedan activas hasta validar la API oficial en producción.
 
 ### 2026-07-26 — v2.8.0 — Proyecto Sabanilla: ladder delivery trace, auto-auth, backup, doc

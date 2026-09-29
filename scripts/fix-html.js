@@ -19,7 +19,7 @@ writeFileSync(htmlFile, html, 'utf-8');
 console.log('HTML fixed:', scriptMatch ? scriptMatch[1] : 'no script found');
 
 // Remove dist/app-debug.apk if present so Cloudflare's 25MB asset limit is not exceeded.
-// APK downloads are redirected to Render via public/_redirects.
+// APK downloads are redirected to the bundled public/_redirects.
 const distApk = join(__dirname, '..', 'dist', 'app-debug.apk');
 if (existsSync(distApk)) {
   try {

@@ -1465,7 +1465,7 @@ export default function ApartmentDetail() {
                 {marketplaceMessage && (
                   <div className={`rounded-lg p-3 text-xs ${marketplaceMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>{marketplaceMessage.text}</div>
                 )}
-                <p className="text-[11px] text-gray-500">Render solo pone el anuncio en cola. La sesión de Facebook, el 2FA y la publicación se ejecutan localmente en el navegador de la APK; no se guarda la contraseña en Laujim.</p>
+                <p className="text-[11px] text-gray-500">El servidor solo pone el anuncio en cola. La sesión de Facebook, el 2FA y la publicación se ejecutan localmente en el navegador de la APK; no se guarda la contraseña en Laujim.</p>
                 {marketplaceUrl && (
                   <div className="flex items-center gap-3">
                     <button onClick={openPublishedAd} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">

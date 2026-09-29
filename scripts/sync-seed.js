@@ -141,7 +141,7 @@ export default db;
   writeFileSync(dbJsPath, dbJsContent, 'utf-8');
   console.log(`✓ src/db/database.js actualizado`);
 
-  console.log('\n✅ Sync completo. Haz commit y push para actualizar Render.');
+  console.log('\n✅ Sync completo. Haz commit y push para actualizar el servidor.');
 }
 
 main().catch(e => {
