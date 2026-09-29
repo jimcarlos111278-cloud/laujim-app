@@ -93,7 +93,7 @@ Formato por entrada: fecha | origen | qué | por qué | archivos/código clave |
 - **Por qué:** trabajar desde PC, VM, harness o IA externa con las mismas capacidades y todo cambio siempre documentado.
 - **Archivos clave:** `docs/continuidad/*`, `scripts/continuidad.cjs`, `scripts/harness-continuity.cjs`, `opencode-bridge.cjs`, `server.cjs` (1 línea), `scripts/handoff.cjs`, `AGENTS.md`, `docs/manual-operacion-ia.md`.
 - **Cómo verificar:** `node scripts/continuidad.cjs` + `node scripts/handoff.cjs` (BITACORA al día, PENDIENTES regenerado).
-- **Commit:** `0e65991`.
+- **Commit:** `0e65991` (hash completado en `9fe00b8`; cierre de trazabilidad en el commit de esta línea).
 
 ## Plantilla para la próxima entrada (copiar y rellenar)
 
