@@ -42,6 +42,23 @@ if (!porcelain) {
   for (const line of lines.slice(0, 20)) console.log(`  ${line}`);
   if (lines.length > 20) console.log(`  ... y ${lines.length - 20} más`);
 }
+console.log('--- continuidad (docs/continuidad/) ---');
+for (const name of ['LEEME.md', 'BITACORA.md', 'PENDIENTES.md', 'IDEAS.md']) {
+  const file = path.join(root, 'docs', 'continuidad', name);
+  let info = 'ausente';
+  try {
+    const stat = fs.statSync(file);
+    const commit = git(['log', '-1', '--format=%h %ad', '--date=short', '--', `docs/continuidad/${name}`]);
+    info = `${(stat.size / 1024).toFixed(1)} KB ${fmtDate(stat.mtime)}${commit ? ` | commit ${commit}` : ''}`;
+  } catch {}
+  console.log(`${name}: ${info}`);
+}
+const headShort = git(['rev-parse', '--short', 'HEAD']);
+let bitacoraMencionaHead = false;
+try {
+  bitacoraMencionaHead = Boolean(headShort) && fs.readFileSync(path.join(root, 'docs', 'continuidad', 'BITACORA.md'), 'utf8').includes(headShort);
+} catch {}
+console.log(`BITACORA vs HEAD ${headShort || '?'}: ${bitacoraMencionaHead ? 'al día' : 'PENDIENTE documentar'}`);
 console.log('--- grafo ---');
 const graphFile = path.join(root, 'graphify-out', 'graph.json');
 let graphMtime = null;

@@ -5186,17 +5186,104 @@ async function sendCloudAgentModeMenu(phone) {
   clearCloudAuthState(phone);
   saveData();
   try {
-    await sendCloudInteractiveList(phone, '🤖 IA — elige cómo hablamos. Después escríbeme directo, sin prefijos. SALIR para salir:', 'Elegir modo', [{
-      title: 'Modos',
+    // WhatsApp rinde mejor con máximo 4 filas por lista: de más a menos potente.
+    await sendCloudInteractiveList(phone, '🤖 IA técnica — elige modo de charla. SALIR para salir:', 'Elegir IA', [{
+      title: 'Modo',
       rows: [
+        { id: 'agent_mode_write', title: '✏️ Con escritura', description: 'Ejecuta cambios (como //)' },
         { id: 'agent_mode_read', title: '🔍 Solo lectura', description: 'Consultas sin tocar nada (como /)' },
-        { id: 'agent_mode_write', title: '✏️ Con escritura', description: 'Puede modificar archivos (como //)' },
-        { id: 'agent_mode_ask', title: '💬 Pregunta general', description: 'Cualquier tema, del proyecto o no' },
+        { id: 'agent_mode_ask', title: '💬 Pregunta técnica', description: 'Explicación para aprender' },
+        { id: 'agent_cfg_more', title: '➕ Más opciones', description: 'Estado, modelo, agente' },
       ],
     }]);
   } catch (error) {
     console.error('[WHATSAPP CLOUD] agent mode menu error:', error.message);
     await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+  }
+}
+
+// Nivel 2 de "Más opciones" (máx 4 filas).
+async function sendCloudAgentMoreMenu(phone) {
+  try {
+    await sendCloudInteractiveList(phone, '⚙️ Administrar IA — elige qué configurar:', 'Más opciones', [{
+      title: 'Opciones',
+      rows: [
+        { id: 'agent_cfg_status', title: '📊 Ver estado', description: 'Modelo, agente y thinking' },
+        { id: 'agent_cfg_model', title: '🧠 Cambiar modelo', description: 'Listar y fijar modelo' },
+        { id: 'agent_cfg_agent', title: '🛠️ Cambiar agente', description: 'Rol: plan, build, profe' },
+        { id: 'agent_cfg_more2', title: '➕ Más', description: 'Thinking y ayuda' },
+      ],
+    }]);
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] agent more menu error:', error.message);
+    await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+  }
+}
+
+// Nivel 3: thinking + ayuda.
+async function sendCloudAgentMore2Menu(phone) {
+  try {
+    await sendCloudInteractiveList(phone, '⚙️ Más ajustes de IA:', 'Más ajustes', [{
+      title: 'Opciones',
+      rows: [
+        { id: 'agent_cfg_thinking', title: '🎚️ Nivel thinking', description: 'low, medium, high, xhigh' },
+        { id: 'agent_cfg_help', title: '❓ Ayuda IA', description: 'Comandos y ejemplos' },
+      ],
+    }]);
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] agent more2 menu error:', error.message);
+    await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+  }
+}
+
+async function sendCloudAgentPickerMenu(phone) {
+  try {
+    await sendCloudInteractiveList(phone, '🛠️ Elige el agente (rol) 1/2. También con `IA agente <nombre>`:', 'Elegir agente', [{
+      title: 'Agentes 1/2',
+      rows: [
+        { id: 'agent_pick_auto', title: 'auto', description: 'Default de opencode en la VM' },
+        { id: 'agent_pick_plan', title: 'plan', description: 'Plan técnico solo lectura' },
+        { id: 'agent_pick_build', title: 'build', description: 'Ejecuta cambios + gate Aiven' },
+        { id: 'agent_pick_more', title: '➕ Más agentes', description: 'backend, front, qa, profe' },
+      ],
+    }]);
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] agent picker error:', error.message);
+    await sendCloudTextChunks(phone, opencodeBridge.listAgentsText());
+  }
+}
+
+async function sendCloudAgentPicker2Menu(phone) {
+  try {
+    await sendCloudInteractiveList(phone, '🛠️ Elige el agente (rol) 2/2:', 'Más agentes', [{
+      title: 'Agentes 2/2',
+      rows: [
+        { id: 'agent_pick_backend', title: 'backend', description: 'APIs, persistencia, jobs' },
+        { id: 'agent_pick_front', title: 'front', description: 'UI React/Tailwind' },
+        { id: 'agent_pick_qa', title: 'qa', description: 'Verificación independiente' },
+        { id: 'agent_pick_profe', title: 'profe', description: 'Profesor redes→sistemas' },
+      ],
+    }]);
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] agent picker2 error:', error.message);
+    await sendCloudTextChunks(phone, opencodeBridge.listAgentsText());
+  }
+}
+
+async function sendCloudThinkingPickerMenu(phone) {
+  try {
+    await sendCloudInteractiveList(phone, '🎚️ Elige nivel de pensamiento. También con `IA thinking <nivel>`:', 'Elegir nivel', [{
+      title: 'Thinking',
+      rows: [
+        { id: 'think_pick_low', title: 'low', description: 'Rápido y conciso' },
+        { id: 'think_pick_medium', title: 'medium', description: 'Balanceado con rutas' },
+        { id: 'think_pick_high', title: 'high', description: 'Profundo, verifica en código' },
+        { id: 'think_pick_xhigh', title: 'xhigh', description: 'Exhaustivo + HTML detallado' },
+      ],
+    }]);
+  } catch (error) {
+    console.error('[WHATSAPP CLOUD] thinking picker error:', error.message);
+    await sendCloudText(phone, 'Usa `IA thinking low|medium|high|xhigh`.');
   }
 }
 
@@ -5210,7 +5297,55 @@ async function handleCloudAgentCommand(phone, text, buttonId, forcedMode) {
       ? '🔍 Modo lectura ✅. Escríbeme tu consulta directo, sin prefijos. SALIR para salir.'
       : mode === 'write'
         ? '✏️ Modo escritura ✅. Pídeme cambios directo, sin prefijos. SALIR para salir.'
-        : '💬 Modo pregunta ✅. Pregúntame lo que sea, del proyecto o no. SALIR para salir.');
+        : '💬 Modo pregunta técnica ✅. Pregúntame con detalle técnico. SALIR para salir.');
+    return;
+  }
+  if (buttonId === 'agent_cfg_more') {
+    await sendCloudAgentMoreMenu(phone);
+    return;
+  }
+  if (buttonId === 'agent_cfg_more2') {
+    await sendCloudAgentMore2Menu(phone);
+    return;
+  }
+  if (buttonId === 'agent_pick_more') {
+    await sendCloudAgentPicker2Menu(phone);
+    return;
+  }
+  if (buttonId === 'agent_cfg_status') {
+    await sendCloudTextChunks(phone, opencodeBridge.getAgentStatusText());
+    return;
+  }
+  if (buttonId === 'agent_cfg_help') {
+    await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+    return;
+  }
+  if (buttonId === 'agent_cfg_model') {
+    await sendCloudText(phone, '🧠 Para cambiar modelo:\n• `IA modelos` → listar\n• `IA modelo proveedor/modelo` → fijar\n• `IA modelo auto` → default');
+    return;
+  }
+  if (buttonId === 'agent_cfg_agent') {
+    await sendCloudAgentPickerMenu(phone);
+    return;
+  }
+  if (buttonId === 'agent_cfg_thinking') {
+    await sendCloudThinkingPickerMenu(phone);
+    return;
+  }
+  if (buttonId && buttonId.startsWith('agent_pick_')) {
+    const name = buttonId.replace('agent_pick_', '');
+    const saved = opencodeBridge.setAgentAgent(name);
+    await sendCloudText(phone, saved.ok
+      ? `🛠️ Agente fijado: ${saved.agent}. ${opencodeBridge.getAgentStatusText()}`
+      : `⚠️ ${saved.error}`);
+    return;
+  }
+  if (buttonId && buttonId.startsWith('think_pick_')) {
+    const level = buttonId.replace('think_pick_', '');
+    const saved = opencodeBridge.setAgentThinking(level);
+    await sendCloudText(phone, saved.ok
+      ? `🎚️ Thinking fijado: ${saved.thinking}. ${opencodeBridge.getAgentStatusText()}`
+      : `⚠️ ${saved.error}`);
     return;
   }
   let cmd = opencodeBridge.parseAgentCommand(text);
@@ -5256,6 +5391,41 @@ async function handleCloudAgentCommand(phone, text, buttonId, forcedMode) {
       : `⚠️ ${saved.error}`);
     return;
   }
+  if (cmd.mode === 'agents') {
+    await sendCloudAgentPickerMenu(phone);
+    return;
+  }
+  if (cmd.mode === 'agent') {
+    if (!cmd.prompt) {
+      await sendCloudAgentPickerMenu(phone);
+      return;
+    }
+    if (/^(auto|default)$/i.test(cmd.prompt)) {
+      opencodeBridge.setAgentAgent('auto');
+      await sendCloudText(phone, `🛠️ Agente restablecido: auto. ${opencodeBridge.getAgentStatusText()}`);
+      return;
+    }
+    const saved = opencodeBridge.setAgentAgent(cmd.prompt);
+    await sendCloudText(phone, saved.ok
+      ? `🛠️ Agente fijado: ${saved.agent}. ${opencodeBridge.getAgentStatusText()}`
+      : `⚠️ ${saved.error}`);
+    return;
+  }
+  if (cmd.mode === 'thinking') {
+    if (!cmd.prompt) {
+      await sendCloudThinkingPickerMenu(phone);
+      return;
+    }
+    const saved = opencodeBridge.setAgentThinking(cmd.prompt);
+    await sendCloudText(phone, saved.ok
+      ? `🎚️ Thinking fijado: ${saved.thinking}. ${opencodeBridge.getAgentStatusText()}`
+      : `⚠️ ${saved.error}`);
+    return;
+  }
+  if (cmd.mode === 'estado') {
+    await sendCloudTextChunks(phone, `${opencodeBridge.getAgentStatusText()}\n\n¿Modelo inteligente listo? Mándame \`IA modelos\` si quieres probar conexión, o una pregunta técnica con \`/ ...\`.`);
+    return;
+  }
   if (cmd.mode === 'help' || !cmd.prompt) {
     await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
     return;
@@ -5278,19 +5448,44 @@ async function handleCloudAgentCommand(phone, text, buttonId, forcedMode) {
       return;
     }
     if (result.files && result.files.length) {
+      const pageLinks = [];
       for (const file of result.files) {
         try {
           const buffer = fs.readFileSync(file.full);
           const uploaded = await uploadCloudMedia({ originalname: file.name, mimetype: file.mime, buffer });
           await sendCloudMedia(phone, { kind: file.kind, id: uploaded.id, fileName: file.name }, `🤖 ${file.name}`);
+          // El .html por WhatsApp llega como texto (Meta rechaza text/html):
+          // el enlace lo abre como página HTML real en el navegador.
+          if (file.ext === '.html') {
+            pageLinks.push(`🌐 *${file.name}:* ${PUBLIC_APP_URL}/agent-out/${encodeURIComponent(file.name)}`);
+          }
         } catch (fileError) {
           console.error('[OPENCODE] agent file error:', fileError.message);
+          // WhatsApp Cloud solo acepta ciertos MIME (text/html y text/markdown NO).
+          // Reintento como text/plain con el mismo nombre: el contenido llega igual.
+          if ((file.ext === '.html' || file.ext === '.md') && file.mime !== 'text/plain') {
+            try {
+              const buffer = fs.readFileSync(file.full);
+              const uploaded = await uploadCloudMedia({ originalname: file.name, mimetype: 'text/plain', buffer });
+              await sendCloudMedia(phone, { kind: file.kind, id: uploaded.id, fileName: file.name }, `🤖 ${file.name} (como texto)`);
+              if (file.ext === '.html') {
+                pageLinks.push(`🌐 *${file.name}:* ${PUBLIC_APP_URL}/agent-out/${encodeURIComponent(file.name)}`);
+              }
+              continue;
+            } catch (retryError) {
+              console.error('[OPENCODE] agent file retry error:', retryError.message);
+            }
+          }
           await sendCloudText(phone, `⚠️ Generé ${file.name} pero no pude enviártelo por aquí.`);
         }
       }
+      if (pageLinks.length) {
+        await sendCloudTextChunks(phone, `🌐 *Abrir como página real:*\n${pageLinks.join('\n')}`);
+      }
     }
     const extraNote = result.extraFiles ? `\n\n📎 +${result.extraFiles} archivo(s) más en agent-out.` : '';
-    await sendCloudTextChunks(phone, `🤖 ${result.output}${extraNote}`);
+    const continuityNote = result.continuityLogged ? '\n\n📝 Quedó registrado en continuidad (BITACORA/PENDIENTES).' : '';
+    await sendCloudTextChunks(phone, `🤖 ${result.output}${extraNote}${continuityNote}`);
   } catch (error) {
     console.error('[OPENCODE] agent task error:', error.message);
     await sendCloudText(phone, '⚠️ Falló la ejecución del agente. Revisa los logs de la VM.');
@@ -5344,7 +5539,12 @@ async function handleCloudAdminMessage(phone, message) {
   if (opencodeBridge) {
     const agentCmd = opencodeBridge.parseAgentCommand(text);
     const agentButton = buttonId === 'menu_agente' || buttonId === 'agent_mode_read' ||
-      buttonId === 'agent_mode_write' || buttonId === 'agent_mode_ask';
+      buttonId === 'agent_mode_write' || buttonId === 'agent_mode_ask' ||
+      buttonId === 'agent_cfg_more' || buttonId === 'agent_cfg_more2' ||
+      buttonId === 'agent_cfg_status' || buttonId === 'agent_cfg_model' ||
+      buttonId === 'agent_cfg_agent' || buttonId === 'agent_cfg_thinking' ||
+      buttonId === 'agent_cfg_help' || buttonId === 'agent_pick_more' ||
+      (buttonId && (buttonId.startsWith('agent_pick_') || buttonId.startsWith('think_pick_')));
     if (agentButton || agentCmd) {
       await handleCloudAgentCommand(phone, text, buttonId);
       return;
@@ -12889,6 +13089,9 @@ app.delete('/api/:collection/:id', (req, res) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Documentos del agente IA (guías/reportes HTML generados por WhatsApp).
+// Se sirven con su MIME real: el .html abre como página de verdad en el navegador.
+app.use('/agent-out', express.static(path.join(__dirname, 'agent-out'), { index: false, fallthrough: true }));
 
 const PROJECT_DIR = path.resolve(__dirname);
 const EDITOR_ENABLED = process.env.EDITOR_ENABLED === 'true';

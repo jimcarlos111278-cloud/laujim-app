@@ -76,11 +76,12 @@ El proyecto vive en VM + GitHub + Aiven y varias IAs (este u otro PC) operan
 sobre él. La sincronización la hacen git y las fuentes durables, no la
 herramienta. Reglas:
 
-- Al llegar: `git pull`, luego `git log --oneline -5` + `node scripts/handoff.cjs`.
+- Al llegar: `git pull`, luego `git log --oneline -5` + `node scripts/handoff.cjs` + `node scripts/continuidad.cjs`.
+  Memoria durable: `docs/continuidad/LEEME.md` + `BITACORA.md` (ejecutados) + `PENDIENTES.md` (sin commit) + `IDEAS.md` (sin ejecutar).
   El mapa del proyecto es `GRAPH_REPORT.md` + `graphify-out/graph.json`.
 - Una sola IA por tarea a la vez. Conflictos = la otra sesión no hizo push.
-- Al soltar: verificar (`npm run build` u `oxlint`), `git add` solo de lo
-  intencional (nunca `-A`), commit, `npm run sync:aiven:pre-push`, push.
+- Al soltar: verificar (`npm run build` u `oxlint`), documentar en `docs/continuidad/BITACORA.md` (y `PENDIENTES.md`/`IDEAS.md` si aplica),
+  `git add` solo de lo intencional (nunca `-A`), commit, `npm run sync:aiven:pre-push`, push.
 - El grafo se refresca por release (`release-apk` lo archiva) o manual con
   `npm run graphify` + commit de `graphify-out/` (solo archivos base).
 - Secretos y datos viven en VM/Aiven, nunca en commits ni en el chat.

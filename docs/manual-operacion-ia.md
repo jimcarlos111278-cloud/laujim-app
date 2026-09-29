@@ -28,6 +28,12 @@ Sin clonar (IA externa, solo HTTP + `GRAPH_READER_TOKEN`):
 header `x-graph-token`, body `{"action":"stats"}`,
 `{"action":"search","q":"login"}` o `{"action":"neighbors","id":"..."}`.
 
+## Continuidad (las 3 piezas, desde cualquier método)
+
+- `docs/continuidad/LEEME.md` (índice + contrato por punto de entrada), `BITACORA.md` (ejecutados), `PENDIENTES.md` (sin commit), `IDEAS.md` (sin ejecutar).
+- Al llegar: `git pull` + `node scripts/handoff.cjs` + `node scripts/continuidad.cjs`, luego leer BITACORA (últimas 3) → PENDIENTES → IDEAS.
+- Al soltar (PC, VM, harness/WhatsApp o externa vía quien tenga el clon): entrada en BITACORA + PENDIENTES/IDEAS si aplica + `git add` intencional + commit + `npm run sync:aiven:pre-push` + push.
+
 ## Reporte automático de cambios (modo externo, sin IA en VM)
 El hook post-commit de `~/laujim-repo` anota cada commit en Aiven
 (`scripts/note-vm-change.cjs` → `POST /api/graph/note`); la regeneración
