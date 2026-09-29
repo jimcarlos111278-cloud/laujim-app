@@ -974,11 +974,6 @@
     "ast_hash": "7f37d2b5e9b5ecc197e64749a4193687",
     "semantic_hash": ""
   },
-  "scratch/check-env.cjs": {
-    "mtime": 1790644381.4411569,
-    "ast_hash": "0d26868b4ec7e589d12df65e5d95315e",
-    "semantic_hash": ""
-  },
   "docker-start.sh": {
     "mtime": 1789627745.041561,
     "ast_hash": "4812f7f9e74fbf69c0c9e55a0cd80c4f",
