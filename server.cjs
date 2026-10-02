@@ -3420,6 +3420,42 @@ async function sendCloudServiceApartmentsMenu(phone, floor) {
 
 const WHATSAPP_BUBBLE_MAX_CHARS = 600;
 
+function splitLongSection(section, maxLength = WHATSAPP_BUBBLE_MAX_CHARS) {
+  const paragraphs = section.split(/\n{2,}/);
+  const result = [];
+  let current = '';
+
+  for (const p of paragraphs) {
+    const candidate = current ? `${current}\n\n${p}` : p;
+    if (candidate.length <= maxLength) {
+      current = candidate;
+    } else {
+      if (current) {
+        result.push(current);
+        current = '';
+      }
+      if (p.length <= maxLength) {
+        current = p;
+      } else {
+        const lines = p.split('\n');
+        let lineCurrent = '';
+        for (const l of lines) {
+          const lCand = lineCurrent ? `${lineCurrent}\n${l}` : l;
+          if (lCand.length <= maxLength) {
+            lineCurrent = lCand;
+          } else {
+            if (lineCurrent) result.push(lineCurrent);
+            lineCurrent = l;
+          }
+        }
+        if (lineCurrent) current = lineCurrent;
+      }
+    }
+  }
+  if (current) result.push(current);
+  return result;
+}
+
 function splitCloudText(body, maxLength = WHATSAPP_BUBBLE_MAX_CHARS) {
   const text = String(body || '').trim();
   if (!text) return [''];
@@ -3437,63 +3473,33 @@ function splitCloudText(body, maxLength = WHATSAPP_BUBBLE_MAX_CHARS) {
   }
 
   const chunks = [];
+  let current = '';
+
   for (const section of sections) {
-    if (section.length <= maxLength) {
-      chunks.push(section);
+    if (!section) continue;
+
+    // Si la sección por sí sola supera maxLength, procesar current primero y dividirla
+    if (section.length > maxLength) {
+      if (current) {
+        chunks.push(current);
+        current = '';
+      }
+      const subChunks = splitLongSection(section, maxLength);
+      for (const sc of subChunks) chunks.push(sc);
       continue;
     }
 
-    // Si la sección supera maxLength (< 600 caracteres), subdividir por párrafos o líneas
-    const paragraphs = section.split(/\n{2,}/);
-    let current = '';
-    for (const paragraph of paragraphs) {
-      const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
-      if (candidate.length <= maxLength) {
-        current = candidate;
-      } else {
-        if (current) {
-          chunks.push(current);
-          current = '';
-        }
-        if (paragraph.length <= maxLength) {
-          current = paragraph;
-        } else {
-          const lines = paragraph.split('\n');
-          let lineCurrent = '';
-          for (const line of lines) {
-            const lineCandidate = lineCurrent ? `${lineCurrent}\n${line}` : line;
-            if (lineCandidate.length <= maxLength) {
-              lineCurrent = lineCandidate;
-            } else {
-              if (lineCurrent) {
-                chunks.push(lineCurrent);
-                lineCurrent = '';
-              }
-              if (line.length <= maxLength) {
-                lineCurrent = line;
-              } else {
-                const words = line.split(' ');
-                let wordCurrent = '';
-                for (const word of words) {
-                  const wordCandidate = wordCurrent ? `${wordCurrent} ${word}` : word;
-                  if (wordCandidate.length <= maxLength) {
-                    wordCurrent = wordCandidate;
-                  } else {
-                    if (wordCurrent) chunks.push(wordCurrent);
-                    wordCurrent = word;
-                  }
-                }
-                if (wordCurrent) lineCurrent = wordCurrent;
-              }
-            }
-          }
-          if (lineCurrent) current = lineCurrent;
-        }
-      }
+    // Acumular secciones mientras quepan en el mensaje (hasta maxLength ~600 chars)
+    const candidate = current ? `${current}\n\n${section}` : section;
+    if (candidate.length <= maxLength) {
+      current = candidate;
+    } else {
+      if (current) chunks.push(current);
+      current = section;
     }
-    if (current) chunks.push(current);
   }
 
+  if (current) chunks.push(current);
   return chunks.length ? chunks : [''];
 }
 

@@ -565,26 +565,23 @@ function loadHarnessContext(prompt = '') {
   return `Contexto del proyecto:\n${parts.join('\n\n')}\n`;
 }
 
-// ─── Formato WhatsApp optimizado en bloques temáticos (evita "... Leer más") ──────────
+// ─── Formato WhatsApp optimizado en secciones estructuradas (evita "... Leer más") ──────────
 const WHATSAPP_FORMAT_DEV = [
-  'FORMATO OBLIGATORIO DEL MENSAJE (WhatsApp):',
-  'WhatsApp no soporta colores de fuente html, así que usa emojis para dar color visual y formato en *negrilla*.',
-  'Para evitar que WhatsApp corte el mensaje con "... Leer más", divide la respuesta en bloques temáticos independientes (máximo 450-500 caracteres cada uno), separados OBLIGATORIAMENTE con una línea que contenga únicamente "---":',
-  '- Si estás reportando una tarea o ejecución en código: usa bloques lógicos (ej: 🟢 *Avances / Cambios hechos*, 🟡 *Pendientes*, 🚀 *Pasos siguientes / Verificación*).',
-  '- Si la tarea abarca varios componentes o temas: divide en los bloques temáticos que consideres convenientes (ej: 🎨 *Frontend*, ⚙️ *Backend*, 🧪 *Pruebas*). No te limites rígidamente a 3 bloques; usa los necesarios según el contenido.',
-  'IMPORTANTE: Cada bloque debe ser autocontenido, breve y directo, con su encabezado en *negrilla* y emoji. Sin saludos ni rodeos. Separa CADA bloque con "---".',
+  'FORMATO DE RESPUESTA PARA WHATSAPP:',
+  '- Responde con información técnica 100% precisa, real y verificada en el proyecto.',
+  '- Estructura la respuesta con encabezados claros en *negrilla* y emojis temáticos para separar ideas.',
+  '- Si es diagnóstico: causa real verificada en código o base de datos, archivo exacto y solución concreta.',
+  '- Si es una tarea de desarrollo: cambios aplicados, archivos tocados y comando de prueba.',
+  '- Responde de forma completa, fluida y detallada. NUNCA cortes ideas ni uses "..." para omitir explicaciones.',
+  '- El servidor se encarga de agrupar y enviar el mensaje en burbujas óptimas de WhatsApp.',
 ].join('\n');
 
 const WHATSAPP_FORMAT_ASK = [
-  'FORMATO OBLIGATORIO DEL MENSAJE (WhatsApp):',
-  'WhatsApp no soporta colores de fuente html. Usa emojis temáticos (🎨, ⚙️, 🔌, 🗄️, 📱, 💡, 🚀) y *negrilla* para destacar conceptos clave.',
-  'ESTRUCTURA EN BLOQUES TEMÁTICOS FLEXIBLES (evita "... Leer más"):',
-  '- Divide la respuesta en la cantidad de bloques temáticos que consideres necesaria para explicar con claridad según el tema (por ejemplo: si te preguntan qué estudiar o explicas una arquitectura, entrega un bloque por área: Frontend, Backend, Redes/Webhooks, Base de Datos, Móvil/Despliegue, etc.).',
-  '- No te limites rígidamente a 3 bloques; decide tú la cantidad de bloques que mejor organice la explicación de forma pedagógica.',
-  '- OBLIGATORIO: Separa CADA bloque con una línea que contenga únicamente "---".',
-  '- Cada bloque debe tener su título con emoji y *negrilla* (ej: 🎨 *1. Frontend (React 19)*, ⚙️ *2. Backend (Express/Node)*, 🔌 *3. Networking y Traps SNMP*).',
-  '- Límite por bloque: máximo 450-500 caracteres para que WhatsApp nunca muestre "... Leer más".',
-  '- Sé directo, técnico y conciso en cada bloque.',
+  'FORMATO DE RESPUESTA PARA WHATSAPP:',
+  '- Explica con rigor técnico, claridad y profundidad pedagógica.',
+  '- Organiza la explicación en secciones temáticas claras usando encabezados con emoji y *negrilla* (ej: 🎨 *Frontend*, ⚙️ *Backend*, 🗄️ *Base de Datos*, 🔌 *Redes / Webhooks*).',
+  '- Responde completo y directo, con ejemplos concisos cuando aplique. NUNCA cortes ideas a la mitad ni uses "...".',
+  '- El servidor se encarga de agrupar y enviar el mensaje en burbujas óptimas de WhatsApp.',
 ].join('\n');
 
 // Ejecuta `opencode run "<prompt>"` sin shell (argv, sin expansión).
@@ -615,12 +612,14 @@ function runAgentTask(prompt, mode, opts) {
   const startedAt = Date.now();
   return new Promise((resolve) => {
     const techStyle = [
-      'Actúa como profesor de ingeniería de sistemas y ingeniero senior: español técnico, preciso, sin coloquialismos (prohibido: tranqui, compa, paisa, criollo, en cristiano).',
-      'Perfil del usuario: ingeniero de redes aprendiendo sistemas. Ya domina el uso funcional de LAUJIM (arriendos, inquilinos, contratos, pagos). NO re-expliques lo funcional salvo que lo pida: ve directo al código con rutas, símbolos y flujos.',
-      'Stack LAUJIM: React 19 + Vite + Tailwind, Node/Express en server.cjs, SQLite/Postgres/Aiven, Capacitor Android, webhooks estilo traps SNMP, Python para automatización, Java para lógica pesada/OOP/APIs.',
-      'Reglas de respuesta: 1) causa técnica primero, 2) archivos y funciones exactas tocadas/leídas, 3) comandos y verificación, 4) riesgos. Usa términos correctos: componente, hook, estado, props, endpoint, middleware, payload, reintento idempotente.',
-      'Analogías de redes solo como puente (VLAN≈componente, tabla ARP≈estado, trap SNMP≈webhook), manteniendo rigor.',
-      'Tiempos: cuando pidan ruta/estimación, da tabla por niveles (con base / desde cero) en horas y semanas, más prerrequisitos y docs oficiales.',
+      'Actúa como ingeniero senior de software y profesor técnico para el administrador de LAUJIM.',
+      'El usuario es un ingeniero de redes aprendiendo sistemas; conoce la funcionalidad del edificio pero quiere entender el código real, bases de datos y arquitectura sin rodeos ni explicaciones infantiles.',
+      'Stack real del proyecto: React 19 + Vite + Tailwind en src/, Express en server.cjs, SQLite y PostgreSQL (Aiven Cloud), Capacitor Android para APK, workers con Chromium/Playwright (fb-publisher.cjs, scrapers), y webhooks para WhatsApp/cámaras.',
+      'REGLAS DE PRECISIÓN Y RIGOR TÉCNICO:',
+      '1. Da información 100% precisa, real y verificada en el proyecto: consulta los archivos del proyecto y la base de datos (data/database.json) antes de responder.',
+      '2. No inventes causas ni uses analogías forzadas (como VLAN o ARP) salvo que realmente clarifiquen un concepto de redes.',
+      '3. Responde de forma completa, fluida y con sustento en código. NUNCA cortes ideas a la mitad ni uses "..." para omitir explicaciones.',
+      '4. Si el usuario te pregunta por un apartamento (ej: 101), publicación o worker: lee el estado real en data/database.json y en el código antes de responder.',
     ].join(' ');
     const agentRole = {
       auto: 'Rol: agente general opencode.',
@@ -644,13 +643,13 @@ function runAgentTask(prompt, mode, opts) {
     const outboxHint = docsEnabled
       ? 'Documentos: el usuario pidió archivos, GENERA un HTML autocontenido (CSS inline, sin CDN) en ./agent-out/<nombre-descriptivo>.html Y un espejo .md con el mismo nombre. Al final del chat indica el nombre exacto generado. Nunca digas que no pudiste enviarlo: si existe en agent-out, el puente lo adjunta. '
       : 'Documentos: NO generes HTML ni .md en esta respuesta; entrega todo completo en el chat. Solo genera archivos si el usuario lo pide explícitamente.';
-    const continuityContract = 'Contrato de continuidad OBLIGATORIO al terminar (igual que PC/VM): 1) agrega entrada en docs/continuidad/BITACORA.md (fecha, origen harness-WhatsApp, qué/porqué, archivos exactos, cómo verificar, commit); 2) si quedó algo a medias anótalo en docs/continuidad/PENDIENTES.md, si fue idea no ejecutada en docs/continuidad/IDEAS.md; 3) ejecuta node scripts/continuidad.cjs; 4) git add solo intencional (nunca -A, jamás data/database.json salvo cambio intencional), commit, npm run sync:aiven:pre-push y solo si termina OK haces push (si falla o falta AIVEN_DATABASE_URL, detente e informa); el hook post-commit anota el commit en el grafo/Aiven. ';
+    const continuityContract = 'Si aplicaste cambios de código: anota en docs/continuidad/BITACORA.md los archivos modificados y cómo probarlos.';
     const nodeContext = loadHarnessContext(prompt);
     const safePrompt =
       mode === 'code' && !allowWrite
-        ? `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} Modo SOLO LECTURA: no modifiques archivos ni ejecutes nada destructivo. ${outboxHint}${WHATSAPP_FORMAT_DEV} Tarea: ${prompt}`
+        ? `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} Modo SOLO LECTURA: consulta y analiza archivos o base de datos sin modificarlos. ${outboxHint}${WHATSAPP_FORMAT_DEV} Tarea: ${prompt}`
         : mode === 'code'
-          ? `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} Modo DESARROLLO TOTAL autorizado por el admin: actúa como el agente de código completo (igual que en una sesión opencode normal): lee, crea, modifica, elimina y verifica código con herramientas; ejecuta comandos no destructivos y lint/build enfocado; puedes hacer git push cuando lo pida, pero ANTES ejecuta obligatoriamente npm run sync:aiven:pre-push y solo continúa si termina OK (si falla o falta AIVEN_DATABASE_URL, detente e informa); nunca uses git add -A, solo archivos intencionales (jamás data/database.json salvo cambio intencional). Despliegues a Oracle y borrados masivos solo con confirmación explícita. ${continuityContract}${outboxHint}${WHATSAPP_FORMAT_DEV} Al final: resumen en el chat con el formato obligatorio + detalle en HTML. Tarea: ${prompt}`
+          ? `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} Modo DESARROLLO TOTAL autorizado por el admin: actúa como el agente de código completo: lee, crea, modifica, elimina y verifica código con herramientas; ejecuta comandos no destructivos y lint/build enfocado; puedes hacer git push cuando lo pida, pero ANTES ejecuta obligatoriamente npm run sync:aiven:pre-push y solo continúa si termina OK; nunca uses git add -A, solo archivos intencionales. Despliegues a Oracle y borrados masivos solo con confirmación explícita. ${continuityContract}${outboxHint}${WHATSAPP_FORMAT_DEV} Al final: resumen claro de los cambios aplicados. Tarea: ${prompt}`
           : `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} ${outboxHint}${WHATSAPP_FORMAT_ASK} Pregunta técnica (puede ser del proyecto o general: React, Java, Python, webhooks, build): ${prompt}`;
     const isAgy = state.engine === 'antigravity';
     const bin = isAgy ? 'agy' : cfg.command;
