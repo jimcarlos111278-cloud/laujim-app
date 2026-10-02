@@ -2,7 +2,7 @@
  * services-scraper.cjs
  *
  * Automated checker for public service bills (Air-e, Triple A, Gases del Caribe).
- * Uses puppeteer-core with either a full Chrome/Chromium runtime (Render Docker)
+ * Uses puppeteer-core with either a full Chrome/Chromium runtime (Docker del servidor)
  * or @sparticuz/chromium as the serverless fallback.
  */
 
@@ -13,7 +13,7 @@ const puppeteer = require('puppeteer-core');
 const cron = require('node-cron');
 
 // @sparticuz/chromium v149+ is ESM-only (export default) and bundles a Linux
-// binary intended for Render/Lambda. On Windows we fall back to the system
+// binary intended for Linux server containers. On Windows we fall back to the system
 // Chrome/Edge so the scraper can also run locally for testing.
 const IS_WINDOWS = process.platform === 'win32';
 const CHROME_CANDIDATES = [
@@ -30,11 +30,11 @@ const LINUX_CHROME_CANDIDATES = [
   '/usr/bin/google-chrome-stable',
 ];
 const FULL_CHROME_ENABLED = /^(1|true|yes|full)$/i.test(
-  process.env.RENDER_FULL_CHROME || process.env.BROWSER_MODE || '',
+  process.env.LAUJIM_FULL_CHROME || process.env.BROWSER_MODE || '',
 );
 // Prefer one Browserless account/token per provider so a quota or auth issue
 // in one portal cannot consume or disable the other services. Keep the legacy
-// token as a backwards-compatible fallback for existing Render deployments.
+// token as a backwards-compatible fallback for existing deployments.
 const BROWSERLESS_TOKENS = {
   'air-e': String(process.env.BROWSERLESS_TOKEN_AIR_E || process.env.BROWSERLESS_TOKEN || '').trim(),
   water: String(process.env.BROWSERLESS_TOKEN_WATER || process.env.BROWSERLESS_TOKEN || '').trim(),
@@ -57,7 +57,7 @@ const BROWSERLESS_CROSS_PROVIDER_FAILOVER = !/^(0|false|no)$/i.test(
 );
 // Browserless documents the stealth route as an option for sites that need a
 // stronger fingerprint. Keep the proven base route by default because some
-// current accounts reject /stealth with HTTP 400; Render can opt in with
+// current accounts reject /stealth with HTTP 400; opt in with
 // BROWSERLESS_STEALTH=true without a code change.
 const BROWSERLESS_STEALTH = /^(1|true|yes)$/i.test(process.env.BROWSERLESS_STEALTH || '');
 const BROWSERLESS_TIMEOUT_MS = Math.max(
@@ -101,7 +101,7 @@ async function resolveChromium(profileName = 'services', useFullChrome = FULL_CH
       throw new Error('Full Chrome is enabled but no Chromium/Chrome executable was found in the runtime image.');
     }
 
-    const profileRoot = process.env.RENDER_CHROME_PROFILE_DIR || path.join(os.tmpdir(), 'laujim-chrome-profiles');
+    const profileRoot = process.env.LAUJIM_CHROME_PROFILE_DIR || path.join(os.tmpdir(), 'laujim-chrome-profiles');
     const userDataDir = path.join(profileRoot, profileName);
     fs.mkdirSync(userDataDir, { recursive: true });
 
@@ -321,7 +321,7 @@ function getAllPortalCredentials(provider) {
     .map(record => ({ username: record.username, password: record.password, provider: record.provider }));
 }
 
-// ── BROWSER LAUNCH (Render-compatible) ─────────────────────────────────────
+// ── BROWSER LAUNCH (server-compatible) ─────────────────────────────────────
 
 function browserlessEndpointFor(profileName, {
   stealth = BROWSERLESS_STEALTH,
@@ -1349,7 +1349,7 @@ async function scrapeGasFromRenderedUi() {
 const PORTAL_RESPONSE_TIMEOUT_MS = 5000;
 const BROWSER_CLOSE_TIMEOUT_MS = 10000;
 const WATER_SCRAPE_CRON = '0 */12 * * *';
-const WATER_CAPTCHA_ERROR = 'Triple A exige completar la verificación de Cloudflare Turnstile. El valor no se puede consultar automáticamente desde Render; abre el enlace en un navegador y completa la verificación manual.';
+const WATER_CAPTCHA_ERROR = 'Triple A exige completar la verificación de Cloudflare Turnstile. El valor no se puede consultar automáticamente desde el servidor; abre el enlace en un navegador y completa la verificación manual.';
 
 // Gases del Caribe uses the same kind of direct payment/consultation links
 // saved from the apartment QR. Keep the gas flow independent from Triple A so
@@ -3549,7 +3549,7 @@ async function scrapeAirE() {
       : useFullChrome ? 'full Chrome + Xvfb' : 'serverless Chromium';
     console.log(`[AIR-E] Launching browser (${runtime})...`);
     const creds = getAirECredentials();
-    // Air-e serves an incomplete login shell to headless Chromium on Render.
+    // Air-e serves an incomplete login shell to headless Chromium on the server.
     // The Docker deployment provides a real Chrome display through Xvfb, so
     // use it there while retaining the lightweight local fallback on Windows.
     browser = await launchBrowser('air-e', useFullChrome);
@@ -3568,7 +3568,7 @@ async function scrapeAirE() {
     if (edgeBlocked) {
       const msg = browserless
         ? 'Air-e bloqueó también la sesión de Browserless antes del login.'
-        : 'Air-e bloqueó la IP de Render antes del login (Azure Front Door). Se requiere Browserless o un egreso autorizado.';
+        : 'Air-e bloqueó la IP del servidor antes del login (Azure Front Door). Se requiere Browserless o un egreso autorizado.';
       lastScrapeError = msg;
       console.error('[AIR-E]', msg);
       return [];
@@ -3771,7 +3771,7 @@ let gasScrapePromise = null;
 let serviceBrowserQueue = Promise.resolve();
 
 // All providers share the same limited browser/runtime budget. A single
-// queue avoids the mutual-wait deadlock that could occur when Render's
+// queue avoids the mutual-wait deadlock that could occur when the server
 // scheduler and a portable worker started different providers together.
 function enqueueServiceBrowserRun(task) {
   const previous = serviceBrowserQueue;
@@ -4003,10 +4003,9 @@ function startScheduler() {
   console.log(`[SERVICES] Starting scheduler (Air-e, Triple A y Gases del Caribe cada ${intervalHours}h; timezone ${timezone})...`);
 
   // Scrape shortly after boot so every deploy refreshes the debt data even
-  // though Render free instances sleep between requests (cron alone would
-  // never fire while the instance is asleep). Start Air-e first because it
+  // though the host may be idle between requests. Start Air-e first because it
   // uses one authenticated browser; Triple A then runs behind the shared
-  // browser lock and cannot compete for the free instance's memory.
+  // browser lock and cannot compete for memory.
   bootTimer = setTimeout(() => runScrapeOnce('boot')
     .then(() => runWaterScrapeOnce('boot'))
     .then(() => runGasScrapeOnce('boot'))

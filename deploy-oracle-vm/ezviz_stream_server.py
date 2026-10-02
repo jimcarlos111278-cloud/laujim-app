@@ -1260,6 +1260,52 @@ def parse_to_rtsp_ts(ts_input: str) -> str:
     raise ValueError(f"Formato no reconocido: '{clean}'. Use formato 'YYYY-MM-DD HH:MM'.")
 
 
+def _rtsp_ts_to_dt(ts_str: str) -> datetime.datetime:
+    return datetime.datetime.strptime(ts_str, "%Y%m%dt%H%M%Sz").replace(tzinfo=datetime.timezone.utc)
+
+
+def _read_ffmpeg_progress(progress_path: str) -> float:
+    """Lee out_time_ms del archivo -progress de ffmpeg. Retorna segundos o -1 si no hay dato."""
+    try:
+        if not os.path.exists(progress_path):
+            return -1.0
+        out_ms = -1.0
+        with open(progress_path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("out_time_ms="):
+                    try:
+                        out_ms = float(line.split("=", 1)[1])
+                    except ValueError:
+                        pass
+        if out_ms < 0:
+            return -1.0
+        return out_ms / 1000000.0
+    except Exception:
+        return -1.0
+
+
+def _enrich_job_live(job: dict) -> dict:
+    """Agrega tamaño en vivo y % recalculado al vuelo para jobs downloading."""
+    try:
+        if job.get("status") != "downloading":
+            return job
+        out_path = job.get("out_path")
+        if out_path and os.path.exists(out_path):
+            job["size_mb_live"] = round(os.path.getsize(out_path) / (1024 * 1024), 2)
+        pp = job.get("progress_path")
+        dur = float(job.get("duration_sec") or 0)
+        if pp and dur > 0:
+            out_sec = _read_ffmpeg_progress(pp)
+            if out_sec >= 0:
+                job["out_time_sec"] = round(out_sec, 1)
+                job["progress"] = max(int(job.get("progress") or 0), min(99, int(out_sec / dur * 100)))
+                job["updated_at"] = time.time()
+    except Exception:
+        pass
+    return job
+
+
 def _run_export_job(job_id: str, camera_id: str, start_ts: str, end_ts: str) -> None:
     cam = CAMERAS[camera_id]
     pwd = cam.get("password")

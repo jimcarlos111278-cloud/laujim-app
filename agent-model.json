@@ -1,0 +1,10 @@
+{
+  "engine": "auto",
+  "model": "auto",
+  "agent": "auto",
+  "thinking": "medium",
+  "docs": false,
+  "permission": "smart",
+  "fallback": true,
+  "updatedAt": "2026-10-02T01:16:18.189Z"
+}

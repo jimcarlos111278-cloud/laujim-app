@@ -14,8 +14,8 @@ const OUTBOX_MAX_FILES = 3;
 const OUTBOX_MAX_BYTES = 10 * 1024 * 1024;
 
 const MAX_PROMPT_CHARS = 4000;
-const DEFAULT_TIMEOUT_MS = 180000;
-const DEFAULT_MAX_REPLY_CHARS = 3500;
+const DEFAULT_TIMEOUT_MS = 300000;
+const DEFAULT_MAX_REPLY_CHARS = 6000;
 
 // Prefijos explícitos para no chocar con los flujos admin existentes
 // (cobros, apartamentos, Sí/No, SALIR). Sin prefijo no hay agente.
@@ -35,6 +35,11 @@ const IA_AGENTES_RE = /^ia\s+agentes$/i;
 const IA_AGENTE_RE = /^ia\s+agente(?:\s+(.+))?$/is;
 const IA_THINKING_RE = /^ia\s+(?:thinking|pensamiento|think|nivel)(?:\s+(.+))?$/is;
 const IA_ESTADO_RE = /^ia\s+(?:estado|status|config)$/i;
+const IA_DOCS_RE = /^ia\s+docs(?:\s+(.+))?$/is;
+const IA_SIN_DOCS_RE = /^(?:ia\s+)?sin\s+docs$/i;
+const IA_CON_DOCS_RE = /^(?:ia\s+)?con\s+docs$/i;
+// Pedido explícito de archivos dentro de una tarea (activa docs solo para esa respuesta).
+const DOCS_REQUEST_RE = /(con\s+docs|\ben\s+html\b|genera\w*\s+(un\s+)?html|adjunta\w*(\s+el)?\s+(html|archivo|documento))/i;
 // Override del modelo fijado por WhatsApp (manda sobre OPENCODE_AGENT_MODEL).
 const MODEL_FILE = path.join(__dirname, 'agent-model.json');
 const MODEL_ID_RE = /^[a-z0-9][a-z0-9_.-]*\/[a-z0-9][a-z0-9_.-]*$/i;
@@ -87,7 +92,7 @@ function agentConfig() {
   };
 }
 
-// Devuelve { mode: 'code'|'ask'|'help'|'menu'|'model'|'models'|'agent'|'agents'|'thinking'|'estado', prompt, write }
+// Devuelve { mode: 'code'|'ask'|'help'|'menu'|'model'|'models'|'agent'|'agents'|'thinking'|'estado'|'docs', prompt, write }
 // o null si no es comando agente. `write` es true/false cuando el mensaje lo
 // fija con //, /, /ssh wt|wf, o null para usar el default de la VM.
 function parseAgentCommand(text) {
@@ -96,6 +101,10 @@ function parseAgentCommand(text) {
   if (HELP_RE.test(value)) return { mode: 'help', prompt: '', write: null };
   if (IA_MENU_RE.test(value)) return { mode: 'menu', prompt: '', write: null };
   if (IA_ESTADO_RE.test(value)) return { mode: 'estado', prompt: '', write: null };
+  if (IA_SIN_DOCS_RE.test(value)) return { mode: 'docs', prompt: 'off', write: null };
+  if (IA_CON_DOCS_RE.test(value)) return { mode: 'docs', prompt: 'on', write: null };
+  const docsCmd = value.match(IA_DOCS_RE);
+  if (docsCmd) return { mode: 'docs', prompt: (docsCmd[1] || 'estado').trim().slice(0, 20), write: null };
   if (IA_MODELOS_RE.test(value)) return { mode: 'models', prompt: '', write: null };
   if (IA_AGENTES_RE.test(value)) return { mode: 'agents', prompt: '', write: null };
   const think = value.match(IA_THINKING_RE);
@@ -157,8 +166,9 @@ function getAgentHelp() {
     '• `IA thinking medium` → low | medium | high | xhigh',
     '• low=rápido, medium=balanceado, high=profundo, xhigh=exhaustivo+HTML',
     '',
-    'Documentos:',
-    '• Si pides guía/ruta/reporte, lo genero en HTML autocontenido en `agent-out/` y te lo envío por aquí + resumen técnico en el chat.',
+    'Documentos (default: OFF, todo en el chat):',
+    '• `IA docs` → ver estado · `IA docs on` → generar HTML+md · `IA docs off` / `sin docs` → solo chat.',
+    '• Por pedido: si dices "con docs" o "en html", esa respuesta sí trae archivos.',
     '• El HTML además te llega con enlace para abrirlo como página real en el navegador (WhatsApp solo deja adjuntarlo como texto).',
     '',
     'Ejemplos:',
@@ -172,21 +182,29 @@ function getAgentHelp() {
 
 // ─── Estado configurable por WhatsApp (solo admin) ────────────────────────
 // Precedencia: override por WhatsApp (agent-model.json) > env > default.
-// El JSON guarda { model, agent, thinking }. agent-model.json se mantiene
-// como nombre por compatibilidad aunque ya guarda las 3 cosas.
+// El JSON guarda { engine, model, agent, thinking, docs, permission, fallback }.
 function readAgentState() {
   let state = {};
   try {
     const raw = JSON.parse(fs.readFileSync(MODEL_FILE, 'utf8'));
     if (raw && typeof raw === 'object') state = raw;
   } catch { /* sin override */ }
+  const engine = String(state.engine || 'auto').trim().toLowerCase();
   const model = String(state.model || process.env.OPENCODE_AGENT_MODEL || '').trim();
   const agent = String(state.agent || process.env.OPENCODE_AGENT || 'auto').trim().toLowerCase();
   const thinking = String(state.thinking || process.env.OPENCODE_THINKING || 'medium').trim().toLowerCase();
+  const docsRaw = state.docs ?? process.env.OPENCODE_AGENT_DOCS ?? false;
+  const docs = docsRaw === true || String(docsRaw).trim().toLowerCase() === 'true';
+  const permission = String(state.permission || 'smart').trim().toLowerCase();
+  const fallback = state.fallback !== false;
   return {
-    model: MODEL_ID_RE.test(model) ? model : '',
+    engine,
+    model: MODEL_ID_RE.test(model) ? model : (model === 'auto' ? 'auto' : ''),
     agent: AGENT_CATALOG[agent] ? agent : 'auto',
     thinking: THINKING_LEVELS[thinking] ? thinking : 'medium',
+    docs,
+    permission,
+    fallback,
   };
 }
 
@@ -195,7 +213,7 @@ function writeAgentState(patch) {
   try { current = JSON.parse(fs.readFileSync(MODEL_FILE, 'utf8')) || {}; } catch { current = {}; }
   const next = { ...current, ...patch, updatedAt: new Date().toISOString() };
   try {
-    fs.writeFileSync(MODEL_FILE, JSON.stringify(next), 'utf8');
+    fs.writeFileSync(MODEL_FILE, JSON.stringify(next, null, 2), 'utf8');
   } catch (error) {
     return { ok: false, error: `No pude guardar: ${error.message}` };
   }
@@ -212,15 +230,62 @@ function getAgentState() {
 
 function getAgentStatusText() {
   const s = readAgentState();
-  const modelTxt = s.model || '(default de opencode)';
+  const engineTxt = s.engine === 'auto'
+    ? '🔀 Auto (Gemini 3.8 + Muse Spark)'
+    : s.engine === 'gemini' || s.engine === 'gemini-3.8'
+      ? '⚡ Gemini 3.8 Flash'
+      : s.engine === 'muse' || s.engine === 'muse-spark'
+        ? '🔨 Muse Spark 1.3'
+        : s.engine === 'antigravity'
+          ? '🧠 Antigravity (Deep Reasoning)'
+          : s.engine;
+  const permTxt = s.permission === 'smart'
+    ? '🛡️ Inteligente (confirma antes de escribir)'
+    : s.permission === 'write'
+      ? '🚀 Escritura Directa'
+      : '📖 Solo Lectura';
   return [
-    '🤖 *IA estado*',
-    `• Modelo: ${modelTxt}`,
-    `• Agente: ${s.agent} — ${AGENT_CATALOG[s.agent].desc}`,
-    `• Thinking: ${s.thinking} — ${THINKING_LEVELS[s.thinking].desc}`,
-    '',
-    'Cambia con `IA modelo ...`, `IA agente ...`, `IA thinking ...`.',
+    '🤖 *PANEL DE CONTROL IA (Laujim)*',
+    `• Motor: ${engineTxt}`,
+    `• Permisos: ${permTxt}`,
+    `• Respaldo (Fallback): ${s.fallback ? '✅ Activo' : '❌ Inactivo'}`,
+    `• Base de datos: ☁️ Aiven Cloud (Sincronizado)`,
+    `• Thinking: ${s.thinking} — ${THINKING_LEVELS[s.thinking]?.desc || s.thinking}`,
+    `• Docs: ${s.docs ? 'ON (genero HTML+md)' : 'OFF (chat directo)'}`,
   ].join('\n');
+}
+
+function setAgentEngine(engineName) {
+  const norm = String(engineName || '').trim().toLowerCase();
+  const valid = ['auto', 'gemini', 'gemini-3.8', 'muse', 'muse-spark', 'antigravity'];
+  if (!valid.includes(norm)) {
+    return { ok: false, error: 'Motor inválido. Usa: auto, gemini, muse, antigravity.' };
+  }
+  let targetModel = '';
+  if (norm.includes('gemini')) targetModel = 'google/gemini-3.8-flash';
+  if (norm.includes('muse')) targetModel = 'opencode/muse-spark-1.3';
+  return writeAgentState({ engine: norm, model: targetModel });
+}
+
+function setAgentPermission(perm) {
+  const norm = String(perm || '').trim().toLowerCase();
+  const valid = ['smart', 'read', 'write'];
+  if (!valid.includes(norm)) {
+    return { ok: false, error: 'Permiso inválido. Usa: smart, read, write.' };
+  }
+  return writeAgentState({ permission: norm });
+}
+
+function resetAgentDefaults() {
+  return writeAgentState({
+    engine: 'auto',
+    model: 'auto',
+    agent: 'auto',
+    thinking: 'medium',
+    docs: false,
+    permission: 'smart',
+    fallback: true,
+  });
 }
 
 function setAgentModel(id) {
@@ -260,6 +325,19 @@ function setAgentThinking(level) {
   const saved = writeAgentState({ thinking: value });
   if (!saved.ok) return saved;
   return { ok: true, thinking: value };
+}
+
+function setAgentDocs(value) {
+  const norm = String(value || '').trim().toLowerCase();
+  const on = ['on', 'si', 'sí', 'true', '1', 'con', 'estado on'].includes(norm);
+  const off = ['off', 'no', 'false', '0', 'sin', 'estado off'].includes(norm);
+  if (!on && !off) {
+    const s = readAgentState();
+    return { ok: false, error: `Docs actualmente ${s.docs ? 'ON' : 'OFF'}. Usa \`IA docs on\` o \`IA docs off\`.` };
+  }
+  const saved = writeAgentState({ docs: on });
+  if (!saved.ok) return saved;
+  return { ok: true, docs: on };
 }
 
 function listAgentsText() {
@@ -389,19 +467,22 @@ function loadHarnessContext() {
 }
 
 // ─── Formato WhatsApp bonito (siempre) ────────────────────────────────────
-// El chat solo lleva resumen: el detalle completo va al HTML de agent-out.
+// El chat lleva la respuesta completa como en la sesión principal; el HTML
+// de agent-out solo se genera si el usuario lo pidió (docs ON o "con docs").
 const WHATSAPP_FORMAT_DEV = [
   'FORMATO OBLIGATORIO del mensaje de chat (WhatsApp, español técnico, sin coloquialismos):',
   'Empieza con una línea de titular en *negrilla*. Luego estas secciones, cada una separada por una línea en blanco:',
   '*Qué se hizo* (lista numerada 1. 2. 3., una línea por ítem, archivos exactos),',
   '*Qué falta* (numerada; si nada falta escribe "Nada pendiente"),',
   '*Verificar* (1-3 pasos cortos para comprobar).',
-  'Máximo 25 líneas. Nada de bloques de código largos, rutas crudas sueltas ni trazas: el detalle va al HTML.',
+  'Máximo 40 líneas. Responde completo en el chat, como en la sesión principal (incluye el código esencial y rutas exactas).',
+  'Solo menciona archivos HTML/md si realmente los generaste porque te los pidieron.',
 ].join(' ');
 const WHATSAPP_FORMAT_ASK = [
   'FORMATO OBLIGATORIO del mensaje de chat (WhatsApp, español técnico, sin coloquialismos):',
   'Titular en *negrilla*, luego explicación con *negrilla* en los conceptos clave, listas numeradas y líneas en blanco entre secciones.',
-  'Puedes explayarte lo necesario, pero ordenado y sin bloques de código gigantes: el ejemplo completo y el detalle van al HTML de agent-out.',
+  'Responde completo en el chat, como en la sesión principal, con ejemplo de código conciso incluido.',
+  'Solo menciona archivos HTML/md si realmente los generaste porque te los pidieron.',
 ].join(' ');
 
 // Ejecuta `opencode run "<prompt>"` sin shell (argv, sin expansión).
@@ -441,9 +522,15 @@ function runAgentTask(prompt, mode, opts) {
       low: 'Nivel low: respuesta rápida y concisa, solo lo esencial.',
       medium: 'Nivel medium: explicación balanceada con rutas y causa.',
       high: 'Nivel high: análisis profundo, verifica en código, cita archivos/líneas, propone tests.',
-      xhigh: 'Nivel xhigh: análisis exhaustivo + genera HTML detallado en agent-out/ + plan de estudio.',
+      xhigh: 'Nivel xhigh: análisis exhaustivo + plan de estudio (HTML detallado en agent-out/ solo si docs está activo).',
     }[thinking];
-    const outboxHint = 'Documentos: si el usuario pide guía, ruta, reporte o explicación larga, GENERA SIEMPRE un HTML autocontenido (CSS inline, sin CDN) en ./agent-out/<nombre-descriptivo>.html Y un espejo .md con el mismo nombre. Al final del chat indica el nombre exacto generado. Nunca digas que no pudiste enviarlo: si existe en agent-out, el puente lo adjunta. ';
+    // Docs por defecto APAGADOS: el usuario prefiere todo en el chat. Solo se
+    // generan archivos si docs está ON o el pedido lo pide ("con docs"/"en html").
+    const docsEnabled = DOCS_REQUEST_RE.test(prompt)
+      || (opts && typeof opts.docsEnabled === 'boolean' ? opts.docsEnabled : state.docs === true);
+    const outboxHint = docsEnabled
+      ? 'Documentos: el usuario pidió archivos, GENERA un HTML autocontenido (CSS inline, sin CDN) en ./agent-out/<nombre-descriptivo>.html Y un espejo .md con el mismo nombre. Al final del chat indica el nombre exacto generado. Nunca digas que no pudiste enviarlo: si existe en agent-out, el puente lo adjunta. '
+      : 'Documentos: NO generes HTML ni .md en esta respuesta; entrega todo completo en el chat. Solo genera archivos si el usuario lo pide explícitamente.';
     const continuityContract = 'Contrato de continuidad OBLIGATORIO al terminar (igual que PC/VM): 1) agrega entrada en docs/continuidad/BITACORA.md (fecha, origen harness-WhatsApp, qué/porqué, archivos exactos, cómo verificar, commit); 2) si quedó algo a medias anótalo en docs/continuidad/PENDIENTES.md, si fue idea no ejecutada en docs/continuidad/IDEAS.md; 3) ejecuta node scripts/continuidad.cjs; 4) git add solo intencional (nunca -A, jamás data/database.json salvo cambio intencional), commit, npm run sync:aiven:pre-push y solo si termina OK haces push (si falla o falta AIVEN_DATABASE_URL, detente e informa); el hook post-commit anota el commit en el grafo/Aiven. ';
     const nodeContext = loadHarnessContext();
     const safePrompt =
@@ -481,7 +568,9 @@ function runAgentTask(prompt, mode, opts) {
         resolve({ ok: false, code: 'empty', error: 'El agente solo devolvió ruido de terminal.' });
         return;
       }
-      const { files, extra } = agentOutboxFiles(startedAt);
+      // Con docs apagados no se adjunta nada aunque el agente haya dejado
+      // archivos viejos en agent-out: el "ya no me envíes eso" sí se cumple.
+      const { files, extra } = docsEnabled ? agentOutboxFiles(startedAt) : { files: [], extra: 0 };
       // Sincronización best-effort: si fue tarea con escritura, deja rastro en
       // continuidad aunque el agente haya olvidado documentar (no duplica si ya
       // existe entrada; nunca rompe la respuesta por WhatsApp).
@@ -519,10 +608,14 @@ module.exports = {
   getAgentModel,
   getAgentState,
   getAgentStatusText,
+  setAgentEngine,
+  setAgentPermission,
+  resetAgentDefaults,
   setAgentModel,
   clearAgentModel,
   setAgentAgent,
   setAgentThinking,
+  setAgentDocs,
   listAgentsText,
   listAgentModels,
   AGENT_CATALOG,

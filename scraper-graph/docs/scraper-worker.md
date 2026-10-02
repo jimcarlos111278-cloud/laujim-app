@@ -80,9 +80,10 @@ Content-Type: application/json
 El servidor normaliza `Deuda Total`, elimina campos no permitidos y actualiza
 `utilityRecords`.
 
-`POST /worker/v1/run` solo existe para el modo antiguo `render`. En el modo
+`POST /worker/v1/run` solo existe para el modo heredado `server`. En el modo
 recomendado `portable` responde `409`, porque el dispositivo debe abrir el
-portal localmente y enviar `/worker/v1/results`.
+portal localmente y enviar `/worker/v1/results`. (El valor antiguo `render`
+se normaliza automáticamente a `server`.)
 
 ## Configuracion del servidor (Oracle)
 
@@ -97,9 +98,7 @@ PORTABLE_WORKER_PROVIDERS=air-e,water,gas
 ```
 
 `portable` es el modo sin Browserless. El servidor no inicia el scheduler de
-portales y no consume una integracion remota. El modo `render` queda disponible
-solo si el administrador lo selecciona expresamente y cuenta con un navegador
-local/full-browser en ese entorno.
+portales y no consume una integracion remota.
 
 Para Triple A, el worker puede usar el login oficial con Google en vez del
 formulario de correo y contrasena. Configura `tripleALoginMethod` como

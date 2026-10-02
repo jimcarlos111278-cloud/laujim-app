@@ -5185,15 +5185,17 @@ function clearAdminAgentMode(phone) {
 async function sendCloudAgentModeMenu(phone) {
   clearCloudAuthState(phone);
   saveData();
+  const status = opencodeBridge ? opencodeBridge.getAgentStatusText() : '🤖 Panel de Control IA';
   try {
-    // WhatsApp rinde mejor con máximo 4 filas por lista: de más a menos potente.
-    await sendCloudInteractiveList(phone, '🤖 IA técnica — elige modo de charla. SALIR para salir:', 'Elegir IA', [{
-      title: 'Modo',
+    await sendCloudInteractiveList(phone, `${status}\n\nSelecciona una opción del menú:`, 'Abrir Menú IA', [{
+      title: 'Configuración Principal',
       rows: [
-        { id: 'agent_mode_write', title: '✏️ Con escritura', description: 'Ejecuta cambios (como //)' },
-        { id: 'agent_mode_read', title: '🔍 Solo lectura', description: 'Consultas sin tocar nada (como /)' },
-        { id: 'agent_mode_ask', title: '💬 Pregunta técnica', description: 'Explicación para aprender' },
-        { id: 'agent_cfg_more', title: '➕ Más opciones', description: 'Estado, modelo, agente' },
+        { id: 'agent_cfg_engine', title: '⚙️ Motor / Modelo', description: 'Auto, Gemini 3.8, Muse Spark, Antigravity' },
+        { id: 'agent_cfg_perm', title: '🔒 Permisos de Código', description: 'Inteligente, solo lectura o escritura' },
+        { id: 'agent_cfg_sync', title: '☁️ Sincronizar Aiven', description: 'Actualizar grafo y memoria viva' },
+        { id: 'agent_cfg_devices', title: '📱 Dispositivos', description: 'Ver PCs activos o revocar acceso' },
+        { id: 'agent_cfg_reset', title: '🔄 Resetear Ajustes', description: 'Restablecer configuración recomendada' },
+        { id: 'agent_cfg_exit', title: '❌ Salir del Menú', description: 'Volver al chat normal' },
       ],
     }]);
   } catch (error) {
@@ -5202,150 +5204,151 @@ async function sendCloudAgentModeMenu(phone) {
   }
 }
 
-// Nivel 2 de "Más opciones" (máx 4 filas).
-async function sendCloudAgentMoreMenu(phone) {
+async function sendCloudEnginePickerMenu(phone) {
   try {
-    await sendCloudInteractiveList(phone, '⚙️ Administrar IA — elige qué configurar:', 'Más opciones', [{
-      title: 'Opciones',
+    await sendCloudInteractiveList(phone, '⚙️ Selecciona el motor para el agente:', 'Elegir Motor', [{
+      title: 'Motores y Modelos',
       rows: [
-        { id: 'agent_cfg_status', title: '📊 Ver estado', description: 'Modelo, agente y thinking' },
-        { id: 'agent_cfg_model', title: '🧠 Cambiar modelo', description: 'Listar y fijar modelo' },
-        { id: 'agent_cfg_agent', title: '🛠️ Cambiar agente', description: 'Rol: plan, build, profe' },
-        { id: 'agent_cfg_more2', title: '➕ Más', description: 'Thinking y ayuda' },
+        { id: 'engine_pick_auto', title: '🔀 Auto (Recomendado)', description: 'Gemini 3.8 Flash + Muse Spark 1.3' },
+        { id: 'engine_pick_gemini', title: '⚡ Gemini 3.8 Flash', description: 'Ultra rápido para consultas y análisis' },
+        { id: 'engine_pick_muse', title: '🔨 Muse Spark 1.3', description: 'Compilación y tareas pesadas' },
+        { id: 'engine_pick_antigravity', title: '🧠 Antigravity', description: 'Razonamiento profundo' },
       ],
     }]);
   } catch (error) {
-    console.error('[WHATSAPP CLOUD] agent more menu error:', error.message);
-    await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+    console.error('[WHATSAPP CLOUD] engine picker error:', error.message);
+    await sendCloudText(phone, 'Usa: `IA modelo auto|gemini|muse|antigravity`.');
   }
 }
 
-// Nivel 3: thinking + ayuda.
-async function sendCloudAgentMore2Menu(phone) {
+async function sendCloudPermissionsMenu(phone) {
   try {
-    await sendCloudInteractiveList(phone, '⚙️ Más ajustes de IA:', 'Más ajustes', [{
-      title: 'Opciones',
+    await sendCloudInteractiveList(phone, '🔒 Configura los permisos de modificación:', 'Elegir Permiso', [{
+      title: 'Nivel de Permiso',
       rows: [
-        { id: 'agent_cfg_thinking', title: '🎚️ Nivel thinking', description: 'low, medium, high, xhigh' },
-        { id: 'agent_cfg_help', title: '❓ Ayuda IA', description: 'Comandos y ejemplos' },
+        { id: 'perm_pick_smart', title: '🛡️ Inteligente', description: 'Lee siempre, pide confirmación antes de escribir' },
+        { id: 'perm_pick_read', title: '📖 Solo Lectura', description: 'Consultas sin modificar ningún archivo' },
+        { id: 'perm_pick_write', title: '🚀 Escritura Directa', description: 'Aplica cambios y tests sin preguntar' },
       ],
     }]);
   } catch (error) {
-    console.error('[WHATSAPP CLOUD] agent more2 menu error:', error.message);
-    await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+    console.error('[WHATSAPP CLOUD] perm picker error:', error.message);
+    await sendCloudText(phone, 'Permisos: inteligente, lectura, escritura.');
   }
 }
 
-async function sendCloudAgentPickerMenu(phone) {
+async function sendCloudDevicesMenu(phone) {
   try {
-    await sendCloudInteractiveList(phone, '🛠️ Elige el agente (rol) 1/2. También con `IA agente <nombre>`:', 'Elegir agente', [{
-      title: 'Agentes 1/2',
-      rows: [
-        { id: 'agent_pick_auto', title: 'auto', description: 'Default de opencode en la VM' },
-        { id: 'agent_pick_plan', title: 'plan', description: 'Plan técnico solo lectura' },
-        { id: 'agent_pick_build', title: 'build', description: 'Ejecuta cambios + gate Aiven' },
-        { id: 'agent_pick_more', title: '➕ Más agentes', description: 'backend, front, qa, profe' },
-      ],
+    const { getPool } = require('./scripts/auth.cjs');
+    const pool = getPool();
+    const res = await pool.query('SELECT device_id, device_name, session_type, is_active FROM authorized_devices ORDER BY created_at DESC LIMIT 5');
+    await pool.end();
+
+    const deviceRows = res.rows.map(d => ({
+      id: `device_view_${d.device_id}`.slice(0, 50),
+      title: d.device_name.slice(0, 24),
+      description: `${d.session_type} - ${d.is_active ? '🟢 Activo' : '🔴 Inactivo'}`.slice(0, 72)
+    }));
+
+    deviceRows.push({ id: 'device_act_temp', title: '🔑 Crear Token 2h', description: 'Para conectar un PC nuevo' });
+    deviceRows.push({ id: 'device_act_revoke', title: '🚫 Revocar Equipo', description: 'Desactivar un dispositivo' });
+
+    await sendCloudInteractiveList(phone, '📱 Dispositivos autorizados en Aiven:', 'Gestionar PCs', [{
+      title: 'Dispositivos y Acciones',
+      rows: deviceRows.slice(0, 10),
     }]);
   } catch (error) {
-    console.error('[WHATSAPP CLOUD] agent picker error:', error.message);
-    await sendCloudTextChunks(phone, opencodeBridge.listAgentsText());
+    console.error('[WHATSAPP CLOUD] devices menu error:', error.message);
+    await sendCloudText(phone, '📱 Para gestionar PCs ejecuta en consola: `node scripts/auth.cjs --list`.');
   }
 }
 
-async function sendCloudAgentPicker2Menu(phone) {
-  try {
-    await sendCloudInteractiveList(phone, '🛠️ Elige el agente (rol) 2/2:', 'Más agentes', [{
-      title: 'Agentes 2/2',
-      rows: [
-        { id: 'agent_pick_backend', title: 'backend', description: 'APIs, persistencia, jobs' },
-        { id: 'agent_pick_front', title: 'front', description: 'UI React/Tailwind' },
-        { id: 'agent_pick_qa', title: 'qa', description: 'Verificación independiente' },
-        { id: 'agent_pick_profe', title: 'profe', description: 'Profesor redes→sistemas' },
-      ],
-    }]);
-  } catch (error) {
-    console.error('[WHATSAPP CLOUD] agent picker2 error:', error.message);
-    await sendCloudTextChunks(phone, opencodeBridge.listAgentsText());
-  }
-}
-
-async function sendCloudThinkingPickerMenu(phone) {
-  try {
-    await sendCloudInteractiveList(phone, '🎚️ Elige nivel de pensamiento. También con `IA thinking <nivel>`:', 'Elegir nivel', [{
-      title: 'Thinking',
-      rows: [
-        { id: 'think_pick_low', title: 'low', description: 'Rápido y conciso' },
-        { id: 'think_pick_medium', title: 'medium', description: 'Balanceado con rutas' },
-        { id: 'think_pick_high', title: 'high', description: 'Profundo, verifica en código' },
-        { id: 'think_pick_xhigh', title: 'xhigh', description: 'Exhaustivo + HTML detallado' },
-      ],
-    }]);
-  } catch (error) {
-    console.error('[WHATSAPP CLOUD] thinking picker error:', error.message);
-    await sendCloudText(phone, 'Usa `IA thinking low|medium|high|xhigh`.');
-  }
+async function handleAivenSyncAction(phone) {
+  await sendCloudText(phone, '⏳ Sincronizando grafo y memoria viva con Aiven Cloud...');
+  const { execFile } = require('child_process');
+  execFile('node', ['scripts/sync-graph-aiven.cjs'], { cwd: __dirname }, async (err, stdout) => {
+    if (err) {
+      await sendCloudText(phone, `⚠️ Error sincronizando con Aiven: ${err.message}`);
+    } else {
+      await sendCloudText(phone, `☁️ Sincronización exitosa:\n${(stdout || 'Grafo actualizado').trim()}`);
+    }
+  });
 }
 
 async function handleCloudAgentCommand(phone, text, buttonId, forcedMode) {
-  if (buttonId === 'agent_mode_read' || buttonId === 'agent_mode_write' || buttonId === 'agent_mode_ask') {
-    const mode = buttonId === 'agent_mode_read' ? 'read' : buttonId === 'agent_mode_write' ? 'write' : 'ask';
-    setAdminAgentMode(phone, mode);
-    clearCloudAuthState(phone);
-    saveData();
-    await sendCloudText(phone, mode === 'read'
-      ? '🔍 Modo lectura ✅. Escríbeme tu consulta directo, sin prefijos. SALIR para salir.'
-      : mode === 'write'
-        ? '✏️ Modo escritura ✅. Pídeme cambios directo, sin prefijos. SALIR para salir.'
-        : '💬 Modo pregunta técnica ✅. Pregúntame con detalle técnico. SALIR para salir.');
+  const trimmed = String(text || '').trim();
+
+  // Atajos numéricos directos desde WhatsApp
+  if (trimmed === '1') { await sendCloudEnginePickerMenu(phone); return; }
+  if (trimmed === '2') { await sendCloudPermissionsMenu(phone); return; }
+  if (trimmed === '3') { await handleAivenSyncAction(phone); return; }
+  if (trimmed === '4') { await sendCloudDevicesMenu(phone); return; }
+  if (trimmed === '5') {
+    if (opencodeBridge && opencodeBridge.resetAgentDefaults) opencodeBridge.resetAgentDefaults();
+    await sendCloudText(phone, '🔄 Configuración restablecida.\n\n' + (opencodeBridge ? opencodeBridge.getAgentStatusText() : ''));
     return;
   }
-  if (buttonId === 'agent_cfg_more') {
-    await sendCloudAgentMoreMenu(phone);
+  if (trimmed === '0') {
+    clearAdminAgentMode(phone);
+    await sendCloudText(phone, '👋 Saliste del menú.');
     return;
   }
-  if (buttonId === 'agent_cfg_more2') {
-    await sendCloudAgentMore2Menu(phone);
+
+  if (buttonId === 'agent_cfg_engine') {
+    await sendCloudEnginePickerMenu(phone);
     return;
   }
-  if (buttonId === 'agent_pick_more') {
-    await sendCloudAgentPicker2Menu(phone);
+  if (buttonId === 'agent_cfg_perm') {
+    await sendCloudPermissionsMenu(phone);
     return;
   }
-  if (buttonId === 'agent_cfg_status') {
-    await sendCloudTextChunks(phone, opencodeBridge.getAgentStatusText());
+  if (buttonId === 'agent_cfg_sync') {
+    await handleAivenSyncAction(phone);
     return;
   }
-  if (buttonId === 'agent_cfg_help') {
-    await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
+  if (buttonId === 'agent_cfg_devices') {
+    await sendCloudDevicesMenu(phone);
     return;
   }
-  if (buttonId === 'agent_cfg_model') {
-    await sendCloudText(phone, '🧠 Para cambiar modelo:\n• `IA modelos` → listar\n• `IA modelo proveedor/modelo` → fijar\n• `IA modelo auto` → default');
+  if (buttonId === 'agent_cfg_reset') {
+    if (opencodeBridge && opencodeBridge.resetAgentDefaults) {
+      opencodeBridge.resetAgentDefaults();
+      await sendCloudText(phone, '🔄 Configuración restablecida a valores recomendados.\n\n' + opencodeBridge.getAgentStatusText());
+    } else {
+      await sendCloudText(phone, '✅ Configuración restablecida.');
+    }
     return;
   }
-  if (buttonId === 'agent_cfg_agent') {
-    await sendCloudAgentPickerMenu(phone);
+  if (buttonId === 'agent_cfg_exit') {
+    clearAdminAgentMode(phone);
+    await sendCloudText(phone, '👋 Saliste del panel de configuración de la IA. Puedes escribir normalmente.');
     return;
   }
-  if (buttonId === 'agent_cfg_thinking') {
-    await sendCloudThinkingPickerMenu(phone);
+  if (buttonId && buttonId.startsWith('engine_pick_')) {
+    const eng = buttonId.replace('engine_pick_', '');
+    if (opencodeBridge && opencodeBridge.setAgentEngine) {
+      const res = opencodeBridge.setAgentEngine(eng);
+      await sendCloudText(phone, res.ok ? `✅ Motor actualizado.\n\n${opencodeBridge.getAgentStatusText()}` : `⚠️ ${res.error}`);
+    }
     return;
   }
-  if (buttonId && buttonId.startsWith('agent_pick_')) {
-    const name = buttonId.replace('agent_pick_', '');
-    const saved = opencodeBridge.setAgentAgent(name);
-    await sendCloudText(phone, saved.ok
-      ? `🛠️ Agente fijado: ${saved.agent}. ${opencodeBridge.getAgentStatusText()}`
-      : `⚠️ ${saved.error}`);
+  if (buttonId && buttonId.startsWith('perm_pick_')) {
+    const perm = buttonId.replace('perm_pick_', '');
+    if (opencodeBridge && opencodeBridge.setAgentPermission) {
+      const res = opencodeBridge.setAgentPermission(perm);
+      await sendCloudText(phone, res.ok ? `✅ Permiso actualizado.\n\n${opencodeBridge.getAgentStatusText()}` : `⚠️ ${res.error}`);
+    }
     return;
   }
-  if (buttonId && buttonId.startsWith('think_pick_')) {
-    const level = buttonId.replace('think_pick_', '');
-    const saved = opencodeBridge.setAgentThinking(level);
-    await sendCloudText(phone, saved.ok
-      ? `🎚️ Thinking fijado: ${saved.thinking}. ${opencodeBridge.getAgentStatusText()}`
-      : `⚠️ ${saved.error}`);
+  if (buttonId === 'device_act_temp') {
+    const { execFile } = require('child_process');
+    execFile('node', ['scripts/auth.cjs', '--temp'], { cwd: __dirname }, async (err, stdout) => {
+      await sendCloudText(phone, stdout ? stdout.trim() : '⚠️ No se pudo generar token.');
+    });
+    return;
+  }
+  if (buttonId === 'device_act_revoke') {
+    await sendCloudText(phone, '🚫 Para revocar un equipo responde: `revocar <id>` (ej: `revocar pc-oficina`).');
     return;
   }
   let cmd = opencodeBridge.parseAgentCommand(text);
@@ -5551,13 +5554,12 @@ async function handleCloudAdminMessage(phone, message) {
   // Los inquilinos nunca llegan aquí (handleCloudInbound los filtra antes).
   if (opencodeBridge) {
     const agentCmd = opencodeBridge.parseAgentCommand(text);
-    const agentButton = buttonId === 'menu_agente' || buttonId === 'agent_mode_read' ||
-      buttonId === 'agent_mode_write' || buttonId === 'agent_mode_ask' ||
-      buttonId === 'agent_cfg_more' || buttonId === 'agent_cfg_more2' ||
-      buttonId === 'agent_cfg_status' || buttonId === 'agent_cfg_model' ||
-      buttonId === 'agent_cfg_agent' || buttonId === 'agent_cfg_thinking' ||
-      buttonId === 'agent_cfg_help' || buttonId === 'agent_pick_more' ||
-      (buttonId && (buttonId.startsWith('agent_pick_') || buttonId.startsWith('think_pick_')));
+    const agentButton = buttonId === 'menu_agente' ||
+      buttonId.startsWith('agent_') ||
+      buttonId.startsWith('engine_') ||
+      buttonId.startsWith('perm_') ||
+      buttonId.startsWith('device_') ||
+      buttonId.startsWith('think_');
     if (agentButton || agentCmd) {
       await handleCloudAgentCommand(phone, text, buttonId);
       return;

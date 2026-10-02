@@ -29,12 +29,24 @@ try:
     )[-1])
     tmp = os.path.join(cam_dir, 'alpr_frame.jpg.tmp')
     cmd = ['ffmpeg', '-y', '-nostdin', '-hide_banner', '-loglevel', 'error',
-           '-fflags', '+genpts', '-i', cand, '-vframes', '1', '-q:v', '2', tmp]
+           '-fflags', '+genpts', '-i', cand, '-vframes', '1', '-an', '-q:v', '2', tmp]
     try:
-        r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8.0)
+        r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30.0)
         print('RC=' + str(r.returncode) + ' EXISTS=' + str(os.path.exists(tmp)))
         if os.path.exists(tmp):
             print('SIZE=' + str(os.path.getsize(tmp)))
+    except Exception:
+        traceback.print_exc()
+    errlog = '/tmp/alpr_err.log'
+    try:
+        with open(errlog, 'wb') as ef:
+            r2 = subprocess.run(cmd[:-1] + ['/tmp/alpr_probe.jpg'], stdout=subprocess.DEVNULL, stderr=ef, timeout=30.0)
+        print('RC2=' + str(r2.returncode))
+    except Exception:
+        traceback.print_exc()
+    try:
+        with open(errlog, 'rb') as ef:
+            print('STDERR_TAIL=' + ef.read()[-600:].decode('utf-8', errors='replace'))
     except Exception:
         traceback.print_exc()
 except Exception:

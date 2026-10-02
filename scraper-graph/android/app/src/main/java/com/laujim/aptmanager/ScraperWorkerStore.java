@@ -10,8 +10,8 @@ import java.util.TimeZone;
 /** Private device configuration for the local Android portal worker. */
 final class ScraperWorkerStore {
     private static final String PREFS = "laujim_scraper_worker";
-    private static final String DEFAULT_PRIMARY_SERVER = "https://laujim-app.onrender.com";
-    private static final String DEFAULT_BACKUP_SERVER = "https://laujim-app-backup.onrender.com";
+    private static final String DEFAULT_PRIMARY_SERVER = "https://conjunto-residendial-laujim.duckdns.org";
+    private static final String DEFAULT_BACKUP_SERVER = "https://conjunto-residendial-laujim.duckdns.org";
 
     private ScraperWorkerStore() {}
 
