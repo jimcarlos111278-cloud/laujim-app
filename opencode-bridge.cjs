@@ -565,34 +565,26 @@ function loadHarnessContext(prompt = '') {
   return `Contexto del proyecto:\n${parts.join('\n\n')}\n`;
 }
 
-// ─── Formato WhatsApp optimizado en 3 bloques (evita "... Leer más") ──────────
+// ─── Formato WhatsApp optimizado en bloques temáticos (evita "... Leer más") ──────────
 const WHATSAPP_FORMAT_DEV = [
   'FORMATO OBLIGATORIO DEL MENSAJE (WhatsApp):',
   'WhatsApp no soporta colores de fuente html, así que usa emojis para dar color visual y formato en *negrilla*.',
-  'Para evitar que WhatsApp corte el mensaje con "... Leer más", la respuesta DEBE estar dividida en 3 bloques independientes de máximo 400-500 caracteres cada uno, separados claramente con "---":',
-  'Bloque 1:',
-  '🟢 *Pasos completados*',
-  '• (Puntos concisos con archivos exactos o cambios hechos)',
-  '---',
-  'Bloque 2:',
-  '🟡 *Pasos que faltan*',
-  '• (Puntos pendientes; si no falta nada escribe: "• Todo completado sin pendientes.")',
-  '---',
-  'Bloque 3:',
-  '🚀 *Pasos siguientes / Verificación*',
-  '• (1-2 comandos o acciones inmediatas para probar)',
-  'IMPORTANTE: Cada bloque debe ser autocontenido, breve y directo. Sin saludos ni rodeos.',
+  'Para evitar que WhatsApp corte el mensaje con "... Leer más", divide la respuesta en bloques temáticos independientes (máximo 450-500 caracteres cada uno), separados OBLIGATORIAMENTE con una línea que contenga únicamente "---":',
+  '- Si estás reportando una tarea o ejecución en código: usa bloques lógicos (ej: 🟢 *Avances / Cambios hechos*, 🟡 *Pendientes*, 🚀 *Pasos siguientes / Verificación*).',
+  '- Si la tarea abarca varios componentes o temas: divide en los bloques temáticos que consideres convenientes (ej: 🎨 *Frontend*, ⚙️ *Backend*, 🧪 *Pruebas*). No te limites rígidamente a 3 bloques; usa los necesarios según el contenido.',
+  'IMPORTANTE: Cada bloque debe ser autocontenido, breve y directo, con su encabezado en *negrilla* y emoji. Sin saludos ni rodeos. Separa CADA bloque con "---".',
 ].join('\n');
 
 const WHATSAPP_FORMAT_ASK = [
   'FORMATO OBLIGATORIO DEL MENSAJE (WhatsApp):',
-  'WhatsApp no soporta colores de fuente html. Usa emojis (💡, ⚡, 📌, 🚀) y *negrilla* para destacar conceptos clave.',
-  'Separa la respuesta en 3 bloques cortos (máximo 450 caracteres cada uno) separados por "---" para que cada bloque sea un mensaje independiente y legible sin "... Leer más":',
-  'Bloque 1: 💡 *Concepto clave y causa*',
-  '---',
-  'Bloque 2: ⚙️ *Ejemplo o implementación concisa*',
-  '---',
-  'Bloque 3: 🚀 *Siguientes pasos o recomendación*',
+  'WhatsApp no soporta colores de fuente html. Usa emojis temáticos (🎨, ⚙️, 🔌, 🗄️, 📱, 💡, 🚀) y *negrilla* para destacar conceptos clave.',
+  'ESTRUCTURA EN BLOQUES TEMÁTICOS FLEXIBLES (evita "... Leer más"):',
+  '- Divide la respuesta en la cantidad de bloques temáticos que consideres necesaria para explicar con claridad según el tema (por ejemplo: si te preguntan qué estudiar o explicas una arquitectura, entrega un bloque por área: Frontend, Backend, Redes/Webhooks, Base de Datos, Móvil/Despliegue, etc.).',
+  '- No te limites rígidamente a 3 bloques; decide tú la cantidad de bloques que mejor organice la explicación de forma pedagógica.',
+  '- OBLIGATORIO: Separa CADA bloque con una línea que contenga únicamente "---".',
+  '- Cada bloque debe tener su título con emoji y *negrilla* (ej: 🎨 *1. Frontend (React 19)*, ⚙️ *2. Backend (Express/Node)*, 🔌 *3. Networking y Traps SNMP*).',
+  '- Límite por bloque: máximo 450-500 caracteres para que WhatsApp nunca muestre "... Leer más".',
+  '- Sé directo, técnico y conciso en cada bloque.',
 ].join('\n');
 
 // Ejecuta `opencode run "<prompt>"` sin shell (argv, sin expansión).

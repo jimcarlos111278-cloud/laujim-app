@@ -3427,8 +3427,8 @@ function splitCloudText(body, maxLength = WHATSAPP_BUBBLE_MAX_CHARS) {
     return [text];
   }
 
-  // Dividir primero por separadores explícitos (--- o ===) o por encabezados con emojis/secciones
-  const sectionRegex = /\r?\n\s*(?:---|===)\s*\r?\n|\r?\n+(?=[🟢🟡🚀🔴⚡💡📌]\s*\*|\*(?:Pasos completados|Pasos que faltan|Pasos siguientes|Verificar|Qué se hizo|Qué falta)\*)/iu;
+  // Dividir primero por separadores explícitos (--- o ===) o por encabezados con emojis o títulos en negrilla
+  const sectionRegex = /\r?\n\s*(?:---|===)\s*\r?\n|\r?\n+(?=\p{Extended_Pictographic}[\uFE0E\uFE0F]?\s*\*|\*[A-ZÁÉÍÓÚ0-9][^*]+\*)/iu;
   const rawSections = text.split(sectionRegex);
   const sections = [];
   for (const rawSec of rawSections) {
