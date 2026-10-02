@@ -108,9 +108,10 @@ async function writeField(page, handle, value) {
   }, handle, String(value)).catch(() => false);
 }
 
-// Junta placeholder + aria + texto de hermanas + texto del bloque padre.
+// Junta placeholder + aria + texto de hermanas + texto del bloque padre (normalizado sin tildes).
 async function fieldContext(page, handle) {
   return page.evaluate(el => {
+    const foldText = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     const parts = [el.getAttribute('placeholder') || '', el.getAttribute('aria-label') || ''];
     let sib = el.previousElementSibling;
     for (let i = 0; i < 2 && sib; i++) { parts.push(sib.innerText || ''); sib = sib.previousElementSibling; }
@@ -121,17 +122,18 @@ async function fieldContext(page, handle) {
       const t = (up.innerText || '').replace(/\s+/g, ' ').trim();
       if (t.length > 4) { parts.push(t.slice(0, 250)); break; }
     }
-    return parts.join(' | ').toLowerCase();
+    return foldText(parts.join(' '));
   }, handle).catch(() => '');
 }
 
 async function findField(page, words, selector) {
   const handles = await page.$$(selector);
+  const normalizedWords = words.map(w => norm(w));
   for (const h of handles) {
     const box = await h.boundingBox().catch(() => null);
-    if (!box || box.width < 150) continue;
+    if (!box || box.width < 100) continue;
     const ctx = await fieldContext(page, h);
-    if (words.some(w => ctx.includes(w))) return h;
+    if (normalizedWords.some(w => ctx.includes(w))) return h;
   }
   return null;
 }
@@ -141,34 +143,38 @@ async function fillOne(page, jobId, name, words, value, selector) {
   if (!clean) return false;
   let h = await findField(page, words, selector || 'input[type="text"], input:not([type])');
   if (!h) {
-    // Fallback: texto visible exacto + el input grande más cercano debajo
-    // (algunos campos no tienen etiqueta asociada en el DOM).
+    // 1. Selector CSS directo por aria-label o placeholder
+    for (const w of words) {
+      h = await page.$(`input[aria-label*="${w}" i], input[placeholder*="${w}" i], textarea[aria-label*="${w}" i], textarea[placeholder*="${w}" i]`).catch(() => null);
+      if (h) break;
+    }
+  }
+  if (!h) {
+    // 2. Localizar por label contenedor o elemento de texto padre
     const handle = await page.evaluateHandle(wants => {
-      const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-      const labels = [...document.querySelectorAll('div, span')].filter(el => {
+      const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      const normWants = wants.map(w => fold(w));
+      const candidates = [...document.querySelectorAll('label, div, span')].filter(el => {
         const t = (el.innerText || '').trim();
-        if (t.length === 0 || t.length > 40) return false;
+        if (t.length === 0 || t.length > 50) return false;
         const f = fold(t);
-        return wants.some(w => f === w);
+        return normWants.some(w => f === w || f.includes(w));
       });
-      if (!labels.length) return null;
-      labels.sort((a, b) => a.innerText.length - b.innerText.length);
-      const ly = labels[0].getBoundingClientRect().y + labels[0].getBoundingClientRect().height;
-      let best = null, bestDy = 500;
-      document.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(el => {
-        if (el.getAttribute('role') === 'combobox') return;
-        const r = el.getBoundingClientRect();
-        if (r.width < 200 || r.height < 15) return;
-        const dy = r.y - ly;
-        if (dy >= -20 && dy < bestDy) { bestDy = dy; best = el; }
-      });
-      if (best) { try { best.scrollIntoView({ block: 'center' }); } catch {} }
-      return best;
+      for (const el of candidates) {
+        const direct = el.querySelector('input[type="text"], input:not([type]), textarea');
+        if (direct && (direct.getAttribute('role') !== 'combobox')) return direct;
+        const parentLabel = el.closest('label');
+        if (parentLabel) {
+          const inLabel = parentLabel.querySelector('input[type="text"], input:not([type]), textarea');
+          if (inLabel && (inLabel.getAttribute('role') !== 'combobox')) return inLabel;
+        }
+      }
+      return null;
     }, words).catch(() => null);
     const el = handle && handle.asElement ? handle.asElement() : null;
-    h = el || null;
+    if (el) h = el;
   }
-  if (!h) throw new Error(`no se ve el campo ${name}`);
+  if (!h) return false;
   if (!(await writeField(page, h, clean.slice(0, 4000)))) throw new Error(`no se pudo escribir ${name}`);
   await sleep(500);
   await tell(jobId, [{ stage: `campo_${name}`, level: 'info', message: `${name} listo.` }]);
@@ -311,9 +317,15 @@ async function publish(page, job) {
   ];
   for (const [name, words, value, selector] of must) {
     try {
-      if (name === 'titulo' || name === 'precio' || name === 'descripcion') {
+      if (name === 'titulo') {
         const ok = await fillOne(page, job.id, name, words, value, selector);
-        if (!ok) throw new Error('vacío en el anuncio');
+        if (!ok) {
+          // El formulario de arriendos de Facebook suele autogenerar el título con tipo + habitaciones
+          await tell(job.id, [{ stage: 'campo_titulo_auto', level: 'info', message: 'Título autogenerado o no requerido en formulario de arriendo.' }]);
+        }
+      } else if (name === 'precio' || name === 'descripcion') {
+        const ok = await fillOne(page, job.id, name, words, value, selector);
+        if (!ok) throw new Error(`campo ${name} obligatorio no encontrado en el formulario`);
       } else {
         await fillOne(page, job.id, name, words, value, selector);
       }
