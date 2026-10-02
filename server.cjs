@@ -3139,7 +3139,7 @@ async function greetCloudAdminOnce(phone) {
 }
 
 function isCloudExitCommand(text) {
-  return /^(?:salir|salida|cancelar|cancel|terminar|fin|cerrar|menu\s+principal|inicio)$/i.test(String(text || '').trim());
+  return /^(?:salir|salida|cancelar|cancel|menu\s+principal|inicio)$/i.test(String(text || '').trim());
 }
 
 // Interactive list messages are used here because the administrator needs
@@ -5165,8 +5165,8 @@ async function sendCloudIncidentAmountPrompt(phone, apartment) {
 // solo lectura, `//` = una con escritura. /ssh wf|wt, code: y pregunta:
 // siguen funcionando igual. El flag del mensaje manda sobre la VM.
 const adminAgentModes = new Map();
-const ADMIN_AGENT_TTL_MS = 30 * 60 * 1000;
-const ADMIN_AGENT_ESCAPE_RE = /^(cobros|deuda|canon|morosos|reporte|enviar\s+cobros|confirmar|validar|servicios|registrar\s+imprevistos|imprevistos|aprobar\s|rechazar\s)/i;
+const ADMIN_AGENT_TTL_MS = 120 * 60 * 1000;
+const ADMIN_AGENT_ESCAPE_RE = /^(cobros|deuda|canon|morosos|reporte de cobros|enviar cobros|confirmar pagos|validar|servicios|registrar imprevistos|imprevistos|aprobar\s+\S+|rechazar\s+\S+)$/i;
 function getAdminAgentMode(phone) {
   const key = normalizePhone(phone);
   const entry = adminAgentModes.get(key);
@@ -5426,6 +5426,19 @@ async function handleCloudAgentCommand(phone, text, buttonId, forcedMode) {
     await sendCloudTextChunks(phone, `${opencodeBridge.getAgentStatusText()}\n\n¿Modelo inteligente listo? Mándame \`IA modelos\` si quieres probar conexión, o una pregunta técnica con \`/ ...\`.`);
     return;
   }
+  if (cmd.mode === 'docs') {
+    const arg = String(cmd.prompt || '').trim().toLowerCase();
+    if (!arg || arg === 'estado' || arg === 'status') {
+      const s = opencodeBridge.getAgentState();
+      await sendCloudText(phone, `📎 *Documentos IA:* ${s.docs ? 'ON (genero HTML+md)' : 'OFF (todo en el chat)'}.\nCambia con \`IA docs on\` / \`IA docs off\` / \`sin docs\` / \`con docs\`.`);
+      return;
+    }
+    const saved = opencodeBridge.setAgentDocs(arg);
+    await sendCloudText(phone, saved.ok
+      ? (saved.docs ? '📎 Docs ON: generaré HTML+md cuando aplique.' : '📎 Docs OFF: respondo todo en el chat, sin archivos.')
+      : `⚠️ ${saved.error}`);
+    return;
+  }
   if (cmd.mode === 'help' || !cmd.prompt) {
     await sendCloudTextChunks(phone, opencodeBridge.getAgentHelp());
     return;
@@ -5442,7 +5455,7 @@ async function handleCloudAgentCommand(phone, text, buttonId, forcedMode) {
   }
   await sendCloudText(phone, cmd.mode === 'ask' ? '⏳ Preguntando…' : allowWrite ? '⏳ Ejecutando (con escritura)…' : '⏳ Consultando (solo lectura)…');
   try {
-    const result = await opencodeBridge.runAgentTask(cmd.prompt, cmd.mode, { allowWrite });
+    const result = await opencodeBridge.runAgentTask(cmd.prompt, cmd.mode, { allowWrite, docsEnabled: opencodeBridge.getAgentState().docs });
     if (!result.ok) {
       await sendCloudText(phone, opencodeBridge.mapAgentError(result.error));
       return;
@@ -5551,7 +5564,14 @@ async function handleCloudAdminMessage(phone, message) {
     }
     const storedMode = getAdminAgentMode(phone);
     if (storedMode) {
-      if (buttonId || ADMIN_AGENT_ESCAPE_RE.test(text || '')) {
+      // Solo salen del modo los botones del menú admin o un comando admin
+      // exacto; cualquier otro botón o pregunta técnica mantiene el modo.
+      const adminMenuButton = buttonId === 'menu_morosos' || buttonId === 'menu_enviar_cobros' ||
+        buttonId === 'menu_confirmar' || buttonId === 'menu_servicios' ||
+        buttonId === 'menu_imprevistos' || buttonId === 'menu_agente' ||
+        buttonId === 'payment_unknown_yes' || buttonId === 'payment_unknown_no' ||
+        buttonId === 'services_exit';
+      if (adminMenuButton || ADMIN_AGENT_ESCAPE_RE.test(text || '')) {
         clearAdminAgentMode(phone); // sale del modo y sigue el flujo normal
       } else {
         await handleCloudAgentCommand(phone, text, buttonId, storedMode);
@@ -6071,6 +6091,19 @@ async function handleCloudInbound(message) {
         conversation.paymentProofPeriod = null;
         console.log(`[WHATSAPP CLOUD] payment proof pending validation: ${payment.id} · ${ocrSummary(media.ocr)}.`);
         await acknowledgePaymentProof(conversation, payment, media);
+        // 1b: el pago queda pendiente (la foto sola nunca auto-confirma) y al
+        // admin le llega el aviso con lo detectado + atajo de aprobación.
+        try {
+          const proofApt = (db.apartments || []).find(item => Number(item.id) === Number(conversation.apartmentId));
+          const proofAmount = Number(media?.ocr?.amount) > 0 ? Number(media.ocr.amount).toLocaleString('es-CO') : null;
+          const proofNote = `🧾 *Comprobante por validar* · ${proofApt?.name || 'apto?'} (${payment.period})`
+            + (proofAmount ? `\n💰 Detectado: $${proofAmount}` : '')
+            + `\n📄 ${ocrSummary(media.ocr)}`
+            + `\n\nResponde \`APROBAR ${(proofApt?.name || '').trim()}\` para confirmar o revisa en Pagos.`;
+          for (const adminPhone of cloudAdminPhones()) {
+            try { await sendCloudText(adminPhone, proofNote); } catch {}
+          }
+        } catch (notifyError) { console.error('[WHATSAPP CLOUD] proof admin notify error:', notifyError.message); }
       } else if (paymentProofOcrLooksUseful(media)) {
         await acknowledgePaymentProof(conversation, null, media);
       }
@@ -6584,6 +6617,24 @@ app.get('/api/system/stats', async (req, res) => {
         caddy: 'laujim-caddy (SSL & Cloudflare Proxy)',
         app: 'laujim-app (Node.js 22 Express)',
       },
+      // 1c: estado real del scraper para la GUI (nada estático en el cliente).
+      services: (() => {
+        try {
+          const schedule = workerScheduleConfig();
+          return {
+            executionMode: schedule.executionMode,
+            intervalHours: schedule.intervalHours,
+            startAt: schedule.startAt,
+            timezone: schedule.timezone,
+            providers: schedule.providers,
+            sequentialInProgress: !!isSequentialScraping,
+            sequentialLast: lastSequentialScrapeState || null,
+            platform: os.platform(),
+          };
+        } catch {
+          return { executionMode: 'unknown', platform: os.platform() };
+        }
+      })(),
     },
     database,
     storage,
@@ -10341,6 +10392,13 @@ const SCRAPER_LOG_LIMIT = 600;
 
 function ensureScraperLogCollection() {
   if (!Array.isArray(db.scraperLogs)) db.scraperLogs = [];
+  // Migración del nombre heredado de Render: los eventos del servidor se
+  // guardaban como 'render' y el resumen/UI filtran por 'server'.
+  let migrated = false;
+  for (const log of db.scraperLogs) {
+    if (log && log.source === 'render') { log.source = 'server'; migrated = true; }
+  }
+  if (migrated) { try { saveData(); } catch {} }
   return db.scraperLogs;
 }
 
@@ -10378,7 +10436,7 @@ function appendScraperLog(input = {}, { persist = true } = {}) {
   };
   const log = {
     id: nextId.scraperLogs || 1,
-    source: input.source === 'app' ? 'app' : 'render',
+    source: input.source === 'app' ? 'app' : 'server',
     deviceId: workerProtocol.normalizeWorkerId(input.deviceId) || null,
     runId: String(input.runId || '').trim().slice(0, 120) || null,
     provider: String(input.provider || '').trim().slice(0, 80) || null,
@@ -10985,7 +11043,7 @@ app.post('/api/marketplace/jobs', (req, res) => {
     claimedBy: null,
     attempts: 0,
     error: null,
-    message: 'Esperando al worker Android.',
+    message: 'En cola para la VM (sesión FB abierta).',
     listingUrl: null,
   };
   ensureMarketplaceJobs().push(job);
@@ -11016,7 +11074,7 @@ app.post('/api/marketplace/jobs/:id/retry', (req, res) => {
   job.finishedAt = null;
   job.updatedAt = new Date().toISOString();
   job.error = null;
-  job.message = 'Reintento en espera del worker Android.';
+  job.message = 'Reintento en cola para la VM (sesión FB abierta).';
   appendScraperLog({
     source: 'server', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
     stage: 'retry_queued', level: 'info', message: `Reintento ${Number(job.attempts || 0) + 1} agregado a la cola.`,
@@ -11074,7 +11132,7 @@ app.get('/worker/v1/marketplace/jobs/next', requirePortableWorker, (req, res) =>
     deviceId, stage: 'claimed', level: 'info', message: `Trabajo entregado al navegador local; intento ${job.attempts}.`,
     details: { jobId: job.id, apartmentId: job.apartmentId, attempt: job.attempts },
   }, { persist: false });
-  job.message = 'Trabajo entregado al navegador local del teléfono.';
+  job.message = 'Trabajo entregado al navegador del worker.';
   saveData();
   console.log(`[MARKETPLACE] Job ${job.id} claimed by ${deviceId}.`);
   res.json({
@@ -11103,7 +11161,7 @@ app.post('/worker/v1/marketplace/jobs/:id/events', requirePortableWorker, (req, 
   events.forEach(event => {
     if (!event || typeof event !== 'object' || Array.isArray(event)) return;
     appendScraperLog({
-      source: 'app', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+      source: String(deviceId).startsWith('vm-') ? 'server' : 'app', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
       deviceId, stage: event.stage || 'marketplace', level: event.level || 'info',
       message: event.message || 'Evento local de Marketplace.', eventAt: event.eventAt,
       durationMs: event.durationMs, details: { ...(event.details || {}), jobId: job.id, apartmentId: job.apartmentId },
@@ -11124,6 +11182,7 @@ app.post('/worker/v1/marketplace/jobs/:id/status', requirePortableWorker, (req, 
   const status = String(req.body?.status || '').trim().toLowerCase();
   if (!allowed.includes(status)) return res.status(400).json({ error: 'Estado de Marketplace inválido.' });
   const now = new Date().toISOString();
+  const prevMarketplaceStatus = job.status;
   job.status = status;
   job.updatedAt = now;
   if (status === 'processing' && !job.startedAt) job.startedAt = now;
@@ -11147,12 +11206,84 @@ app.post('/worker/v1/marketplace/jobs/:id/status', requirePortableWorker, (req, 
   }, { persist: false });
   saveData();
   console.log(`[MARKETPLACE] Job ${job.id} status=${status} device=${deviceId}; message=${String(job.message || '').slice(0, 240)}.`);
+  // Aviso al admin solo en la transición a needs_login (no spam en cada reporte).
+  if (status === 'needs_login' && prevMarketplaceStatus !== 'needs_login') {
+    try {
+      const note = `🔑 *Facebook sin sesión en la VM* · trabajo ${job.id} (${job.apartmentName || 'apto?'}) en espera.\nVuelve a iniciar sesión (la tarjeta Facebook en Configuración muestra el estado).`;
+      for (const adminPhone of cloudAdminPhones()) {
+        sendCloudText(adminPhone, note).catch(() => {});
+      }
+    } catch (error) { console.error('[MARKETPLACE] needs_login notify error:', error.message); }
+  }
   res.json({ ok: true, job: marketplaceJobView(job), serverTime: now });
+});
+
+// Reintento pedido por el propio worker (autenticado con token de worker):
+// pone un trabajo terminal de vuelta en cola con el snapshot fresco del
+// apartamento. Corre dentro del servidor: sin carreras con guardados.
+app.post('/worker/v1/marketplace/jobs/:id/retry', requirePortableWorker, (req, res) => {
+  const deviceId = workerProtocol.normalizeWorkerId(req.headers['x-worker-id'] || req.body?.deviceId);
+  const job = ensureMarketplaceJobs().find(item => Number(item.id) === Number(req.params.id));
+  if (!deviceId) return res.status(400).json({ error: 'deviceId inválido' });
+  if (!job) return res.status(404).json({ error: 'Trabajo de Marketplace no encontrado.' });
+  if (['queued', 'claimed', 'processing'].includes(job.status)) {
+    return res.status(409).json({ error: 'El trabajo todavía está activo.' });
+  }
+  const apartment = (db.apartments || []).find(item => Number(item.id) === Number(job.apartmentId));
+  if (!apartment) return res.status(404).json({ error: 'Apartamento no encontrado.' });
+  job.listing = marketplaceListingSnapshot(apartment, req);
+  job.status = 'queued';
+  job.claimedAt = null;
+  job.claimedBy = null;
+  job.startedAt = null;
+  job.finishedAt = null;
+  job.updatedAt = new Date().toISOString();
+  job.error = null;
+  job.message = 'Reintento en cola para la VM (sesión FB abierta).';
+  appendScraperLog({
+    source: 'server', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    stage: 'retry_queued', level: 'info', message: `Reintento ${Number(job.attempts || 0) + 1} agregado a la cola (pedido por ${deviceId}).`,
+    details: { jobId: job.id, apartmentId: job.apartmentId },
+  }, { persist: false });
+  saveData();
+  res.json({ ok: true, job: marketplaceJobView(job) });
 });
 
 app.get('/api/scraper/schedule', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   res.json({ ok: true, schedule: workerScheduleConfig() });
+});
+
+// ─── Facebook en la VM: latido del worker + estado para la GUI ─────────────
+// El worker de la VM (scripts/fb-publisher.cjs) usa el mismo protocolo
+// de cola que la APK (deviceId 'vm-facebook'): reclama, publica e informa.
+const fbVmWorkerState = { deviceId: null, lastSeenAt: null, session: 'unknown', lastJobId: null, version: null };
+app.post('/worker/v1/facebook/heartbeat', requirePortableWorker, (req, res) => {
+  const deviceId = workerProtocol.normalizeWorkerId(req.headers['x-worker-id'] || req.body?.deviceId) || null;
+  const session = ['ok', 'needs_login', 'unknown'].includes(String(req.body?.session || '').toLowerCase())
+    ? String(req.body.session).toLowerCase()
+    : 'unknown';
+  fbVmWorkerState.deviceId = deviceId;
+  fbVmWorkerState.lastSeenAt = new Date().toISOString();
+  fbVmWorkerState.session = session;
+  if (req.body?.lastJobId !== undefined) fbVmWorkerState.lastJobId = Number(req.body.lastJobId) || null;
+  if (req.body?.version !== undefined) fbVmWorkerState.version = String(req.body.version).slice(0, 40);
+  res.json({ ok: true, serverTime: fbVmWorkerState.lastSeenAt });
+});
+app.get('/api/facebook/status', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const jobs = ensureMarketplaceJobs();
+  const count = status => jobs.filter(job => job.status === status).length;
+  res.json({
+    ok: true,
+    worker: { ...fbVmWorkerState },
+    queue: {
+      queued: count('queued'), claimed: count('claimed'), processing: count('processing'),
+      needs_login: count('needs_login'), needs_review: count('needs_review'),
+      published: count('published'), failed: count('failed'),
+    },
+    serverTime: new Date().toISOString(),
+  });
 });
 
 app.put('/api/scraper/schedule', (req, res) => {
@@ -12923,6 +13054,39 @@ app.delete('/api/portal-credentials/:provider', (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── Settings key/value: lo que edita Configuración (plantillas WhatsApp,
+// tokens, teléfonos admin). Sin esto, esos Guardar iban al vacío (404).
+app.get('/api/settings', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  res.json(Array.isArray(db.settings) ? db.settings : []);
+});
+app.post('/api/settings', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const key = String(req.body?.key || '').trim().slice(0, 120);
+  if (!key) return res.status(400).json({ error: 'Falta key.' });
+  if (!Array.isArray(db.settings)) db.settings = [];
+  if (!nextId.settings) nextId.settings = db.settings.reduce((max, s) => Math.max(max, Number(s.id) || 0), 0) + 1;
+  const existing = db.settings.find(s => s.key === key);
+  if (existing) {
+    if (req.body?.value !== undefined) existing.value = req.body.value;
+    saveData();
+    return res.json(existing);
+  }
+  const record = { id: nextId.settings++, key, value: req.body?.value ?? '' };
+  db.settings.push(record);
+  saveData();
+  res.json(record);
+});
+app.put('/api/settings/:id', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const item = (db.settings || []).find(s => Number(s.id) === Number(req.params.id));
+  if (!item) return res.status(404).json({ error: 'Ajuste no encontrado.' });
+  if (req.body?.key !== undefined) item.key = String(req.body.key).trim().slice(0, 120);
+  if (req.body?.value !== undefined) item.value = req.body.value;
+  saveData();
+  res.json(item);
+});
+
 app.get('/api/leads', (req, res) => {
   res.json(db.leads || []);
 });
@@ -13450,7 +13614,10 @@ app.get('/releases/:file', (req, res) => {
       });
     }
   }
-  return res.status(404).json({ error: 'APK no encontrada en este servidor.' });
+  // Si el versionado no está en este servidor, caer al APK general
+  // (/app-debug.apk), que a su vez usa el release de GitHub como respaldo.
+  // Un click de descarga nunca debe morir con un JSON 404.
+  return res.redirect(302, '/app-debug.apk');
 });
 
 app.use(express.static(path.resolve(__dirname, 'dist'), {

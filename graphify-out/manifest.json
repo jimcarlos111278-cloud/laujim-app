@@ -90,8 +90,8 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1790584729.9808762,
-    "ast_hash": "c85e57696777cac1a6459b1ab604d5e0",
+    "mtime": 1790654102.8014073,
+    "ast_hash": "89696ffbf57aeb92fd43aa8ec6acad0c",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -150,8 +150,8 @@
     "semantic_hash": ""
   },
   "server.cjs": {
-    "mtime": 1790652298.8185534,
-    "ast_hash": "bcd92be6619e7988d8b05fd63ed12a59",
+    "mtime": 1790901053.3922136,
+    "ast_hash": "ed96f72c6482cf87ec30be8af8cb938b",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -225,8 +225,8 @@
     "semantic_hash": "be1e84cb576c7e6d1cc6d02e6fe41d8d"
   },
   "src/pages/ApartmentDetail.jsx": {
-    "mtime": 1790650083.6343307,
-    "ast_hash": "04ba242bfce2f68576ad3a415adffbe6",
+    "mtime": 1790901255.8174672,
+    "ast_hash": "7116020f828d142f2115b25facfc8309",
     "semantic_hash": ""
   },
   "src/pages/Apartments.jsx": {
@@ -290,8 +290,8 @@
     "semantic_hash": "12068a4fc3218054307e3dd05aceaf3c"
   },
   "src/pages/Settings.jsx": {
-    "mtime": 1790650083.6388555,
-    "ast_hash": "33af343a2b3e8c97c406892c65a2ad93",
+    "mtime": 1790901269.4863987,
+    "ast_hash": "f187ebfdfa6221b3afef95bed86e259e",
     "semantic_hash": ""
   },
   "src/pages/ShareApartments.jsx": {
@@ -305,8 +305,8 @@
     "semantic_hash": "429688cf1006d5eb8b337df244be0c02"
   },
   "src/pages/Utilities.jsx": {
-    "mtime": 1789970917.8116684,
-    "ast_hash": "d842aadd5b1e9c4f1fc55059c4524e28",
+    "mtime": 1790901279.164068,
+    "ast_hash": "8ee5a0e44080a003be3497f764796dae",
     "semantic_hash": ""
   },
   "src/pages/WhatsAppContacts.jsx": {
@@ -345,8 +345,8 @@
     "semantic_hash": "e8ea61df1a9638a776b3a1426d61420d"
   },
   "src/utils/config.js": {
-    "mtime": 1790652397.2521834,
-    "ast_hash": "d6f74a78f7584c811ac2f550d8f07498",
+    "mtime": 1790901035.245771,
+    "ast_hash": "e9db10d0ebe0b63c0393bdc64c8191bc",
     "semantic_hash": ""
   },
   "src/utils/contractGenerator.js": {
@@ -485,8 +485,8 @@
     "semantic_hash": "76a518a81d594ca5549f95f0b0bdf321"
   },
   "src/pages/ScraperWorker.jsx": {
-    "mtime": 1790650068.7592254,
-    "ast_hash": "23ffaabad12493cdc3e1eff4a2df2127",
+    "mtime": 1790902052.0921974,
+    "ast_hash": "c72e8556b2791cee076e5bbb6c625df2",
     "semantic_hash": ""
   },
   "src/utils/portableWorker.js": {
@@ -565,8 +565,8 @@
     "semantic_hash": ""
   },
   "src/utils/appRelease.js": {
-    "mtime": 1790652397.206803,
-    "ast_hash": "49ee60ad797ade78e4499c3ecd6c5227",
+    "mtime": 1790901037.7859166,
+    "ast_hash": "8609c82fc325ad3da73bcdf8570bdcd4",
     "semantic_hash": ""
   },
   "scripts/archive-graph.cjs": {
@@ -635,8 +635,8 @@
     "semantic_hash": ""
   },
   "deploy-oracle-vm/ezviz_stream_server.py": {
-    "mtime": 1790574402.34742,
-    "ast_hash": "eac5ed616cd35621c2501aa98b920ca6",
+    "mtime": 1790815083.2546222,
+    "ast_hash": "79abc0b8e73eb9bd12a8821173d73e9b",
     "semantic_hash": ""
   },
   "deploy-oracle-vm/install-vm.sh": {
@@ -655,8 +655,8 @@
     "semantic_hash": ""
   },
   "deploy-oracle-vm/docker-compose.yml": {
-    "mtime": 1790650386.2438216,
-    "ast_hash": "c9aec8c13a416ab410c8f82a65fe1f51",
+    "mtime": 1790655157.0975986,
+    "ast_hash": "08777deba3fac65ed0ad4954bcc5e4c4",
     "semantic_hash": ""
   },
   "scratch/broadcast_and_verify.py": {
@@ -895,8 +895,8 @@
     "semantic_hash": ""
   },
   "scripts/handoff.cjs": {
-    "mtime": 1790483207.535273,
-    "ast_hash": "a7b12dc543f44a56498082cd28c21254",
+    "mtime": 1790662398.7093349,
+    "ast_hash": "f496d28614cf86080b2d8e965a4415ba",
     "semantic_hash": ""
   },
   "scratch/sftp-sync-vm.py": {
@@ -970,13 +970,108 @@
     "semantic_hash": ""
   },
   "opencode-bridge.cjs": {
-    "mtime": 1790651216.2022698,
-    "ast_hash": "7f37d2b5e9b5ecc197e64749a4193687",
+    "mtime": 1790735432.3531952,
+    "ast_hash": "7455c004534d18bf85e26a965b2dded8",
     "semantic_hash": ""
   },
   "docker-start.sh": {
     "mtime": 1789627745.041561,
     "ast_hash": "4812f7f9e74fbf69c0c9e55a0cd80c4f",
+    "semantic_hash": ""
+  },
+  "scripts/continuidad.cjs": {
+    "mtime": 1790662971.0035076,
+    "ast_hash": "12553d805f1a1109ef2d40d01e222b46",
+    "semantic_hash": ""
+  },
+  "scripts/harness-continuity.cjs": {
+    "mtime": 1790663437.8829682,
+    "ast_hash": "270f85635fb1d320565ed34ae2b0c139",
+    "semantic_hash": ""
+  },
+  "probe.html": {
+    "mtime": 1790658366.6545513,
+    "ast_hash": "2de87f31f30d64c2164164a6f41f7f1e",
+    "semantic_hash": ""
+  },
+  "scripts/fb-publisher.cjs": {
+    "mtime": 1790753029.242102,
+    "ast_hash": "af35548d9d1aa8ac54e420143f32efe0",
+    "semantic_hash": ""
+  },
+  "scripts/vm-aiven-requeue.cjs": {
+    "mtime": 1790749273.518884,
+    "ast_hash": "a939892a2a94e41583b209ea41916384",
+    "semantic_hash": ""
+  },
+  "scripts/vm-db-check.py": {
+    "mtime": 1790746710.7596786,
+    "ast_hash": "7e8b30eeadceffc8006bc60da961d3fd",
+    "semantic_hash": ""
+  },
+  "scripts/vm-db-requeue.py": {
+    "mtime": 1790746833.6994836,
+    "ast_hash": "b19c92372d514ef6ba8ecff1e2a98265",
+    "semantic_hash": ""
+  },
+  "scripts/vm-enable-fb-worker.sh": {
+    "mtime": 1790737709.2187462,
+    "ast_hash": "4d64ff6b19057fa98f97d85ef80c5940",
+    "semantic_hash": ""
+  },
+  "scripts/vm-fb-vnc.sh": {
+    "mtime": 1790901914.917331,
+    "ast_hash": "0dc828429c2ed78435a9e70a39d9b838",
+    "semantic_hash": ""
+  },
+  "scripts/vm-fix-version-file.sh": {
+    "mtime": 1790738209.594489,
+    "ast_hash": "9ef8958f43b32653001b66f526685c0c",
+    "semantic_hash": ""
+  },
+  "scripts/vm-job-inspect.cjs": {
+    "mtime": 1790745322.5368326,
+    "ast_hash": "e904a4225997b734f3fd3427b8a5ed7c",
+    "semantic_hash": ""
+  },
+  "scripts/vm-pg-requeue.sql": {
+    "mtime": 1790745581.4348457,
+    "ast_hash": "7b03116f5e7964232ef87cd8d39a0fda",
+    "semantic_hash": ""
+  },
+  "scripts/vm-pg-verify.sql": {
+    "mtime": 1790745611.4581926,
+    "ast_hash": "2e802bf76aef4511791bdce57f1111f0",
+    "semantic_hash": ""
+  },
+  "scripts/vm-probe-chrome.cjs": {
+    "mtime": 1790739085.2056174,
+    "ast_hash": "0b7193d60c867f562699f164c55d8164",
+    "semantic_hash": ""
+  },
+  "scripts/vm-probe-fbform.cjs": {
+    "mtime": 1790749891.7594311,
+    "ast_hash": "485fa8524e362975bf9247e5a980e042",
+    "semantic_hash": ""
+  },
+  "scripts/vm-retry-job.sh": {
+    "mtime": 1790745890.5068998,
+    "ast_hash": "2ce991f8c1f67dc41e79f0c4fd521f5a",
+    "semantic_hash": ""
+  },
+  "scripts/vm-worker-retry.sh": {
+    "mtime": 1790752718.2626169,
+    "ast_hash": "49b247b16ac5074818624a1e2d3a7f39",
+    "semantic_hash": ""
+  },
+  "scripts/vm-worker-start.sh": {
+    "mtime": 1790750467.057412,
+    "ast_hash": "01a437f4efefee0775d73a6f5cc1204d",
+    "semantic_hash": ""
+  },
+  "scripts/vm-cron-fb.txt": {
+    "mtime": 1790750511.616441,
+    "ast_hash": "7d0dc553128f0b1f6675d851804338cd",
     "semantic_hash": ""
   }
 }

@@ -6,7 +6,6 @@ import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
 import { photoUrl, retryPhotoSource, isCapacitor, getBase, AUTH_TOKEN } from '../utils/config';
 import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate, servicePaymentUrl, gasContractPaymentUrl } from '../utils/helpers';
-import { openAndroidMarketplace, runAndroidMarketplaceWorkerNow } from '../utils/androidScraperWorker';
 import { generateApartmentPDF } from '../utils/pdf';
 import { addCalendarReminder } from '../utils/calendar';
 import QRCode from 'qrcode';
@@ -843,14 +842,8 @@ export default function ApartmentDetail() {
   }
 
   async function openMarketplace() {
-    if (isCapacitor()) {
-      try {
-        await openAndroidMarketplace();
-        return;
-      } catch (error) {
-        setMarketplaceMessage({ type: 'error', text: error.message || 'No se pudo abrir Facebook en el navegador local.' });
-      }
-    }
+    // La publicación la ejecuta la VM con su sesión de FB; este botón solo abre
+    // el listado para consulta manual (obtener URL, verificar estado).
     window.open('https://www.facebook.com/marketplace/you/selling', '_blank');
   }
 
@@ -866,20 +859,11 @@ export default function ApartmentDetail() {
       const response = await api.marketplace.publish(apt.id);
       const job = response.job || null;
       setMarketplaceJob(job);
-      let localMessage = '';
-      if (isCapacitor()) {
-        try {
-          await runAndroidMarketplaceWorkerNow();
-          localMessage = ' El navegador local ya fue activado.';
-        } catch (error) {
-          localMessage = ` Quedó en cola; abre Facebook en la APK si solicita sesión (${error.message || 'worker no disponible'}).`;
-        }
-      }
       setMarketplaceMessage({
         type: 'success',
         text: response.alreadyQueued
-          ? `Ese apartamento ya estaba en la cola.${localMessage}`
-          : `Publicación enviada al teléfono.${localMessage || ' El worker Android la recogerá en su próxima comprobación.'}`,
+          ? 'Sigue en cola en la VM. Se publicará desde la VM con la sesión de FB abierta.'
+          : 'Anuncio encolado en la VM. Se publicará desde la VM con la sesión de FB abierta.',
       });
     } catch (error) {
       setMarketplaceMessage({ type: 'error', text: error.message || 'No se pudo crear la publicación.' });
@@ -895,20 +879,11 @@ export default function ApartmentDetail() {
     try {
       const response = await api.marketplace.retry(marketplaceJob.id);
       setMarketplaceJob(response.job || null);
-      if (isCapacitor()) await runAndroidMarketplaceWorkerNow().catch(() => null);
-      setMarketplaceMessage({ type: 'success', text: 'Reintento enviado al worker Android.' });
+      setMarketplaceMessage({ type: 'success', text: 'Reintento encolado en la VM (sesión FB abierta).' });
     } catch (error) {
       setMarketplaceMessage({ type: 'error', text: error.message || 'No se pudo reintentar.' });
     } finally {
       setMarketplaceBusy(false);
-    }
-  }
-
-  async function openMarketplaceLogin() {
-    try {
-      await openAndroidMarketplace();
-    } catch (error) {
-      setMarketplaceMessage({ type: 'error', text: error.message || 'No se pudo abrir Facebook en la APK.' });
     }
   }
 
@@ -1425,26 +1400,20 @@ export default function ApartmentDetail() {
                     <Globe className="w-3.5 h-3.5" /> Abrir Marketplace
                   </button>
                   <button onClick={queueMarketplacePublication} disabled={marketplaceBusy || ['queued', 'claimed', 'processing'].includes(marketplaceJob?.status)} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors bg-indigo-600 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
-                    <Send className="w-3.5 h-3.5" /> {marketplaceBusy ? 'Enviando…' : 'Publicar con el teléfono'}
+                    <Send className="w-3.5 h-3.5" /> {marketplaceBusy ? 'Enviando…' : 'Publicar desde la VM'}
                   </button>
-                  {isCapacitor() && (
-                    <button onClick={openMarketplaceLogin} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors border border-indigo-300 text-indigo-700 hover:bg-indigo-50">
-                      <Globe className="w-3.5 h-3.5" /> Iniciar sesión de Facebook
-                    </button>
-                  )}
                   <button onClick={saveMarketplaceUrl} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors border border-gray-300 text-gray-600 hover:bg-gray-50">
                     <Share2 className="w-3.5 h-3.5" /> {marketplaceUrl ? 'Actualizar URL' : 'Guardar URL'}
                   </button>
                 </div>
                 {marketplaceJob && (
                   <div className={`rounded-lg border p-3 text-xs ${marketplaceJob.status === 'published' ? 'border-green-200 bg-green-50 text-green-800' : ['failed', 'needs_login', 'needs_review'].includes(marketplaceJob.status) ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-indigo-200 bg-indigo-50 text-indigo-800'}`}>
-                    <p><strong>Worker local:</strong> {marketplaceJob.status} · intento {marketplaceJob.attempts || 0}</p>
+                    <p><strong>VM:</strong> {marketplaceJob.status} · intento {marketplaceJob.attempts || 0}</p>
                     {marketplaceJob.message && <p className="mt-1">{marketplaceJob.message}</p>}
                     {marketplaceJob.error && <p className="mt-1">{marketplaceJob.error}</p>}
                     {['failed', 'needs_login', 'needs_review'].includes(marketplaceJob.status) && (
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {isCapacitor() && <button onClick={openMarketplaceLogin} className="rounded-md border border-amber-400 px-2 py-1 font-medium">Abrir Facebook</button>}
-                        <button onClick={retryMarketplacePublication} disabled={marketplaceBusy} className="rounded-md bg-amber-700 px-2 py-1 font-medium text-white disabled:opacity-50">Reintentar</button>
+                        <button onClick={retryMarketplacePublication} disabled={marketplaceBusy} className="rounded-md bg-amber-700 px-2 py-1 font-medium text-white disabled:opacity-50">Reintentar en la VM</button>
                       </div>
                     )}
                   </div>
@@ -1465,7 +1434,7 @@ export default function ApartmentDetail() {
                 {marketplaceMessage && (
                   <div className={`rounded-lg p-3 text-xs ${marketplaceMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>{marketplaceMessage.text}</div>
                 )}
-                <p className="text-[11px] text-gray-500">El servidor solo pone el anuncio en cola. La sesión de Facebook, el 2FA y la publicación se ejecutan localmente en el navegador de la APK; no se guarda la contraseña en Laujim.</p>
+                <p className="text-[11px] text-gray-500">La publicación la ejecuta la VM con su sesión de FB ya abierta (scripts/fb-publisher.cjs); aquí solo se encola. No se guarda la contraseña en Laujim. Estado en Configuración → Facebook.</p>
                 {marketplaceUrl && (
                   <div className="flex items-center gap-3">
                     <button onClick={openPublishedAd} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
@@ -1641,7 +1610,7 @@ export default function ApartmentDetail() {
 
           <div className="border-t border-gray-200 pt-4">
             <h4 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2"><Globe className="w-4 h-4" /> Datos del anuncio para Facebook</h4>
-            <p className="text-xs text-gray-500 mb-3">Estos tres campos y las fotos guardadas arriba se sincronizan con el worker del teléfono. Ya no se usa la extensión de Chrome.</p>
+            <p className="text-xs text-gray-500 mb-3">Estos tres campos y las fotos guardadas arriba los usa la VM con su sesión de FB ya abierta. Sin workers en teléfono ni extensión de Chrome.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Qué vendes</label>
@@ -1656,7 +1625,7 @@ export default function ApartmentDetail() {
                 <input type="text" value={form.marketplaceAddress || ''} onChange={e => setForm({...form, marketplaceAddress: e.target.value})} placeholder="Ej: Cra 1 #23-45" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
               <div className="sm:col-span-2 rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800">
-                Las fotos se administran en la sección <strong>Fotos del Apartamento</strong>. Al pulsar <strong>Publicar con el teléfono</strong>, el worker enviará hasta 10 fotos junto con estos datos.
+                Las fotos se administran en la sección <strong>Fotos del Apartamento</strong>. Al pulsar <strong>Publicar desde la VM</strong>, la VM enviará hasta 10 fotos junto con estos datos.
               </div>
             </div>
           </div>

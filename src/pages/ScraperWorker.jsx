@@ -27,7 +27,6 @@ import {
   getAndroidScraperWorkerStatus,
   runAndroidGasAccountNow,
   runAndroidScraperWorkerNow,
-  rescheduleAndroidScraperWorker,
   requestAndroidExactAlarmPermission,
   openAndroidBatterySettings,
   requestAndroidBatteryOptimizationExemption,
@@ -118,6 +117,7 @@ function LogList({ logs, emptyText }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-2 py-0.5 font-semibold uppercase ${logLevelClass(log.level)}`}>{log.level || 'info'}</span>
             <span className="font-semibold text-gray-700 dark:text-gray-200">{log.provider || 'Worker'}</span>
+            <span className={`rounded px-1.5 py-0.5 font-semibold ${log.source === 'app' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' : 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'}`}>{log.source === 'app' ? 'Teléfono' : 'VM'}</span>
             <span className="rounded bg-white px-1.5 py-0.5 text-gray-500 shadow-sm dark:bg-gray-800 dark:text-gray-400">{log.stage || 'general'}</span>
             {log.httpStatus !== null && log.httpStatus !== undefined && <span className="font-mono text-gray-500">HTTP {log.httpStatus}</span>}
             <span className="ml-auto text-right text-gray-400" title="Hora del evento en Colombia (UTC−5)">Hora: {formatLogTime(log.eventAt || log.createdAt)}</span>
@@ -154,6 +154,9 @@ export default function ScraperWorker() {
   const [nativeBusy, setNativeBusy] = useState(false);
   const [diagnostics, setDiagnostics] = useState({ logs: [], summary: { server: 0, app: 0 } });
   const [diagnosticsBusy, setDiagnosticsBusy] = useState(false);
+  const [logDeviceFilter, setLogDeviceFilter] = useState('all');
+  const logDevices = useMemo(() => [...new Set((diagnostics.logs || []).map(log => log.deviceId).filter(Boolean))], [diagnostics.logs]);
+  const visibleLogs = (source) => (diagnostics.logs || []).filter(log => log.source === source && (logDeviceFilter === 'all' || log.deviceId === logDeviceFilter));
   const gasAccounts = useMemo(() => gasAccountGroups(config), [config]);
 
   const deviceIcon = useMemo(() => settings.platform.includes('android') ? Smartphone : Laptop, [settings.platform]);
@@ -268,24 +271,8 @@ export default function ScraperWorker() {
       if (!response.ok) throw new Error(payload.error || 'No se pudo guardar la programación.');
       const savedSchedule = { ...DEFAULT_SCHEDULE, ...payload.schedule };
       setScheduleForm(savedSchedule);
-      let nativeMessage = '';
-      if (supportsAndroidScraperWorker() && settings.serverUrl && settings.token && settings.deviceId) {
-        const current = savePortableWorkerSettings(settings);
-        await configureAndroidScraperWorker({
-          serverUrl: current.serverUrl,
-          token: current.token,
-          deviceId: current.deviceId,
-          intervalHours: Number(savedSchedule.intervalHours || 1),
-          startAt: savedSchedule.startAt,
-          timezone: savedSchedule.timezone,
-        });
-        const status = await rescheduleAndroidScraperWorker();
-        setNativeStatus(status);
-        nativeMessage = status.enabled
-          ? ` Próxima ejecución: ${formatLogTime(status.nextRunAt)}.`
-          : ' El horario quedó preparado y se activará al iniciar el worker Android.';
-      }
-      setScheduleMessage({ type: 'success', text: `Frecuencia guardada y sincronizada con el dispositivo.${nativeMessage}` });
+      // RETIRADO: ya no se sincroniza con el worker Android/S23. Solo VM.
+      setScheduleMessage({ type: 'success', text: 'Frecuencia guardada en la VM.' });
     } catch (error) {
       setScheduleMessage({ type: 'error', text: error.message });
     } finally {
@@ -516,12 +503,16 @@ export default function ScraperWorker() {
     <div className="mx-auto max-w-4xl space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Worker scraper</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Conecta un celular, un PC o el siguiente dispositivo sin cambiar el bot.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Scraper en la VM</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Operación solo VM Oracle. Workers en teléfono/S23 retirados; si ves config portable, elimínala.</p>
         </div>
-        <div className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-          <Cloud className="h-4 w-4" /> {supportsAndroidScraperWorker() ? 'Portales locales en Android' : 'Worker portable'}
+        <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+          <Cloud className="h-4 w-4" /> Solo VM
         </div>
+      </div>
+
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+        <p><strong>Retirado:</strong> activación de dispositivos portables, worker Android y botones “Activar este dispositivo / Iniciar worker Android”. La VM raspa sola (Chromium local) y Facebook publica con <code>scripts/fb-publisher.cjs</code> y sesión abierta. Usa Configuración → Scraper/Facebook para operar.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -572,10 +563,10 @@ export default function ScraperWorker() {
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button onClick={() => handleCheck(true)} disabled={busy} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />} Probar conexión
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />} Probar conexión a la VM
           </button>
-          <button onClick={handleRegister} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Activar este dispositivo
+          <button type="button" disabled title="Retirado: los workers portables/S23 ya no se activan. Opera desde la VM." className="inline-flex items-center gap-2 rounded-lg bg-gray-300 px-4 py-2 text-sm font-medium text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400">
+            <ShieldCheck className="h-4 w-4" /> Activar este dispositivo (retirado)
           </button>
           <button onClick={handleCopy} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
             <Copy className="h-4 w-4" /> {copied ? 'Copiado' : 'Copiar diagnóstico'}
@@ -589,12 +580,13 @@ export default function ScraperWorker() {
         )}
       </section>
 
-      {supportsAndroidScraperWorker() && (
+      {/* RETIRADO: ejecución automática en Android/S23. Solo VM (Chromium local + fb-publisher.cjs). Se conserva el bloque pero jamás se renderiza. */}
+      {false && supportsAndroidScraperWorker() && (
         <section className="rounded-xl border border-green-200 bg-green-50 p-5 shadow-sm dark:border-green-900/50 dark:bg-green-900/20">
           <div className="mb-3 flex items-start gap-3">
             <div className="rounded-lg bg-green-100 p-2 text-green-700 dark:bg-green-900/40 dark:text-green-300"><Smartphone className="h-5 w-5" /></div>
             <div>
-              <h2 className="font-semibold text-gray-900 dark:text-white">Ejecución automática en Android</h2>
+              <h2 className="font-semibold text-gray-900 dark:text-white">Ejecución automática en Android (retirada)</h2>
               <p className="text-xs text-gray-600 dark:text-gray-300">La APK consulta los tres portales desde el WebView nativo del teléfono y envía al servidor únicamente los valores sanitizados. No usa Browserless ni otra integración de pago.</p>
             </div>
           </div>
@@ -746,9 +738,17 @@ export default function ScraperWorker() {
               <p className="text-xs text-gray-600 dark:text-gray-300">El servidor registra lo que recibió; la app registra lo que ocurrió dentro del WebView. Se actualiza cada 10 segundos. Cada evento muestra fecha y hora de Colombia (UTC−5); nunca muestra tokens, cookies ni facturas completas.</p>
             </div>
           </div>
-          <button onClick={() => loadDiagnostics(true)} disabled={diagnosticsBusy} className="inline-flex items-center gap-2 self-start rounded-lg border border-indigo-300 px-3 py-2 text-xs font-medium text-indigo-800 hover:bg-indigo-100 disabled:opacity-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-900/40">
-            {diagnosticsBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Actualizar logs
-          </button>
+          <div className="flex flex-wrap items-center gap-2 self-start">
+            {logDevices.length > 0 && (
+              <select value={logDeviceFilter} onChange={e => setLogDeviceFilter(e.target.value)} className="rounded-lg border border-indigo-300 bg-white px-2 py-2 text-xs text-indigo-800 dark:border-indigo-800 dark:bg-gray-900 dark:text-indigo-200" title="Filtrar por dispositivo">
+                <option value="all">Todos los dispositivos</option>
+                {logDevices.map(device => <option key={device} value={device}>{device}</option>)}
+              </select>
+            )}
+            <button onClick={() => loadDiagnostics(true)} disabled={diagnosticsBusy} className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 px-3 py-2 text-xs font-medium text-indigo-800 hover:bg-indigo-100 disabled:opacity-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-900/40">
+              {diagnosticsBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Actualizar logs
+            </button>
+          </div>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-indigo-200 bg-white/80 p-3 dark:border-indigo-800/60 dark:bg-gray-900/40">
@@ -756,14 +756,15 @@ export default function ScraperWorker() {
               <div><p className="font-semibold text-gray-800 dark:text-gray-100">Perspectiva Servidor</p><p className="text-[11px] text-gray-500 dark:text-gray-400">Conexión, configuración y recepción</p></div>
               <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">{diagnostics.summary?.server || 0}</span>
             </div>
-            <LogList logs={(diagnostics.logs || []).filter(log => log.source === 'server')} emptyText="El servidor aún no ha registrado eventos." />
+            <LogList logs={visibleLogs('server')} emptyText="El servidor aún no ha registrado eventos." />
           </div>
           <div className="rounded-lg border border-indigo-200 bg-white/80 p-3 dark:border-indigo-800/60 dark:bg-gray-900/40">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div><p className="font-semibold text-gray-800 dark:text-gray-100">Perspectiva app / WebView</p><p className="text-[11px] text-gray-500 dark:text-gray-400">Turnstile, fetch del portal y envío</p></div>
               <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">{diagnostics.summary?.app || 0}</span>
             </div>
-            <LogList logs={(diagnostics.logs || []).filter(log => log.source === 'app')} emptyText="La APK todavía no ha enviado eventos. Ejecuta una prueba para llenarlos." />
+            <LogList logs={visibleLogs('app')} emptyText="Sin eventos del publicador de la VM todavía. Encola una publicación desde un apartamento Disponible." />
+            <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">Los eventos de un dispositivo que ya no uses pertenecen al celular anterior: filtra por dispositivo para separarlos. Los logs de Facebook Marketplace no viven aquí sino en cada apartamento (sección Facebook Marketplace).</p>
           </div>
         </div>
       </section>
@@ -789,7 +790,7 @@ export default function ScraperWorker() {
 
       <div className="flex items-start gap-2 rounded-xl bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
-        <p><strong>Qué necesitarás en el celular:</strong> APK instalada, internet estable, notificaciones permitidas y batería sin optimización para Laujim. El S23 ejecuta el navegador local; el cargador solo es recomendable durante una consulta larga. La primera vez debes iniciar sesión en cada portal desde los botones anteriores.</p>
+        <p><strong>Solo VM:</strong> el raspado de servicios y la publicación de Facebook corren en la VM Oracle (Chromium local + <code>scripts/fb-publisher.cjs</code> con sesión abierta). No se necesita celular, S23 ni botones de portales en el teléfono. Estado en Configuración → Scraper/Facebook.</p>
       </div>
     </div>
   );

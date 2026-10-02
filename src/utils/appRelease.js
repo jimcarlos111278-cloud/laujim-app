@@ -17,6 +17,10 @@ export function compareVersions(a, b) {
 function normalizeBase(value) {
   const normalized = String(value || '').trim().replace(/\/+$/, '').replace(/\/api$/i, '');
   if (/^https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?$/i.test(normalized)) return '';
+  // REGLA MIGRACIÓN (VM Oracle vigente): onrender.com está eliminado y no debe volver.
+  // Si encuentras onrender.com en futuras operaciones, elimínalo: ya se migró.
+  // Render está suspendido (503): la APK jamás debe resolverse contra el proveedor anterior.
+  if (/(?:onrender\.com|onbelmo\.uk)$/i.test(normalized)) return '';
   return normalized;
 }
 
@@ -70,5 +74,9 @@ export async function getLatestAppRelease() {
   }))).filter(Boolean);
 
   if (releases.length === 0) throw new Error('No se pudo consultar la versión publicada');
+  // El servidor activo manda: un manifiesto viejo con versión mayor en un nodo
+  // muerto no debe ganarle al nodo donde estás parado.
+  const activeRelease = releases.find(r => r.source === bases[0]);
+  if (activeRelease) return activeRelease;
   return releases.sort((a, b) => compareVersions(b.version, a.version))[0];
 }

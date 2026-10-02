@@ -334,7 +334,7 @@ public class MarketplaceBrowserActivity extends Activity {
         if (status == null) return;
         String lower = current.toLowerCase();
         if (lower.contains("/marketplace/create") || lower.contains("/marketplace/selling/item")) {
-            status.setText("Sesión lista. Vuelve a Laujim y pulsa Publicar con el teléfono; el trabajo correrá en este mismo navegador.");
+            status.setText("Sesión lista. Vuelve a Laujim y pulsa Publicar desde la VM; la VM publicará con su sesión de FB abierta.");
         } else if (lower.contains("login") || lower.contains("checkpoint") || lower.contains("two_factor")) {
             status.setText("Completa el inicio de sesión, 2FA o verificación directamente en Facebook.");
         } else {

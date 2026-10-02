@@ -14,6 +14,7 @@ import ThemeSelector from '../components/ThemeSelector';
 import { clearAuth, getAuth } from '../utils/auth';
 import { getAuthorizedSmsMessages, getCallScreeningStatus, requestCallScreeningRole, requestProtectedSmsRole, setCallScreeningEnabled, setAllowCallsFromContacts, syncAuthorizedCallerNumbers, getCallGuardConfig, saveCallGuardConfig, analyzeIncomingNumber, DELIVERY_WHITELIST, BANK_WHITELIST } from '../utils/callScreening';
 import { getLatestAppRelease } from '../utils/appRelease';
+import { getInstalledAndroidVersion } from '../utils/androidScraperWorker';
 
 const DEFAULT_WA_SERVICES_TEMPLATE = `Hola {nombre} 👋
 
@@ -80,6 +81,7 @@ export default function Settings() {
   const [scraperRunning, setScraperRunning] = useState(false);
   const [scraperMsg, setScraperMsg] = useState('');
   const [scraperState, setScraperState] = useState(null);
+  const [fbStatus, setFbStatus] = useState(null);
   const [callScreening, setCallScreening] = useState(null);
   const [callScreeningBusy, setCallScreeningBusy] = useState(false);
   const [callScreeningError, setCallScreeningError] = useState('');
@@ -101,6 +103,7 @@ export default function Settings() {
   const [passwordMessage, setPasswordMessage] = useState('');
   const [apkRelease, setApkRelease] = useState(null);
   const [apkReleaseLoading, setApkReleaseLoading] = useState(true);
+  const [installedApkVersion, setInstalledApkVersion] = useState(null);
 
   // Estados de CallGuard (Filtros granulares y simulador en vivo)
   const [callGuardConfig, setCallGuardConfig] = useState(getCallGuardConfig());
@@ -191,6 +194,11 @@ export default function Settings() {
       .then(setApkRelease)
       .catch(() => setApkRelease(null))
       .finally(() => setApkReleaseLoading(false));
+    if (isCapacitor()) {
+      getInstalledAndroidVersion()
+        .then(v => { if (v?.version && v.version !== '0.0.0') setInstalledApkVersion(v.version); })
+        .catch(() => {});
+    }
   }, []);
 
   async function fetchSystemStats() {
@@ -258,12 +266,26 @@ export default function Settings() {
     }
   }
 
+  async function fetchFacebookStatus() {
+    try {
+      const auth = getAuth();
+      const token = auth?.token || AUTH_TOKEN;
+      const res = await fetch(`${getBase()}/facebook/status`, {
+        headers: { 'x-auth-token': token },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.ok) setFbStatus(data);
+    } catch {}
+  }
+
   useEffect(() => {
     fetchSystemStats();
     fetchScraperStatus();
+    fetchFacebookStatus();
     const interval = setInterval(() => {
       fetchSystemStats();
       fetchScraperStatus();
+      fetchFacebookStatus();
     }, 6000);
     return () => clearInterval(interval);
   }, []);
@@ -900,19 +922,25 @@ export default function Settings() {
 
         <div data-settings-panel="device" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Smartphone className="w-4 h-4" /> App Móvil (APK)</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">La app consulta principal y respaldo para mostrar siempre la última versión publicada.</p>
           {apkReleaseLoading ? (
             <p className="text-xs text-gray-500 dark:text-gray-400">Consultando versión disponible…</p>
           ) : apkRelease ? (
             <>
               <div className="mb-2 flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 text-xs dark:bg-gray-700">
-                <span className="text-gray-600 dark:text-gray-300">Última versión disponible</span>
-                <strong className="text-gray-900 dark:text-white">{apkRelease.version}</strong>
+                <span className="text-gray-600 dark:text-gray-300">
+                  {installedApkVersion
+                    ? `Instalada v${installedApkVersion} → Disponible v${apkRelease.version}`
+                    : `Última versión disponible: v${apkRelease.version}`}
+                </span>
+                {installedApkVersion && installedApkVersion !== apkRelease.version ? (
+                  <strong className="text-amber-600 dark:text-amber-300 shrink-0">Hay actualización</strong>
+                ) : (
+                  <strong className="text-emerald-600 dark:text-emerald-300 shrink-0">Al día</strong>
+                )}
               </div>
               <a href={apkRelease.apkUrl} download={`laujim-${apkRelease.version}.apk`} className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-2">
-                <Download className="w-4 h-4" /> Descargar APK {apkRelease.version}
+                <Download className="w-4 h-4" /> {installedApkVersion && installedApkVersion !== apkRelease.version ? `Actualizar ahora a v${apkRelease.version}` : `Descargar APK ${apkRelease.version}`}
               </a>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400">Publicada desde: {apkRelease.source}</p>
             </>
           ) : (
             <p className="text-xs text-amber-600 dark:text-amber-300">No se pudo consultar la última versión. Comprueba la conexión y vuelve a abrir Configuración.</p>
@@ -946,9 +974,9 @@ export default function Settings() {
 
         <div data-settings-panel="scraper" className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 col-span-1 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Zap className="w-4 h-4" /> Credenciales de Servicios (Autollenado)</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">El worker del teléfono usa estas credenciales únicamente cuando una sesión vence. Espera la verificación normal del portal, inicia sesión y continúa el scraper sin mostrar contraseñas en los logs.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">La VM usa estas credenciales únicamente cuando una sesión vence. Espera la verificación normal del portal, inicia sesión y continúa el scraper sin mostrar contraseñas en los logs. Sin workers en teléfono (S23 retirado).</p>
           <button type="button" onClick={() => navigate('/scraper-worker')} className="mb-4 inline-flex items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/30">
-            <ClipboardList className="h-4 w-4" /> Abrir worker y logs del scraper
+            <ClipboardList className="h-4 w-4" /> Ver logs del scraper en la VM
           </button>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
             {[
@@ -1451,41 +1479,62 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* Contenedores Docker Activos en la VM */}
+              {/* Servicios esperados en la VM (el punto es real: verde = servidor responde) */}
               <div className="bg-[#1e293b]/70 border border-slate-700/60 rounded-xl p-4 text-xs">
                 <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-2.5">
-                  Contenedores Docker en Oracle VM (100% Autónomos y Gratuitos)
+                  Servicios en Oracle VM
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
-                  <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-700/50 flex items-center gap-2.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-bold text-white text-xs truncate">laujim-app</p>
-                      <p className="text-[10px] text-slate-400 truncate">Node 22 + Chromium (Xvfb :99)</p>
+                  {[
+                    ['laujim-app', 'Node 22 + Chromium (Xvfb :99)'],
+                    ['laujim-db', 'PostgreSQL 16 en SSD (p. 5432)'],
+                    ['laujim-video', 'FFmpeg ARM64 + HLS (p. 8080)'],
+                    ['laujim-caddy', 'SSL Cloudflare Tunnel (p. 80, 443)'],
+                  ].map(([name, desc]) => (
+                    <div key={name} className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-700/50 flex items-center gap-2.5">
+                      <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${stats && !statsError ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                      <div className="min-w-0">
+                        <p className="font-bold text-white text-xs truncate">{name}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{desc}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-700/50 flex items-center gap-2.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-bold text-white text-xs truncate">laujim-db</p>
-                      <p className="text-[10px] text-slate-400 truncate">PostgreSQL 16 en SSD (p. 5432)</p>
-                    </div>
-                  </div>
-                  <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-700/50 flex items-center gap-2.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-bold text-white text-xs truncate">laujim-video</p>
-                      <p className="text-[10px] text-slate-400 truncate">FFmpeg ARM64 + HLS (p. 8080)</p>
-                    </div>
-                  </div>
-                  <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-700/50 flex items-center gap-2.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-bold text-white text-xs truncate">laujim-caddy</p>
-                      <p className="text-[10px] text-slate-400 truncate">SSL Cloudflare Tunnel (p. 80, 443)</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
+                <p className="mt-2 text-[11px] text-slate-400">
+                  {stats && !statsError
+                    ? `Servidor en línea · ${stats.hostname || 'vm'} · plataforma ${stats.services?.platform || stats.platform || '?'}`
+                    : 'Sin conexión con el servidor: no se puede confirmar el estado.'}
+                </p>
+              </div>
+
+              {/* Facebook en la VM: estado real del worker (nada estático) */}
+              <div className="bg-[#1e293b]/70 border border-slate-700/60 rounded-xl p-4 text-xs">
+                <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-2.5">
+                  Facebook Marketplace en la VM (sin teléfono)
+                </span>
+                {!fbStatus ? (
+                  <p className="text-slate-400">Sin datos: el servidor no responde o el endpoint aún no está desplegado.</p>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {fbStatus.worker?.session === 'ok' ? (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Sesión OK</span>
+                    ) : fbStatus.worker?.session === 'needs_login' ? (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Requiere login</span>
+                    ) : (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-300 border border-slate-500/30">Sin worker</span>
+                    )}
+                    <span className="text-slate-300">
+                      En cola: {fbStatus.queue?.queued ?? 0} · Procesando: {fbStatus.queue?.processing ?? 0} · Publicados: {fbStatus.queue?.published ?? 0}
+                      {fbStatus.queue?.needs_login ? ` · Sin sesión: ${fbStatus.queue.needs_login}` : ''}
+                    </span>
+                    {fbStatus.worker?.lastSeenAt && (
+                      <span className="text-slate-400">Visto: {new Date(fbStatus.worker.lastSeenAt).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</span>
+                    )}
+                  </div>
+                )}
+                <p className="mt-2 text-[11px] text-slate-400">
+                  Publica desde la VM con la sesión de FB ya abierta. Sin sesión: en la VM ejecuta `node scripts/fb-publisher.cjs --login` una vez. Sin el publicador de la VM encendido no se publica nada. Sin workers en teléfono.
+                </p>
               </div>
 
               {/* ─── TARJETA DE SCRAPER DE SERVICIOS EN EL SERVIDOR (ORACLE VM) ─── */}
@@ -1497,13 +1546,25 @@ export default function Settings() {
                     </div>
                     <div>
                       <h4 className="font-bold text-sm text-white flex items-center gap-2">
-                        <span>Scraper Autónomo de Servicios Públicos en el Servidor</span>
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          Activo en Oracle VM
-                        </span>
+                        <span>Scraper de Servicios Públicos</span>
+                        {scraperState?.inProgress ? (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            Raspando ahora
+                          </span>
+                        ) : stats?.services?.executionMode === 'server' ? (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Autónomo en servidor
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-300 border border-slate-500/30">
+                            Solo VM
+                          </span>
+                        )}
                       </h4>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Ejecuta Chromium de forma nativa en la VM (Xvfb :99). Ya no requiere dejar el teléfono celular conectado.
+                        {stats?.services?.executionMode === 'server'
+                          ? `Corre solo en la VM (Chromium local), cada ${stats.services.intervalHours || 1}h desde las ${stats.services.startAt || '07:00'}. Sin teléfono ni workers S23.`
+                          : 'Solo VM: cambia a modo servidor. Los workers de teléfono (S23) están retirados.'}
                       </p>
                     </div>
                   </div>

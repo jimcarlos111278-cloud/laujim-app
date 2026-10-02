@@ -28,7 +28,10 @@ const SERVER_CONFIG_KEY = 'laujim_server_pair';
 function normalizeServer(value) {
   const normalized = String(value || '').trim().replace(/\/+$/, '').replace(/\/api$/i, '');
   if (/^https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?$/i.test(normalized)) return '';
-  // Descartar automáticamente URLs obsoletas del proveedor anterior
+  // REGLA MIGRACIÓN (VM Oracle vigente): onrender.com está eliminado y no debe volver.
+  // Si encuentras onrender.com en futuras operaciones, elimínalo: ya se migró a
+  // https://conjunto-residendial-laujim.duckdns.org (CLOUD_SERVER). Solo se conserva
+  // este descarte automático para limpiar URLs viejas guardadas en localStorage.
   if (/onrender\.com$/i.test(normalized)) return '';
   return normalized;
 }

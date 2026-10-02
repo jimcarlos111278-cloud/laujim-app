@@ -4,7 +4,6 @@ import Modal from '../components/Modal';
 import { api } from '../api';
 import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, servicePaymentUrl } from '../utils/helpers';
 import { getBase, AUTH_TOKEN, isCapacitor } from '../utils/config';
-import { openAndroidPortal, supportsAndroidScraperWorker } from '../utils/androidScraperWorker';
 import jsQR from 'jsqr';
 
 const services = {
@@ -156,11 +155,7 @@ const QR_SERVICES = new Set(['water']);
 const SCAN_MAX_WIDTH = 640;
 
 async function openUtilityPortal(portal) {
-  if (supportsAndroidScraperWorker()) {
-    const provider = portal.key === 'water' ? 'water' : portal.key === 'gas' ? 'gas-1' : 'air-e';
-    await openAndroidPortal(provider);
-    return;
-  }
+  // Solo VM/web: los portales se abren en el navegador. Workers Android/S23 retirados.
   window.open(portal.url, '_blank', 'noopener');
 }
 const GAS_ACCOUNT_LIMIT = 10;
