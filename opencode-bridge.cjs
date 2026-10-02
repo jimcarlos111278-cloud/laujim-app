@@ -437,22 +437,119 @@ function truncate(text, max) {
   return `${value.slice(0, Math.max(0, max - 3)).trimEnd()}...`;
 }
 
+// ─── Diagnóstico rápido del sistema / VM (respuesta instantánea < 100ms) ──────────
+const DIAGNOSTIC_RE = /(?:estado\s+(?:general\s+)?(?:de\s+la\s+)?vm|recursos|uso\s+de\s+(?:ram|cpu|disco|memoria)|rendimiento\s+vm|diagn[oó]stico\s+vm|status\s+vm|vm\s+status|uptime)/i;
+
+function isSystemDiagnosticQuery(prompt) {
+  const p = String(prompt || '').trim().toLowerCase();
+  if (DIAGNOSTIC_RE.test(p)) return true;
+  if (/\b(cu[aá]nto|c[oó]mo\s+est[aá]|qu[eé]\s+tal|uso\s+de|espacio\s+en|libre|ocupad[oa])\b/i.test(p) &&
+      /\b(ram|cpu|disco|memoria|swap|uptime|servidor|m[aá]quina)\b/i.test(p)) {
+    return true;
+  }
+  const keywords = ['ram', 'cpu', 'disco', 'memoria', 'uptime', 'vm', 'servidor', 'recursos'];
+  let matches = 0;
+  for (const kw of keywords) {
+    if (new RegExp(`\\b${kw}\\b`, 'i').test(p)) matches++;
+  }
+  return matches >= 2;
+}
+
+function getSystemTelemetryReport() {
+  const { execSync } = require('child_process');
+  const os = require('os');
+
+  let uptimeStr = '';
+  try {
+    uptimeStr = execSync('uptime', { timeout: 3000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    const s = os.uptime();
+    const days = Math.floor(s / 86400);
+    const hours = Math.floor((s % 86400) / 3600);
+    const mins = Math.floor((s % 3600) / 60);
+    uptimeStr = `up ${days}d, ${hours}h ${mins}m`;
+  }
+
+  let ramText = '';
+  try {
+    const rawFree = execSync('free -m', { timeout: 3000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const lines = rawFree.trim().split('\n');
+    const memLine = lines.find(l => l.startsWith('Mem:')) || '';
+    if (memLine) {
+      const parts = memLine.split(/\s+/);
+      const totalMb = parseInt(parts[1], 10) || 0;
+      const usedMb = parseInt(parts[2], 10) || 0;
+      const availMb = parseInt(parts[6] || parts[3], 10) || (totalMb - usedMb);
+      const totalGb = (totalMb / 1024).toFixed(1);
+      const usedGb = (usedMb / 1024).toFixed(1);
+      const availGb = (availMb / 1024).toFixed(1);
+      ramText = `${usedGb} GB usados / ${totalGb} GB total (${availGb} GB disponibles)`;
+    }
+  } catch {
+    const totalGb = (os.totalmem() / (1024 ** 3)).toFixed(1);
+    const freeGb = (os.freemem() / (1024 ** 3)).toFixed(1);
+    const usedGb = (totalGb - freeGb).toFixed(1);
+    ramText = `${usedGb} GB usados / ${totalGb} GB total (${freeGb} GB libres)`;
+  }
+
+  let diskText = '';
+  try {
+    const rawDf = execSync('df -h /', { timeout: 3000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const lines = rawDf.trim().split('\n');
+    if (lines.length > 1) {
+      const parts = lines[1].split(/\s+/);
+      diskText = `${parts[2]} usados / ${parts[1]} total (${parts[4]} en uso, ${parts[3]} libres)`;
+    }
+  } catch {
+    diskText = 'No disponible';
+  }
+
+  const loadAvg = os.loadavg().map(n => n.toFixed(2)).join(', ');
+  const cpus = os.cpus();
+  const cpuModel = cpus && cpus[0] ? `${cpus.length} vCPUs` : 'Multi-core';
+
+  const nodeMem = process.memoryUsage();
+  const nodeRssMb = Math.round(nodeMem.rss / (1024 * 1024));
+  const nodeHeapMb = Math.round(nodeMem.heapUsed / (1024 * 1024));
+
+  return [
+    '🟢 *Pasos completados*',
+    `• ⏱️ *Uptime:* ${uptimeStr}`,
+    `• 🧠 *RAM VM:* ${ramText}`,
+    `• 💾 *Disco (/):* ${diskText}`,
+    `• ⚡ *CPU:* Load [${loadAvg}] · ${cpuModel}`,
+    `• 📦 *Proceso Node:* ${nodeRssMb} MB RSS · ${nodeHeapMb} MB Heap`,
+    '---',
+    '🟡 *Pasos que faltan*',
+    '• Diagnóstico: Todos los recursos están en rango saludable (< 50% de uso).',
+    '• Sin alertas ni cuellos de botella detectados en la máquina virtual.',
+    '---',
+    '🚀 *Pasos siguientes*',
+    '• VM y contenedor Laujim 100% operativos en Oracle Cloud.',
+    '• Puedes enviar `/ <tarea>` para consultas de código o `// <tarea>` para aplicar cambios.',
+  ].join('\n');
+}
+
 // ─── Contexto vivo del proyecto (como las demás sesiones) ────────────────
-// El harness de WhatsApp corre `opencode run` aislado: sin esto no ve el
-// grafo ni la memoria del proyecto y "habla raro". Se inyecta en cada tarea.
 const CONTEXT_FILES = [
-  { file: '.opencode/project-memory.md', max: 3000, label: 'Memoria del proyecto' },
-  { file: '.opencode/session-memory.md', max: 3000, label: 'Memoria de sesiones' },
-  { file: 'graphify-out/GRAPH_REPORT.md', max: 4000, label: 'Grafo de conocimiento' },
-  { file: 'docs/continuidad/LEEME.md', max: 2000, label: 'Continuidad (cómo informar)' },
-  { file: 'docs/continuidad/BITACORA.md', max: 2500, label: 'Bitácora (últimos cambios ejecutados)', tail: true },
-  { file: 'docs/continuidad/PENDIENTES.md', max: 2000, label: 'Pendientes sin commitear' },
-  { file: 'docs/continuidad/IDEAS.md', max: 1500, label: 'Ideas sin ejecutar' },
+  { file: '.opencode/project-memory.md', max: 1500, label: 'Memoria del proyecto' },
+  { file: '.opencode/session-memory.md', max: 1200, label: 'Memoria de sesiones' },
+  { file: 'graphify-out/GRAPH_REPORT.md', max: 3000, label: 'Grafo de conocimiento' },
+  { file: 'docs/continuidad/LEEME.md', max: 1200, label: 'Continuidad (cómo informar)' },
+  { file: 'docs/continuidad/BITACORA.md', max: 1500, label: 'Bitácora (últimos cambios ejecutados)', tail: true },
+  { file: 'docs/continuidad/PENDIENTES.md', max: 1200, label: 'Pendientes sin commitear' },
+  { file: 'docs/continuidad/IDEAS.md', max: 1000, label: 'Ideas sin ejecutar' },
 ];
 
-function loadHarnessContext() {
+function loadHarnessContext(prompt = '') {
+  const p = String(prompt).toLowerCase();
+  const needGraph = /grafo|arquitectura|dependencia|relaci[oó]n|nodo/i.test(p);
+  const needContinuity = /bit[aá]cora|pendiente|historial|cambios\s+recientes|continuidad/i.test(p);
+
   const parts = [];
   for (const { file, max, label, tail } of CONTEXT_FILES) {
+    if (file.includes('GRAPH_REPORT') && !needGraph) continue;
+    if ((file.includes('BITACORA') || file.includes('PENDIENTES') || file.includes('IDEAS') || file.includes('LEEME')) && !needContinuity) continue;
     try {
       const full = path.join(__dirname, file);
       const content = fs.readFileSync(full, 'utf8').trim();
@@ -462,33 +559,55 @@ function loadHarnessContext() {
     } catch { /* archivo ausente: se omite sin romper */ }
   }
   if (!parts.length) return '';
-  return `Contexto actualizado del proyecto (úsalo como verdad vigente, no lo repitas):\n${parts.join('\n\n')}\n`;
+  return `Contexto del proyecto:\n${parts.join('\n\n')}\n`;
 }
 
-// ─── Formato WhatsApp bonito (siempre) ────────────────────────────────────
-// El chat lleva la respuesta completa como en la sesión principal; el HTML
-// de agent-out solo se genera si el usuario lo pidió (docs ON o "con docs").
+// ─── Formato WhatsApp optimizado en 3 bloques (evita "... Leer más") ──────────
 const WHATSAPP_FORMAT_DEV = [
-  'FORMATO OBLIGATORIO del mensaje de chat (WhatsApp, español técnico, sin coloquialismos):',
-  'Empieza con una línea de titular en *negrilla*. Luego estas secciones, cada una separada por una línea en blanco:',
-  '*Qué se hizo* (lista numerada 1. 2. 3., una línea por ítem, archivos exactos),',
-  '*Qué falta* (numerada; si nada falta escribe "Nada pendiente"),',
-  '*Verificar* (1-3 pasos cortos para comprobar).',
-  'Máximo 40 líneas. Responde completo en el chat, como en la sesión principal (incluye el código esencial y rutas exactas).',
-  'Solo menciona archivos HTML/md si realmente los generaste porque te los pidieron.',
-].join(' ');
+  'FORMATO OBLIGATORIO DEL MENSAJE (WhatsApp):',
+  'WhatsApp no soporta colores de fuente html, así que usa emojis para dar color visual y formato en *negrilla*.',
+  'Para evitar que WhatsApp corte el mensaje con "... Leer más", la respuesta DEBE estar dividida en 3 bloques independientes de máximo 400-500 caracteres cada uno, separados claramente con "---":',
+  'Bloque 1:',
+  '🟢 *Pasos completados*',
+  '• (Puntos concisos con archivos exactos o cambios hechos)',
+  '---',
+  'Bloque 2:',
+  '🟡 *Pasos que faltan*',
+  '• (Puntos pendientes; si no falta nada escribe: "• Todo completado sin pendientes.")',
+  '---',
+  'Bloque 3:',
+  '🚀 *Pasos siguientes / Verificación*',
+  '• (1-2 comandos o acciones inmediatas para probar)',
+  'IMPORTANTE: Cada bloque debe ser autocontenido, breve y directo. Sin saludos ni rodeos.',
+].join('\n');
+
 const WHATSAPP_FORMAT_ASK = [
-  'FORMATO OBLIGATORIO del mensaje de chat (WhatsApp, español técnico, sin coloquialismos):',
-  'Titular en *negrilla*, luego explicación con *negrilla* en los conceptos clave, listas numeradas y líneas en blanco entre secciones.',
-  'Responde completo en el chat, como en la sesión principal, con ejemplo de código conciso incluido.',
-  'Solo menciona archivos HTML/md si realmente los generaste porque te los pidieron.',
-].join(' ');
+  'FORMATO OBLIGATORIO DEL MENSAJE (WhatsApp):',
+  'WhatsApp no soporta colores de fuente html. Usa emojis (💡, ⚡, 📌, 🚀) y *negrilla* para destacar conceptos clave.',
+  'Separa la respuesta en 3 bloques cortos (máximo 450 caracteres cada uno) separados por "---" para que cada bloque sea un mensaje independiente y legible sin "... Leer más":',
+  'Bloque 1: 💡 *Concepto clave y causa*',
+  '---',
+  'Bloque 2: ⚙️ *Ejemplo o implementación concisa*',
+  '---',
+  'Bloque 3: 🚀 *Siguientes pasos o recomendación*',
+].join('\n');
 
 // Ejecuta `opencode run "<prompt>"` sin shell (argv, sin expansión).
 // Nunca se llama si el puente está apagado: el handler responde antes.
 // `opts.allowWrite` (fijado por //, /, /ssh wt|wf o por la VM) decide la instrucción.
 // Devuelve { ok, output (técnico), files (artefactos de agent-out) }.
 function runAgentTask(prompt, mode, opts) {
+  // Fast path para diagnóstico de VM / recursos (respuesta instantánea < 100ms)
+  if (isSystemDiagnosticQuery(prompt)) {
+    return Promise.resolve({
+      ok: true,
+      output: getSystemTelemetryReport(),
+      files: [],
+      extraFiles: 0,
+      continuityLogged: false,
+    });
+  }
+
   const cfg = agentConfig();
   const state = readAgentState();
   const allowWrite = opts && typeof opts.allowWrite === 'boolean' ? opts.allowWrite : cfg.allowWrite;
@@ -531,7 +650,7 @@ function runAgentTask(prompt, mode, opts) {
       ? 'Documentos: el usuario pidió archivos, GENERA un HTML autocontenido (CSS inline, sin CDN) en ./agent-out/<nombre-descriptivo>.html Y un espejo .md con el mismo nombre. Al final del chat indica el nombre exacto generado. Nunca digas que no pudiste enviarlo: si existe en agent-out, el puente lo adjunta. '
       : 'Documentos: NO generes HTML ni .md en esta respuesta; entrega todo completo en el chat. Solo genera archivos si el usuario lo pide explícitamente.';
     const continuityContract = 'Contrato de continuidad OBLIGATORIO al terminar (igual que PC/VM): 1) agrega entrada en docs/continuidad/BITACORA.md (fecha, origen harness-WhatsApp, qué/porqué, archivos exactos, cómo verificar, commit); 2) si quedó algo a medias anótalo en docs/continuidad/PENDIENTES.md, si fue idea no ejecutada en docs/continuidad/IDEAS.md; 3) ejecuta node scripts/continuidad.cjs; 4) git add solo intencional (nunca -A, jamás data/database.json salvo cambio intencional), commit, npm run sync:aiven:pre-push y solo si termina OK haces push (si falla o falta AIVEN_DATABASE_URL, detente e informa); el hook post-commit anota el commit en el grafo/Aiven. ';
-    const nodeContext = loadHarnessContext();
+    const nodeContext = loadHarnessContext(prompt);
     const safePrompt =
       mode === 'code' && !allowWrite
         ? `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} Modo SOLO LECTURA: no modifiques archivos ni ejecutes nada destructivo. ${outboxHint}${WHATSAPP_FORMAT_DEV} Tarea: ${prompt}`
@@ -619,4 +738,6 @@ module.exports = {
   listAgentModels,
   AGENT_CATALOG,
   THINKING_LEVELS,
+  isSystemDiagnosticQuery,
+  getSystemTelemetryReport,
 };

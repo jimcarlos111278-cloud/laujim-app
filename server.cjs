@@ -3418,31 +3418,95 @@ async function sendCloudServiceApartmentsMenu(phone, floor) {
   }
 }
 
-function splitCloudText(body, maxLength = 3600) {
-  const paragraphs = String(body || '').split(/\n{2,}/);
-  const chunks = [];
-  let current = '';
-  for (const paragraph of paragraphs) {
-    const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
-    if (current && candidate.length > maxLength) {
-      chunks.push(current);
-      current = paragraph;
-    } else if (paragraph.length > maxLength) {
-      if (current) chunks.push(current);
-      for (let index = 0; index < paragraph.length; index += maxLength) {
-        chunks.push(paragraph.slice(index, index + maxLength));
-      }
-      current = '';
-    } else {
-      current = candidate;
-    }
+const WHATSAPP_BUBBLE_MAX_CHARS = 600;
+
+function splitCloudText(body, maxLength = WHATSAPP_BUBBLE_MAX_CHARS) {
+  const text = String(body || '').trim();
+  if (!text) return [''];
+  if (text.length <= maxLength && !text.includes('\n---\n') && !text.includes('\n===\n')) {
+    return [text];
   }
-  if (current) chunks.push(current);
+
+  // Dividir primero por separadores explícitos (--- o ===) o por encabezados con emojis/secciones
+  const sectionRegex = /\r?\n\s*(?:---|===)\s*\r?\n|\r?\n+(?=[🟢🟡🚀🔴⚡💡📌]\s*\*|\*(?:Pasos completados|Pasos que faltan|Pasos siguientes|Verificar|Qué se hizo|Qué falta)\*)/iu;
+  const rawSections = text.split(sectionRegex);
+  const sections = [];
+  for (const rawSec of rawSections) {
+    const sec = rawSec.trim();
+    if (sec) sections.push(sec);
+  }
+
+  const chunks = [];
+  for (const section of sections) {
+    if (section.length <= maxLength) {
+      chunks.push(section);
+      continue;
+    }
+
+    // Si la sección supera maxLength (< 600 caracteres), subdividir por párrafos o líneas
+    const paragraphs = section.split(/\n{2,}/);
+    let current = '';
+    for (const paragraph of paragraphs) {
+      const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
+      if (candidate.length <= maxLength) {
+        current = candidate;
+      } else {
+        if (current) {
+          chunks.push(current);
+          current = '';
+        }
+        if (paragraph.length <= maxLength) {
+          current = paragraph;
+        } else {
+          const lines = paragraph.split('\n');
+          let lineCurrent = '';
+          for (const line of lines) {
+            const lineCandidate = lineCurrent ? `${lineCurrent}\n${line}` : line;
+            if (lineCandidate.length <= maxLength) {
+              lineCurrent = lineCandidate;
+            } else {
+              if (lineCurrent) {
+                chunks.push(lineCurrent);
+                lineCurrent = '';
+              }
+              if (line.length <= maxLength) {
+                lineCurrent = line;
+              } else {
+                const words = line.split(' ');
+                let wordCurrent = '';
+                for (const word of words) {
+                  const wordCandidate = wordCurrent ? `${wordCurrent} ${word}` : word;
+                  if (wordCandidate.length <= maxLength) {
+                    wordCurrent = wordCandidate;
+                  } else {
+                    if (wordCurrent) chunks.push(wordCurrent);
+                    wordCurrent = word;
+                  }
+                }
+                if (wordCurrent) lineCurrent = wordCurrent;
+              }
+            }
+          }
+          if (lineCurrent) current = lineCurrent;
+        }
+      }
+    }
+    if (current) chunks.push(current);
+  }
+
   return chunks.length ? chunks : [''];
 }
 
-async function sendCloudTextChunks(phone, body) {
-  for (const chunk of splitCloudText(body)) await sendCloudText(phone, chunk);
+async function sendCloudTextChunks(phone, body, maxLength = WHATSAPP_BUBBLE_MAX_CHARS) {
+  const chunks = splitCloudText(body, maxLength);
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    if (!chunk) continue;
+    await sendCloudText(phone, chunk);
+    if (i < chunks.length - 1) {
+      await new Promise(r => setTimeout(r, 250));
+    }
+  }
 }
 
 const CLOUD_SERVICE_PRESENTATIONS = [
