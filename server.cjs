@@ -5437,6 +5437,19 @@ async function handleCloudAgentCommand(phone, text, buttonId, forcedMode) {
     await sendCloudAgentModeMenu(phone);
     return;
   }
+  if (cmd.mode === 'engines') {
+    await sendCloudText(phone, '🧠 *Motores IA disponibles:*\n• `antigravity`: Antigravity CLI (Deep Reasoning de Google, ultra rápido y preciso)\n• `gemini`: Gemini Flash\n• `muse`: Muse Spark 1.3\n• `auto`: Selección automática (Antigravity)\n\nCambiar con: `IA motor antigravity` o `IA motor auto`.');
+    return;
+  }
+  if (cmd.mode === 'engine') {
+    if (!cmd.prompt) {
+      await sendCloudText(phone, 'Indica el motor: `IA motor antigravity`, `IA motor gemini`, `IA motor muse`, `IA motor auto`.');
+      return;
+    }
+    const res = opencodeBridge.setAgentEngine(cmd.prompt);
+    await sendCloudText(phone, res.ok ? `✅ Motor actualizado.\n\n${opencodeBridge.getAgentStatusText()}` : `⚠️ ${res.error}`);
+    return;
+  }
   if (cmd.mode === 'models') {
     await sendCloudText(phone, '⏳ Listando modelos…');
     const listed = await opencodeBridge.listAgentModels();

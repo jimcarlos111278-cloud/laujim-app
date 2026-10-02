@@ -29,6 +29,8 @@ const ASK_RE = /^(?:pregunta|ask|agente|\/ask)\s*:?\s*(.+)$/is;
 // "IA" abre el menú de modos. "//" = escritura, "/" = solo lectura.
 // Van DESPUÉS de SSH/CODE/ASK para no romper /ssh, /code ni /ask.
 const IA_MENU_RE = /^(?:ia|agente)$/i;
+const IA_MOTORES_RE = /^ia\s+(?:motores|engines)$/i;
+const IA_MOTOR_RE = /^ia\s+(?:motor|engine)(?:\s+(.+))?$/is;
 const IA_MODELOS_RE = /^ia\s+modelos$/i;
 const IA_MODELO_RE = /^ia\s+modelo(?:\s+(.+))?$/is;
 const IA_AGENTES_RE = /^ia\s+agentes$/i;
@@ -42,7 +44,7 @@ const IA_CON_DOCS_RE = /^(?:ia\s+)?con\s+docs$/i;
 const DOCS_REQUEST_RE = /(con\s+docs|\ben\s+html\b|genera\w*\s+(un\s+)?html|adjunta\w*(\s+el)?\s+(html|archivo|documento))/i;
 // Override del modelo fijado por WhatsApp (manda sobre OPENCODE_AGENT_MODEL).
 const MODEL_FILE = path.join(__dirname, 'agent-model.json');
-const MODEL_ID_RE = /^[a-z0-9][a-z0-9_.-]*\/[a-z0-9][a-z0-9_.-]*$/i;
+const MODEL_ID_RE = /^[a-z0-9][a-z0-9_.-]*(?:\/[a-z0-9_.-]+)?$/i;
 const MAX_MODEL_ID_CHARS = 100;
 // Agentes lógicos disponibles por WhatsApp. Se emulan a nivel prompt y,
 // cuando opencode lo soporta, también con --agent. `cli` es el nombre del
@@ -100,6 +102,9 @@ function parseAgentCommand(text) {
   if (!value) return null;
   if (HELP_RE.test(value)) return { mode: 'help', prompt: '', write: null };
   if (IA_MENU_RE.test(value)) return { mode: 'menu', prompt: '', write: null };
+  if (IA_MOTORES_RE.test(value)) return { mode: 'engines', prompt: '', write: null };
+  const motor = value.match(IA_MOTOR_RE);
+  if (motor) return { mode: 'engine', prompt: (motor[1] || '').trim().slice(0, 40), write: null };
   if (IA_ESTADO_RE.test(value)) return { mode: 'estado', prompt: '', write: null };
   if (IA_SIN_DOCS_RE.test(value)) return { mode: 'docs', prompt: 'off', write: null };
   if (IA_CON_DOCS_RE.test(value)) return { mode: 'docs', prompt: 'on', write: null };
@@ -151,30 +156,30 @@ function getAgentHelp() {
     '• `// <tarea>` → con escritura, puede modificar el proyecto',
     '• `pregunta: <tema>` → explicación técnica para aprender',
     '',
+    'Motor IA:',
+    '• `IA estado` → ver motor + modelo + agente + thinking actuales',
+    '• `IA motores` → listar motores (antigravity, gemini, muse, auto)',
+    '• `IA motor antigravity` → fijar motor Antigravity (Google Deepmind)',
+    '',
     'Modelo:',
-    '• `IA estado` → ver modelo + agente + thinking actuales',
     '• `IA modelos` → listar modelos de la VM',
-    '• `IA modelo proveedor/modelo` → fijarlo (ej: `IA modelo opencode/big-pickle`)',
+    '• `IA modelo <id>` → fijarlo (ej: `gemini-3.8-flash-high`)',
     '• `IA modelo auto` → volver al default',
     '',
-    'Agente (rol, como aquí):',
+    'Agente (rol):',
     '• `IA agentes` → ver catálogo (auto, plan, build, backend, front, qa, profe)',
     '• `IA agente build` → fija rol ejecutor; `IA agente profe` → modo profesor',
-    '• `IA agente auto` → default de opencode',
     '',
     'Nivel de pensamiento:',
     '• `IA thinking medium` → low | medium | high | xhigh',
-    '• low=rápido, medium=balanceado, high=profundo, xhigh=exhaustivo+HTML',
     '',
     'Documentos (default: OFF, todo en el chat):',
-    '• `IA docs` → ver estado · `IA docs on` → generar HTML+md · `IA docs off` / `sin docs` → solo chat.',
-    '• Por pedido: si dices "con docs" o "en html", esa respuesta sí trae archivos.',
-    '• El HTML además te llega con enlace para abrirlo como página real en el navegador (WhatsApp solo deja adjuntarlo como texto).',
+    '• `IA docs` → ver estado · `IA docs on` · `IA docs off` / `sin docs`',
     '',
     'Ejemplos:',
-    '• `/ explica handleCloudAdminMessage con rutas y flujo`',
-    '• `// corrige el texto del menú de cobros y lista cambios`',
-    '• `pregunta: webhooks vs traps SNMP con ejemplo en server.cjs`',
+    '• `/ cuántos apartamentos hay y cuál es su estado`',
+    '• `/ explica la arquitectura de pagos en server.cjs`',
+    '• `// actualiza el texto de bienvenida`',
     '',
     '`SALIR` cierra el modo. Atajos viejos siguen vivos: `/ssh wf`, `/ssh wt`, `code:`.',
   ].join('\n');
@@ -189,7 +194,7 @@ function readAgentState() {
     const raw = JSON.parse(fs.readFileSync(MODEL_FILE, 'utf8'));
     if (raw && typeof raw === 'object') state = raw;
   } catch { /* sin override */ }
-  const engine = String(state.engine || 'auto').trim().toLowerCase();
+  const engine = String(state.engine || 'antigravity').trim().toLowerCase();
   const model = String(state.model || process.env.OPENCODE_AGENT_MODEL || '').trim();
   const agent = String(state.agent || process.env.OPENCODE_AGENT || 'auto').trim().toLowerCase();
   const thinking = String(state.thinking || process.env.OPENCODE_THINKING || 'medium').trim().toLowerCase();
@@ -257,9 +262,9 @@ function getAgentStatusText() {
 
 function setAgentEngine(engineName) {
   const norm = String(engineName || '').trim().toLowerCase();
-  const valid = ['auto', 'gemini', 'gemini-3.8', 'muse', 'muse-spark', 'antigravity'];
+  const valid = ['auto', 'antigravity', 'gemini', 'gemini-3.8', 'muse', 'muse-spark', 'opencode'];
   if (!valid.includes(norm)) {
-    return { ok: false, error: 'Motor inválido. Usa: auto, gemini, muse, antigravity.' };
+    return { ok: false, error: 'Motor inválido. Usa: antigravity, auto, gemini, muse, opencode.' };
   }
   let targetModel = '';
   if (norm.includes('muse')) targetModel = 'opencode/muse-spark-1.3-contributor-free';
@@ -277,7 +282,7 @@ function setAgentPermission(perm) {
 
 function resetAgentDefaults() {
   return writeAgentState({
-    engine: 'auto',
+    engine: 'antigravity',
     model: '',
     agent: 'auto',
     thinking: 'medium',
@@ -290,7 +295,7 @@ function resetAgentDefaults() {
 function setAgentModel(id) {
   const value = String(id || '').trim().slice(0, MAX_MODEL_ID_CHARS);
   if (!MODEL_ID_RE.test(value)) {
-    return { ok: false, error: 'Formato inválido. Usa `proveedor/modelo` (ej: `IA modelo opencode/big-pickle`).' };
+    return { ok: false, error: 'Formato inválido. Usa proveedor/modelo o id de modelo (ej: `gemini-3.8-flash-high` u `opencode/big-pickle`).' };
   }
   const saved = writeAgentState({ model: value });
   if (!saved.ok) return saved;
@@ -651,7 +656,7 @@ function runAgentTask(prompt, mode, opts) {
         : mode === 'code'
           ? `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} Modo DESARROLLO TOTAL autorizado por el admin: actúa como el agente de código completo: lee, crea, modifica, elimina y verifica código con herramientas; ejecuta comandos no destructivos y lint/build enfocado; puedes hacer git push cuando lo pida, pero ANTES ejecuta obligatoriamente npm run sync:aiven:pre-push y solo continúa si termina OK; nunca uses git add -A, solo archivos intencionales. Despliegues a Oracle y borrados masivos solo con confirmación explícita. ${continuityContract}${outboxHint}${WHATSAPP_FORMAT_DEV} Al final: resumen claro de los cambios aplicados. Tarea: ${prompt}`
           : `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} ${outboxHint}${WHATSAPP_FORMAT_ASK} Pregunta técnica (puede ser del proyecto o general: React, Java, Python, webhooks, build): ${prompt}`;
-    const isAgy = state.engine === 'antigravity';
+    const isAgy = state.engine === 'antigravity' || state.engine === 'auto';
     const bin = isAgy ? 'agy' : cfg.command;
     const model = (state.model && state.model !== 'auto') ? state.model : '';
     const agentCli = AGENT_CATALOG[agent] && AGENT_CATALOG[agent].cli ? AGENT_CATALOG[agent].cli : null;
@@ -660,7 +665,8 @@ function runAgentTask(prompt, mode, opts) {
       args.push('-p', safePrompt);
       const effort = thinking === 'xhigh' ? 'max' : thinking;
       args.push('--effort', effort);
-      if (allowWrite) args.push('--dangerously-skip-permissions');
+      args.push('--dangerously-skip-permissions');
+      if (!allowWrite) args.push('--mode', 'plan');
       if (model) args.push('--model', model);
     } else {
       args.push('run');
@@ -678,6 +684,34 @@ function runAgentTask(prompt, mode, opts) {
     child.stdout.on('data', (d) => { out += String(d); });
     child.stderr.on('data', (d) => { err += String(d); });
     child.on('error', (error) => {
+      if (isAgy && error.code === 'ENOENT' && cfg.command && cfg.command !== 'agy') {
+        const fbArgs = ['run'];
+        if (model) fbArgs.push('--model', model);
+        if (agentCli) fbArgs.push('--agent', agentCli);
+        fbArgs.push(safePrompt);
+        const fbChild = spawn(cfg.command, fbArgs, {
+          cwd: __dirname,
+          timeout: Math.round(cfg.timeoutMs * thinkMult),
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+        let fbOut = '';
+        let fbErr = '';
+        fbChild.stdout.on('data', (d) => { fbOut += String(d); });
+        fbChild.stderr.on('data', (d) => { fbErr += String(d); });
+        fbChild.on('error', (err2) => {
+          resolve({ ok: false, code: 'spawn', error: `No se pudo lanzar "${bin}" ni "${cfg.command}": ${err2.message}` });
+        });
+        fbChild.on('close', (code) => {
+          const raw = fbOut.trim() || fbErr.trim();
+          if (!raw) {
+            resolve({ ok: false, code: 'empty', error: `El agente terminó sin salida (código ${code}).` });
+            return;
+          }
+          const output = truncate(cleanAgentOutput(raw), cfg.maxReplyChars);
+          resolve({ ok: true, output, files: [], extraFiles: 0, continuityLogged: false });
+        });
+        return;
+      }
       resolve({ ok: false, code: 'spawn', error: `No se pudo lanzar "${bin}": ${error.message}` });
     });
     child.on('close', (code) => {
