@@ -95,10 +95,11 @@ async function heartbeat(session, lastJobId) {
 
 // Escribe valor en un campo React (setter nativo + eventos).
 async function writeField(page, handle, value) {
-  return page.evaluate((el, val) => {
+  const ok = await page.evaluate((el, val) => {
     try {
       el.focus();
-      const proto = el.tagName.toLowerCase() === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      const isTextarea = el.tagName.toLowerCase() === 'textarea';
+      const proto = isTextarea ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
       const d = Object.getOwnPropertyDescriptor(proto, 'value');
       if (d && d.set) d.set.call(el, val); else el.value = val;
       el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -106,6 +107,12 @@ async function writeField(page, handle, value) {
       return true;
     } catch { return false; }
   }, handle, String(value)).catch(() => false);
+  if (ok) return true;
+  try {
+    await handle.click({ clickCount: 3 }).catch(() => {});
+    await handle.type(String(value), { delay: 5 });
+    return true;
+  } catch { return false; }
 }
 
 // Junta placeholder + aria + texto de hermanas + texto del bloque padre (normalizado sin tildes).
