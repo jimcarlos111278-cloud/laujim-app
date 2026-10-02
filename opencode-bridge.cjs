@@ -349,8 +349,11 @@ function listAgentsText() {
 
 function listAgentModels() {
   const cfg = agentConfig();
+  const state = readAgentState();
+  const isAgy = state.engine === 'antigravity';
+  const bin = isAgy ? 'agy' : cfg.command;
   return new Promise((resolve) => {
-    const child = spawn(cfg.command, ['models'], {
+    const child = spawn(bin, ['models'], {
       cwd: __dirname,
       timeout: 30000,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -358,7 +361,7 @@ function listAgentModels() {
     let out = '';
     child.stdout.on('data', (d) => { out += String(d); });
     child.on('error', (error) => {
-      resolve({ ok: false, error: `No se pudo lanzar "${cfg.command}": ${error.message}` });
+      resolve({ ok: false, error: `No se pudo lanzar "${bin}": ${error.message}` });
     });
     child.on('close', () => {
       const output = truncate(cleanAgentOutput(out), cfg.maxReplyChars);
@@ -657,13 +660,24 @@ function runAgentTask(prompt, mode, opts) {
         : mode === 'code'
           ? `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} Modo DESARROLLO TOTAL autorizado por el admin: actúa como el agente de código completo (igual que en una sesión opencode normal): lee, crea, modifica, elimina y verifica código con herramientas; ejecuta comandos no destructivos y lint/build enfocado; puedes hacer git push cuando lo pida, pero ANTES ejecuta obligatoriamente npm run sync:aiven:pre-push y solo continúa si termina OK (si falla o falta AIVEN_DATABASE_URL, detente e informa); nunca uses git add -A, solo archivos intencionales (jamás data/database.json salvo cambio intencional). Despliegues a Oracle y borrados masivos solo con confirmación explícita. ${continuityContract}${outboxHint}${WHATSAPP_FORMAT_DEV} Al final: resumen en el chat con el formato obligatorio + detalle en HTML. Tarea: ${prompt}`
           : `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} ${outboxHint}${WHATSAPP_FORMAT_ASK} Pregunta técnica (puede ser del proyecto o general: React, Java, Python, webhooks, build): ${prompt}`;
+    const isAgy = state.engine === 'antigravity';
+    const bin = isAgy ? 'agy' : cfg.command;
     const model = (state.model && state.model !== 'auto') ? state.model : '';
     const agentCli = AGENT_CATALOG[agent] && AGENT_CATALOG[agent].cli ? AGENT_CATALOG[agent].cli : null;
-    const args = ['run'];
-    if (model) args.push('--model', model);
-    if (agentCli) args.push('--agent', agentCli);
-    args.push(safePrompt);
-    const child = spawn(cfg.command, args, {
+    const args = [];
+    if (isAgy) {
+      args.push('-p', safePrompt);
+      const effort = thinking === 'xhigh' ? 'max' : thinking;
+      args.push('--effort', effort);
+      if (allowWrite) args.push('--dangerously-skip-permissions');
+      if (model) args.push('--model', model);
+    } else {
+      args.push('run');
+      if (model) args.push('--model', model);
+      if (agentCli) args.push('--agent', agentCli);
+      args.push(safePrompt);
+    }
+    const child = spawn(bin, args, {
       cwd: __dirname,
       timeout: Math.round(cfg.timeoutMs * thinkMult),
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -673,7 +687,7 @@ function runAgentTask(prompt, mode, opts) {
     child.stdout.on('data', (d) => { out += String(d); });
     child.stderr.on('data', (d) => { err += String(d); });
     child.on('error', (error) => {
-      resolve({ ok: false, code: 'spawn', error: `No se pudo lanzar "${cfg.command}": ${error.message}` });
+      resolve({ ok: false, code: 'spawn', error: `No se pudo lanzar "${bin}": ${error.message}` });
     });
     child.on('close', (code) => {
       const raw = out.trim() || err.trim();
