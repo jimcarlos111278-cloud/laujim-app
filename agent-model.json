@@ -1,10 +1,10 @@
 {
-  "engine": "auto",
+  "engine": "antigravity",
   "model": "",
   "agent": "auto",
   "thinking": "medium",
   "docs": false,
   "permission": "smart",
   "fallback": true,
-  "updatedAt": "2026-10-02T02:47:00.000Z"
+  "updatedAt": "2026-10-02T04:18:00.000Z"
 }

@@ -87,7 +87,7 @@ function agentConfig() {
       Number(process.env.OPENCODE_AGENT_TIMEOUT_MS || DEFAULT_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS,
     ),
     maxReplyChars: Math.max(
-      200,
+      6000,
       Number(process.env.OPENCODE_AGENT_MAX_REPLY_CHARS || DEFAULT_MAX_REPLY_CHARS) ||
         DEFAULT_MAX_REPLY_CHARS,
     ),
@@ -195,7 +195,9 @@ function readAgentState() {
     if (raw && typeof raw === 'object') state = raw;
   } catch { /* sin override */ }
   const engine = String(state.engine || 'antigravity').trim().toLowerCase();
-  const model = String(state.model || process.env.OPENCODE_AGENT_MODEL || '').trim();
+  const rawModel = state.model !== undefined && state.model !== null && state.model !== ''
+    ? String(state.model).trim()
+    : (engine === 'antigravity' ? '' : String(process.env.OPENCODE_AGENT_MODEL || '').trim());
   const agent = String(state.agent || process.env.OPENCODE_AGENT || 'auto').trim().toLowerCase();
   const thinking = String(state.thinking || process.env.OPENCODE_THINKING || 'medium').trim().toLowerCase();
   const docsRaw = state.docs ?? process.env.OPENCODE_AGENT_DOCS ?? false;
@@ -204,7 +206,7 @@ function readAgentState() {
   const fallback = state.fallback !== false;
   return {
     engine,
-    model: MODEL_ID_RE.test(model) ? model : (model === 'auto' ? 'auto' : ''),
+    model: MODEL_ID_RE.test(rawModel) ? rawModel : (rawModel === 'auto' ? 'auto' : ''),
     agent: AGENT_CATALOG[agent] ? agent : 'auto',
     thinking: THINKING_LEVELS[thinking] ? thinking : 'medium',
     docs,
@@ -442,7 +444,16 @@ function agentOutboxFiles(sinceMs) {
 function truncate(text, max) {
   const value = String(text || '').trim();
   if (value.length <= max) return value;
-  return `${value.slice(0, Math.max(0, max - 3)).trimEnd()}...`;
+  const cut = value.slice(0, max);
+  const lastPara = cut.lastIndexOf('\n\n');
+  if (lastPara > max * 0.7) {
+    return cut.slice(0, lastPara).trimEnd();
+  }
+  const lastDot = cut.lastIndexOf('. ');
+  if (lastDot > max * 0.7) {
+    return cut.slice(0, lastDot + 1).trimEnd();
+  }
+  return `${cut.trimEnd()}...`;
 }
 
 // ─── Diagnóstico rápido del sistema / VM (respuesta instantánea < 100ms) ──────────
@@ -659,6 +670,7 @@ function runAgentTask(prompt, mode, opts) {
     const isAgy = state.engine === 'antigravity' || state.engine === 'auto';
     const bin = isAgy ? 'agy' : cfg.command;
     const model = (state.model && state.model !== 'auto') ? state.model : '';
+    const isAgyModel = Boolean(model && !model.startsWith('opencode/') && !model.includes('muse-spark'));
     const agentCli = AGENT_CATALOG[agent] && AGENT_CATALOG[agent].cli ? AGENT_CATALOG[agent].cli : null;
     const args = [];
     if (isAgy) {
@@ -667,7 +679,7 @@ function runAgentTask(prompt, mode, opts) {
       args.push('--effort', effort);
       args.push('--dangerously-skip-permissions');
       if (!allowWrite) args.push('--mode', 'plan');
-      if (model) args.push('--model', model);
+      if (isAgyModel) args.push('--model', model);
     } else {
       args.push('run');
       if (model) args.push('--model', model);
