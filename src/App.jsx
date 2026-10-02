@@ -19,6 +19,7 @@ import ShareApartments from './pages/ShareApartments';
 import ContractGenerator from './pages/ContractGenerator';
 import Settings from './pages/Settings';
 import WhatsAppInbox from './pages/WhatsAppInbox';
+import MarketplaceInbox from './pages/MarketplaceInbox';
 import WhatsAppContacts from './pages/WhatsAppContacts';
 import PublicApartments from './pages/PublicApartments';
 import PublicApartment from './pages/PublicApartment';
@@ -243,6 +244,7 @@ function PrivateApp() {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/whatsapp" element={<WhatsAppInbox />} />
                   <Route path="/whatsapp-contactos" element={<WhatsAppContacts />} />
+                  <Route path="/marketplace" element={<MarketplaceInbox />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </Layout>

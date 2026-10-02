@@ -520,8 +520,57 @@ async function publish(page, job) {
   } catch (e) { return fail('publicar', e); }
 }
 
+async function handleActionOnListing(page, job, action) {
+  const targetUrl = job.listingUrl || 'https://www.facebook.com/marketplace/you/selling';
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await sleep(4000);
+  await page.screenshot({ path: `/tmp/fb-action-${action}-step1.png` }).catch(() => {});
+
+  const clickedAction = await page.evaluate(async (act) => {
+    const btns = [...document.querySelectorAll('[role="button"], button')];
+    let menuBtn = btns.find(b => {
+      const label = (b.getAttribute('aria-label') || b.innerText || '').toLowerCase();
+      return label.includes('administrar') || label.includes('más opciones') || label.includes('acciones') || label === '...';
+    });
+    if (menuBtn) {
+      menuBtn.click();
+      return true;
+    }
+    return false;
+  }, action).catch(() => false);
+
+  if (clickedAction) {
+    await sleep(2000);
+    await page.evaluate(async (act) => {
+      const items = [...document.querySelectorAll('[role="menuitem"], [role="button"], span')];
+      let targetText = '';
+      if (act === 'delete') targetText = 'eliminar';
+      else if (act === 'pause') targetText = 'pendiente';
+      else if (act === 'archive' || act === 'mark_rented') targetText = 'alquilado';
+      
+      const targetItem = items.find(it => (it.innerText || '').toLowerCase().includes(targetText));
+      if (targetItem) targetItem.click();
+    }, action).catch(() => {});
+
+    await sleep(2500);
+    await page.evaluate(() => {
+      const confirmBtns = [...document.querySelectorAll('[role="dialog"] [role="button"], [role="dialog"] button')];
+      const okBtn = confirmBtns.find(b => {
+        const t = (b.innerText || b.getAttribute('aria-label') || '').toLowerCase();
+        return t.includes('eliminar') || t.includes('confirmar') || t.includes('listo') || t.includes('guardar');
+      });
+      if (okBtn) okBtn.click();
+    }).catch(() => {});
+    await sleep(3000);
+  }
+
+  await page.screenshot({ path: `/tmp/fb-action-${action}-done.png` }).catch(() => {});
+  return true;
+}
+
 async function handleJob(browser, job) {
-  console.log(`[FB] anúncio ${job.id} (${job.apartmentName || '?'})`);
+  const action = String(job.action || 'publish').toLowerCase();
+  console.log(`[FB] job ${job.id} (${job.apartmentName || '?'}) accion=${action}`);
   const page = await browser.newPage();
   try {
     await page.setUserAgent(UA);
@@ -531,6 +580,30 @@ async function handleJob(browser, job) {
       return;
     }
     await heartbeat('ok', job.id);
+
+    if (action === 'delete') {
+      await setStatus(job.id, 'processing', { message: 'Eliminando publicación en Facebook...' });
+      await handleActionOnListing(page, job, 'delete');
+      await setStatus(job.id, 'deleted', { message: 'Publicación eliminada de Facebook Marketplace.' });
+      console.log(`[FB] job ${job.id} eliminado`);
+      return;
+    }
+    if (action === 'pause') {
+      await setStatus(job.id, 'processing', { message: 'Pausando publicación en Facebook...' });
+      await handleActionOnListing(page, job, 'pause');
+      await setStatus(job.id, 'paused', { message: 'Publicación pausada en Facebook Marketplace.' });
+      console.log(`[FB] job ${job.id} pausado`);
+      return;
+    }
+    if (action === 'archive' || action === 'mark_rented') {
+      await setStatus(job.id, 'processing', { message: 'Marcando como alquilada en Facebook...' });
+      await handleActionOnListing(page, job, 'mark_rented');
+      await setStatus(job.id, 'rented', { message: 'Publicación marcada como alquilada en Facebook.' });
+      console.log(`[FB] job ${job.id} marcado como alquilado`);
+      return;
+    }
+
+    // Default: publish
     await setStatus(job.id, 'processing', { message: 'Publicando desde la VM.' });
     const url = await publish(page, job);
     if (url) {

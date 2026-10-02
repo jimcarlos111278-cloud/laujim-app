@@ -255,7 +255,10 @@ export const api = {
       return Array.isArray(payload.jobs) ? payload.jobs : [];
     },
     async publish(apartmentId) {
-      return serverReq('POST', 'marketplace/jobs', null, { apartmentId, publish: true });
+      return serverReq('POST', 'marketplace/jobs', null, { apartmentId, publish: true, action: 'publish' });
+    },
+    async action(apartmentId, action) {
+      return serverReq('POST', 'marketplace/actions', null, { apartmentId, action });
     },
     async retry(jobId) {
       return serverReq('POST', `marketplace/jobs/${jobId}/retry`);
@@ -273,6 +276,37 @@ export const api = {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'No se pudieron consultar los logs de Marketplace.');
       return Array.isArray(payload.logs) ? payload.logs : [];
+    },
+    async status() {
+      const response = await fetch(getBase() + '/facebook/status', {
+        headers: { 'x-auth-token': currentAuthToken() },
+        signal: AbortSignal.timeout(8000),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'No se pudo consultar el estado del worker.');
+      return payload;
+    },
+    async getLeads(apartmentId) {
+      const suffix = apartmentId ? `?apartmentId=${encodeURIComponent(apartmentId)}` : '';
+      const response = await fetch(getBase() + '/marketplace/leads' + suffix, {
+        headers: { 'x-auth-token': currentAuthToken() },
+        signal: AbortSignal.timeout(10000),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'No se pudieron consultar los interesados.');
+      return Array.isArray(payload.leads) ? payload.leads : [];
+    },
+    async saveLead(lead) {
+      return serverReq('POST', 'marketplace/leads', null, lead);
+    },
+    async replyLead(leadId, text) {
+      return serverReq('POST', `marketplace/leads/${leadId}/reply`, null, { text });
+    },
+    async updateLeadStatus(leadId, status) {
+      return serverReq('POST', `marketplace/leads/${leadId}/status`, null, { status });
+    },
+    async deleteLead(leadId) {
+      return serverReq('DELETE', `marketplace/leads/${leadId}`);
     },
   },
   async uploadPhoto(file, apartmentId) {

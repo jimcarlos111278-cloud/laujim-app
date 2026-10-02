@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2, Camera, UserPlus, ShieldCheck
+  LayoutDashboard, Building2, Users, FileText, DollarSign, Zap, BarChart3, Settings, Menu, X, Home, Share2, ScrollText, Cloud, CloudOff, Download, MessageCircle, Plus, Minus, Type, LogOut, Smartphone, Trash2, Camera, UserPlus, ShieldCheck, ShoppingBag
 } from 'lucide-react';
 import { isServerAvailable } from '../utils/sync';
 import { clearAuth } from '../utils/auth';
@@ -20,6 +20,7 @@ const navItems = [
   { to: '/payments', label: 'Pagos', icon: DollarSign },
   { to: '/whatsapp', label: 'WhatsApp Cloud', icon: MessageCircle },
   { to: '/whatsapp-contactos', label: 'Contactos WhatsApp', icon: Users },
+  { to: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
   { to: '/utilities', label: 'Servicios Públicos', icon: Zap },
   { to: '/security', label: 'Cámaras y Detección ALPR', icon: Camera },
   { to: '/share', label: 'Compartir', icon: Share2 },

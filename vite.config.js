@@ -17,6 +17,7 @@ export default defineConfig({
   build: {
     cssMinify: true,
     rollupOptions: {
+      external: ['@capacitor/filesystem', 'hls.js'],
       output: {
         entryFileNames: 'assets/app.[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',

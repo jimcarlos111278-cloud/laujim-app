@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node server.cjs",
     "graphify": "node scripts/graphify-update.cjs",
+    "sync:all": "node scripts/sync-all.cjs",
     "sync:aiven:pre-push": "node scripts/sync-aiven-before-push.cjs",
     "dev": "npm run graphify && vite",
     "build": "npm run graphify && vite build && node scripts/generate-version.js && node scripts/fix-html.js",

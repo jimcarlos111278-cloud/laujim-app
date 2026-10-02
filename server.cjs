@@ -10748,6 +10748,7 @@ function marketplaceJobView(job) {
     id: job.id,
     apartmentId: job.apartmentId,
     apartmentName: job.apartmentName,
+    action: job.action || 'publish',
     status: job.status,
     publish: job.publish === true,
     createdAt: job.createdAt,
@@ -11098,9 +11099,10 @@ app.get('/api/marketplace/logs', (req, res) => {
 app.post('/api/marketplace/jobs', (req, res) => {
   if (!requireCloudAdmin(req, res)) return;
   const apartmentId = Number(req.body?.apartmentId);
+  const action = String(req.body?.action || 'publish').toLowerCase();
   const apartment = (db.apartments || []).find(item => Number(item.id) === apartmentId);
   if (!apartment) return res.status(404).json({ error: 'Apartamento no encontrado.' });
-  if (apartment.status !== 'vacant' && req.body?.force !== true) {
+  if (action === 'publish' && apartment.status !== 'vacant' && req.body?.force !== true) {
     return res.status(409).json({ error: 'El apartamento debe estar marcado como Disponible antes de publicarlo.' });
   }
 
@@ -11109,18 +11111,22 @@ app.post('/api/marketplace/jobs', (req, res) => {
   if (active) return res.json({ ok: true, alreadyQueued: true, job: marketplaceJobView(active) });
 
   const listing = marketplaceListingSnapshot(apartment, req);
-  if (!Number(listing.price)) return res.status(400).json({ error: 'Configura el canon mensual antes de publicar.' });
-  if (!listing.photoUrls.length) return res.status(400).json({ error: 'Agrega al menos una foto al apartamento antes de publicar.' });
-  if (!listing.address) return res.status(400).json({ error: 'Configura la dirección para Marketplace antes de publicar.' });
+  if (action === 'publish') {
+    if (!Number(listing.price)) return res.status(400).json({ error: 'Configura el canon mensual antes de publicar.' });
+    if (!listing.photoUrls.length) return res.status(400).json({ error: 'Agrega al menos una foto al apartamento antes de publicar.' });
+    if (!listing.address) return res.status(400).json({ error: 'Configura la dirección para Marketplace antes de publicar.' });
+  }
 
   const now = new Date().toISOString();
   const job = {
     id: nextMarketplaceJobId(),
     apartmentId,
     apartmentName: listing.apartmentName,
+    action,
     status: 'queued',
-    publish: req.body?.publish !== false,
+    publish: action === 'publish' && req.body?.publish !== false,
     listing,
+    listingUrl: req.body?.listingUrl || apartment.marketplaceUrl || null,
     createdAt: now,
     updatedAt: now,
     createdBy: req.auth?.name || 'Administrador',
@@ -11128,17 +11134,16 @@ app.post('/api/marketplace/jobs', (req, res) => {
     claimedBy: null,
     attempts: 0,
     error: null,
-    message: 'En cola para la VM (sesión FB abierta).',
-    listingUrl: null,
+    message: `En cola para la VM: acción '${action}'.`,
   };
   ensureMarketplaceJobs().push(job);
   appendScraperLog({
     source: 'server', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
-    stage: 'queued', level: 'info', message: `Apartamento ${job.apartmentName}: publicación agregada a la cola local.`,
-    details: { jobId: job.id, apartmentId: job.apartmentId, photos: listing.photoCount, publish: job.publish },
+    stage: 'queued', level: 'info', message: `Apartamento ${job.apartmentName}: acción '${action}' agregada a la cola.`,
+    details: { jobId: job.id, apartmentId: job.apartmentId, action, photos: listing.photoCount, publish: job.publish },
   }, { persist: false });
   saveData();
-  console.log(`[MARKETPLACE] Job ${job.id} queued for apartment ${job.apartmentName}; photos=${listing.photoCount}.`);
+  console.log(`[MARKETPLACE] Job ${job.id} queued for apartment ${job.apartmentName}; action=${action}; photos=${listing.photoCount}.`);
   res.status(201).json({ ok: true, job: marketplaceJobView(job) });
 });
 
@@ -11180,6 +11185,199 @@ app.post('/api/marketplace/jobs/:id/cancel', (req, res) => {
   job.message = 'Cancelado por el administrador.';
   saveData();
   res.json({ ok: true, job: marketplaceJobView(job) });
+});
+
+app.post('/api/marketplace/actions', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const { apartmentId, action } = req.body || {};
+  const apt = (db.apartments || []).find(item => Number(item.id) === Number(apartmentId));
+  if (!apt) return res.status(404).json({ error: 'Apartamento no encontrado.' });
+  const act = String(action || 'delete').toLowerCase();
+
+  const prevUrl = apt.marketplaceUrl || '';
+  if (act === 'delete') {
+    apt.marketplaceStatus = 'deleted';
+    apt.lastMarketplaceUrl = prevUrl;
+    apt.marketplaceUrl = '';
+  } else if (act === 'pause') {
+    apt.marketplaceStatus = 'paused';
+  } else if (act === 'archive') {
+    apt.marketplaceStatus = 'archived';
+  } else if (act === 'mark_rented') {
+    apt.marketplaceStatus = 'rented';
+    apt.status = 'occupied';
+  }
+
+  const listingUrl = prevUrl || apt.lastMarketplaceUrl || null;
+  const now = new Date().toISOString();
+  const job = {
+    id: nextMarketplaceJobId(),
+    apartmentId: Number(apartmentId),
+    apartmentName: apt.name || String(apartmentId),
+    action: act,
+    status: 'queued',
+    publish: false,
+    listingUrl,
+    listing: marketplaceListingSnapshot(apt, req),
+    createdAt: now,
+    updatedAt: now,
+    createdBy: req.auth?.name || 'Administrador',
+    claimedAt: null,
+    claimedBy: null,
+    attempts: 0,
+    error: null,
+    message: `En cola para la VM: acción '${act}'.`,
+  };
+  ensureMarketplaceJobs().push(job);
+  appendScraperLog({
+    source: 'server', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
+    stage: 'action_queued', level: 'info',
+    message: `Apartamento ${job.apartmentName}: acción '${act}' encolada para la VM.`,
+    details: { jobId: job.id, apartmentId: job.apartmentId, action: act, listingUrl },
+  }, { persist: false });
+  saveData();
+  res.json({ ok: true, job: marketplaceJobView(job), apartment: apt });
+});
+
+// ─── Marketplace Leads & Inquiries Chat ─────────────────────────
+app.get('/api/marketplace/leads', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const apartmentId = req.query.apartmentId ? Number(req.query.apartmentId) : null;
+  let leads = Array.isArray(db.leads) ? [...db.leads] : [];
+  if (apartmentId) {
+    leads = leads.filter(l => Number(l.apartmentId) === apartmentId);
+  }
+  leads.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+  res.json({ ok: true, leads });
+});
+
+app.post('/api/marketplace/leads', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  if (!Array.isArray(db.leads)) db.leads = [];
+  const body = req.body || {};
+  const now = new Date().toISOString();
+  let lead = null;
+  if (body.id) {
+    lead = db.leads.find(l => Number(l.id) === Number(body.id));
+  }
+  if (lead) {
+    if (body.name !== undefined) lead.name = String(body.name).trim();
+    if (body.phone !== undefined) lead.phone = String(body.phone).trim();
+    if (body.status !== undefined) lead.status = String(body.status).trim();
+    if (body.notes !== undefined) lead.notes = String(body.notes).trim();
+    if (body.apartmentId !== undefined) lead.apartmentId = Number(body.apartmentId) || null;
+    if (body.apartmentName !== undefined) lead.apartmentName = String(body.apartmentName).trim();
+    lead.updatedAt = now;
+  } else {
+    const newId = (nextId.leads || (db.leads.reduce((m, l) => Math.max(m, Number(l.id) || 0), 0) + 1));
+    nextId.leads = newId + 1;
+    lead = {
+      id: newId,
+      name: String(body.name || 'Prospecto Marketplace').trim(),
+      phone: String(body.phone || '').trim(),
+      channel: 'facebook',
+      source: 'marketplace',
+      status: String(body.status || 'nuevo').trim(),
+      notes: String(body.notes || '').trim(),
+      apartmentId: Number(body.apartmentId) || null,
+      apartmentName: String(body.apartmentName || '').trim(),
+      messages: Array.isArray(body.messages) ? body.messages : [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.leads.push(lead);
+  }
+  saveData();
+  res.json({ ok: true, lead });
+});
+
+app.post('/api/marketplace/leads/:id/reply', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const leadId = Number(req.params.id);
+  const lead = (db.leads || []).find(l => Number(l.id) === leadId);
+  if (!lead) return res.status(404).json({ error: 'Prospecto no encontrado.' });
+  const text = String(req.body?.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'El mensaje no puede estar vacío.' });
+  if (!Array.isArray(lead.messages)) lead.messages = [];
+  const now = new Date().toISOString();
+  const msg = {
+    id: Date.now(),
+    sender: 'admin',
+    senderName: req.auth?.name || 'Administrador',
+    text,
+    timestamp: now,
+  };
+  lead.messages.push(msg);
+  lead.updatedAt = now;
+  if (lead.status === 'nuevo') lead.status = 'en_conversacion';
+  saveData();
+  res.json({ ok: true, lead, message: msg });
+});
+
+app.post('/api/marketplace/leads/:id/status', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const leadId = Number(req.params.id);
+  const lead = (db.leads || []).find(l => Number(l.id) === leadId);
+  if (!lead) return res.status(404).json({ error: 'Prospecto no encontrado.' });
+  const status = String(req.body?.status || '').trim();
+  if (!status) return res.status(400).json({ error: 'Estado requerido.' });
+  lead.status = status;
+  lead.updatedAt = new Date().toISOString();
+  saveData();
+  res.json({ ok: true, lead });
+});
+
+app.delete('/api/marketplace/leads/:id', (req, res) => {
+  if (!requireCloudAdmin(req, res)) return;
+  const leadId = Number(req.params.id);
+  const idx = (db.leads || []).findIndex(l => Number(l.id) === leadId);
+  if (idx === -1) return res.status(404).json({ error: 'Prospecto no encontrado.' });
+  db.leads.splice(idx, 1);
+  saveData();
+  res.json({ ok: true, deleted: true });
+});
+
+app.post('/worker/v1/marketplace/leads', requirePortableWorker, (req, res) => {
+  const incoming = Array.isArray(req.body?.leads) ? req.body.leads : [req.body].filter(Boolean);
+  if (!Array.isArray(db.leads)) db.leads = [];
+  const now = new Date().toISOString();
+  let added = 0;
+  for (const item of incoming) {
+    if (!item || !item.name) continue;
+    let existing = db.leads.find(l => (item.facebookThreadId && l.facebookThreadId === item.facebookThreadId) || (l.name.toLowerCase() === item.name.toLowerCase() && l.apartmentId === item.apartmentId));
+    if (existing) {
+      if (Array.isArray(item.messages)) {
+        if (!Array.isArray(existing.messages)) existing.messages = [];
+        for (const m of item.messages) {
+          if (!existing.messages.some(em => em.text === m.text && Math.abs(new Date(em.timestamp) - new Date(m.timestamp)) < 60000)) {
+            existing.messages.push(m);
+          }
+        }
+      }
+      existing.updatedAt = now;
+    } else {
+      const newId = (nextId.leads || (db.leads.reduce((m, l) => Math.max(m, Number(l.id) || 0), 0) + 1));
+      nextId.leads = newId + 1;
+      db.leads.push({
+        id: newId,
+        facebookThreadId: item.facebookThreadId || null,
+        name: item.name,
+        phone: item.phone || '',
+        channel: 'facebook',
+        source: 'marketplace',
+        status: item.status || 'nuevo',
+        notes: item.notes || '',
+        apartmentId: item.apartmentId || null,
+        apartmentName: item.apartmentName || '',
+        messages: Array.isArray(item.messages) ? item.messages : [],
+        createdAt: now,
+        updatedAt: now,
+      });
+      added++;
+    }
+  }
+  saveData();
+  res.json({ ok: true, added });
 });
 
 app.get('/worker/v1/marketplace/jobs/next', requirePortableWorker, (req, res) => {
@@ -11226,6 +11424,8 @@ app.get('/worker/v1/marketplace/jobs/next', requirePortableWorker, (req, res) =>
       id: job.id,
       apartmentId: job.apartmentId,
       apartmentName: job.apartmentName,
+      action: job.action || 'publish',
+      listingUrl: job.listingUrl || null,
       publish: job.publish === true,
       listing: job.listing,
       attempt: job.attempts,
@@ -11263,7 +11463,7 @@ app.post('/worker/v1/marketplace/jobs/:id/status', requirePortableWorker, (req, 
   if (!deviceId) return res.status(400).json({ error: 'deviceId inválido' });
   if (!job) return res.status(404).json({ error: 'Trabajo de Marketplace no encontrado.' });
   if (job.claimedBy && job.claimedBy !== deviceId) return res.status(409).json({ error: 'El trabajo pertenece a otro dispositivo.' });
-  const allowed = ['processing', 'needs_login', 'needs_review', 'published', 'failed'];
+  const allowed = ['processing', 'needs_login', 'needs_review', 'published', 'failed', 'deleted', 'paused', 'rented'];
   const status = String(req.body?.status || '').trim().toLowerCase();
   if (!allowed.includes(status)) return res.status(400).json({ error: 'Estado de Marketplace inválido.' });
   const now = new Date().toISOString();
@@ -11271,16 +11471,34 @@ app.post('/worker/v1/marketplace/jobs/:id/status', requirePortableWorker, (req, 
   job.status = status;
   job.updatedAt = now;
   if (status === 'processing' && !job.startedAt) job.startedAt = now;
-  if (['needs_login', 'needs_review', 'published', 'failed'].includes(status)) job.finishedAt = now;
+  if (['needs_login', 'needs_review', 'published', 'failed', 'deleted', 'paused', 'rented'].includes(status)) job.finishedAt = now;
   job.error = String(req.body?.error || '').trim().slice(0, 1200) || null;
   job.message = String(req.body?.message || '').trim().slice(0, 1200) || null;
   const candidateUrl = String(req.body?.listingUrl || '').trim().slice(0, 1000);
   if (/^https:\/\/(?:www\.|web\.|m\.)?facebook\.com\/marketplace\/item\//i.test(candidateUrl)) {
     job.listingUrl = candidateUrl;
   }
+  const apartment = (db.apartments || []).find(item => Number(item.id) === Number(job.apartmentId));
   if (status === 'published') {
-    const apartment = (db.apartments || []).find(item => Number(item.id) === Number(job.apartmentId));
-    if (apartment && job.listingUrl) apartment.marketplaceUrl = job.listingUrl;
+    if (apartment && job.listingUrl) {
+      apartment.marketplaceUrl = job.listingUrl;
+      apartment.marketplaceStatus = 'published';
+    }
+  } else if (status === 'deleted') {
+    if (apartment) {
+      apartment.lastMarketplaceUrl = apartment.marketplaceUrl || job.listingUrl;
+      apartment.marketplaceUrl = '';
+      apartment.marketplaceStatus = 'deleted';
+    }
+  } else if (status === 'paused') {
+    if (apartment) {
+      apartment.marketplaceStatus = 'paused';
+    }
+  } else if (status === 'rented') {
+    if (apartment) {
+      apartment.marketplaceStatus = 'rented';
+      apartment.status = 'occupied';
+    }
   }
   appendScraperLog({
     source: 'server', provider: 'Facebook Marketplace', runId: `marketplace-job-${job.id}`,
