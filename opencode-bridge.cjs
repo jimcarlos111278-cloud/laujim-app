@@ -262,8 +262,7 @@ function setAgentEngine(engineName) {
     return { ok: false, error: 'Motor inválido. Usa: auto, gemini, muse, antigravity.' };
   }
   let targetModel = '';
-  if (norm.includes('gemini')) targetModel = 'google/gemini-3.8-flash';
-  if (norm.includes('muse')) targetModel = 'opencode/muse-spark-1.3';
+  if (norm.includes('muse')) targetModel = 'opencode/muse-spark-1.3-contributor-free';
   return writeAgentState({ engine: norm, model: targetModel });
 }
 
@@ -279,7 +278,7 @@ function setAgentPermission(perm) {
 function resetAgentDefaults() {
   return writeAgentState({
     engine: 'auto',
-    model: 'auto',
+    model: '',
     agent: 'auto',
     thinking: 'medium',
     docs: false,
@@ -539,7 +538,7 @@ function runAgentTask(prompt, mode, opts) {
         : mode === 'code'
           ? `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} Modo DESARROLLO TOTAL autorizado por el admin: actúa como el agente de código completo (igual que en una sesión opencode normal): lee, crea, modifica, elimina y verifica código con herramientas; ejecuta comandos no destructivos y lint/build enfocado; puedes hacer git push cuando lo pida, pero ANTES ejecuta obligatoriamente npm run sync:aiven:pre-push y solo continúa si termina OK (si falla o falta AIVEN_DATABASE_URL, detente e informa); nunca uses git add -A, solo archivos intencionales (jamás data/database.json salvo cambio intencional). Despliegues a Oracle y borrados masivos solo con confirmación explícita. ${continuityContract}${outboxHint}${WHATSAPP_FORMAT_DEV} Al final: resumen en el chat con el formato obligatorio + detalle en HTML. Tarea: ${prompt}`
           : `${techStyle} ${agentRole} ${thinkStyle} ${nodeContext} ${outboxHint}${WHATSAPP_FORMAT_ASK} Pregunta técnica (puede ser del proyecto o general: React, Java, Python, webhooks, build): ${prompt}`;
-    const model = state.model;
+    const model = (state.model && state.model !== 'auto') ? state.model : '';
     const agentCli = AGENT_CATALOG[agent] && AGENT_CATALOG[agent].cli ? AGENT_CATALOG[agent].cli : null;
     const args = ['run'];
     if (model) args.push('--model', model);
