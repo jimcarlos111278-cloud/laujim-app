@@ -260,11 +260,23 @@ async function clickTextButton(page, text) {
   for (const b of btns) {
     const box = await b.boundingBox().catch(() => null);
     if (!box || box.width < 40) continue;
-    const t = String(await page.evaluate(el => el.innerText || '', b).catch(() => '')).trim().toLowerCase();
-    if (t === text) {
+    const info = await page.evaluate(el => ({
+      text: (el.innerText || '').trim().toLowerCase(),
+      ariaDisabled: el.getAttribute('aria-disabled'),
+      disabled: el.disabled
+    }), b).catch(() => null);
+    if (info && info.text === text.toLowerCase()) {
+      if (info.ariaDisabled === 'true' || info.disabled) {
+        return 'disabled';
+      }
       await page.evaluate(el => el.scrollIntoView({ block: 'center' }), b).catch(() => {});
       await sleep(500);
-      await b.click();
+      const r = await b.boundingBox().catch(() => null);
+      if (r && r.width > 0 && r.height > 0) {
+        await page.mouse.click(r.x + r.width / 2, r.y + r.height / 2);
+      } else {
+        await b.click().catch(() => {});
+      }
       return true;
     }
   }
@@ -313,80 +325,6 @@ async function publish(page, job) {
     await tell(job.id, [{ stage: 'formulario', level: 'info', message: 'Formulario de arriendo listo.' }]);
   } catch (e) { return fail('formulario', e); }
 
-  const must = [
-    ['titulo', ['titulo', 'title'], ad.title || `Arriendo ${ad.apartmentName || ''}`.trim()],
-    ['precio', ['precio al mes', 'precio', 'price'], ad.price],
-    ['descripcion', ['descripcion de la propiedad', 'descripcion', 'description'], ad.description, 'textarea'],
-    ['habitaciones', ['numero de habitaciones', 'habitaciones', 'bedrooms'], ad.bedrooms],
-    ['banos', ['numero de banos', 'banos', 'bathrooms'], ad.bathrooms],
-    ['area', ['pies cuadrados', 'square feet', 'metros cuadrados'], ad.propertySquareFeet || ad.area],
-    ['disponibilidad', ['fecha disponible', 'disponibilidad', 'date available'], ad.availability],
-  ];
-  for (const [name, words, value, selector] of must) {
-    try {
-      if (name === 'titulo') {
-        const ok = await fillOne(page, job.id, name, words, value, selector);
-        if (!ok) {
-          // El formulario de arriendos de Facebook suele autogenerar el título con tipo + habitaciones
-          await tell(job.id, [{ stage: 'campo_titulo_auto', level: 'info', message: 'Título autogenerado o no requerido en formulario de arriendo.' }]);
-        }
-      } else if (name === 'precio' || name === 'descripcion') {
-        const ok = await fillOne(page, job.id, name, words, value, selector);
-        if (!ok) throw new Error(`campo ${name} obligatorio no encontrado en el formulario`);
-      } else {
-        await fillOne(page, job.id, name, words, value, selector);
-      }
-    } catch (e) { return fail(name, e); }
-  }
-
-  try {
-    const address = [ad.address, ad.city].filter(Boolean).join(', ') || 'Barranquilla';
-    const field = await page.$('input[role="combobox"][aria-autocomplete="list"][type="text"]').catch(() => null)
-      || await findField(page, ['lugar', 'ubicacion', 'location', 'direccion'], 'input[type="text"], input:not([type])');
-    if (!field) throw new Error('sin campo de ubicación');
-    await writeField(page, field, address);
-    await sleep(2500);
-    const picked = await page.evaluate(() => {
-      const opts = [...document.querySelectorAll('[role="option"], [role="listbox"] li')].filter(el => el.getBoundingClientRect().width > 50);
-      const hit = opts.find(el => {
-        const t = (el.textContent || '').toLowerCase();
-        return t && !t.includes('ubicacion actual') && !t.includes('current location');
-      });
-      if (hit) { hit.click(); return (hit.textContent || '').trim().slice(0, 100); }
-      return '';
-    }).catch(() => '');
-    if (!picked) throw new Error('sin sugerencia para ' + address.slice(0, 60));
-    await tell(job.id, [{ stage: 'campo_ubicacion', level: 'info', message: `Ubicación: ${picked}.` }]);
-  } catch (e) { return fail('ubicacion', e); }
-
-  try {
-    let rent = norm(ad.rentalType);
-    if (!rent || /departamento|apartamento|piso|condominio/.test(rent)) rent = 'apartamento o piso';
-    const chosen = await pickOption(page, job.id, 'tipo de propiedad en alquiler', rent);
-    await tell(job.id, [{ stage: 'campo_tipo', level: 'info', message: `Tipo: ${chosen}.` }]);
-    // Opciones exactas descubiertas del navegador real (ver --discover).
-    // 'Ninguno' del anuncio = 'No' en Facebook.
-    const noIfNone = v => {
-      const n = norm(v);
-      if (!n) return '';
-      if (/^(ninguno|none|no tiene|sin|no)$/.test(n)) return 'No';
-      return String(v);
-    };
-    for (const [row, val] of [
-      ['tipo de lavanderia', ad.laundryType], ['tipo de aparcamiento', ad.parkingType],
-      ['tipo de aire acondicionado', ad.airConditioningType], ['tipo de calefaccion', ad.heatingType],
-    ]) {
-      const mapped = noIfNone(val);
-      if (!mapped) continue;
-      try {
-        const chosen = await pickOption(page, job.id, row, mapped);
-        await tell(job.id, [{ stage: 'lista_ok', level: 'info', message: `${row}: ${chosen}.` }]);
-      } catch (e) {
-        await tell(job.id, [{ stage: 'lista_opcional', level: 'warn', message: `${row}: ${String(e.message).slice(0, 140)}` }]);
-      }
-    }
-  } catch (e) { return fail('listas', e); }
-
   try {
     const files = await downloadAll(ad.photoUrls, path.join(os.tmpdir(), `fb-ad-${job.id}`));
     if (!files.length) throw new Error('sin fotos descargables');
@@ -399,26 +337,184 @@ async function publish(page, job) {
       if (!inputs.length) throw new Error('sin selector de archivos');
       await inputs[0].uploadFile(...files);
     }
-    await sleep(8000);
+    await sleep(7000);
     await tell(job.id, [{ stage: 'fotos', level: 'info', message: `${files.length} fotos enviadas.` }]);
   } catch (e) { return fail('fotos', e); }
 
   try {
-    if (!(await clickTextButton(page, 'siguiente'))) throw new Error('sin botón Siguiente');
+    let rent = norm(ad.rentalType);
+    if (!rent || /departamento|apartamento|piso|condominio/.test(rent)) rent = 'apartamento o piso';
+    const chosen = await pickOption(page, job.id, 'tipo de propiedad en alquiler', rent);
+    await tell(job.id, [{ stage: 'campo_tipo', level: 'info', message: `Tipo: ${chosen}.` }]);
+  } catch (e) { return fail('tipo_propiedad', e); }
+
+  const must = [
+    ['habitaciones', ['numero de habitaciones', 'habitaciones', 'dormitorios', 'numero de dormitorios', 'bedrooms'], ad.bedrooms],
+    ['banos', ['numero de banos', 'baños', 'banos', 'bathrooms'], ad.bathrooms],
+    ['precio', ['precio al mes', 'precio', 'price'], ad.price],
+    ['descripcion', ['descripcion de la propiedad', 'descripcion', 'description'], ad.description, 'textarea'],
+  ];
+  for (const [name, words, value, selector] of must) {
+    try {
+      const ok = await fillOne(page, job.id, name, words, value, selector);
+      if (!ok && (name === 'precio' || name === 'descripcion')) {
+        throw new Error(`campo ${name} obligatorio no encontrado en el formulario`);
+      }
+    } catch (e) { return fail(name, e); }
+  }
+
+  try {
+    const field = await page.$('input[role="combobox"][aria-autocomplete="list"][type="text"]').catch(() => null)
+      || await findField(page, ['lugar', 'ubicacion', 'location', 'direccion'], 'input[type="text"], input:not([type])')
+      || await page.evaluateHandle(() => {
+        const inputs = [...document.querySelectorAll('input[type="text"]')];
+        return inputs.find(i => i.getAttribute('role') === 'combobox');
+      });
+    const addrHandle = field && field.asElement ? field.asElement() : field;
+    if (!addrHandle) throw new Error('sin campo de ubicación');
+
+    await addrHandle.evaluate(el => el.scrollIntoView({ block: 'center' }));
+    await sleep(500);
+    await addrHandle.click({ clickCount: 3 }).catch(() => {});
+    await page.keyboard.press('Backspace').catch(() => {});
+    await sleep(300);
+
+    const searchTerm = ad.city || 'Barranquilla';
+    await addrHandle.type(searchTerm, { delay: 50 });
+    await sleep(3000);
+
+    const suggestion = await page.evaluate(() => {
+      const items = [...document.querySelectorAll('[role="option"], [role="listbox"] li, div[role="listbox"] div[role="button"], ul[role="listbox"] > li')];
+      const valid = items.filter(el => {
+        const t = (el.innerText || '').trim();
+        const r = el.getBoundingClientRect();
+        return r.width > 100 && t.length > 3 && !t.toLowerCase().includes('actual');
+      });
+      if (!valid.length) return null;
+      valid[0].scrollIntoView({ block: 'center' });
+      const r = valid[0].getBoundingClientRect();
+      return {
+        text: (valid[0].innerText || '').replace(/\s+/g, ' ').slice(0, 100),
+        x: r.x + r.width / 2,
+        y: r.y + r.height / 2
+      };
+    }).catch(() => null);
+
+    if (suggestion && suggestion.x && suggestion.y > 0) {
+      await page.mouse.click(suggestion.x, suggestion.y);
+      await tell(job.id, [{ stage: 'campo_ubicacion', level: 'info', message: `Ubicación seleccionada: ${suggestion.text.slice(0, 80)}.` }]);
+    } else {
+      await page.keyboard.press('ArrowDown').catch(() => {});
+      await sleep(500);
+      await page.keyboard.press('Enter').catch(() => {});
+      await tell(job.id, [{ stage: 'campo_ubicacion', level: 'info', message: `Ubicación enviada por teclado: ${searchTerm}.` }]);
+    }
+    await sleep(2500);
+  } catch (e) { return fail('ubicacion', e); }
+
+  try {
+    const endSig = Date.now() + 30000;
+    let clickedSig = false;
+    while (Date.now() < endSig) {
+      const nextBtnBox = await page.evaluate(() => {
+        const btn = [...document.querySelectorAll('div[role="button"], button')].find(b => (b.innerText || '').trim().toLowerCase() === 'siguiente');
+        if (!btn || btn.getAttribute('aria-disabled') === 'true') return null;
+        btn.scrollIntoView({ block: 'center' });
+        const r = btn.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      }).catch(() => null);
+
+      if (nextBtnBox && nextBtnBox.x && nextBtnBox.y > 0) {
+        await page.mouse.click(nextBtnBox.x, nextBtnBox.y);
+        clickedSig = true;
+        break;
+      }
+      await sleep(1500);
+    }
+    if (!clickedSig) {
+      const errMsg = await page.evaluate(() => {
+        const err = [...document.querySelectorAll('span, div')].find(e => /elige una de las direcciones|requerido|obligatorio/i.test(e.innerText || ''));
+        return err ? err.innerText.slice(0, 100) : '';
+      }).catch(() => '');
+      throw new Error(`botón Siguiente no habilitado${errMsg ? ': ' + errMsg : ''}`);
+    }
     await sleep(6000);
-    const end = Date.now() + 90000;
+    const end = Date.now() + 60000;
     let sent = false;
     while (Date.now() < end) {
-      if (await clickTextButton(page, 'publicar')) { sent = true; break; }
+      const pubBtnBox = await page.evaluate(() => {
+        const btn = [...document.querySelectorAll('div[role="button"], button')].find(b => (b.innerText || '').trim().toLowerCase() === 'publicar');
+        if (!btn || btn.getAttribute('aria-disabled') === 'true') return null;
+        btn.scrollIntoView({ block: 'center' });
+        const r = btn.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      }).catch(() => null);
+
+      if (pubBtnBox && pubBtnBox.x && pubBtnBox.y > 0) {
+        await page.mouse.click(pubBtnBox.x, pubBtnBox.y);
+        sent = true;
+        break;
+      }
       await sleep(1500);
     }
     if (!sent) throw new Error('Publicar no se habilitó');
+    await tell(job.id, [{ stage: 'publicado_click', level: 'info', message: 'Botón Publicar presionado.' }]);
+
     const end2 = Date.now() + 90000;
     while (Date.now() < end2) {
       const m = page.url().match(/facebook\.com\/marketplace\/item\/(\d+)/i);
       if (m) return `https://www.facebook.com/marketplace/item/${m[1]}/`;
+
+      const itemLink = await page.evaluate(() => {
+        const a = document.querySelector('a[href*="/marketplace/item/"]');
+        return a ? a.href : null;
+      }).catch(() => null);
+      if (itemLink) {
+        const m2 = itemLink.match(/facebook\.com\/marketplace\/item\/(\d+)/i);
+        if (m2) return `https://www.facebook.com/marketplace/item/${m2[1]}/`;
+      }
+
       if (/login|checkpoint|two_factor/i.test(page.url())) throw new Error('Facebook pidió verificación extra');
-      await sleep(2000);
+
+      if (!page.url().includes('/create/')) {
+        await sleep(3000);
+        await page.keyboard.press('Escape').catch(() => {});
+        await sleep(1000);
+        await page.keyboard.press('Escape').catch(() => {});
+        await sleep(1000);
+
+        try {
+          const cardBox = await page.evaluate(() => {
+            const els = [...document.querySelectorAll('div, span')].filter(el => {
+              const t = (el.innerText || '').trim();
+              return (t.includes('habitación') || t.includes('Apartamento') || t.includes('Activo') || t.includes('Publicado')) && el.getBoundingClientRect().width > 120;
+            });
+            if (!els.length) return null;
+            els.sort((a, b) => a.innerText.length - b.innerText.length);
+            const target = els[0];
+            target.scrollIntoView({ block: 'center' });
+            const r = target.getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+          }).catch(() => null);
+
+          if (cardBox && cardBox.x && cardBox.y > 0) {
+            await page.mouse.click(cardBox.x, cardBox.y);
+            await sleep(4000);
+            const mCard = page.url().match(/facebook\.com\/marketplace\/item\/(\d+)/i);
+            if (mCard) return `https://www.facebook.com/marketplace/item/${mCard[1]}/`;
+
+            const drawerLinks = await page.evaluate(() => {
+              return [...document.querySelectorAll('a[href*="/marketplace/item/"]')].map(a => a.href);
+            }).catch(() => []);
+            for (const dl of drawerLinks) {
+              const mDl = dl.match(/facebook\.com\/marketplace\/item\/(\d+)/i);
+              if (mDl) return `https://www.facebook.com/marketplace/item/${mDl[1]}/`;
+            }
+          }
+        } catch {}
+      }
+
+      await sleep(2500);
     }
     throw new Error('sin URL confirmada');
   } catch (e) { return fail('publicar', e); }
