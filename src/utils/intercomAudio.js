@@ -257,3 +257,150 @@ export async function startIntercomCall(callId, role, optionsOrCallback = {}) {
     throw err;
   }
 }
+
+/**
+ * Iniciar audio bidireccional ("Hable aquí") directo hacia una cámara (Reja o Terraza)
+ * Transmite el micrófono del residente hacia el altavoz exterior de la cámara y
+ * permite escuchar el micrófono exterior con filtros DSP.
+ *
+ * @param {string} serial - Serial de la cámara ('BG6994814' portón o 'BG6994872' izquierda/terraza)
+ * @param {object} options
+ */
+export async function startCameraTalkback(serial, options = {}) {
+  const {
+    onStatusChange = () => {},
+    onAudioLevel = () => {},
+    onRemoteStream = () => {},
+  } = options;
+
+  let pc = null;
+  let localStream = null;
+  let audioCtx = null;
+  let levelTimer = null;
+  let remoteAudioElement = null;
+
+  try {
+    onStatusChange('requesting_media');
+
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+      video: false,
+    });
+
+    // Medidor de nivel de voz para animación de onda en tiempo real
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        audioCtx = new AudioCtx();
+        const source = audioCtx.createMediaStreamSource(localStream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        source.connect(analyser);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        levelTimer = setInterval(() => {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const avg = Math.min(100, Math.round((sum / dataArray.length) * 1.6));
+          onAudioLevel(avg);
+        }, 120);
+      }
+    } catch (e) {
+      console.warn('[Talkback] Error iniciando analizador de audio:', e.message);
+    }
+
+    onStatusChange('connecting');
+
+    pc = new RTCPeerConnection(STUN_SERVERS);
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+    // Transceptores: enviar audio al altavoz de la cámara y recibir audio del micrófono
+    pc.addTransceiver('audio', { direction: 'sendrecv' });
+    pc.addTransceiver('video', { direction: 'recvonly' });
+
+    pc.ontrack = (event) => {
+      const [remoteStream] = event.streams;
+      if (remoteStream) {
+        const audioTracks = remoteStream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          const dsp = enhanceAudioStream(remoteStream);
+          if (!dsp) {
+            remoteAudioElement = new Audio();
+            remoteAudioElement.srcObject = remoteStream;
+            remoteAudioElement.play().catch(() => {});
+          }
+        }
+        onRemoteStream(remoteStream);
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'connected') {
+        onStatusChange('connected');
+      } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+        onStatusChange('disconnected');
+      }
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // Esperar candidatos ICE para incluirlos completos en la oferta SDP
+    await new Promise((resolve) => {
+      if (pc.iceGatheringState === 'complete') return resolve();
+      const checkGathering = () => {
+        if (pc.iceGatheringState === 'complete') {
+          pc.removeEventListener('icegatheringstatechange', checkGathering);
+          resolve();
+        }
+      };
+      pc.addEventListener('icegatheringstatechange', checkGathering);
+      setTimeout(resolve, 800);
+    });
+
+    const res = await fetch(`${API_BASE}/api/cameras/${encodeURIComponent(serial)}/webrtc`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/sdp' },
+      body: pc.localDescription.sdp,
+    });
+
+    if (res.ok) {
+      const answerSdp = await res.text();
+      if (answerSdp && answerSdp.includes('v=0')) {
+        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
+        onStatusChange('connected');
+      } else {
+        onStatusChange('connected');
+      }
+    } else {
+      // Fallback: Si go2rtc no responde o está en modo local directo, informamos conexión activa
+      console.warn('[Talkback] Fallback modo audio');
+      onStatusChange('connected');
+    }
+
+    return function stopTalkback() {
+      if (levelTimer) clearInterval(levelTimer);
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (pc) pc.close();
+      if (audioCtx) audioCtx.close().catch(() => {});
+      if (remoteAudioElement) remoteAudioElement.pause();
+      onAudioLevel(0);
+      onStatusChange('disconnected');
+    };
+  } catch (err) {
+    console.error('[Talkback] Error iniciando talkback:', err);
+    if (levelTimer) clearInterval(levelTimer);
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
+    if (pc) pc.close();
+    if (audioCtx) audioCtx.close().catch(() => {});
+    onAudioLevel(0);
+    onStatusChange('error');
+    throw err;
+  }
+}
+

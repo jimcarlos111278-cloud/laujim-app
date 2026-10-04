@@ -88,6 +88,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'x-auth-token', 'x-worker-token', 'x-worker-id'],
 }));
 app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
+app.use(express.text({ type: ['application/sdp', 'text/plain'], limit: '10mb' }));
 
 // Traza mínima de intentos de acceso (sin secretos): permite distinguir un
 // login que nunca llega al servidor (red/navegador) de uno que falla adentro.
@@ -9035,6 +9036,48 @@ app.get('/api/live/hls/:file', async (req, res) => {
     res.send(buf);
   } catch (err) {
     res.status(502).json({ error: 'go2rtc reconectando cámara o no disponible' });
+  }
+});
+
+// Proxy WebRTC bidireccional hacia go2rtc para audio en dos vías ("Hable aquí" y altavoz exterior de la cámara)
+app.post(['/api/cameras/:serial/webrtc', '/api/webrtc'], async (req, res) => {
+  const serial = String(req.params.serial || req.query.serial || req.body?.serial || 'BG6994814').trim();
+  const streamName = GO2RTC_STREAM_MAP[serial] || 'cam_gate';
+  const isBridgeLive = await checkGo2RtcOnline();
+
+  if (!isBridgeLive) {
+    return res.status(503).json({ ok: false, error: 'Puente go2rtc no disponible localmente' });
+  }
+
+  try {
+    let sdpBody = '';
+    if (typeof req.body === 'string') {
+      sdpBody = req.body;
+    } else if (req.body?.sdp) {
+      sdpBody = req.body.sdp;
+    } else if (req.rawBody) {
+      sdpBody = req.rawBody.toString('utf-8');
+    }
+
+    const upstream = await fetch(`http://127.0.0.1:1984/api/webrtc?src=${encodeURIComponent(streamName)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': req.headers['content-type'] || 'application/sdp',
+      },
+      body: sdpBody,
+      signal: AbortSignal.timeout(8000),
+    });
+
+    const answer = await upstream.text();
+    if (!upstream.ok) {
+      return res.status(upstream.status).send(answer || 'Error en go2rtc webrtc');
+    }
+
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/sdp');
+    res.setHeader('Cache-Control', 'no-cache, no-store');
+    res.send(answer);
+  } catch (err) {
+    res.status(502).json({ ok: false, error: 'Error comunicando con go2rtc: ' + err.message });
   }
 });
 

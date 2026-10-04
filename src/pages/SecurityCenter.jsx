@@ -5,10 +5,11 @@ import {
   Activity, Radio, HardDrive, Info, Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   Maximize2, Minimize2, ChevronLeft, ChevronRight, Eye, ShieldAlert, Sparkles, Check, Download, Film, Compass, Play, Clock, Calendar,
   Settings, KeyRound, Video, Globe, Car, ZoomIn, ZoomOut, RotateCcw,
-  Sliders, ChevronDown, ChevronUp, X, ExternalLink
+  Sliders, ChevronDown, ChevronUp, X, ExternalLink, Mic, MicOff, Volume2, VolumeX
 } from 'lucide-react';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { getAuth } from '../utils/auth';
+import { startCameraTalkback } from '../utils/intercomAudio';
 
 const ADMIN_CAMERAS = [
   { id: 'cam-gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal / Vehicular' },
@@ -159,6 +160,74 @@ export default function SecurityCenter() {
       setConfigLoading(false);
     }
   }
+
+  // ─── INTERCOMUNICADOR Y TALKBACK ("HABLE AQUÍ") ───
+  const [talkbackActive, setTalkbackActive] = useState(false);
+  const [talkbackTarget, setTalkbackTarget] = useState('BG6994814'); // 'BG6994814' (Reja) | 'BG6994872' (Terraza)
+  const [talkbackStatus, setTalkbackStatus] = useState('idle');
+  const [micLevel, setMicLevel] = useState(0);
+  const [isAudioUnmuted, setIsAudioUnmuted] = useState(false);
+  const talkbackControllerRef = useRef(null);
+
+  async function handleStartTalkback(targetSerial = talkbackTarget) {
+    if (talkbackControllerRef.current) {
+      talkbackControllerRef.current();
+      talkbackControllerRef.current = null;
+    }
+    const target = targetSerial || selectedCamSerial || 'BG6994814';
+    setTalkbackTarget(target);
+    if (selectedCamSerial !== target) {
+      setSelectedCamSerial(target);
+    }
+    setTalkbackActive(true);
+    setTalkbackStatus('connecting');
+    setIsAudioUnmuted(true);
+
+    try {
+      const stopFn = await startCameraTalkback(target, {
+        onStatusChange: (status) => setTalkbackStatus(status),
+        onAudioLevel: (level) => setMicLevel(level),
+      });
+      talkbackControllerRef.current = stopFn;
+    } catch (e) {
+      console.error('[Intercom] Error al iniciar talkback:', e);
+      setTalkbackActive(false);
+      setTalkbackStatus('error');
+      alert('No se pudo acceder al micrófono: ' + (e.message || 'Verifica permisos del navegador'));
+    }
+  }
+
+  function handleStopTalkback() {
+    if (talkbackControllerRef.current) {
+      try { talkbackControllerRef.current(); } catch {}
+      talkbackControllerRef.current = null;
+    }
+    setTalkbackActive(false);
+    setTalkbackStatus('idle');
+    setMicLevel(0);
+  }
+
+  function handleToggleAudioUnmute() {
+    setIsAudioUnmuted(prev => {
+      const next = !prev;
+      if (videoRef.current) {
+        videoRef.current.muted = !next;
+        if (next) {
+          videoRef.current.volume = 1.0;
+          videoRef.current.play().catch(() => {});
+        }
+      }
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      if (talkbackControllerRef.current) {
+        try { talkbackControllerRef.current(); } catch {}
+      }
+    };
+  }, []);
 
   // Fullscreen listener
   useEffect(() => {
@@ -939,6 +1008,146 @@ export default function SecurityCenter() {
         })}
       </div>
 
+      {/* ─── MÓDULO INTERCOMUNICADOR 2 VÍAS: HABLE AQUÍ ─── */}
+      <section className="rounded-3xl border-2 border-blue-500/30 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950 p-4 text-white shadow-xl space-y-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-2xl bg-blue-600/30 p-2.5 text-blue-400 border border-blue-400/30 shadow-inner">
+              <Mic className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-black text-white tracking-tight">
+                  Intercomunicador de Audio en Vivo (Dos Vías)
+                </h2>
+                <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2 py-0.5 text-[10px] font-bold">
+                  EN LÍNEA
+                </span>
+              </div>
+              <p className="text-xs text-slate-300">
+                Habla por el altavoz y escucha el micrófono exterior en tiempo real
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleToggleAudioUnmute}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                isAudioUnmuted
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  : 'bg-white/10 hover:bg-white/15 text-slate-300 border-white/10'
+              }`}
+            >
+              {isAudioUnmuted ? <Volume2 className="h-4 w-4 text-amber-300" /> : <VolumeX className="h-4 w-4 text-slate-400" />}
+              <span>{isAudioUnmuted ? 'Audio Exterior Activo' : 'Audio Exterior Silenciado'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Selector de Destino: Reja de Entrada vs Terraza Exterior */}
+        <div className="grid grid-cols-2 gap-2 bg-slate-950/70 p-1 rounded-2xl border border-white/10">
+          <button
+            type="button"
+            onClick={() => {
+              setTalkbackTarget('BG6994814');
+              setSelectedCamSerial('BG6994814');
+              if (talkbackActive) handleStartTalkback('BG6994814');
+            }}
+            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all ${
+              (talkbackTarget === 'BG6994814' || (!talkbackTarget && selectedCamSerial === 'BG6994814'))
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <LockKeyhole className="h-4 w-4" />
+            <span>🚪 Reja de Entrada (Portón)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setTalkbackTarget('BG6994872');
+              setSelectedCamSerial('BG6994872');
+              if (talkbackActive) handleStartTalkback('BG6994872');
+            }}
+            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all ${
+              talkbackTarget === 'BG6994872'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Video className="h-4 w-4" />
+            <span>🌿 Terraza Exterior (Cámara Izquierda)</span>
+          </button>
+        </div>
+
+        {/* Botón Principal "Hable aquí" */}
+        {!talkbackActive ? (
+          <button
+            type="button"
+            onClick={() => handleStartTalkback(talkbackTarget || selectedCamSerial)}
+            className="w-full flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 py-3.5 px-4 text-sm font-black text-white shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 active:scale-[0.99] transition-all"
+          >
+            <Mic className="h-5 w-5 animate-pulse text-white" />
+            <span className="text-base tracking-wide uppercase font-black">Hable aquí</span>
+            <span className="text-xs font-medium text-emerald-100 hidden sm:inline">
+              (Transmitir voz hacia {talkbackTarget === 'BG6994872' ? 'Terraza Exterior' : 'Reja de Entrada'})
+            </span>
+          </button>
+        ) : (
+          <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/40 p-4 space-y-3 animate-in fade-in duration-200">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span className="text-xs font-bold text-emerald-300 uppercase tracking-wide">
+                  Hablando hacia {talkbackTarget === 'BG6994872' ? 'Terraza Exterior (Izq)' : 'Reja de Entrada'}
+                </span>
+              </div>
+
+              {/* Medidor de volumen */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-300">Nivel Mic:</span>
+                <div className="w-24 bg-slate-800 rounded-full h-2.5 overflow-hidden border border-white/10">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 transition-all duration-75"
+                    style={{ width: `${micLevel}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Ecualizador / Onda Visual */}
+            <div className="flex items-center justify-center gap-1.5 py-1">
+              {[40, 75, 100, 60, 90, 45, 80, 100, 70, 50, 85, 30].map((h, i) => (
+                <div
+                  key={i}
+                  className="w-1.5 rounded-full bg-emerald-400/80 transition-all duration-150"
+                  style={{
+                    height: `${Math.max(6, (h * micLevel) / 100)}px`,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1 border-t border-emerald-500/20">
+              <button
+                type="button"
+                onClick={handleStopTalkback}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-white shadow-md transition active:scale-95"
+              >
+                <MicOff className="h-4 w-4" />
+                <span>Finalizar Comunicación</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* ─── REPRODUCTOR HERO (16:9 LIMPIO Y DESPEJADO) ─── */}
       <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-4 shadow-sm overflow-hidden">
         <div
@@ -967,7 +1176,7 @@ export default function SecurityCenter() {
               ref={videoRef}
               autoPlay
               playsInline
-              muted
+              muted={!isAudioUnmuted}
               controls={false}
               style={{
                 transform: zoomLevel > 1
@@ -1114,6 +1323,44 @@ export default function SecurityCenter() {
             >
               <Compass className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               <span>Giro PTZ y Zoom</span>
+            </button>
+
+            {/* Botón Hable aquí directo */}
+            {!talkbackActive ? (
+              <button
+                type="button"
+                onClick={() => handleStartTalkback(selectedCamSerial)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-3.5 py-2 text-xs font-black shadow-sm transition active:scale-95"
+                title="Hablar por el altavoz exterior de esta cámara"
+              >
+                <Mic className="h-3.5 w-3.5" />
+                <span>Hable aquí</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStopTalkback}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 text-xs font-black shadow-sm transition active:scale-95 animate-pulse"
+                title="Detener transmisión de voz"
+              >
+                <MicOff className="h-3.5 w-3.5" />
+                <span>Detener voz ({micLevel}%)</span>
+              </button>
+            )}
+
+            {/* Botón Escuchar / Silenciar cámara exterior */}
+            <button
+              type="button"
+              onClick={handleToggleAudioUnmute}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition active:scale-95 ${
+                isAudioUnmuted
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300'
+              }`}
+              title={isAudioUnmuted ? 'Silenciar audio exterior' : 'Escuchar audio exterior'}
+            >
+              {isAudioUnmuted ? <Volume2 className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" /> : <VolumeX className="h-3.5 w-3.5 text-slate-500" />}
+              <span>{isAudioUnmuted ? 'Escuchando' : 'Escuchar'}</span>
             </button>
           </div>
 

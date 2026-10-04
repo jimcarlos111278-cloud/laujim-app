@@ -20,9 +20,9 @@ async function intercomRequest(route, options = {}) {
 }
 
 const BUILDING_CAMERAS = [
-  { id: 'gate', name: 'Portón', serial: 'BG6994814' },
-  { id: 'izq', name: 'Izquierda', serial: 'BG6994872' },
-  { id: 'der', name: 'Derecha', serial: 'BG6994741' },
+  { id: 'gate', name: 'Reja de Entrada', serial: 'BG6994814' },
+  { id: 'izq', name: 'Terraza (Cámara Izq)', serial: 'BG6994872' },
+  { id: 'der', name: 'Fachada Derecha', serial: 'BG6994741' },
 ];
 
 export default function IntercomCallModal({ call, onClose, onAction }) {
@@ -469,14 +469,14 @@ export default function IntercomCallModal({ call, onClose, onAction }) {
           <div className="flex items-center gap-2">
             <button
               onClick={toggleMute}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-3.5 rounded-xl text-xs font-black transition-all shadow-sm ${
                 isMuted
                   ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
               }`}
             >
-              {isMuted ? <MicOff className="h-4 w-4 text-amber-600" /> : <Mic className="h-4 w-4 text-slate-700" />}
-              <span>{isMuted ? 'Micrófono silenciado' : 'Micrófono encendido'}</span>
+              {isMuted ? <MicOff className="h-4 w-4 text-amber-600" /> : <Mic className="h-4 w-4 animate-pulse text-white" />}
+              <span>{isMuted ? 'Micrófono en pausa' : 'Hable aquí (Micrófono activo)'}</span>
             </button>
 
             {/* Direct button to open Ezviz native app speaker */}

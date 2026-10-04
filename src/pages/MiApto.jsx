@@ -5,13 +5,14 @@ import {
   Activity, AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Building2, Calendar, Camera, Check, CheckCircle, ChevronDown, ChevronUp,
   Compass, Copy, Download, Droplets, ExternalLink, Eye, FileText, Flame, HardDrive, Info, Key, LayoutGrid, Loader2,
   LockKeyhole, LogOut, MapPin, Maximize2, Move, Play, QrCode, Radio, RefreshCw, ShieldCheck, Video, Volume2, VolumeX, Wifi, X, Zap,
-  ChevronLeft, ChevronRight, ZoomIn,
+  ChevronLeft, ChevronRight, ZoomIn, Mic, MicOff, PhoneCall,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { clearAuth, isTenant, isAdmin, getAuth, watchAuthRevoked, revalidateSession } from '../utils/auth';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp } from '../utils/helpers';
 import IntercomCallModal from '../components/IntercomCallModal';
+import { startCameraTalkback } from '../utils/intercomAudio';
 
 const PROVIDERS = {
   electricity: { title: 'Air-e', icon: Zap, theme: 'amber', reference: 'NIC' },
@@ -103,13 +104,24 @@ const APTO_CAMERAS = [
 // ─── Video HLS autónomo: un Hls + watchdog propios por cada cámara ──────────
 // Negro honesto: sin frames en 8s reporta error (el tile muestra negro +
 // "Sincronizando"), nunca foto vieja.
-function LiveVideo({ streamUrl, active, onState, className }) {
+function LiveVideo({ streamUrl, active, onState, className, isMuted = true }) {
   const ref = useRef(null);
   const watchRef = useRef({ setAt: Date.now() });
   const repRef = useRef(''); // deja pasar solo transiciones (sin re-render 4x/s)
   const [blocked, setBlocked] = useState(false);
   const stateRef = useRef(onState);
   stateRef.current = onState;
+
+  useEffect(() => {
+    const video = ref.current;
+    if (video) {
+      video.muted = isMuted;
+      if (!isMuted) {
+        video.volume = 1.0;
+        video.play().catch(() => {});
+      }
+    }
+  }, [isMuted]);
 
   useEffect(() => {
     const video = ref.current;
@@ -128,8 +140,11 @@ function LiveVideo({ streamUrl, active, onState, className }) {
       if (stateRef.current) stateRef.current(s);
     };
     const attemptPlay = () => {
-      try { video.muted = true; } catch {}
-      video.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+      try { video.muted = isMuted; } catch {}
+      video.play().then(() => setBlocked(false)).catch(() => {
+        try { video.muted = true; } catch {}
+        video.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+      });
     };
     let onMeta = null;
     if (Hls.isSupported()) {
@@ -184,10 +199,10 @@ function LiveVideo({ streamUrl, active, onState, className }) {
 
   return (
     <div className="relative h-full w-full bg-slate-950">
-      <video ref={ref} autoPlay playsInline muted className={className || 'h-full w-full object-cover'} />
+      <video ref={ref} autoPlay playsInline muted={isMuted} className={className || 'h-full w-full object-cover'} />
       {blocked && (
         <button
-          onClick={(e) => { e.stopPropagation(); const v = ref.current; if (v) { v.muted = true; v.play().then(() => setBlocked(false)).catch(() => {}); } }}
+          onClick={(e) => { e.stopPropagation(); const v = ref.current; if (v) { v.muted = isMuted; v.play().then(() => setBlocked(false)).catch(() => {}); } }}
           className="absolute inset-0 z-20 flex items-center justify-center bg-black/40"
         >
           <span className="rounded-full border border-white/30 bg-white/20 p-4"><Play className="h-8 w-8 text-white" /></span>
@@ -202,7 +217,10 @@ const ZOOM_LEVELS = [1, 2, 4, 6, 8];
 // ─── Modal horizontal: zoom digital por botones + pan con dedos ─────────────
 // Los streams ya están activos (la lista los mantiene vivos): atrás/adelante
 // no recarga nada. X arriba-derecha para salir.
-function CameraZoomModal({ cams, index, streamUrls, fallbackUrls, tileState, onClose, onIndex, showPtz, onPtz, ptzMoving }) {
+function CameraZoomModal({
+  cams, index, streamUrls, fallbackUrls, tileState, onClose, onIndex, showPtz, onPtz, ptzMoving,
+  activeAudioSerial, onToggleAudio, talkbackActive, talkbackTarget, onStartTalkback, onStopTalkback, micLevel, isMicMuted, onToggleMicMute
+}) {
   const cam = cams[index];
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -258,7 +276,12 @@ function CameraZoomModal({ cams, index, streamUrls, fallbackUrls, tileState, onC
       >
         <div className="absolute inset-0" style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
           <div className="h-full w-full" style={{ transform: `scale(${zoom})`, transformOrigin: 'center' }}>
-            <LiveVideo streamUrl={streamUrls[cam.serial] || (fallbackUrls || {})[cam.serial]} active className="h-full w-full object-contain" />
+            <LiveVideo
+              streamUrl={streamUrls[cam.serial] || (fallbackUrls || {})[cam.serial]}
+              active
+              isMuted={activeAudioSerial !== cam.serial}
+              className="h-full w-full object-contain"
+            />
           </div>
         </div>
         <button
@@ -276,6 +299,50 @@ function CameraZoomModal({ cams, index, streamUrls, fallbackUrls, tileState, onC
           <ChevronRight className="h-6 w-6" />
         </button>
       </div>
+
+      {/* Controles de Audio e Intercomunicador "Hable aquí" en pantalla completa */}
+      {(cam.serial === 'BG6994814' || cam.serial === 'BG6994872') && (
+        <div className="flex flex-wrap items-center justify-center gap-2 px-4 py-2 bg-slate-950/80 border-t border-white/10" onClick={e => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => onStartTalkback(cam.serial)}
+            className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all shadow-md active:scale-95 ${
+              talkbackActive && talkbackTarget === cam.serial
+                ? 'bg-rose-600 text-white animate-pulse'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
+          >
+            <Mic className="h-4 w-4" />
+            <span>{talkbackActive && talkbackTarget === cam.serial ? 'Transmitiendo voz...' : 'Hable aquí'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onToggleAudio(cam.serial)}
+            className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shadow-md active:scale-95 ${
+              activeAudioSerial === cam.serial
+                ? 'bg-blue-600 text-white'
+                : 'bg-white/15 text-slate-200 hover:bg-white/25'
+            }`}
+          >
+            {activeAudioSerial === cam.serial ? <Volume2 className="h-4 w-4 text-white" /> : <VolumeX className="h-4 w-4 text-slate-400" />}
+            <span>{activeAudioSerial === cam.serial ? 'Silenciar audio' : 'Escuchar afuera'}</span>
+          </button>
+
+          {talkbackActive && talkbackTarget === cam.serial && (
+            <button
+              type="button"
+              onClick={onToggleMicMute}
+              className={`flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold transition ${
+                isMicMuted ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-white/20 text-white'
+              }`}
+            >
+              {isMicMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+              <span>{isMicMuted ? 'Mic en pausa' : 'Silenciar mic'}</span>
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center justify-center gap-2 px-4 py-3" onClick={e => e.stopPropagation()}>
         <ZoomIn className="h-4 w-4 text-slate-400" />
@@ -333,6 +400,82 @@ export default function MiApto() {
   const [ptzFeedback, setPtzFeedback] = useState('');
   const [showEzvizGuide, setShowEzvizGuide] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
+
+  // Estados para Intercomunicador y Botón "Hable aquí"
+  const [activeAudioSerial, setActiveAudioSerial] = useState(null); // serial de cámara con audio desmuteado
+  const [talkbackActive, setTalkbackActive] = useState(false);
+  const [talkbackTarget, setTalkbackTarget] = useState('BG6994872'); // Por defecto 'BG6994872' (Terraza / Cámara Izquierda) o 'BG6994814' (Portón Principal)
+  const [talkbackStatus, setTalkbackStatus] = useState('idle'); // 'idle' | 'connecting' | 'connected' | 'error'
+  const [micLevel, setMicLevel] = useState(0);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const stopTalkbackRef = useRef(null);
+
+  async function handleStartTalkback(targetSerial) {
+    const serial = targetSerial || talkbackTarget;
+    setTalkbackTarget(serial);
+    setActiveAudioSerial(serial);
+
+    if (talkbackActive && stopTalkbackRef.current) {
+      stopTalkbackRef.current();
+      stopTalkbackRef.current = null;
+      setTalkbackActive(false);
+      setMicLevel(0);
+      return;
+    }
+
+    try {
+      setTalkbackStatus('connecting');
+      setTalkbackActive(true);
+      setIsMicMuted(false);
+
+      const stop = await startCameraTalkback(serial, {
+        onStatusChange: (st) => {
+          setTalkbackStatus(st);
+          if (st === 'disconnected') {
+            setTalkbackActive(false);
+            setMicLevel(0);
+          }
+        },
+        onAudioLevel: (lvl) => {
+          setMicLevel(lvl);
+        },
+      });
+
+      stopTalkbackRef.current = stop;
+    } catch (err) {
+      console.warn('[MiApto] Error iniciando talkback:', err.message);
+      setTalkbackStatus('error');
+      setTalkbackActive(false);
+      setMicLevel(0);
+    }
+  }
+
+  function handleStopTalkback() {
+    if (stopTalkbackRef.current) {
+      stopTalkbackRef.current();
+      stopTalkbackRef.current = null;
+    }
+    setTalkbackActive(false);
+    setTalkbackStatus('idle');
+    setMicLevel(0);
+  }
+
+  function toggleAudio(serial) {
+    setActiveAudioSerial(prev => (prev === serial ? null : serial));
+  }
+
+  function toggleMicMute() {
+    setIsMicMuted(prev => !prev);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (stopTalkbackRef.current) {
+        stopTalkbackRef.current();
+        stopTalkbackRef.current = null;
+      }
+    };
+  }, []);
 
 
   function copyText(text, key) {
@@ -704,6 +847,148 @@ export default function MiApto() {
             </div>
           </div>
 
+          {/* Módulo Principal Intercomunicador: Hable aquí */}
+          <div className="mt-4 rounded-2xl border-2 border-blue-600/30 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950 p-4 text-white shadow-xl space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-xl bg-blue-600/30 p-2 text-blue-400 border border-blue-400/30 shadow-inner">
+                  <Mic className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white tracking-tight">Intercomunicador de Audio en Vivo</h3>
+                    <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-2 py-0.5 text-[10px] font-bold">
+                      2 VÍAS ACTIVO
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">Habla y escucha en tiempo real con quien esté afuera</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Selector de Destino: Reja de Entrada vs Terraza Exterior */}
+            <div className="grid grid-cols-2 gap-2 bg-slate-950/70 p-1 rounded-xl border border-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  setTalkbackTarget('BG6994814');
+                  if (talkbackActive) handleStartTalkback('BG6994814');
+                }}
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                  talkbackTarget === 'BG6994814'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <LockKeyhole className="h-3.5 w-3.5" />
+                <span>🚪 Reja de Entrada</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTalkbackTarget('BG6994872');
+                  if (talkbackActive) handleStartTalkback('BG6994872');
+                }}
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                  talkbackTarget === 'BG6994872'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Video className="h-3.5 w-3.5" />
+                <span>🌿 Terraza Exterior</span>
+              </button>
+            </div>
+
+            {/* Botón Principal "Hable aquí" */}
+            {!talkbackActive ? (
+              <button
+                type="button"
+                onClick={() => handleStartTalkback(talkbackTarget)}
+                className="w-full flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 py-3.5 px-4 text-sm font-black text-white shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 active:scale-[0.98] transition-all"
+              >
+                <Mic className="h-5 w-5 animate-pulse text-white" />
+                <span className="text-base tracking-wide uppercase">Hable aquí</span>
+                <span className="text-xs font-medium text-emerald-100">
+                  (Hacia {talkbackTarget === 'BG6994872' ? 'Terraza' : 'Reja de Entrada'})
+                </span>
+              </button>
+            ) : (
+              <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3.5 space-y-3 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                    <span className="text-xs font-bold text-white">
+                      Transmitiendo hacia {talkbackTarget === 'BG6994872' ? 'la Terraza (Cámara Izquierda)' : 'la Reja de Entrada (Portón)'}
+                    </span>
+                  </div>
+                  <span className="rounded-full bg-red-500/20 border border-red-500/40 px-2 py-0.5 text-[10px] font-bold text-red-300">
+                    EN EL AIRE
+                  </span>
+                </div>
+
+                {/* Visualizador de onda de voz */}
+                <div className="flex items-center justify-center gap-1.5 py-1.5 bg-black/40 rounded-lg">
+                  {[...Array(16)].map((_, i) => {
+                    const factor = Math.sin((i / 16) * Math.PI);
+                    const height = Math.max(4, Math.min(26, Math.round((micLevel * factor * 1.5) + 4)));
+                    return (
+                      <span
+                        key={i}
+                        className="w-1.5 rounded-full bg-emerald-400 transition-all duration-75"
+                        style={{ height: `${height}px` }}
+                      />
+                    );
+                  })}
+                </div>
+
+                <p className="text-[11px] text-emerald-200/90 text-center font-medium">
+                  🔊 Micrófono exterior activo: habla normalmente y quien esté en la {talkbackTarget === 'BG6994872' ? 'terraza' : 'reja'} te escuchará por el altavoz exterior.
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleMicMute}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                      isMicMuted
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                        : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                    }`}
+                  >
+                    {isMicMuted ? <MicOff className="h-4 w-4 text-amber-400" /> : <Mic className="h-4 w-4 text-emerald-400" />}
+                    <span>{isMicMuted ? 'Micrófono en pausa' : 'Micrófono activo'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleStopTalkback}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md active:scale-95 transition-all"
+                  >
+                    <VolumeX className="h-4 w-4" />
+                    <span>Finalizar comunicación</span>
+                  </button>
+                </div>
+
+                {talkbackTarget === 'BG6994814' && (
+                  <button
+                    type="button"
+                    onClick={() => unlockDoor(doors[0] || { id: 'gate-door', name: 'Portón principal' })}
+                    disabled={doorBusy !== ''}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {doorBusy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <LockKeyhole className="h-3.5 w-3.5" />}
+                    <span>{doorBusy ? 'Abriendo portón…' : 'Abrir portón a la persona'}</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Lista vertical: toca una cámara para verla en grande con zoom */}
           <div className="mt-3.5 border-b border-slate-100 pb-3">
             <span className="text-[11px] text-slate-400 font-medium">
@@ -754,6 +1039,7 @@ export default function MiApto() {
                       <LiveVideo
                         streamUrl={url}
                         active={cameraLive}
+                        isMuted={activeAudioSerial !== cam.serial}
                         onState={(s) => setTileState(prev => ({ ...prev, [cam.serial]: s }))}
                       />
                     ) : (
@@ -766,6 +1052,44 @@ export default function MiApto() {
                       <Maximize2 className="h-4 w-4" />
                     </span>
                   </div>
+
+                  {/* Botones de acción directa por cámara: "Hable aquí" y "Escuchar" */}
+                  {(cam.serial === 'BG6994814' || cam.serial === 'BG6994872') && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 p-2 border border-slate-200/80">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleStartTalkback(cam.serial)}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all shadow-sm ${
+                            talkbackActive && talkbackTarget === cam.serial
+                              ? 'bg-rose-600 text-white animate-pulse'
+                              : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
+                          }`}
+                        >
+                          <Mic className="h-3.5 w-3.5" />
+                          <span>{talkbackActive && talkbackTarget === cam.serial ? 'Transmitiendo voz...' : 'Hable aquí'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleAudio(cam.serial)}
+                          title={activeAudioSerial === cam.serial ? 'Silenciar audio de cámara' : 'Escuchar audio exterior'}
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all ${
+                            activeAudioSerial === cam.serial
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                          }`}
+                        >
+                          {activeAudioSerial === cam.serial ? <Volume2 className="h-3.5 w-3.5 text-white" /> : <VolumeX className="h-3.5 w-3.5 text-slate-500" />}
+                          <span>{activeAudioSerial === cam.serial ? 'Escuchando' : 'Escuchar'}</span>
+                        </button>
+                      </div>
+
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        {cam.serial === 'BG6994814' ? 'Altavoz y mic en portón' : 'Altavoz y mic en terraza'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -782,6 +1106,15 @@ export default function MiApto() {
               showPtz={isAdmin()}
               onPtz={handleMovePtz}
               ptzMoving={ptzMoving}
+              activeAudioSerial={activeAudioSerial}
+              onToggleAudio={toggleAudio}
+              talkbackActive={talkbackActive}
+              talkbackTarget={talkbackTarget}
+              onStartTalkback={handleStartTalkback}
+              onStopTalkback={handleStopTalkback}
+              micLevel={micLevel}
+              isMicMuted={isMicMuted}
+              onToggleMicMute={toggleMicMute}
             />
           )}
 
