@@ -12,7 +12,6 @@ import { clearAuth, isTenant, isAdmin, getAuth, watchAuthRevoked, revalidateSess
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp } from '../utils/helpers';
 import IntercomCallModal from '../components/IntercomCallModal';
-import CameraIntercom from '../components/CameraIntercom';
 
 const PROVIDERS = {
   electricity: { title: 'Air-e', icon: Zap, theme: 'amber', reference: 'NIC' },
@@ -300,15 +299,21 @@ function CameraZoomModal({
         </button>
       </div>
 
-      {/* Controles de Audio e Intercomunicador "Hable aquí" en pantalla completa */}
+      {/* Controles de Audio exterior en pantalla completa */}
       {(cam.serial === 'BG6994814' || cam.serial === 'BG6994872') && (
         <div className="flex flex-wrap items-center justify-center gap-2 px-4 py-2 bg-slate-950/80 border-t border-white/10" onClick={e => e.stopPropagation()}>
-          <CameraIntercom
-            compact={true}
-            activeSerial={cam.serial}
-            isAudioUnmuted={activeAudioSerial === cam.serial}
-            onToggleAudioUnmute={(unmute) => onToggleAudio(unmute ? cam.serial : null)}
-          />
+          <button
+            type="button"
+            onClick={() => onToggleAudio(cam.serial)}
+            className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition active:scale-95 ${
+              activeAudioSerial === cam.serial
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                : 'bg-white/10 text-slate-300 hover:bg-white/20 border border-white/10'
+            }`}
+          >
+            {activeAudioSerial === cam.serial ? <Volume2 className="h-4 w-4 text-amber-400" /> : <VolumeX className="h-4 w-4 text-slate-400" />}
+            <span>{activeAudioSerial === cam.serial ? 'Silenciar audio exterior' : 'Escuchar audio exterior'}</span>
+          </button>
         </div>
       )}
 
@@ -746,15 +751,6 @@ export default function MiApto() {
             </div>
           </div>
 
-          {/* Módulo Principal Intercomunicador: Hable aquí con candado de exclusión por apartamento */}
-          <div className="mt-4">
-            <CameraIntercom
-              activeSerial={activeAudioSerial || 'BG6994872'}
-              onCameraSelect={(s) => setActiveAudioSerial(s)}
-              isAudioUnmuted={Boolean(activeAudioSerial)}
-              onToggleAudioUnmute={(unmute) => setActiveAudioSerial(unmute ? (activeAudioSerial || 'BG6994872') : null)}
-            />
-          </div>
 
           {/* Lista vertical: toca una cámara para verla en grande con zoom */}
           <div className="mt-3.5 border-b border-slate-100 pb-3">
@@ -820,18 +816,28 @@ export default function MiApto() {
                     </span>
                   </div>
 
-                  {/* Botones de acción directa por cámara: "Hable aquí" y "Escuchar" */}
+                  {/* Control de Audio exterior de la cámara */}
                   {(cam.serial === 'BG6994814' || cam.serial === 'BG6994872') && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 p-2 border border-slate-200/80">
-                      <CameraIntercom
-                        compact={true}
-                        activeSerial={cam.serial}
-                        isAudioUnmuted={activeAudioSerial === cam.serial}
-                        onToggleAudioUnmute={(unmute) => toggleAudio(unmute ? cam.serial : null)}
-                      />
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 p-2 border border-slate-200/80">
+                      <button
+                        type="button"
+                        onClick={() => toggleAudio(cam.serial)}
+                        className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+                          activeAudioSerial === cam.serial
+                            ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 shadow-sm'
+                            : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-sm'
+                        }`}
+                      >
+                        {activeAudioSerial === cam.serial ? (
+                          <Volume2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        ) : (
+                          <VolumeX className="h-4 w-4 text-slate-500" />
+                        )}
+                        <span>{activeAudioSerial === cam.serial ? 'Escuchando audio exterior' : 'Escuchar audio'}</span>
+                      </button>
 
                       <span className="text-[11px] text-slate-500 font-medium">
-                        {cam.serial === 'BG6994814' ? 'Altavoz y mic en portón' : 'Altavoz y mic en terraza'}
+                        {cam.serial === 'BG6994814' ? 'Micrófono en portón' : 'Micrófono en terraza'}
                       </span>
                     </div>
                   )}

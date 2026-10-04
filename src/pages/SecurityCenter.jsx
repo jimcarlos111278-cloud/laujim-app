@@ -9,8 +9,6 @@ import {
 } from 'lucide-react';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
 import { getAuth } from '../utils/auth';
-import CameraIntercom from '../components/CameraIntercom';
-
 const ADMIN_CAMERAS = [
   { id: 'cam-gate', name: 'Portón Principal', serial: 'BG6994814', location: 'Entrada Principal / Vehicular' },
   { id: 'cam-izq', name: 'Cámara Izquierda', serial: 'BG6994872', location: 'Fachada Izquierda' },
@@ -957,13 +955,6 @@ export default function SecurityCenter() {
         })}
       </div>
 
-      {/* ─── MÓDULO INTERCOMUNICADOR 2 VÍAS: HABLE AQUÍ (CON CANAL EXCLUSIVO POR APTO) ─── */}
-      <CameraIntercom
-        activeSerial={selectedCamSerial}
-        onCameraSelect={(s) => setSelectedCamSerial(s)}
-        isAudioUnmuted={isAudioUnmuted}
-        onToggleAudioUnmute={handleToggleAudioUnmute}
-      />
 
       {/* ─── REPRODUCTOR HERO (16:9 LIMPIO Y DESPEJADO) ─── */}
       <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-4 shadow-sm overflow-hidden">
@@ -1142,13 +1133,24 @@ export default function SecurityCenter() {
               <span>Giro PTZ y Zoom</span>
             </button>
 
-            {/* Intercomunicador de canal exclusivo y audio exterior */}
-            <CameraIntercom
-              compact={true}
-              activeSerial={selectedCamSerial}
-              isAudioUnmuted={isAudioUnmuted}
-              onToggleAudioUnmute={handleToggleAudioUnmute}
-            />
+            {/* Botón de Escuchar / Silenciar audio exterior */}
+            <button
+              type="button"
+              onClick={handleToggleAudioUnmute}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition active:scale-95 ${
+                isAudioUnmuted
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300'
+              }`}
+              title={isAudioUnmuted ? 'Silenciar audio exterior' : 'Escuchar micrófono exterior'}
+            >
+              {isAudioUnmuted ? (
+                <Volume2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              ) : (
+                <VolumeX className="h-4 w-4 text-slate-500" />
+              )}
+              <span>{isAudioUnmuted ? 'Escuchando audio exterior' : 'Escuchar audio'}</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-2">

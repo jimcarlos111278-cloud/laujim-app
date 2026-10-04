@@ -90,7 +90,7 @@
     "semantic_hash": ""
   },
   "public/app-version.json": {
-    "mtime": 1791140888.252997,
+    "mtime": 1791143351.500578,
     "ast_hash": "e4f04d6ccae88f9609672cfbe833a971",
     "semantic_hash": ""
   },
@@ -150,8 +150,8 @@
     "semantic_hash": ""
   },
   "server.cjs": {
-    "mtime": 1791143011.2742996,
-    "ast_hash": "e094a2c5a7b5043a5797508202f4fbc6",
+    "mtime": 1791143434.2782347,
+    "ast_hash": "b9d3c67ecdcd482e89cc1c820521d84a",
     "semantic_hash": ""
   },
   "services-scraper.cjs": {
@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "src/pages/MiApto.jsx": {
-    "mtime": 1791143236.6061714,
-    "ast_hash": "d535425b9d1eac4d044e6107f0659d1e",
+    "mtime": 1791145283.485371,
+    "ast_hash": "f14b055bdb616ab117e59f9230c1a8fe",
     "semantic_hash": ""
   },
   "src/pages/Payments.jsx": {
@@ -530,8 +530,8 @@
     "semantic_hash": ""
   },
   "src/pages/SecurityCenter.jsx": {
-    "mtime": 1791143321.1377225,
-    "ast_hash": "886a08917b7f9d59328a90fc1b074c9b",
+    "mtime": 1791145324.1380556,
+    "ast_hash": "6f1e52b2477553a623979c4091cd79cc",
     "semantic_hash": ""
   },
   "src/pages/Onboarding.jsx": {
