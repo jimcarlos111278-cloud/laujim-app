@@ -114,7 +114,7 @@ app.use(async (req, res, next) => {
     req.path === '/api/auth/github/status' || req.path === '/api/auth/github' || req.path === '/api/auth/github/callback' ||
     req.path === '/api/graph/query' || req.path === '/api/graph/note' ||
     req.path.startsWith('/api/public/') || req.path === '/api/whatsapp/webhook' || req.path === '/api/audit/log' ||
-    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path === '/api/admin/cameras/retention-status' || req.path.startsWith('/api/live/') || req.path.startsWith('/api/security/') || req.path.startsWith('/api/callguard/') || req.path.startsWith('/api/scrape-sequential') || req.path === '/api/scrape-all';
+    req.path === '/api/data-version' || req.path === '/api/intercom/webhook' || req.path === '/api/intercom/snapshot' || req.path === '/api/intercom/feed' || req.path.startsWith('/api/intercom/public/') || req.path === '/api/intercom/lock' || req.path.startsWith('/api/cameras') || req.path.startsWith('/api/api/cameras') || req.path === '/api/admin/cameras/telemetry' || req.path === '/api/admin/cameras/retention-status' || req.path.startsWith('/api/live/') || req.path.startsWith('/api/security/') || req.path.startsWith('/api/callguard/') || req.path.startsWith('/api/scrape-sequential') || req.path === '/api/scrape-all';
   if (req.path.startsWith('/api/') && !isPublicApi) {
     if (!databaseReady) {
       return res.status(503).json({
@@ -8539,6 +8539,92 @@ function expireOldIntercomCalls() {
 
 // Expire calls periodically
 setInterval(expireOldIntercomCalls, 15_000);
+
+// ─── CANDADO EXCLUSIVO DE INTERCOMUNICADOR (UN SOLO APARTAMENTO A LA VEZ) ───
+let activeIntercomLock = null;
+
+function getCleanIntercomLock() {
+  if (activeIntercomLock && Date.now() > activeIntercomLock.expiresAt) {
+    activeIntercomLock = null;
+  }
+  return activeIntercomLock;
+}
+
+// GET /api/intercom/lock - Consultar quién tiene el canal en uso
+app.get('/api/intercom/lock', (req, res) => {
+  const lock = getCleanIntercomLock();
+  if (!lock) {
+    return res.json({ isLocked: false, lock: null });
+  }
+  const remainingSeconds = Math.max(0, Math.round((lock.expiresAt - Date.now()) / 1000));
+  res.json({
+    isLocked: true,
+    lock: {
+      apartmentName: lock.apartmentName,
+      userName: lock.userName,
+      role: lock.role,
+      targetCamera: lock.targetCamera,
+      cameraName: lock.cameraName,
+      remainingSeconds,
+    },
+  });
+});
+
+// POST /api/intercom/lock/acquire - Reclamar canal exclusivo
+app.post('/api/intercom/lock/acquire', (req, res) => {
+  const authHeader = req.headers['x-auth-token'] || req.headers.authorization || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const { apartmentName, userName, role, targetCamera, cameraName } = req.body || {};
+
+  const current = getCleanIntercomLock();
+  if (current && current.token !== token && Date.now() < current.expiresAt) {
+    const remainingSeconds = Math.max(0, Math.round((current.expiresAt - Date.now()) / 1000));
+    return res.status(409).json({
+      ok: false,
+      error: `Canal ocupado por ${current.apartmentName || 'otro apartamento'}`,
+      lock: {
+        apartmentName: current.apartmentName,
+        userName: current.userName,
+        role: current.role,
+        remainingSeconds,
+      },
+    });
+  }
+
+  const now = Date.now();
+  activeIntercomLock = {
+    token: token || `anon-${now}`,
+    apartmentName: String(apartmentName || (role === 'admin' ? 'Administración' : 'Apartamento')).trim(),
+    userName: String(userName || 'Usuario').trim(),
+    role: role || 'tenant',
+    targetCamera: targetCamera || 'BG6994814',
+    cameraName: cameraName || 'Reja de Entrada',
+    startedAt: now,
+    expiresAt: now + 60_000,
+  };
+
+  res.json({
+    ok: true,
+    message: 'Canal reservado con éxito',
+    lock: {
+      ...activeIntercomLock,
+      remainingSeconds: 60,
+    },
+  });
+});
+
+// POST /api/intercom/lock/release - Liberar canal al terminar
+app.post('/api/intercom/lock/release', (req, res) => {
+  const authHeader = req.headers['x-auth-token'] || req.headers.authorization || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const { force } = req.body || {};
+
+  const current = getCleanIntercomLock();
+  if (current && (current.token === token || force === true || req.body?.role === 'admin')) {
+    activeIntercomLock = null;
+  }
+  res.json({ ok: true, isLocked: false });
+});
 
 // POST /api/intercom/webhook — receive call from QR page or WhatsApp bot
 app.post('/api/intercom/webhook', (req, res) => {
