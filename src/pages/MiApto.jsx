@@ -150,17 +150,18 @@ function LiveVideo({ streamUrl, active, onState, className, isMuted = true }) {
       hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 6,
-        maxBufferLength: 15,
-        maxMaxBufferLength: 30,
-        backBufferLength: 5,
-        manifestLoadingTimeOut: 6000,
+        liveSyncDuration: 2,
+        liveMaxLatencyDuration: 4,
+        maxLiveSyncPlaybackRate: 1.15,
+        maxBufferLength: 4,
+        maxMaxBufferLength: 8,
+        backBufferLength: 2,
+        manifestLoadingTimeOut: 4000,
         manifestLoadingMaxRetry: 6,
         manifestLoadingRetryDelay: 500,
-        levelLoadingTimeOut: 6000,
+        levelLoadingTimeOut: 4000,
         levelLoadingMaxRetry: 6,
-        fragLoadingTimeOut: 6000,
+        fragLoadingTimeOut: 4000,
         fragLoadingMaxRetry: 6,
         fragLoadingRetryDelay: 500,
       });
@@ -191,7 +192,14 @@ function LiveVideo({ streamUrl, active, onState, className, isMuted = true }) {
     video.addEventListener('error', onVideoError);
     const timer = setInterval(() => {
       if (Date.now() - watchRef.current.setAt > 8000) report({ playing: false, error: true });
-    }, 4000);
+      // Sincronización activa contra desfases entre cámaras:
+      if (hls && video && !video.paused && typeof hls.liveSyncPosition === 'number' && hls.liveSyncPosition > 0) {
+        const drift = hls.liveSyncPosition - video.currentTime;
+        if (drift > 3.5) {
+          video.currentTime = hls.liveSyncPosition;
+        }
+      }
+    }, 2000);
     return () => {
       cancelled = true;
       clearInterval(timer);
