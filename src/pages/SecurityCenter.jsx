@@ -392,19 +392,19 @@ export default function SecurityCenter() {
     if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: true, // 24/7 pegado al borde vivo (port-forward siempre tibio)
-        liveSyncDurationCount: 2,
-        liveMaxLatencyDurationCount: 4,
-        maxBufferLength: 10,
-        maxMaxBufferLength: 20,
+        lowLatencyMode: false,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 6,
+        maxBufferLength: 15,
+        maxMaxBufferLength: 30,
         backBufferLength: 5,
-        manifestLoadingTimeOut: 5000,
-        manifestLoadingMaxRetry: 5,
+        manifestLoadingTimeOut: 6000,
+        manifestLoadingMaxRetry: 6,
         manifestLoadingRetryDelay: 500,
-        levelLoadingTimeOut: 5000,
-        levelLoadingMaxRetry: 5,
-        fragLoadingTimeOut: 5000,
-        fragLoadingMaxRetry: 5,
+        levelLoadingTimeOut: 6000,
+        levelLoadingMaxRetry: 6,
+        fragLoadingTimeOut: 6000,
+        fragLoadingMaxRetry: 6,
         fragLoadingRetryDelay: 500,
       });
 
