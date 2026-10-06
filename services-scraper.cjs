@@ -559,10 +559,33 @@ async function recreatePortalPage(browser, oldPage, oldCaptchaSolver, provider) 
 
 async function waitAndType(page, selector, text, timeout = 45000) {
   try {
-    await page.waitForSelector(selector, { visible: true, timeout });
-    await page.click(selector);
-    await page.evaluate((s) => { const el = document.querySelector(s); if (el) el.value = ''; }, selector);
-    await page.type(selector, text, { delay: 50 });
+    // 1. Intentar el selector provisto
+    let target = selector;
+    let found = await page.waitForSelector(target, { visible: true, timeout: Math.min(timeout, 12000) }).catch(() => null);
+
+    // 2. Fallbacks inteligentes si el selector complejo de DNN cambió o no coincide exactamente
+    if (!found) {
+      const isPassword = /pass/i.test(selector);
+      const fallbacks = isPassword
+        ? ['input[type="password"]', 'input[name*="pass" i]', 'input[id*="pass" i]']
+        : ['input[type="email"]', 'input[name*="user" i]', 'input[id*="user" i]', 'input[type="text"]:not([id*="Stylesheet"])'];
+
+      for (const fb of fallbacks) {
+        found = await page.waitForSelector(fb, { visible: true, timeout: 3000 }).catch(() => null);
+        if (found) {
+          target = fb;
+          break;
+        }
+      }
+    }
+
+    if (!found) {
+      throw new Error(`Selector no encontrado ni en primario ni en fallbacks: ${selector}`);
+    }
+
+    await page.click(target);
+    await page.evaluate((s) => { const el = document.querySelector(s); if (el) el.value = ''; }, target);
+    await page.type(target, text, { delay: 50 });
   } catch (error) {
     const state = await page.evaluate(() => ({
       url: location.href,
@@ -3653,6 +3676,24 @@ async function scrapeAirE() {
     }
     page.off('response', onResponse);
 
+    if (!cdContrato && isAlreadyLoggedIn) {
+      console.warn('[AIR-E] Sesión activa previa no entregó contrato. Limpiando cookies e iniciando login fresco...');
+      const cookies = await page.cookies().catch(() => []);
+      if (cookies.length) await page.deleteCookie(...cookies).catch(() => {});
+      await gotoPortalPage(page, AIR_E_URLS.login, { waitUntil: 'domcontentloaded', timeout: 30000 }, 'Air-e');
+      await waitAndType(page, 'input[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_txtUsername"], input[name*="txtUsername"], input[name="email"]', creds.email);
+      await waitAndType(page, 'input[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_txtPassword"], input[name*="txtPassword"], input[name="password"]', creds.password);
+      const retryLoginBtn =
+        (await page.$('[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayProvider_cmdLogin"]')) ||
+        (await page.$('[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_cmdLogin"]')) ||
+        (await page.$('button::-p-text("Ingresar")'));
+      if (retryLoginBtn) await retryLoginBtn.click();
+      await sleep(3000);
+      await gotoPortalPage(page, AIR_E_URLS.listado, { waitUntil: 'domcontentloaded', timeout: 30000 }, 'Air-e');
+      await sleep(2500);
+      cdContrato = await contractFromAirEResources(page);
+    }
+
     if (!cdContrato) {
       const msg = 'No se pudo resolver el contrato (cd_Contrato) del portal Air-e tras el login.';
       lastScrapeError = msg;
@@ -3664,7 +3705,7 @@ async function scrapeAirE() {
     // Deuda Total per invoice/NIC; the aggregation below uses that field as
     // the authoritative value and only falls back to SaldoConsulta when the
     // portal omits it.
-    const invoices = await page.evaluate(async (endpoint, contrato) => {
+    let invoices = await page.evaluate(async (endpoint, contrato) => {
       const url = `${endpoint}?cd_Contrato=${encodeURIComponent(contrato)}&pageIndex=1&pageSize=1000`;
       const res = await fetch(url, {
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -3674,6 +3715,12 @@ async function scrapeAirE() {
       const json = await res.json();
       return { ok: true, items: json.items || [] };
     }, AIR_E_GET_ENDPOINT, cdContrato);
+
+    if (!invoices.ok && (invoices.status === 401 || invoices.status === 403)) {
+      console.warn(`[AIR-E] Consulta rechazada con HTTP ${invoices.status}. Sesión expirada. Limpiando cookies del perfil...`);
+      const cookies = await page.cookies().catch(() => []);
+      if (cookies.length) await page.deleteCookie(...cookies).catch(() => {});
+    }
 
     if (!invoices.ok) {
       const msg = `El portal Air-e rechazó la consulta de facturas (HTTP ${invoices.status}).`;
@@ -3742,6 +3789,12 @@ async function scrapeAirE() {
   } catch (e) {
     lastScrapeError = e.message;
     console.error('[AIR-E] SCRAPER ERROR:', e.message);
+    try {
+      if (page) {
+        const cookies = await page.cookies().catch(() => []);
+        if (cookies.length) await page.deleteCookie(...cookies).catch(() => {});
+      }
+    } catch {}
   } finally {
     if (captchaSolver) await captchaSolver.close();
     if (browser) {
@@ -3934,7 +3987,7 @@ function completePortalResults(service, globalResults, runError) {
 }
 
 function isTransientPortalRunError(message) {
-  return /target closed|connection closed|detached frame|execution context|failed to fetch|protocol error/i.test(
+  return /target closed|connection closed|detached frame|execution context|failed to fetch|protocol error|waiting for selector|selector no encontrado|timeout/i.test(
     String(message || ''),
   );
 }
