@@ -3574,9 +3574,6 @@ async function scrapeAirE() {
       return [];
     }
 
-    await waitAndType(page, 'input[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_txtUsername"], input[name*="txtUsername"], input[name="email"]', creds.email);
-    await waitAndType(page, 'input[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_txtPassword"], input[name*="txtPassword"], input[name="password"]', creds.password);
-
     // Capture the cd_Contrato from the first Document/Get call the page fires
     // after login. This is the current account's contract UUID.
     let cdContrato = null;
@@ -3587,36 +3584,51 @@ async function scrapeAirE() {
     };
     page.on('response', onResponse);
 
-    const loginBtn =
-      (await page.$('[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayProvider_cmdLogin"]')) ||
-      (await page.$('[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_cmdLogin"]')) ||
-      (await page.$('button::-p-text("Ingresar")'));
-    if (loginBtn) await loginBtn.click();
-    await sleep(3000);
+    // Detect if already logged in (persistent Chrome profile session)
+    const isAlreadyLoggedIn = await page.evaluate(() => {
+      const url = location.href || '';
+      const text = document.body?.innerText || '';
+      const hasLoginInput = !!document.querySelector('input[id*="txtUsername"], input[name*="txtUsername"], input[name="email"]');
+      return !hasLoginInput && (url.includes('Mis-Facturas') || url.includes('Listado-de-Facturas') || /MIS FACTURAS|LISTADO DE FACTURAS/i.test(text));
+    }).catch(() => false);
 
-    // Detect OTP/captcha challenges that block fully-automated scraping and
-    // surface a clear message instead of failing silently.
-    const blocked = await page.evaluate(() => {
-      const bodyText = document.body?.innerText || '';
-      const visible = element => {
-        if (!element || element.getAttribute('aria-hidden') === 'true') return false;
-        const style = window.getComputedStyle(element);
-        return style.display !== 'none' && style.visibility !== 'hidden' &&
-          style.opacity !== '0' && !!element.getClientRects().length;
-      };
-      const otpInput = [...document.querySelectorAll(
-        'input[autocomplete="one-time-code"], input[name*="otp" i], input[name*="Code" i], input[maxlength="6"]'
-      )].find(visible);
-      return {
-        hasOtpInput: !!otpInput,
-        looksBlocked: /c[oó]digo\s+de\s+verificaci[oó]n|captcha|verificaci[oó]n\s+en\s+dos\s+pasos/i.test(bodyText.slice(0, 3000)),
-      };
-    }).catch(() => ({ hasOtpInput: false, looksBlocked: false }));
-    if (blocked.hasOtpInput || blocked.looksBlocked) {
-      const msg = 'Air-e pide un código OTP o captcha. El scrape automático no puede completar el login; ingresa manualmente desde "Portal Energía".';
-      lastScrapeError = msg;
-      console.error('[AIR-E] Login blocked:', msg);
-      return [];
+    if (isAlreadyLoggedIn) {
+      console.log('[AIR-E] Sesión activa detectada en el portal, omitiendo formulario de login.');
+    } else {
+      await waitAndType(page, 'input[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_txtUsername"], input[name*="txtUsername"], input[name="email"]', creds.email);
+      await waitAndType(page, 'input[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_txtPassword"], input[name*="txtPassword"], input[name="password"]', creds.password);
+
+      const loginBtn =
+        (await page.$('[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayProvider_cmdLogin"]')) ||
+        (await page.$('[id="dnn_ctr_Login_Login_DotNetNuke.Membership.GatewayMembershipProvider_cmdLogin"]')) ||
+        (await page.$('button::-p-text("Ingresar")'));
+      if (loginBtn) await loginBtn.click();
+      await sleep(3000);
+
+      // Detect OTP/captcha challenges that block fully-automated scraping and
+      // surface a clear message instead of failing silently.
+      const blocked = await page.evaluate(() => {
+        const bodyText = document.body?.innerText || '';
+        const visible = element => {
+          if (!element || element.getAttribute('aria-hidden') === 'true') return false;
+          const style = window.getComputedStyle(element);
+          return style.display !== 'none' && style.visibility !== 'hidden' &&
+            style.opacity !== '0' && !!element.getClientRects().length;
+        };
+        const otpInput = [...document.querySelectorAll(
+          'input[autocomplete="one-time-code"], input[name*="otp" i], input[name*="Code" i], input[maxlength="6"]'
+        )].find(visible);
+        return {
+          hasOtpInput: !!otpInput,
+          looksBlocked: /c[oó]digo\s+de\s+verificaci[oó]n|captcha|verificaci[oó]n\s+en\s+dos\s+pasos/i.test(bodyText.slice(0, 3000)),
+        };
+      }).catch(() => ({ hasOtpInput: false, looksBlocked: false }));
+      if (blocked.hasOtpInput || blocked.looksBlocked) {
+        const msg = 'Air-e pide un código OTP o captcha. El scrape automático no puede completar el login; ingresa manualmente desde "Portal Energía".';
+        lastScrapeError = msg;
+        console.error('[AIR-E] Login blocked:', msg);
+        return [];
+      }
     }
 
     let currentUrl = page.url();
