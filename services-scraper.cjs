@@ -78,6 +78,133 @@ function firstExistingPath(candidates) {
   return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || null;
 }
 
+const INVOICES_DIR = path.join(process.env.PERSISTENT_DIR || __dirname, 'data', 'invoices');
+if (!fs.existsSync(INVOICES_DIR)) {
+  try { fs.mkdirSync(INVOICES_DIR, { recursive: true }); } catch {}
+}
+
+function downloadBuffer(url) {
+  return new Promise((resolve, reject) => {
+    const protocol = String(url).startsWith('http:') ? require('http') : require('https');
+    protocol.get(url, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return downloadBuffer(res.headers.location).then(resolve).catch(reject);
+      }
+      if (res.statusCode !== 200) {
+        return reject(new Error(`HTTP ${res.statusCode}`));
+      }
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve(Buffer.concat(chunks)));
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+}
+
+function normalizeDateString(str) {
+  if (!str) return null;
+  const clean = String(str).trim();
+  const isoMatch = /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/.exec(clean);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`;
+  }
+  const dmyMatch = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/.exec(clean);
+  if (dmyMatch) {
+    return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, '0')}-${dmyMatch[1].padStart(2, '0')}`;
+  }
+  return clean;
+}
+
+async function extractTextFromPdfBuffer(buffer) {
+  if (!buffer || !buffer.length) return '';
+  try {
+    const pdfMod = require('pdf-parse');
+    if (pdfMod.PDFParse) {
+      const parser = new pdfMod.PDFParse(new Uint8Array(buffer));
+      await parser.load();
+      const res = await parser.getText();
+      return typeof res === 'string' ? res : (res?.text || '');
+    }
+    if (typeof pdfMod === 'function') {
+      const res = await pdfMod(buffer);
+      return res?.text || '';
+    }
+  } catch (err) {
+    console.warn('[PDF PARSE ERROR]', err.message);
+  }
+  return '';
+}
+
+async function parseAirEPdfBuffer(buffer) {
+  const text = await extractTextFromPdfBuffer(buffer);
+  if (!text) return null;
+  let fechaLectura = null;
+  let fechaSuspension = null;
+  let consumoKwh = null;
+  let fechaEmision = null;
+  let vencimiento = null;
+
+  const mHasta = /HASTA:\s*(\d{4}[/-]\d{2}[/-]\d{2})/i.exec(text) ||
+                 /LECTURA\s+ACTUAL[:\s]+(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/i.exec(text);
+  if (mHasta) fechaLectura = normalizeDateString(mHasta[1]);
+
+  const mSusp = /SUSPENSI[ÓO]N\s+(?:A\s+PARTIR\s+DE[:\s]+)?(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/i.exec(text) ||
+                /SUSPENSI[ÓO]N[:\s]+(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/i.exec(text);
+  if (mSusp) fechaSuspension = normalizeDateString(mSusp[1]);
+
+  const mCons = /CONSUMO\s+FACTURADO[:\s]*(\d+)/i.exec(text) ||
+                /CONSUMO[:\s]+(\d+)\s*kWh/i.exec(text) ||
+                /(\d+)\s*kWh/i.exec(text);
+  if (mCons) consumoKwh = parseInt(mCons[1], 10);
+
+  const mEmis = /EMISI[ÓO]N[:\s]+(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/i.exec(text);
+  if (mEmis) fechaEmision = normalizeDateString(mEmis[1]);
+
+  const mVenc = /PAGO\s+OPORTUNO[:\s]+(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/i.exec(text) ||
+                /VENCIMIENTO[:\s]+(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/i.exec(text);
+  if (mVenc) vencimiento = normalizeDateString(mVenc[1]);
+
+  return { fechaLectura, fechaSuspension, consumoKwh, fechaEmision, vencimiento };
+}
+
+async function parseGasPdfBuffer(buffer) {
+  const text = await extractTextFromPdfBuffer(buffer);
+  if (!text) return null;
+  let fechaLectura = null;
+  let fechaSuspension = null;
+  let consumoM3 = null;
+  let vencimiento = null;
+
+  const mSusp = /SUSPENSI[ÓO]N[:\s]+(\d{2}[/-]\d{2}[/-]\d{4}|\d{4}[/-]\d{2}[/-]\d{2})/i.exec(text) ||
+                /(\d{2}\/\d{2}\/\d{4})\s+\d{2}\/\d{2}\/\d{4}\s+Gm\s*=/i.exec(text);
+  if (mSusp) fechaSuspension = normalizeDateString(mSusp[1]);
+
+  const mPeriodo = /\d{1,2}\s*\/\s*[A-Z]{3,4}\s*-\s*(\d{1,2})\s*\/\s*([A-Z]{3,4})(?:\s*\/\s*(\d{4}))?/i.exec(text);
+  if (mPeriodo) {
+    const day = parseInt(mPeriodo[1], 10);
+    const monStr = mPeriodo[2].toUpperCase();
+    const year = mPeriodo[3] ? parseInt(mPeriodo[3], 10) : new Date().getFullYear();
+    const months = { ENE: 1, FEB: 2, MAR: 3, ABR: 4, MAY: 5, JUN: 6, JUL: 7, AGO: 8, SEP: 9, OCT: 10, NOV: 11, DIC: 12 };
+    const mon = months[monStr] || 1;
+    fechaLectura = `${year}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  } else {
+    const mLec = /LECTURA\s+ACTUAL[:\s]+(\d{2}[/-]\d{2}[/-]\d{4}|\d{4}[/-]\d{2}[/-]\d{2})/i.exec(text);
+    if (mLec) fechaLectura = normalizeDateString(mLec[1]);
+  }
+
+  const mCons = /CONSUMO\s+FACTURADO[:\s]*(\d+)/i.exec(text) ||
+                /CONSUMO[:\s]+(\d+)\s*m[3³]/i.exec(text) ||
+                /(\d+)\s*m[3³]/i.exec(text) ||
+                /\d{3}\s+\d{3}\s+[\d.]+\s+(\d+)/i.exec(text);
+  if (mCons) consumoM3 = parseInt(mCons[1], 10);
+
+  const mVenc = /P[AÁ]GUESE\s+HASTA[:\s]+(\d{2}[/-]\d{2}[/-]\d{4})/i.exec(text) ||
+                /(\d{2}\/\d{2}\/\d{4})\s+\$\s*[\d,.]+/i.exec(text);
+  if (mVenc) vencimiento = normalizeDateString(mVenc[1]);
+
+  return { fechaLectura, fechaSuspension, consumoM3, vencimiento };
+}
+
 // No basta con que DISPLAY exista: tras reinicios bruscos queda un lock
 // huérfano (/tmp/.X99-lock) sin servidor X real. Solo usar headful si el
 // socket del display está presente; si no, headless 'new' directo.
@@ -1774,6 +1901,24 @@ function portalRecordIsPaid(value) {
   return /^(?:true|1|paid|pagad[ao]|cancelad[ao]|al\s*d[ií]a|sin\s*deuda)$/i.test(String(paid || ''));
 }
 
+function cleanFinancingConcept(str) {
+  if (!str) return str;
+  return String(str)
+    .replace(/Suspensi[\uFFFD\?]?n\s*acu\b/gi, 'Suspensión acueducto')
+    .replace(/Suspensi[\uFFFD\?]?n\b/gi, 'Suspensión')
+    .replace(/Reinstalaci[\uFFFD\?]?n\s*acued\b/gi, 'Reinstalación acueducto')
+    .replace(/Reinstalaci[\uFFFD\?]?n\b/gi, 'Reinstalación')
+    .replace(/RECONEXION\s+CENTRO\s+DE\s+MEDICI[\uFFFD\?]?N/gi, 'Reconexión centro de medición')
+    .replace(/CARGO\s+POR\s+CONEXI[\uFFFD\?]?N/gi, 'Cargo por conexión')
+    .replace(/REVISION\s+PERIODICA/gi, 'Revisión periódica')
+    .replace(/CUOTA\s+IVA\s*-\s*BIENES\s+Y\s+SERVICIOS/gi, 'Cuota IVA - Bienes y servicios')
+    .replace(/Acueducto\s+cargo\s+x\s+consumo\s+CMI/gi, 'Acueducto cargo por consumo')
+    .replace(/Barrido\s+y\s+limpieza/gi, 'Aseo (Barrido y limpieza)')
+    .replace(/[\uFFFD]/g, 'ó')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function portalFinancingSummary(payload) {
   // Current invoices and deferred balances share a response envelope. Only
   // read a convention when the field itself or its containing record proves
@@ -1902,8 +2047,8 @@ function portalFinancingSummary(payload) {
     if (rows.some(row => row.key === key)) return;
     rows.push({
       key,
-      concepto: label ? String(label).replace(/\s+/g, ' ').trim().slice(0, 160) : 'Financiación',
-      producto: product ? String(product).replace(/\s+/g, ' ').trim().slice(0, 120) : null,
+      concepto: label ? cleanFinancingConcept(label) : 'Financiación',
+      producto: product ? cleanFinancingConcept(product) : null,
       saldoCOP: amount,
       cuotaCOP: quota,
       cuotas: progress.cuotas,
@@ -2704,8 +2849,16 @@ async function scrapeTripleAAccount() {
         deudaTotalCOP: total,
         deudaMesCOP: total,
         deudaConveniosCOP: 0,
-        deudaLabel: 'Deuda Total',
         periodo: s.expirationDate || null,
+        vencimiento: s.expirationDate || null,
+        fechaSuspension: s.expirationDate ? (() => {
+          const d = new Date(s.expirationDate);
+          if (!isNaN(d.getTime())) {
+            d.setDate(d.getDate() + 2);
+            return d.toISOString().split('T')[0];
+          }
+          return null;
+        })() : null,
         facturasTotales: isPaid ? 0 : 1,
         facturasPendientes: isPaid ? 0 : 1,
         numFacturas: isPaid ? 0 : 1,
@@ -3325,6 +3478,30 @@ async function scrapeGasPortal(credential, targets, portalLabel = 'Portal global
         periodo = invoices[0]?.expirationDate || null;
       }
 
+      // Extraer datos reales del PDF oficial de Gas si está disponible
+      const latestInvoice = (invoices || [])[0];
+      let gasParsed = null;
+      if (latestInvoice && latestInvoice.id) {
+        const cachedGasFile = path.join(INVOICES_DIR, `gas_${c.id}_${latestInvoice.id}.pdf`);
+        let gasPdfBuf = null;
+        if (fs.existsSync(cachedGasFile)) {
+          try { gasPdfBuf = fs.readFileSync(cachedGasFile); } catch {}
+        }
+        if (!gasPdfBuf && latestInvoice.pdfUrl) {
+          try {
+            gasPdfBuf = await downloadBuffer(latestInvoice.pdfUrl);
+            if (gasPdfBuf && gasPdfBuf.length) {
+              try { fs.writeFileSync(cachedGasFile, gasPdfBuf); } catch {}
+            }
+          } catch (err) {
+            console.warn(`[GAS] No se pudo descargar PDF S3 para contrato ${c.id}:`, err.message);
+          }
+        }
+        if (gasPdfBuf) {
+          gasParsed = await parseGasPdfBuffer(gasPdfBuf);
+        }
+      }
+
       records.push({
         provider: 'Gases del Caribe',
         service: 'gas',
@@ -3340,6 +3517,11 @@ async function scrapeGasPortal(credential, targets, portalLabel = 'Portal global
         deudaLabel: 'Deuda Total',
         factura,
         periodo,
+        vencimiento: gasParsed?.vencimiento || periodo || null,
+        fechaLectura: gasParsed?.fechaLectura || null,
+        fechaSuspension: gasParsed?.fechaSuspension || null,
+        consumoM3: gasParsed?.consumoM3 !== null && gasParsed?.consumoM3 !== undefined ? gasParsed.consumoM3 : null,
+        pdfUrl: latestInvoice?.pdfUrl || null,
         facturaValorCOP: month,
         facturasTotales: (invoices || []).length,
         facturasPendientes: unpaid.length,
@@ -3455,7 +3637,7 @@ function aggregateAirEInvoices(items) {
     if (!nic) continue;
 
     const status = String(invoice.cd_EstadosPagoDocumento || 'PAGADO').toUpperCase();
-    if (status === 'PAGADO' || status === 'PAGADA') continue;
+    const isPaid = status === 'PAGADO' || status === 'PAGADA';
 
     const group = grouped[nic] || { totalValues: [], balanceValues: [], monthRows: [], invoices: [] };
     const totalDebt = parseAirEAmount(
@@ -3482,14 +3664,17 @@ function aggregateAirEInvoices(items) {
     const quotaValue = parseAirEAmount(
       invoice.amt_ValorCuota ?? invoice.valorCuota ?? invoice.cuotaFinanciada ?? invoice.quotaValue,
     );
-    if (totalDebt !== null) group.totalValues.push(totalDebt);
-    else if (balance !== null) group.balanceValues.push(balance);
+    if (!isPaid) {
+      if (totalDebt !== null) group.totalValues.push(totalDebt);
+      else if (balance !== null) group.balanceValues.push(balance);
+    }
     group.monthRows.push({
       invoice,
       amount: monthValue,
       date: portalRecordDate(invoice),
       financed: financedValue,
       quota: quotaValue,
+      isPaid,
     });
     group.invoices.push(invoice);
     grouped[nic] = group;
@@ -3520,14 +3705,24 @@ function aggregateAirEInvoices(items) {
       ? Math.max(...financedValues)
       : (financingPayload.financiadaCOP ?? null);
     const factura = portalFieldValue(latest?.invoice, ['cd_NumeroDocumento', 'invoiceNumber', 'invoiceId', 'factura', 'id']) || null;
+    const unpaidInvoices = group.invoices.filter(inv => !/PAGAD[AO]/i.test(String(inv.cd_EstadosPagoDocumento || '')));
+    const sortedInvoices = [...group.invoices].sort((left, right) => (portalRecordDate(right)?.getTime() || 0) - (portalRecordDate(left)?.getTime() || 0));
+    const dtSusp = portalFieldValue(latest?.invoice, ['dt_Suspension', 'fechaSuspension', 'suspensionDate']);
+    const dtVenc = portalFieldValue(latest?.invoice, ['dt_Vencimiento', 'fechaVencimiento', 'dueDate', 'expirationDate']);
+    const dtEmis = portalFieldValue(latest?.invoice, ['dt_Emision', 'fechaEmision', 'issueDate']);
+    const ciclo = portalFieldValue(latest?.invoice, ['cd_Ciclo', 'ciclo']);
     return [nic, {
       debt,
       source: hasTotalField ? 'Deuda Total' : 'SaldoConsulta',
       deudaMesCOP: monthTotal,
       deudaTotalCOP: debt,
-      numFacturas: group.invoices.length,
+      numFacturas: unpaidInvoices.length,
       factura,
       periodo: portalFieldValue(latest?.invoice, ['cd_Periodo', 'invoiceDate', 'billingPeriod', 'periodo', 'fechaFactura']) || null,
+      vencimiento: dtVenc ? normalizeDateString(dtVenc) : null,
+      fechaSuspension: dtSusp ? normalizeDateString(dtSusp) : null,
+      fechaEmision: dtEmis ? normalizeDateString(dtEmis) : null,
+      ciclo: ciclo || null,
       // Air-e labels the accumulated portion “Estado de Cuenta”; it is not a
       // convenio/financiación. Keep the shared financing fields empty so the
       // report renders the overdue-invoice count instead of a false agreement.
@@ -3541,14 +3736,16 @@ function aggregateAirEInvoices(items) {
       financingSource: null,
       financiacion: [],
       facturasTotales: group.invoices.length,
-      facturasPendientes: group.invoices.length,
-      facturasVencidas: group.invoices.length,
-      facturas: group.invoices.slice(0, 40).map(invoice => ({
+      facturasPendientes: unpaidInvoices.length,
+      facturasVencidas: unpaidInvoices.length,
+      facturas: sortedInvoices.slice(0, 40).map(invoice => ({
         factura: portalFieldValue(invoice, ['cd_NumeroDocumento', 'invoiceNumber', 'invoiceId', 'factura', 'id']) || null,
         valorCOP: parseAirEAmount(invoice.amt_ValorMes ?? invoice.amt_ValorFactura ?? invoice.valorFactura ?? invoice.ValorFactura),
         deudaTotalCOP: parseAirEAmount(invoice.amt_DeudaTotal ?? invoice.deudaTotal ?? invoice.DeudaTotal),
         periodo: portalFieldValue(invoice, ['cd_Periodo', 'invoiceDate', 'billingPeriod', 'periodo']) || null,
         vencimiento: portalFieldValue(invoice, ['dt_Vencimiento', 'expirationDate', 'dueDate', 'fechaVencimiento']) || null,
+        fechaSuspension: portalFieldValue(invoice, ['dt_Suspension', 'fechaSuspension', 'suspensionDate']) || null,
+        fechaEmision: portalFieldValue(invoice, ['dt_Emision', 'fechaEmision', 'issueDate']) || null,
         estado: portalFieldValue(invoice, ['cd_EstadosPagoDocumento', 'status']) || null,
         consumoKwh: portalFieldValue(invoice, ['consumoKwh', 'consumo', 'kwh']) || null,
         grupo: portalFieldValue(invoice, ['cd_Grupo', 'grupo', 'group']) || null,
@@ -3747,6 +3944,49 @@ async function scrapeAirE() {
       const month = agg.deudaMesCOP === null ? 'sin mes' : `$${agg.deudaMesCOP.toLocaleString('es-CO')}`;
       console.log(`[AIR-E]   NIC ${nic} → ${aptoName}: mes ${month}; total $${agg.debt.toLocaleString('es-CO')}; facturas sin pagar ${agg.facturasVencidas ?? agg.numFacturas} [${agg.source}]`);
 
+      // Extraer datos reales del PDF oficial si está disponible
+      const targetFactura = agg.factura;
+      if (targetFactura) {
+        const cachedFile = path.join(INVOICES_DIR, `aire_${nic}_${targetFactura}.pdf`);
+        let pdfBuffer = null;
+        if (fs.existsSync(cachedFile)) {
+          try { pdfBuffer = fs.readFileSync(cachedFile); } catch {}
+        }
+        if (!pdfBuffer && page) {
+          try {
+            const pdfBase64 = await page.evaluate(async (fid) => {
+              try {
+                const u = `https://portal.air-e.com/DesktopModules/GatewayOficinaVirtual.Commons/API/Pdf/Get?id=${fid}`;
+                const r = await fetch(u, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'include' });
+                if (!r.ok) return null;
+                const ab = await r.arrayBuffer();
+                const bytes = new Uint8Array(ab);
+                let binary = '';
+                for (let i = 0; i < bytes.byteLength; i++) {
+                  binary += String.fromCharCode(bytes[i]);
+                }
+                return btoa(binary);
+              } catch { return null; }
+            }, targetFactura);
+            if (pdfBase64) {
+              pdfBuffer = Buffer.from(pdfBase64, 'base64');
+              try { fs.writeFileSync(cachedFile, pdfBuffer); } catch {}
+            }
+          } catch (e) {
+            console.warn(`[AIR-E] No se pudo descargar PDF para factura ${targetFactura}:`, e.message);
+          }
+        }
+        if (pdfBuffer) {
+          const parsed = await parseAirEPdfBuffer(pdfBuffer);
+          if (parsed) {
+            if (parsed.fechaLectura) agg.fechaLectura = parsed.fechaLectura;
+            if (parsed.fechaSuspension) agg.fechaSuspension = parsed.fechaSuspension;
+            if (parsed.consumoKwh !== null && parsed.consumoKwh !== undefined) agg.consumoKwh = parsed.consumoKwh;
+            if (parsed.vencimiento && !agg.vencimiento) agg.vencimiento = parsed.vencimiento;
+          }
+        }
+      }
+
       const now = new Date().toISOString();
       const isPending = (agg.deudaTotalCOP ?? agg.debt) > 0;
       results.push({
@@ -3764,6 +4004,10 @@ async function scrapeAirE() {
         factura: agg.factura || null,
         facturaValorCOP: isPending ? (agg.deudaMesCOP ?? agg.debt) : 0,
         periodo: agg.periodo || null,
+        vencimiento: agg.vencimiento || null,
+        fechaLectura: agg.fechaLectura || null,
+        fechaSuspension: agg.fechaSuspension || null,
+        consumoKwh: agg.consumoKwh !== null && agg.consumoKwh !== undefined ? agg.consumoKwh : null,
         financiadaCOP: 0,
         cuotaFinanciadaCOP: null,
         cuotaActual: null,
@@ -4144,4 +4388,6 @@ module.exports = {
   getLastScrapeError,
   getLastWaterScrapeError,
   getLastGasScrapeError,
+  parseAirEPdfBuffer,
+  parseGasPdfBuffer,
 };

@@ -5,7 +5,7 @@ import Modal from '../components/Modal';
 import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
 import { photoUrl, retryPhotoSource, isCapacitor, getBase, AUTH_TOKEN } from '../utils/config';
-import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, servicePaymentUrl, gasContractPaymentUrl, buildRecentInvoicesHistory, getSuspensionAlert, resolveSuspensionDate, resolveDueDate } from '../utils/helpers';
+import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, servicePaymentUrl, gasContractPaymentUrl, buildRecentInvoicesHistory, getSuspensionAlert, resolveSuspensionDate, resolveDueDate, cleanFinancingConcept } from '../utils/helpers';
 import { generateApartmentPDF } from '../utils/pdf';
 import { addCalendarReminder } from '../utils/calendar';
 import QRCode from 'qrcode';
@@ -1273,7 +1273,10 @@ export default function ApartmentDetail() {
                               const pendientes = item.cuotasPendientes != null ? item.cuotasPendientes : (totalCuotas > actCuota ? totalCuotas - actCuota : 0);
                               return (
                                 <div key={index} className="p-1 rounded bg-gray-50 border border-gray-100">
-                                  <p className="font-bold text-gray-800">{item.producto || item.concepto || `Financiación ${index + 1}`}</p>
+                                  <p className="font-bold text-gray-800">{cleanFinancingConcept(item.concepto) || cleanFinancingConcept(item.producto) || `Financiación ${index + 1}`}</p>
+                                  {item.producto && item.concepto && item.producto !== item.concepto && (
+                                    <p className="text-[9px] text-gray-500">{/^\d+$/.test(item.producto) ? `Ref./Producto: ${item.producto}` : cleanFinancingConcept(item.producto)}</p>
+                                  )}
                                   <div className="grid grid-cols-[1fr_auto] gap-x-1 gap-y-0.5 text-gray-600 mt-0.5">
                                     {Number(item.cuotaCOP) > 0 && <><dt>Cuota mes:</dt><dd className="font-bold text-gray-900">{formatCurrency(item.cuotaCOP)}</dd></>}
                                     {totalCuotas > 0 && <><dt>Avance:</dt><dd>{actCuota} de {totalCuotas} {pendientes > 0 ? `(faltan ${pendientes})` : ''}</dd></>}

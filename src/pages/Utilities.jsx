@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Zap, Droplets, Flame, Search, ExternalLink, ChevronLeft, ChevronRight, RefreshCw, MessageCircle, Scan, Image as ImageIcon, Trash2, Settings2, AlertTriangle, Download } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
-import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, servicePaymentUrl, formatShortDate, getSuspensionAlert, resolveSuspensionDate, resolveDueDate } from '../utils/helpers';
+import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, servicePaymentUrl, formatShortDate, getSuspensionAlert, resolveSuspensionDate, resolveDueDate, cleanFinancingConcept } from '../utils/helpers';
 import { getBase, AUTH_TOKEN, isCapacitor } from '../utils/config';
 import jsQR from 'jsqr';
 
@@ -919,8 +919,10 @@ export default function Utilities() {
                 const pendientes = item.cuotasPendientes != null ? item.cuotasPendientes : (totalCuotas > actCuota ? totalCuotas - actCuota : 0);
                 return (
                   <div key={`${item.numero || ''}-${item.concepto || index}`} className="rounded-lg bg-gray-50 p-2 text-[11px] dark:bg-gray-900/50">
-                    <p className="font-semibold text-gray-900 dark:text-white">{item.producto || item.concepto || `Financiación ${index + 1}`}</p>
-                    {item.producto && item.concepto && item.producto !== item.concepto && <p className="text-gray-500 dark:text-gray-400">{item.concepto}</p>}
+                    <p className="font-semibold text-gray-900 dark:text-white">{cleanFinancingConcept(item.concepto) || cleanFinancingConcept(item.producto) || `Financiación ${index + 1}`}</p>
+                    {item.producto && item.concepto && item.producto !== item.concepto && (
+                      <p className="text-gray-500 dark:text-gray-400">{/^\d+$/.test(item.producto) ? `Ref./Producto: ${item.producto}` : cleanFinancingConcept(item.producto)}</p>
+                    )}
                     <dl className="mt-1 grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5">
                       {item.numero && <><dt>Número</dt><dd>{item.numero}</dd></>}
                       {Number(item.cuotaCOP) > 0 && <><dt>Cuota mensual</dt><dd className="font-bold text-gray-900 dark:text-white">{billMoney(parseBillAmount(item.cuotaCOP))}</dd></>}

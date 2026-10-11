@@ -2608,6 +2608,24 @@ function resolveDueDate(rec) {
   return null;
 }
 
+function cleanFinancingConcept(str) {
+  if (!str) return str;
+  return String(str)
+    .replace(/Suspensi[\uFFFD\?]?n\s*acu\b/gi, 'Suspensión acueducto')
+    .replace(/Suspensi[\uFFFD\?]?n\b/gi, 'Suspensión')
+    .replace(/Reinstalaci[\uFFFD\?]?n\s*acued\b/gi, 'Reinstalación acueducto')
+    .replace(/Reinstalaci[\uFFFD\?]?n\b/gi, 'Reinstalación')
+    .replace(/RECONEXION\s+CENTRO\s+DE\s+MEDICI[\uFFFD\?]?N/gi, 'Reconexión centro de medición')
+    .replace(/CARGO\s+POR\s+CONEXI[\uFFFD\?]?N/gi, 'Cargo por conexión')
+    .replace(/REVISION\s+PERIODICA/gi, 'Revisión periódica')
+    .replace(/CUOTA\s+IVA\s*-\s*BIENES\s+Y\s+SERVICIOS/gi, 'Cuota IVA - Bienes y servicios')
+    .replace(/Acueducto\s+cargo\s+x\s+consumo\s+CMI/gi, 'Acueducto cargo por consumo')
+    .replace(/Barrido\s+y\s+limpieza/gi, 'Aseo (Barrido y limpieza)')
+    .replace(/[\uFFFD]/g, 'ó')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function tenantUtilityOverview(apartment) {
   const electricity = latestUtilityRecord('Air-e', apartment);
   const water = latestUtilityRecord('Triple A', apartment);
@@ -2621,7 +2639,11 @@ function tenantUtilityOverview(apartment) {
     deudaMes: utilityMonthDebtAmount(normalizeUtilityRecord(record)) ?? utilityDebtAmount(normalizeUtilityRecord(record)),
     deudaTotal: record?.deudaTotalCOP ?? record?.deudaCOP ?? 0,
     deudaConveniosCOP: record?.deudaConveniosCOP ?? 0,
-    financiacion: Array.isArray(record?.financiacion) ? record.financiacion : [],
+    financiacion: (Array.isArray(record?.financiacion) ? record.financiacion : []).map(item => ({
+      ...item,
+      concepto: cleanFinancingConcept(item.concepto),
+      producto: cleanFinancingConcept(item.producto),
+    })),
     facturasPendientes: record?.facturasPendientes ?? record?.numFacturas ?? (Array.isArray(record?.facturas) ? record.facturas.filter(f => !/PAGAD/i.test(f.estado)).length : 0),
     cuotasTotales: record?.cuotasTotales ?? null,
     cuotaActual: record?.cuotaActual ?? null,
@@ -2710,12 +2732,7 @@ function latestUtilityRecord(provider, apartment) {
   const byNic = expectedNic
     ? records.filter(record => utilityRecordAirENic(record) === expectedNic)
     : [];
-  const candidates = [...new Map([...direct, ...byNic].map(record => [
-    `${record.id ?? ''}|${record.apartmentId ?? ''}|${record.apartment ?? ''}|${utilityRecordAirENic(record)}`,
-    record,
-  ])).values()];
-
-  const sorted = candidates.sort((a, b) => utilityRecordTimestamp(b) - utilityRecordTimestamp(a));
+  const sorted = [...direct, ...byNic].sort((a, b) => utilityRecordTimestamp(b) - utilityRecordTimestamp(a));
   const latest = sorted[0] || null;
   if (latest && !utilityFinancingEvidence(latest)) {
     const priorWithFin = sorted.find(r => utilityFinancingEvidence(r));
@@ -3185,14 +3202,17 @@ function utilityPaymentView(record) {
     deudaTotalCOP: isPaid ? (financingConfirmed ? (utilityCanonicalFinancingAmount(canonical) ?? 0) : 0) : utilityDebtAmount(canonical),
     deudaCOP: isPaid ? (financingConfirmed ? (utilityCanonicalFinancingAmount(canonical) ?? 0) : 0) : utilityDebtAmount(canonical),
     facturaValorCOP: isPaid ? 0 : utilityAmountFromFields(canonical, ['facturaValorCOP', 'invoiceValueCOP', 'valorFacturaCOP']),
-    financiadaCOP: financingConfirmed ? (utilityCanonicalFinancingAmount(canonical) ?? 0) : 0,
-    cuotaFinanciadaCOP: financingConfirmed ? utilityQuotaAmount(canonical) : null,
-    cuotaActual: financingConfirmed ? utilityIntegerFromFields(canonical, ['cuotaActual', 'currentQuota', 'currentInstallment', 'installmentNumber']) : null,
-    cuotasTotales: financingConfirmed ? utilityIntegerFromFields(canonical, ['cuotasTotales', 'totalQuotas', 'totalInstallments', 'installmentCount']) : null,
-    proximoPagoCOP: financingConfirmed ? utilityAmountFromFields(canonical, ['proximoPagoCOP', 'nextPaymentCOP', 'nextPayment']) : null,
-    saldoPorFacturarGasCOP: financingConfirmed ? utilityAmountFromFields(canonical, ['saldoPorFacturarGasCOP', 'pendingGasBalanceCOP']) : null,
-    saldoPorFacturarFinancieroCOP: financingConfirmed ? utilityAmountFromFields(canonical, ['saldoPorFacturarFinancieroCOP', 'pendingFinancialBalanceCOP']) : null,
-    financiacion: financingConfirmed && Array.isArray(canonical.financiacion) ? canonical.financiacion : [],
+    financiadaCOP: (financingConfirmed || canonical.financiadaCOP > 0) ? (utilityCanonicalFinancingAmount(canonical) ?? canonical.financiadaCOP ?? 0) : 0,
+    cuotaFinanciadaCOP: (financingConfirmed || canonical.cuotaFinanciadaCOP > 0) ? (utilityQuotaAmount(canonical) ?? canonical.cuotaFinanciadaCOP) : null,
+    cuotaActual: canonical.cuotaActual ?? (financingConfirmed ? utilityIntegerFromFields(canonical, ['cuotaActual', 'currentQuota', 'currentInstallment', 'installmentNumber']) : null),
+    cuotasTotales: canonical.cuotasTotales ?? (financingConfirmed ? utilityIntegerFromFields(canonical, ['cuotasTotales', 'totalQuotas', 'totalInstallments', 'installmentCount']) : null),
+    proximoPagoCOP: canonical.proximoPagoCOP ?? (financingConfirmed ? utilityAmountFromFields(canonical, ['proximoPagoCOP', 'nextPaymentCOP', 'nextPayment']) : null),
+    saldoPorFacturarGasCOP: canonical.saldoPorFacturarGasCOP ?? (financingConfirmed ? utilityAmountFromFields(canonical, ['saldoPorFacturarGasCOP', 'pendingGasBalanceCOP']) : null),
+    financiacion: ((Array.isArray(canonical.financiacion) && canonical.financiacion.length > 0) ? canonical.financiacion : (financingConfirmed && Array.isArray(canonical.financiacion) ? canonical.financiacion : [])).map(item => ({
+      ...item,
+      concepto: cleanFinancingConcept(item.concepto),
+      producto: cleanFinancingConcept(item.producto),
+    })),
     facturas: Array.isArray(canonical.facturas) ? canonical.facturas : [],
     facturasTotales: utilityIntegerFromFields(canonical, ['facturasTotales', 'invoiceTotalCount', 'totalInvoices', 'numFacturas']),
     facturasPendientes: utilityIntegerFromFields(canonical, ['facturasPendientes', 'pendingInvoices', 'numFacturas']),

@@ -10,7 +10,7 @@ import {
 import QRCode from 'qrcode';
 import { clearAuth, isTenant, isAdmin, getAuth, watchAuthRevoked, revalidateSession } from '../utils/auth';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
-import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp, getSuspensionAlert, resolveSuspensionDate, resolveDueDate } from '../utils/helpers';
+import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp, getSuspensionAlert, resolveSuspensionDate, resolveDueDate, cleanFinancingConcept } from '../utils/helpers';
 import IntercomCallModal from '../components/IntercomCallModal';
 
 const PROVIDERS = {
@@ -131,9 +131,9 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
                   const pendientes = item.cuotasPendientes != null ? item.cuotasPendientes : (totalCuotas > actCuota ? totalCuotas - actCuota : 0);
                   return (
                     <div key={index} className="rounded-lg bg-white p-2 border border-slate-200/80 shadow-xs text-[11px]">
-                      <p className="font-bold text-slate-900">{item.producto || item.concepto || `Financiación ${index + 1}`}</p>
+                      <p className="font-bold text-slate-900">{cleanFinancingConcept(item.concepto) || cleanFinancingConcept(item.producto) || `Financiación ${index + 1}`}</p>
                       {item.producto && item.concepto && item.producto !== item.concepto && (
-                        <p className="text-[10px] text-slate-500">{item.concepto}</p>
+                        <p className="text-[10px] text-slate-500">{/^\d+$/.test(item.producto) ? `Ref./Producto: ${item.producto}` : cleanFinancingConcept(item.producto)}</p>
                       )}
                       <dl className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5 text-slate-600">
                         {Number(item.cuotaCOP) > 0 && (
