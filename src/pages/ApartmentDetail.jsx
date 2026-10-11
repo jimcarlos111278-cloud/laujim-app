@@ -5,7 +5,7 @@ import Modal from '../components/Modal';
 import PaymentHistoryChart from '../components/PaymentHistoryChart';
 import { api } from '../api';
 import { photoUrl, retryPhotoSource, isCapacitor, getBase, AUTH_TOKEN } from '../utils/config';
-import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, isOverdueByReadingDate, servicePaymentUrl, gasContractPaymentUrl } from '../utils/helpers';
+import { formatCurrency, formatShortDate, daysUntil, getCurrentPeriod, getPeriodLabel, prevPeriod, nextPeriod, servicePaymentUrl, gasContractPaymentUrl, buildRecentInvoicesHistory, getSuspensionAlert, resolveSuspensionDate, resolveDueDate } from '../utils/helpers';
 import { generateApartmentPDF } from '../utils/pdf';
 import { addCalendarReminder } from '../utils/calendar';
 import QRCode from 'qrcode';
@@ -316,9 +316,6 @@ export default function ApartmentDetail() {
       depositAmount: Number(form.depositAmount),
       refCatastral: form.refCatastral || '',
       area: Number(form.area || 0),
-      waterReadingDay: Number(form.waterReadingDay || 10),
-      gasReadingDay: Number(form.gasReadingDay || 12),
-      electricityReadingDay: Number(form.electricityReadingDay || 15),
       paymentRemindersEnabled: form.paymentRemindersEnabled !== false,
       paymentReminderDays: (Array.isArray(form.paymentReminderDays) ? form.paymentReminderDays : [-3, 0, 3])
         .map(Number).filter(day => Number.isInteger(day) && day >= -15 && day <= 31),
@@ -562,6 +559,12 @@ export default function ApartmentDetail() {
   }
 
   function handlePayElectricity() {
+    const nic = String(apt?.electricityPaymentCode || apt?.nic || '').replace(/\D/g, '');
+    if (nic) {
+      try {
+        navigator.clipboard?.writeText(nic);
+      } catch {}
+    }
     const url = servicePaymentUrl(apt, 'electricity');
     if (url) {
       openPaymentUrl(url);
@@ -710,6 +713,28 @@ export default function ApartmentDetail() {
       window.open(url, '_system');
     } else {
       window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  function handleDownloadInvoice(aptId, svc, facturaId) {
+    try {
+      const token = (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('apt_auth') || '{}').token) || AUTH_TOKEN || '';
+      const base = getBase();
+      const url = `${base}/admin/invoices/download/${svc}/${aptId}?token=${encodeURIComponent(token)}${facturaId ? `&factura=${encodeURIComponent(facturaId)}` : ''}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      alert('Error al descargar factura: ' + err.message);
+    }
+  }
+
+  function handleDownloadAllInvoices(aptId, period) {
+    try {
+      const token = (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('apt_auth') || '{}').token) || AUTH_TOKEN || '';
+      const base = getBase();
+      const url = `${base}/admin/invoices/download-all/${aptId}?token=${encodeURIComponent(token)}${period ? `&period=${encodeURIComponent(period)}` : ''}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      alert('Error al descargar facturas del mes: ' + err.message);
     }
   }
 
@@ -1174,24 +1199,36 @@ export default function ApartmentDetail() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Zap className="w-4 h-4" /> Servicios Públicos</h3>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-1">
                 <button onClick={() => setUtilityPeriod(prevPeriod(utilityPeriod))} className="p-1 hover:bg-gray-100 rounded"><ChevronLeft className="w-4 h-4" /></button>
                 <span className="text-sm font-medium px-2">{getPeriodLabel(utilityPeriod)}</span>
                 <button onClick={() => setUtilityPeriod(nextPeriod(utilityPeriod))} className="p-1 hover:bg-gray-100 rounded"><ChevronRight className="w-4 h-4" /></button>
+                <button onClick={() => setUtilityPeriod(getCurrentPeriod())} className="text-xs text-blue-600 hover:underline ml-1">Hoy</button>
               </div>
-              <button onClick={() => setUtilityPeriod(getCurrentPeriod())} className="text-xs text-blue-600 hover:underline">Hoy</button>
+              <button
+                onClick={() => handleDownloadAllInvoices(apt.id, utilityPeriod)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-lg transition-colors shadow-sm"
+                title="Descargar facturas oficiales disponibles del mes"
+              >
+                <Download className="w-3.5 h-3.5" /> Descargar facturas del mes
+              </button>
             </div>
             <div className="space-y-2">
               {services.map(svc => {
                 const rec = getUtilityForPeriod(svc, utilityPeriod);
-                const readingDay = svc === 'water' ? (apt.waterReadingDay || 10) : svc === 'gas' ? (apt.gasReadingDay || 12) : (apt.electricityReadingDay || 15);
-                const overdue = rec && !rec.paid && isOverdueByReadingDate(utilityPeriod, readingDay);
+                const latestRec = latestUtilityRecord(utilityRecords, svc);
+                const activeRec = rec || latestRec;
+                const overdue = activeRec && (activeRec.status === 'pending' || (!activeRec.paid && Number(activeRec.amount) > 0));
+                const suspAlert = getSuspensionAlert(activeRec, svc);
+                const suspDate = activeRec?.fechaSuspension || resolveSuspensionDate(activeRec, svc);
+                const vencDate = activeRec?.vencimiento || resolveDueDate(activeRec);
                 const overdueCount = utilityRecords.filter(r => r.service === svc && !r.paid).length;
                 const Icon = serviceIcons[svc];
                 const paymentUrl = servicePaymentUrl(apt, svc);
+                const facturaId = activeRec?.factura || latestRec?.factura;
                 return (
-                  <div key={svc} className={`p-3 rounded-lg border ${overdue ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-100'}`}>
+                  <div key={svc} className={`p-3 rounded-lg border ${suspAlert?.level === 'critical' || suspAlert?.level === 'urgent' ? 'bg-rose-50/70 border-rose-300 ring-1 ring-rose-300' : overdue ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-100'}`}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <div className={`p-1 rounded-lg ${serviceColors[svc]}`}><Icon className="w-3.5 h-3.5" /></div>
@@ -1199,13 +1236,141 @@ export default function ApartmentDetail() {
                       </div>
                       {overdue && <span className="text-xs text-red-600 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Vencido</span>}
                     </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Código: <code className="px-1 bg-white rounded font-mono">{rec?.paymentCode || utilityRecords.find(r => r.service === svc && r.paymentCode)?.paymentCode || (svc === 'water' ? apt.waterPaymentCode : svc === 'gas' ? apt.gasPaymentCode : apt.electricityPaymentCode || apt.nic) || '-'}</code></span>
-                      <span>Valor: {rec?.amount ? formatCurrency(rec.amount) : '-'}</span>
+                    <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 gap-y-1">
+                      <span>Código: <code className="px-1 bg-white rounded font-mono">{activeRec?.paymentCode || activeRec?.nic || (svc === 'water' ? apt.waterPaymentCode : svc === 'gas' ? apt.gasPaymentCode : apt.electricityPaymentCode || apt.nic) || '-'}</code></span>
+                      <span>Deuda mes: <strong className="font-semibold text-gray-900">{formatCurrency(activeRec?.deudaMesCOP ?? activeRec?.amount ?? 0)}</strong></span>
+                      {(activeRec?.facturasPendientes > 1 || (Number(activeRec?.deudaTotalCOP) > 0 && Number(activeRec?.deudaTotalCOP) > Number(activeRec?.deudaMesCOP ?? activeRec?.amount ?? 0))) && (
+                        <>
+                          <div className="w-full flex items-center justify-between text-[11px] text-rose-600 font-medium">
+                            <span>Facturas sin pagar:</span>
+                            <strong className="font-bold">{activeRec.facturasPendientes || 2}</strong>
+                          </div>
+                          <div className="w-full flex items-center justify-between text-[11px] text-amber-600">
+                            <span>Saldo anterior acumulado:</span>
+                            <strong className="font-semibold">{formatCurrency(Number(activeRec.deudaTotalCOP) - Number(activeRec?.deudaMesCOP ?? activeRec?.amount ?? 0))}</strong>
+                          </div>
+                        </>
+                      )}
+                      {activeRec?.deudaConveniosCOP !== undefined && activeRec?.deudaConveniosCOP !== null && (
+                        <div className="w-full flex items-center justify-between text-[11px] text-gray-600">
+                          <span>Saldo financiado:</span>
+                          <strong className="font-semibold text-gray-800">{formatCurrency(activeRec.deudaConveniosCOP || 0)}</strong>
+                        </div>
+                      )}
+                      {activeRec?.deudaTotalCOP !== undefined && activeRec?.deudaTotalCOP !== null && (
+                        <div className="w-full flex items-center justify-between text-[11px]">
+                          <span className="text-gray-600">Deuda total:</span>
+                          <strong className={`font-bold ${Number(activeRec.deudaTotalCOP) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(activeRec.deudaTotalCOP)}</strong>
+                        </div>
+                      )}
+                      {Array.isArray(activeRec?.financiacion) && activeRec.financiacion.length > 0 && (
+                        <details className="w-full mt-1 rounded bg-white/80 p-1.5 border border-gray-200 text-[10px]">
+                          <summary className="cursor-pointer font-bold text-blue-600 hover:text-blue-700">Ver financiaciones ({activeRec.financiacion.length})</summary>
+                          <div className="mt-1 space-y-1.5">
+                            {activeRec.financiacion.map((item, index) => {
+                              const totalCuotas = Number(item.cuotasTotales) || 0;
+                              const actCuota = Number(item.cuotaActual) || 0;
+                              const pendientes = item.cuotasPendientes != null ? item.cuotasPendientes : (totalCuotas > actCuota ? totalCuotas - actCuota : 0);
+                              return (
+                                <div key={index} className="p-1 rounded bg-gray-50 border border-gray-100">
+                                  <p className="font-bold text-gray-800">{item.producto || item.concepto || `Financiación ${index + 1}`}</p>
+                                  <div className="grid grid-cols-[1fr_auto] gap-x-1 gap-y-0.5 text-gray-600 mt-0.5">
+                                    {Number(item.cuotaCOP) > 0 && <><dt>Cuota mes:</dt><dd className="font-bold text-gray-900">{formatCurrency(item.cuotaCOP)}</dd></>}
+                                    {totalCuotas > 0 && <><dt>Avance:</dt><dd>{actCuota} de {totalCuotas} {pendientes > 0 ? `(faltan ${pendientes})` : ''}</dd></>}
+                                    <dt>Saldo pendiente:</dt><dd className="font-semibold text-rose-600">{formatCurrency(item.saldoCOP || 0)}</dd>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </details>
+                      )}
+                      {suspDate && (
+                        <div className="w-full text-[11px] text-rose-700 font-medium">
+                          ✂️ Fecha de corte: <strong className="text-rose-700">{formatShortDate(suspDate)}</strong>
+                        </div>
+                      )}
+                      {vencDate && (
+                        <div className="w-full text-[11px] text-gray-600">
+                          ⏰ Pagar antes de: <strong className="text-gray-900">{formatShortDate(vencDate)}</strong>
+                        </div>
+                      )}
+                      {activeRec?.fechaLectura && (
+                        <div className="w-full text-[11px] text-gray-600">
+                          📅 Última lectura: <strong className="text-gray-900">{formatShortDate(activeRec.fechaLectura)}</strong>
+                        </div>
+                      )}
+                      {(activeRec?.consumoKwh > 0 || activeRec?.consumoM3 > 0) && (
+                        <div className="w-full text-[11px] text-gray-600">
+                          Consumo: <strong className="text-gray-900">{activeRec?.consumoKwh ? `${activeRec.consumoKwh} kWh` : `${activeRec.consumoM3} m³`}</strong>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex gap-1">
-                        {rec?.paymentCode && (
+
+                    {suspAlert && (
+                      <div className={`mt-2 rounded-lg p-2 text-xs font-semibold flex items-center gap-1.5 border ${
+                        suspAlert.level === 'critical' || suspAlert.level === 'urgent'
+                          ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}>
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-rose-600" />
+                        <span>{suspAlert.text}</span>
+                      </div>
+                    )}
+
+                    {/* Historial de Facturas (Últimos 3 ciclos) */}
+                    <div className="mt-2 rounded-lg border border-gray-200/90 bg-white p-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-gray-600 flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-gray-400" /> Historial de Facturas
+                        </span>
+                        <span className="text-[9px] text-gray-400">Últimos 3 meses</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                        {buildRecentInvoicesHistory(activeRec, svc, apt).map((inv, idx) => {
+                          const isPaid = inv.estado === 'paid';
+                          return (
+                            <div key={idx} className={`p-1.5 rounded border text-xs flex flex-col justify-between ${isPaid ? 'border-emerald-200 bg-emerald-50/50' : 'border-rose-200 bg-rose-50/50'}`}>
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-bold text-gray-800 text-[10px]">{inv.label}</span>
+                                <span className={`px-1 py-0.2 rounded text-[9px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                  {isPaid ? '✓ Pagada' : '⚠ Debe saldo'}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-gray-500 mt-0.5">{inv.periodo}</div>
+                              <div className="mt-1 pt-1 border-t border-gray-100 flex items-baseline justify-between text-[10px]">
+                                <span className="text-gray-400 text-[9px]">Llegó en:</span>
+                                <span className="font-bold text-gray-900">
+                                  {Number.isFinite(Number(inv.valorCOP)) && Number(inv.valorCOP) > 0 ? formatCurrency(inv.valorCOP) : (isPaid ? 'Al día' : '—')}
+                                </span>
+                              </div>
+                              {!isPaid && Number(inv.saldoCOP) > 0 && (
+                                <div className="flex items-baseline justify-between text-[10px] text-rose-700 font-medium">
+                                  <span>Saldo:</span>
+                                  <span className="font-bold">{formatCurrency(inv.saldoCOP)}</span>
+                                </div>
+                              )}
+                              {inv.vencimiento && (
+                                <div className="mt-0.5 text-[9px] text-gray-500 flex justify-between">
+                                  <span>Vence:</span>
+                                  <span className="font-semibold text-gray-700">{formatShortDate(inv.vencimiento)}</span>
+                                </div>
+                              )}
+                              {inv.fechaSuspension && (
+                                <div className="text-[9px] text-rose-600 font-medium flex justify-between">
+                                  <span>Corte:</span>
+                                  <span className="font-bold">{formatShortDate(inv.fechaSuspension)}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between mt-2 gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1">
+                        {activeRec?.paymentCode && (
                           <a href={utilityWebsites[svc].url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100 rounded transition-colors">
                             <ExternalLink className="w-3 h-3" /> Pagar web
                           </a>
@@ -1218,6 +1383,17 @@ export default function ApartmentDetail() {
                           paymentUrl && (
                             <button onClick={() => openPaymentUrl(paymentUrl)} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-100 rounded transition-colors font-medium">
                               <ExternalLink className="w-3 h-3" /> Pagar por contrato
+                            </button>
+                          )
+                        ) : svc === 'water' ? (
+                          paymentUrl && (
+                            <button onClick={() => {
+                              if (apt.waterPaymentCode) {
+                                navigator.clipboard.writeText(apt.waterPaymentCode).catch(() => {});
+                              }
+                              openPaymentUrl(paymentUrl);
+                            }} className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100 rounded transition-colors font-medium" title="Copiar póliza y abrir portal Triple A">
+                              <ExternalLink className="w-3 h-3" /> Pagar Triple A
                             </button>
                           )
                         ) : (
@@ -1237,11 +1413,20 @@ export default function ApartmentDetail() {
                             </button>
                           </>
                         )}
+                        {facturaId && (
+                          <button
+                            onClick={() => handleDownloadInvoice(apt.id, svc, facturaId)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded border border-gray-300 transition-colors font-medium"
+                            title="Descargar factura oficial PDF (Solo Administrador)"
+                          >
+                            <Download className="w-3 h-3" /> Factura PDF
+                          </button>
+                        )}
                         <input ref={scannerRef} type="file" accept="image/*" onChange={handleScanFile} className="hidden" />
                       </div>
-                      {rec ? (
-                        <button onClick={() => toggleUtilityPaid(rec)} className={`px-2 py-1 text-xs rounded transition-colors ${rec.paid ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}>
-                          {rec.paid ? 'No Pagado' : 'Pagado'}
+                      {activeRec ? (
+                        <button onClick={() => toggleUtilityPaid(activeRec)} className={`px-2 py-1 text-xs rounded transition-colors ${activeRec.paid ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}>
+                          {activeRec.paid ? 'No Pagado' : 'Pagado'}
                         </button>
                       ) : (
                         <span className="text-xs text-gray-400">Sin registro</span>
@@ -1499,13 +1684,9 @@ export default function ApartmentDetail() {
               <div><span className="text-gray-500">Área:</span> <strong>{apt.area || '-'} m²</strong></div>
               <div><span className="text-gray-500">Piso:</span> <strong>{apt.floor || '-'}</strong></div>
               <div className="col-span-2"><span className="text-gray-500">Ref. Catastral:</span> <strong>{apt.refCatastral || '-'}</strong></div>
-              <div className="col-span-2"><span className="text-gray-500">NIC (Air-e):</span> <strong>{apt.nic || '-'}</strong></div>
-            <div><span className="text-gray-500 dark:text-gray-400">Lectura Agua:</span> <strong className="text-gray-900 dark:text-white">Día {apt.waterReadingDay || 7}</strong></div>
-            <div><span className="text-gray-500 dark:text-gray-400">N° Póliza (Triple A):</span> <strong className="text-gray-900 dark:text-white">{apt.waterPaymentCode || apt.nic || '-'}</strong></div>
-            <div><span className="text-gray-500 dark:text-gray-400">Lectura Gas:</span> <strong className="text-gray-900 dark:text-white">Día {apt.gasReadingDay || 7}</strong></div>
-            <div><span className="text-gray-500 dark:text-gray-400">N° Contrato (Gases del Caribe):</span> <strong className="text-gray-900 dark:text-white">{apt.gasPaymentCode || apt.nic || '-'}</strong></div>
-            <div className="col-span-2"><span className="text-gray-500 dark:text-gray-400">Lectura Electricidad:</span> <strong className="text-gray-900 dark:text-white">Día {apt.electricityReadingDay || 21}</strong></div>
-            <div className="col-span-2"><span className="text-gray-500 dark:text-gray-400">N° NIC (Air-e):</span> <strong className="text-gray-900 dark:text-white">{apt.electricityPaymentCode || apt.nic || '-'}</strong></div>
+              <div><span className="text-gray-500 dark:text-gray-400">N° Póliza (Triple A):</span> <strong className="text-gray-900 dark:text-white">{apt.waterPaymentCode || '-'}</strong></div>
+              <div><span className="text-gray-500 dark:text-gray-400">N° Contrato (Gases del Caribe):</span> <strong className="text-gray-900 dark:text-white">{apt.gasPaymentCode || '-'}</strong></div>
+              <div className="col-span-2"><span className="text-gray-500 dark:text-gray-400">N° NIC (Air-e):</span> <strong className="text-gray-900 dark:text-white">{apt.electricityPaymentCode || apt.nic || '-'}</strong></div>
             </div>
           </div>
         </div>
@@ -1571,10 +1752,6 @@ export default function ApartmentDetail() {
               <input type="text" value={form.refCatastral || ''} onChange={e => setForm({...form, refCatastral: e.target.value})} placeholder="Ej: 0105000004210006901010001" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Agua (día)</label>
-              <input type="number" min="1" max="31" value={form.waterReadingDay || 7} onChange={e => setForm({...form, waterReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° Póliza (Triple A)</label>
               <input type="text" value={form.waterPaymentCode || ''} onChange={e => setForm({...form, waterPaymentCode: e.target.value})} placeholder="Ej: 1234567890" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
@@ -1583,20 +1760,12 @@ export default function ApartmentDetail() {
               <input type="url" value={form.waterPaymentUrl || ''} onChange={e => setForm({...form, waterPaymentUrl: e.target.value})} placeholder="URL del pago (opcional)" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Gas (día)</label>
-              <input type="number" min="1" max="31" value={form.gasReadingDay || 7} onChange={e => setForm({...form, gasReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° Contrato (Gases del Caribe)</label>
               <input type="text" value={form.gasPaymentCode || ''} onChange={e => setForm({...form, gasPaymentCode: e.target.value})} placeholder="Ej: 9876543210" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> Enlace de pago por contrato</label>
               <input type="url" value={gasContractPaymentUrl(form.gasPaymentCode)} readOnly placeholder="Se genera al ingresar el contrato" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lectura Electricidad (día)</label>
-              <input type="number" min="1" max="31" value={form.electricityReadingDay || 21} onChange={e => setForm({...form, electricityReadingDay: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° NIC (Air-e)</label>

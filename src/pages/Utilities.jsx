@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Zap, Droplets, Flame, Search, ExternalLink, ChevronLeft, ChevronRight, RefreshCw, MessageCircle, Scan, Image as ImageIcon, Trash2, Settings2, AlertTriangle } from 'lucide-react';
+import { Zap, Droplets, Flame, Search, ExternalLink, ChevronLeft, ChevronRight, RefreshCw, MessageCircle, Scan, Image as ImageIcon, Trash2, Settings2, AlertTriangle, Download } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
-import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, servicePaymentUrl } from '../utils/helpers';
+import { getCurrentPeriod, getPeriodLabel, nextPeriod, prevPeriod, servicePaymentUrl, formatShortDate, getSuspensionAlert, resolveSuspensionDate, resolveDueDate } from '../utils/helpers';
 import { getBase, AUTH_TOKEN, isCapacitor } from '../utils/config';
 import jsQR from 'jsqr';
 
@@ -121,7 +121,10 @@ function utilityDate(value) {
 }
 
 function billMoney(value) {
-  return value === null ? 'Sin dato confirmado' : `$${value.toLocaleString('es-CO')}`;
+  if (value === null || value === undefined) return '$0';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '$0';
+  return `$${Math.round(num).toLocaleString('es-CO')}`;
 }
 
 function billMeta(bill) {
@@ -144,7 +147,7 @@ function billStatusText(bill) {
 
 const PORTALS = [
   { key: 'electricity', name: 'Energía', icon: Zap, url: 'https://portal.air-e.com/Login?returnurl=%2fMis-Facturas%2fListado-de-Facturas' },
-  { key: 'water', name: 'Agua', icon: Droplets, url: 'https://portal.aaa.com.co/polizas' },
+  { key: 'water', name: 'Agua', icon: Droplets, url: 'https://portal.aaa.com.co/pagos' },
   { key: 'gas', name: 'Gas', icon: Flame, url: 'https://portal.gascaribe.com/login' },
 ];
 
@@ -696,6 +699,28 @@ export default function Utilities() {
     window.open(AIR_E_PUBLIC_PAYMENT_URL, '_blank', 'noopener,noreferrer');
   }
 
+  function handleDownloadInvoice(aptId, svc, facturaId) {
+    try {
+      const token = (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('apt_auth') || '{}').token) || AUTH_TOKEN || '';
+      const base = getBase();
+      const url = `${base}/admin/invoices/download/${svc}/${aptId}?token=${encodeURIComponent(token)}${facturaId ? `&factura=${encodeURIComponent(facturaId)}` : ''}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      alert('Error al descargar la factura: ' + err.message);
+    }
+  }
+
+  function handleDownloadAllInvoices(aptId, period) {
+    try {
+      const token = (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('apt_auth') || '{}').token) || AUTH_TOKEN || '';
+      const base = getBase();
+      const url = `${base}/admin/invoices/download-all/${aptId}?token=${encodeURIComponent(token)}${period ? `&period=${encodeURIComponent(period)}` : ''}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      alert('Error al descargar las facturas del mes: ' + err.message);
+    }
+  }
+
   async function handleDeletePaymentLink(apt, service) {
     if (!apt || !QR_SERVICES.has(service)) return;
     const label = service === 'water' ? 'Triple A' : 'Gases del Caribe';
@@ -832,8 +857,11 @@ export default function Utilities() {
     const changeStatus = bill?.paymentChange?.status;
     const accent = svc === 'electricity' ? 'border-purple-400' : svc === 'water' ? 'border-blue-400' : 'border-orange-400';
     const gasAccount = svc === 'gas' ? gasAccountSummary.accounts.find(account => account.apartments.some(item => item.id === apt.id)) : null;
+    const suspAlert = getSuspensionAlert(bill, svc);
+    const suspDate = bill?.fechaSuspension || resolveSuspensionDate(bill, svc);
+    const vencDate = bill?.vencimiento || resolveDueDate(bill);
     return (
-      <article key={svc} className={`rounded-xl border border-gray-200 dark:border-gray-700 border-t-4 ${accent} bg-white dark:bg-gray-800 p-3 shadow-sm`}>
+      <article key={svc} className={`rounded-xl border ${suspAlert?.level === 'critical' ? 'border-rose-500 ring-1 ring-rose-500' : 'border-gray-200 dark:border-gray-700'} border-t-4 ${accent} bg-white dark:bg-gray-800 p-3 shadow-sm`}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <div className={`h-9 w-9 shrink-0 rounded-lg bg-gradient-to-br ${s.color} flex items-center justify-center`}><Icon className="h-4 w-4 text-white" /></div>
@@ -843,17 +871,68 @@ export default function Utilities() {
         </div>
         <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-xs">
           <dt className="text-gray-500 dark:text-gray-400">Deuda del mes</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(month)}</dd>
-          {svc === 'electricity' ? <><dt className="text-gray-500 dark:text-gray-400">Facturas sin pagar</dt><dd className="font-semibold text-gray-900 dark:text-white">{invoicePending ?? invoiceTotal ?? '—'}</dd></> : <><dt className="text-gray-500 dark:text-gray-400">Saldo financiado</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(convenio)}</dd><dt className="text-gray-500 dark:text-gray-400">Próximo pago</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(nextPayment ?? quota)}</dd><dt className="text-gray-500 dark:text-gray-400">Avance</dt><dd className="font-semibold text-gray-900 dark:text-white">{progressCurrent ?? '—'} de {progressTotal ?? '—'}</dd>{svc === 'gas' && (pendingGas !== null || pendingFinancial !== null) && <><dt className="text-gray-500 dark:text-gray-400">Por facturar gas</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(pendingGas)}</dd><dt className="text-gray-500 dark:text-gray-400">Por facturar financiero</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(pendingFinancial)}</dd></>}</>}
-          <dt className="text-gray-500 dark:text-gray-400">Deuda total</dt><dd className="font-bold text-gray-900 dark:text-white">{billMoney(total)}</dd>
+          {(invoicePending > 0 || invoiceOverdue > 0 || bill?.facturasPendientes > 1 || bill?.numFacturas > 1) ? (
+            <><dt className="text-rose-600 dark:text-rose-400 font-medium">Facturas sin pagar</dt><dd className="font-bold text-rose-600 dark:text-rose-400">{invoicePending || invoiceOverdue || bill?.facturasPendientes || bill?.numFacturas}</dd></>
+          ) : null}
+          {total > month && (
+            <><dt className="text-amber-600 dark:text-amber-400 font-medium">Saldo anterior acumulado</dt><dd className="font-semibold text-amber-600 dark:text-amber-400">{billMoney(total - month)}</dd></>
+          )}
+          {convenio !== null && convenio !== undefined && (
+            <><dt className="text-gray-500 dark:text-gray-400">Saldo financiado</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(convenio)}</dd></>
+          )}
+          {Number(nextPayment) > 0 && <><dt className="text-gray-500 dark:text-gray-400">Próximo pago</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(nextPayment)}</dd></>}
+          {Number(progressTotal) > 0 && progressCurrent !== null && progressCurrent !== undefined && <><dt className="text-gray-500 dark:text-gray-400">Avance</dt><dd className="font-semibold text-gray-900 dark:text-white">{progressCurrent || 0} de {progressTotal}</dd></>}
+          {svc === 'gas' && pendingGas > 0 && <><dt className="text-gray-500 dark:text-gray-400">Por facturar gas</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(pendingGas)}</dd></>}
+          {svc === 'gas' && pendingFinancial > 0 && <><dt className="text-gray-500 dark:text-gray-400">Por facturar financiero</dt><dd className="font-semibold text-gray-900 dark:text-white">{billMoney(pendingFinancial)}</dd></>}
+          {suspDate && (
+            <><dt className="text-rose-600 dark:text-rose-400 font-medium">Fecha de corte</dt><dd className="font-bold text-rose-600 dark:text-rose-400">{formatShortDate(suspDate)}</dd></>
+          )}
+          {vencDate && (
+            <><dt className="text-gray-500 dark:text-gray-400">Pagar antes de</dt><dd className="font-medium text-gray-900 dark:text-white">{formatShortDate(vencDate)}</dd></>
+          )}
+          {bill?.fechaLectura && (
+            <><dt className="text-gray-500 dark:text-gray-400">Última lectura</dt><dd className="font-medium text-gray-900 dark:text-white">{formatShortDate(bill.fechaLectura)}</dd></>
+          )}
+          {(bill?.consumoKwh > 0 || bill?.consumoM3 > 0) && (
+            <><dt className="text-gray-500 dark:text-gray-400">Consumo</dt><dd className="font-medium text-gray-900 dark:text-white">{bill?.consumoKwh ? `${bill.consumoKwh} kWh` : `${bill.consumoM3} m³`}</dd></>
+          )}
+          <dt className="text-gray-500 dark:text-gray-400">Deuda total</dt><dd className={`font-bold ${total > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{billMoney(total)}</dd>
           <dt className="text-gray-500 dark:text-gray-400">Actualizado</dt><dd className="text-right text-gray-600 dark:text-gray-300">{timeAgo(bill?.actualizado || bill?.scrapedAt || bill?.checkedAt)}</dd>
         </dl>
+        {suspAlert && (
+          <div className={`mt-2 rounded-lg p-2 text-xs font-semibold flex items-center gap-1.5 border ${
+            suspAlert.level === 'critical' ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse' : 'bg-rose-50 text-rose-700 border-rose-200'
+          }`}>
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-rose-600" />
+            <span>{suspAlert.text}</span>
+          </div>
+        )}
         {changeLabel && <p className={`mt-2 text-xs font-semibold ${changeStatus === 'full_payment' ? 'text-emerald-600' : 'text-amber-600'}`}>{changeLabel}</p>}
-        {(financing.length > 0 || invoices.length > 0) && (
-          <details open className="mt-3 border-t border-gray-100 pt-2 dark:border-gray-700">
-            <summary className="cursor-pointer text-xs font-semibold text-blue-600 dark:text-blue-300">Ver {svc === 'electricity' ? 'facturas' : 'financiaciones'} ({svc === 'electricity' ? (invoiceTotal ?? invoices.length) : financing.length})</summary>
+        {(financing.length > 0 || (svc === 'electricity' && invoices.length > 0)) && (
+          <details className="mt-3 border-t border-gray-100 pt-2 dark:border-gray-700">
+            <summary className="cursor-pointer text-xs font-semibold text-blue-600 dark:text-blue-300">Ver {svc === 'electricity' ? 'facturas' : 'financiaciones'} ({svc === 'electricity' ? (invoices.length || invoiceTotal || 0) : financing.length})</summary>
             <div className="mt-2 space-y-2">
               {svc === 'electricity' && invoices.map((invoice, index) => <div key={`${invoice.numero || index}`} className="rounded-lg bg-gray-50 p-2 text-[11px] dark:bg-gray-900/50"><p className="font-semibold text-gray-900 dark:text-white">Factura {invoice.numero || index + 1}</p><p className="text-gray-500 dark:text-gray-400">Periodo {invoice.periodo || '—'} · vence {utilityDate(invoice.vencimiento)}</p><p className="font-medium text-gray-800 dark:text-gray-200">{billMoney(parseBillAmount(invoice.valorCOP))} · {invoice.estado || 'estado sin confirmar'}</p></div>)}
-              {svc !== 'electricity' && financing.map((item, index) => <div key={`${item.numero || ''}-${item.concepto || index}`} className="rounded-lg bg-gray-50 p-2 text-[11px] dark:bg-gray-900/50"><p className="font-semibold text-gray-900 dark:text-white">{item.producto || item.concepto || `Financiación ${index + 1}`}</p>{item.producto && item.concepto && item.producto !== item.concepto && <p className="text-gray-500 dark:text-gray-400">{item.concepto}</p>}<dl className="mt-1 grid grid-cols-[1fr_auto] gap-x-2"><dt>Número</dt><dd>{item.numero || '—'}</dd><dt>Saldo inicial</dt><dd>{billMoney(parseBillAmount(item.saldoInicialCOP))}</dd><dt>Saldo pendiente</dt><dd>{billMoney(parseBillAmount(item.saldoCOP))}</dd><dt>Cuota</dt><dd>{billMoney(parseBillAmount(item.cuotaCOP))}</dd><dt>Avance</dt><dd>{item.cuotaActual ?? '—'} de {item.cuotasTotales ?? '—'}</dd><dt>Tasa anual</dt><dd>{item.tasaInteresAnual ?? '—'}</dd><dt>Inicio</dt><dd>{utilityDate(item.fechaInicio)}</dd></dl></div>)}
+              {svc !== 'electricity' && financing.map((item, index) => {
+                const totalCuotas = Number(item.cuotasTotales) || 0;
+                const actCuota = Number(item.cuotaActual) || 0;
+                const pendientes = item.cuotasPendientes != null ? item.cuotasPendientes : (totalCuotas > actCuota ? totalCuotas - actCuota : 0);
+                return (
+                  <div key={`${item.numero || ''}-${item.concepto || index}`} className="rounded-lg bg-gray-50 p-2 text-[11px] dark:bg-gray-900/50">
+                    <p className="font-semibold text-gray-900 dark:text-white">{item.producto || item.concepto || `Financiación ${index + 1}`}</p>
+                    {item.producto && item.concepto && item.producto !== item.concepto && <p className="text-gray-500 dark:text-gray-400">{item.concepto}</p>}
+                    <dl className="mt-1 grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5">
+                      {item.numero && <><dt>Número</dt><dd>{item.numero}</dd></>}
+                      {Number(item.cuotaCOP) > 0 && <><dt>Cuota mensual</dt><dd className="font-bold text-gray-900 dark:text-white">{billMoney(parseBillAmount(item.cuotaCOP))}</dd></>}
+                      {totalCuotas > 0 && <><dt>Avance cuotas</dt><dd className="font-medium text-gray-800 dark:text-gray-200">{actCuota} de {totalCuotas} {pendientes > 0 ? `(faltan ${pendientes})` : ''}</dd></>}
+                      <dt>Saldo pendiente</dt><dd className="font-semibold text-rose-600 dark:text-rose-400">{billMoney(parseBillAmount(item.saldoCOP))}</dd>
+                      {Number(item.saldoInicialCOP) > 0 && <><dt>Saldo inicial</dt><dd>{billMoney(parseBillAmount(item.saldoInicialCOP))}</dd></>}
+                      {item.tasaInteresAnual && <><dt>Tasa anual</dt><dd>{item.tasaInteresAnual}</dd></>}
+                      {item.fechaInicio && <><dt>Inicio</dt><dd>{utilityDate(item.fechaInicio)}</dd></>}
+                    </dl>
+                  </div>
+                );
+              })}
             </div>
           </details>
         )}
@@ -861,6 +940,11 @@ export default function Utilities() {
           {svc === 'electricity' && <button onClick={() => handleElectricityPay(apt)} className="inline-flex items-center gap-1 rounded-md bg-purple-600 px-2 py-1.5 text-xs font-medium text-white"><ExternalLink className="h-3 w-3" /> Pagar</button>}
           {svc === 'gas' && url && <button onClick={() => window.open(url, '_blank', 'noopener,noreferrer')} className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1.5 text-xs font-medium text-white"><ExternalLink className="h-3 w-3" /> Pagar</button>}
           {svc === 'water' && <>{url && <button onClick={() => window.open(url, '_blank', 'noopener,noreferrer')} className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1.5 text-xs font-medium text-white"><ExternalLink className="h-3 w-3" /> Pagar</button>}<button onClick={() => handleScanButton(apt.id, svc)} className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs text-gray-600 dark:border-gray-600 dark:text-gray-300"><Scan className="h-3 w-3" /> {url ? 'Escanear otro' : 'Escanear QR'}</button>{url && <button onClick={() => handleDeletePaymentLink(apt, svc)} className="rounded-md border border-red-200 p-1.5 text-red-600 dark:border-red-900"><Trash2 className="h-3 w-3" /></button>}</>}
+          {bill?.factura && (
+            <button onClick={() => handleDownloadInvoice(apt.id, svc, bill?.factura)} className="inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="Descargar factura oficial PDF">
+              <Download className="h-3 w-3" /> Factura PDF
+            </button>
+          )}
           {gasAccount && <span className="ml-auto self-center text-[10px] text-amber-700 dark:text-amber-300">{gasAccountLabel(gasAccount.id)}</span>}
         </div>
       </article>
@@ -1009,7 +1093,12 @@ export default function Utilities() {
               {renderServiceDetail(apt, 'water')}
               {renderServiceDetail(apt, 'gas')}
             </div>
-            {(() => { const tenant = getActiveTenant(apt.id); return tenant?.phone ? <div className="px-3 pb-3"><button onClick={() => handleWhatsAppServices(apt)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white"><MessageCircle className="h-3.5 w-3.5" /> Enviar servicios por WhatsApp</button></div> : null; })()}
+            <div className="flex flex-wrap items-center gap-2 px-3 pb-3">
+              <button onClick={() => handleDownloadAllInvoices(apt.id, period)} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-800 px-3 py-2 text-xs font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition-colors shadow-sm" title="Descargar las facturas oficiales disponibles del mes para este apartamento">
+                <Download className="h-3.5 w-3.5" /> Descargar facturas del mes
+              </button>
+              {(() => { const tenant = getActiveTenant(apt.id); return tenant?.phone ? <button onClick={() => handleWhatsAppServices(apt)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 transition-colors"><MessageCircle className="h-3.5 w-3.5" /> Enviar servicios por WhatsApp</button> : null; })()}
+            </div>
           </details>
         ))}
         {filtered.length === 0 && <p className="py-8 text-center text-gray-400">No se encontraron apartamentos</p>}
@@ -1061,9 +1150,22 @@ export default function Utilities() {
                             <p className="text-gray-600 dark:text-gray-300">
                               Deuda del mes: <span className="font-semibold text-gray-900 dark:text-white">{billMoney(monthDebt)}</span>
                             </p>
-                            <p className="text-gray-600 dark:text-gray-300">
-                              {svc === 'electricity' ? 'Facturas sin pagar' : 'Deuda de convenios'}: <span className="font-semibold text-gray-900 dark:text-white">{svc === 'electricity' ? (hasInvoiceCount ? invoiceCount : 'Sin dato confirmado') : billMoney(convenioDebt ?? (totalDebt !== null ? 0 : null))}</span>
-                            </p>
+                            {svc === 'electricity' && hasInvoiceCount && invoiceCount > 0 && (
+                              <p className="text-rose-600 dark:text-rose-400 font-medium">
+                                Facturas sin pagar: <span className="font-semibold">{invoiceCount}</span>
+                              </p>
+                            )}
+                            {svc !== 'electricity' && convenioDebt > 0 && (
+                              <p className="text-amber-600 dark:text-amber-400 font-medium">
+                                Deuda de convenios: <span className="font-semibold">{billMoney(convenioDebt)}</span>
+                              </p>
+                            )}
+                            {bill?.fechaLectura && (
+                              <p className="text-gray-500 dark:text-gray-400 text-[11px]">
+                                Última lectura: <span className="font-medium text-gray-700 dark:text-gray-300">{formatShortDate(bill.fechaLectura)}</span>
+                                {(bill?.consumoKwh > 0 || bill?.consumoM3 > 0) && <span> · Consumo: {bill?.consumoKwh ? `${bill.consumoKwh} kWh` : `${bill.consumoM3} m³`}</span>}
+                              </p>
+                            )}
                             <p className={`${waterBillClass(bill)} font-semibold`}>
                               Deuda Total: <span className="font-bold">{billMoney(totalDebt)}</span>
                               {meta && <span className="font-normal text-gray-400 dark:text-gray-500"> · {meta}</span>}

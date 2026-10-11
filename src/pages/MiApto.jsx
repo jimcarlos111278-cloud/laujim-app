@@ -10,7 +10,7 @@ import {
 import QRCode from 'qrcode';
 import { clearAuth, isTenant, isAdmin, getAuth, watchAuthRevoked, revalidateSession } from '../utils/auth';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
-import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp } from '../utils/helpers';
+import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp, getSuspensionAlert, resolveSuspensionDate, resolveDueDate } from '../utils/helpers';
 import IntercomCallModal from '../components/IntercomCallModal';
 
 const PROVIDERS = {
@@ -46,11 +46,34 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
   const known = Number.isFinite(Number(service?.debt));
   const debt = known ? Number(service.debt) : null;
   const paid = debt === 0 || service?.status === 'paid';
+  const [copiedRef, setCopiedRef] = useState(false);
   const classes = {
     amber: 'bg-amber-50 text-amber-700 border-amber-200',
     sky: 'bg-sky-50 text-sky-700 border-sky-200',
     rose: 'bg-rose-50 text-rose-700 border-rose-200',
   }[meta.theme];
+
+  const handleCopyReference = async (e) => {
+    e?.stopPropagation?.();
+    if (service?.reference) {
+      try {
+        await navigator.clipboard.writeText(service.reference);
+        setCopiedRef(true);
+        setTimeout(() => setCopiedRef(false), 2500);
+      } catch {}
+    }
+  };
+
+  const handleOpenPayment = async () => {
+    if (service?.reference) {
+      try {
+        await navigator.clipboard.writeText(service.reference);
+        setCopiedRef(true);
+        setTimeout(() => setCopiedRef(false), 3000);
+      } catch {}
+    }
+  };
+
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start gap-3">
@@ -65,27 +88,281 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
               {paid ? 'Al día' : known ? 'Pendiente' : 'Sin confirmar'}
             </span>
           </div>
-          <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">Deuda del mes</p>
-          <p className="text-2xl font-bold text-slate-900">{known ? formatCurrency(debt) : '—'}</p>
-          <p className="mt-1 text-[11px] text-slate-500">Sincronizado: {colombiaDate(service?.checkedAt)}</p>
+          <div className="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-xs">
+            <span className="text-slate-500 font-medium">Deuda del mes:</span>
+            <strong className="text-sm font-bold text-slate-900">{known ? formatCurrency(debt) : '—'}</strong>
+
+            {(service?.facturasPendientes > 1 || (Number(service?.deudaTotal) > 0 && Number(service?.deudaTotal) > (debt || 0))) && (
+              <>
+                <span className="text-rose-600 font-medium">Facturas sin pagar:</span>
+                <strong className="text-rose-600 font-bold">{service.facturasPendientes || 2}</strong>
+                <span className="text-amber-600 font-medium">Saldo anterior pendiente:</span>
+                <strong className="text-amber-600 font-semibold">{formatCurrency((Number(service.deudaTotal) || 0) - (debt || 0))}</strong>
+              </>
+            )}
+
+            {service?.deudaConveniosCOP !== undefined && service?.deudaConveniosCOP !== null && (
+              <>
+                <span className="text-slate-500 font-medium">Saldo financiado:</span>
+                <strong className="font-semibold text-slate-800">{formatCurrency(service.deudaConveniosCOP || 0)}</strong>
+              </>
+            )}
+
+            {service?.deudaTotal !== undefined && service?.deudaTotal !== null && (
+              <>
+                <span className="text-slate-500 font-medium">Deuda total:</span>
+                <strong className={`font-bold ${Number(service.deudaTotal) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(service.deudaTotal)}</strong>
+              </>
+            )}
+          </div>
+          <p className="mt-1.5 text-[11px] text-slate-400">Sincronizado: {colombiaDate(service?.checkedAt)}</p>
           {service?.error && !known && <p className="mt-2 line-clamp-2 text-xs text-amber-700">{service.error}</p>}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {service?.paymentUrl && service?.paymentMode === 'qr' && (
-              <button onClick={() => onToggleQr(serviceKey)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+
+          {/* Financiaciones activas desglosadas (con concepto, cuota mensual, avance y saldos) */}
+          {Array.isArray(service?.financiacion) && service.financiacion.length > 0 && (
+            <details className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 text-xs">
+              <summary className="cursor-pointer font-bold text-blue-600 hover:text-blue-700">
+                Ver financiaciones ({service.financiacion.length})
+              </summary>
+              <div className="mt-2 space-y-2">
+                {service.financiacion.map((item, index) => {
+                  const totalCuotas = Number(item.cuotasTotales) || 0;
+                  const actCuota = Number(item.cuotaActual) || 0;
+                  const pendientes = item.cuotasPendientes != null ? item.cuotasPendientes : (totalCuotas > actCuota ? totalCuotas - actCuota : 0);
+                  return (
+                    <div key={index} className="rounded-lg bg-white p-2 border border-slate-200/80 shadow-xs text-[11px]">
+                      <p className="font-bold text-slate-900">{item.producto || item.concepto || `Financiación ${index + 1}`}</p>
+                      {item.producto && item.concepto && item.producto !== item.concepto && (
+                        <p className="text-[10px] text-slate-500">{item.concepto}</p>
+                      )}
+                      <dl className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5 text-slate-600">
+                        {Number(item.cuotaCOP) > 0 && (
+                          <>
+                            <dt className="text-slate-500">Cuota mensual:</dt>
+                            <dd className="font-bold text-slate-900">{formatCurrency(item.cuotaCOP)}</dd>
+                          </>
+                        )}
+                        {totalCuotas > 0 && (
+                          <>
+                            <dt className="text-slate-500">Avance:</dt>
+                            <dd className="font-medium text-slate-800">
+                              Cuota {actCuota} de {totalCuotas} {pendientes > 0 ? `· Faltan ${pendientes}` : ''}
+                            </dd>
+                          </>
+                        )}
+                        <dt className="text-slate-500">Saldo pendiente:</dt>
+                        <dd className="font-semibold text-rose-700">{formatCurrency(item.saldoCOP || 0)}</dd>
+                        {Number(item.saldoInicialCOP) > 0 && (
+                          <>
+                            <dt className="text-slate-500">Saldo inicial:</dt>
+                            <dd className="text-slate-600">{formatCurrency(item.saldoInicialCOP)}</dd>
+                          </>
+                        )}
+                      </dl>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          )}
+
+          {/* Alerta de Suspensión / Corte en ROJO si está vencido o cerca del corte */}
+          {(() => {
+            const suspAlert = getSuspensionAlert(service, serviceKey);
+            if (!suspAlert) return null;
+            return (
+              <div className={`mt-2.5 rounded-xl p-2.5 text-xs font-bold flex items-center gap-2 border ${
+                suspAlert.level === 'critical'
+                  ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse'
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
+              }`}>
+                <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+                <span>{suspAlert.text}</span>
+              </div>
+            );
+          })()}
+
+          {/* Información oficial de la empresa (Corte/Suspensión, Vencimiento, Lectura y Consumo) */}
+          {(() => {
+            const fechaCorte = service?.fechaSuspension || resolveSuspensionDate(service, serviceKey) || service?.recentInvoices?.[0]?.fechaSuspension;
+            const vencimiento = service?.vencimiento || resolveDueDate(service) || service?.recentInvoices?.[0]?.vencimiento;
+            const lectura = service?.fechaLectura;
+            const hasData = fechaCorte || vencimiento || lectura || (service?.consumoKwh !== null && service?.consumoKwh !== undefined) || (service?.consumoM3 !== null && service?.consumoM3 !== undefined);
+            if (!hasData) return null;
+            return (
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 rounded-xl bg-slate-50 p-2.5 text-xs text-slate-700 border border-slate-200/80">
+                {fechaCorte && (
+                  <span className="inline-flex items-center gap-1 text-rose-700">
+                    ✂️ <span className="text-slate-500">Fecha de corte:</span> <strong className="font-bold text-rose-700">{formatShortDate(fechaCorte)}</strong>
+                  </span>
+                )}
+                {vencimiento && (
+                  <span className="inline-flex items-center gap-1">
+                    ⏰ <span className="text-slate-500">Pagar antes de:</span> <strong className="font-semibold text-slate-800">{formatShortDate(vencimiento)}</strong>
+                  </span>
+                )}
+                {lectura && (
+                  <span className="inline-flex items-center gap-1">
+                    📅 <span className="text-slate-500">Última lectura:</span> <strong className="font-semibold text-slate-800">{formatShortDate(lectura)}</strong>
+                  </span>
+                )}
+                {service?.consumoKwh !== null && service?.consumoKwh !== undefined && (
+                  <span className="inline-flex items-center gap-1">
+                    ⚡ <span className="text-slate-500">Consumo:</span> <strong className="font-semibold text-slate-800">{service.consumoKwh} kWh</strong>
+                  </span>
+                )}
+                {service?.consumoM3 !== null && service?.consumoM3 !== undefined && (
+                  <span className="inline-flex items-center gap-1">
+                    🔥 <span className="text-slate-500">Consumo:</span> <strong className="font-semibold text-slate-800">{service.consumoM3} m³</strong>
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Cuadradito de Historial de las Últimas 3 Facturas */}
+          <div className="mt-3.5 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                <Calendar className="h-3.5 w-3.5 text-slate-500" /> Historial de Facturas
+              </span>
+              <span className="text-[10px] font-medium text-slate-400">Últimos 3 ciclos</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {(service?.recentInvoices || []).map((inv, idx) => {
+                const isPaid = inv.estado === 'paid';
+                return (
+                  <div
+                    key={idx}
+                    className={`flex flex-col justify-between rounded-lg border p-2.5 transition ${
+                      isPaid
+                        ? 'border-emerald-200 bg-emerald-50/50'
+                        : 'border-rose-200 bg-rose-50/50'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[11px] font-bold text-slate-800">{inv.label}</span>
+                        <span
+                          className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                            isPaid
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-rose-100 text-rose-800'
+                          }`}
+                        >
+                          {isPaid ? (
+                            <>
+                              <CheckCircle className="h-2.5 w-2.5" /> Pagada
+                            </>
+                          ) : (
+                            <>
+                              <AlertTriangle className="h-2.5 w-2.5" /> Debe saldo
+                            </>
+                          )}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[11px] font-medium text-slate-500">{inv.periodo}</p>
+                    </div>
+
+                    <div className="mt-2 border-t border-slate-200/60 pt-1.5">
+                      <div className="flex items-baseline justify-between text-xs">
+                        <span className="text-[10px] text-slate-500">Llegó en:</span>
+                        <strong className="font-semibold text-slate-900">
+                          {Number.isFinite(Number(inv.valorCOP)) && Number(inv.valorCOP) > 0
+                            ? formatCurrency(inv.valorCOP)
+                            : isPaid ? 'Al día' : '—'}
+                        </strong>
+                      </div>
+                      {!isPaid && Number(inv.saldoCOP) > 0 && (
+                        <div className="mt-0.5 flex items-baseline justify-between text-xs text-rose-700">
+                          <span className="text-[10px] font-medium">Saldo:</span>
+                          <strong className="font-bold">{formatCurrency(inv.saldoCOP)}</strong>
+                        </div>
+                      )}
+                      {inv.vencimiento && (
+                        <p className="mt-1 text-[9px] text-slate-500">
+                          Vence: <strong className="font-semibold text-slate-700">{formatShortDate(inv.vencimiento)}</strong>
+                        </p>
+                      )}
+                      {inv.fechaSuspension && (
+                        <p className="text-[9px] text-rose-600 font-medium">
+                          Corte: <strong className="font-bold">{formatShortDate(inv.fechaSuspension)}</strong>
+                        </p>
+                      )}
+                      {inv.factura && (
+                        <p className="mt-0.5 truncate font-mono text-[9px] text-slate-400">
+                          N° {inv.factura}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {service?.paymentUrl && serviceKey === 'water' && (
+              <a
+                href={service.paymentUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={handleOpenPayment}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-700 active:scale-95 transition"
+              >
+                <ExternalLink className="h-4 w-4" /> Pagar Triple A
+              </a>
+            )}
+            {service?.paymentUrl && serviceKey === 'electricity' && (
+              <a
+                href={service.paymentUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={handleOpenPayment}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-amber-600 active:scale-95 transition"
+              >
+                <ExternalLink className="h-4 w-4" /> Pagar Air-e
+              </a>
+            )}
+            {service?.paymentUrl && serviceKey === 'gas' && (
+              <a
+                href={service.paymentUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={handleOpenPayment}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-rose-700 active:scale-95 transition"
+              >
+                <ExternalLink className="h-4 w-4" /> Pagar Gas
+              </a>
+            )}
+            {service?.paymentUrl && service?.paymentMode === 'qr' && serviceKey !== 'water' && serviceKey !== 'gas' && serviceKey !== 'electricity' && (
+              <button onClick={() => onToggleQr(serviceKey)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 active:scale-95 transition">
                 <QrCode className="h-4 w-4" /> Mostrar QR
               </button>
             )}
-            {service?.paymentUrl && service?.paymentMode === 'nic' && (
-              <a href={service.paymentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white">
-                <ExternalLink className="h-4 w-4" /> Pagar con NIC
-              </a>
+            {service?.reference && (
+              <button
+                type="button"
+                onClick={handleCopyReference}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-95 transition"
+                title={`Copiar ${service.referenceLabel || 'código'}`}
+              >
+                {copiedRef ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                <span>{copiedRef ? `¡${service.referenceLabel || 'Código'} Copiado!` : `Copiar ${service.referenceLabel || 'Código'}`}</span>
+              </button>
             )}
             {!service?.paymentUrl && <span className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500">Pago aún no configurado</span>}
           </div>
+          {copiedRef && (
+            <p className="mt-1.5 text-[11px] font-medium text-emerald-600">
+              ✓ {service?.referenceLabel || 'Código'} {service?.reference} copiado en el portapapeles. Pégalo en el portal de pago.
+            </p>
+          )}
           {qrUrl && (
             <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-center">
               <img src={qrUrl} alt={`QR de pago ${meta.title}`} className="mx-auto h-44 w-44" />
-              <a href={service.paymentUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-700">Abrir pago <ExternalLink className="h-3.5 w-3.5" /></a>
+              <a href={service.paymentUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline">Abrir pago <ExternalLink className="h-3.5 w-3.5" /></a>
             </div>
           )}
         </div>
@@ -149,21 +426,21 @@ function LiveVideo({ streamUrl, active, onState, className, isMuted = true }) {
     if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: false,
-        liveSyncDuration: 2,
-        liveMaxLatencyDuration: 4,
+        lowLatencyMode: true,
+        liveSyncDurationCount: 1,
+        liveMaxLatencyDurationCount: 2,
         maxLiveSyncPlaybackRate: 1.15,
-        maxBufferLength: 4,
-        maxMaxBufferLength: 8,
-        backBufferLength: 2,
-        manifestLoadingTimeOut: 4000,
+        maxBufferLength: 3,
+        maxMaxBufferLength: 6,
+        backBufferLength: 1,
+        manifestLoadingTimeOut: 3000,
         manifestLoadingMaxRetry: 6,
-        manifestLoadingRetryDelay: 500,
-        levelLoadingTimeOut: 4000,
+        manifestLoadingRetryDelay: 300,
+        levelLoadingTimeOut: 3000,
         levelLoadingMaxRetry: 6,
-        fragLoadingTimeOut: 4000,
+        fragLoadingTimeOut: 3000,
         fragLoadingMaxRetry: 6,
-        fragLoadingRetryDelay: 500,
+        fragLoadingRetryDelay: 300,
       });
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
@@ -192,10 +469,10 @@ function LiveVideo({ streamUrl, active, onState, className, isMuted = true }) {
     video.addEventListener('error', onVideoError);
     const timer = setInterval(() => {
       if (Date.now() - watchRef.current.setAt > 8000) report({ playing: false, error: true });
-      // Sincronización activa contra desfases entre cámaras:
+      // Sincronización activa contra desfases entre cámaras (pegado al borde vivo en cableado):
       if (hls && video && !video.paused && typeof hls.liveSyncPosition === 'number' && hls.liveSyncPosition > 0) {
         const drift = hls.liveSyncPosition - video.currentTime;
-        if (drift > 3.5) {
+        if (drift > 2.0) {
           video.currentTime = hls.liveSyncPosition;
         }
       }
@@ -423,7 +700,7 @@ export default function MiApto() {
     // después del portón (cada /stream puede tardar hasta ~2.5s).
     await Promise.allSettled(APTO_CAMERAS.map(async (cam) => {
       try {
-        const res = await fetch(`${getRawBase()}/api/cameras/${cam.serial}/stream?quality=sub`);
+        const res = await fetch(`${getRawBase()}/api/cameras/${cam.serial}/stream`);
         const data = await res.json().catch(() => ({}));
         if (data.ok && data.streamUrl) {
           const rawBase = getRawBase();
@@ -431,6 +708,7 @@ export default function MiApto() {
             ? data.streamUrl
             : `${rawBase}${data.streamUrl.startsWith('/') ? '' : '/'}${data.streamUrl}`;
           setStreamUrls(prev => ({ ...prev, [cam.serial]: fullUrl }));
+          setModalUrls(prev => ({ ...prev, [cam.serial]: fullUrl }));
           setStreamErrors(prev => ({ ...prev, [cam.serial]: false }));
         }
       } catch {}
@@ -443,8 +721,7 @@ export default function MiApto() {
 
   // loadStreams() ya precalienta las 3 al montar: no duplicar requests aquí.
 
-  // Cargar o reactivar stream para una cámara específica.
-  // quality 'sub' (tiles, liviano) o 'main' (modal con zoom).
+  // Cargar o reactivar stream para una cámara específica a máxima resolución nativa (main)
   async function requestCameraStream(serial, quality = 'main') {
     if (!serial) return;
     try {
@@ -456,12 +733,9 @@ export default function MiApto() {
         const fullUrl = data.streamUrl.startsWith('http')
           ? data.streamUrl
           : `${rawBase}${data.streamUrl.startsWith('/') ? '' : '/'}${data.streamUrl}`;
-        if (quality === 'sub') {
-          setStreamUrls(prev => ({ ...prev, [serial]: fullUrl }));
-          setStreamErrors(prev => ({ ...prev, [serial]: false }));
-        } else {
-          setModalUrls(prev => ({ ...prev, [serial]: fullUrl }));
-        }
+        setStreamUrls(prev => ({ ...prev, [serial]: fullUrl }));
+        setModalUrls(prev => ({ ...prev, [serial]: fullUrl }));
+        setStreamErrors(prev => ({ ...prev, [serial]: false }));
       }
     } catch {}
   }
@@ -472,10 +746,10 @@ export default function MiApto() {
     requestCameraStream(APTO_CAMERAS[zoomIdx].serial, 'main');
   }, [zoomIdx]);
 
-  // Latido de permanencia (cada 7s) para las 3 cámaras activas.
+  // Latido de permanencia (cada 7s) para las 3 cámaras activas a máxima calidad.
   useEffect(() => {
     if (!cameraLive) return;
-    APTO_CAMERAS.forEach(cam => requestCameraStream(cam.serial, 'sub'));
+    APTO_CAMERAS.forEach(cam => requestCameraStream(cam.serial, 'main'));
 
     const ping = () => {
       // Sin latido en pestaña oculta: evita mantener el motor caliente en vano.
@@ -803,7 +1077,7 @@ export default function MiApto() {
                       onClick={() => {
                         setTileState(prev => ({ ...prev, [cam.serial]: { playing: false, error: false } }));
                         setStreamUrls(prev => { const n = { ...prev }; delete n[cam.serial]; return n; });
-                        requestCameraStream(cam.serial, 'sub');
+                        requestCameraStream(cam.serial, 'main');
                       }}
                       title="Reconectar cámara"
                       className="rounded-xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition"
@@ -898,19 +1172,9 @@ export default function MiApto() {
             </button>
           </div>
 
-          {/* Banner Híbrido: Videoportero Web vs App Ezviz */}
-          <div className="mt-3 rounded-xl bg-slate-50 p-3 border border-slate-100 space-y-2">
-            <div className="flex items-start gap-2 text-xs text-slate-600">
-              <Video className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-slate-900">Videoportero Web (Sin instalar nada):</span>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Cuando alguien timbra en el portón, te llamará a tu WhatsApp o en esta web con video y audio en vivo a 25fps del visitante para que puedas abrirle con 1 toque.
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+          {/* Acceso a App Ezviz para grabaciones */}
+          <div className="mt-3 rounded-xl bg-slate-50 p-3 border border-slate-100">
+            <div className="flex items-center justify-between">
               <button
                 onClick={() => setShowEzvizGuide(!showEzvizGuide)}
                 className="flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-800 transition"
@@ -984,40 +1248,11 @@ export default function MiApto() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700"><LockKeyhole className="h-5 w-5" /></div>
-            <div>
-              <h2 className="font-bold text-slate-900">Acceso principal</h2>
-              <p className="text-xs text-slate-500">Cerradura eléctrica del portón • Apertura auditada</p>
-            </div>
-          </div>
-          <div className="mt-3">
-            <button
-              onClick={() => unlockDoor(doors[0] || { id: 'gate-door', name: 'Portón principal' })}
-              disabled={doorBusy !== ''}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 active:scale-[0.98] transition disabled:opacity-60"
-            >
-              {doorBusy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
-              {doorBusy ? 'Abriendo portón…' : 'Abrir portón de entrada'}
-            </button>
-          </div>
-          {actionMessage && (
-            <p className={`mt-3 rounded-xl p-3 text-xs font-medium ${
-              actionMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-            }`}>
-              {actionMessage.text}
-            </p>
-          )}
-        </section>
-
         {contract && <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h2 className="flex items-center gap-2 font-bold text-slate-900"><FileText className="h-4 w-4" /> Contrato</h2><div className="mt-3 grid grid-cols-2 gap-3 text-sm"><div><p className="text-xs text-slate-500">Inicio</p><strong>{formatShortDate(contract.startDate)}</strong></div><div><p className="text-xs text-slate-500">Finaliza</p><strong>{contract.endDate ? formatShortDate(contract.endDate) : 'Indefinido'}</strong></div></div>{contract.contractFile && <a href={contract.contractFile} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700"><Download className="h-4 w-4" /> Ver contrato</a>}</section>}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h2 className="flex items-center gap-2 font-bold text-slate-900"><Calendar className="h-4 w-4" /> Historial de pagos</h2>{payments.length ? <div className="mt-2 divide-y divide-slate-100">{payments.slice(0, 12).map(payment => <div key={payment.id} className="flex items-center justify-between py-2.5 text-sm"><span className="text-slate-500">{formatShortDate(payment.date)}</span><strong className={payment.status === 'pending_validation' ? 'text-amber-600' : payment.status === 'rejected' ? 'text-rose-600' : 'text-emerald-600'}>{formatCurrency(payment.amount)}</strong></div>)}</div> : <p className="mt-3 text-sm text-slate-400">Sin pagos registrados.</p>}</section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h2 className="flex items-center gap-2 font-bold text-slate-900"><MapPin className="h-4 w-4" /> Tu apartamento</h2><div className="mt-3 grid grid-cols-2 gap-3 text-sm">{apt.area > 0 && <div><p className="text-xs text-slate-500">Área</p><strong>{apt.area} m²</strong></div>}{apt.floor > 0 && <div><p className="text-xs text-slate-500">Piso</p><strong>{apt.floor}</strong></div>}{apt.rooms > 0 && <div><p className="text-xs text-slate-500">Habitaciones</p><strong>{apt.rooms}</strong></div>}{apt.bathrooms > 0 && <div><p className="text-xs text-slate-500">Baños</p><strong>{apt.bathrooms}</strong></div>}</div></section>
-
-        <div className="flex items-start gap-2 rounded-2xl bg-blue-50 p-4 text-xs text-blue-800"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><p>La cámara y la cerradura se autorizan desde el servidor, pero el video y la orden física pasan por la pasarela local. Tus credenciales del NVR nunca se muestran aquí.</p></div>
       </main>
       {activeCall?.active && activeCall.call && (
         <IntercomCallModal
