@@ -2495,32 +2495,45 @@ function buildRecentInvoicesHistory(record, serviceKey, apartment) {
       const isPaid = /PAGAD[AO]|AL_DIA/i.test(String(inv.estado || '')) || inv.deudaTotalCOP === 0;
       const valor = inv.valorCOP ?? inv.facturaValorCOP ?? null;
       const saldo = isPaid ? 0 : (inv.deudaTotalCOP ?? valor ?? 0);
+      const totalObligacion = valor !== null && valor !== undefined ? Number(valor) : (isPaid ? 0 : Number(saldo || 0));
+      const pagado = isPaid ? totalObligacion : Math.max(0, totalObligacion - saldo);
+      const pagoCompleto = Boolean(isPaid && saldo === 0);
       const invVenc = resolveDueDate(inv);
       const invSusp = resolveSuspensionDate(inv, serviceKey) || (invVenc ? resolveSuspensionDate({ vencimiento: invVenc }, serviceKey) : null);
       result.push({
         label,
         periodo: periodLabel,
-        valorCOP: valor,
+        totalObligacionCOP: totalObligacion,
+        pagadoCOP: pagado,
         saldoCOP: saldo,
+        pagoCompleto,
+        valorCOP: totalObligacion,
         estado: isPaid ? 'paid' : 'pending',
-        estadoTexto: isPaid ? 'Pagada' : (saldo > 0 ? 'Debe saldo' : 'Al día'),
+        estadoTexto: pagoCompleto ? '✓ Pagó el total' : (saldo > 0 ? 'Debe obligaciones' : 'Al día'),
         factura: inv.factura || inv.numero || null,
         vencimiento: invVenc,
         fechaSuspension: invSusp,
       });
     } else if (i === 0) {
       const isPaid = record?.status === 'paid' || (record?.deudaTotalCOP === 0 && record?.deudaCOP === 0);
-      const valor = record?.deudaMesCOP ?? record?.facturaValorCOP ?? record?.deudaCOP ?? null;
-      const saldo = isPaid ? 0 : (record?.deudaCOP ?? record?.deudaTotalCOP ?? 0);
+      const monthDebt = record?.deudaMesCOP ?? record?.facturaValorCOP ?? null;
+      const totalDebt = record?.deudaTotalCOP ?? record?.deudaCOP ?? 0;
+      const totalObligacion = monthDebt !== null ? Number(monthDebt) : (isPaid ? 0 : Number(totalDebt || 0));
+      const saldo = isPaid ? 0 : (monthDebt !== null ? Number(monthDebt) : Number(totalDebt || 0));
+      const pagado = isPaid ? totalObligacion : Math.max(0, totalObligacion - saldo);
+      const pagoCompleto = Boolean(isPaid && saldo === 0);
       const mainVenc = resolveDueDate(record);
       const mainSusp = resolveSuspensionDate(record, serviceKey);
       result.push({
         label,
         periodo: periodLabel,
-        valorCOP: valor,
+        totalObligacionCOP: totalObligacion,
+        pagadoCOP: pagado,
         saldoCOP: saldo,
+        pagoCompleto,
+        valorCOP: totalObligacion,
         estado: isPaid ? 'paid' : 'pending',
-        estadoTexto: isPaid ? 'Pagada' : (saldo > 0 ? 'Debe saldo' : 'Al día'),
+        estadoTexto: pagoCompleto ? '✓ Pagó el total' : (saldo > 0 ? 'Debe obligaciones' : 'Al día'),
         factura: record?.factura || null,
         vencimiento: mainVenc,
         fechaSuspension: mainSusp,
@@ -2530,13 +2543,20 @@ function buildRecentInvoicesHistory(record, serviceKey, apartment) {
       const monthDebt = record?.deudaMesCOP ?? record?.facturaValorCOP ?? 0;
       const carriedDebt = Math.max(0, totalDebt - monthDebt);
       const isPaid = carriedDebt === 0;
+      const pagoCompleto = isPaid;
+      const totalObligacion = carriedDebt > 0 ? carriedDebt : null;
+      const pagado = isPaid ? (totalObligacion || 0) : 0;
+      const saldo = carriedDebt;
       result.push({
         label,
         periodo: periodLabel,
-        valorCOP: null,
-        saldoCOP: carriedDebt,
+        totalObligacionCOP: totalObligacion,
+        pagadoCOP: pagado,
+        saldoCOP: saldo,
+        pagoCompleto,
+        valorCOP: totalObligacion,
         estado: isPaid ? 'paid' : 'pending',
-        estadoTexto: isPaid ? 'Pagada' : 'Debe saldo anterior',
+        estadoTexto: pagoCompleto ? '✓ Pagó el total' : 'Debe saldo anterior',
         factura: null,
         vencimiento: null,
         fechaSuspension: null,
@@ -2545,10 +2565,13 @@ function buildRecentInvoicesHistory(record, serviceKey, apartment) {
       result.push({
         label,
         periodo: periodLabel,
-        valorCOP: null,
+        totalObligacionCOP: null,
+        pagadoCOP: 0,
         saldoCOP: 0,
+        pagoCompleto: true,
+        valorCOP: null,
         estado: 'paid',
-        estadoTexto: 'Pagada',
+        estadoTexto: '✓ Pagó el total',
         factura: null,
         vencimiento: null,
         fechaSuspension: null,

@@ -160,19 +160,28 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
           <div className="mt-3.5 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                <Calendar className="h-3.5 w-3.5 text-slate-500" /> Historial de Facturas
+                <Calendar className="h-3.5 w-3.5 text-slate-500" /> Historial de Obligaciones
               </span>
-              <span className="text-[10px] font-medium text-slate-400">Últimos 3 ciclos</span>
+              <span className="text-[10px] font-medium text-slate-400">Últimos 3 meses (Consumo + cuotas)</span>
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {(service?.recentInvoices || []).map((inv, idx) => {
                 const isPaid = inv.estado === 'paid';
+                const pagoCompleto = inv.pagoCompleto !== undefined
+                  ? inv.pagoCompleto
+                  : (isPaid && Number(inv.saldoCOP || 0) === 0);
+                const totalObligacion = inv.totalObligacionCOP ?? inv.valorCOP;
+                const pagado = inv.pagadoCOP !== undefined
+                  ? inv.pagadoCOP
+                  : (pagoCompleto ? (totalObligacion || 0) : 0);
+                const saldo = Number(inv.saldoCOP || 0);
+
                 return (
                   <div
                     key={idx}
                     className={`flex flex-col justify-between rounded-lg border p-2.5 transition ${
-                      isPaid
+                      pagoCompleto
                         ? 'border-emerald-200 bg-emerald-50/50'
                         : 'border-rose-200 bg-rose-50/50'
                     }`}
@@ -181,19 +190,19 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-[11px] font-bold text-slate-800">{inv.label}</span>
                         <span
-                          className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                            isPaid
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-rose-100 text-rose-800'
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            pagoCompleto
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-800 border border-rose-200'
                           }`}
                         >
-                          {isPaid ? (
+                          {pagoCompleto ? (
                             <>
-                              <CheckCircle className="h-2.5 w-2.5" /> Pagada
+                              <CheckCircle className="h-3 w-3 text-emerald-600" /> Pagó el total
                             </>
                           ) : (
                             <>
-                              <AlertTriangle className="h-2.5 w-2.5" /> Debe
+                              <AlertTriangle className="h-3 w-3 text-rose-600" /> Debe obligaciones
                             </>
                           )}
                         </span>
@@ -201,17 +210,39 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
                       <p className="mt-0.5 text-[11px] font-medium text-slate-500">{inv.periodo}</p>
                     </div>
 
-                    <div className="mt-2 border-t border-slate-200/60 pt-1.5">
-                      <div className="flex items-baseline justify-between text-xs">
-                        <span className="text-[10px] font-medium text-slate-500">{isPaid ? 'Pagó:' : 'Debe:'}</span>
-                        <strong className={`font-bold ${isPaid ? 'text-slate-900' : 'text-rose-700'}`}>
-                          {isPaid
-                            ? (Number(inv.valorCOP) > 0 ? formatCurrency(inv.valorCOP) : 'Al día')
-                            : formatCurrency(Number(inv.saldoCOP) > 0 ? inv.saldoCOP : (inv.valorCOP || 0))}
+                    <div className="mt-2.5 space-y-1 border-t border-slate-200/70 pt-2 text-xs">
+                      <div className="flex items-baseline justify-between text-[11px]">
+                        <span className="text-slate-500">Obligación:</span>
+                        <strong className="font-semibold text-slate-800">
+                          {Number(totalObligacion) > 0
+                            ? formatCurrency(totalObligacion)
+                            : (pagoCompleto ? 'Al día ($0)' : '$0')}
                         </strong>
                       </div>
+
+                      <div className="flex items-baseline justify-between text-[11px]">
+                        <span className="text-slate-500">Pagó:</span>
+                        <strong className={pagoCompleto ? 'font-bold text-emerald-700' : (Number(pagado) > 0 ? 'font-bold text-amber-700' : 'font-medium text-slate-600')}>
+                          {pagoCompleto
+                            ? (Number(pagado || totalObligacion) > 0 ? formatCurrency(pagado || totalObligacion) : '100% al día')
+                            : (Number(pagado) > 0 ? `${formatCurrency(pagado)} (Abono)` : '$0')}
+                        </strong>
+                      </div>
+
+                      {saldo > 0 ? (
+                        <div className="flex items-baseline justify-between rounded bg-rose-100/70 px-1.5 py-0.5 text-[11px]">
+                          <span className="font-bold text-rose-700">Debe:</span>
+                          <strong className="font-extrabold text-rose-800">{formatCurrency(saldo)}</strong>
+                        </div>
+                      ) : (
+                        <div className="flex items-baseline justify-between text-[10px] text-emerald-700">
+                          <span>Saldo pendiente:</span>
+                          <span className="font-semibold">$0 (Al día)</span>
+                        </div>
+                      )}
+
                       {inv.vencimiento && (
-                        <p className="mt-1 text-[9px] text-slate-500">
+                        <p className="pt-0.5 text-[9px] text-slate-500">
                           Vence: <strong className="font-semibold text-slate-700">{formatShortDate(inv.vencimiento)}</strong>
                         </p>
                       )}
@@ -221,7 +252,7 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
                         </p>
                       )}
                       {inv.factura && (
-                        <p className="mt-0.5 truncate font-mono text-[9px] text-slate-400">
+                        <p className="truncate font-mono text-[9px] text-slate-400">
                           N° {inv.factura}
                         </p>
                       )}
