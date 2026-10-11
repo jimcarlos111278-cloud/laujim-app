@@ -10,7 +10,7 @@ import {
 import QRCode from 'qrcode';
 import { clearAuth, isTenant, isAdmin, getAuth, watchAuthRevoked, revalidateSession } from '../utils/auth';
 import { AUTH_TOKEN, getBase, getRawBase } from '../utils/config';
-import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp, getSuspensionAlert, resolveSuspensionDate, resolveDueDate, cleanFinancingConcept } from '../utils/helpers';
+import { formatCurrency, formatShortDate, formatRelativeDueDate, getCurrentPeriod, openEzvizApp, getSuspensionAlert, resolveSuspensionDate, resolveDueDate } from '../utils/helpers';
 import IntercomCallModal from '../components/IntercomCallModal';
 
 const PROVIDERS = {
@@ -43,8 +43,8 @@ async function tenantRequest(route, options = {}) {
 function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
   const meta = PROVIDERS[serviceKey];
   const Icon = meta.icon;
-  const known = Number.isFinite(Number(service?.debt));
-  const debt = known ? Number(service.debt) : null;
+  const known = Number.isFinite(Number(service?.debt)) || Number.isFinite(Number(service?.deudaTotal));
+  const debt = known ? Number(service?.debt ?? service?.deudaTotal ?? 0) : null;
   const paid = debt === 0 || service?.status === 'paid';
   const [copiedRef, setCopiedRef] = useState(false);
   const classes = {
@@ -88,83 +88,19 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
               {paid ? 'Al día' : known ? 'Pendiente' : 'Sin confirmar'}
             </span>
           </div>
-          <div className="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-xs">
-            <span className="text-slate-500 font-medium">Deuda del mes:</span>
-            <strong className="text-sm font-bold text-slate-900">{known ? formatCurrency(debt) : '—'}</strong>
-
-            {(service?.facturasPendientes > 1 || (Number(service?.deudaTotal) > 0 && Number(service?.deudaTotal) > (debt || 0))) && (
-              <>
-                <span className="text-rose-600 font-medium">Facturas sin pagar:</span>
-                <strong className="text-rose-600 font-bold">{service.facturasPendientes || 2}</strong>
-                <span className="text-amber-600 font-medium">Saldo anterior pendiente:</span>
-                <strong className="text-amber-600 font-semibold">{formatCurrency((Number(service.deudaTotal) || 0) - (debt || 0))}</strong>
-              </>
-            )}
-
-            {service?.deudaConveniosCOP !== undefined && service?.deudaConveniosCOP !== null && (
-              <>
-                <span className="text-slate-500 font-medium">Saldo financiado:</span>
-                <strong className="font-semibold text-slate-800">{formatCurrency(service.deudaConveniosCOP || 0)}</strong>
-              </>
-            )}
-
-            {service?.deudaTotal !== undefined && service?.deudaTotal !== null && (
-              <>
-                <span className="text-slate-500 font-medium">Deuda total:</span>
-                <strong className={`font-bold ${Number(service.deudaTotal) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(service.deudaTotal)}</strong>
-              </>
-            )}
+          {/* Valor consolidado único: lo que debe pagar para estar al día con todas sus obligaciones */}
+          <div className={`mt-3 flex items-baseline justify-between rounded-xl p-3 border ${
+            paid 
+              ? 'border-emerald-200 bg-emerald-50/60' 
+              : 'border-rose-200 bg-rose-50/60'
+          }`}>
+            <span className="text-xs font-semibold text-slate-700">Total a pagar:</span>
+            <span className={`text-base font-extrabold ${paid ? 'text-emerald-700' : 'text-rose-700'}`}>
+              {known ? (paid ? '$0 (al día)' : formatCurrency(debt)) : '—'}
+            </span>
           </div>
           <p className="mt-1.5 text-[11px] text-slate-400">Sincronizado: {colombiaDate(service?.checkedAt)}</p>
           {service?.error && !known && <p className="mt-2 line-clamp-2 text-xs text-amber-700">{service.error}</p>}
-
-          {/* Financiaciones activas desglosadas (con concepto, cuota mensual, avance y saldos) */}
-          {Array.isArray(service?.financiacion) && service.financiacion.length > 0 && (
-            <details className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 text-xs">
-              <summary className="cursor-pointer font-bold text-blue-600 hover:text-blue-700">
-                Ver financiaciones ({service.financiacion.length})
-              </summary>
-              <div className="mt-2 space-y-2">
-                {service.financiacion.map((item, index) => {
-                  const totalCuotas = Number(item.cuotasTotales) || 0;
-                  const actCuota = Number(item.cuotaActual) || 0;
-                  const pendientes = item.cuotasPendientes != null ? item.cuotasPendientes : (totalCuotas > actCuota ? totalCuotas - actCuota : 0);
-                  return (
-                    <div key={index} className="rounded-lg bg-white p-2 border border-slate-200/80 shadow-xs text-[11px]">
-                      <p className="font-bold text-slate-900">{cleanFinancingConcept(item.concepto) || cleanFinancingConcept(item.producto) || `Financiación ${index + 1}`}</p>
-                      {item.producto && item.concepto && item.producto !== item.concepto && (
-                        <p className="text-[10px] text-slate-500">{/^\d+$/.test(item.producto) ? `Ref./Producto: ${item.producto}` : cleanFinancingConcept(item.producto)}</p>
-                      )}
-                      <dl className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5 text-slate-600">
-                        {Number(item.cuotaCOP) > 0 && (
-                          <>
-                            <dt className="text-slate-500">Cuota mensual:</dt>
-                            <dd className="font-bold text-slate-900">{formatCurrency(item.cuotaCOP)}</dd>
-                          </>
-                        )}
-                        {totalCuotas > 0 && (
-                          <>
-                            <dt className="text-slate-500">Avance:</dt>
-                            <dd className="font-medium text-slate-800">
-                              Cuota {actCuota} de {totalCuotas} {pendientes > 0 ? `· Faltan ${pendientes}` : ''}
-                            </dd>
-                          </>
-                        )}
-                        <dt className="text-slate-500">Saldo pendiente:</dt>
-                        <dd className="font-semibold text-rose-700">{formatCurrency(item.saldoCOP || 0)}</dd>
-                        {Number(item.saldoInicialCOP) > 0 && (
-                          <>
-                            <dt className="text-slate-500">Saldo inicial:</dt>
-                            <dd className="text-slate-600">{formatCurrency(item.saldoInicialCOP)}</dd>
-                          </>
-                        )}
-                      </dl>
-                    </div>
-                  );
-                })}
-              </div>
-            </details>
-          )}
 
           {/* Alerta de Suspensión / Corte en ROJO si está vencido o cerca del corte */}
           {(() => {
@@ -257,7 +193,7 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
                             </>
                           ) : (
                             <>
-                              <AlertTriangle className="h-2.5 w-2.5" /> Debe saldo
+                              <AlertTriangle className="h-2.5 w-2.5" /> Debe
                             </>
                           )}
                         </span>
@@ -267,19 +203,13 @@ function ServiceCard({ serviceKey, service, qrUrl, onToggleQr }) {
 
                     <div className="mt-2 border-t border-slate-200/60 pt-1.5">
                       <div className="flex items-baseline justify-between text-xs">
-                        <span className="text-[10px] text-slate-500">Llegó en:</span>
-                        <strong className="font-semibold text-slate-900">
-                          {Number.isFinite(Number(inv.valorCOP)) && Number(inv.valorCOP) > 0
-                            ? formatCurrency(inv.valorCOP)
-                            : isPaid ? 'Al día' : '—'}
+                        <span className="text-[10px] font-medium text-slate-500">{isPaid ? 'Pagó:' : 'Debe:'}</span>
+                        <strong className={`font-bold ${isPaid ? 'text-slate-900' : 'text-rose-700'}`}>
+                          {isPaid
+                            ? (Number(inv.valorCOP) > 0 ? formatCurrency(inv.valorCOP) : 'Al día')
+                            : formatCurrency(Number(inv.saldoCOP) > 0 ? inv.saldoCOP : (inv.valorCOP || 0))}
                         </strong>
                       </div>
-                      {!isPaid && Number(inv.saldoCOP) > 0 && (
-                        <div className="mt-0.5 flex items-baseline justify-between text-xs text-rose-700">
-                          <span className="text-[10px] font-medium">Saldo:</span>
-                          <strong className="font-bold">{formatCurrency(inv.saldoCOP)}</strong>
-                        </div>
-                      )}
                       {inv.vencimiento && (
                         <p className="mt-1 text-[9px] text-slate-500">
                           Vence: <strong className="font-semibold text-slate-700">{formatShortDate(inv.vencimiento)}</strong>

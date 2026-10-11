@@ -2630,39 +2630,37 @@ function tenantUtilityOverview(apartment) {
   const electricity = latestUtilityRecord('Air-e', apartment);
   const water = latestUtilityRecord('Triple A', apartment);
   const gas = latestUtilityRecord('Gases del Caribe', apartment);
-  const view = (record, provider, referenceLabel, reference, paymentUrl, paymentMode, serviceKey) => ({
-    provider,
-    status: record?.status || 'unknown',
-    // Residents receive the current month's amount only. Keep a temporary
-    // fallback to the legacy field until every worker persists deudaMesCOP.
-    debt: utilityMonthDebtAmount(normalizeUtilityRecord(record)) ?? utilityDebtAmount(normalizeUtilityRecord(record)),
-    deudaMes: utilityMonthDebtAmount(normalizeUtilityRecord(record)) ?? utilityDebtAmount(normalizeUtilityRecord(record)),
-    deudaTotal: record?.deudaTotalCOP ?? record?.deudaCOP ?? 0,
-    deudaConveniosCOP: record?.deudaConveniosCOP ?? 0,
-    financiacion: (Array.isArray(record?.financiacion) ? record.financiacion : []).map(item => ({
-      ...item,
-      concepto: cleanFinancingConcept(item.concepto),
-      producto: cleanFinancingConcept(item.producto),
-    })),
-    facturasPendientes: record?.facturasPendientes ?? record?.numFacturas ?? (Array.isArray(record?.facturas) ? record.facturas.filter(f => !/PAGAD/i.test(f.estado)).length : 0),
-    cuotasTotales: record?.cuotasTotales ?? null,
-    cuotaActual: record?.cuotaActual ?? null,
-    cuotaFinanciadaCOP: record?.cuotaFinanciadaCOP ?? null,
-    checkedAt: utilityRecordValueTimestamp(record),
-    error: record?.error ? String(record.error).slice(0, 240) : null,
-    referenceLabel,
-    reference: String(reference || '').trim() || null,
-    paymentUrl: /^https:\/\//i.test(String(paymentUrl || '')) ? String(paymentUrl) : null,
-    paymentMode,
-    fechaLectura: record?.fechaLectura || (record?.facturas && record?.facturas[0] ? record.facturas[0].fechaLectura : null) || null,
-    fechaSuspension: resolveSuspensionDate(record, serviceKey),
-    consumoKwh: record?.consumoKwh ?? (record?.facturas && record?.facturas[0] ? record.facturas[0].consumoKwh : null) ?? null,
-    consumoM3: record?.consumoM3 ?? (record?.facturas && record?.facturas[0] ? record.facturas[0].consumoM3 : null) ?? null,
-    vencimiento: resolveDueDate(record),
-    factura: record?.factura || (record?.facturas && record?.facturas[0] ? record?.facturas[0]?.factura : null) || null,
-    periodo: record?.periodo || (record?.facturas && record?.facturas[0] ? record?.facturas[0]?.periodo : null) || null,
-    recentInvoices: buildRecentInvoicesHistory(record, serviceKey, apartment),
-  });
+  const view = (record, provider, referenceLabel, reference, paymentUrl, paymentMode, serviceKey) => {
+    const isPaid = record?.status === 'paid' || (record?.deudaTotalCOP === 0 && record?.deudaCOP === 0);
+    // Para el inquilino: UN SOLO VALOR a pagar que incluye el mes + cuotas del mes + cualquier saldo pendiente exigible
+    const monthDebt = utilityMonthDebtAmount(normalizeUtilityRecord(record)) ?? utilityDebtAmount(normalizeUtilityRecord(record)) ?? 0;
+    const totalDue = isPaid ? 0 : Math.max(monthDebt, record?.deudaTotalCOP || 0, record?.deudaCOP || 0);
+
+    return {
+      provider,
+      status: isPaid ? 'paid' : (record?.status || 'unknown'),
+      debt: isPaid ? 0 : totalDue,
+      deudaMes: isPaid ? 0 : monthDebt,
+      deudaTotal: isPaid ? 0 : totalDue,
+      // Privacidad absoluta: las financiaciones y convenios son privados de los administradores
+      financiacion: [],
+      facturasPendientes: isPaid ? 0 : (record?.facturasPendientes ?? record?.numFacturas ?? (Array.isArray(record?.facturas) ? record.facturas.filter(f => !/PAGAD/i.test(f.estado)).length : 0)),
+      checkedAt: utilityRecordValueTimestamp(record),
+      error: record?.error ? String(record.error).slice(0, 240) : null,
+      referenceLabel,
+      reference: String(reference || '').trim() || null,
+      paymentUrl: /^https:\/\//i.test(String(paymentUrl || '')) ? String(paymentUrl) : null,
+      paymentMode,
+      fechaLectura: record?.fechaLectura || (record?.facturas && record?.facturas[0] ? record.facturas[0].fechaLectura : null) || null,
+      fechaSuspension: resolveSuspensionDate(record, serviceKey),
+      consumoKwh: record?.consumoKwh ?? (record?.facturas && record?.facturas[0] ? record.facturas[0].consumoKwh : null) ?? null,
+      consumoM3: record?.consumoM3 ?? (record?.facturas && record?.facturas[0] ? record.facturas[0].consumoM3 : null) ?? null,
+      vencimiento: resolveDueDate(record),
+      factura: record?.factura || (record?.facturas && record?.facturas[0] ? record?.facturas[0]?.factura : null) || null,
+      periodo: record?.periodo || (record?.facturas && record?.facturas[0] ? record?.facturas[0]?.periodo : null) || null,
+      recentInvoices: buildRecentInvoicesHistory(record, serviceKey, apartment),
+    };
+  };
   return {
     electricity: view(electricity, 'Air-e', 'NIC', apartment?.electricityPaymentCode || apartment?.nic || electricity?.nic, publicServicePaymentUrl(apartment, electricity, 'electricity'), 'nic', 'electricity'),
     water: view(water, 'Triple A', 'Póliza', apartment?.waterPaymentCode || water?.waterPaymentCode, 'https://portal.aaa.com.co/pagos', 'poliza', 'water'),
