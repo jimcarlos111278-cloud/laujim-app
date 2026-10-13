@@ -14,6 +14,7 @@ with tarfile.open(tar_path, "w:gz") as tar:
     tar.add(os.path.join(project_dir, "dist"), arcname="dist", filter=filter_releases)
     tar.add(os.path.join(project_dir, "server.cjs"), arcname="server.cjs")
     tar.add(os.path.join(project_dir, "services-scraper.cjs"), arcname="services-scraper.cjs")
+    tar.add(os.path.join(project_dir, "scripts", "scrape-predial.cjs"), arcname="scripts/scrape-predial.cjs")
     tar.add(os.path.join(project_dir, "deploy-oracle-vm", "ezviz_stream_server.py"), arcname="ezviz_stream_server.py")
 
 tar_size_mb = os.path.getsize(tar_path) / (1024 * 1024)
@@ -31,10 +32,12 @@ sftp.close()
 print("Tarball subido.")
 
 cmd = """
+mkdir -p /home/ubuntu/laujim-app/app/scripts
 tar -xzf /home/ubuntu/laujim-app/dist_update.tar.gz -C /home/ubuntu/laujim-app/app/
 docker cp /home/ubuntu/laujim-app/app/dist laujim-app:/app/
 docker cp /home/ubuntu/laujim-app/app/server.cjs laujim-app:/app/server.cjs
 docker cp /home/ubuntu/laujim-app/app/services-scraper.cjs laujim-app:/app/services-scraper.cjs
+docker cp /home/ubuntu/laujim-app/app/scripts/scrape-predial.cjs laujim-app:/app/scripts/scrape-predial.cjs
 docker cp /home/ubuntu/laujim-app/app/ezviz_stream_server.py laujim-video:/app/ezviz_stream_server.py
 docker restart laujim-video
 docker restart laujim-app

@@ -50,7 +50,8 @@ const DATO_LABELS = [
   ['referencia', 'Ref. Catastral'], ['direccion', 'Dirección'],
   ['matricula', 'Matrícula'], ['estrato', 'Estrato'],
   ['terreno', 'Área Terreno'], ['construida', 'Área Construida'],
-  ['destino', 'Destino'], ['postal', 'Cód. Postal'],
+  ['destino', 'Destino'], ['avaluo', 'Avalúo'],
+  ['recibo', 'No. Recibo'], ['postal', 'Cód. Postal'],
 ];
 
 export default function Predial() {
@@ -88,7 +89,7 @@ export default function Predial() {
     setMsg('');
     try {
       const res = await fetch(getBase() + '/predial/refresh', {
-        method: 'POST', headers: authHeaders(), signal: AbortSignal.timeout(120000),
+        method: 'POST', headers: authHeaders(), signal: AbortSignal.timeout(180000),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Error del servidor');

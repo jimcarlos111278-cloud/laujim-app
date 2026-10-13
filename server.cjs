@@ -7531,8 +7531,15 @@ function predialSum(vigencias) {
 async function refreshPredialData(reason) {
   if (predialRunning) return { ok: false, error: 'Ya hay una consulta en curso.' };
   predialRunning = true;
+  let sharedBrowser = null;
   try {
-    const { scrapePredial } = require('./scripts/scrape-predial.cjs');
+    delete require.cache[require.resolve('./scripts/scrape-predial.cjs')];
+    const { scrapePredial, createPredialBrowser } = require('./scripts/scrape-predial.cjs');
+    try {
+      sharedBrowser = await createPredialBrowser();
+    } catch (browserErr) {
+      console.warn(`[PREDIAL] No se pudo iniciar navegador compartido: ${browserErr.message}`);
+    }
     const apts = (db.apartments || [])
       .map(a => ({
         id: a.id,
@@ -7543,12 +7550,12 @@ async function refreshPredialData(reason) {
     const data = [];
     for (const a of apts) {
       try {
-        const r = await scrapePredial(a.ref);
+        const r = await scrapePredial(a.ref, { page: sharedBrowser?.page });
         data.push({ apt: a.name, id: a.id, ref: a.ref, datos: r.datos, vigencias: r.vigencias, pazYSalvo: !!r.pazYSalvo, totales: predialSum(r.vigencias), consultadoEn: r.consultadoEn, error: null });
       } catch (error) {
         data.push({ apt: a.name, id: a.id, ref: a.ref, datos: null, vigencias: [], totales: predialSum([]), consultadoEn: null, error: String(error.message || error) });
       }
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 600));
     }
     const granTotal = predialSum(data.flatMap(d => d.vigencias));
     granTotal.deudas = data.filter(d => d.totales.total > 0).length;
@@ -7561,9 +7568,12 @@ async function refreshPredialData(reason) {
       } catch {}
     }
     predialCache = { data, meta };
-    console.log(`[PREDIAL] Consulta ${meta.source}: ${data.length} aptos, gran total $${granTotal.total.toLocaleString('es-CO')}.`);
+    console.log(`[PREDIAL] Consulta ${meta.source}: ${data.length} aptos, descuentos $${granTotal.descuento.toLocaleString('es-CO')}, gran total $${granTotal.total.toLocaleString('es-CO')}.`);
     return { ok: true, meta, granTotal };
   } finally {
+    if (sharedBrowser?.browser) {
+      await sharedBrowser.browser.close().catch(() => {});
+    }
     predialRunning = false;
   }
 }
